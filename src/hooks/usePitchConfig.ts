@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DEFAULT_PRICING_PLANS, DEFAULT_TOKENS, PitchHistoryEntry, PitchTokens } from '@/lib/pitch/tokens';
+import type { SlideContent } from '@/lib/pitch/slideContent';
 
 const MAX_HISTORY = 10;
 
