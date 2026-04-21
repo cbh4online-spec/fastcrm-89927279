@@ -29,6 +29,27 @@ export function SlideModuleFeature({
       <div className="absolute inset-0" style={{ padding: '100px 80px' }}>
         <SlideHeader eyebrow={c.eyebrow} title={c.title || ''} subtitle={c.subtitle} />
 
+        {c.price && (
+          <div
+            className="absolute flex flex-col items-end"
+            style={{ top: 96, right: 80 }}
+          >
+            <div className="rounded-2xl bg-[#0F172A] text-white px-5 py-3 shadow-lg flex flex-col items-end">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#22D3EE] font-bold">
+                Investimento
+              </div>
+              <div className="font-black leading-none mt-1" style={{ fontSize: 32 }}>
+                {c.price}
+              </div>
+            </div>
+            {c.priceNote && (
+              <div className="text-[#64748B] mt-1.5 text-right" style={{ fontSize: 12 }}>
+                {c.priceNote}
+              </div>
+            )}
+          </div>
+        )}
+
         {stats.length > 0 && (
           <div
             className="grid gap-4 mb-8"

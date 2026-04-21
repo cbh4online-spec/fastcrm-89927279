@@ -33,6 +33,10 @@ export interface SlideContent {
   bullets?: string[];
   stats?: SlideStat[];
   extraText?: string;
+  /** Preço/investimento do módulo (ex: "€29 /mês", "€499 setup + €19/mês"). */
+  price?: string;
+  /** Nota curta sobre o preço (ex: "por utilizador", "incluído no plano Grow"). */
+  priceNote?: string;
 }
 
 export type SlideContentMap = Record<string, SlideContent>;
@@ -904,6 +908,53 @@ export const SLIDE_EDITOR_SCHEMAS: SlideEditorSchema[] = [
   { id: 'pack-loyalty', title: 'Fidelização & Cupões', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
 ];
 
+/* ---------------- DEFAULT MODULE PRICES ---------------- */
+/**
+ * Preços indicativos por módulo opcional.
+ * Format: "€XX /mês" ou "€XX setup + €YY/mês". Editável por slide.
+ */
+export const DEFAULT_MODULE_PRICES: Record<string, { price: string; priceNote?: string }> = {
+  // Módulos opcionais base
+  'mod-revenue':       { price: '€29 /mês',  priceNote: 'incluído no Grow' },
+  'mod-procurement':   { price: '€39 /mês',  priceNote: 'por workspace' },
+  'mod-shop':          { price: '€49 /mês',  priceNote: '+ 0,9% por venda' },
+  'mod-renewals':      { price: '€19 /mês',  priceNote: 'incluído no Grow' },
+  'mod-support':       { price: '€25 /mês',  priceNote: 'por agente' },
+  'mod-knowledge':     { price: '€35 /mês',  priceNote: 'até 1.000 documentos' },
+
+  // Verticais
+  'vert-clinics':      { price: '€59 /mês',  priceNote: 'por clínica' },
+  'vert-realestate':   { price: '€49 /mês',  priceNote: 'por agência' },
+  'vert-training':     { price: '€45 /mês',  priceNote: 'por entidade' },
+  'vert-condos':       { price: '€39 /mês',  priceNote: 'por administração' },
+  'vert-agencies':     { price: '€39 /mês',  priceNote: 'por agência' },
+  'vert-restaurants':  { price: '€35 /mês',  priceNote: 'por estabelecimento' },
+  'vert-auto':         { price: '€39 /mês',  priceNote: 'por oficina' },
+  'vert-gyms':         { price: '€45 /mês',  priceNote: 'por unidade' },
+  'vert-beauty':       { price: '€35 /mês',  priceNote: 'por salão' },
+  'vert-events':       { price: '€49 /mês',  priceNote: 'por workspace' },
+  'vert-construction': { price: '€59 /mês',  priceNote: 'por empresa' },
+  'vert-legal':        { price: '€49 /mês',  priceNote: 'por escritório' },
+
+  // Packs funcionais
+  'pack-billing-pt':       { price: '€19 /mês',  priceNote: 'por workspace · cert. AT' },
+  'pack-b2b-portal':       { price: '€59 /mês',  priceNote: 'por workspace' },
+  'pack-hr':               { price: '€4 /mês',   priceNote: 'por colaborador' },
+  'pack-analytics':        { price: '€39 /mês',  priceNote: 'dashboards ilimitados' },
+  'pack-omnichannel':      { price: '€29 /mês',  priceNote: 'por agente' },
+  'pack-automations':      { price: '€25 /mês',  priceNote: 'fluxos ilimitados' },
+  'pack-marketplace-c2c':  { price: '€89 /mês',  priceNote: '+ 2,5% comissão' },
+  'pack-lives':            { price: '€69 /mês',  priceNote: '+ consumo Mux' },
+  'pack-ai-sdr-deep':      { price: '€79 /mês',  priceNote: 'por SDR · IA incluída' },
+  'pack-pipeline-risk':    { price: '€29 /mês',  priceNote: 'por workspace' },
+  'pack-compliance-rgpd':  { price: '€39 /mês',  priceNote: 'incluído no Pro' },
+  'pack-procurement-pro':  { price: '€69 /mês',  priceNote: 'por workspace' },
+  'pack-knowledge-rag':    { price: '€59 /mês',  priceNote: 'até 5.000 documentos' },
+  'pack-saas-billing':     { price: '€49 /mês',  priceNote: 'por workspace' },
+  'pack-events-rsvp':      { price: '€29 /mês',  priceNote: 'por evento ativo' },
+  'pack-loyalty':          { price: '€35 /mês',  priceNote: 'por workspace' },
+};
+
 /** Resolve effective content for a slide: override merged with defaults. */
 export function resolveSlideContent(
   id: string,
@@ -911,6 +962,7 @@ export function resolveSlideContent(
 ): SlideContent {
   const base = DEFAULT_SLIDE_CONTENT[id] || {};
   const ov = overrides?.[id] || {};
+  const priceDefaults = DEFAULT_MODULE_PRICES[id];
   // Merge primitives + arrays (override wins, but each item in arrays merges per-index)
   const mergeItems = (a?: SlideItem[], b?: SlideItem[]) => {
     if (!a) return b;
@@ -938,6 +990,8 @@ export function resolveSlideContent(
     stats: mergeStats(base.stats, ov.stats),
     bullets: mergeBullets(base.bullets, ov.bullets),
     extraText: ov.extraText ?? base.extraText,
+    price: ov.price ?? base.price ?? priceDefaults?.price,
+    priceNote: ov.priceNote ?? base.priceNote ?? priceDefaults?.priceNote,
   };
 }
 

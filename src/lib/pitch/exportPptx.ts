@@ -494,6 +494,16 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     s.background = { color: WHITE };
     header(s, (c.eyebrow || '').toUpperCase(), c.title || label, c.subtitle);
 
+    // Price badge (top-right)
+    if (c.price) {
+      s.addShape('roundRect', { x: 10.3, y: 0.5, w: 2.55, h: 1.1, fill: { color: NAVY }, line: { color: NAVY }, rectRadius: 0.12 });
+      s.addText('INVESTIMENTO', { x: 10.4, y: 0.58, w: 2.4, h: 0.22, fontSize: 8, bold: true, color: CYAN, align: 'right', charSpacing: 4, fontFace: 'Calibri' });
+      s.addText(c.price, { x: 10.4, y: 0.82, w: 2.4, h: 0.55, fontSize: 22, bold: true, color: WHITE, align: 'right', fontFace: 'Calibri' });
+      if (c.priceNote) {
+        s.addText(c.priceNote, { x: 9.5, y: 1.65, w: 3.35, h: 0.25, fontSize: 9, color: SLATE_LIGHT, align: 'right', italic: true, fontFace: 'Calibri' });
+      }
+    }
+
     const stats = (c.stats || []).slice(0, 4);
     if (stats.length > 0) {
       const w = 12 / stats.length - 0.15;

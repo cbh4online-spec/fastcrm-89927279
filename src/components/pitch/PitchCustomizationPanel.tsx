@@ -12,6 +12,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS, BASE_MODULE_SLIDE_IDS, VERTICAL_SLIDE_IDS, PACK_SLIDE_IDS } from './slides';
+import { DEFAULT_MODULE_PRICES } from '@/lib/pitch/slideContent';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -444,6 +445,7 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                 <div className="space-y-1.5">
                   {PITCH_SLIDES.filter((s) => s.category === cat).map((s) => {
                     const isOn = enabledList.includes(s.id);
+                    const priceInfo = DEFAULT_MODULE_PRICES[s.id];
                     return (
                       <label
                         key={s.id}
@@ -460,6 +462,17 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                           }}
                         />
                         <span className="flex-1 truncate">{s.title}</span>
+                        {priceInfo && (
+                          <span
+                            className={cn(
+                              'text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded whitespace-nowrap',
+                              isOn ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                            )}
+                            title={priceInfo.priceNote}
+                          >
+                            {priceInfo.price}
+                          </span>
+                        )}
                       </label>
                     );
                   })}
