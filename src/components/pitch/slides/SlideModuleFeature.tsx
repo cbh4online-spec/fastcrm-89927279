@@ -1,5 +1,6 @@
 import { PitchTokens } from '@/lib/pitch/tokens';
 import { resolveSlideContent } from '@/lib/pitch/slideContent';
+import { COMPARABLE_MODULES } from '@/lib/pitch/moduleCatalog';
 import { SlideShell, SlideHeader, SlideFooter } from './SlideShell';
 
 /**
@@ -27,7 +28,10 @@ export function SlideModuleFeature({
   });
   const items = c.items || [];
   const stats = c.stats || [];
-  const tierName = tokens.tier === 'pro' ? 'Pro' : tokens.tier === 'enterprise' ? 'Enterprise' : 'Grow';
+  const tierKey = (tokens.tier ?? 'grow') as 'grow' | 'pro' | 'enterprise';
+  const tierName = tierKey === 'pro' ? 'Pro' : tierKey === 'enterprise' ? 'Enterprise' : 'Grow';
+  const catalogEntry = COMPARABLE_MODULES.find((m) => m.id === slideId);
+  const tierLimit = catalogEntry?.limits[tierKey];
 
   return (
     <SlideShell variant="light">
@@ -39,7 +43,7 @@ export function SlideModuleFeature({
             className="absolute flex flex-col items-end"
             style={{ top: 96, right: 80 }}
           >
-            <div className="rounded-2xl bg-[#0F172A] text-white px-5 py-3 shadow-lg flex flex-col items-end">
+            <div className="rounded-2xl bg-[#0F172A] text-white px-5 py-3 shadow-lg flex flex-col items-end" style={{ minWidth: 220 }}>
               <div className="flex items-center gap-2">
                 <div className="text-[10px] uppercase tracking-[0.2em] text-[#22D3EE] font-bold">
                   Investimento
@@ -51,6 +55,16 @@ export function SlideModuleFeature({
               <div className="font-black leading-none mt-1" style={{ fontSize: 32 }}>
                 {c.price}
               </div>
+              {tierLimit && (
+                <div className="mt-2 pt-2 border-t border-white/10 w-full text-right">
+                  <div className="text-[9px] uppercase tracking-[0.18em] text-[#94A3B8] font-semibold">
+                    Limite incluído
+                  </div>
+                  <div className="text-[#E2E8F0] font-semibold mt-0.5" style={{ fontSize: 13 }}>
+                    {tierLimit}
+                  </div>
+                </div>
+              )}
             </div>
             {c.priceNote && (
               <div className="text-[#64748B] mt-1.5 text-right" style={{ fontSize: 12 }}>

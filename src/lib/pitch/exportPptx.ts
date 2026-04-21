@@ -1,6 +1,7 @@
 import type PptxGenJSType from 'pptxgenjs';
 import { DEFAULT_PRICING_PLANS, PitchTokens, fillToken, formatMeetingDate } from './tokens';
 import { resolveSlideContent } from './slideContent';
+import { COMPARABLE_MODULES } from './moduleCatalog';
 
 const NAVY = '0F172A';
 const CYAN = '22D3EE';
@@ -498,17 +499,25 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     s.background = { color: WHITE };
     header(s, (c.eyebrow || '').toUpperCase(), c.title || label, c.subtitle);
 
-    // Price badge (top-right) with tier chip
+    // Price badge (top-right) with tier chip + tier limit
     if (c.price) {
-      const tierName = tokens.tier === 'pro' ? 'Pro' : tokens.tier === 'enterprise' ? 'Enterprise' : 'Grow';
-      s.addShape('roundRect', { x: 10.3, y: 0.5, w: 2.55, h: 1.2, fill: { color: NAVY }, line: { color: NAVY }, rectRadius: 0.12 });
+      const tierKey = (tokens.tier ?? 'grow') as 'grow' | 'pro' | 'enterprise';
+      const tierName = tierKey === 'pro' ? 'Pro' : tierKey === 'enterprise' ? 'Enterprise' : 'Grow';
+      const catalogEntry = COMPARABLE_MODULES.find((m) => m.id === id);
+      const tierLimit = catalogEntry?.limits[tierKey];
+      const badgeH = tierLimit ? 1.7 : 1.2;
+      s.addShape('roundRect', { x: 10.3, y: 0.5, w: 2.55, h: badgeH, fill: { color: NAVY }, line: { color: NAVY }, rectRadius: 0.12 });
       s.addText('INVESTIMENTO', { x: 10.4, y: 0.58, w: 1.5, h: 0.22, fontSize: 8, bold: true, color: CYAN, charSpacing: 4, fontFace: 'Calibri' });
-      // tier chip (cyan pill)
       s.addShape('roundRect', { x: 11.95, y: 0.56, w: 0.85, h: 0.27, fill: { color: CYAN }, line: { color: CYAN }, rectRadius: 0.06 });
       s.addText(tierName.toUpperCase(), { x: 11.95, y: 0.56, w: 0.85, h: 0.27, fontSize: 8, bold: true, color: NAVY, align: 'center', valign: 'middle', charSpacing: 2, fontFace: 'Calibri' });
-      s.addText(c.price, { x: 10.4, y: 0.92, w: 2.4, h: 0.55, fontSize: 22, bold: true, color: WHITE, align: 'right', fontFace: 'Calibri' });
+      s.addText(c.price, { x: 10.4, y: 0.92, w: 2.4, h: 0.5, fontSize: 22, bold: true, color: WHITE, align: 'right', fontFace: 'Calibri' });
+      if (tierLimit) {
+        s.addShape('rect', { x: 10.45, y: 1.43, w: 2.3, h: 0.01, fill: { color: 'FFFFFF' }, line: { color: 'FFFFFF' } });
+        s.addText('LIMITE INCLUÍDO', { x: 10.4, y: 1.46, w: 2.4, h: 0.18, fontSize: 7, bold: true, color: '94A3B8', charSpacing: 3, align: 'right', fontFace: 'Calibri' });
+        s.addText(tierLimit, { x: 10.4, y: 1.64, w: 2.4, h: 0.22, fontSize: 10, bold: true, color: 'E2E8F0', align: 'right', fontFace: 'Calibri' });
+      }
       if (c.priceNote) {
-        s.addText(c.priceNote, { x: 9.5, y: 1.75, w: 3.35, h: 0.25, fontSize: 9, color: SLATE_LIGHT, align: 'right', italic: true, fontFace: 'Calibri' });
+        s.addText(c.priceNote, { x: 9.5, y: 0.5 + badgeH + 0.05, w: 3.35, h: 0.25, fontSize: 9, color: SLATE_LIGHT, align: 'right', italic: true, fontFace: 'Calibri' });
       }
     }
 
