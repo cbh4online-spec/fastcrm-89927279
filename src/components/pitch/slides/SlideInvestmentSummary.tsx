@@ -295,6 +295,50 @@ export function Slide16InvestmentSummary({
               </div>
             )}
 
+            {/* Pacotes adicionais de créditos IA (top-up) */}
+            {(() => {
+              const packs = parseAiCreditPacks(c.priceNote) ?? DEFAULT_AI_CREDIT_PACKS;
+              if (!packs || packs.length === 0) return null;
+              return (
+                <div className="rounded-2xl border-2 border-[#C4B5FD] bg-white p-4">
+                  <div className="uppercase tracking-[0.2em] text-[#6D28D9] font-semibold mb-2" style={{ fontSize: 11 }}>
+                    Comprar créditos extra
+                  </div>
+                  <div className="space-y-1.5">
+                    {packs.map((p, i) => {
+                      const priceConv = p.priceEur * fxRate;
+                      const perCredit = p.priceEur > 0 ? (p.priceEur / p.credits) : 0;
+                      return (
+                        <div
+                          key={i}
+                          className="grid items-baseline border-b border-[#EDE9FE] last:border-0 pb-1 last:pb-0"
+                          style={{ gridTemplateColumns: '1fr auto', columnGap: 12, fontSize: 13 }}
+                        >
+                          <div className="text-[#0F172A] font-semibold">
+                            {p.credits.toLocaleString('pt-PT')}{' '}
+                            <span className="text-[#6D28D9] font-medium" style={{ fontSize: 11 }}>créditos</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-mono tabular-nums font-bold text-[#0F172A]">
+                              {formatPrice(priceConv, currency)}
+                            </span>
+                            {perCredit > 0 && (
+                              <div className="text-[#94A3B8]" style={{ fontSize: 10 }}>
+                                {formatPrice(perCredit * fxRate, currency)}/crédito
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[#64748B] mt-2" style={{ fontSize: 10 }}>
+                    Top-up único · sem expiração · ativação imediata.
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="text-[#64748B] text-center" style={{ fontSize: 11 }}>
               Valores indicativos · {intervalLabel('annual')}
             </div>
