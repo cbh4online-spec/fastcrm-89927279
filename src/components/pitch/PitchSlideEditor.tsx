@@ -18,7 +18,7 @@ import {
   SlideStat,
   resolveSlideContent,
 } from '@/lib/pitch/slideContent';
-import { DEFAULT_PLAN_SETUP_EUR } from '@/lib/pitch/planSummary';
+import { DEFAULT_PLAN_SETUP_EUR, DEFAULT_AI_CREDIT_PACKS, parseAiCreditPacks, serializeAiCreditPacks, type AiCreditPack } from '@/lib/pitch/planSummary';
 import { parsePriceBreakdown } from '@/lib/pitch/pricing';
 
 type PitchConfig = ReturnType<typeof usePitchConfig>;
