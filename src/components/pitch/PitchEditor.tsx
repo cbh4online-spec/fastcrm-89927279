@@ -155,27 +155,71 @@ export function PitchEditor() {
           </div>
         </div>
 
+        {orderIssues.length > 0 && (
+          <div
+            className={cn(
+              'border-t px-4 py-2 flex items-start gap-2 text-xs',
+              hasErrors
+                ? 'bg-destructive/10 text-destructive border-destructive/30'
+                : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+            )}
+            role="alert"
+          >
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <div className="font-semibold mb-0.5">
+                {hasErrors ? 'Erros de ordem detetados' : 'Avisos de ordem dos slides'} ({orderIssues.length})
+              </div>
+              <ul className="list-disc list-inside space-y-0.5 opacity-90">
+                {orderIssues.slice(0, 3).map((issue, i) => (
+                  <li key={i}>{issue.message}</li>
+                ))}
+                {orderIssues.length > 3 && <li>… mais {orderIssues.length - 3} aviso(s).</li>}
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div className="border-t bg-card overflow-x-auto">
           <div className="flex gap-2 p-3">
-            {activeSlides.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => setIndex(i)}
-                className={cn(
-                  'flex-shrink-0 w-32 rounded-md border-2 overflow-hidden transition',
-                  i === safeIndex ? 'border-primary shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
-                )}
-              >
-                <div className="bg-white" style={{ aspectRatio: '16 / 9' }}>
-                  <PitchSlideCanvas>
-                    <s.component tokens={tokens} pageNumber={i + 1} total={total} />
-                  </PitchSlideCanvas>
-                </div>
-                <div className="text-[10px] text-center py-1 bg-card text-muted-foreground truncate px-1">
-                  {i + 1}. {s.title}
-                </div>
-              </button>
-            ))}
+            {activeSlides.map((s, i) => {
+              const isActive = i === safeIndex;
+              const categoryClass = CATEGORY_COLOR[s.category] ?? 'bg-muted text-muted-foreground border-border';
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setIndex(i)}
+                  title={`#${i + 1} · ${s.title} · ${CATEGORY_LABEL[s.category] ?? s.category}`}
+                  className={cn(
+                    'flex-shrink-0 w-32 rounded-md border-2 overflow-hidden transition relative',
+                    isActive ? 'border-primary shadow-md' : 'border-transparent opacity-70 hover:opacity-100 hover:border-border'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'absolute top-1 left-1 z-10 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border tabular-nums',
+                      isActive
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background/90 text-foreground border-border'
+                    )}
+                  >
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
+                  <div
+                    className={cn('absolute top-1 right-1 z-10 w-2.5 h-2.5 rounded-full border', categoryClass)}
+                    aria-label={CATEGORY_LABEL[s.category] ?? s.category}
+                  />
+                  <div className="bg-white" style={{ aspectRatio: '16 / 9' }}>
+                    <PitchSlideCanvas>
+                      <s.component tokens={tokens} pageNumber={i + 1} total={total} />
+                    </PitchSlideCanvas>
+                  </div>
+                  <div className="text-[10px] text-center py-1 bg-card text-muted-foreground truncate px-1">
+                    {s.title}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </main>
