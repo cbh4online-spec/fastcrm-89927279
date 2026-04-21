@@ -955,13 +955,13 @@ export const DEFAULT_MODULE_PRICES: Record<string, { price: string; priceNote?: 
   'pack-loyalty':          { price: '€35 /mês',  priceNote: 'por workspace' },
 };
 
-import { convertPriceString, type PitchCurrency, type PitchBillingInterval } from './pricing';
+import { convertPriceString, type PitchCurrency, type PitchBillingInterval, type PitchTier } from './pricing';
 
 /** Resolve effective content for a slide: override merged with defaults. */
 export function resolveSlideContent(
   id: string,
   overrides: SlideContentMap | undefined,
-  pricing?: { currency?: PitchCurrency; interval?: PitchBillingInterval }
+  pricing?: { currency?: PitchCurrency; interval?: PitchBillingInterval; tier?: PitchTier }
 ): SlideContent {
   const base = DEFAULT_SLIDE_CONTENT[id] || {};
   const ov = overrides?.[id] || {};
@@ -983,10 +983,12 @@ export function resolveSlideContent(
   };
   let price = ov.price ?? base.price ?? priceDefaults?.price;
   let priceNote = ov.priceNote ?? base.priceNote ?? priceDefaults?.priceNote;
-  if (pricing && (pricing.currency || pricing.interval)) {
+  if (pricing && (pricing.currency || pricing.interval || pricing.tier)) {
     const currency = pricing.currency || 'EUR';
     const interval = pricing.interval || 'monthly';
-    if (!ov.price) price = convertPriceString(price, currency, interval);
+    const tier = pricing.tier || 'grow';
+    if (!ov.price) price = convertPriceString(price, currency, interval, tier);
+    // Notes don't get the tier multiplier — only currency/interval rewrites.
     if (!ov.priceNote) priceNote = convertPriceString(priceNote, currency, interval);
   }
   return {

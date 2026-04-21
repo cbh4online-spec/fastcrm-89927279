@@ -492,18 +492,23 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     const c = resolveSlideContent(id, tokens.slideOverrides, {
       currency: tokens.currency,
       interval: tokens.billingInterval,
+      tier: tokens.tier,
     });
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, (c.eyebrow || '').toUpperCase(), c.title || label, c.subtitle);
 
-    // Price badge (top-right)
+    // Price badge (top-right) with tier chip
     if (c.price) {
-      s.addShape('roundRect', { x: 10.3, y: 0.5, w: 2.55, h: 1.1, fill: { color: NAVY }, line: { color: NAVY }, rectRadius: 0.12 });
-      s.addText('INVESTIMENTO', { x: 10.4, y: 0.58, w: 2.4, h: 0.22, fontSize: 8, bold: true, color: CYAN, align: 'right', charSpacing: 4, fontFace: 'Calibri' });
-      s.addText(c.price, { x: 10.4, y: 0.82, w: 2.4, h: 0.55, fontSize: 22, bold: true, color: WHITE, align: 'right', fontFace: 'Calibri' });
+      const tierName = tokens.tier === 'pro' ? 'Pro' : tokens.tier === 'enterprise' ? 'Enterprise' : 'Grow';
+      s.addShape('roundRect', { x: 10.3, y: 0.5, w: 2.55, h: 1.2, fill: { color: NAVY }, line: { color: NAVY }, rectRadius: 0.12 });
+      s.addText('INVESTIMENTO', { x: 10.4, y: 0.58, w: 1.5, h: 0.22, fontSize: 8, bold: true, color: CYAN, charSpacing: 4, fontFace: 'Calibri' });
+      // tier chip (cyan pill)
+      s.addShape('roundRect', { x: 11.95, y: 0.56, w: 0.85, h: 0.27, fill: { color: CYAN }, line: { color: CYAN }, rectRadius: 0.06 });
+      s.addText(tierName.toUpperCase(), { x: 11.95, y: 0.56, w: 0.85, h: 0.27, fontSize: 8, bold: true, color: NAVY, align: 'center', valign: 'middle', charSpacing: 2, fontFace: 'Calibri' });
+      s.addText(c.price, { x: 10.4, y: 0.92, w: 2.4, h: 0.55, fontSize: 22, bold: true, color: WHITE, align: 'right', fontFace: 'Calibri' });
       if (c.priceNote) {
-        s.addText(c.priceNote, { x: 9.5, y: 1.65, w: 3.35, h: 0.25, fontSize: 9, color: SLATE_LIGHT, align: 'right', italic: true, fontFace: 'Calibri' });
+        s.addText(c.priceNote, { x: 9.5, y: 1.75, w: 3.35, h: 0.25, fontSize: 9, color: SLATE_LIGHT, align: 'right', italic: true, fontFace: 'Calibri' });
       }
     }
 
