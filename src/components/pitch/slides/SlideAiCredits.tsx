@@ -96,8 +96,12 @@ export function SlideAiCredits({
 
   const packs = parseAiCreditPacks(c.priceNote) ?? DEFAULT_AI_CREDIT_PACKS;
 
-  // Casos de uso (default; permite override futuro via items, mantemos default sólido).
-  const useCases = DEFAULT_USE_CASES;
+  // Casos de uso editáveis: lê de slideOverrides.items, faz parse "<custo>|descrição".
+  // Mantém ícones default por posição.
+  const items = (c.items && c.items.length > 0) ? c.items : null;
+  const useCases: UseCase[] = items
+    ? items.map((it, i) => parseUseCaseItem(it, DEFAULT_ICONS[i % DEFAULT_ICONS.length]))
+    : DEFAULT_USE_CASES;
 
   return (
     <SlideShell variant="light">
