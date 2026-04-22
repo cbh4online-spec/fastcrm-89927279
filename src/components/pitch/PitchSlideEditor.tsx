@@ -377,7 +377,16 @@ export function PitchSlideEditor({ config, currentIndex, onSelectSlide }: Props)
   );
 }
 
-/* ---------------- Investment Summary overrides ---------------- */
+/* ---------------- AI Credits — parser de items "<custo>|descrição" ---------------- */
+function parseAiCreditItem(raw: string): { cost: number; desc: string } {
+  const v = (raw ?? '').trim();
+  const m = v.match(/^\s*(\d+)\s*[|:·\-–]\s*(.*)$/);
+  if (m) return { cost: parseInt(m[1], 10) || 0, desc: m[2].trim() };
+  const onlyNum = v.match(/^\s*(\d+)\s*$/);
+  if (onlyNum) return { cost: parseInt(onlyNum[1], 10), desc: '' };
+  return { cost: 0, desc: v };
+}
+
 
 function InvestmentSummaryOverrides({
   tier,
