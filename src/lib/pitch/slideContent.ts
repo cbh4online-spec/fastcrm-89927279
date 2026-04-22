@@ -845,6 +845,22 @@ export const DEFAULT_SLIDE_CONTENT: SlideContentMap = {
       { title: 'Analytics fidelização', text: 'Dashboard com membros ativos, redenção, ROI do programa e CLV por segmento.' },
     ],
   },
+
+  'ai-credits': {
+    eyebrow: 'Inteligência Artificial',
+    title: 'Créditos IA — combustível da plataforma',
+    subtitle:
+      'Cada ação de IA consome créditos. O plano inclui um saldo mensal e pode comprar pacotes extra a qualquer momento.',
+    // Convenção: text = "<custo>|descrição" — o custo (número de créditos) é parsed pelo slide.
+    items: [
+      { title: 'Email outbound personalizado', text: '2|Geração com contexto do lead' },
+      { title: 'Resposta sugerida na inbox', text: '1|Sugestão contextual instantânea' },
+      { title: 'Enriquecimento de lead', text: '5|Pesquisa web + síntese' },
+      { title: 'Resumo de conversa', text: '3|Resumo + próximos passos' },
+      { title: 'Sequência AI SDR (passo)', text: '4|Mensagem + follow-up automático' },
+      { title: 'Análise de risco do negócio', text: '8|Pipeline Risk Engine' },
+    ],
+  },
 };
 
 /* ---------------- EDITOR SCHEMAS ---------------- */
@@ -863,6 +879,7 @@ export const SLIDE_EDITOR_SCHEMAS: SlideEditorSchema[] = [
   { id: 'marketplace', title: 'Loja & Marketplace', fields: { eyebrow: true, title: true, subtitle: true, items: { count: 3 }, extraText: { label: 'Caixa de destaque', multiline: true } } },
   { id: 'diff', title: 'Diferenciadores', fields: { eyebrow: true, title: true, bullets: { count: 8 } } },
   { id: 'results', title: 'Resultados', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 } } },
+  { id: 'ai-credits', title: 'Créditos IA', fields: { eyebrow: true, title: true, subtitle: true, items: { count: 6, titleLabel: 'Ação de IA', textLabel: 'Custo + descrição (formato: 3|Resumo curto)' } } },
   { id: 'pricing', title: 'Investimento', fields: { eyebrow: true, title: true, subtitle: true } },
   { id: 'onboarding', title: 'Onboarding', fields: { eyebrow: true, title: true, subtitle: true, items: { count: 4, titleLabel: 'Tema', textLabel: 'Descrição' } } },
   { id: 'next', title: 'Próximos passos', fields: { eyebrow: true, heroText: true, items: { count: 3 } } },

@@ -232,6 +232,58 @@ export function PitchSlideEditor({ config, currentIndex, onSelectSlide }: Props)
               {Array.from({ length: f.items.count }).map((_, i) => {
                 const item = effective.items?.[i] || { title: '', text: '' };
                 const def = defaults.items?.[i];
+
+                // Slide "ai-credits" usa convenção "<custo>|descrição" — UI dedicada.
+                if (slideMeta.id === 'ai-credits') {
+                  const parsed = parseAiCreditItem(item.text);
+                  const setCost = (raw: string) => {
+                    const n = parseInt(raw.replace(/[^\d]/g, ''), 10);
+                    const cost = isFinite(n) && n >= 0 ? n : 0;
+                    updateItem(i, { text: `${cost}|${parsed.desc}` });
+                  };
+                  const setDesc = (raw: string) => {
+                    updateItem(i, { text: `${parsed.cost}|${raw}` });
+                  };
+                  const defParsed = def ? parseAiCreditItem(def.text) : { cost: 0, desc: '' };
+                  return (
+                    <div key={i} className="border rounded-md p-3 space-y-2 bg-muted/20">
+                      <div className="text-xs font-semibold text-muted-foreground">#{i + 1}</div>
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">Ação de IA</Label>
+                        <Input
+                          value={item.title}
+                          onChange={(e) => updateItem(i, { title: e.target.value })}
+                          placeholder={def?.title || 'Ex.: Email outbound personalizado'}
+                        />
+                      </div>
+                      <div className="grid gap-2" style={{ gridTemplateColumns: '90px 1fr' }}>
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground">Custo</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={parsed.cost}
+                            onChange={(e) => setCost(e.target.value)}
+                            placeholder={String(defParsed.cost)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground">Descrição</Label>
+                          <Input
+                            value={parsed.desc}
+                            onChange={(e) => setDesc(e.target.value)}
+                            placeholder={defParsed.desc || 'Descrição curta'}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Custo em créditos por execução desta ação.
+                      </p>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={i} className="border rounded-md p-3 space-y-2 bg-muted/20">
                     <div className="text-xs font-semibold text-muted-foreground">#{i + 1}</div>
@@ -325,7 +377,16 @@ export function PitchSlideEditor({ config, currentIndex, onSelectSlide }: Props)
   );
 }
 
-/* ---------------- Investment Summary overrides ---------------- */
+/* ---------------- AI Credits — parser de items "<custo>|descrição" ---------------- */
+function parseAiCreditItem(raw: string): { cost: number; desc: string } {
+  const v = (raw ?? '').trim();
+  const m = v.match(/^\s*(\d+)\s*[|:·\-–]\s*(.*)$/);
+  if (m) return { cost: parseInt(m[1], 10) || 0, desc: m[2].trim() };
+  const onlyNum = v.match(/^\s*(\d+)\s*$/);
+  if (onlyNum) return { cost: parseInt(onlyNum[1], 10), desc: '' };
+  return { cost: 0, desc: v };
+}
+
 
 function InvestmentSummaryOverrides({
   tier,

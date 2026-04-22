@@ -29,6 +29,8 @@ interface UseCase {
   desc: string;
 }
 
+const DEFAULT_ICONS = [Mail, PenLine, Search, FileText, Bot, TrendingUp];
+
 const DEFAULT_USE_CASES: UseCase[] = [
   { icon: Mail, title: 'Email outbound personalizado', cost: 2, desc: 'Geração com contexto do lead' },
   { icon: PenLine, title: 'Resposta sugerida na inbox', cost: 1, desc: 'Sugestão contextual instantânea' },
@@ -37,6 +39,34 @@ const DEFAULT_USE_CASES: UseCase[] = [
   { icon: Bot, title: 'Sequência AI SDR (passo)', cost: 4, desc: 'Mensagem + follow-up automático' },
   { icon: TrendingUp, title: 'Análise de risco do negócio', cost: 8, desc: 'Pipeline Risk Engine' },
 ];
+
+/**
+ * Parse de um SlideItem editado: o `text` segue a convenção "<custo>|descrição".
+ * Tolera apenas descrição (custo = 0) ou apenas número.
+ */
+function parseUseCaseItem(
+  item: { title: string; text: string },
+  fallbackIcon: typeof Sparkles
+): UseCase {
+  const raw = (item.text ?? '').trim();
+  const m = raw.match(/^\s*(\d+)\s*[|:·\-–]\s*(.*)$/);
+  if (m) {
+    return {
+      icon: fallbackIcon,
+      title: item.title || '—',
+      cost: parseInt(m[1], 10) || 0,
+      desc: m[2].trim(),
+    };
+  }
+  // Sem separador: tenta número puro, senão assume tudo descrição.
+  const onlyNumber = raw.match(/^\s*(\d+)\s*$/);
+  return {
+    icon: fallbackIcon,
+    title: item.title || '—',
+    cost: onlyNumber ? parseInt(onlyNumber[1], 10) : 0,
+    desc: onlyNumber ? '' : raw,
+  };
+}
 
 export function SlideAiCredits({
   tokens,
@@ -66,8 +96,12 @@ export function SlideAiCredits({
 
   const packs = parseAiCreditPacks(c.priceNote) ?? DEFAULT_AI_CREDIT_PACKS;
 
-  // Casos de uso (default; permite override futuro via items, mantemos default sólido).
-  const useCases = DEFAULT_USE_CASES;
+  // Casos de uso editáveis: lê de slideOverrides.items, faz parse "<custo>|descrição".
+  // Mantém ícones default por posição.
+  const items = (c.items && c.items.length > 0) ? c.items : null;
+  const useCases: UseCase[] = items
+    ? items.map((it, i) => parseUseCaseItem(it, DEFAULT_ICONS[i % DEFAULT_ICONS.length]))
+    : DEFAULT_USE_CASES;
 
   return (
     <SlideShell variant="light">
