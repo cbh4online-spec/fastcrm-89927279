@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2, AlertTriangle, Share2 } from 'lucide-react';
 import { PitchSlideCanvas } from './PitchSlideCanvas';
 import { PitchCustomizationPanel } from './PitchCustomizationPanel';
 import { PitchSlideEditor } from './PitchSlideEditor';
 import { PitchPresenterMode } from './PitchPresenterMode';
+import { SharePitchModal } from './SharePitchModal';
 import { PITCH_SLIDES, getActiveSlides } from './slides';
 import { usePitchConfig } from '@/hooks/usePitchConfig';
 import { toast } from 'sonner';
@@ -19,6 +20,7 @@ export function PitchEditor() {
   const [presenting, setPresenting] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const activeSlides = getActiveSlides(tokens.enabledSlides);
   const total = activeSlides.length;
@@ -137,6 +139,9 @@ export function PitchEditor() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
+              <Share2 className="h-4 w-4 mr-2" /> Partilhar
+            </Button>
             <Button variant="outline" size="sm" disabled={exporting} onClick={() => handleExport()}>
               {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
               Exportar .pptx
@@ -223,6 +228,8 @@ export function PitchEditor() {
           </div>
         </div>
       </main>
+
+      <SharePitchModal open={shareOpen} onOpenChange={setShareOpen} tokens={tokens} />
     </div>
   );
 }
