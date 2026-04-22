@@ -42565,6 +42565,133 @@ export type Database = {
           },
         ]
       }
+      pitch_share_views: {
+        Row: {
+          completed: boolean
+          created_at: string
+          device_type: string | null
+          ended_at: string | null
+          id: string
+          ip_address: string | null
+          last_activity_at: string
+          max_slide_index: number
+          share_id: string
+          slides_seen: Json
+          started_at: string
+          total_seconds: number
+          user_agent: string | null
+          viewer_email: string
+          viewer_name: string | null
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          device_type?: string | null
+          ended_at?: string | null
+          id?: string
+          ip_address?: string | null
+          last_activity_at?: string
+          max_slide_index?: number
+          share_id: string
+          slides_seen?: Json
+          started_at?: string
+          total_seconds?: number
+          user_agent?: string | null
+          viewer_email: string
+          viewer_name?: string | null
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          device_type?: string | null
+          ended_at?: string | null
+          id?: string
+          ip_address?: string | null
+          last_activity_at?: string
+          max_slide_index?: number
+          share_id?: string
+          slides_seen?: Json
+          started_at?: string
+          total_seconds?: number
+          user_agent?: string | null
+          viewer_email?: string
+          viewer_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pitch_share_views_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "pitch_shares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pitch_shares: {
+        Row: {
+          company_name: string | null
+          contact_name: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          last_viewed_at: string | null
+          revoked_at: string | null
+          slide_titles: Json
+          token: string
+          tokens_snapshot: Json
+          total_slides: number
+          unique_viewers_count: number
+          updated_at: string
+          view_count: number
+          workspace_id: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          revoked_at?: string | null
+          slide_titles?: Json
+          token: string
+          tokens_snapshot: Json
+          total_slides?: number
+          unique_viewers_count?: number
+          updated_at?: string
+          view_count?: number
+          workspace_id?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          revoked_at?: string | null
+          slide_titles?: Json
+          token?: string
+          tokens_snapshot?: Json
+          total_slides?: number
+          unique_viewers_count?: number
+          updated_at?: string
+          view_count?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pitch_shares_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_features: {
         Row: {
           created_at: string
