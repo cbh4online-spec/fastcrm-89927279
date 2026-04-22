@@ -86,3 +86,12 @@ verify_jwt = false
 
 [functions.imoconnect-webhook]
 verify_jwt = false
+
+[functions.pitch-share-get]
+verify_jwt = false
+
+[functions.pitch-share-start-view]
+verify_jwt = false
+
+[functions.pitch-share-track]
+verify_jwt = false
