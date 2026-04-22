@@ -26,7 +26,6 @@ import { FastClubPortalRoutes } from "@/routes/FastClubRoutes";
 const PublicFunnelPage = lazy(() => import("@/pages/PublicFunnelPage"));
 const PublicBioPage = lazy(() => import("@/pages/PublicBioPage"));
 const PublicBioShortLink = lazy(() => import("@/pages/PublicBioShortLink"));
-const PitchPublicView = lazy(() => import("@/pages/dashboard/PitchPublicView"));
 const C2CPublicMarketplace = lazy(() => import("@/pages/c2c/C2CPublicMarketplace"));
 const C2CPublicLivestreamViewer = lazy(() => import("@/pages/c2c/C2CPublicLivestreamViewer"));
 const C2CPublicLivesGallery = lazy(() => import("@/pages/c2c/C2CPublicLivesGallery"));
@@ -106,9 +105,6 @@ const App = () => (
                 {/* Public Bio Pages */}
                 <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
                 <Route path="/b/:shortCode" element={<PublicBioShortLink />} />
-
-                {/* Public Pitch Share */}
-                <Route path="/p/:token" element={<PitchPublicView />} />
 
                 {/* Store - ISOLATED from CRM providers */}
                 <Route path="/store/*" element={<StoreRoutes />} />
