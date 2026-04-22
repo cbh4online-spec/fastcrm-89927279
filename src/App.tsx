@@ -52,6 +52,7 @@ const PublicCommunityPage = lazy(() => import("@/pages/community/PublicCommunity
 const PublicCommunityTopicPage = lazy(() => import("@/pages/community/PublicCommunityTopicPage"));
 const CommunityAuthPage = lazy(() => import("@/pages/community/CommunityAuthPage"));
 const PublicBookingPage = lazy(() => import("@/pages/PublicBookingPage"));
+const PitchPublicView = lazy(() => import("@/pages/dashboard/PitchPublicView"));
 const PublicEbookPage = lazy(() => import("@/pages/PublicEbookPage"));
 const PublicEbookShortLink = lazy(() => import("@/pages/PublicEbookShortLink"));
 const PublicTicketPortalPage = lazy(() => import("@/pages/PublicTicketPortalPage"));
@@ -159,6 +160,9 @@ const App = () => (
                 <Route path="/careers/:workspaceSlug/register-worker" element={<WorkerRegisterPage />} />
                 <Route path="/careers/:workspaceSlug/worker-dashboard" element={<WorkerDashboardPage />} />
                 <Route path="/careers/:workspaceSlug/:jobSlug" element={<JobDetailPublicPage />} />
+
+                {/* Public Pitch Share */}
+                <Route path="/p/:token" element={<PitchPublicView />} />
 
                 {/* Public Booking */}
                 <Route path="/book/:slug" element={<PublicBookingPage />} />
