@@ -8,6 +8,7 @@ import { ActivityProfileProvider } from "@/contexts/ActivityProfileContext";
 import { EnrichmentProcessorProvider } from "@/contexts/EnrichmentProcessorContext";
 import { GDPRBanner } from "@/modules/growth-seo";
 import { EnrichmentFloatingIndicator } from "@/components/enrichment/EnrichmentFloatingIndicator";
+import { ActivationProvider } from "@/features/activation/components/ActivationProvider";
 
 // Route modules
 import { SecurityRoutes } from "@/routes/SecurityRoutes";
@@ -78,6 +79,7 @@ export default function CRMRoutesV2() {
                   </Routes>
                 </Suspense>
                 <EnrichmentFloatingIndicator />
+                <ActivationProvider />
                 <GDPRBanner />
               </EnrichmentProcessorProvider>
             </SubscriptionProvider>
