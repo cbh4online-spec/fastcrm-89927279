@@ -35074,6 +35074,90 @@ export type Database = {
           },
         ]
       }
+      marketing_leads: {
+        Row: {
+          assigned_to: string | null
+          company_name: string | null
+          company_size: string | null
+          contacted_at: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          ip_hash: string | null
+          lead_type: string
+          message: string | null
+          notes: string | null
+          phone: string | null
+          qualified_at: string | null
+          referrer: string | null
+          sector: string | null
+          source_page: string
+          status: string
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          ip_hash?: string | null
+          lead_type?: string
+          message?: string | null
+          notes?: string | null
+          phone?: string | null
+          qualified_at?: string | null
+          referrer?: string | null
+          sector?: string | null
+          source_page?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          ip_hash?: string | null
+          lead_type?: string
+          message?: string | null
+          notes?: string | null
+          phone?: string | null
+          qualified_at?: string | null
+          referrer?: string | null
+          sector?: string | null
+          source_page?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
       marketing_links: {
         Row: {
           campaign_id: string
