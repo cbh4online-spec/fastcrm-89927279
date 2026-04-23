@@ -129,13 +129,13 @@ export function ActivationWidget() {
                             className={cn(
                               "w-full text-left p-3 rounded-lg border transition-colors",
                               "hover:bg-accent/50 hover:border-primary/40",
-                              isDone && "bg-emerald-500/5 border-emerald-500/30"
+                              isDone && "bg-primary/5 border-primary/30"
                             )}
                           >
                             <div className="flex items-start gap-3">
                               <div className={cn(
                                 "size-5 rounded-full grid place-items-center mt-0.5 shrink-0",
-                                isDone ? "bg-emerald-500 text-white" : "border-2 border-muted-foreground/30"
+                                isDone ? "bg-primary text-primary-foreground" : "border-2 border-muted-foreground/30"
                               )}>
                                 {isDone && <Check className="size-3" />}
                               </div>
