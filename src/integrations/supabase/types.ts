@@ -71060,6 +71060,13 @@ export type Database = {
         Args: { p_profile_id: string }
         Returns: string
       }
+      snapshot_all_workspace_activations: {
+        Args: never
+        Returns: {
+          snapshots_created: number
+          workspaces_processed: number
+        }[]
+      }
       spend_boost_credits: {
         Args: {
           p_amount: number
