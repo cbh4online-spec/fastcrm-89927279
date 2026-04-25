@@ -12,6 +12,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
+import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 
 import { GTMProvider, MetaPixelLoader } from "./modules/growth-seo";
 
@@ -103,6 +104,7 @@ const App = () => (
         <BrowserRouter>
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
+            <ChunkErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 {/* Public Funnel Pages */}
@@ -195,6 +197,7 @@ const App = () => (
                 <Route path="/*" element={<CRMRoutesV2 />} />
               </Routes>
             </Suspense>
+            </ChunkErrorBoundary>
           </GTMProvider>
         </BrowserRouter>
         </NuqsAdapter>
