@@ -62,7 +62,31 @@ export function CustomHtmlEditor({ pageId, initialHtml = "", onSave }: CustomHtm
     if (file) handleFile(file);
   };
 
-  const handleSave = async () => {
+  const buildPreviewUrl = async (): Promise<string | null> => {
+    const { data, error } = await supabase
+      .from("landing_pages")
+      .select("slug, workspace_id, workspaces:workspace_id(slug)")
+      .eq("id", pageId)
+      .maybeSingle();
+    if (error || !data) return null;
+    const wsSlug = (data as { workspaces?: { slug?: string | null } | null }).workspaces?.slug;
+    const pageSlug = (data as { slug?: string | null }).slug;
+    if (!wsSlug || !pageSlug) return null;
+    return `/p/${wsSlug}/${pageSlug}`;
+  };
+
+  const openPreview = async () => {
+    const url = await buildPreviewUrl();
+    if (!url) {
+      toast.error("Não foi possível abrir a pré-visualização", {
+        description: "A página tem de ter slug e workspace definidos.",
+      });
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleSave = async (openAfter = false) => {
     if (!html.trim()) {
       toast.error("HTML vazio", { description: "Adiciona conteúdo antes de guardar" });
       return;
@@ -82,6 +106,9 @@ export function CustomHtmlEditor({ pageId, initialHtml = "", onSave }: CustomHtm
       await queryClient.invalidateQueries({ queryKey: ["landing-page", pageId] });
       await queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
       toast.success("HTML guardado com sucesso", { description: "A página está actualizada." });
+      if (openAfter) {
+        await openPreview();
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro desconhecido";
       toast.error("Erro ao guardar", { description: message });
