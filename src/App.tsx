@@ -104,6 +104,7 @@ const App = () => (
         <BrowserRouter>
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
+            <ChunkErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 {/* Public Funnel Pages */}
