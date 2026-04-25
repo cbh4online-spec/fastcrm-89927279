@@ -110,6 +110,18 @@ export default function PublicLandingPage() {
     );
   }
 
+  // Custom HTML mode: render user-provided HTML in a sandboxed full-viewport iframe
+  if (page.page_type === "custom_html" && page.custom_html) {
+    return (
+      <iframe
+        srcDoc={page.custom_html}
+        sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+        className="w-screen h-screen border-0 block"
+        title="Landing page"
+      />
+    );
+  }
+
   return (
     <div>
       <LandingPagePreview
