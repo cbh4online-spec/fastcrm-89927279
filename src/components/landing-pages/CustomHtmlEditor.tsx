@@ -8,6 +8,7 @@ import {
   Code2,
   Eye,
   EyeOff,
+  ExternalLink,
   FileUp,
   Trash2,
   CheckCircle2,
@@ -62,7 +63,31 @@ export function CustomHtmlEditor({ pageId, initialHtml = "", onSave }: CustomHtm
     if (file) handleFile(file);
   };
 
-  const handleSave = async () => {
+  const buildPreviewUrl = async (): Promise<string | null> => {
+    const { data, error } = await supabase
+      .from("landing_pages")
+      .select("slug, workspace_id, workspaces:workspace_id(slug)")
+      .eq("id", pageId)
+      .maybeSingle();
+    if (error || !data) return null;
+    const wsSlug = (data as { workspaces?: { slug?: string | null } | null }).workspaces?.slug;
+    const pageSlug = (data as { slug?: string | null }).slug;
+    if (!wsSlug || !pageSlug) return null;
+    return `/p/${wsSlug}/${pageSlug}`;
+  };
+
+  const openPreview = async () => {
+    const url = await buildPreviewUrl();
+    if (!url) {
+      toast.error("Não foi possível abrir a pré-visualização", {
+        description: "A página tem de ter slug e workspace definidos.",
+      });
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleSave = async (openAfter = false) => {
     if (!html.trim()) {
       toast.error("HTML vazio", { description: "Adiciona conteúdo antes de guardar" });
       return;
@@ -82,6 +107,9 @@ export function CustomHtmlEditor({ pageId, initialHtml = "", onSave }: CustomHtm
       await queryClient.invalidateQueries({ queryKey: ["landing-page", pageId] });
       await queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
       toast.success("HTML guardado com sucesso", { description: "A página está actualizada." });
+      if (openAfter) {
+        await openPreview();
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro desconhecido";
       toast.error("Erro ao guardar", { description: message });
@@ -203,10 +231,40 @@ export function CustomHtmlEditor({ pageId, initialHtml = "", onSave }: CustomHtm
         />
       )}
 
-      <Button onClick={handleSave} disabled={!hasContent || isSaving} className="w-full gap-2" size="lg">
-        <Upload className="h-4 w-4" />
-        {isSaving ? "A guardar..." : "Guardar HTML"}
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button
+          onClick={() => handleSave(false)}
+          disabled={!hasContent || isSaving}
+          className="flex-1 gap-2"
+          size="lg"
+        >
+          <Upload className="h-4 w-4" />
+          {isSaving ? "A guardar..." : "Guardar HTML"}
+        </Button>
+        <Button
+          onClick={() => handleSave(true)}
+          disabled={!hasContent || isSaving}
+          variant="secondary"
+          className="gap-2"
+          size="lg"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Guardar e pré-visualizar
+        </Button>
+        {hasContent && (
+          <Button
+            onClick={openPreview}
+            disabled={isSaving}
+            variant="outline"
+            className="gap-2"
+            size="lg"
+            title="Abrir página pública"
+          >
+            <Eye className="h-4 w-4" />
+            Abrir /p/...
+          </Button>
+        )}
+      </div>
 
       <div className="rounded-md bg-muted/50 border border-border p-3 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground">💡 Dicas</p>
