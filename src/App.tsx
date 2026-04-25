@@ -63,6 +63,7 @@ const PortalLoginPage = lazy(() => import("@/pages/public/PortalLoginPage"));
 const PortalDashboardPage = lazy(() => import("@/pages/public/PortalDashboardPage"));
 const WorkerRegisterPage = lazy(() => import("@/pages/public/WorkerRegisterPage"));
 const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPage"));
+const PublicLandingPageAlias = lazy(() => import("@/pages/PublicLandingPage"));
 
 // Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
 function C2CRedirectToMarketplace() {
@@ -102,6 +103,9 @@ const App = () => (
               <Routes>
                 {/* Public Funnel Pages */}
                 <Route path="/funnel/:slug" element={<AuthProvider><PublicFunnelPage /></AuthProvider>} />
+
+                {/* Public Landing Pages (alias) */}
+                <Route path="/lp/:workspaceSlug/:pageSlug" element={<PublicLandingPageAlias />} />
 
                 {/* Public Bio Pages */}
                 <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
