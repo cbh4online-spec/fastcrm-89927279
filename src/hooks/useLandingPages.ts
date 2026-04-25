@@ -26,6 +26,9 @@ export interface LandingPage {
   created_by: string;
   created_at: string;
   updated_at: string;
+  page_type?: "builder" | "custom_html" | null;
+  custom_html?: string | null;
+  custom_html_updated_at?: string | null;
 }
 
 export interface CreateLandingPageInput {
