@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Json } from "@/integrations/supabase/types";
-import { ArrowLeft, Sparkles, Eye, Save, Globe, Loader2, Layers } from "lucide-react";
+import { ArrowLeft, Sparkles, Eye, Save, Globe, Loader2, Layers, Code2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,7 @@ import { useLandingPageCopy, CopyType } from "@/hooks/useLandingPageCopy";
 import { useLandingPageSections, useUpdateSection, useDeleteSection } from "@/hooks/useLandingPageSections";
 import { LandingPagePreview } from "./LandingPagePreview";
 import { SectionBlockEditor } from "./SectionBlockEditor";
+import { CustomHtmlEditor } from "./CustomHtmlEditor";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
@@ -239,6 +240,10 @@ export function LandingPageBuilder({ pageId, onBack }: LandingPageBuilderProps) 
             <TabsTrigger value="features">Features</TabsTrigger>
             <TabsTrigger value="form">Lead Form</TabsTrigger>
             <TabsTrigger value="ai">AI Assistant</TabsTrigger>
+            <TabsTrigger value="custom-html" className="gap-1">
+              <Code2 className="h-3.5 w-3.5" />
+              Custom HTML
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="content" className="space-y-4">
@@ -542,6 +547,18 @@ export function LandingPageBuilder({ pageId, onBack }: LandingPageBuilderProps) 
                     </Button>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="custom-html">
+            <Card>
+              <CardContent className="pt-6">
+                <CustomHtmlEditor
+                  pageId={pageId}
+                  initialHtml={(page as unknown as { custom_html?: string })?.custom_html || ""}
+                  onSave={() => {}}
+                />
               </CardContent>
             </Card>
           </TabsContent>
