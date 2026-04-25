@@ -12,6 +12,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
+import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 
 import { GTMProvider, MetaPixelLoader } from "./modules/growth-seo";
 
