@@ -231,10 +231,40 @@ export function CustomHtmlEditor({ pageId, initialHtml = "", onSave }: CustomHtm
         />
       )}
 
-      <Button onClick={handleSave} disabled={!hasContent || isSaving} className="w-full gap-2" size="lg">
-        <Upload className="h-4 w-4" />
-        {isSaving ? "A guardar..." : "Guardar HTML"}
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button
+          onClick={() => handleSave(false)}
+          disabled={!hasContent || isSaving}
+          className="flex-1 gap-2"
+          size="lg"
+        >
+          <Upload className="h-4 w-4" />
+          {isSaving ? "A guardar..." : "Guardar HTML"}
+        </Button>
+        <Button
+          onClick={() => handleSave(true)}
+          disabled={!hasContent || isSaving}
+          variant="secondary"
+          className="gap-2"
+          size="lg"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Guardar e pré-visualizar
+        </Button>
+        {hasContent && (
+          <Button
+            onClick={openPreview}
+            disabled={isSaving}
+            variant="outline"
+            className="gap-2"
+            size="lg"
+            title="Abrir página pública"
+          >
+            <Eye className="h-4 w-4" />
+            Abrir /p/...
+          </Button>
+        )}
+      </div>
 
       <div className="rounded-md bg-muted/50 border border-border p-3 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground">💡 Dicas</p>
