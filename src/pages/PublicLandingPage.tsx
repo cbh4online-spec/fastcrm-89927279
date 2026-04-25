@@ -22,6 +22,8 @@ interface LandingPageData {
   form_enabled: boolean | null;
   form_title: string | null;
   features: Json;
+  page_type?: string | null;
+  custom_html?: string | null;
 }
 
 export default function PublicLandingPage() {
