@@ -108,8 +108,8 @@ const App = () => (
                 {/* Public Funnel Pages */}
                 <Route path="/funnel/:slug" element={<AuthProvider><PublicFunnelPage /></AuthProvider>} />
 
-                {/* Public Landing Pages (alias) */}
-                <Route path="/lp/:workspaceSlug/:pageSlug" element={<PublicLandingPageAlias />} />
+                {/* Public Landing Pages (legacy alias → redirect to canonical /p/) */}
+                <Route path="/lp/:workspaceSlug/:pageSlug" element={<LandingPageAliasRedirect />} />
 
                 {/* Public Bio Pages */}
                 <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
