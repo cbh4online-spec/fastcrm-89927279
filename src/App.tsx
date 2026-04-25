@@ -197,6 +197,7 @@ const App = () => (
                 <Route path="/*" element={<CRMRoutesV2 />} />
               </Routes>
             </Suspense>
+            </ChunkErrorBoundary>
           </GTMProvider>
         </BrowserRouter>
         </NuqsAdapter>
