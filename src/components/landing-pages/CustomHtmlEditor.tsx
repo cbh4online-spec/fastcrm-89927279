@@ -79,6 +79,8 @@ export function CustomHtmlEditor({ pageId, initialHtml = "", onSave }: CustomHtm
         .eq("id", pageId);
       if (error) throw error;
       onSave(html);
+      await queryClient.invalidateQueries({ queryKey: ["landing-page", pageId] });
+      await queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
       toast.success("HTML guardado com sucesso", { description: "A página está actualizada." });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro desconhecido";
