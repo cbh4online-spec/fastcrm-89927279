@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ export function CustomHtmlEditor({ pageId, initialHtml = "", onSave }: CustomHtm
   const [isSaving, setIsSaving] = useState(false);
   const [charCount, setCharCount] = useState(initialHtml.length);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const handleFile = useCallback((file: File) => {
     if (!file.name.endsWith(".html") && !file.name.endsWith(".htm")) {
