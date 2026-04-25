@@ -63,7 +63,11 @@ const PortalLoginPage = lazy(() => import("@/pages/public/PortalLoginPage"));
 const PortalDashboardPage = lazy(() => import("@/pages/public/PortalDashboardPage"));
 const WorkerRegisterPage = lazy(() => import("@/pages/public/WorkerRegisterPage"));
 const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPage"));
-const PublicLandingPageAlias = lazy(() => import("@/pages/PublicLandingPage"));
+// /lp/:workspaceSlug/:pageSlug → redirect to canonical /p/:workspaceSlug/:pageSlug
+function LandingPageAliasRedirect() {
+  const { workspaceSlug, pageSlug } = useParams();
+  return <Navigate to={`/p/${workspaceSlug}/${pageSlug}${window.location.search}`} replace />;
+}
 
 // Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
 function C2CRedirectToMarketplace() {
@@ -104,8 +108,8 @@ const App = () => (
                 {/* Public Funnel Pages */}
                 <Route path="/funnel/:slug" element={<AuthProvider><PublicFunnelPage /></AuthProvider>} />
 
-                {/* Public Landing Pages (alias) */}
-                <Route path="/lp/:workspaceSlug/:pageSlug" element={<PublicLandingPageAlias />} />
+                {/* Public Landing Pages (legacy alias → redirect to canonical /p/) */}
+                <Route path="/lp/:workspaceSlug/:pageSlug" element={<LandingPageAliasRedirect />} />
 
                 {/* Public Bio Pages */}
                 <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
