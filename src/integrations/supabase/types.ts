@@ -36747,6 +36747,8 @@ export type Database = {
           cta_color: string | null
           cta_text: string | null
           custom_css: string | null
+          custom_html: string | null
+          custom_html_updated_at: string | null
           features: Json | null
           form_enabled: boolean | null
           form_fields: Json | null
@@ -36755,6 +36757,7 @@ export type Database = {
           hero_image_url: string | null
           id: string
           is_published: boolean | null
+          page_type: string
           published_at: string | null
           slug: string
           subheadline: string | null
@@ -36769,6 +36772,8 @@ export type Database = {
           cta_color?: string | null
           cta_text?: string | null
           custom_css?: string | null
+          custom_html?: string | null
+          custom_html_updated_at?: string | null
           features?: Json | null
           form_enabled?: boolean | null
           form_fields?: Json | null
@@ -36777,6 +36782,7 @@ export type Database = {
           hero_image_url?: string | null
           id?: string
           is_published?: boolean | null
+          page_type?: string
           published_at?: string | null
           slug: string
           subheadline?: string | null
@@ -36791,6 +36797,8 @@ export type Database = {
           cta_color?: string | null
           cta_text?: string | null
           custom_css?: string | null
+          custom_html?: string | null
+          custom_html_updated_at?: string | null
           features?: Json | null
           form_enabled?: boolean | null
           form_fields?: Json | null
@@ -36799,6 +36807,7 @@ export type Database = {
           hero_image_url?: string | null
           id?: string
           is_published?: boolean | null
+          page_type?: string
           published_at?: string | null
           slug?: string
           subheadline?: string | null

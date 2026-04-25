@@ -22,6 +22,8 @@ interface LandingPageData {
   form_enabled: boolean | null;
   form_title: string | null;
   features: Json;
+  page_type?: string | null;
+  custom_html?: string | null;
 }
 
 export default function PublicLandingPage() {
@@ -105,6 +107,18 @@ export default function PublicLandingPage() {
           This landing page doesn't exist or is not published.
         </p>
       </div>
+    );
+  }
+
+  // Custom HTML mode: render user-provided HTML in a sandboxed full-viewport iframe
+  if (page.page_type === "custom_html" && page.custom_html) {
+    return (
+      <iframe
+        srcDoc={page.custom_html}
+        sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+        className="w-screen h-screen border-0 block"
+        title="Landing page"
+      />
     );
   }
 
