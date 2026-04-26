@@ -547,8 +547,8 @@ export default function BackofficeSubscriptionsV2() {
               </div>
             </div>
           )}
-        </div>
         </motion.div>
+      </div>
 
       {/* Drawer */}
       <AnimatePresence>
