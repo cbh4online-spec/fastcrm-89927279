@@ -145,9 +145,10 @@ export default function BackofficePermissionsV2() {
                     <button
                       key={t}
                       type="button"
-                      onClick={() => setTab(t)}
+                      onClick={() => handleTabChange(t)}
                       className={cn(
-                        "relative h-10 px-4 text-sm font-medium transition-colors",
+                        "relative h-10 px-4 text-sm font-medium transition-all duration-200",
+                        "hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.98]",
                         active ? "text-brand" : "text-navy-500 hover:text-navy"
                       )}
                     >
@@ -175,34 +176,108 @@ export default function BackofficePermissionsV2() {
                     className="h-9 w-full rounded-lg border border-navy-100 bg-brand-ice/50 pl-9 pr-3 text-sm text-navy placeholder:text-navy-300 transition-all focus:border-brand focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand/15"
                   />
                 </div>
-                <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-navy-100 bg-white px-3 text-xs font-semibold text-navy-500 transition-colors hover:border-brand/40 hover:text-brand">
+                <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-navy-100 bg-white px-3 text-xs font-semibold text-navy-500 transition-all duration-200 hover:-translate-y-[1px] hover:border-brand/40 hover:text-brand hover:shadow-[0_8px_18px_-12px_hsl(216_100%_52%/0.4)] active:translate-y-0 active:scale-[0.98]">
                   <Filter className="h-3.5 w-3.5" /> Filtros
                 </button>
               </div>
 
               {/* Tab content */}
-              {tab === "Permissões" || tab === "Funções" ? (
-                <PermissionsMatrix />
-              ) : tab === "Utilizadores" ? (
-                <UsersList query={search} />
-              ) : (
-                <GroupsEmpty />
-              )}
+              <AnimatePresence mode="wait" initial={false}>
+                {loading || tabLoading ? (
+                  <motion.div
+                    key="skeleton"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18, ease: EASE }}
+                  >
+                    <TabSkeleton variant={tab === "Utilizadores" ? "users" : "matrix"} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key={tab}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.26, ease: EASE }}
+                  >
+                    {tab === "Permissões" || tab === "Funções" ? (
+                      <PermissionsMatrix />
+                    ) : tab === "Utilizadores" ? (
+                      <UsersList query={search} />
+                    ) : (
+                      <GroupsEmpty />
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
 
           {/* Right column */}
           <div className="space-y-6">
             <motion.div variants={staggerItem}>
-              <IntegrationsCard />
+              {loading ? <SidePanelSkeleton /> : <IntegrationsCard />}
             </motion.div>
             <motion.div variants={staggerItem}>
-              <AuditCard />
+              {loading ? <SidePanelSkeleton lines={5} /> : <AuditCard />}
             </motion.div>
           </div>
         </motion.div>
       </div>
     </BackofficeShellV2>
+  );
+}
+
+/* ───────────── Skeletons ───────────── */
+
+function Shimmer({ className }: { className?: string }) {
+  return <span className={cn("block rounded-md bg-navy-100/70 v2-shimmer", className)} />;
+}
+
+function TabSkeleton({ variant }: { variant: "matrix" | "users" }) {
+  const rows = 6;
+  return (
+    <div className="space-y-2 px-5 py-5" aria-busy="true" aria-live="polite">
+      <div className="flex items-center gap-3 pb-2">
+        <Shimmer className="h-3 w-24" />
+        <div className="ml-auto flex gap-2">
+          {Array.from({ length: variant === "matrix" ? 5 : 3 }).map((_, i) => (
+            <Shimmer key={i} className="h-6 w-12" />
+          ))}
+        </div>
+      </div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 py-2">
+          <Shimmer className="h-8 w-8 rounded-lg" />
+          <Shimmer className="h-3 w-1/3" />
+          <div className="ml-auto flex gap-2">
+            {Array.from({ length: variant === "matrix" ? 5 : 3 }).map((_, j) => (
+              <Shimmer key={j} className="h-6 w-10 rounded-lg" />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SidePanelSkeleton({ lines = 4 }: { lines?: number }) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-navy-100 bg-white p-5 shadow-[0_10px_30px_-20px_hsl(213_65%_12%/0.18)]" aria-busy="true">
+      <div className="flex items-center gap-3">
+        <Shimmer className="h-9 w-9 rounded-lg" />
+        <div className="flex-1 space-y-2">
+          <Shimmer className="h-3 w-1/2" />
+          <Shimmer className="h-2.5 w-1/3" />
+        </div>
+      </div>
+      <div className="space-y-2 pt-2">
+        {Array.from({ length: lines }).map((_, i) => (
+          <Shimmer key={i} className="h-8 w-full rounded-lg" />
+        ))}
+      </div>
+    </div>
   );
 }
 
