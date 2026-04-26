@@ -10,10 +10,11 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 
 type NavItem = { id: string; label: string; icon: any; to: string; badge?: string };
 type NavGroup = { id: string; label: string; items: NavItem[] };
+
+const EASE = [0.16, 1, 0.3, 1] as const;
 
 const NAV: NavGroup[] = [
   {
@@ -74,25 +75,27 @@ function SidebarV2({ onNavigate }: { onNavigate?: () => void }) {
     setOpen((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
   return (
-    <aside className="flex h-full w-72 flex-col border-r border-slate-200 bg-white">
-      <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
-        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[hsl(220,90%,56%)] to-[hsl(190,95%,50%)] shadow-md shadow-[hsl(220,90%,56%)]/20">
-          <ShieldCheck className="h-5 w-5 text-white" />
+    <aside className="flex h-full w-72 flex-col border-r border-navy-100 bg-white">
+      {/* Brand */}
+      <div className="flex items-center gap-3 border-b border-navy-100 px-5 py-4">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-cyan text-white shadow-[0_8px_24px_-8px_hsl(218_100%_54%/0.6)]">
+          <ShieldCheck className="h-4 w-4" strokeWidth={2.5} />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold tracking-tight text-slate-900">Super Admin</div>
-          <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">FastCRM · Backoffice</div>
+          <div className="font-display font-semibold tracking-tight text-navy">Super Admin</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">FastCRM · Backoffice</div>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+      {/* Nav */}
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-5">
         {NAV.map((group) => {
           const isOpen = open.includes(group.id);
           return (
             <div key={group.id}>
               <button
                 onClick={() => toggle(group.id)}
-                className="flex w-full items-center justify-between px-2 py-1 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-400 hover:text-slate-600"
+                className="flex w-full items-center justify-between px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300 transition-colors hover:text-navy-500"
               >
                 <span>{group.label}</span>
                 {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
@@ -103,33 +106,47 @@ function SidebarV2({ onNavigate }: { onNavigate?: () => void }) {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.18 }}
+                    transition={{ duration: 0.22, ease: EASE }}
                     className="overflow-hidden"
                   >
                     <ul className="mt-1 space-y-0.5">
                       {group.items.map((item) => {
                         const active = pathname === item.to;
                         return (
-                          <li key={item.id} className="relative">
-                            {active && (
-                              <motion.div
-                                layoutId="bo-active"
-                                className="absolute inset-0 rounded-lg bg-gradient-to-r from-[hsl(220,90%,56%)]/10 to-[hsl(190,95%,50%)]/5 ring-1 ring-[hsl(220,90%,56%)]/20"
-                                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                              />
-                            )}
+                          <li key={item.id}>
                             <Link
                               to={item.to}
                               onClick={onNavigate}
                               className={cn(
-                                "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                                active ? "text-[hsl(220,90%,40%)] font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-all duration-200",
+                                active
+                                  ? "bg-brand/10 text-brand"
+                                  : "text-navy-500 hover:bg-brand-ice hover:text-navy"
                               )}
                             >
-                              <item.icon className={cn("h-4 w-4 shrink-0", active ? "text-[hsl(220,90%,56%)]" : "text-slate-400")} />
+                              {active && (
+                                <motion.span
+                                  layoutId="bo-v2-active"
+                                  className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand"
+                                  transition={{ duration: 0.3, ease: EASE }}
+                                />
+                              )}
+                              <item.icon
+                                className={cn(
+                                  "h-[18px] w-[18px] shrink-0 transition-transform group-hover:scale-110",
+                                  active ? "text-brand" : ""
+                                )}
+                              />
                               <span className="flex-1 truncate">{item.label}</span>
                               {item.badge && (
-                                <Badge className="h-5 border-0 bg-[hsl(0,84%,60%)] px-1.5 text-[10px] text-white">{item.badge}</Badge>
+                                <span
+                                  className={cn(
+                                    "inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
+                                    active ? "bg-brand text-white" : "bg-navy-100 text-navy-500 group-hover:bg-white"
+                                  )}
+                                >
+                                  {item.badge}
+                                </span>
                               )}
                             </Link>
                           </li>
@@ -144,10 +161,11 @@ function SidebarV2({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      <div className="border-t border-slate-200 p-3">
+      {/* Back link */}
+      <div className="border-t border-navy-100 p-3">
         <Link
           to="/dashboard"
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-navy-500 transition-colors hover:bg-brand-ice hover:text-navy"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar à app
@@ -159,32 +177,40 @@ function SidebarV2({ onNavigate }: { onNavigate?: () => void }) {
 
 function TopbarV2({ onMenu }: { onMenu: () => void }) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/85 px-4 backdrop-blur md:px-6">
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenu} aria-label="Abrir menu">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-navy-100 bg-white/85 px-4 backdrop-blur-xl md:px-6">
+      <Button variant="ghost" size="icon" className="text-navy-500 hover:bg-brand-ice hover:text-navy lg:hidden" onClick={onMenu} aria-label="Abrir menu">
         <Menu className="h-5 w-5" />
       </Button>
 
       <div className="relative hidden flex-1 max-w-md md:block">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-300" />
         <Input
           placeholder="Procurar workspaces, utilizadores, faturas…"
-          className="h-10 border-slate-200 bg-slate-50 pl-9 pr-16 text-sm focus-visible:ring-[hsl(220,90%,56%)]/30"
+          className="h-10 rounded-xl border-navy-100 bg-brand-ice/60 pl-10 pr-16 text-sm text-navy placeholder:text-navy-300 transition-all focus-visible:border-brand focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-brand/10"
         />
-        <kbd className="absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-500 md:inline-flex">
+        <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center rounded border border-navy-100 bg-white px-1.5 py-0.5 text-[10px] font-medium text-navy-300 md:inline-flex">
           ⌘K
         </kbd>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
-        <Badge className="hidden gap-1 border-emerald-200 bg-emerald-50 text-[11px] text-emerald-700 sm:inline-flex" variant="outline">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Sistema operacional
-        </Badge>
-        <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-900" aria-label="Notificações">
-          <Bell className="h-5 w-5" />
-        </Button>
-        <Button className="hidden h-9 gap-2 bg-gradient-to-r from-[hsl(220,90%,56%)] to-[hsl(190,95%,50%)] text-white shadow-sm hover:opacity-95 sm:inline-flex">
-          <Sparkles className="h-4 w-4" /> Nova ação
-        </Button>
+      <div className="ml-auto flex items-center gap-1.5">
+        <span className="hidden items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success sm:inline-flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-success" /> Sistema operacional
+        </span>
+        <button
+          type="button"
+          aria-label="Notificações"
+          className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-navy-500 transition-all hover:bg-brand-ice hover:text-navy"
+        >
+          <Bell className="h-4 w-4" />
+          <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-destructive ring-2 ring-white" />
+        </button>
+        <button
+          type="button"
+          className="ml-2 hidden h-10 items-center gap-2 rounded-xl bg-navy px-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_hsl(218_70%_14%/0.4)] transition-all hover:-translate-y-0.5 hover:bg-navy-900 sm:inline-flex"
+        >
+          <Sparkles className="h-3.5 w-3.5" /> Nova ação
+        </button>
       </div>
     </header>
   );
@@ -194,7 +220,7 @@ export function BackofficeShellV2({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-50 text-slate-900">
+    <div className="flex min-h-screen w-full bg-brand-ice text-navy">
       {/* Desktop sidebar */}
       <div className="sticky top-0 hidden h-screen lg:block">
         <SidebarV2 />
@@ -206,18 +232,18 @@ export function BackofficeShellV2({ children }: { children: ReactNode }) {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden"
+              className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm lg:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.div
               initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 32 }}
+              transition={{ duration: 0.32, ease: EASE }}
               className="fixed inset-y-0 left-0 z-50 lg:hidden"
             >
               <div className="relative h-full">
                 <button
                   onClick={() => setMobileOpen(false)}
-                  className="absolute right-3 top-3 rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
+                  className="absolute right-3 top-3 rounded-md p-1.5 text-navy-500 transition-colors hover:bg-brand-ice"
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5" />
