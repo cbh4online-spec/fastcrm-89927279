@@ -15,7 +15,9 @@ interface ConfirmActionDialogProps {
   cancelLabel?: string;
   tone?: Tone;
   loading?: boolean;
-  /** Conteúdo extra (ex.: lista de impacto). */
+  /** Bloqueia o botão de confirmar (ex.: validação de campo). */
+  confirmDisabled?: boolean;
+  /** Conteúdo extra (ex.: lista de impacto, campo motivo). */
   children?: React.ReactNode;
 }
 
@@ -47,6 +49,7 @@ export function ConfirmActionDialog({
   cancelLabel = "Cancelar",
   tone = "warning",
   loading = false,
+  confirmDisabled = false,
   children,
 }: ConfirmActionDialogProps) {
   const styles = toneStyles[tone];
