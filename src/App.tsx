@@ -195,7 +195,11 @@ const App = () => (
 
                 {/* Client Portal - ISOLATED from CRM providers */}
                 <Route path="/client/*" element={<ClientPortalRoutes />} />
-                
+
+                {/* FastCRM V2 preview (premium shell) */}
+                <Route path="/app-v2" element={<Navigate to="/app-v2/dashboard" replace />} />
+                <Route path="/app-v2/dashboard" element={<DashboardV2Page />} />
+
                 {/* CRM and all other routes - WITH CRM providers */}
                 <Route path="/*" element={<CRMRoutesV2 />} />
               </Routes>
