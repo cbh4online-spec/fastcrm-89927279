@@ -35,14 +35,16 @@ async function writeAuditLog(params: {
 }) {
   // Best-effort: se a auditoria falhar não revertemos a mutation, mas
   // mostramos aviso ao operador. RLS garante que só super admins escrevem.
-  const { error } = await supabase.from("admin_audit_logs").insert({
-    admin_user_id: params.adminUserId,
-    action_type: params.actionType,
-    target_type: "workspace",
-    target_id: params.workspaceId,
-    workspace_id: params.workspaceId,
-    details: { before: params.before, after: params.after },
-  });
+  const { error } = await supabase.from("admin_audit_logs").insert([
+    {
+      admin_user_id: params.adminUserId,
+      action_type: params.actionType,
+      target_type: "workspace",
+      target_id: params.workspaceId,
+      workspace_id: params.workspaceId,
+      details: { before: params.before, after: params.after } as any,
+    },
+  ]);
   if (error) {
     console.warn("[admin-audit] falhou:", error.message);
     toast.warning("Ação executada, mas o registo de auditoria falhou.");
