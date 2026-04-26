@@ -64,6 +64,9 @@ const PortalLoginPage = lazy(() => import("@/pages/public/PortalLoginPage"));
 const PortalDashboardPage = lazy(() => import("@/pages/public/PortalDashboardPage"));
 const WorkerRegisterPage = lazy(() => import("@/pages/public/WorkerRegisterPage"));
 const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPage"));
+
+// FastCRM V2 — premium app shell preview
+const DashboardV2Page = lazy(() => import("@/pages/app-v2/DashboardV2Page"));
 // /lp/:workspaceSlug/:pageSlug → redirect to canonical /p/:workspaceSlug/:pageSlug
 function LandingPageAliasRedirect() {
   const { workspaceSlug, pageSlug } = useParams();
