@@ -5,8 +5,7 @@
 // Ações suportadas (Fase 2F.1):
 // - suspend_workspace      → status = 'suspended'  (requer reason)
 // - reactivate_workspace   → status = 'active'     (requer reason)
-// - update_admin_notes     → workspaces.admin_notes (texto livre)
-// - update_metadata        → name / company_name (campos não-críticos)
+// - update_metadata        → name / company_name  (campos não-críticos)
 //
 // NÃO suportado nesta fase: revogar sessões, ban/unban, reset password,
 // billing/Stripe mutations, alterações de plano, eliminação.
@@ -23,7 +22,6 @@ const corsHeaders = {
 const ALLOWED_ACTIONS = [
   "suspend_workspace",
   "reactivate_workspace",
-  "update_admin_notes",
   "update_metadata",
 ] as const;
 type Action = (typeof ALLOWED_ACTIONS)[number];
@@ -156,12 +154,6 @@ Deno.serve(async (req) => {
       updatePatch = { status: "suspended" };
     } else if (act === "reactivate_workspace") {
       updatePatch = { status: "active" };
-    } else if (act === "update_admin_notes") {
-      const notes = payload?.admin_notes;
-      if (typeof notes !== "string" || notes.length > 2000) {
-        return json(400, { error: "invalid_admin_notes" });
-      }
-      updatePatch = { admin_notes: notes.trim() || null };
     } else if (act === "update_metadata") {
       const patch: Record<string, unknown> = {};
       if (payload && typeof payload.name === "string") {
