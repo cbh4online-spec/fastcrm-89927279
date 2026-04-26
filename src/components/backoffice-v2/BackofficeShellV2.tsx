@@ -243,6 +243,7 @@ function TopbarV2({ onMenu }: { onMenu: () => void }) {
 
 export function BackofficeShellV2({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { pathname } = useLocation();
 
   return (
     <div className="flex min-h-screen w-full bg-brand-ice text-navy">
@@ -257,12 +258,13 @@ export function BackofficeShellV2({ children }: { children: ReactNode }) {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.22, ease: EASE }}
               className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm lg:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.div
               initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-              transition={{ duration: 0.32, ease: EASE }}
+              transition={{ duration: 0.34, ease: EASE }}
               className="fixed inset-y-0 left-0 z-50 lg:hidden"
             >
               <div className="relative h-full">
@@ -282,7 +284,19 @@ export function BackofficeShellV2({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <TopbarV2 onMenu={() => setMobileOpen(true)} />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.28, ease: EASE }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
     </div>
   );
