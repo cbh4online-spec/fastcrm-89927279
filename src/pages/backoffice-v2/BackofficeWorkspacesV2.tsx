@@ -433,6 +433,7 @@ export default function BackofficeWorkspacesV2() {
                   </Button>
                 </div>
               </div>
+              )}
             </motion.aside>
           </>
         )}
