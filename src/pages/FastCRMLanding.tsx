@@ -1,22 +1,26 @@
 import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { LandingHeroSection } from "@/components/landing-fastcrm/LandingHeroSection";
-import { LandingProblemSection } from "@/components/landing-fastcrm/LandingProblemSection";
-import { LandingSolutionSection } from "@/components/landing-fastcrm/LandingSolutionSection";
-import { LandingArchitectureSection } from "@/components/landing-fastcrm/LandingArchitectureSection";
-import { LandingComparisonSection } from "@/components/landing-fastcrm/LandingComparisonSection";
-import { LandingDetailedComparison } from "@/components/landing-fastcrm/LandingDetailedComparison";
-import { LandingIntegrationsSection } from "@/components/landing-fastcrm/LandingIntegrationsSection";
-import { LandingPositioningSection } from "@/components/landing-fastcrm/LandingPositioningSection";
-import { LandingTestimonialsSection } from "@/components/landing-fastcrm/LandingTestimonialsSection";
-import { LandingPricingSection } from "@/components/landing-fastcrm/LandingPricingSection";
-import { LandingFastClubSection } from "@/components/landing-fastcrm/LandingFastClubSection";
-import { LandingFinalCTA } from "@/components/landing-fastcrm/LandingFinalCTA";
-import { LandingFAQSection } from "@/components/landing-fastcrm/LandingFAQSection";
-import { LandingFooter } from "@/components/landing-fastcrm/LandingFooter";
-import { LandingStickyHeader } from "@/components/landing-fastcrm/LandingStickyHeader";
+import { HeaderV2 } from "@/components/landing-fastcrm-v2/HeaderV2";
+import { HeroV2 } from "@/components/landing-fastcrm-v2/HeroV2";
+import {
+  SocialProofV2,
+  ProblemV2,
+  SolutionV2,
+  ModulesV2,
+} from "@/components/landing-fastcrm-v2/Sections1";
+import {
+  MetricsV2,
+  AIV2,
+  MethodPareV2,
+  CasesV2,
+} from "@/components/landing-fastcrm-v2/Sections2";
+import {
+  TestimonialsV2,
+  FAQV2,
+  CTAV2,
+  FooterV2,
+} from "@/components/landing-fastcrm-v2/Sections3";
 import { StoreCookieConsent } from "@/components/store/StoreCookieConsent";
-import { LandingInsaneOfferPopup } from "@/components/landing-fastcrm/LandingInsaneOfferPopup";
 
 export default function FastCRMLanding() {
   useEffect(() => {
@@ -26,18 +30,18 @@ export default function FastCRMLanding() {
   return (
     <>
       <Helmet>
-        <title>FastCRM — Revenue Intelligence Platform for Growing Teams</title>
+        <title>FastCRM — CRM inteligente para vender, automatizar e decidir</title>
         <meta
           name="description"
-          content="See your revenue before it happens. FastCRM combines flexible CRM, built-in intelligence, and smart extensions for SaaS teams."
+          content="O FastCRM combina CRM, automação, dados e IA para dar à sua empresa mais controlo, velocidade e previsibilidade comercial. Agende uma demonstração."
         />
-        <meta property="og:title" content="FastCRM — Revenue Intelligence Platform" />
+        <meta property="og:title" content="FastCRM — Venda melhor. Automatize mais. Decida mais rápido." />
         <meta
           property="og:description"
-          content="See your revenue before it happens. Health scores, deal intelligence, and smart extensions for growing SaaS teams."
+          content="Plataforma CRM premium com automação e inteligência artificial para equipas que querem crescer com método."
         />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://fastcrm.lovable.app" />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai/" />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -46,37 +50,35 @@ export default function FastCRMLanding() {
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             description:
-              "Revenue Intelligence Platform with flexible CRM, built-in deal intelligence, and smart extensions for SaaS teams.",
+              "CRM inteligente com automação e IA para equipas que querem vender melhor, automatizar mais e decidir mais rápido.",
             offers: {
               "@type": "Offer",
               price: "0",
               priceCurrency: "EUR",
-              description: "Free Starter plan to get started",
+              description: "Demonstração gratuita",
             },
           })}
         </script>
       </Helmet>
 
-      <div className="min-h-screen bg-[hsl(222,47%,4%)] text-[hsl(210,40%,98%)] overflow-x-hidden">
-        <LandingStickyHeader />
+      <div className="min-h-screen bg-background text-foreground antialiased">
+        <HeaderV2 />
         <main>
-          <LandingHeroSection />
-          <LandingProblemSection />
-          <LandingSolutionSection />
-          <LandingIntegrationsSection />
-          <LandingComparisonSection />
-          <LandingDetailedComparison />
-          <LandingArchitectureSection />
-          <LandingPositioningSection />
-          <LandingTestimonialsSection />
-          <LandingPricingSection />
-          <LandingFastClubSection />
-          <LandingFinalCTA />
-          <LandingFAQSection />
+          <HeroV2 />
+          <SocialProofV2 />
+          <ProblemV2 />
+          <SolutionV2 />
+          <ModulesV2 />
+          <MetricsV2 />
+          <AIV2 />
+          <MethodPareV2 />
+          <CasesV2 />
+          <TestimonialsV2 />
+          <FAQV2 />
+          <CTAV2 />
         </main>
-        <LandingFooter />
+        <FooterV2 />
         <StoreCookieConsent />
-        <LandingInsaneOfferPopup />
       </div>
     </>
   );
