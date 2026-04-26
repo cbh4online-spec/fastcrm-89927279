@@ -5,6 +5,7 @@ const PublicLandingPage = lazy(() => import("@/pages/PublicLandingPage"));
 const PublicProductSheet = lazy(() => import("@/pages/PublicProductSheet"));
 const PublicProposalPage = lazy(() => import("@/pages/PublicProposalPage"));
 const SuperAdmin = lazy(() => import("@/pages/SuperAdmin"));
+const BackofficeOverviewV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeOverviewV2"));
 const VerticalLandingPage = lazy(() => import("@/pages/VerticalLandingPage"));
 const EventRsvpResponse = lazy(() => import("@/pages/EventRsvpResponse"));
 const AcceptWorkspaceInvite = lazy(() => import("@/pages/AcceptWorkspaceInvite"));
@@ -20,6 +21,7 @@ export function VerticalOpsRoutes() {
       <Route path="/product/:slug" element={<PublicProductSheet />} />
       <Route path="/p/:slug" element={<PublicProposalPage />} />
       <Route path="/super-admin" element={<SuperAdmin />} />
+      <Route path="/super-admin-v2" element={<BackofficeOverviewV2 />} />
       <Route path="/clinicas" element={<VerticalLandingPage />} />
       <Route path="/imobiliarias" element={<VerticalLandingPage />} />
       <Route path="/formacao" element={<VerticalLandingPage />} />
