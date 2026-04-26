@@ -275,6 +275,22 @@ export default function BackofficeWorkspacesV2() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
+
+              {/* Tabs */}
+              <div className="sticky top-[65px] z-[1] flex gap-1 border-b border-navy-100 bg-white/90 px-6 backdrop-blur-xl">
+                <TabButton active={tab === "details"} onClick={() => setTab("details")} icon={Building2} label="Detalhes" />
+                <TabButton active={tab === "history"} onClick={() => setTab("history")} icon={History} label="Histórico" />
+              </div>
+
+              {tab === "history" ? (
+                <div className="space-y-4 p-6">
+                  <div className="flex items-center gap-2 text-xs text-navy-300">
+                    <ShieldCheck className="h-3.5 w-3.5 text-brand" />
+                    <span>Auditoria server-side · últimas 50 ações</span>
+                  </div>
+                  <WorkspaceAuditTimeline workspaceId={selected.id} />
+                </div>
+              ) : (
               <div className="space-y-5 p-6">
                 <div className="flex items-center gap-2"><StatusPill status={selected.status} /><span className="text-xs text-navy-300">criado a {fmtDate(selected.created_at)}</span></div>
 
