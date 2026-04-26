@@ -129,11 +129,59 @@ const aiTopWorkspaces = [
 ];
 
 export default function BackofficeOverviewV2() {
-  const { data, isLoading } = useBackofficeKpis();
+  const { user, loading: authLoading } = useAuth();
+  const { isSuperAdmin, isLoading: roleLoading } = useUserRole();
+  const { data, isLoading, isError, error } = useBackofficeKpis();
+
+  if (authLoading || roleLoading) {
+    return (
+      <div className="grid h-screen place-items-center bg-slate-50">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isSuperAdmin) {
+    return (
+      <div className="grid h-screen place-items-center bg-slate-50 p-6">
+        <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-rose-50">
+            <ShieldAlert className="h-6 w-6 text-rose-600" />
+          </div>
+          <h1 className="text-lg font-semibold text-slate-900">Acesso restrito</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Esta área está reservada a Super Administradores do FastCRM.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BackofficeShellV2>
       <div className="mx-auto max-w-[1400px] space-y-8 px-4 py-8 md:px-8">
+        {isError && (
+          <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <div className="font-medium">Falha ao carregar indicadores</div>
+              <div className="text-xs text-rose-700/80">
+                {(error as any)?.message ?? "Tenta novamente mais tarde."}
+              </div>
+            </div>
+          </div>
+        )}
+        {data?.partialErrors && data.partialErrors.length > 0 && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <div className="font-medium">Alguns indicadores ficaram em fallback</div>
+              <div className="text-xs text-amber-800/80">
+                Sem acesso a: {data.partialErrors.join(", ")}. Verifica RLS / permissões.
+              </div>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
