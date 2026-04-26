@@ -445,6 +445,7 @@ export default function BackofficeWorkspacesV2() {
         onClose={() => setConfirmAction(null)}
         onConfirm={handleConfirmAction}
         loading={suspendMut.isPending || reactivateMut.isPending}
+        confirmDisabled={!reasonValid}
         tone={confirmAction === "reactivate" ? "info" : "warning"}
         title={
           confirmAction === "reactivate"
