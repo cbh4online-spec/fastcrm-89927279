@@ -336,94 +336,114 @@ export default function BackofficeSubscriptionsV2() {
 
         {/* Visualizações */}
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-1">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Mix de planos</div>
-              <span className="text-[11px] text-slate-400">{data?.rows.length ?? 0} subs</span>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="rounded-2xl border border-navy-100 bg-white p-6 shadow-[0_1px_2px_rgba(11,29,61,0.04)] transition-shadow hover:shadow-[0_20px_50px_-25px_hsl(218_70%_14%/0.16)] lg:col-span-1"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div className="font-display text-base font-semibold text-navy">Mix de planos</div>
+              <span className="text-[11px] font-medium text-navy-300">{data?.rows.length ?? 0} subs</span>
             </div>
             <PlanDonut items={(data?.planMix ?? []).map((p) => ({ plan: p.plan, count: p.count }))} />
-          </div>
+          </motion.div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-1">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Top workspaces por MRR</div>
-              <TrendingUp className="h-4 w-4 text-[hsl(220,90%,56%)]" />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+            className="rounded-2xl border border-navy-100 bg-white p-6 shadow-[0_1px_2px_rgba(11,29,61,0.04)] transition-shadow hover:shadow-[0_20px_50px_-25px_hsl(218_70%_14%/0.16)] lg:col-span-1"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div className="font-display text-base font-semibold text-navy">Top workspaces por MRR</div>
+              <TrendingUp className="h-4 w-4 text-brand" />
             </div>
             {topMrr.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">Sem dados de receita.</div>
+              <div className="py-6 text-center text-xs text-navy-300">Sem dados de receita.</div>
             ) : (
-              <ul className="space-y-2.5">
-                {topMrr.map((r) => (
-                  <li
+              <ul className="space-y-1.5">
+                {topMrr.map((r, i) => (
+                  <motion.li
                     key={r.id}
-                    className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-slate-50 cursor-pointer"
+                    initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.25, delay: i * 0.04 }}
+                    className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 transition-colors hover:bg-brand-ice/60"
                     onClick={() => setSelected(r)}
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-slate-800">
+                      <div className="truncate text-sm font-medium text-navy">
                         {r.workspace_name}
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="mt-0.5">
                         <PlanPill plan={r.plan} />
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-slate-900">
+                    <div className="font-display text-sm font-semibold tabular-nums text-navy">
                       {fmtEur(r.mrr_eur)}
                     </div>
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
             )}
-          </div>
+          </motion.div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-1">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Próximas renovações</div>
-              <Calendar className="h-4 w-4 text-[hsl(220,90%,56%)]" />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+            className="rounded-2xl border border-navy-100 bg-white p-6 shadow-[0_1px_2px_rgba(11,29,61,0.04)] transition-shadow hover:shadow-[0_20px_50px_-25px_hsl(218_70%_14%/0.16)] lg:col-span-1"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div className="font-display text-base font-semibold text-navy">Próximas renovações</div>
+              <Calendar className="h-4 w-4 text-brand" />
             </div>
             {upcoming.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">
+              <div className="py-6 text-center text-xs text-navy-300">
                 Sem renovações nos próximos 30 dias.
               </div>
             ) : (
-              <ul className="space-y-2.5">
-                {upcoming.map((r) => (
-                  <li
+              <ul className="space-y-1.5">
+                {upcoming.map((r, i) => (
+                  <motion.li
                     key={r.id}
-                    className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-slate-50 cursor-pointer"
+                    initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.25, delay: i * 0.04 }}
+                    className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 transition-colors hover:bg-brand-ice/60"
                     onClick={() => setSelected(r)}
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-slate-800">
+                      <div className="truncate text-sm font-medium text-navy">
                         {r.workspace_name}
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="text-[11px] text-navy-300">
                         {fmtDate(r.current_period_end)}
                       </div>
                     </div>
                     <SubStatusPill status={r.status} cancelAtEnd={r.cancel_at_period_end} />
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
             )}
-          </div>
+          </motion.div>
         </div>
 
         {/* Filtros + Tabela */}
-        <div className="rounded-2xl border border-slate-200 bg-white">
-          <div className="flex flex-col gap-3 border-b border-slate-100 p-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+          className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-[0_1px_2px_rgba(11,29,61,0.04)]"
+        >
+          <div className="flex flex-col gap-3 border-b border-navy-100 p-4 md:flex-row md:items-center md:justify-between md:p-5">
+            <div className="relative max-w-md flex-1">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-300" />
               <Input
                 placeholder="Pesquisar workspace, slug ou customer Stripe…"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="h-9 pl-8"
+                className="h-10 rounded-xl border-navy-100 bg-brand-ice/60 pl-10 text-sm text-navy placeholder:text-navy-300 transition-all focus-visible:border-brand focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-brand/10"
               />
             </div>
             <div className="flex items-center gap-2">
               <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
-                <SelectTrigger className="h-9 w-[150px]"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectTrigger className="h-10 w-[160px] rounded-xl border-navy-100 bg-white text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os estados</SelectItem>
                   <SelectItem value="active">Ativo</SelectItem>
@@ -434,7 +454,7 @@ export default function BackofficeSubscriptionsV2() {
                 </SelectContent>
               </Select>
               <Select value={planFilter} onValueChange={(v) => { setPlanFilter(v); setPage(1); }}>
-                <SelectTrigger className="h-9 w-[140px]"><SelectValue placeholder="Plano" /></SelectTrigger>
+                <SelectTrigger className="h-10 w-[150px] rounded-xl border-navy-100 bg-white text-sm"><SelectValue placeholder="Plano" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os planos</SelectItem>
                   <SelectItem value="free">Free</SelectItem>
@@ -449,15 +469,15 @@ export default function BackofficeSubscriptionsV2() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[11px] uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-2.5 font-medium">Workspace</th>
-                  <th className="px-4 py-2.5 font-medium">Plano</th>
-                  <th className="px-4 py-2.5 font-medium">Estado</th>
-                  <th className="px-4 py-2.5 font-medium text-right">MRR</th>
-                  <th className="px-4 py-2.5 font-medium">Renovação</th>
-                  <th className="px-4 py-2.5 font-medium">Trial até</th>
-                  <th className="px-4 py-2.5 font-medium">Atualizado</th>
-                  <th className="px-4 py-2.5 font-medium" />
+                <tr className="border-b border-navy-100 bg-brand-ice/60 text-left text-[10.5px] font-semibold uppercase tracking-[0.12em] text-navy-300">
+                  <th className="px-5 py-3.5">Workspace</th>
+                  <th className="px-4 py-3.5">Plano</th>
+                  <th className="px-4 py-3.5">Estado</th>
+                  <th className="px-4 py-3.5 text-right">MRR</th>
+                  <th className="px-4 py-3.5">Renovação</th>
+                  <th className="px-4 py-3.5">Trial até</th>
+                  <th className="px-4 py-3.5">Atualizado</th>
+                  <th className="px-4 py-3.5" />
                 </tr>
               </thead>
               <tbody>
@@ -474,35 +494,36 @@ export default function BackofficeSubscriptionsV2() {
                     </td>
                   </tr>
                 ) : (
-                  visible.map((r) => (
+                  visible.map((r, i) => (
                     <motion.tr
                       key={r.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="cursor-pointer border-b border-slate-50 transition-colors hover:bg-slate-50/60"
+                      transition={{ duration: 0.2, delay: Math.min(i * 0.015, 0.2) }}
+                      className="cursor-pointer border-b border-navy-100/60 transition-colors hover:bg-brand-ice/50"
                       onClick={() => setSelected(r)}
                     >
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-slate-800">{r.workspace_name}</div>
+                      <td className="px-5 py-3.5">
+                        <div className="font-medium text-navy">{r.workspace_name}</div>
                         {r.workspace_slug && (
-                          <div className="text-[11px] text-slate-400">/{r.workspace_slug}</div>
+                          <div className="text-[11px] text-navy-300">/{r.workspace_slug}</div>
                         )}
                       </td>
-                      <td className="px-4 py-3"><PlanPill plan={r.plan} /></td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5"><PlanPill plan={r.plan} /></td>
+                      <td className="px-4 py-3.5">
                         <SubStatusPill status={r.status} cancelAtEnd={r.cancel_at_period_end} />
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                      <td className="px-4 py-3.5 text-right font-display font-semibold tabular-nums text-navy">
                         {fmtEur(r.mrr_eur)}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{fmtDate(r.current_period_end)}</td>
-                      <td className="px-4 py-3 text-slate-600">{fmtDate(r.trial_ends_at)}</td>
-                      <td className="px-4 py-3 text-slate-500">{fmtDate(r.updated_at)}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3.5 text-navy-500">{fmtDate(r.current_period_end)}</td>
+                      <td className="px-4 py-3.5 text-navy-500">{fmtDate(r.trial_ends_at)}</td>
+                      <td className="px-4 py-3.5 text-navy-300">{fmtDate(r.updated_at)}</td>
+                      <td className="px-4 py-3.5 text-right">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 px-2 text-[11px] text-slate-500 hover:text-slate-900"
+                          className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
                           onClick={(e) => { e.stopPropagation(); setSelected(r); }}
                         >
                           Ver detalhe
@@ -516,13 +537,13 @@ export default function BackofficeSubscriptionsV2() {
           </div>
 
           {!isLoading && filtered.length > PAGE_SIZE && (
-            <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
+            <div className="flex items-center justify-between border-t border-navy-100 px-5 py-3.5 text-xs text-navy-500">
               <div>
-                {filtered.length} resultado(s) · página {safePage} de {pageCount}
+                <strong className="font-semibold text-navy">{filtered.length}</strong> resultado(s) · página {safePage} de {pageCount}
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="h-7" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>Anterior</Button>
-                <Button variant="outline" size="sm" className="h-7" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>Seguinte</Button>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="h-8 rounded-lg border-navy-100 hover:border-brand/40" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>Anterior</Button>
+                <Button variant="outline" size="sm" className="h-8 rounded-lg border-navy-100 hover:border-brand/40" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>Seguinte</Button>
               </div>
             </div>
           )}
