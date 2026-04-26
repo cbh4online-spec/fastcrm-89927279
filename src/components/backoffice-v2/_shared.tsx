@@ -29,22 +29,36 @@ export function PageHeader({
 
 /* ────────── KPI compacto (sem sparkline) ────────── */
 export function StatTile({
-  label, value, accent, icon: Icon,
-}: { label: string; value: string | number; accent: string; icon: any }) {
+  label, value, accent, icon: Icon, index = 0,
+}: { label: string; value: string | number; accent: string; icon: any; index?: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: EASE }}
-      className="group flex items-center gap-3 rounded-2xl border border-navy-100 bg-white p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_50px_-25px_hsl(218_70%_14%/0.16)]"
+      transition={{ duration: 0.34, ease: EASE, delay: 0.04 + index * 0.05 }}
+      className="group flex items-center gap-3 rounded-2xl border border-navy-100 bg-white p-4 v2-hover-lift hover:border-brand/30"
     >
-      <div className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-[0_8px_20px_-10px_rgba(11,29,61,0.35)]", accent)}>
+      <div className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-[0_8px_20px_-10px_rgba(11,29,61,0.35)] transition-transform duration-300 group-hover:scale-105 group-hover:rotate-[-2deg]", accent)}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
         <div className="text-[11px] font-semibold uppercase tracking-wider text-navy-300">{label}</div>
         <div className="font-display text-xl font-semibold tracking-tight text-navy tabular-nums">{value}</div>
       </div>
+    </motion.div>
+  );
+}
+
+/** Container que aplica stagger visual a uma lista de StatTiles */
+export function StatTileGrid({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <motion.div
+      variants={staggerContainer(0.06, 0.04)}
+      initial="hidden"
+      animate="visible"
+      className={className}
+    >
+      {children}
     </motion.div>
   );
 }
