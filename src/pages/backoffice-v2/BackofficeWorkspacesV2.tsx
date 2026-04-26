@@ -203,15 +203,16 @@ export default function BackofficeWorkspacesV2() {
                   visible.map((w, i) => (
                     <motion.tr
                       key={w.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2, delay: Math.min(i * 0.015, 0.2) }}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.26, delay: Math.min(i * 0.018, 0.22), ease: [0.16, 1, 0.3, 1] }}
                       onClick={() => setSelected(w)}
-                      className="group cursor-pointer border-b border-navy-100/60 transition-colors hover:bg-brand-ice/50"
+                      className="group relative cursor-pointer border-b border-navy-100/60 transition-colors duration-200 hover:bg-brand-ice/60"
                     >
-                      <td className="px-5 py-3.5">
+                      <td className="relative px-5 py-3.5">
+                        <span className="pointer-events-none absolute inset-y-2 left-0 w-[3px] origin-top scale-y-0 rounded-r-full bg-gradient-to-b from-brand to-cyan transition-transform duration-300 group-hover:scale-y-100" />
                         <div className="flex items-center gap-3">
-                          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-brand-ice to-navy-100 text-[12px] font-semibold text-navy-500 transition-all group-hover:from-brand/15 group-hover:to-cyan/15 group-hover:text-brand">
+                          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-brand-ice to-navy-100 text-[12px] font-semibold text-navy-500 transition-all duration-300 group-hover:from-brand/15 group-hover:to-cyan/15 group-hover:text-brand group-hover:scale-105">
                             {w.name?.[0]?.toUpperCase() ?? "?"}
                           </div>
                           <div className="min-w-0">
@@ -221,10 +222,10 @@ export default function BackofficeWorkspacesV2() {
                         </div>
                       </td>
                       <td className="px-4 py-3.5"><StatusPill status={w.status} /></td>
-                      <td className="px-4 py-3.5 text-navy-500">{w.company_name ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-navy-500 transition-colors group-hover:text-navy">{w.company_name ?? "—"}</td>
                       <td className="px-4 py-3.5 text-navy-500">
                         <span className="inline-flex items-center gap-1.5">
-                          <Users className="h-3.5 w-3.5 text-navy-300" /> {w.membersCount}
+                          <Users className="h-3.5 w-3.5 text-navy-300 transition-colors group-hover:text-brand" /> {w.membersCount}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-navy-500">{w.region ?? "—"}</td>
@@ -258,13 +259,16 @@ export default function BackofficeWorkspacesV2() {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm"
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed inset-0 z-40 bg-navy/45 backdrop-blur-sm"
               onClick={() => setSelected(null)}
             />
             <motion.aside
-              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-              transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto bg-white shadow-[-20px_0_50px_-20px_rgba(11,29,61,0.25)]"
+              initial={{ x: "100%", opacity: 0.7 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0.7 }}
+              transition={{ duration: 0.38, ease: [0.19, 1, 0.22, 1] }}
+              className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto bg-white shadow-[-24px_0_60px_-20px_rgba(11,29,61,0.28)]"
             >
               <div className="sticky top-0 flex items-center justify-between border-b border-navy-100 bg-white/90 px-6 py-4 backdrop-blur-xl">
                 <div className="min-w-0">

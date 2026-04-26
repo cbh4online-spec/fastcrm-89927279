@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,11 +10,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EASE_PREMIUM as EASE } from "@/lib/motion";
 
 type NavItem = { id: string; label: string; icon: any; to: string; badge?: string };
 type NavGroup = { id: string; label: string; items: NavItem[] };
-
-const EASE = [0.16, 1, 0.3, 1] as const;
 
 const NAV: NavGroup[] = [
   {
@@ -176,17 +175,43 @@ function SidebarV2({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function TopbarV2({ onMenu }: { onMenu: () => void }) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-navy-100 bg-white/85 px-4 backdrop-blur-xl md:px-6">
-      <Button variant="ghost" size="icon" className="text-navy-500 hover:bg-brand-ice hover:text-navy lg:hidden" onClick={onMenu} aria-label="Abrir menu">
+    <header
+      className={cn(
+        "sticky top-0 z-30 flex h-16 items-center gap-3 px-4 backdrop-blur-xl transition-[box-shadow,background-color,border-color] duration-300 md:px-6",
+        scrolled
+          ? "border-b border-navy-100 bg-white/90 shadow-[0_8px_24px_-18px_hsl(218_70%_14%/0.18)]"
+          : "border-b border-transparent bg-white/70"
+      )}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="text-navy-500 hover:bg-brand-ice hover:text-navy lg:hidden v2-press"
+        onClick={onMenu}
+        aria-label="Abrir menu"
+      >
         <Menu className="h-5 w-5" />
       </Button>
 
       <div className="relative hidden flex-1 max-w-md md:block">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-300" />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-300 transition-colors duration-200" />
         <Input
           placeholder="Procurar workspaces, utilizadores, faturas…"
-          className="h-10 rounded-xl border-navy-100 bg-brand-ice/60 pl-10 pr-16 text-sm text-navy placeholder:text-navy-300 transition-all focus-visible:border-brand focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-brand/10"
+          className={cn(
+            "h-10 rounded-xl border-navy-100 bg-brand-ice/60 pl-10 pr-16 text-sm text-navy placeholder:text-navy-300",
+            "transition-all duration-300 ease-out",
+            "focus-visible:border-brand focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-brand/15 focus-visible:shadow-[0_8px_24px_-12px_hsl(218_100%_54%/0.35)]"
+          )}
         />
         <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center rounded border border-navy-100 bg-white px-1.5 py-0.5 text-[10px] font-medium text-navy-300 md:inline-flex">
           ⌘K
@@ -195,19 +220,19 @@ function TopbarV2({ onMenu }: { onMenu: () => void }) {
 
       <div className="ml-auto flex items-center gap-1.5">
         <span className="hidden items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success sm:inline-flex">
-          <span className="h-1.5 w-1.5 rounded-full bg-success" /> Sistema operacional
+          <span className="h-1.5 w-1.5 rounded-full bg-success v2-soft-pulse" /> Sistema operacional
         </span>
         <button
           type="button"
           aria-label="Notificações"
-          className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-navy-500 transition-all hover:bg-brand-ice hover:text-navy"
+          className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-navy-500 transition-all duration-200 hover:bg-brand-ice hover:text-navy v2-press"
         >
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-destructive ring-2 ring-white" />
+          <Bell className="h-4 w-4 transition-transform duration-200 hover:scale-110" />
+          <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-destructive ring-2 ring-white v2-soft-pulse" />
         </button>
         <button
           type="button"
-          className="ml-2 hidden h-10 items-center gap-2 rounded-xl bg-navy px-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_hsl(218_70%_14%/0.4)] transition-all hover:-translate-y-0.5 hover:bg-navy-900 sm:inline-flex"
+          className="ml-2 hidden h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-navy to-navy-900 px-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_hsl(218_70%_14%/0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_-10px_hsl(218_100%_54%/0.45)] hover:from-brand hover:to-brand-vivid sm:inline-flex v2-press"
         >
           <Sparkles className="h-3.5 w-3.5" /> Nova ação
         </button>
@@ -218,6 +243,7 @@ function TopbarV2({ onMenu }: { onMenu: () => void }) {
 
 export function BackofficeShellV2({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { pathname } = useLocation();
 
   return (
     <div className="flex min-h-screen w-full bg-brand-ice text-navy">
@@ -232,12 +258,13 @@ export function BackofficeShellV2({ children }: { children: ReactNode }) {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.22, ease: EASE }}
               className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm lg:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.div
               initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-              transition={{ duration: 0.32, ease: EASE }}
+              transition={{ duration: 0.34, ease: EASE }}
               className="fixed inset-y-0 left-0 z-50 lg:hidden"
             >
               <div className="relative h-full">
@@ -257,7 +284,19 @@ export function BackofficeShellV2({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <TopbarV2 onMenu={() => setMobileOpen(true)} />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.28, ease: EASE }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
     </div>
   );

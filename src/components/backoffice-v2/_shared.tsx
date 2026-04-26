@@ -2,8 +2,7 @@ import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const EASE = [0.16, 1, 0.3, 1] as const;
+import { EASE_PREMIUM as EASE, staggerContainer, staggerItem } from "@/lib/motion";
 
 /* ────────── Page header com badge + título ────────── */
 export function PageHeader({
@@ -30,22 +29,36 @@ export function PageHeader({
 
 /* ────────── KPI compacto (sem sparkline) ────────── */
 export function StatTile({
-  label, value, accent, icon: Icon,
-}: { label: string; value: string | number; accent: string; icon: any }) {
+  label, value, accent, icon: Icon, index = 0,
+}: { label: string; value: string | number; accent: string; icon: any; index?: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: EASE }}
-      className="group flex items-center gap-3 rounded-2xl border border-navy-100 bg-white p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_50px_-25px_hsl(218_70%_14%/0.16)]"
+      transition={{ duration: 0.34, ease: EASE, delay: 0.04 + index * 0.05 }}
+      className="group flex items-center gap-3 rounded-2xl border border-navy-100 bg-white p-4 v2-hover-lift hover:border-brand/30"
     >
-      <div className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-[0_8px_20px_-10px_rgba(11,29,61,0.35)]", accent)}>
+      <div className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-[0_8px_20px_-10px_rgba(11,29,61,0.35)] transition-transform duration-300 group-hover:scale-105 group-hover:rotate-[-2deg]", accent)}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
         <div className="text-[11px] font-semibold uppercase tracking-wider text-navy-300">{label}</div>
         <div className="font-display text-xl font-semibold tracking-tight text-navy tabular-nums">{value}</div>
       </div>
+    </motion.div>
+  );
+}
+
+/** Container que aplica stagger visual a uma lista de StatTiles */
+export function StatTileGrid({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <motion.div
+      variants={staggerContainer(0.06, 0.04)}
+      initial="hidden"
+      animate="visible"
+      className={className}
+    >
+      {children}
     </motion.div>
   );
 }
@@ -71,10 +84,11 @@ export function StatusPill({ status }: { status?: string | null }) {
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+        "transition-all duration-200 hover:ring-[1.5px]",
         STATUS_STYLES[key] ?? STATUS_STYLES.inactive
       )}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+      <span className={cn("h-1.5 w-1.5 rounded-full bg-current", key === "active" || key === "trial" ? "v2-soft-pulse" : "opacity-70")} />
       {STATUS_LABEL[key] ?? status ?? "—"}
     </span>
   );
@@ -159,33 +173,45 @@ export function TableSkeleton({ cols, rows = 6 }: { cols: number; rows?: number 
           {Array.from({ length: cols }).map((_, c) => (
             <td key={c} className="px-4 py-4">
               <div
-                className="h-3 w-full overflow-hidden rounded bg-navy-100/70"
-                style={{
-                  background:
-                    "linear-gradient(90deg, hsl(214 40% 92% / 0.6) 0%, hsl(214 40% 97%) 50%, hsl(214 40% 92% / 0.6) 100%)",
-                  backgroundSize: "200% 100%",
-                  animation: "shimmer 1.4s ease-in-out infinite",
-                }}
+                className="h-3 w-full overflow-hidden rounded v2-shimmer"
+                style={{ animationDelay: `${(r * cols + c) * 40}ms` }}
               />
             </td>
           ))}
         </tr>
       ))}
-      <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
     </>
   );
 }
 
 /* ────────── Empty state ────────── */
-export function EmptyState({ icon: Icon, title, hint }: { icon: any; title: string; hint?: string }) {
+export function EmptyState({
+  icon: Icon, title, hint, action,
+}: { icon: any; title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="grid place-items-center gap-3 px-6 py-16 text-center">
-      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-ice ring-1 ring-navy-100">
-        <Icon className="h-6 w-6 text-navy-300" />
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.34, ease: EASE }}
+      className="grid place-items-center gap-3 px-6 py-16 text-center"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5, ease: EASE, delay: 0.05 }}
+        className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-brand-ice to-white ring-1 ring-navy-100 shadow-[0_8px_20px_-12px_hsl(218_70%_14%/0.15)]"
+      >
+        <motion.div
+          animate={{ y: [0, -2, 0] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Icon className="h-6 w-6 text-navy-300" />
+        </motion.div>
+      </motion.div>
       <div className="font-display text-base font-semibold text-navy">{title}</div>
       {hint && <div className="max-w-xs text-xs text-navy-500">{hint}</div>}
-    </div>
+      {action && <div className="mt-2">{action}</div>}
+    </motion.div>
   );
 }
 
