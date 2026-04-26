@@ -461,15 +461,60 @@ export default function BackofficeWorkspacesV2() {
         }
       >
         {selected && (
-          <ul className="space-y-1.5 text-xs text-navy-500">
-            <li>• Workspace: <strong className="font-medium text-navy">{selected.name}</strong></li>
-            <li>• Estado atual: <span className="font-medium text-navy">{selected.status ?? "—"}</span></li>
-            <li>• Membros afetados: <span className="font-medium text-navy">{selected.membersCount}</span></li>
-            <li>• A ação fica registada em logs de auditoria.</li>
-          </ul>
+          <div className="space-y-3">
+            <ul className="space-y-1.5 text-xs text-navy-500">
+              <li>• Workspace: <strong className="font-medium text-navy">{selected.name}</strong></li>
+              <li>• Estado atual: <span className="font-medium text-navy">{selected.status ?? "—"}</span></li>
+              <li>• Membros afetados: <span className="font-medium text-navy">{selected.membersCount}</span></li>
+              <li>• A ação fica registada em auditoria server-side.</li>
+            </ul>
+            <div className="space-y-1.5">
+              <Label htmlFor="reason" className="text-xs font-medium text-navy">
+                Motivo {confirmAction === "suspend" ? "da suspensão" : "da reativação"}
+                <span className="ml-1 text-rose-500">*</span>
+              </Label>
+              <Textarea
+                id="reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value.slice(0, 500))}
+                placeholder="Indica o motivo desta ação para o histórico administrativo."
+                rows={3}
+                className="resize-none rounded-lg border-navy-100 bg-white text-sm focus-visible:ring-brand/20"
+                autoFocus
+              />
+              <div className="flex items-center justify-between text-[10.5px] text-navy-300">
+                <span>{reasonValid ? "Pronto a registar." : "Mínimo 3 caracteres."}</span>
+                <span>{reason.length}/500</span>
+              </div>
+            </div>
+          </div>
         )}
       </ConfirmActionDialog>
     </BackofficeShellV2>
+  );
+}
+
+function TabButton({
+  active, onClick, icon: Icon, label,
+}: { active: boolean; onClick: () => void; icon: any; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "relative -mb-px flex items-center gap-2 px-3 py-3 text-sm font-medium transition-colors",
+        active ? "text-brand" : "text-navy-300 hover:text-navy",
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+      {active && (
+        <motion.span
+          layoutId="ws-drawer-tab"
+          className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand"
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        />
+      )}
+    </button>
   );
 }
 
