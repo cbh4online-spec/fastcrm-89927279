@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,11 +10,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EASE_PREMIUM as EASE } from "@/lib/motion";
 
 type NavItem = { id: string; label: string; icon: any; to: string; badge?: string };
 type NavGroup = { id: string; label: string; items: NavItem[] };
-
-const EASE = [0.16, 1, 0.3, 1] as const;
 
 const NAV: NavGroup[] = [
   {
