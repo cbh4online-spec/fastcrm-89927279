@@ -20,54 +20,35 @@ import { cn } from "@/lib/utils";
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 export default function DashboardV2Page() {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Bom dia" : hour < 19 ? "Boa tarde" : "Boa noite";
   return (
-    <AppShellV2 title="Bom dia, João" subtitle="Aqui está o estado da sua operação comercial.">
+    <AppShellV2
+      title={`${greeting}, João`}
+      subtitle="Aqui está o resumo do desempenho do seu negócio."
+    >
       {/* KPI Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          label="Vendas da semana"
-          value={42180}
-          prefix="€"
-          delta={+12.4}
-          tone="brand"
-          spark="up"
-        />
-        <KpiCard
-          label="Novas oportunidades"
-          value={23}
-          delta={+8.1}
-          tone="cyan"
-          spark="up"
-        />
-        <KpiCard
-          label="Taxa de conversão"
-          value={31.8}
-          suffix="%"
-          decimals={1}
-          delta={+2.3}
-          tone="navy"
-          spark="up"
-        />
-        <KpiCard
-          label="Receita prevista"
-          value={1250000}
-          prefix="€"
-          delta={-3.2}
-          tone="brand"
-          spark="down"
-        />
+        <KpiCard label="Vendas da semana" value={42180} prefix="€" delta={+12.4} tone="brand" spark="up" />
+        <KpiCard label="Novas oportunidades" value={23} delta={+8.1} tone="cyan" spark="up" />
+        <KpiCard label="Taxa de conversão" value={31.8} suffix="%" decimals={1} delta={+2.3} tone="navy" spark="up" />
+        <KpiCard label="Receita prevista" value={1250000} prefix="€" delta={-3.2} tone="brand" spark="down" />
+      </div>
+
+      {/* Pipeline + Evolução */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <PipelineCard />
+        </div>
+        <SalesEvolutionCard />
       </div>
 
       {/* Main 3-col grid */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left/Center: Pipeline + AI */}
         <div className="space-y-6 lg:col-span-2">
-          <PipelineCard />
           <NextBestActionCard />
           <RecentActivityCard />
         </div>
-
-        {/* Right column */}
         <div className="space-y-6">
           <CriticalTasksCard />
           <AlertsCard />
