@@ -42,8 +42,8 @@ export function HeaderV2() {
             aria-label="FastCRM — página inicial"
             className="group inline-flex items-center transition-transform hover:-translate-y-[1px]"
           >
-            <FastCRMLogo variant="full" height={34} className="md:hidden" />
-            <FastCRMLogo variant="full" height={40} className="hidden md:block" />
+            <FastCRMLogo variant="full" size="lg" className="md:hidden" />
+            <FastCRMLogo variant="full" size="xl" className="hidden md:block" />
           </Link>
 
           {/* Nav (desktop) */}

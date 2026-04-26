@@ -188,18 +188,19 @@ export function CTAV2() {
 }
 
 import { Link } from "react-router-dom";
-import { Zap } from "lucide-react";
+import { FastCRMLogo } from "@/components/brand/FastCRMLogo";
 
 export function FooterV2() {
   return (
     <footer className="border-t border-navy-100 bg-white">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-14 md:grid-cols-4 md:px-10">
         <div className="md:col-span-2">
-          <Link to="/" className="inline-flex items-center gap-2.5">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-cyan text-white">
-              <Zap className="h-4 w-4" strokeWidth={2.5} />
-            </span>
-            <span className="font-display text-lg font-semibold text-navy">FastCRM</span>
+          <Link
+            to="/"
+            aria-label="FastCRM — página inicial"
+            className="inline-flex items-center transition-transform hover:-translate-y-[1px]"
+          >
+            <FastCRMLogo variant="full" size="lg" />
           </Link>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-navy-500">
             CRM inteligente, automação e IA para equipas que querem vender melhor, automatizar mais
