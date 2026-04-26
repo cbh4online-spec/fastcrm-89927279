@@ -497,13 +497,14 @@ export default function BackofficeSubscriptionsV2() {
                   visible.map((r, i) => (
                     <motion.tr
                       key={r.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2, delay: Math.min(i * 0.015, 0.2) }}
-                      className="cursor-pointer border-b border-navy-100/60 transition-colors hover:bg-brand-ice/50"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.26, delay: Math.min(i * 0.018, 0.22), ease: [0.16, 1, 0.3, 1] }}
+                      className="group relative cursor-pointer border-b border-navy-100/60 transition-colors duration-200 hover:bg-brand-ice/60"
                       onClick={() => setSelected(r)}
                     >
-                      <td className="px-5 py-3.5">
+                      <td className="relative px-5 py-3.5">
+                        <span className="pointer-events-none absolute inset-y-2 left-0 w-[3px] origin-top scale-y-0 rounded-r-full bg-gradient-to-b from-brand to-cyan transition-transform duration-300 group-hover:scale-y-100" />
                         <div className="font-medium text-navy">{r.workspace_name}</div>
                         {r.workspace_slug && (
                           <div className="text-[11px] text-navy-300">/{r.workspace_slug}</div>
@@ -556,13 +557,16 @@ export default function BackofficeSubscriptionsV2() {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm"
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed inset-0 z-40 bg-navy/45 backdrop-blur-sm"
               onClick={() => setSelected(null)}
             />
             <motion.aside
-              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-              transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-y-auto border-l border-navy-100 bg-white shadow-[-20px_0_50px_-20px_rgba(11,29,61,0.25)]"
+              initial={{ x: "100%", opacity: 0.7 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0.7 }}
+              transition={{ duration: 0.38, ease: [0.19, 1, 0.22, 1] }}
+              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-y-auto border-l border-navy-100 bg-white shadow-[-24px_0_60px_-20px_rgba(11,29,61,0.28)]"
             >
               <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-navy-100 bg-white/90 p-6 backdrop-blur-xl">
                 <div>
