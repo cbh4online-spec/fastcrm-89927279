@@ -191,15 +191,15 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="paste" className="flex-1 flex flex-col overflow-hidden">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="paste" className="gap-2">
               <ClipboardPaste className="h-4 w-4" /> Colar HTML
             </TabsTrigger>
-            <TabsTrigger value="upload" disabled className="gap-2">
+            <TabsTrigger value="upload" className="gap-2">
               <Upload className="h-4 w-4" /> Upload
             </TabsTrigger>
-            <TabsTrigger value="url" disabled className="gap-2">
+            <TabsTrigger value="url" className="gap-2">
               <Link2 className="h-4 w-4" /> URL
             </TabsTrigger>
             <TabsTrigger value="templates" disabled className="gap-2">
@@ -209,6 +209,78 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
               <Sparkles className="h-4 w-4" /> IA
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="upload" className="mt-4">
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer.files?.[0];
+                if (f) handleFile(f);
+              }}
+              className="border-2 border-dashed rounded-lg p-8 text-center bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+              <p className="font-medium">Arrasta um ficheiro ou clica para escolher</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Formatos suportados: <code>.html</code>, <code>.zip</code>, <code>.mjml</code> (máx. 10 MB)
+              </p>
+              {uploading && (
+                <p className="text-xs text-muted-foreground mt-3 flex items-center justify-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" /> A processar…
+                </p>
+              )}
+              {uploadInfo && !uploading && (
+                <p className="text-xs text-primary mt-3">{uploadInfo}</p>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".html,.htm,.zip,.mjml,text/html,application/zip"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFile(f);
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Após carregar, podes rever e ajustar o resultado no separador <strong>Colar HTML</strong>.
+            </p>
+          </TabsContent>
+
+          <TabsContent value="url" className="mt-4">
+            <div className="space-y-3 max-w-2xl">
+              <div>
+                <Label htmlFor="builder-url">URL pública</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="builder-url"
+                    value={urlValue}
+                    onChange={(e) => setUrlValue(e.target.value)}
+                    placeholder="https://exemplo.com/landing"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleImportUrl();
+                    }}
+                  />
+                  <Button onClick={handleImportUrl} disabled={importingUrl}>
+                    {importingUrl ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Importar"
+                    )}
+                  </Button>
+                </div>
+                {errors.url && <p className="text-xs text-destructive mt-1">{errors.url}</p>}
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>• Apenas páginas públicas (sem login).</p>
+                <p>• Limite 5 MB e 15s de timeout.</p>
+                <p>• Scripts são removidos; URLs relativas são absolutizadas.</p>
+              </div>
+            </div>
+          </TabsContent>
 
           <TabsContent value="paste" className="flex-1 overflow-hidden mt-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
@@ -267,7 +339,7 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
                   />
                   {errors.html && <p className="text-xs text-destructive mt-1">{errors.html}</p>}
                   <p className="text-xs text-muted-foreground mt-1">
-                    Scripts e handlers inline são removidos automaticamente.
+                    Scripts e handlers inline são removidos automaticamente ao guardar.
                   </p>
                 </div>
               </div>
