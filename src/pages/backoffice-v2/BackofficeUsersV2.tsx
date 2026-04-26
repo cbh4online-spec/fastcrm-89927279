@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Search, Filter, RefreshCw, Download, ShieldCheck, Mail,
   CalendarDays, Building2, X, Crown, UserCheck, UserX, ExternalLink, Hash,
+  History, ShieldAlert, Loader2,
 } from "lucide-react";
 import { BackofficeShellV2 } from "@/components/backoffice-v2/BackofficeShellV2";
 import {
@@ -12,20 +13,44 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useUsersAdmin, type UserAdminRow } from "@/hooks/useUsersAdmin";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useDeactivateUser, useReactivateUser,
+} from "@/hooks/useUserAdminMutations";
+import { ConfirmActionDialog } from "@/components/backoffice-v2/ConfirmActionDialog";
+import { UserAuditTimeline } from "@/components/backoffice-v2/UserAuditTimeline";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
 
+type DrawerTab = "details" | "history";
+type PendingAction =
+  | { kind: "deactivate"; user: UserAdminRow }
+  | { kind: "reactivate"; user: UserAdminRow }
+  | null;
+
 export default function BackofficeUsersV2() {
   const { data, isLoading, isError, error, refetch, isFetching } = useUsersAdmin();
+  const { isSuperAdmin } = useUserRole();
+  const { user: authUser } = useAuth();
+
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "super" | "with_ws" | "no_ws" | "suspended">("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<UserAdminRow | null>(null);
+  const [tab, setTab] = useState<DrawerTab>("details");
+
+  const [pending, setPending] = useState<PendingAction>(null);
+  const [reason, setReason] = useState("");
+
+  const deactivate = useDeactivateUser();
+  const reactivate = useReactivateUser();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -33,7 +58,7 @@ export default function BackofficeUsersV2() {
       if (filter === "super" && !u.isSuperAdmin) return false;
       if (filter === "with_ws" && u.workspaceCount === 0) return false;
       if (filter === "no_ws" && u.workspaceCount > 0) return false;
-      if (filter === "suspended" && u.status !== "suspended") return false;
+      if (filter === "suspended" && u.status !== "suspended" && u.status !== "inactive") return false;
       if (!q) return true;
       return (
         (u.full_name ?? "").toLowerCase().includes(q) ||
@@ -45,6 +70,51 @@ export default function BackofficeUsersV2() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
   const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const closeDrawer = () => {
+    setSelected(null);
+    setTab("details");
+  };
+  const openDrawer = (u: UserAdminRow) => {
+    setSelected(u);
+    setTab("details");
+  };
+
+  const closeDialog = () => {
+    if (deactivate.isPending || reactivate.isPending) return;
+    setPending(null);
+    setReason("");
+  };
+
+  const handleConfirm = async () => {
+    if (!pending) return;
+    try {
+      if (pending.kind === "deactivate") {
+        await deactivate.mutateAsync({
+          targetUserId: pending.user.user_id,
+          reason,
+        });
+      } else {
+        await reactivate.mutateAsync({
+          targetUserId: pending.user.user_id,
+          reason,
+        });
+      }
+      // Atualizar selected para refletir novo status sem fechar o drawer
+      if (selected?.user_id === pending.user.user_id) {
+        setSelected({
+          ...selected,
+          status: pending.kind === "deactivate" ? "inactive" : "active",
+        });
+      }
+      setPending(null);
+      setReason("");
+    } catch {
+      // erro já tratado por toast nos hooks
+    }
+  };
+
+  const isActor = (u: UserAdminRow) => authUser?.id && u.user_id === authUser.id;
 
   return (
     <BackofficeShellV2>
@@ -103,7 +173,7 @@ export default function BackofficeUsersV2() {
                   <SelectItem value="super">Super Admins</SelectItem>
                   <SelectItem value="with_ws">Com workspace</SelectItem>
                   <SelectItem value="no_ws">Sem workspace</SelectItem>
-                  <SelectItem value="suspended">Suspensos</SelectItem>
+                  <SelectItem value="suspended">Suspensos / Inativos</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -136,7 +206,7 @@ export default function BackofficeUsersV2() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.2, delay: Math.min(i * 0.015, 0.2) }}
-                      onClick={() => setSelected(u)}
+                      onClick={() => openDrawer(u)}
                       className="cursor-pointer border-b border-navy-100/60 transition-colors hover:bg-brand-ice/50"
                     >
                       <td className="px-5 py-3.5">
@@ -198,70 +268,166 @@ export default function BackofficeUsersV2() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm"
-              onClick={() => setSelected(null)}
+              onClick={closeDrawer}
             />
             <motion.aside
               initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
               transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
               className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto bg-white shadow-[-20px_0_50px_-20px_rgba(11,29,61,0.25)]"
             >
-              <div className="sticky top-0 flex items-center justify-between border-b border-navy-100 bg-white/90 px-6 py-4 backdrop-blur-xl">
-                <div className="min-w-0 flex items-center gap-3">
-                  <InitialsAvatar name={selected.full_name} email={selected.email} src={selected.avatar_url} size={42} />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="truncate font-display text-base font-semibold text-navy">{selected.full_name ?? "—"}</span>
-                      {selected.isSuperAdmin && <Crown className="h-4 w-4 text-amber-500" />}
+              <div className="sticky top-0 z-10 border-b border-navy-100 bg-white/90 backdrop-blur-xl">
+                <div className="flex items-center justify-between px-6 py-4">
+                  <div className="min-w-0 flex items-center gap-3">
+                    <InitialsAvatar name={selected.full_name} email={selected.email} src={selected.avatar_url} size={42} />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate font-display text-base font-semibold text-navy">{selected.full_name ?? "—"}</span>
+                        {selected.isSuperAdmin && <Crown className="h-4 w-4 text-amber-500" />}
+                      </div>
+                      <div className="truncate text-xs text-navy-300">{selected.email ?? "—"}</div>
                     </div>
-                    <div className="truncate text-xs text-navy-300">{selected.email ?? "—"}</div>
                   </div>
+                  <button onClick={closeDrawer} className="rounded-lg p-1.5 text-navy-500 transition-colors hover:bg-brand-ice hover:text-navy" aria-label="Fechar">
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-                <button onClick={() => setSelected(null)} className="rounded-lg p-1.5 text-navy-500 transition-colors hover:bg-brand-ice hover:text-navy" aria-label="Fechar">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="space-y-5 p-6">
-                <div className="flex items-center gap-2">
-                  <StatusPill status={selected.status ?? "active"} />
-                  <span className="text-xs text-navy-300">desde {fmtDate(selected.created_at)}</span>
-                </div>
-
-                <Detail icon={Mail} label="Email" value={selected.email ?? "—"} />
-                <Detail icon={ShieldCheck} label="Super Admin" value={selected.isSuperAdmin ? "Sim" : "Não"} />
-                <Detail icon={Building2} label="Adesões" value={`${selected.workspaceCount} workspace(s)`} />
-                <Detail icon={Hash} label="Profile ID" value={<span className="font-mono text-[11px]">{selected.id}</span>} />
-                <Detail icon={Hash} label="Auth ID" value={<span className="font-mono text-[11px]">{selected.user_id}</span>} />
-                <Detail icon={CalendarDays} label="Criado" value={fmtDate(selected.created_at)} />
-
-                {selected.workspaces.length > 0 && (
-                  <div>
-                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
-                      Workspaces & roles
-                    </div>
-                    <ul className="space-y-1.5">
-                      {selected.workspaces.map((w, i) => (
-                        <li key={i} className="flex items-center justify-between rounded-lg border border-navy-100 bg-brand-ice/40 px-3 py-2 text-xs">
-                          <span className="truncate font-mono text-[11px] text-navy-500">{w.workspace_id.slice(0, 8)}…</span>
-                          <Badge variant="outline" className="border-navy-100 text-[10px] font-medium text-navy-500">{w.role}</Badge>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <div className="border-t border-navy-100 pt-4">
-                  <Button variant="outline" className="w-full gap-2 rounded-xl border-navy-100 hover:border-brand/40" asChild>
-                    <a href={`/super-admin?user=${selected.user_id}`} target="_blank" rel="noreferrer">
-                      Abrir em Backoffice clássico <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
+                <div className="flex gap-1 px-6 pb-2">
+                  <TabBtn active={tab === "details"} onClick={() => setTab("details")}>Detalhes</TabBtn>
+                  <TabBtn active={tab === "history"} onClick={() => setTab("history")}>
+                    <History className="mr-1.5 inline h-3.5 w-3.5 align-[-2px]" /> Histórico
+                  </TabBtn>
                 </div>
               </div>
+
+              {tab === "details" ? (
+                <div className="space-y-5 p-6">
+                  <div className="flex items-center gap-2">
+                    <StatusPill status={selected.status ?? "active"} />
+                    <span className="text-xs text-navy-300">desde {fmtDate(selected.created_at)}</span>
+                  </div>
+
+                  <Detail icon={Mail} label="Email" value={selected.email ?? "—"} />
+                  <Detail icon={ShieldCheck} label="Super Admin" value={selected.isSuperAdmin ? "Sim" : "Não"} />
+                  <Detail icon={Building2} label="Adesões" value={`${selected.workspaceCount} workspace(s)`} />
+                  <Detail icon={Hash} label="Profile ID" value={<span className="font-mono text-[11px]">{selected.id}</span>} />
+                  <Detail icon={Hash} label="Auth ID" value={<span className="font-mono text-[11px]">{selected.user_id}</span>} />
+                  <Detail icon={CalendarDays} label="Criado" value={fmtDate(selected.created_at)} />
+
+                  {selected.workspaces.length > 0 && (
+                    <div>
+                      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
+                        Workspaces & roles
+                      </div>
+                      <ul className="space-y-1.5">
+                        {selected.workspaces.map((w, i) => (
+                          <li key={i} className="flex items-center justify-between rounded-lg border border-navy-100 bg-brand-ice/40 px-3 py-2 text-xs">
+                            <span className="truncate font-mono text-[11px] text-navy-500">{w.workspace_id.slice(0, 8)}…</span>
+                            <Badge variant="outline" className="border-navy-100 text-[10px] font-medium text-navy-500">{w.role}</Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Ações administrativas (apenas super admin) */}
+                  {isSuperAdmin && (
+                    <AdminActionsPanel
+                      user={selected}
+                      isActor={!!isActor(selected)}
+                      onDeactivate={() => { setReason(""); setPending({ kind: "deactivate", user: selected }); }}
+                      onReactivate={() => { setReason(""); setPending({ kind: "reactivate", user: selected }); }}
+                      pending={
+                        deactivate.isPending || reactivate.isPending
+                      }
+                    />
+                  )}
+
+                  <div className="border-t border-navy-100 pt-4">
+                    <Button variant="outline" className="w-full gap-2 rounded-xl border-navy-100 hover:border-brand/40" asChild>
+                      <a href={`/super-admin?user=${selected.user_id}`} target="_blank" rel="noreferrer">
+                        Abrir em Backoffice clássico <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6">
+                  <UserAuditTimeline targetUserId={selected.user_id} />
+                </div>
+              )}
             </motion.aside>
           </>
         )}
       </AnimatePresence>
+
+      {/* Confirmação de ação administrativa */}
+      <ConfirmActionDialog
+        open={!!pending}
+        onClose={closeDialog}
+        onConfirm={handleConfirm}
+        loading={deactivate.isPending || reactivate.isPending}
+        confirmDisabled={reason.trim().length < 3}
+        tone={pending?.kind === "deactivate" ? "warning" : "info"}
+        title={
+          pending?.kind === "deactivate"
+            ? "Suspender acesso do utilizador?"
+            : "Reativar acesso do utilizador?"
+        }
+        description={
+          pending?.kind === "deactivate" ? (
+            <>
+              Esta ação marca o utilizador como <strong>inativo</strong> e pode impedir o
+              acesso à plataforma em fluxos que verificam o estado do perfil. As sessões
+              ativas <strong>não</strong> são revogadas nesta fase.
+              <br />Indica o motivo para manter o histórico administrativo completo.
+            </>
+          ) : (
+            <>
+              Esta ação repõe o utilizador no estado <strong>ativo</strong>.
+              <br />Indica o motivo para registo no histórico.
+            </>
+          )
+        }
+        confirmLabel={
+          pending?.kind === "deactivate" ? "Confirmar suspensão" : "Confirmar reativação"
+        }
+      >
+        <div className="space-y-2">
+          <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-navy-300">
+            {pending?.kind === "deactivate" ? "Motivo da suspensão" : "Motivo da reativação"}
+            <span className="ml-1 text-rose-500">*</span>
+          </label>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value.slice(0, 500))}
+            placeholder="Ex.: pedido do cliente, suspeita de uso indevido, etc."
+            rows={3}
+            className="resize-none rounded-xl border-navy-100 bg-white text-sm text-navy placeholder:text-navy-300 focus-visible:border-brand focus-visible:ring-4 focus-visible:ring-brand/10"
+          />
+          <div className="flex justify-end text-[10px] text-navy-300">
+            {reason.trim().length}/500
+          </div>
+        </div>
+      </ConfirmActionDialog>
     </BackofficeShellV2>
+  );
+}
+
+function TabBtn({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+        active
+          ? "bg-brand/10 text-brand"
+          : "text-navy-500 hover:bg-brand-ice hover:text-navy",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -275,6 +441,71 @@ function Detail({ icon: Icon, label, value }: { icon: any; label: string; value:
         <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">{label}</div>
         <div className="mt-0.5 break-words text-sm font-medium text-navy">{value}</div>
       </div>
+    </div>
+  );
+}
+
+function AdminActionsPanel({
+  user, isActor, onDeactivate, onReactivate, pending,
+}: {
+  user: UserAdminRow;
+  isActor: boolean;
+  onDeactivate: () => void;
+  onReactivate: () => void;
+  pending: boolean;
+}) {
+  const isInactive = user.status === "inactive" || user.status === "suspended";
+  const blockedSelf = isActor;
+  const blockedSuper = user.isSuperAdmin;
+  const blocked = blockedSelf || blockedSuper;
+
+  return (
+    <div className="rounded-2xl border border-navy-100 bg-brand-ice/30 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <ShieldAlert className="h-4 w-4 text-brand" />
+        <h3 className="font-display text-sm font-semibold text-navy">
+          Ações administrativas
+        </h3>
+      </div>
+
+      {blocked && (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+          {blockedSelf && (
+            <div>Não podes executar ações administrativas sobre a tua própria conta.</div>
+          )}
+          {!blockedSelf && blockedSuper && (
+            <div>Ações sobre outros super admins estão bloqueadas nesta fase.</div>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {!isInactive ? (
+          <Button
+            onClick={onDeactivate}
+            disabled={blocked || pending}
+            variant="outline"
+            className="w-full justify-start gap-2 rounded-xl border-amber-200 bg-white text-amber-700 hover:border-amber-300 hover:bg-amber-50"
+          >
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserX className="h-4 w-4" />}
+            Suspender acesso
+          </Button>
+        ) : (
+          <Button
+            onClick={onReactivate}
+            disabled={blocked || pending}
+            variant="outline"
+            className="w-full justify-start gap-2 rounded-xl border-emerald-200 bg-white text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50"
+          >
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+            Reativar acesso
+          </Button>
+        )}
+      </div>
+
+      <p className="mt-3 text-[10.5px] leading-relaxed text-navy-300">
+        Reset de password, revogação de sessões e remoção de conta serão adicionados em fases seguintes.
+      </p>
     </div>
   );
 }
