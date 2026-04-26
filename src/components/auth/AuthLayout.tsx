@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
-import { Building2, CheckCircle, Star } from "lucide-react";
+import { CheckCircle, Star } from "lucide-react";
+import { FastCRMLogo } from "@/components/brand/FastCRMLogo";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -13,11 +14,10 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       {/* Left panel - AIDA Marketing */}
       <div className="hidden lg:flex lg:w-1/2 gradient-primary p-12 flex-col justify-between">
         {/* Branding */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-primary-foreground" />
+        <div className="flex items-center">
+          <div className="rounded-xl bg-white/95 px-4 py-2.5 shadow-lg ring-1 ring-white/40 backdrop-blur">
+            <FastCRMLogo variant="full" height={32} />
           </div>
-          <span className="text-xl font-semibold text-primary-foreground">FastCRM</span>
         </div>
         
         <div className="space-y-8">
@@ -85,11 +85,8 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 justify-center">
-            <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-semibold text-foreground">FastCRM</span>
+          <div className="lg:hidden flex items-center justify-center">
+            <FastCRMLogo variant="full" height={36} />
           </div>
 
           <div className="text-center lg:text-left">

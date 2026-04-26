@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { FastCRMLogo } from "@/components/brand/FastCRMLogo";
 
 const NAV = [
   { label: "Produto", href: "#solucao" },
@@ -36,14 +37,13 @@ export function HeaderV2() {
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 md:h-20 md:px-10">
           {/* Logo */}
-          <Link to="/" className="group flex items-center gap-2.5">
-            <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-cyan text-white shadow-[0_8px_24px_-8px_hsl(218_100%_54%/0.6)]">
-              <Zap className="h-4 w-4" strokeWidth={2.5} />
-              <span className="absolute inset-0 rounded-xl bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
-            </span>
-            <span className="font-display text-lg font-semibold tracking-tight text-navy">
-              FastCRM
-            </span>
+          <Link
+            to="/"
+            aria-label="FastCRM — página inicial"
+            className="group inline-flex items-center transition-transform hover:-translate-y-[1px]"
+          >
+            <FastCRMLogo variant="full" height={34} className="md:hidden" />
+            <FastCRMLogo variant="full" height={40} className="hidden md:block" />
           </Link>
 
           {/* Nav (desktop) */}
