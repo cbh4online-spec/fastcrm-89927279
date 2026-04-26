@@ -45,12 +45,22 @@ interface Props {
 export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "landing" }: Props) {
   const navigate = useNavigate();
   const create = useCreateBuilderAsset();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState("");
   const [type, setType] = useState<BuilderAssetType>(defaultType);
   const [description, setDescription] = useState("");
   const [html, setHtml] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [tab, setTab] = useState<"paste" | "upload" | "url">("paste");
+
+  // Upload
+  const [uploading, setUploading] = useState(false);
+  const [uploadInfo, setUploadInfo] = useState<string | null>(null);
+
+  // URL import
+  const [urlValue, setUrlValue] = useState("");
+  const [importingUrl, setImportingUrl] = useState(false);
 
   const reset = () => {
     setName("");
@@ -58,6 +68,80 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
     setDescription("");
     setHtml("");
     setErrors({});
+    setTab("paste");
+    setUploading(false);
+    setUploadInfo(null);
+    setUrlValue("");
+    setImportingUrl(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleFile = async (file: File) => {
+    setErrors({});
+    setUploading(true);
+    setUploadInfo(null);
+    try {
+      const lower = file.name.toLowerCase();
+      const isZip = lower.endsWith(".zip") || file.type === "application/zip";
+      const isHtml = lower.endsWith(".html") || lower.endsWith(".htm") || file.type === "text/html";
+      const isMjml = lower.endsWith(".mjml");
+
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error("Ficheiro demasiado grande (máx. 10 MB)");
+      }
+
+      if (isZip) {
+        const bundle = await extractZipHtml(file);
+        setHtml(bundle.html);
+        setUploadInfo(`ZIP importado · entry ${bundle.entryName} · ${bundle.files} ficheiros`);
+      } else if (isHtml || isMjml) {
+        const text = await file.text();
+        setHtml(text);
+        setUploadInfo(
+          isMjml
+            ? `MJML carregado (${(file.size / 1024).toFixed(1)} KB) — será tratado como HTML`
+            : `HTML carregado (${(file.size / 1024).toFixed(1)} KB)`,
+        );
+      } else {
+        throw new Error("Formato não suportado. Usa .html, .zip ou .mjml");
+      }
+
+      if (!name.trim()) setName(file.name.replace(/\.[^.]+$/, "").slice(0, 160));
+      setTab("paste"); // foca o painel onde se vê o resultado
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Falha ao ler ficheiro";
+      toast({ title: "Upload falhou", description: msg, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImportUrl = async () => {
+    setErrors({});
+    const v = urlValue.trim();
+    if (!/^https?:\/\//i.test(v)) {
+      setErrors({ url: "URL deve começar por http:// ou https://" });
+      return;
+    }
+    setImportingUrl(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("builder-import-url", {
+        body: { url: v },
+      });
+      if (error) throw error;
+      const payload = data as { html?: string; title?: string | null; error?: string };
+      if (payload?.error) throw new Error(payload.error);
+      if (!payload?.html) throw new Error("Resposta vazia");
+      setHtml(payload.html);
+      if (!name.trim() && payload.title) setName(payload.title.slice(0, 160));
+      toast({ title: "Página importada", description: "Conteúdo pronto para revisão." });
+      setTab("paste");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ title: "Import falhou", description: msg, variant: "destructive" });
+    } finally {
+      setImportingUrl(false);
+    }
   };
 
   const handleSubmit = async () => {
