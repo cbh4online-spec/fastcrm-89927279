@@ -31,11 +31,11 @@ const fmtEur = (n: number) =>
 /** Badge de estado específico para subscrições (mais granular). */
 function SubStatusPill({ status, cancelAtEnd }: { status: string; cancelAtEnd?: boolean | null }) {
   const map: Record<string, string> = {
-    active: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    trialing: "bg-sky-50 text-sky-700 ring-sky-200",
-    past_due: "bg-amber-50 text-amber-700 ring-amber-200",
-    canceled: "bg-rose-50 text-rose-700 ring-rose-200",
-    paused: "bg-slate-100 text-slate-600 ring-slate-200",
+    active: "bg-success/10 text-success ring-success/20",
+    trialing: "bg-cyan/10 text-cyan ring-cyan/30",
+    past_due: "bg-warning/15 text-warning-foreground ring-warning/30",
+    canceled: "bg-destructive/10 text-destructive ring-destructive/20",
+    paused: "bg-navy-100 text-navy-500 ring-navy-200",
     incomplete: "bg-violet-50 text-violet-700 ring-violet-200",
   };
   const label: Record<string, string> = {
@@ -48,7 +48,7 @@ function SubStatusPill({ status, cancelAtEnd }: { status: string; cancelAtEnd?: 
   };
   if (cancelAtEnd && status === "active") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/15 px-2.5 py-0.5 text-[11px] font-semibold text-warning-foreground ring-1 ring-inset ring-warning/30">
         <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
         Cancela no fim do período
       </span>
@@ -57,7 +57,7 @@ function SubStatusPill({ status, cancelAtEnd }: { status: string; cancelAtEnd?: 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
         map[status] ?? map.paused
       )}
     >
@@ -69,9 +69,9 @@ function SubStatusPill({ status, cancelAtEnd }: { status: string; cancelAtEnd?: 
 
 function PlanPill({ plan }: { plan: string }) {
   const styles: Record<string, string> = {
-    free: "bg-slate-100 text-slate-700 ring-slate-200",
-    basic: "bg-sky-50 text-sky-700 ring-sky-200",
-    pro: "bg-[hsl(220,90%,56%)]/10 text-[hsl(220,90%,40%)] ring-[hsl(220,90%,56%)]/30",
+    free: "bg-navy-100 text-navy-500 ring-navy-200",
+    basic: "bg-cyan/10 text-cyan ring-cyan/30",
+    pro: "bg-brand/10 text-brand ring-brand/30",
     agency: "bg-violet-50 text-violet-700 ring-violet-200",
   };
   return (
@@ -90,9 +90,9 @@ function PlanPill({ plan }: { plan: string }) {
 function PlanDonut({ items }: { items: Array<{ plan: string; count: number }> }) {
   const total = items.reduce((s, i) => s + i.count, 0) || 1;
   const colors: Record<string, string> = {
-    free: "hsl(215, 16%, 70%)",
-    basic: "hsl(200, 95%, 55%)",
-    pro: "hsl(220, 90%, 56%)",
+    free: "hsl(215, 22%, 62%)",
+    basic: "hsl(192, 100%, 50%)",
+    pro: "hsl(218, 100%, 54%)",
     agency: "hsl(265, 80%, 60%)",
   };
   let acc = 0;
@@ -101,19 +101,22 @@ function PlanDonut({ items }: { items: Array<{ plan: string; count: number }> })
   return (
     <div className="flex items-center gap-6">
       <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90">
-        <circle cx="70" cy="70" r={radius} fill="none" stroke="hsl(210,20%,94%)" strokeWidth="14" />
+        <circle cx="70" cy="70" r={radius} fill="none" stroke="hsl(214 40% 92%)" strokeWidth="14" />
         {items.map((i) => {
           const frac = i.count / total;
           const dash = frac * circ;
           const el = (
-            <circle
+            <motion.circle
               key={i.plan}
               cx="70" cy="70" r={radius}
               fill="none"
-              stroke={colors[i.plan] ?? "hsl(215, 16%, 60%)"}
+              stroke={colors[i.plan] ?? "hsl(215 22% 62%)"}
               strokeWidth="14"
               strokeDasharray={`${dash} ${circ - dash}`}
               strokeDashoffset={-acc}
+              initial={{ strokeDasharray: `0 ${circ}` }}
+              animate={{ strokeDasharray: `${dash} ${circ - dash}` }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             />
           );
           acc += dash;
@@ -125,13 +128,13 @@ function PlanDonut({ items }: { items: Array<{ plan: string; count: number }> })
           <div key={i.plan} className="flex items-center gap-2">
             <span
               className="h-2.5 w-2.5 rounded-sm"
-              style={{ background: colors[i.plan] ?? "hsl(215, 16%, 60%)" }}
+              style={{ background: colors[i.plan] ?? "hsl(215 22% 62%)" }}
             />
-            <span className="font-medium text-slate-700">{PLAN_LABEL[i.plan] ?? i.plan}</span>
-            <span className="text-slate-400">· {i.count}</span>
+            <span className="font-medium text-navy">{PLAN_LABEL[i.plan] ?? i.plan}</span>
+            <span className="text-navy-300">· {i.count}</span>
           </div>
         ))}
-        {items.length === 0 && <div className="text-xs text-slate-400">Sem dados</div>}
+        {items.length === 0 && <div className="text-xs text-navy-300">Sem dados</div>}
       </div>
     </div>
   );
@@ -237,17 +240,17 @@ export default function BackofficeSubscriptionsV2() {
 
   return (
     <BackofficeShellV2>
-      <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-8 md:px-8">
+      <div className="mx-auto max-w-[1400px] space-y-7 px-4 py-8 md:px-8 md:py-10">
         <ErrorBanners isError={isError} error={error} partialErrors={data?.partialErrors} />
 
         <PageHeader
-          badge={<><CreditCard className="h-3 w-3 text-[hsl(220,90%,56%)]" /> Backoffice · Billing</>}
+          badge={<><CreditCard className="h-3 w-3 text-brand" /> Backoffice · Billing</>}
           title="Subscrições"
           subtitle="Visão financeira e operacional read-only sobre a monetização da plataforma"
           right={
             <Button
               variant="outline"
-              className="h-9 gap-2 border-slate-200"
+              className="h-10 gap-2 rounded-xl border-navy-100 bg-white text-navy-500 hover:border-brand/40 hover:text-navy"
               onClick={() => refetch()}
               disabled={isFetching}
             >
@@ -261,161 +264,186 @@ export default function BackofficeSubscriptionsV2() {
           <StatTile
             label="MRR estimado"
             value={isLoading ? "…" : fmtEur(data?.totals.mrr ?? 0)}
-            accent="bg-gradient-to-br from-[hsl(220,90%,56%)] to-[hsl(190,95%,50%)]"
+            accent="bg-gradient-to-br from-brand to-cyan"
             icon={Euro}
           />
           <StatTile
             label="Subscrições ativas"
             value={isLoading ? "…" : (data?.totals.active ?? 0)}
-            accent="bg-emerald-500"
+            accent="bg-gradient-to-br from-success to-emerald-400"
             icon={Activity}
           />
           <StatTile
             label="ARPA médio"
             value={isLoading ? "…" : fmtEur(Math.round(data?.totals.arpa ?? 0))}
-            accent="bg-violet-500"
+            accent="bg-gradient-to-br from-violet-500 to-fuchsia-500"
             icon={TrendingUp}
           />
           <StatTile
             label="Workspaces em trial"
             value={isLoading ? "…" : (data?.totals.trialing ?? 0)}
-            accent="bg-sky-500"
+            accent="bg-gradient-to-br from-cyan to-sky-400"
             icon={Sparkles}
           />
           <StatTile
             label="Cancelamentos"
             value={isLoading ? "…" : (data?.totals.canceled ?? 0)}
-            accent="bg-rose-500"
+            accent="bg-gradient-to-br from-destructive to-pink-500"
             icon={UsersIcon}
           />
           <StatTile
             label="MRR em risco"
             value={isLoading ? "…" : fmtEur(data?.totals.risk ?? 0)}
-            accent="bg-amber-500"
+            accent="bg-gradient-to-br from-amber-500 to-orange-500"
             icon={AlertTriangle}
           />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 text-[11px] text-slate-500">
-          <ShieldCheck className="mr-1.5 inline h-3 w-3 text-emerald-500" />
-          Modo read-only · MRR estimado a partir de uma tabela de preços por plano
-          (Free €0 · Basic €{PLAN_PRICE_EUR.basic} · Pro €{PLAN_PRICE_EUR.pro} · Agency €{PLAN_PRICE_EUR.agency}).
-          Sem ações destrutivas nesta vista.
+        <div className="flex items-center gap-2 rounded-xl border border-navy-100 bg-white px-4 py-2.5 text-[11px] text-navy-500 shadow-[0_1px_2px_rgba(11,29,61,0.04)]">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-success" />
+          <span>
+            <strong className="font-semibold text-navy">Modo read-only.</strong>{" "}
+            MRR estimado a partir de tabela por plano (Free €0 · Basic €{PLAN_PRICE_EUR.basic} · Pro €{PLAN_PRICE_EUR.pro} · Agency €{PLAN_PRICE_EUR.agency}).
+            Sem ações destrutivas nesta vista.
+          </span>
         </div>
 
         {/* Alertas */}
         {alerts.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2">
             {alerts.map((a, i) => (
-              <div
+              <motion.div
                 key={i}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.04 }}
                 className={cn(
                   "flex items-start gap-3 rounded-2xl border p-4 text-sm",
-                  a.tone === "rose" && "border-rose-200 bg-rose-50 text-rose-800",
-                  a.tone === "amber" && "border-amber-200 bg-amber-50 text-amber-900",
-                  a.tone === "sky" && "border-sky-200 bg-sky-50 text-sky-900"
+                  a.tone === "rose" && "border-destructive/20 bg-destructive/5 text-destructive",
+                  a.tone === "amber" && "border-warning/30 bg-warning/10 text-warning-foreground",
+                  a.tone === "sky" && "border-cyan/25 bg-cyan/5 text-navy"
                 )}
               >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
-                  <div className="font-medium">{a.title}</div>
+                  <div className="font-semibold">{a.title}</div>
                   <div className="text-xs opacity-80">{a.hint}</div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
 
         {/* Visualizações */}
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-1">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Mix de planos</div>
-              <span className="text-[11px] text-slate-400">{data?.rows.length ?? 0} subs</span>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="rounded-2xl border border-navy-100 bg-white p-6 shadow-[0_1px_2px_rgba(11,29,61,0.04)] transition-shadow hover:shadow-[0_20px_50px_-25px_hsl(218_70%_14%/0.16)] lg:col-span-1"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div className="font-display text-base font-semibold text-navy">Mix de planos</div>
+              <span className="text-[11px] font-medium text-navy-300">{data?.rows.length ?? 0} subs</span>
             </div>
             <PlanDonut items={(data?.planMix ?? []).map((p) => ({ plan: p.plan, count: p.count }))} />
-          </div>
+          </motion.div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-1">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Top workspaces por MRR</div>
-              <TrendingUp className="h-4 w-4 text-[hsl(220,90%,56%)]" />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+            className="rounded-2xl border border-navy-100 bg-white p-6 shadow-[0_1px_2px_rgba(11,29,61,0.04)] transition-shadow hover:shadow-[0_20px_50px_-25px_hsl(218_70%_14%/0.16)] lg:col-span-1"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div className="font-display text-base font-semibold text-navy">Top workspaces por MRR</div>
+              <TrendingUp className="h-4 w-4 text-brand" />
             </div>
             {topMrr.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">Sem dados de receita.</div>
+              <div className="py-6 text-center text-xs text-navy-300">Sem dados de receita.</div>
             ) : (
-              <ul className="space-y-2.5">
-                {topMrr.map((r) => (
-                  <li
+              <ul className="space-y-1.5">
+                {topMrr.map((r, i) => (
+                  <motion.li
                     key={r.id}
-                    className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-slate-50 cursor-pointer"
+                    initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.25, delay: i * 0.04 }}
+                    className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 transition-colors hover:bg-brand-ice/60"
                     onClick={() => setSelected(r)}
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-slate-800">
+                      <div className="truncate text-sm font-medium text-navy">
                         {r.workspace_name}
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="mt-0.5">
                         <PlanPill plan={r.plan} />
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-slate-900">
+                    <div className="font-display text-sm font-semibold tabular-nums text-navy">
                       {fmtEur(r.mrr_eur)}
                     </div>
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
             )}
-          </div>
+          </motion.div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-1">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Próximas renovações</div>
-              <Calendar className="h-4 w-4 text-[hsl(220,90%,56%)]" />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+            className="rounded-2xl border border-navy-100 bg-white p-6 shadow-[0_1px_2px_rgba(11,29,61,0.04)] transition-shadow hover:shadow-[0_20px_50px_-25px_hsl(218_70%_14%/0.16)] lg:col-span-1"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div className="font-display text-base font-semibold text-navy">Próximas renovações</div>
+              <Calendar className="h-4 w-4 text-brand" />
             </div>
             {upcoming.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">
+              <div className="py-6 text-center text-xs text-navy-300">
                 Sem renovações nos próximos 30 dias.
               </div>
             ) : (
-              <ul className="space-y-2.5">
-                {upcoming.map((r) => (
-                  <li
+              <ul className="space-y-1.5">
+                {upcoming.map((r, i) => (
+                  <motion.li
                     key={r.id}
-                    className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-slate-50 cursor-pointer"
+                    initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.25, delay: i * 0.04 }}
+                    className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 transition-colors hover:bg-brand-ice/60"
                     onClick={() => setSelected(r)}
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-slate-800">
+                      <div className="truncate text-sm font-medium text-navy">
                         {r.workspace_name}
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="text-[11px] text-navy-300">
                         {fmtDate(r.current_period_end)}
                       </div>
                     </div>
                     <SubStatusPill status={r.status} cancelAtEnd={r.cancel_at_period_end} />
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
             )}
-          </div>
+          </motion.div>
         </div>
 
         {/* Filtros + Tabela */}
-        <div className="rounded-2xl border border-slate-200 bg-white">
-          <div className="flex flex-col gap-3 border-b border-slate-100 p-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <motion.div
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+          className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-[0_1px_2px_rgba(11,29,61,0.04)]"
+        >
+          <div className="flex flex-col gap-3 border-b border-navy-100 p-4 md:flex-row md:items-center md:justify-between md:p-5">
+            <div className="relative max-w-md flex-1">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-300" />
               <Input
                 placeholder="Pesquisar workspace, slug ou customer Stripe…"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="h-9 pl-8"
+                className="h-10 rounded-xl border-navy-100 bg-brand-ice/60 pl-10 text-sm text-navy placeholder:text-navy-300 transition-all focus-visible:border-brand focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-brand/10"
               />
             </div>
             <div className="flex items-center gap-2">
               <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
-                <SelectTrigger className="h-9 w-[150px]"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectTrigger className="h-10 w-[160px] rounded-xl border-navy-100 bg-white text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os estados</SelectItem>
                   <SelectItem value="active">Ativo</SelectItem>
@@ -426,7 +454,7 @@ export default function BackofficeSubscriptionsV2() {
                 </SelectContent>
               </Select>
               <Select value={planFilter} onValueChange={(v) => { setPlanFilter(v); setPage(1); }}>
-                <SelectTrigger className="h-9 w-[140px]"><SelectValue placeholder="Plano" /></SelectTrigger>
+                <SelectTrigger className="h-10 w-[150px] rounded-xl border-navy-100 bg-white text-sm"><SelectValue placeholder="Plano" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os planos</SelectItem>
                   <SelectItem value="free">Free</SelectItem>
@@ -441,15 +469,15 @@ export default function BackofficeSubscriptionsV2() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[11px] uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-2.5 font-medium">Workspace</th>
-                  <th className="px-4 py-2.5 font-medium">Plano</th>
-                  <th className="px-4 py-2.5 font-medium">Estado</th>
-                  <th className="px-4 py-2.5 font-medium text-right">MRR</th>
-                  <th className="px-4 py-2.5 font-medium">Renovação</th>
-                  <th className="px-4 py-2.5 font-medium">Trial até</th>
-                  <th className="px-4 py-2.5 font-medium">Atualizado</th>
-                  <th className="px-4 py-2.5 font-medium" />
+                <tr className="border-b border-navy-100 bg-brand-ice/60 text-left text-[10.5px] font-semibold uppercase tracking-[0.12em] text-navy-300">
+                  <th className="px-5 py-3.5">Workspace</th>
+                  <th className="px-4 py-3.5">Plano</th>
+                  <th className="px-4 py-3.5">Estado</th>
+                  <th className="px-4 py-3.5 text-right">MRR</th>
+                  <th className="px-4 py-3.5">Renovação</th>
+                  <th className="px-4 py-3.5">Trial até</th>
+                  <th className="px-4 py-3.5">Atualizado</th>
+                  <th className="px-4 py-3.5" />
                 </tr>
               </thead>
               <tbody>
@@ -466,35 +494,36 @@ export default function BackofficeSubscriptionsV2() {
                     </td>
                   </tr>
                 ) : (
-                  visible.map((r) => (
+                  visible.map((r, i) => (
                     <motion.tr
                       key={r.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="cursor-pointer border-b border-slate-50 transition-colors hover:bg-slate-50/60"
+                      transition={{ duration: 0.2, delay: Math.min(i * 0.015, 0.2) }}
+                      className="cursor-pointer border-b border-navy-100/60 transition-colors hover:bg-brand-ice/50"
                       onClick={() => setSelected(r)}
                     >
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-slate-800">{r.workspace_name}</div>
+                      <td className="px-5 py-3.5">
+                        <div className="font-medium text-navy">{r.workspace_name}</div>
                         {r.workspace_slug && (
-                          <div className="text-[11px] text-slate-400">/{r.workspace_slug}</div>
+                          <div className="text-[11px] text-navy-300">/{r.workspace_slug}</div>
                         )}
                       </td>
-                      <td className="px-4 py-3"><PlanPill plan={r.plan} /></td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5"><PlanPill plan={r.plan} /></td>
+                      <td className="px-4 py-3.5">
                         <SubStatusPill status={r.status} cancelAtEnd={r.cancel_at_period_end} />
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                      <td className="px-4 py-3.5 text-right font-display font-semibold tabular-nums text-navy">
                         {fmtEur(r.mrr_eur)}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{fmtDate(r.current_period_end)}</td>
-                      <td className="px-4 py-3 text-slate-600">{fmtDate(r.trial_ends_at)}</td>
-                      <td className="px-4 py-3 text-slate-500">{fmtDate(r.updated_at)}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3.5 text-navy-500">{fmtDate(r.current_period_end)}</td>
+                      <td className="px-4 py-3.5 text-navy-500">{fmtDate(r.trial_ends_at)}</td>
+                      <td className="px-4 py-3.5 text-navy-300">{fmtDate(r.updated_at)}</td>
+                      <td className="px-4 py-3.5 text-right">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 px-2 text-[11px] text-slate-500 hover:text-slate-900"
+                          className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
                           onClick={(e) => { e.stopPropagation(); setSelected(r); }}
                         >
                           Ver detalhe
@@ -508,17 +537,17 @@ export default function BackofficeSubscriptionsV2() {
           </div>
 
           {!isLoading && filtered.length > PAGE_SIZE && (
-            <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
+            <div className="flex items-center justify-between border-t border-navy-100 px-5 py-3.5 text-xs text-navy-500">
               <div>
-                {filtered.length} resultado(s) · página {safePage} de {pageCount}
+                <strong className="font-semibold text-navy">{filtered.length}</strong> resultado(s) · página {safePage} de {pageCount}
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="h-7" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>Anterior</Button>
-                <Button variant="outline" size="sm" className="h-7" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>Seguinte</Button>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="h-8 rounded-lg border-navy-100 hover:border-brand/40" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>Anterior</Button>
+                <Button variant="outline" size="sm" className="h-8 rounded-lg border-navy-100 hover:border-brand/40" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>Seguinte</Button>
               </div>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Drawer */}
@@ -527,20 +556,20 @@ export default function BackofficeSubscriptionsV2() {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
+              className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm"
               onClick={() => setSelected(null)}
             />
             <motion.aside
               initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 36 }}
-              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-y-auto border-l border-slate-200 bg-white shadow-xl"
+              transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-y-auto border-l border-navy-100 bg-white shadow-[-20px_0_50px_-20px_rgba(11,29,61,0.25)]"
             >
-              <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-5">
+              <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-navy-100 bg-white/90 p-6 backdrop-blur-xl">
                 <div>
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
                     Subscrição
                   </div>
-                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                  <div className="mt-1 font-display text-lg font-semibold text-navy">
                     {selected.workspace_name}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -548,28 +577,28 @@ export default function BackofficeSubscriptionsV2() {
                     <SubStatusPill status={selected.status} cancelAtEnd={selected.cancel_at_period_end} />
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelected(null)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-navy-500 hover:bg-brand-ice hover:text-navy" onClick={() => setSelected(null)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="space-y-5 p-5 text-sm">
+              <div className="space-y-6 p-6 text-sm">
                 <section>
-                  <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
                     Receita
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                    <div className="text-2xl font-semibold text-slate-900">
-                      {fmtEur(selected.mrr_eur)}<span className="ml-1 text-xs font-normal text-slate-400">/ mês</span>
+                  <div className="rounded-2xl border border-navy-100 bg-gradient-to-br from-brand-ice to-white p-5">
+                    <div className="font-display text-2xl font-semibold tabular-nums text-navy">
+                      {fmtEur(selected.mrr_eur)}<span className="ml-1 text-xs font-normal text-navy-300">/ mês</span>
                     </div>
-                    <div className="mt-1 text-[11px] text-slate-500">
+                    <div className="mt-1 text-[11px] text-navy-500">
                       MRR estimado a partir do plano (sem ligação direta ao Stripe nesta vista).
                     </div>
                   </div>
                 </section>
 
                 <section className="space-y-2">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
                     Identificadores
                   </div>
                   <Field icon={Hash} label="Workspace ID" value={selected.workspace_id} mono />
@@ -583,7 +612,7 @@ export default function BackofficeSubscriptionsV2() {
                 </section>
 
                 <section className="space-y-2">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
                     Ciclo
                   </div>
                   <Field icon={Calendar} label="Próxima renovação" value={fmtDate(selected.current_period_end)} />
@@ -592,17 +621,17 @@ export default function BackofficeSubscriptionsV2() {
                   <Field icon={Calendar} label="Atualizado em" value={fmtDate(selected.updated_at)} />
                 </section>
 
-                <div className="flex flex-col gap-2 pt-2">
+                <div className="flex flex-col gap-2 border-t border-navy-100 pt-4">
                   <Button
                     variant="outline"
-                    className="h-9 justify-center gap-2 border-slate-200"
+                    className="h-10 justify-center gap-2 rounded-xl border-navy-100 hover:border-brand/40"
                     asChild
                   >
                     <a href={`/super-admin?ws=${selected.workspace_id}`} target="_blank" rel="noreferrer">
                       <ExternalLink className="h-4 w-4" /> Abrir no backoffice clássico
                     </a>
                   </Button>
-                  <p className="text-center text-[11px] text-slate-400">
+                  <p className="text-center text-[11px] text-navy-300">
                     Ações destrutivas (cancelar, alterar plano, reembolsar) só estão disponíveis na shell clássica.
                   </p>
                 </div>
@@ -619,11 +648,11 @@ function Field({
   icon: Icon, label, value, mono,
 }: { icon: any; label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2">
-      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+    <div className="flex items-start gap-2.5 rounded-xl border border-navy-100 bg-brand-ice/40 px-3 py-2.5">
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-navy-300" />
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] text-slate-400">{label}</div>
-        <div className={cn("truncate text-slate-700", mono && "font-mono text-[12px]")}>{value}</div>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">{label}</div>
+        <div className={cn("truncate font-medium text-navy", mono && "font-mono text-[12px] font-normal text-navy-500")}>{value}</div>
       </div>
     </div>
   );
