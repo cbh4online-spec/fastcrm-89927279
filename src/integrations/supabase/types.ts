@@ -9226,6 +9226,161 @@ export type Database = {
           },
         ]
       }
+      builder_asset_versions: {
+        Row: {
+          asset_id: string
+          created_at: string
+          created_by: string
+          css: string | null
+          html: string
+          id: string
+          metadata: Json
+          notes: string | null
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          created_by?: string
+          css?: string | null
+          html: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          version_number: number
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          created_by?: string
+          css?: string | null
+          html?: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_asset_versions_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "builder_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      builder_assets: {
+        Row: {
+          created_at: string
+          created_by: string
+          css: string | null
+          deleted_at: string | null
+          description: string | null
+          html: string
+          id: string
+          metadata: Json
+          name: string
+          slug: string
+          status: Database["public"]["Enums"]["builder_asset_status"]
+          thumbnail_url: string | null
+          type: Database["public"]["Enums"]["builder_asset_type"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          css?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          html?: string
+          id?: string
+          metadata?: Json
+          name: string
+          slug: string
+          status?: Database["public"]["Enums"]["builder_asset_status"]
+          thumbnail_url?: string | null
+          type: Database["public"]["Enums"]["builder_asset_type"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          css?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          html?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          slug?: string
+          status?: Database["public"]["Enums"]["builder_asset_status"]
+          thumbnail_url?: string | null
+          type?: Database["public"]["Enums"]["builder_asset_type"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      builder_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          css: string | null
+          deleted_at: string | null
+          description: string | null
+          html: string
+          id: string
+          is_public: boolean
+          metadata: Json
+          name: string
+          thumbnail_url: string | null
+          type: Database["public"]["Enums"]["builder_asset_type"]
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          css?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          html: string
+          id?: string
+          is_public?: boolean
+          metadata?: Json
+          name: string
+          thumbnail_url?: string | null
+          type: Database["public"]["Enums"]["builder_asset_type"]
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          css?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          html?: string
+          id?: string
+          is_public?: boolean
+          metadata?: Json
+          name?: string
+          thumbnail_url?: string | null
+          type?: Database["public"]["Enums"]["builder_asset_type"]
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       business_context: {
         Row: {
           active_strategies: string[] | null
@@ -72360,6 +72515,8 @@ export type Database = {
       billing_type: "one_time" | "recurring"
       bot_status: "draft" | "active" | "paused"
       bot_type: "guided" | "prompt" | "flow"
+      builder_asset_status: "draft" | "published" | "archived"
+      builder_asset_type: "site" | "landing" | "funnel" | "form" | "newsletter"
       c2c_buyer_status: "active" | "suspended"
       c2c_seller_status: "pending" | "approved" | "rejected" | "suspended"
       client_role:
@@ -72886,6 +73043,8 @@ export const Constants = {
       billing_type: ["one_time", "recurring"],
       bot_status: ["draft", "active", "paused"],
       bot_type: ["guided", "prompt", "flow"],
+      builder_asset_status: ["draft", "published", "archived"],
+      builder_asset_type: ["site", "landing", "funnel", "form", "newsletter"],
       c2c_buyer_status: ["active", "suspended"],
       c2c_seller_status: ["pending", "approved", "rejected", "suspended"],
       client_role: [

@@ -36,6 +36,8 @@ import { RevenueCommerceRoutes } from "@/routes/crm/RevenueCommerceRoutes";
 import { VerticalOpsRoutes } from "@/routes/crm/VerticalOpsRoutes";
 
 const ReportsKPIs = lazy(() => import("@/pages/ReportsKPIs"));
+const BuilderHubPage = lazy(() => import("@/pages/builder/BuilderHubPage"));
+const BuilderAssetEditorPage = lazy(() => import("@/pages/builder/BuilderAssetEditorPage"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -59,6 +61,8 @@ export default function CRMRoutesV2() {
                     {MetaModuleRoutes()}
                     {AIRoutes()}
                     <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
+                    <Route path="/dashboard/builder" element={<BuilderHubPage />} />
+                    <Route path="/dashboard/builder/:id" element={<BuilderAssetEditorPage />} />
                     {ReportsRoutes()}
                     {AccountBriefRoutes()}
                     {RevenueFlightControlRoutes()}
