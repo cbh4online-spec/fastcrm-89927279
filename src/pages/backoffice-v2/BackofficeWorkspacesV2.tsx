@@ -278,6 +278,130 @@ export default function BackofficeWorkspacesV2() {
                 <DetailRow icon={Users} label="Membros" value={String(selected.membersCount)} />
                 <DetailRow icon={Globe} label="ID" value={<span className="font-mono text-[11px]">{selected.id}</span>} />
 
+                {/* Ações administrativas — apenas super admin */}
+                {isSuperAdmin && (
+                  <div className="space-y-4 rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/60 to-white p-4">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-amber-600" />
+                      <h3 className="font-display text-sm font-semibold text-navy">Ações administrativas</h3>
+                    </div>
+
+                    {/* Editar metadados */}
+                    <div className="space-y-3 rounded-xl border border-navy-100 bg-white p-3.5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-navy-300">
+                          Metadados
+                        </div>
+                        {!editing ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditing(true)}
+                            className="h-7 gap-1.5 rounded-lg px-2 text-xs text-navy-500 hover:bg-brand-ice hover:text-navy"
+                          >
+                            <Pencil className="h-3.5 w-3.5" /> Editar
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditing(false);
+                              setEditName(selected.name);
+                              setEditCompany(selected.company_name ?? "");
+                            }}
+                            disabled={updateMetaMut.isPending}
+                            className="h-7 gap-1.5 rounded-lg px-2 text-xs text-navy-500 hover:bg-brand-ice hover:text-navy"
+                          >
+                            Cancelar
+                          </Button>
+                        )}
+                      </div>
+
+                      {editing ? (
+                        <>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-navy-500">Nome interno</Label>
+                            <Input
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              maxLength={120}
+                              className="h-9 rounded-lg border-navy-100 bg-white text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-navy-500">Empresa</Label>
+                            <Input
+                              value={editCompany}
+                              onChange={(e) => setEditCompany(e.target.value)}
+                              maxLength={200}
+                              placeholder="—"
+                              className="h-9 rounded-lg border-navy-100 bg-white text-sm"
+                            />
+                          </div>
+                          <Button
+                            onClick={handleSaveMetadata}
+                            disabled={
+                              updateMetaMut.isPending ||
+                              (editName.trim() === selected.name &&
+                                (editCompany.trim() || null) === (selected.company_name ?? null))
+                            }
+                            className="h-9 w-full gap-2 rounded-lg bg-brand text-white shadow-[0_8px_24px_-12px_rgba(37,99,235,0.6)] hover:bg-brand/90"
+                          >
+                            {updateMetaMut.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Save className="h-4 w-4" />
+                            )}
+                            Guardar alterações
+                          </Button>
+                        </>
+                      ) : (
+                        <p className="text-xs leading-relaxed text-navy-300">
+                          Edita o nome interno e a empresa associada. Não afeta o slug nem o domínio.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Suspender / Reativar */}
+                    <div className="space-y-2 rounded-xl border border-navy-100 bg-white p-3.5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-navy-300">
+                        Estado do workspace
+                      </div>
+                      {selected.status === "suspended" ? (
+                        <Button
+                          onClick={() => setConfirmAction("reactivate")}
+                          disabled={reactivateMut.isPending}
+                          className="h-9 w-full gap-2 rounded-lg bg-emerald-600 text-white shadow-[0_8px_24px_-12px_rgba(5,150,105,0.6)] hover:bg-emerald-700"
+                        >
+                          {reactivateMut.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <PlayCircle className="h-4 w-4" />
+                          )}
+                          Reativar workspace
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => setConfirmAction("suspend")}
+                          disabled={suspendMut.isPending}
+                          className="h-9 w-full gap-2 rounded-lg bg-amber-500 text-white shadow-[0_8px_24px_-12px_rgba(245,158,11,0.6)] hover:bg-amber-600"
+                        >
+                          {suspendMut.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <PauseCircle className="h-4 w-4" />
+                          )}
+                          Suspender workspace
+                        </Button>
+                      )}
+                      <p className="text-[11px] leading-relaxed text-navy-300">
+                        Reversível. Não elimina dados nem cancela subscrições.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="border-t border-navy-100 pt-4">
                   <Button variant="outline" className="w-full gap-2 rounded-xl border-navy-100 hover:border-brand/40" asChild>
                     <a href={`/super-admin?ws=${selected.id}`} target="_blank" rel="noreferrer">
