@@ -64,6 +64,9 @@ const PortalLoginPage = lazy(() => import("@/pages/public/PortalLoginPage"));
 const PortalDashboardPage = lazy(() => import("@/pages/public/PortalDashboardPage"));
 const WorkerRegisterPage = lazy(() => import("@/pages/public/WorkerRegisterPage"));
 const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPage"));
+
+// FastCRM V2 — premium app shell preview
+const DashboardV2Page = lazy(() => import("@/pages/app-v2/DashboardV2Page"));
 // /lp/:workspaceSlug/:pageSlug → redirect to canonical /p/:workspaceSlug/:pageSlug
 function LandingPageAliasRedirect() {
   const { workspaceSlug, pageSlug } = useParams();
@@ -192,7 +195,11 @@ const App = () => (
 
                 {/* Client Portal - ISOLATED from CRM providers */}
                 <Route path="/client/*" element={<ClientPortalRoutes />} />
-                
+
+                {/* FastCRM V2 preview (premium shell) */}
+                <Route path="/app-v2" element={<Navigate to="/app-v2/dashboard" replace />} />
+                <Route path="/app-v2/dashboard" element={<DashboardV2Page />} />
+
                 {/* CRM and all other routes - WITH CRM providers */}
                 <Route path="/*" element={<CRMRoutesV2 />} />
               </Routes>
