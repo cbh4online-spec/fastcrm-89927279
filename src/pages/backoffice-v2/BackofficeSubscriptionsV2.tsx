@@ -240,17 +240,17 @@ export default function BackofficeSubscriptionsV2() {
 
   return (
     <BackofficeShellV2>
-      <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-8 md:px-8">
+      <div className="mx-auto max-w-[1400px] space-y-7 px-4 py-8 md:px-8 md:py-10">
         <ErrorBanners isError={isError} error={error} partialErrors={data?.partialErrors} />
 
         <PageHeader
-          badge={<><CreditCard className="h-3 w-3 text-[hsl(220,90%,56%)]" /> Backoffice · Billing</>}
+          badge={<><CreditCard className="h-3 w-3 text-brand" /> Backoffice · Billing</>}
           title="Subscrições"
           subtitle="Visão financeira e operacional read-only sobre a monetização da plataforma"
           right={
             <Button
               variant="outline"
-              className="h-9 gap-2 border-slate-200"
+              className="h-10 gap-2 rounded-xl border-navy-100 bg-white text-navy-500 hover:border-brand/40 hover:text-navy"
               onClick={() => refetch()}
               disabled={isFetching}
             >
@@ -264,67 +264,72 @@ export default function BackofficeSubscriptionsV2() {
           <StatTile
             label="MRR estimado"
             value={isLoading ? "…" : fmtEur(data?.totals.mrr ?? 0)}
-            accent="bg-gradient-to-br from-[hsl(220,90%,56%)] to-[hsl(190,95%,50%)]"
+            accent="bg-gradient-to-br from-brand to-cyan"
             icon={Euro}
           />
           <StatTile
             label="Subscrições ativas"
             value={isLoading ? "…" : (data?.totals.active ?? 0)}
-            accent="bg-emerald-500"
+            accent="bg-gradient-to-br from-success to-emerald-400"
             icon={Activity}
           />
           <StatTile
             label="ARPA médio"
             value={isLoading ? "…" : fmtEur(Math.round(data?.totals.arpa ?? 0))}
-            accent="bg-violet-500"
+            accent="bg-gradient-to-br from-violet-500 to-fuchsia-500"
             icon={TrendingUp}
           />
           <StatTile
             label="Workspaces em trial"
             value={isLoading ? "…" : (data?.totals.trialing ?? 0)}
-            accent="bg-sky-500"
+            accent="bg-gradient-to-br from-cyan to-sky-400"
             icon={Sparkles}
           />
           <StatTile
             label="Cancelamentos"
             value={isLoading ? "…" : (data?.totals.canceled ?? 0)}
-            accent="bg-rose-500"
+            accent="bg-gradient-to-br from-destructive to-pink-500"
             icon={UsersIcon}
           />
           <StatTile
             label="MRR em risco"
             value={isLoading ? "…" : fmtEur(data?.totals.risk ?? 0)}
-            accent="bg-amber-500"
+            accent="bg-gradient-to-br from-amber-500 to-orange-500"
             icon={AlertTriangle}
           />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 text-[11px] text-slate-500">
-          <ShieldCheck className="mr-1.5 inline h-3 w-3 text-emerald-500" />
-          Modo read-only · MRR estimado a partir de uma tabela de preços por plano
-          (Free €0 · Basic €{PLAN_PRICE_EUR.basic} · Pro €{PLAN_PRICE_EUR.pro} · Agency €{PLAN_PRICE_EUR.agency}).
-          Sem ações destrutivas nesta vista.
+        <div className="flex items-center gap-2 rounded-xl border border-navy-100 bg-white px-4 py-2.5 text-[11px] text-navy-500 shadow-[0_1px_2px_rgba(11,29,61,0.04)]">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-success" />
+          <span>
+            <strong className="font-semibold text-navy">Modo read-only.</strong>{" "}
+            MRR estimado a partir de tabela por plano (Free €0 · Basic €{PLAN_PRICE_EUR.basic} · Pro €{PLAN_PRICE_EUR.pro} · Agency €{PLAN_PRICE_EUR.agency}).
+            Sem ações destrutivas nesta vista.
+          </span>
         </div>
 
         {/* Alertas */}
         {alerts.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2">
             {alerts.map((a, i) => (
-              <div
+              <motion.div
                 key={i}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.04 }}
                 className={cn(
                   "flex items-start gap-3 rounded-2xl border p-4 text-sm",
-                  a.tone === "rose" && "border-rose-200 bg-rose-50 text-rose-800",
-                  a.tone === "amber" && "border-amber-200 bg-amber-50 text-amber-900",
-                  a.tone === "sky" && "border-sky-200 bg-sky-50 text-sky-900"
+                  a.tone === "rose" && "border-destructive/20 bg-destructive/5 text-destructive",
+                  a.tone === "amber" && "border-warning/30 bg-warning/10 text-warning-foreground",
+                  a.tone === "sky" && "border-cyan/25 bg-cyan/5 text-navy"
                 )}
               >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
-                  <div className="font-medium">{a.title}</div>
+                  <div className="font-semibold">{a.title}</div>
                   <div className="text-xs opacity-80">{a.hint}</div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
