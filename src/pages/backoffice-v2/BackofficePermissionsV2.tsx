@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck, Users, Crown, Briefcase, Headphones, Eye,
   Check, Minus, Plug, Plus, Search, Filter,
