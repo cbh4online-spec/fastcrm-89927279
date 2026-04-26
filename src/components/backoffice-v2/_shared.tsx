@@ -2,8 +2,7 @@ import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const EASE = [0.16, 1, 0.3, 1] as const;
+import { EASE_PREMIUM as EASE, staggerContainer, staggerItem } from "@/lib/motion";
 
 /* ────────── Page header com badge + título ────────── */
 export function PageHeader({
