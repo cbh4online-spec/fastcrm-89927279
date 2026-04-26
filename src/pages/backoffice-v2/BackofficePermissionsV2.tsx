@@ -81,6 +81,23 @@ const TABS = ["Utilizadores", "Funções", "Permissões", "Grupos"] as const;
 export default function BackofficePermissionsV2() {
   const [tab, setTab] = useState<typeof TABS[number]>("Permissões");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [tabLoading, setTabLoading] = useState(false);
+
+  // Skeleton inicial
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 520);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Skeleton curto ao trocar de tab (microinteração)
+  const handleTabChange = (next: typeof TABS[number]) => {
+    if (next === tab) return;
+    setTabLoading(true);
+    setTab(next);
+    const t = setTimeout(() => setTabLoading(false), 220);
+    return () => clearTimeout(t);
+  };
 
   return (
     <BackofficeShellV2>
