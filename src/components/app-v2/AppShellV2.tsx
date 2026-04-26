@@ -171,7 +171,8 @@ export function SidebarV2({
           </div>
         )}
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
