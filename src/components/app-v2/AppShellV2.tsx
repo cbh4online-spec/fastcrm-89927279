@@ -66,18 +66,33 @@ const NAV: NavGroup[] = [
 export function SidebarV2({
   collapsed,
   onToggle,
+  mobileOpen = false,
+  onMobileClose,
 }: {
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }) {
   return (
-    <aside
-      className={cn(
-        "sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r border-navy-100 bg-white transition-[width] duration-300",
-        collapsed ? "w-[72px]" : "w-[260px]",
+    <>
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={onMobileClose}
+          className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm lg:hidden"
+        />
       )}
-      style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
-    >
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col border-r border-navy-100 bg-white transition-[width,transform] duration-300 lg:sticky lg:top-0 lg:z-30 lg:translate-x-0",
+          collapsed ? "w-[72px]" : "w-[260px]",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+        style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+      >
       {/* Brand */}
       <div className={cn("flex h-16 items-center border-b border-navy-100 px-4", collapsed && "justify-center px-2")}>
         <Link to="/app-v2/dashboard" className="flex items-center gap-2.5">
