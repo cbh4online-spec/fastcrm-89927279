@@ -10,6 +10,7 @@ const BackofficeOverviewV2 = lazy(() => import("@/pages/backoffice-v2/Backoffice
 const BackofficeWorkspacesV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeWorkspacesV2"));
 const BackofficeUsersV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeUsersV2"));
 const BackofficeSubscriptionsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSubscriptionsV2"));
+const BackofficePermissionsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficePermissionsV2"));
 const VerticalLandingPage = lazy(() => import("@/pages/VerticalLandingPage"));
 const EventRsvpResponse = lazy(() => import("@/pages/EventRsvpResponse"));
 const AcceptWorkspaceInvite = lazy(() => import("@/pages/AcceptWorkspaceInvite"));
@@ -30,6 +31,7 @@ export function VerticalOpsRoutes() {
       <Route path="/super-admin-v2/users" element={<RequireSuperAdmin><BackofficeUsersV2 /></RequireSuperAdmin>} />
       <Route path="/super-admin-v2/subscriptions" element={<RequireSuperAdmin><BackofficeSubscriptionsV2 /></RequireSuperAdmin>} />
       <Route path="/super-admin-v2/billing" element={<RequireSuperAdmin><BackofficeSubscriptionsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/permissions" element={<RequireSuperAdmin><BackofficePermissionsV2 /></RequireSuperAdmin>} />
       <Route path="/clinicas" element={<VerticalLandingPage />} />
       <Route path="/imobiliarias" element={<VerticalLandingPage />} />
       <Route path="/formacao" element={<VerticalLandingPage />} />
