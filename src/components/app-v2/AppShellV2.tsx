@@ -226,12 +226,32 @@ function SidebarRow({
   );
 }
 
-export function TopbarV2({ title, subtitle }: { title: ReactNode; subtitle?: string }) {
+export function TopbarV2({
+  title,
+  subtitle,
+  onMobileMenuOpen,
+}: {
+  title: ReactNode;
+  subtitle?: string;
+  onMobileMenuOpen?: () => void;
+}) {
   const [query, setQuery] = useState("");
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-navy-100 bg-white/85 px-6 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-navy-100 bg-white/85 px-4 backdrop-blur-xl md:gap-4 md:px-6">
+      {onMobileMenuOpen && (
+        <button
+          type="button"
+          aria-label="Abrir menu"
+          onClick={onMobileMenuOpen}
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-navy-500 transition-all hover:bg-brand-ice hover:text-navy lg:hidden"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+      )}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-display text-xl font-semibold tracking-tight text-navy">
+        <h1 className="truncate font-display text-lg font-semibold tracking-tight text-navy md:text-xl">
           {title}
         </h1>
         {subtitle && <p className="truncate text-xs text-navy-300">{subtitle}</p>}
