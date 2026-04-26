@@ -1,12 +1,16 @@
+import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Building2, Users, CreditCard, Brain, TrendingUp, TrendingDown,
   AlertTriangle, Activity, Zap, ArrowUpRight, Sparkles, ShieldCheck,
+  Loader2, ShieldAlert,
 } from "lucide-react";
 import { BackofficeShellV2 } from "@/components/backoffice-v2/BackofficeShellV2";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useBackofficeKpis } from "@/hooks/useBackofficeKpis";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 const fmtN = (n: number) => new Intl.NumberFormat("pt-PT").format(n);
