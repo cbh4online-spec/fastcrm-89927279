@@ -3,16 +3,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Search, Filter, Download, RefreshCw, Users, Activity,
   Sparkles, X, ExternalLink, Mail, Globe, MapPin, CalendarDays, Hash,
-  ShieldCheck, PauseCircle, PlayCircle, Pencil, Save, Loader2,
+  ShieldCheck, PauseCircle, PlayCircle, Pencil, Save, Loader2, History,
 } from "lucide-react";
 import { BackofficeShellV2 } from "@/components/backoffice-v2/BackofficeShellV2";
 import {
   PageHeader, StatTile, StatusPill, ErrorBanners, TableSkeleton, EmptyState, fmtDate,
 } from "@/components/backoffice-v2/_shared";
 import { ConfirmActionDialog } from "@/components/backoffice-v2/ConfirmActionDialog";
+import { WorkspaceAuditTimeline } from "@/components/backoffice-v2/WorkspaceAuditTimeline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -34,9 +36,11 @@ export default function BackofficeWorkspacesV2() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<WorkspaceAdminRow | null>(null);
   const [confirmAction, setConfirmAction] = useState<null | "suspend" | "reactivate">(null);
+  const [reason, setReason] = useState("");
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editCompany, setEditCompany] = useState("");
+  const [tab, setTab] = useState<"details" | "history">("details");
 
   const { isSuperAdmin } = useUserRole();
   const suspendMut = useSuspendWorkspace();
@@ -49,6 +53,7 @@ export default function BackofficeWorkspacesV2() {
       setEditName(selected.name ?? "");
       setEditCompany(selected.company_name ?? "");
       setEditing(false);
+      setTab("details");
     }
   }, [selected?.id]);
 
@@ -59,19 +64,21 @@ export default function BackofficeWorkspacesV2() {
     if (fresh && fresh !== selected) setSelected(fresh);
   }, [data?.rows]);
 
+  // Limpar motivo sempre que o modal abre/fecha
+  useEffect(() => {
+    if (!confirmAction) setReason("");
+  }, [confirmAction]);
+
+  const reasonValid = reason.trim().length >= 3;
+
   const handleConfirmAction = () => {
-    if (!selected || !confirmAction) return;
+    if (!selected || !confirmAction || !reasonValid) return;
     const onDone = () => setConfirmAction(null);
+    const payload = { id: selected.id, status: selected.status, reason: reason.trim() };
     if (confirmAction === "suspend") {
-      suspendMut.mutate(
-        { id: selected.id, status: selected.status },
-        { onSettled: onDone },
-      );
+      suspendMut.mutate(payload, { onSettled: onDone });
     } else {
-      reactivateMut.mutate(
-        { id: selected.id, status: selected.status },
-        { onSettled: onDone },
-      );
+      reactivateMut.mutate(payload, { onSettled: onDone });
     }
   };
 
