@@ -108,7 +108,7 @@ export function ConfirmActionDialog({
                 </Button>
                 <Button
                   onClick={onConfirm}
-                  disabled={loading}
+                  disabled={loading || confirmDisabled}
                   className={cn("h-10 gap-2 rounded-xl", styles.btn)}
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
