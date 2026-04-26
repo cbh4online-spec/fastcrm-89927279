@@ -1,19 +1,28 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Search, Filter, Download, RefreshCw, Users, Activity,
   Sparkles, X, ExternalLink, Mail, Globe, MapPin, CalendarDays, Hash,
+  ShieldCheck, PauseCircle, PlayCircle, Pencil, Save, Loader2,
 } from "lucide-react";
 import { BackofficeShellV2 } from "@/components/backoffice-v2/BackofficeShellV2";
 import {
   PageHeader, StatTile, StatusPill, ErrorBanners, TableSkeleton, EmptyState, fmtDate,
 } from "@/components/backoffice-v2/_shared";
+import { ConfirmActionDialog } from "@/components/backoffice-v2/ConfirmActionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useWorkspacesAdmin, type WorkspaceAdminRow } from "@/hooks/useWorkspacesAdmin";
+import {
+  useSuspendWorkspace,
+  useReactivateWorkspace,
+  useUpdateWorkspaceMetadata,
+} from "@/hooks/useWorkspaceAdminMutations";
+import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
