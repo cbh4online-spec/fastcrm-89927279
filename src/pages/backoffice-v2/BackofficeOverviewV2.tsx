@@ -206,8 +206,7 @@ export default function BackofficeOverviewV2() {
           <KpiCard
             label="MRR consolidado"
             value={fmtEUR(data?.mrr ?? 0)}
-            delta={12.4}
-            hint="Receita mensal recorrente · subscrições ativas"
+                        hint="Receita mensal recorrente · subscrições ativas"
             icon={CreditCard}
             accent="bg-gradient-to-br from-[hsl(220,90%,56%)] to-[hsl(190,95%,50%)]"
             series={mrrSeries}
@@ -226,8 +225,7 @@ export default function BackofficeOverviewV2() {
           <KpiCard
             label="Utilizadores"
             value={fmtN(data?.users ?? 0)}
-            delta={8.1}
-            hint={`${data?.activeSubs ?? 0} subscrições ativas`}
+                        hint={`${data?.activeSubs ?? 0} subscrições ativas`}
             icon={Users}
             accent="bg-gradient-to-br from-violet-500 to-fuchsia-500"
             series={usersSeries}
@@ -236,8 +234,7 @@ export default function BackofficeOverviewV2() {
           <KpiCard
             label="Chamadas IA · 30d"
             value={fmtN(data?.aiCalls30d ?? 0)}
-            delta={24.7}
-            hint="Inferências através do Lovable AI Gateway"
+                        hint="Inferências através do Lovable AI Gateway"
             icon={Brain}
             accent="bg-gradient-to-br from-amber-500 to-orange-500"
             series={aiSeries}
@@ -404,7 +401,8 @@ export default function BackofficeOverviewV2() {
           </div>
         </div>
 
-        {/* Row 3: Alerts banner */}
+        {/* Row 3: Alerts banner — só renderiza quando há alertas em aberto */}
+        {(data?.alertsOpen ?? 0) > 0 && (
         <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/60 p-5">
           <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
@@ -425,6 +423,7 @@ export default function BackofficeOverviewV2() {
             </Button>
           </div>
         </div>
+        )}
       </div>
     </BackofficeShellV2>
   );
