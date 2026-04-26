@@ -127,7 +127,7 @@ export function SidebarV2({
             <ul className="space-y-0.5">
               {group.items.map((item) => (
                 <li key={item.to}>
-                  <NavLink to={item.to} end>
+                  <NavLink to={item.to} end onClick={onMobileClose}>
                     {({ isActive }) => (
                       <SidebarRow item={item} active={isActive} collapsed={collapsed} />
                     )}
