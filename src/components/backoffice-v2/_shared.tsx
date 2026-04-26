@@ -84,10 +84,11 @@ export function StatusPill({ status }: { status?: string | null }) {
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+        "transition-all duration-200 hover:ring-[1.5px]",
         STATUS_STYLES[key] ?? STATUS_STYLES.inactive
       )}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+      <span className={cn("h-1.5 w-1.5 rounded-full bg-current", key === "active" || key === "trial" ? "v2-soft-pulse" : "opacity-70")} />
       {STATUS_LABEL[key] ?? status ?? "—"}
     </span>
   );
@@ -172,33 +173,45 @@ export function TableSkeleton({ cols, rows = 6 }: { cols: number; rows?: number 
           {Array.from({ length: cols }).map((_, c) => (
             <td key={c} className="px-4 py-4">
               <div
-                className="h-3 w-full overflow-hidden rounded bg-navy-100/70"
-                style={{
-                  background:
-                    "linear-gradient(90deg, hsl(214 40% 92% / 0.6) 0%, hsl(214 40% 97%) 50%, hsl(214 40% 92% / 0.6) 100%)",
-                  backgroundSize: "200% 100%",
-                  animation: "shimmer 1.4s ease-in-out infinite",
-                }}
+                className="h-3 w-full overflow-hidden rounded v2-shimmer"
+                style={{ animationDelay: `${(r * cols + c) * 40}ms` }}
               />
             </td>
           ))}
         </tr>
       ))}
-      <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
     </>
   );
 }
 
 /* ────────── Empty state ────────── */
-export function EmptyState({ icon: Icon, title, hint }: { icon: any; title: string; hint?: string }) {
+export function EmptyState({
+  icon: Icon, title, hint, action,
+}: { icon: any; title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="grid place-items-center gap-3 px-6 py-16 text-center">
-      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-ice ring-1 ring-navy-100">
-        <Icon className="h-6 w-6 text-navy-300" />
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.34, ease: EASE }}
+      className="grid place-items-center gap-3 px-6 py-16 text-center"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5, ease: EASE, delay: 0.05 }}
+        className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-brand-ice to-white ring-1 ring-navy-100 shadow-[0_8px_20px_-12px_hsl(218_70%_14%/0.15)]"
+      >
+        <motion.div
+          animate={{ y: [0, -2, 0] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Icon className="h-6 w-6 text-navy-300" />
+        </motion.div>
+      </motion.div>
       <div className="font-display text-base font-semibold text-navy">{title}</div>
       {hint && <div className="max-w-xs text-xs text-navy-500">{hint}</div>}
-    </div>
+      {action && <div className="mt-2">{action}</div>}
+    </motion.div>
   );
 }
 
