@@ -390,7 +390,7 @@ function AlertsCard() {
           {ALERTS.map((a, i) => {
             const bg =
               a.tone === "destructive"
-                ? "bg-destructive/8 text-destructive"
+                ? "bg-destructive/10 text-destructive"
                 : a.tone === "warning"
                 ? "bg-warning/15 text-warning-foreground"
                 : "bg-success/10 text-success";

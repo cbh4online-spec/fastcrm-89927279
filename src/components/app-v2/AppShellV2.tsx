@@ -174,7 +174,7 @@ function SidebarRow({
       className={cn(
         "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-all duration-200",
         active
-          ? "bg-brand/8 text-brand"
+          ? "bg-brand/10 text-brand"
           : "text-navy-500 hover:bg-brand-ice hover:text-navy",
       )}
     >
