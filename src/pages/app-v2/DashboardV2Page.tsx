@@ -185,6 +185,148 @@ function PipelineCard() {
   );
 }
 
+/* ──────────────────── Sales Evolution (line chart) ──────────────────── */
+
+const WEEK_DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const CURRENT = [4200, 5800, 5100, 7300, 8900, 6400, 4480];
+const PREVIOUS = [3800, 4900, 5400, 5800, 6200, 5300, 3700];
+
+function buildPath(data: number[], width: number, height: number, max: number) {
+  const stepX = width / (data.length - 1);
+  const points = data.map((v, i) => `${i * stepX},${height - (v / max) * height}`);
+  return `M${points.join(" L")}`;
+}
+
+function SalesEvolutionCard() {
+  const max = Math.max(...CURRENT, ...PREVIOUS) * 1.1;
+  const W = 360;
+  const H = 140;
+  const currentPath = buildPath(CURRENT, W, H, max);
+  const previousPath = buildPath(PREVIOUS, W, H, max);
+  const total = CURRENT.reduce((a, b) => a + b, 0);
+  const totalPrev = PREVIOUS.reduce((a, b) => a + b, 0);
+  const delta = ((total - totalPrev) / totalPrev) * 100;
+  return (
+    <Reveal>
+      <div className="flex h-full flex-col rounded-2xl border border-navy-100 bg-white p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-navy-300">Evolução de vendas</p>
+            <h3 className="mt-1 font-display text-lg font-semibold text-navy">Esta semana vs anterior</h3>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">
+            <TrendingUp className="h-3 w-3" />+{delta.toFixed(1)}%
+          </span>
+        </div>
+
+        <div className="mt-4 flex items-baseline gap-2">
+          <span className="font-display text-2xl font-semibold text-navy tabular-nums">
+            €{(total / 1000).toFixed(1)}k
+          </span>
+          <span className="text-xs text-navy-300 tabular-nums">vs €{(totalPrev / 1000).toFixed(1)}k</span>
+        </div>
+
+        <div className="mt-4 flex-1">
+          <svg viewBox={`0 0 ${W} ${H + 20}`} className="h-32 w-full overflow-visible">
+            <defs>
+              <linearGradient id="evo-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(216 100% 52%)" stopOpacity="0.18" />
+                <stop offset="100%" stopColor="hsl(216 100% 52%)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {/* grid */}
+            {[0, 0.5, 1].map((p) => (
+              <line key={p} x1="0" y1={H * p} x2={W} y2={H * p} stroke="hsl(217 35% 92%)" strokeWidth="1" strokeDasharray="3 4" />
+            ))}
+            {/* previous (dashed) */}
+            <motion.path
+              initial={{ pathLength: 0 }}
+              whileInView={{ pathLength: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.1, ease: EASE }}
+              d={previousPath}
+              fill="none"
+              stroke="hsl(215 22% 62%)"
+              strokeWidth="1.6"
+              strokeDasharray="4 4"
+              strokeLinecap="round"
+            />
+            {/* current area */}
+            <motion.path
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              d={`${currentPath} L${W},${H} L0,${H} Z`}
+              fill="url(#evo-fill)"
+            />
+            {/* current line */}
+            <motion.path
+              initial={{ pathLength: 0 }}
+              whileInView={{ pathLength: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.2, ease: EASE, delay: 0.2 }}
+              d={currentPath}
+              fill="none"
+              stroke="hsl(216 100% 52%)"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {/* points on current */}
+            {CURRENT.map((v, i) => {
+              const stepX = W / (CURRENT.length - 1);
+              const x = i * stepX;
+              const y = H - (v / max) * H;
+              return (
+                <motion.circle
+                  key={i}
+                  cx={x}
+                  cy={y}
+                  r="3"
+                  fill="white"
+                  stroke="hsl(216 100% 52%)"
+                  strokeWidth="2"
+                  initial={{ opacity: 0, scale: 0 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.5 + i * 0.06, duration: 0.3, ease: EASE }}
+                />
+              );
+            })}
+            {/* x labels */}
+            {WEEK_DAYS.map((d, i) => {
+              const stepX = W / (WEEK_DAYS.length - 1);
+              return (
+                <text
+                  key={d}
+                  x={i * stepX}
+                  y={H + 16}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill="hsl(215 22% 62%)"
+                  fontFamily="Inter, sans-serif"
+                >
+                  {d}
+                </text>
+              );
+            })}
+          </svg>
+        </div>
+
+        <div className="mt-3 flex items-center gap-4 text-[11px] text-navy-500">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-brand" /> Esta semana
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-navy-300" /> Anterior
+          </span>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
 /* ──────────────────── AI Next Best Action ──────────────────── */
 
 const SUGGESTIONS = [
