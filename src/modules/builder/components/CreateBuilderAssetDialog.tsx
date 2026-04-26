@@ -70,7 +70,12 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
     }
     setErrors({});
     try {
-      const asset = await create.mutateAsync(parsed.data);
+      const asset = await create.mutateAsync({
+        name: parsed.data.name,
+        type: parsed.data.type,
+        description: parsed.data.description,
+        html: parsed.data.html,
+      });
       toast({
         title: "Asset criado",
         description: `"${asset.name}" foi guardado como rascunho.`,
