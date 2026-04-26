@@ -95,7 +95,7 @@ const PageLoader = () => (
 
 const App = () => (
   <HelmetProvider>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
