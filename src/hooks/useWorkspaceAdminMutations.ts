@@ -3,16 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Mutations seguras para administração de workspaces (Backoffice V2).
+ * Mutations administrativas seguras para Workspaces (Backoffice V2).
  *
- * Segurança:
- * - Todas as operações dependem de RLS (`is_super_admin(auth.uid())` em
- *   `workspaces` e `admin_audit_logs`). O frontend nunca é a fonte de
- *   confiança — RLS bloqueia se o utilizador não for super admin.
- * - Não há operações destrutivas nesta fase (sem DELETE, sem alterações
- *   de plano/Stripe). Apenas mudança de estado e metadados não-críticos.
- * - Todas as ações registam um evento em `admin_audit_logs` com o estado
- *   anterior e o novo estado, em formato jsonb.
+ * Fase 2F.1 — todas as mutations são executadas via edge function
+ * `admin-workspace-action`, que:
+ *  - Valida JWT do chamador e confirma is_super_admin server-side.
+ *  - Captura IP/User-Agent do pedido.
+ *  - Aplica a mutation com service role.
+ *  - Regista evento em `admin_audit_logs` com before/after + reason.
+ *
+ * O frontend nunca faz UPDATE direto à tabela workspaces para estas ações.
  */
 
 export type WorkspaceMetadataPatch = {
@@ -20,65 +20,59 @@ export type WorkspaceMetadataPatch = {
   company_name?: string | null;
 };
 
-async function getCurrentUserId(): Promise<string> {
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) throw new Error("Sessão inválida");
-  return data.user.id;
-}
+type ActionResponse = {
+  ok: boolean;
+  action: string;
+  workspace: { id: string; name: string; company_name: string | null; status: string | null };
+  audit_logged: boolean;
+};
 
-async function writeAuditLog(params: {
-  adminUserId: string;
-  actionType: string;
-  workspaceId: string;
-  before: Record<string, unknown>;
-  after: Record<string, unknown>;
-}) {
-  // Best-effort: se a auditoria falhar não revertemos a mutation, mas
-  // mostramos aviso ao operador. RLS garante que só super admins escrevem.
-  const { error } = await supabase.from("admin_audit_logs").insert([
-    {
-      admin_user_id: params.adminUserId,
-      action_type: params.actionType,
-      target_type: "workspace",
-      target_id: params.workspaceId,
-      workspace_id: params.workspaceId,
-      details: { before: params.before, after: params.after } as any,
-    },
-  ]);
+async function invokeAction(body: {
+  workspace_id: string;
+  action: "suspend_workspace" | "reactivate_workspace" | "update_metadata";
+  reason?: string;
+  payload?: Record<string, unknown>;
+}): Promise<ActionResponse> {
+  const { data, error } = await supabase.functions.invoke<ActionResponse>(
+    "admin-workspace-action",
+    { body },
+  );
   if (error) {
-    console.warn("[admin-audit] falhou:", error.message);
-    toast.warning("Ação executada, mas o registo de auditoria falhou.");
+    // Erros HTTP da edge function — tentar extrair mensagem útil
+    const ctx: any = (error as any).context;
+    let msg = error.message;
+    try {
+      if (ctx?.body) {
+        const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+        if (parsed?.error) msg = String(parsed.error);
+      }
+    } catch { /* noop */ }
+    throw new Error(msg);
   }
+  if (!data?.ok) throw new Error("Resposta inválida do servidor.");
+  return data;
 }
 
 export function useSuspendWorkspace() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (workspace: { id: string; status: string | null }) => {
-      const adminUserId = await getCurrentUserId();
-      const { data, error } = await supabase
-        .from("workspaces")
-        .update({ status: "suspended" })
-        .eq("id", workspace.id)
-        .select("id, status")
-        .single();
-      if (error) throw error;
-      await writeAuditLog({
-        adminUserId,
-        actionType: "workspace.suspend",
-        workspaceId: workspace.id,
-        before: { status: workspace.status },
-        after: { status: data.status },
+    mutationFn: async (params: { id: string; status: string | null; reason: string }) => {
+      const reason = params.reason.trim();
+      if (reason.length < 3) throw new Error("Indica um motivo (mínimo 3 caracteres).");
+      return invokeAction({
+        workspace_id: params.id,
+        action: "suspend_workspace",
+        reason,
       });
-      return data;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       toast.success("Workspace suspenso.");
       qc.invalidateQueries({ queryKey: ["wsv2-workspaces-admin"] });
+      qc.invalidateQueries({ queryKey: ["wsv2-workspace-audit", vars.id] });
     },
     onError: (err: any) => {
       toast.error("Não foi possível suspender o workspace.", {
-        description: err?.message ?? "Verifica permissões e tenta novamente.",
+        description: friendlyError(err?.message),
       });
     },
   });
@@ -87,31 +81,23 @@ export function useSuspendWorkspace() {
 export function useReactivateWorkspace() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (workspace: { id: string; status: string | null }) => {
-      const adminUserId = await getCurrentUserId();
-      const { data, error } = await supabase
-        .from("workspaces")
-        .update({ status: "active" })
-        .eq("id", workspace.id)
-        .select("id, status")
-        .single();
-      if (error) throw error;
-      await writeAuditLog({
-        adminUserId,
-        actionType: "workspace.reactivate",
-        workspaceId: workspace.id,
-        before: { status: workspace.status },
-        after: { status: data.status },
+    mutationFn: async (params: { id: string; status: string | null; reason: string }) => {
+      const reason = params.reason.trim();
+      if (reason.length < 3) throw new Error("Indica um motivo (mínimo 3 caracteres).");
+      return invokeAction({
+        workspace_id: params.id,
+        action: "reactivate_workspace",
+        reason,
       });
-      return data;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       toast.success("Workspace reativado.");
       qc.invalidateQueries({ queryKey: ["wsv2-workspaces-admin"] });
+      qc.invalidateQueries({ queryKey: ["wsv2-workspace-audit", vars.id] });
     },
     onError: (err: any) => {
       toast.error("Não foi possível reativar o workspace.", {
-        description: err?.message ?? "Verifica permissões e tenta novamente.",
+        description: friendlyError(err?.message),
       });
     },
   });
@@ -137,37 +123,37 @@ export function useUpdateWorkspaceMetadata() {
         if (v.length > 200) throw new Error("Empresa demasiado longa (máx. 200).");
         cleanPatch.company_name = v ? v : null;
       }
-
       if (Object.keys(cleanPatch).length === 0) {
         throw new Error("Sem alterações para guardar.");
       }
-
-      const adminUserId = await getCurrentUserId();
-      const { data, error } = await supabase
-        .from("workspaces")
-        .update(cleanPatch)
-        .eq("id", workspace.id)
-        .select("id, name, company_name")
-        .single();
-      if (error) throw error;
-
-      await writeAuditLog({
-        adminUserId,
-        actionType: "workspace.update_metadata",
-        workspaceId: workspace.id,
-        before: { name: workspace.name, company_name: workspace.company_name },
-        after: { name: data.name, company_name: data.company_name },
+      return invokeAction({
+        workspace_id: workspace.id,
+        action: "update_metadata",
+        payload: cleanPatch as Record<string, unknown>,
       });
-      return data;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       toast.success("Metadados atualizados.");
       qc.invalidateQueries({ queryKey: ["wsv2-workspaces-admin"] });
+      qc.invalidateQueries({ queryKey: ["wsv2-workspace-audit", vars.workspace.id] });
     },
     onError: (err: any) => {
       toast.error("Não foi possível atualizar.", {
-        description: err?.message ?? "Verifica permissões e tenta novamente.",
+        description: friendlyError(err?.message),
       });
     },
   });
+}
+
+function friendlyError(code?: string): string {
+  switch (code) {
+    case "forbidden": return "Apenas super admins podem executar esta ação.";
+    case "invalid_session": return "Sessão inválida — faz login novamente.";
+    case "reason_required": return "Indica um motivo (mínimo 3 caracteres).";
+    case "workspace_not_found": return "Workspace não encontrado.";
+    case "no_changes": return "Sem alterações para guardar.";
+    case "invalid_name": return "Nome inválido (1–120 caracteres).";
+    case "invalid_company_name": return "Empresa inválida (máx. 200 caracteres).";
+    default: return code ?? "Verifica permissões e tenta novamente.";
+  }
 }
