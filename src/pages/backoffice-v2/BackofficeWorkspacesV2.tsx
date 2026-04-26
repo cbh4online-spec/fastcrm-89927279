@@ -414,6 +414,37 @@ export default function BackofficeWorkspacesV2() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Modal de confirmação para ações de estado */}
+      <ConfirmActionDialog
+        open={confirmAction !== null}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={handleConfirmAction}
+        loading={suspendMut.isPending || reactivateMut.isPending}
+        tone={confirmAction === "reactivate" ? "info" : "warning"}
+        title={
+          confirmAction === "reactivate"
+            ? "Reativar este workspace?"
+            : "Suspender este workspace?"
+        }
+        confirmLabel={confirmAction === "reactivate" ? "Reativar" : "Suspender"}
+        description={
+          confirmAction === "reactivate" ? (
+            <>O workspace volta ao estado <strong className="text-navy">ativo</strong> e os membros recuperam acesso normal.</>
+          ) : (
+            <>O workspace fica <strong className="text-navy">suspenso</strong>. Os utilizadores deixam de conseguir aceder até ser reativado. Nenhum dado é apagado.</>
+          )
+        }
+      >
+        {selected && (
+          <ul className="space-y-1.5 text-xs text-navy-500">
+            <li>• Workspace: <strong className="font-medium text-navy">{selected.name}</strong></li>
+            <li>• Estado atual: <span className="font-medium text-navy">{selected.status ?? "—"}</span></li>
+            <li>• Membros afetados: <span className="font-medium text-navy">{selected.membersCount}</span></li>
+            <li>• A ação fica registada em logs de auditoria.</li>
+          </ul>
+        )}
+      </ConfirmActionDialog>
     </BackofficeShellV2>
   );
 }
