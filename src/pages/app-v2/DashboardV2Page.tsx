@@ -365,7 +365,7 @@ function CriticalTasksCard() {
                 <p className="truncate text-sm font-medium text-navy">{t.title}</p>
                 <p className="truncate text-[11px] text-navy-300">{t.due}</p>
               </div>
-              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", tone(t.priority))}>
+              <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide", tone(t.priority))}>
                 {t.priority}
               </span>
             </li>
