@@ -31,11 +31,11 @@ const fmtEur = (n: number) =>
 /** Badge de estado específico para subscrições (mais granular). */
 function SubStatusPill({ status, cancelAtEnd }: { status: string; cancelAtEnd?: boolean | null }) {
   const map: Record<string, string> = {
-    active: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    trialing: "bg-sky-50 text-sky-700 ring-sky-200",
-    past_due: "bg-amber-50 text-amber-700 ring-amber-200",
-    canceled: "bg-rose-50 text-rose-700 ring-rose-200",
-    paused: "bg-slate-100 text-slate-600 ring-slate-200",
+    active: "bg-success/10 text-success ring-success/20",
+    trialing: "bg-cyan/10 text-cyan ring-cyan/30",
+    past_due: "bg-warning/15 text-warning-foreground ring-warning/30",
+    canceled: "bg-destructive/10 text-destructive ring-destructive/20",
+    paused: "bg-navy-100 text-navy-500 ring-navy-200",
     incomplete: "bg-violet-50 text-violet-700 ring-violet-200",
   };
   const label: Record<string, string> = {
@@ -48,7 +48,7 @@ function SubStatusPill({ status, cancelAtEnd }: { status: string; cancelAtEnd?: 
   };
   if (cancelAtEnd && status === "active") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/15 px-2.5 py-0.5 text-[11px] font-semibold text-warning-foreground ring-1 ring-inset ring-warning/30">
         <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
         Cancela no fim do período
       </span>
@@ -57,7 +57,7 @@ function SubStatusPill({ status, cancelAtEnd }: { status: string; cancelAtEnd?: 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
         map[status] ?? map.paused
       )}
     >
@@ -69,9 +69,9 @@ function SubStatusPill({ status, cancelAtEnd }: { status: string; cancelAtEnd?: 
 
 function PlanPill({ plan }: { plan: string }) {
   const styles: Record<string, string> = {
-    free: "bg-slate-100 text-slate-700 ring-slate-200",
-    basic: "bg-sky-50 text-sky-700 ring-sky-200",
-    pro: "bg-[hsl(220,90%,56%)]/10 text-[hsl(220,90%,40%)] ring-[hsl(220,90%,56%)]/30",
+    free: "bg-navy-100 text-navy-500 ring-navy-200",
+    basic: "bg-cyan/10 text-cyan ring-cyan/30",
+    pro: "bg-brand/10 text-brand ring-brand/30",
     agency: "bg-violet-50 text-violet-700 ring-violet-200",
   };
   return (
@@ -90,9 +90,9 @@ function PlanPill({ plan }: { plan: string }) {
 function PlanDonut({ items }: { items: Array<{ plan: string; count: number }> }) {
   const total = items.reduce((s, i) => s + i.count, 0) || 1;
   const colors: Record<string, string> = {
-    free: "hsl(215, 16%, 70%)",
-    basic: "hsl(200, 95%, 55%)",
-    pro: "hsl(220, 90%, 56%)",
+    free: "hsl(215, 22%, 62%)",
+    basic: "hsl(192, 100%, 50%)",
+    pro: "hsl(218, 100%, 54%)",
     agency: "hsl(265, 80%, 60%)",
   };
   let acc = 0;
@@ -101,19 +101,22 @@ function PlanDonut({ items }: { items: Array<{ plan: string; count: number }> })
   return (
     <div className="flex items-center gap-6">
       <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90">
-        <circle cx="70" cy="70" r={radius} fill="none" stroke="hsl(210,20%,94%)" strokeWidth="14" />
+        <circle cx="70" cy="70" r={radius} fill="none" stroke="hsl(214 40% 92%)" strokeWidth="14" />
         {items.map((i) => {
           const frac = i.count / total;
           const dash = frac * circ;
           const el = (
-            <circle
+            <motion.circle
               key={i.plan}
               cx="70" cy="70" r={radius}
               fill="none"
-              stroke={colors[i.plan] ?? "hsl(215, 16%, 60%)"}
+              stroke={colors[i.plan] ?? "hsl(215 22% 62%)"}
               strokeWidth="14"
               strokeDasharray={`${dash} ${circ - dash}`}
               strokeDashoffset={-acc}
+              initial={{ strokeDasharray: `0 ${circ}` }}
+              animate={{ strokeDasharray: `${dash} ${circ - dash}` }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             />
           );
           acc += dash;
@@ -125,13 +128,13 @@ function PlanDonut({ items }: { items: Array<{ plan: string; count: number }> })
           <div key={i.plan} className="flex items-center gap-2">
             <span
               className="h-2.5 w-2.5 rounded-sm"
-              style={{ background: colors[i.plan] ?? "hsl(215, 16%, 60%)" }}
+              style={{ background: colors[i.plan] ?? "hsl(215 22% 62%)" }}
             />
-            <span className="font-medium text-slate-700">{PLAN_LABEL[i.plan] ?? i.plan}</span>
-            <span className="text-slate-400">· {i.count}</span>
+            <span className="font-medium text-navy">{PLAN_LABEL[i.plan] ?? i.plan}</span>
+            <span className="text-navy-300">· {i.count}</span>
           </div>
         ))}
-        {items.length === 0 && <div className="text-xs text-slate-400">Sem dados</div>}
+        {items.length === 0 && <div className="text-xs text-navy-300">Sem dados</div>}
       </div>
     </div>
   );
