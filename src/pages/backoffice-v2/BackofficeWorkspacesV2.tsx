@@ -3,16 +3,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Search, Filter, Download, RefreshCw, Users, Activity,
   Sparkles, X, ExternalLink, Mail, Globe, MapPin, CalendarDays, Hash,
-  ShieldCheck, PauseCircle, PlayCircle, Pencil, Save, Loader2,
+  ShieldCheck, PauseCircle, PlayCircle, Pencil, Save, Loader2, History,
 } from "lucide-react";
 import { BackofficeShellV2 } from "@/components/backoffice-v2/BackofficeShellV2";
 import {
   PageHeader, StatTile, StatusPill, ErrorBanners, TableSkeleton, EmptyState, fmtDate,
 } from "@/components/backoffice-v2/_shared";
 import { ConfirmActionDialog } from "@/components/backoffice-v2/ConfirmActionDialog";
+import { WorkspaceAuditTimeline } from "@/components/backoffice-v2/WorkspaceAuditTimeline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -34,9 +36,11 @@ export default function BackofficeWorkspacesV2() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<WorkspaceAdminRow | null>(null);
   const [confirmAction, setConfirmAction] = useState<null | "suspend" | "reactivate">(null);
+  const [reason, setReason] = useState("");
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editCompany, setEditCompany] = useState("");
+  const [tab, setTab] = useState<"details" | "history">("details");
 
   const { isSuperAdmin } = useUserRole();
   const suspendMut = useSuspendWorkspace();
@@ -49,6 +53,7 @@ export default function BackofficeWorkspacesV2() {
       setEditName(selected.name ?? "");
       setEditCompany(selected.company_name ?? "");
       setEditing(false);
+      setTab("details");
     }
   }, [selected?.id]);
 
@@ -59,19 +64,21 @@ export default function BackofficeWorkspacesV2() {
     if (fresh && fresh !== selected) setSelected(fresh);
   }, [data?.rows]);
 
+  // Limpar motivo sempre que o modal abre/fecha
+  useEffect(() => {
+    if (!confirmAction) setReason("");
+  }, [confirmAction]);
+
+  const reasonValid = reason.trim().length >= 3;
+
   const handleConfirmAction = () => {
-    if (!selected || !confirmAction) return;
+    if (!selected || !confirmAction || !reasonValid) return;
     const onDone = () => setConfirmAction(null);
+    const payload = { id: selected.id, status: selected.status, reason: reason.trim() };
     if (confirmAction === "suspend") {
-      suspendMut.mutate(
-        { id: selected.id, status: selected.status },
-        { onSettled: onDone },
-      );
+      suspendMut.mutate(payload, { onSettled: onDone });
     } else {
-      reactivateMut.mutate(
-        { id: selected.id, status: selected.status },
-        { onSettled: onDone },
-      );
+      reactivateMut.mutate(payload, { onSettled: onDone });
     }
   };
 
@@ -268,6 +275,22 @@ export default function BackofficeWorkspacesV2() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
+
+              {/* Tabs */}
+              <div className="sticky top-[65px] z-[1] flex gap-1 border-b border-navy-100 bg-white/90 px-6 backdrop-blur-xl">
+                <TabButton active={tab === "details"} onClick={() => setTab("details")} icon={Building2} label="Detalhes" />
+                <TabButton active={tab === "history"} onClick={() => setTab("history")} icon={History} label="Histórico" />
+              </div>
+
+              {tab === "history" ? (
+                <div className="space-y-4 p-6">
+                  <div className="flex items-center gap-2 text-xs text-navy-300">
+                    <ShieldCheck className="h-3.5 w-3.5 text-brand" />
+                    <span>Auditoria server-side · últimas 50 ações</span>
+                  </div>
+                  <WorkspaceAuditTimeline workspaceId={selected.id} />
+                </div>
+              ) : (
               <div className="space-y-5 p-6">
                 <div className="flex items-center gap-2"><StatusPill status={selected.status} /><span className="text-xs text-navy-300">criado a {fmtDate(selected.created_at)}</span></div>
 
@@ -410,6 +433,7 @@ export default function BackofficeWorkspacesV2() {
                   </Button>
                 </div>
               </div>
+              )}
             </motion.aside>
           </>
         )}
@@ -421,6 +445,7 @@ export default function BackofficeWorkspacesV2() {
         onClose={() => setConfirmAction(null)}
         onConfirm={handleConfirmAction}
         loading={suspendMut.isPending || reactivateMut.isPending}
+        confirmDisabled={!reasonValid}
         tone={confirmAction === "reactivate" ? "info" : "warning"}
         title={
           confirmAction === "reactivate"
@@ -437,15 +462,60 @@ export default function BackofficeWorkspacesV2() {
         }
       >
         {selected && (
-          <ul className="space-y-1.5 text-xs text-navy-500">
-            <li>• Workspace: <strong className="font-medium text-navy">{selected.name}</strong></li>
-            <li>• Estado atual: <span className="font-medium text-navy">{selected.status ?? "—"}</span></li>
-            <li>• Membros afetados: <span className="font-medium text-navy">{selected.membersCount}</span></li>
-            <li>• A ação fica registada em logs de auditoria.</li>
-          </ul>
+          <div className="space-y-3">
+            <ul className="space-y-1.5 text-xs text-navy-500">
+              <li>• Workspace: <strong className="font-medium text-navy">{selected.name}</strong></li>
+              <li>• Estado atual: <span className="font-medium text-navy">{selected.status ?? "—"}</span></li>
+              <li>• Membros afetados: <span className="font-medium text-navy">{selected.membersCount}</span></li>
+              <li>• A ação fica registada em auditoria server-side.</li>
+            </ul>
+            <div className="space-y-1.5">
+              <Label htmlFor="reason" className="text-xs font-medium text-navy">
+                Motivo {confirmAction === "suspend" ? "da suspensão" : "da reativação"}
+                <span className="ml-1 text-rose-500">*</span>
+              </Label>
+              <Textarea
+                id="reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value.slice(0, 500))}
+                placeholder="Indica o motivo desta ação para o histórico administrativo."
+                rows={3}
+                className="resize-none rounded-lg border-navy-100 bg-white text-sm focus-visible:ring-brand/20"
+                autoFocus
+              />
+              <div className="flex items-center justify-between text-[10.5px] text-navy-300">
+                <span>{reasonValid ? "Pronto a registar." : "Mínimo 3 caracteres."}</span>
+                <span>{reason.length}/500</span>
+              </div>
+            </div>
+          </div>
         )}
       </ConfirmActionDialog>
     </BackofficeShellV2>
+  );
+}
+
+function TabButton({
+  active, onClick, icon: Icon, label,
+}: { active: boolean; onClick: () => void; icon: any; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "relative -mb-px flex items-center gap-2 px-3 py-3 text-sm font-medium transition-colors",
+        active ? "text-brand" : "text-navy-300 hover:text-navy",
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+      {active && (
+        <motion.span
+          layoutId="ws-drawer-tab"
+          className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand"
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        />
+      )}
+    </button>
   );
 }
 
