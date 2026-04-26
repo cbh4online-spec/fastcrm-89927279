@@ -33,6 +33,62 @@ export default function BackofficeWorkspacesV2() {
   const [status, setStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<WorkspaceAdminRow | null>(null);
+  const [confirmAction, setConfirmAction] = useState<null | "suspend" | "reactivate">(null);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editCompany, setEditCompany] = useState("");
+
+  const { isSuperAdmin } = useUserRole();
+  const suspendMut = useSuspendWorkspace();
+  const reactivateMut = useReactivateWorkspace();
+  const updateMetaMut = useUpdateWorkspaceMetadata();
+
+  // Sincronizar campos editáveis quando muda o workspace selecionado
+  useEffect(() => {
+    if (selected) {
+      setEditName(selected.name ?? "");
+      setEditCompany(selected.company_name ?? "");
+      setEditing(false);
+    }
+  }, [selected?.id]);
+
+  // Refrescar a versão "selected" quando os dados forem invalidados após mutation
+  useEffect(() => {
+    if (!selected || !data?.rows) return;
+    const fresh = data.rows.find((r) => r.id === selected.id);
+    if (fresh && fresh !== selected) setSelected(fresh);
+  }, [data?.rows]);
+
+  const handleConfirmAction = () => {
+    if (!selected || !confirmAction) return;
+    const onDone = () => setConfirmAction(null);
+    if (confirmAction === "suspend") {
+      suspendMut.mutate(
+        { id: selected.id, status: selected.status },
+        { onSettled: onDone },
+      );
+    } else {
+      reactivateMut.mutate(
+        { id: selected.id, status: selected.status },
+        { onSettled: onDone },
+      );
+    }
+  };
+
+  const handleSaveMetadata = () => {
+    if (!selected) return;
+    updateMetaMut.mutate(
+      {
+        workspace: {
+          id: selected.id,
+          name: selected.name,
+          company_name: selected.company_name,
+        },
+        patch: { name: editName, company_name: editCompany || null },
+      },
+      { onSuccess: () => setEditing(false) },
+    );
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
