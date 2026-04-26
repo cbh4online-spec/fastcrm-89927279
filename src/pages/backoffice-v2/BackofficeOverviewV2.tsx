@@ -129,33 +129,8 @@ const aiTopWorkspaces = [
 ];
 
 export default function BackofficeOverviewV2() {
-  const { user, loading: authLoading } = useAuth();
-  const { isSuperAdmin, isLoading: roleLoading } = useUserRole();
+  // Guard de super admin é aplicado pelo wrapper <RequireSuperAdmin> no router.
   const { data, isLoading, isError, error } = useBackofficeKpis();
-
-  if (authLoading || roleLoading) {
-    return (
-      <div className="grid h-screen place-items-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-      </div>
-    );
-  }
-  if (!user) return <Navigate to="/login" replace />;
-  if (!isSuperAdmin) {
-    return (
-      <div className="grid h-screen place-items-center bg-slate-50 p-6">
-        <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-rose-50">
-            <ShieldAlert className="h-6 w-6 text-rose-600" />
-          </div>
-          <h1 className="text-lg font-semibold text-slate-900">Acesso restrito</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Esta área está reservada a Super Administradores do FastCRM.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <BackofficeShellV2>
