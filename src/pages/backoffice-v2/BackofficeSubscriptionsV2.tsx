@@ -556,20 +556,20 @@ export default function BackofficeSubscriptionsV2() {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
+              className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm"
               onClick={() => setSelected(null)}
             />
             <motion.aside
               initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 36 }}
-              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-y-auto border-l border-slate-200 bg-white shadow-xl"
+              transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md overflow-y-auto border-l border-navy-100 bg-white shadow-[-20px_0_50px_-20px_rgba(11,29,61,0.25)]"
             >
-              <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-5">
+              <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-navy-100 bg-white/90 p-6 backdrop-blur-xl">
                 <div>
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
                     Subscrição
                   </div>
-                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                  <div className="mt-1 font-display text-lg font-semibold text-navy">
                     {selected.workspace_name}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -577,28 +577,28 @@ export default function BackofficeSubscriptionsV2() {
                     <SubStatusPill status={selected.status} cancelAtEnd={selected.cancel_at_period_end} />
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelected(null)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-navy-500 hover:bg-brand-ice hover:text-navy" onClick={() => setSelected(null)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="space-y-5 p-5 text-sm">
+              <div className="space-y-6 p-6 text-sm">
                 <section>
-                  <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
                     Receita
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                    <div className="text-2xl font-semibold text-slate-900">
-                      {fmtEur(selected.mrr_eur)}<span className="ml-1 text-xs font-normal text-slate-400">/ mês</span>
+                  <div className="rounded-2xl border border-navy-100 bg-gradient-to-br from-brand-ice to-white p-5">
+                    <div className="font-display text-2xl font-semibold tabular-nums text-navy">
+                      {fmtEur(selected.mrr_eur)}<span className="ml-1 text-xs font-normal text-navy-300">/ mês</span>
                     </div>
-                    <div className="mt-1 text-[11px] text-slate-500">
+                    <div className="mt-1 text-[11px] text-navy-500">
                       MRR estimado a partir do plano (sem ligação direta ao Stripe nesta vista).
                     </div>
                   </div>
                 </section>
 
                 <section className="space-y-2">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
                     Identificadores
                   </div>
                   <Field icon={Hash} label="Workspace ID" value={selected.workspace_id} mono />
@@ -612,7 +612,7 @@ export default function BackofficeSubscriptionsV2() {
                 </section>
 
                 <section className="space-y-2">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
                     Ciclo
                   </div>
                   <Field icon={Calendar} label="Próxima renovação" value={fmtDate(selected.current_period_end)} />
@@ -621,17 +621,17 @@ export default function BackofficeSubscriptionsV2() {
                   <Field icon={Calendar} label="Atualizado em" value={fmtDate(selected.updated_at)} />
                 </section>
 
-                <div className="flex flex-col gap-2 pt-2">
+                <div className="flex flex-col gap-2 border-t border-navy-100 pt-4">
                   <Button
                     variant="outline"
-                    className="h-9 justify-center gap-2 border-slate-200"
+                    className="h-10 justify-center gap-2 rounded-xl border-navy-100 hover:border-brand/40"
                     asChild
                   >
                     <a href={`/super-admin?ws=${selected.workspace_id}`} target="_blank" rel="noreferrer">
                       <ExternalLink className="h-4 w-4" /> Abrir no backoffice clássico
                     </a>
                   </Button>
-                  <p className="text-center text-[11px] text-slate-400">
+                  <p className="text-center text-[11px] text-navy-300">
                     Ações destrutivas (cancelar, alterar plano, reembolsar) só estão disponíveis na shell clássica.
                   </p>
                 </div>
@@ -648,11 +648,11 @@ function Field({
   icon: Icon, label, value, mono,
 }: { icon: any; label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2">
-      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+    <div className="flex items-start gap-2.5 rounded-xl border border-navy-100 bg-brand-ice/40 px-3 py-2.5">
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-navy-300" />
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] text-slate-400">{label}</div>
-        <div className={cn("truncate text-slate-700", mono && "font-mono text-[12px]")}>{value}</div>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">{label}</div>
+        <div className={cn("truncate font-medium text-navy", mono && "font-mono text-[12px] font-normal text-navy-500")}>{value}</div>
       </div>
     </div>
   );
