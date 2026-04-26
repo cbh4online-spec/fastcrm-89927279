@@ -111,6 +111,7 @@ export function AnimatedNumber({
   suffix = "",
   decimals = 0,
   duration = 1.6,
+  locale = "pt-PT",
   className,
 }: {
   value: number;
@@ -118,14 +119,19 @@ export function AnimatedNumber({
   suffix?: string;
   decimals?: number;
   duration?: number;
+  locale?: string;
   className?: string;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const motionVal = useMotionValue(0);
   const spring = useSpring(motionVal, { duration: duration * 1000, bounce: 0 });
+  const formatter = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
   const display = useTransform(spring, (latest) =>
-    `${prefix}${latest.toFixed(decimals)}${suffix}`,
+    `${prefix}${formatter.format(Number(latest.toFixed(decimals)))}${suffix}`,
   );
 
   useEffect(() => {

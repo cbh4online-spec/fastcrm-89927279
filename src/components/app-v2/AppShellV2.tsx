@@ -66,18 +66,33 @@ const NAV: NavGroup[] = [
 export function SidebarV2({
   collapsed,
   onToggle,
+  mobileOpen = false,
+  onMobileClose,
 }: {
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }) {
   return (
-    <aside
-      className={cn(
-        "sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r border-navy-100 bg-white transition-[width] duration-300",
-        collapsed ? "w-[72px]" : "w-[260px]",
+    <>
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={onMobileClose}
+          className="fixed inset-0 z-40 bg-navy/40 backdrop-blur-sm lg:hidden"
+        />
       )}
-      style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
-    >
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col border-r border-navy-100 bg-white transition-[width,transform] duration-300 lg:sticky lg:top-0 lg:z-30 lg:translate-x-0",
+          collapsed ? "w-[72px]" : "w-[260px]",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+        style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+      >
       {/* Brand */}
       <div className={cn("flex h-16 items-center border-b border-navy-100 px-4", collapsed && "justify-center px-2")}>
         <Link to="/app-v2/dashboard" className="flex items-center gap-2.5">
@@ -112,7 +127,7 @@ export function SidebarV2({
             <ul className="space-y-0.5">
               {group.items.map((item) => (
                 <li key={item.to}>
-                  <NavLink to={item.to} end>
+                  <NavLink to={item.to} end onClick={onMobileClose}>
                     {({ isActive }) => (
                       <SidebarRow item={item} active={isActive} collapsed={collapsed} />
                     )}
@@ -156,7 +171,8 @@ export function SidebarV2({
           </div>
         )}
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
@@ -174,7 +190,7 @@ function SidebarRow({
       className={cn(
         "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-all duration-200",
         active
-          ? "bg-brand/8 text-brand"
+          ? "bg-brand/10 text-brand"
           : "text-navy-500 hover:bg-brand-ice hover:text-navy",
       )}
     >
@@ -210,12 +226,32 @@ function SidebarRow({
   );
 }
 
-export function TopbarV2({ title, subtitle }: { title: ReactNode; subtitle?: string }) {
+export function TopbarV2({
+  title,
+  subtitle,
+  onMobileMenuOpen,
+}: {
+  title: ReactNode;
+  subtitle?: string;
+  onMobileMenuOpen?: () => void;
+}) {
   const [query, setQuery] = useState("");
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-navy-100 bg-white/85 px-6 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-navy-100 bg-white/85 px-4 backdrop-blur-xl md:gap-4 md:px-6">
+      {onMobileMenuOpen && (
+        <button
+          type="button"
+          aria-label="Abrir menu"
+          onClick={onMobileMenuOpen}
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-navy-500 transition-all hover:bg-brand-ice hover:text-navy lg:hidden"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+      )}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-display text-xl font-semibold tracking-tight text-navy">
+        <h1 className="truncate font-display text-lg font-semibold tracking-tight text-navy md:text-xl">
           {title}
         </h1>
         {subtitle && <p className="truncate text-xs text-navy-300">{subtitle}</p>}
@@ -299,12 +335,22 @@ export function AppShellV2({
   children: ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <div className="flex min-h-screen w-full bg-brand-ice">
-      <SidebarV2 collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
+      <SidebarV2
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((v) => !v)}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopbarV2 title={title} subtitle={subtitle} />
-        <main className="flex-1 px-6 py-7">{children}</main>
+        <TopbarV2
+          title={title}
+          subtitle={subtitle}
+          onMobileMenuOpen={() => setMobileOpen(true)}
+        />
+        <main className="flex-1 px-4 py-6 md:px-6 md:py-7">{children}</main>
       </div>
     </div>
   );
