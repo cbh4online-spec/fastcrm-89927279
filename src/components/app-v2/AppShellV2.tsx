@@ -335,12 +335,22 @@ export function AppShellV2({
   children: ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <div className="flex min-h-screen w-full bg-brand-ice">
-      <SidebarV2 collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
+      <SidebarV2
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((v) => !v)}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopbarV2 title={title} subtitle={subtitle} />
-        <main className="flex-1 px-6 py-7">{children}</main>
+        <TopbarV2
+          title={title}
+          subtitle={subtitle}
+          onMobileMenuOpen={() => setMobileOpen(true)}
+        />
+        <main className="flex-1 px-4 py-6 md:px-6 md:py-7">{children}</main>
       </div>
     </div>
   );
