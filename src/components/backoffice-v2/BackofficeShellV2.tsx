@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EASE_PREMIUM as EASE } from "@/lib/motion";
+import { FastCRMLogo } from "@/components/brand/FastCRMLogo";
 
 type NavItem = { id: string; label: string; icon: any; to: string; badge?: string };
 type NavGroup = { id: string; label: string; items: NavItem[] };
@@ -77,9 +78,7 @@ function SidebarV2({ onNavigate }: { onNavigate?: () => void }) {
     <aside className="flex h-full w-72 flex-col border-r border-navy-100 bg-white">
       {/* Brand */}
       <div className="flex items-center gap-3 border-b border-navy-100 px-5 py-4">
-        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-cyan text-white shadow-[0_8px_24px_-8px_hsl(218_100%_54%/0.6)]">
-          <ShieldCheck className="h-4 w-4" strokeWidth={2.5} />
-        </div>
+        <FastCRMLogo variant="mark" size="md" />
         <div className="min-w-0">
           <div className="font-display font-semibold tracking-tight text-navy">Super Admin</div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">FastCRM · Backoffice</div>

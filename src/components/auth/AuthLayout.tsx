@@ -16,7 +16,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         {/* Branding */}
         <div className="flex items-center">
           <div className="rounded-xl bg-white/95 px-4 py-2.5 shadow-lg ring-1 ring-white/40 backdrop-blur">
-            <FastCRMLogo variant="full" height={32} />
+            <FastCRMLogo variant="full" size="lg" />
           </div>
         </div>
         
@@ -86,7 +86,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center">
-            <FastCRMLogo variant="full" height={36} />
+            <FastCRMLogo variant="full" size="lg" />
           </div>
 
           <div className="text-center lg:text-left">
