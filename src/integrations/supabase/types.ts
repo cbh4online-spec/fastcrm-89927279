@@ -9226,6 +9226,56 @@ export type Database = {
           },
         ]
       }
+      builder_asset_domains: {
+        Row: {
+          asset_id: string
+          created_at: string
+          created_by: string
+          hostname: string
+          id: string
+          is_primary: boolean
+          path_prefix: string
+          updated_at: string
+          verification_token: string
+          verified: boolean
+          workspace_id: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          created_by?: string
+          hostname: string
+          id?: string
+          is_primary?: boolean
+          path_prefix?: string
+          updated_at?: string
+          verification_token?: string
+          verified?: boolean
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          created_by?: string
+          hostname?: string
+          id?: string
+          is_primary?: boolean
+          path_prefix?: string
+          updated_at?: string
+          verification_token?: string
+          verified?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_asset_domains_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "builder_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       builder_asset_versions: {
         Row: {
           asset_id: string
@@ -9326,6 +9376,76 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: []
+      }
+      builder_publications: {
+        Row: {
+          asset_id: string
+          html: string
+          id: string
+          is_active: boolean
+          is_rollback: boolean
+          notes: string | null
+          publication_number: number
+          published_at: string
+          published_by: string
+          rolled_back_from: string | null
+          unpublished_at: string | null
+          version_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          asset_id: string
+          html: string
+          id?: string
+          is_active?: boolean
+          is_rollback?: boolean
+          notes?: string | null
+          publication_number: number
+          published_at?: string
+          published_by: string
+          rolled_back_from?: string | null
+          unpublished_at?: string | null
+          version_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string
+          html?: string
+          id?: string
+          is_active?: boolean
+          is_rollback?: boolean
+          notes?: string | null
+          publication_number?: number
+          published_at?: string
+          published_by?: string
+          rolled_back_from?: string | null
+          unpublished_at?: string | null
+          version_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_publications_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "builder_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "builder_publications_rolled_back_from_fkey"
+            columns: ["rolled_back_from"]
+            isOneToOne: false
+            referencedRelation: "builder_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "builder_publications_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "builder_asset_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       builder_templates: {
         Row: {
@@ -71830,6 +71950,20 @@ export type Database = {
         Returns: Json
       }
       get_public_table_count: { Args: never; Returns: number }
+      get_published_builder_asset: {
+        Args: {
+          _hostname?: string
+          _path?: string
+          _slug?: string
+          _workspace?: string
+        }
+        Returns: {
+          asset_id: string
+          html: string
+          name: string
+          published_at: string
+        }[]
+      }
       get_rls_policy_count: { Args: never; Returns: number }
       get_seller_follower_count: {
         Args: { p_seller_id: string }
@@ -72156,6 +72290,37 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      publish_builder_asset: {
+        Args: {
+          _asset_id: string
+          _html: string
+          _is_rollback?: boolean
+          _notes?: string
+          _rolled_back_from?: string
+          _version_id?: string
+        }
+        Returns: {
+          asset_id: string
+          html: string
+          id: string
+          is_active: boolean
+          is_rollback: boolean
+          notes: string | null
+          publication_number: number
+          published_at: string
+          published_by: string
+          rolled_back_from: string | null
+          unpublished_at: string | null
+          version_id: string | null
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "builder_publications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       rag_hybrid_search: {
         Args: {

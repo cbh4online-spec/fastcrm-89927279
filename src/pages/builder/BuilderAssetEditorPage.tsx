@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, AlertCircle, ExternalLink } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import {
 import { BuilderPreviewFrame } from "@/modules/builder/components/BuilderPreviewFrame";
 import { BuilderCodeEditor, type SaveState } from "@/modules/builder/components/BuilderCodeEditor";
 import { BuilderVersionsPanel } from "@/modules/builder/components/BuilderVersionsPanel";
+import { BuilderPublishPanel } from "@/modules/builder/components/BuilderPublishPanel";
 import {
   useBuilderAsset,
   useUpdateBuilderAsset,
@@ -49,6 +50,7 @@ export default function BuilderAssetEditorPage() {
   const [name, setName] = useState("");
   const [status, setStatus] = useState<BuilderAssetStatus>("draft");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [publishOpen, setPublishOpen] = useState(false);
 
   // hidratar quando o asset carrega
   const lastLoadedId = useRef<string | null>(null);
@@ -174,10 +176,19 @@ export default function BuilderAssetEditorPage() {
               </Select>
               <Button
                 size="sm"
+                variant="outline"
                 onClick={handleSaveMetadata}
                 disabled={!metadataDirty || updateAsset.isPending}
               >
                 Aplicar
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setPublishOpen(true)}
+                disabled={saveState === "dirty" || saveState === "saving"}
+              >
+                <Rocket className="h-3.5 w-3.5 mr-1.5" />
+                Publicar
               </Button>
             </div>
           )}
@@ -228,6 +239,19 @@ export default function BuilderAssetEditorPage() {
           )}
         </div>
       </div>
+
+      {asset && (
+        <BuilderPublishPanel
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          assetId={asset.id}
+          workspaceId={asset.workspace_id}
+          slug={asset.slug}
+          currentHtml={html}
+          isDirty={saveState === "dirty" || saveState === "saving"}
+        />
+      )}
     </DashboardLayout>
   );
 }
+
