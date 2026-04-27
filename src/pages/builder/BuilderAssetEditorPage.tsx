@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save, Code2, MousePointerClick, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save, Code2, MousePointerClick, SlidersHorizontal, Download } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ import {
   type VisualSelection,
 } from "@/modules/builder/components/BuilderVisualEditor";
 import { BuilderPropertiesPanel } from "@/modules/builder/components/BuilderPropertiesPanel";
+import { BuilderExportDialog } from "@/modules/builder/components/BuilderExportDialog";
 import {
   ensureBids,
   applyPatch,
@@ -76,6 +77,7 @@ export default function BuilderAssetEditorPage() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [publishOpen, setPublishOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [sidePanel, setSidePanel] = useState<SidePanel>("blocks");
   const [saveBlockOpen, setSaveBlockOpen] = useState(false);
   const [saveBlockHtml, setSaveBlockHtml] = useState("");
@@ -278,6 +280,15 @@ export default function BuilderAssetEditorPage() {
               <Button
                 size="sm"
                 variant="outline"
+                onClick={() => setExportOpen(true)}
+                title="Exportar HTML ou ZIP estático"
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Exportar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => setAnalyticsOpen(true)}
               >
                 <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
@@ -412,6 +423,12 @@ export default function BuilderAssetEditorPage() {
             onOpenChange={setSaveBlockOpen}
             initialHtml={saveBlockHtml}
             isSuperAdmin={isSuperAdmin}
+          />
+          <BuilderExportDialog
+            open={exportOpen}
+            onOpenChange={setExportOpen}
+            name={asset.name}
+            html={html}
           />
         </>
       )}
