@@ -121,6 +121,9 @@ const App = () => (
                 <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
                 <Route path="/b/:shortCode" element={<PublicBioShortLink />} />
 
+                {/* Builder — public published assets */}
+                <Route path="/p/:slug" element={<BuilderPublicPage />} />
+
                 {/* Store - ISOLATED from CRM providers */}
                 <Route path="/store/*" element={<StoreRoutes />} />
                 
