@@ -186,6 +186,14 @@ export default function BuilderAssetEditorPage() {
               </Button>
               <Button
                 size="sm"
+                variant="outline"
+                onClick={() => setAnalyticsOpen(true)}
+              >
+                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                Analytics
+              </Button>
+              <Button
+                size="sm"
                 onClick={() => setPublishOpen(true)}
                 disabled={saveState === "dirty" || saveState === "saving"}
               >
