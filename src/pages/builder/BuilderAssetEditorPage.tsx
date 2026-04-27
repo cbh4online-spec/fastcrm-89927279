@@ -79,6 +79,8 @@ export default function BuilderAssetEditorPage() {
   const [sidePanel, setSidePanel] = useState<SidePanel>("blocks");
   const [saveBlockOpen, setSaveBlockOpen] = useState(false);
   const [saveBlockHtml, setSaveBlockHtml] = useState("");
+  const [editMode, setEditMode] = useState<EditMode>("code");
+  const [selection, setSelection] = useState<VisualSelection | null>(null);
 
   // hidratar quando o asset carrega
   const lastLoadedId = useRef<string | null>(null);
