@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { Check, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,19 @@ interface Props {
   readOnly?: boolean;
 }
 
-export function BuilderCodeEditor({ value, onChange, saveState, className, readOnly }: Props) {
+export interface BuilderCodeEditorHandle {
+  /** Insere HTML na posição actual do cursor (substitui selecção, se existir). */
+  insertAtCursor: (snippet: string) => void;
+  /** Devolve a selecção actual ou string vazia. */
+  getSelection: () => string;
+  /** Foca o editor. */
+  focus: () => void;
+}
+
+export const BuilderCodeEditor = forwardRef<BuilderCodeEditorHandle, Props>(function BuilderCodeEditor(
+  { value, onChange, saveState, className, readOnly },
+  ref,
+) {
   const [mounted, setMounted] = useState(false);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
@@ -21,6 +33,46 @@ export function BuilderCodeEditor({ value, onChange, saveState, className, readO
     editorRef.current = editor;
     setMounted(true);
   };
+
+  useImperativeHandle(ref, () => ({
+    insertAtCursor: (snippet) => {
+      const editor = editorRef.current;
+      if (!editor) {
+        // fallback: append to end
+        onChange(`${value}\n${snippet}`);
+        return;
+      }
+      const selection = editor.getSelection();
+      const pretty = `\n${snippet.trim()}\n`;
+      if (selection) {
+        editor.executeEdits("builder-block-insert", [
+          { range: selection, text: pretty, forceMoveMarkers: true },
+        ]);
+      } else {
+        const pos = editor.getPosition();
+        if (pos) {
+          editor.executeEdits("builder-block-insert", [
+            {
+              range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+              text: pretty,
+              forceMoveMarkers: true,
+            },
+          ]);
+        }
+      }
+      editor.focus();
+    },
+    getSelection: () => {
+      const editor = editorRef.current;
+      if (!editor) return "";
+      const sel = editor.getSelection();
+      if (!sel || sel.isEmpty()) return "";
+      const model = editor.getModel();
+      if (!model) return "";
+      return model.getValueInRange(sel);
+    },
+    focus: () => editorRef.current?.focus(),
+  }), [onChange, value]);
 
   useEffect(() => {
     return () => {
@@ -64,7 +116,7 @@ export function BuilderCodeEditor({ value, onChange, saveState, className, readO
       </div>
     </div>
   );
-}
+});
 
 function SaveIndicator({ state }: { state: SaveState }) {
   if (state === "saving") {

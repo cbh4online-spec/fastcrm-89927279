@@ -9377,6 +9377,54 @@ export type Database = {
         }
         Relationships: []
       }
+      builder_blocks: {
+        Row: {
+          asset_type: string
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          html: string
+          id: string
+          name: string
+          scope: string
+          tags: string[] | null
+          thumbnail_url: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          asset_type?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          html: string
+          id?: string
+          name: string
+          scope?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          asset_type?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          html?: string
+          id?: string
+          name?: string
+          scope?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       builder_page_events: {
         Row: {
           asset_id: string
