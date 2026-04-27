@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save } from "lucide-react";
+import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save, Code2, MousePointerClick, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,16 @@ import { BuilderAnalyticsPanel } from "@/modules/builder/components/BuilderAnaly
 import { BuilderBlocksPanel } from "@/modules/builder/components/BuilderBlocksPanel";
 import { SaveBlockDialog } from "@/modules/builder/components/SaveBlockDialog";
 import {
+  BuilderVisualEditor,
+  type VisualSelection,
+} from "@/modules/builder/components/BuilderVisualEditor";
+import { BuilderPropertiesPanel } from "@/modules/builder/components/BuilderPropertiesPanel";
+import {
+  ensureBids,
+  applyPatch,
+  type BuilderPatch,
+} from "@/modules/builder/lib/builderHtmlPatch";
+import {
   useBuilderAsset,
   useUpdateBuilderAsset,
 } from "@/modules/builder/hooks/useBuilderAssets";
@@ -49,7 +59,8 @@ const STATUS_LABEL: Record<BuilderAssetStatus, string> = {
   archived: "Arquivado",
 };
 
-type SidePanel = "blocks" | "versions";
+type SidePanel = "blocks" | "versions" | "properties";
+type EditMode = "code" | "visual";
 
 export default function BuilderAssetEditorPage() {
   const { id } = useParams<{ id: string }>();
