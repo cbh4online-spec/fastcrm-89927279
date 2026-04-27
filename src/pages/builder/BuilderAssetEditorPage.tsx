@@ -176,10 +176,19 @@ export default function BuilderAssetEditorPage() {
               </Select>
               <Button
                 size="sm"
+                variant="outline"
                 onClick={handleSaveMetadata}
                 disabled={!metadataDirty || updateAsset.isPending}
               >
                 Aplicar
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setPublishOpen(true)}
+                disabled={saveState === "dirty" || saveState === "saving"}
+              >
+                <Rocket className="h-3.5 w-3.5 mr-1.5" />
+                Publicar
               </Button>
             </div>
           )}
