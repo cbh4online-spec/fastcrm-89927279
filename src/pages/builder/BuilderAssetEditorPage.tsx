@@ -239,6 +239,19 @@ export default function BuilderAssetEditorPage() {
           )}
         </div>
       </div>
+
+      {asset && (
+        <BuilderPublishPanel
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          assetId={asset.id}
+          workspaceId={asset.workspace_id}
+          slug={asset.slug}
+          currentHtml={html}
+          isDirty={saveState === "dirty" || saveState === "saving"}
+        />
+      )}
     </DashboardLayout>
   );
 }
+
