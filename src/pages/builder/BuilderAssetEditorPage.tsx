@@ -164,6 +164,27 @@ export default function BuilderAssetEditorPage() {
     setSaveBlockOpen(true);
   };
 
+  // ===== Modo visual: garante bids antes de entrar e aplica patches =====
+  const enterVisualMode = () => {
+    setHtml((prev) => ensureBids(prev));
+    setEditMode("visual");
+    setSidePanel("properties");
+  };
+
+  const exitVisualMode = () => {
+    setEditMode("code");
+    setSelection(null);
+    if (sidePanel === "properties") setSidePanel("blocks");
+  };
+
+  const handleVisualPatch = (patch: BuilderPatch) => {
+    setHtml((prev) => applyPatch(prev, patch));
+    // Se editou texto, actualizar selecção local
+    if (patch.type === "text" && selection && selection.bid === patch.bid) {
+      setSelection({ ...selection, text: patch.value });
+    }
+  };
+
   const metadataDirty = useMemo(
     () => !!asset && (name !== asset.name || status !== asset.status),
     [asset, name, status],
