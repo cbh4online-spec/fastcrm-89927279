@@ -28,6 +28,7 @@ import { BuilderPreviewFrame } from "@/modules/builder/components/BuilderPreview
 import { BuilderCodeEditor, type SaveState } from "@/modules/builder/components/BuilderCodeEditor";
 import { BuilderVersionsPanel } from "@/modules/builder/components/BuilderVersionsPanel";
 import { BuilderPublishPanel } from "@/modules/builder/components/BuilderPublishPanel";
+import { BuilderAnalyticsPanel } from "@/modules/builder/components/BuilderAnalyticsPanel";
 import {
   useBuilderAsset,
   useUpdateBuilderAsset,
