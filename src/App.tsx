@@ -26,6 +26,7 @@ import { FastClubPortalRoutes } from "@/routes/FastClubRoutes";
 // Lazy-loaded pages (top-level public only)
 const PublicFunnelPage = lazy(() => import("@/pages/PublicFunnelPage"));
 const PublicBioPage = lazy(() => import("@/pages/PublicBioPage"));
+const BuilderPublicPage = lazy(() => import("@/pages/builder/BuilderPublicPage"));
 const PublicBioShortLink = lazy(() => import("@/pages/PublicBioShortLink"));
 const C2CPublicMarketplace = lazy(() => import("@/pages/c2c/C2CPublicMarketplace"));
 const C2CPublicLivestreamViewer = lazy(() => import("@/pages/c2c/C2CPublicLivestreamViewer"));
