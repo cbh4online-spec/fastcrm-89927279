@@ -251,15 +251,22 @@ export default function BuilderAssetEditorPage() {
       </div>
 
       {asset && (
-        <BuilderPublishPanel
-          open={publishOpen}
-          onOpenChange={setPublishOpen}
-          assetId={asset.id}
-          workspaceId={asset.workspace_id}
-          slug={asset.slug}
-          currentHtml={html}
-          isDirty={saveState === "dirty" || saveState === "saving"}
-        />
+        <>
+          <BuilderPublishPanel
+            open={publishOpen}
+            onOpenChange={setPublishOpen}
+            assetId={asset.id}
+            workspaceId={asset.workspace_id}
+            slug={asset.slug}
+            currentHtml={html}
+            isDirty={saveState === "dirty" || saveState === "saving"}
+          />
+          <BuilderAnalyticsPanel
+            open={analyticsOpen}
+            onOpenChange={setAnalyticsOpen}
+            assetId={asset.id}
+          />
+        </>
       )}
     </DashboardLayout>
   );
