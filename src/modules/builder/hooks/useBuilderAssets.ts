@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
-import type { BuilderAsset, BuilderAssetType } from "../types";
+import type { BuilderAsset, BuilderAssetStatus, BuilderAssetType } from "../types";
 import { sanitizeBuilderHtml, slugify } from "../lib/sanitizeBuilderHtml";
 
 export function useBuilderAssets(filterType?: BuilderAssetType | "all") {
@@ -32,6 +32,24 @@ export function useBuilderAssets(filterType?: BuilderAssetType | "all") {
   });
 }
 
+export function useBuilderAsset(id: string | undefined) {
+  return useQuery({
+    queryKey: ["builder-asset", id],
+    queryFn: async (): Promise<BuilderAsset | null> => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from("builder_assets")
+        .select("*")
+        .eq("id", id)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (error) throw error;
+      return data as BuilderAsset | null;
+    },
+    enabled: !!id,
+  });
+}
+
 export interface CreateBuilderAssetInput {
   name: string;
   type: BuilderAssetType;
@@ -52,7 +70,6 @@ export function useCreateBuilderAsset() {
       const cleanHtml = sanitizeBuilderHtml(input.html);
       const baseSlug = slugify(input.name);
 
-      // Garantir slug único dentro do workspace
       const { data: existing } = await supabase
         .from("builder_assets")
         .select("slug")
@@ -86,6 +103,42 @@ export function useCreateBuilderAsset() {
       return data as BuilderAsset;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["builder-assets"] });
+    },
+  });
+}
+
+export interface UpdateBuilderAssetInput {
+  id: string;
+  html?: string;
+  name?: string;
+  description?: string | null;
+  status?: BuilderAssetStatus;
+}
+
+export function useUpdateBuilderAsset() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: UpdateBuilderAssetInput): Promise<BuilderAsset> => {
+      const patch: Record<string, unknown> = {};
+      if (input.html !== undefined) patch.html = sanitizeBuilderHtml(input.html);
+      if (input.name !== undefined) patch.name = input.name.trim();
+      if (input.description !== undefined) patch.description = input.description?.trim() || null;
+      if (input.status !== undefined) patch.status = input.status;
+
+      const { data, error } = await supabase
+        .from("builder_assets")
+        .update(patch)
+        .eq("id", input.id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data as BuilderAsset;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["builder-asset", data.id], data);
       queryClient.invalidateQueries({ queryKey: ["builder-assets"] });
     },
   });
