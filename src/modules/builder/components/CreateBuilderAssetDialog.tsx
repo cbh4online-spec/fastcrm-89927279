@@ -28,6 +28,9 @@ import { toast } from "@/hooks/use-toast";
 import { BUILDER_ASSET_TYPES, type BuilderAssetType } from "../types";
 import { useCreateBuilderAsset } from "../hooks/useBuilderAssets";
 import { BuilderPreviewFrame } from "./BuilderPreviewFrame";
+import { BUILDER_TEMPLATES, type BuilderTemplate } from "../lib/templates";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const createSchema = z.object({
   name: z.string().trim().min(2, "Nome demasiado curto").max(160, "Máx. 160 caracteres"),
@@ -52,7 +55,7 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
   const [description, setDescription] = useState("");
   const [html, setHtml] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<"paste" | "upload" | "url">("paste");
+  const [tab, setTab] = useState<"paste" | "upload" | "url" | "templates" | "ai">("paste");
 
   // Upload
   const [uploading, setUploading] = useState(false);
@@ -202,13 +205,55 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
             <TabsTrigger value="url" className="gap-2">
               <Link2 className="h-4 w-4" /> URL
             </TabsTrigger>
-            <TabsTrigger value="templates" disabled className="gap-2">
+            <TabsTrigger value="templates" className="gap-2">
               <Layout className="h-4 w-4" /> Templates
             </TabsTrigger>
             <TabsTrigger value="ai" disabled className="gap-2">
               <Sparkles className="h-4 w-4" /> IA
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="templates" className="flex-1 overflow-hidden mt-4">
+            <ScrollArea className="h-full pr-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {BUILDER_TEMPLATES.filter((t) => t.type === type || type === undefined).map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() => {
+                      setHtml(tpl.html);
+                      if (!name.trim()) setName(tpl.name);
+                      setType(tpl.type);
+                      setTab("paste");
+                      toast({ title: "Template aplicado", description: `"${tpl.name}" carregado.` });
+                    }}
+                    className="text-left border rounded-xl overflow-hidden hover:border-primary/60 hover:shadow-md transition-all flex flex-col bg-card"
+                  >
+                    <div className="aspect-[16/10] bg-muted/40 border-b overflow-hidden relative">
+                      <iframe
+                        srcDoc={tpl.html}
+                        title={tpl.name}
+                        sandbox=""
+                        className="w-[200%] h-[200%] origin-top-left scale-50 pointer-events-none border-0"
+                      />
+                    </div>
+                    <div className="p-3 flex-1 flex flex-col gap-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-medium text-sm">{tpl.name}</h3>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {BUILDER_ASSET_TYPES.find((b) => b.value === tpl.type)?.label}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{tpl.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-4">
+                A escolher um template carrega o HTML para o separador "Colar HTML" para revisão antes de criar.
+              </p>
+            </ScrollArea>
+          </TabsContent>
 
           <TabsContent value="upload" className="mt-4">
             <div

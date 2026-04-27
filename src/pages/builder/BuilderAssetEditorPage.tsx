@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, AlertCircle, ExternalLink, Rocket, BarChart3 } from "lucide-react";
+import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -25,14 +25,21 @@ import {
   type BuilderAssetStatus,
 } from "@/modules/builder/types";
 import { BuilderPreviewFrame } from "@/modules/builder/components/BuilderPreviewFrame";
-import { BuilderCodeEditor, type SaveState } from "@/modules/builder/components/BuilderCodeEditor";
+import {
+  BuilderCodeEditor,
+  type SaveState,
+  type BuilderCodeEditorHandle,
+} from "@/modules/builder/components/BuilderCodeEditor";
 import { BuilderVersionsPanel } from "@/modules/builder/components/BuilderVersionsPanel";
 import { BuilderPublishPanel } from "@/modules/builder/components/BuilderPublishPanel";
 import { BuilderAnalyticsPanel } from "@/modules/builder/components/BuilderAnalyticsPanel";
+import { BuilderBlocksPanel } from "@/modules/builder/components/BuilderBlocksPanel";
+import { SaveBlockDialog } from "@/modules/builder/components/SaveBlockDialog";
 import {
   useBuilderAsset,
   useUpdateBuilderAsset,
 } from "@/modules/builder/hooks/useBuilderAssets";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 
@@ -42,10 +49,15 @@ const STATUS_LABEL: Record<BuilderAssetStatus, string> = {
   archived: "Arquivado",
 };
 
+type SidePanel = "blocks" | "versions";
+
 export default function BuilderAssetEditorPage() {
   const { id } = useParams<{ id: string }>();
   const { data: asset, isLoading, error } = useBuilderAsset(id);
   const updateAsset = useUpdateBuilderAsset();
+  const { isSuperAdmin } = useUserRole();
+
+  const editorRef = useRef<BuilderCodeEditorHandle>(null);
 
   const [html, setHtml] = useState("");
   const [name, setName] = useState("");
@@ -53,6 +65,9 @@ export default function BuilderAssetEditorPage() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [publishOpen, setPublishOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [sidePanel, setSidePanel] = useState<SidePanel>("blocks");
+  const [saveBlockOpen, setSaveBlockOpen] = useState(false);
+  const [saveBlockHtml, setSaveBlockHtml] = useState("");
 
   // hidratar quando o asset carrega
   const lastLoadedId = useRef<string | null>(null);
@@ -121,6 +136,21 @@ export default function BuilderAssetEditorPage() {
     }
   };
 
+  const handleInsertBlock = (snippet: string) => {
+    editorRef.current?.insertAtCursor(snippet);
+  };
+
+  const handleOpenSaveBlock = () => {
+    const sel = editorRef.current?.getSelection() ?? "";
+    const initial = sel.trim().length > 0 ? sel : html;
+    if (initial.trim().length < 10) {
+      toast.error("Sem conteúdo para guardar");
+      return;
+    }
+    setSaveBlockHtml(initial);
+    setSaveBlockOpen(true);
+  };
+
   const metadataDirty = useMemo(
     () => !!asset && (name !== asset.name || status !== asset.status),
     [asset, name, status],
@@ -187,6 +217,15 @@ export default function BuilderAssetEditorPage() {
               <Button
                 size="sm"
                 variant="outline"
+                onClick={handleOpenSaveBlock}
+                title="Guardar selecção (ou tudo) como bloco reutilizável"
+              >
+                <Save className="h-3.5 w-3.5 mr-1.5" />
+                Guardar bloco
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => setAnalyticsOpen(true)}
               >
                 <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
@@ -224,26 +263,53 @@ export default function BuilderAssetEditorPage() {
             </div>
           ) : (
             <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
-              <ResizablePanel defaultSize={42} minSize={25}>
-                <BuilderCodeEditor value={html} onChange={setHtml} saveState={saveState} />
+              <ResizablePanel defaultSize={40} minSize={25}>
+                <BuilderCodeEditor
+                  ref={editorRef}
+                  value={html}
+                  onChange={setHtml}
+                  saveState={saveState}
+                />
               </ResizablePanel>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={40} minSize={25}>
+              <ResizablePanel defaultSize={38} minSize={25}>
                 <BuilderPreviewFrame html={html} />
               </ResizablePanel>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={18} minSize={15} maxSize={30}>
-                <BuilderVersionsPanel
-                  assetId={asset.id}
-                  workspaceId={asset.workspace_id}
-                  currentHtml={html}
-                  onRestore={(restoredHtml, version) => {
-                    setHtml(restoredHtml);
-                    toast.success(`Restaurado v${version.version_number}`, {
-                      description: "Será guardado automaticamente em alguns segundos.",
-                    });
-                  }}
-                />
+              <ResizablePanel defaultSize={22} minSize={18} maxSize={35}>
+                <div className="h-full flex flex-col">
+                  <div className="flex gap-1 p-1 bg-muted rounded-md text-xs m-2 mb-0 shrink-0">
+                    <button
+                      className={`flex-1 px-2 py-1.5 rounded flex items-center justify-center gap-1.5 ${sidePanel === "blocks" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                      onClick={() => setSidePanel("blocks")}
+                    >
+                      <Blocks className="h-3.5 w-3.5" /> Blocos
+                    </button>
+                    <button
+                      className={`flex-1 px-2 py-1.5 rounded flex items-center justify-center gap-1.5 ${sidePanel === "versions" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                      onClick={() => setSidePanel("versions")}
+                    >
+                      <History className="h-3.5 w-3.5" /> Versões
+                    </button>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    {sidePanel === "blocks" ? (
+                      <BuilderBlocksPanel onInsert={handleInsertBlock} />
+                    ) : (
+                      <BuilderVersionsPanel
+                        assetId={asset.id}
+                        workspaceId={asset.workspace_id}
+                        currentHtml={html}
+                        onRestore={(restoredHtml, version) => {
+                          setHtml(restoredHtml);
+                          toast.success(`Restaurado v${version.version_number}`, {
+                            description: "Será guardado automaticamente em alguns segundos.",
+                          });
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
               </ResizablePanel>
             </ResizablePanelGroup>
           )}
@@ -266,9 +332,14 @@ export default function BuilderAssetEditorPage() {
             onOpenChange={setAnalyticsOpen}
             assetId={asset.id}
           />
+          <SaveBlockDialog
+            open={saveBlockOpen}
+            onOpenChange={setSaveBlockOpen}
+            initialHtml={saveBlockHtml}
+            isSuperAdmin={isSuperAdmin}
+          />
         </>
       )}
     </DashboardLayout>
   );
 }
-
