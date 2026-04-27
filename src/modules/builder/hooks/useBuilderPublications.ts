@@ -139,3 +139,32 @@ export function useDeleteBuilderAssetDomain() {
     },
   });
 }
+
+export interface DomainVerifyResult {
+  verified: boolean;
+  record_host: string;
+  expected_token: string;
+  found_records: string[];
+}
+
+export function useVerifyBuilderDomain() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      domainId: string;
+      assetId: string;
+    }): Promise<DomainVerifyResult> => {
+      const { data, error } = await supabase.functions.invoke(
+        "builder-domain-verify",
+        { body: { domain_id: input.domainId } },
+      );
+      if (error) throw error;
+      return data as DomainVerifyResult;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({
+        queryKey: ["builder-asset-domains", vars.assetId],
+      });
+    },
+  });
+}

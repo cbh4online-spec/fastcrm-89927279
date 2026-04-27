@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, AlertCircle, ExternalLink, Rocket } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Rocket, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { BuilderPreviewFrame } from "@/modules/builder/components/BuilderPreview
 import { BuilderCodeEditor, type SaveState } from "@/modules/builder/components/BuilderCodeEditor";
 import { BuilderVersionsPanel } from "@/modules/builder/components/BuilderVersionsPanel";
 import { BuilderPublishPanel } from "@/modules/builder/components/BuilderPublishPanel";
+import { BuilderAnalyticsPanel } from "@/modules/builder/components/BuilderAnalyticsPanel";
 import {
   useBuilderAsset,
   useUpdateBuilderAsset,
@@ -51,6 +52,7 @@ export default function BuilderAssetEditorPage() {
   const [status, setStatus] = useState<BuilderAssetStatus>("draft");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [publishOpen, setPublishOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
 
   // hidratar quando o asset carrega
   const lastLoadedId = useRef<string | null>(null);
@@ -184,6 +186,14 @@ export default function BuilderAssetEditorPage() {
               </Button>
               <Button
                 size="sm"
+                variant="outline"
+                onClick={() => setAnalyticsOpen(true)}
+              >
+                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                Analytics
+              </Button>
+              <Button
+                size="sm"
                 onClick={() => setPublishOpen(true)}
                 disabled={saveState === "dirty" || saveState === "saving"}
               >
@@ -241,15 +251,22 @@ export default function BuilderAssetEditorPage() {
       </div>
 
       {asset && (
-        <BuilderPublishPanel
-          open={publishOpen}
-          onOpenChange={setPublishOpen}
-          assetId={asset.id}
-          workspaceId={asset.workspace_id}
-          slug={asset.slug}
-          currentHtml={html}
-          isDirty={saveState === "dirty" || saveState === "saving"}
-        />
+        <>
+          <BuilderPublishPanel
+            open={publishOpen}
+            onOpenChange={setPublishOpen}
+            assetId={asset.id}
+            workspaceId={asset.workspace_id}
+            slug={asset.slug}
+            currentHtml={html}
+            isDirty={saveState === "dirty" || saveState === "saving"}
+          />
+          <BuilderAnalyticsPanel
+            open={analyticsOpen}
+            onOpenChange={setAnalyticsOpen}
+            assetId={asset.id}
+          />
+        </>
       )}
     </DashboardLayout>
   );

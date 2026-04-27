@@ -9377,6 +9377,57 @@ export type Database = {
         }
         Relationships: []
       }
+      builder_page_events: {
+        Row: {
+          asset_id: string
+          country: string | null
+          created_at: string
+          event_type: string
+          hostname: string | null
+          id: string
+          metadata: Json
+          path: string | null
+          publication_id: string | null
+          referrer: string | null
+          session_id: string | null
+          slug: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          asset_id: string
+          country?: string | null
+          created_at?: string
+          event_type: string
+          hostname?: string | null
+          id?: string
+          metadata?: Json
+          path?: string | null
+          publication_id?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          slug?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string
+          country?: string | null
+          created_at?: string
+          event_type?: string
+          hostname?: string | null
+          id?: string
+          metadata?: Json
+          path?: string | null
+          publication_id?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          slug?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       builder_publications: {
         Row: {
           asset_id: string
@@ -72500,6 +72551,20 @@ export type Database = {
         }
         Returns: string
       }
+      track_builder_event: {
+        Args: {
+          _asset_id: string
+          _event_type: string
+          _hostname?: string
+          _metadata?: Json
+          _path?: string
+          _referrer?: string
+          _session_id?: string
+          _slug?: string
+          _user_agent?: string
+        }
+        Returns: string
+      }
       unaccent: { Args: { "": string }; Returns: string }
       update_user_status_admin: {
         Args: { p_status: string; p_user_id: string }
@@ -72548,6 +72613,10 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: Json
+      }
+      verify_builder_domain: {
+        Args: { _domain_id: string; _resolved_token: string }
+        Returns: boolean
       }
     }
     Enums: {
