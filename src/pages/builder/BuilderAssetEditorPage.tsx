@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save } from "lucide-react";
+import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save, Code2, MousePointerClick, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,16 @@ import { BuilderAnalyticsPanel } from "@/modules/builder/components/BuilderAnaly
 import { BuilderBlocksPanel } from "@/modules/builder/components/BuilderBlocksPanel";
 import { SaveBlockDialog } from "@/modules/builder/components/SaveBlockDialog";
 import {
+  BuilderVisualEditor,
+  type VisualSelection,
+} from "@/modules/builder/components/BuilderVisualEditor";
+import { BuilderPropertiesPanel } from "@/modules/builder/components/BuilderPropertiesPanel";
+import {
+  ensureBids,
+  applyPatch,
+  type BuilderPatch,
+} from "@/modules/builder/lib/builderHtmlPatch";
+import {
   useBuilderAsset,
   useUpdateBuilderAsset,
 } from "@/modules/builder/hooks/useBuilderAssets";
@@ -49,7 +59,8 @@ const STATUS_LABEL: Record<BuilderAssetStatus, string> = {
   archived: "Arquivado",
 };
 
-type SidePanel = "blocks" | "versions";
+type SidePanel = "blocks" | "versions" | "properties";
+type EditMode = "code" | "visual";
 
 export default function BuilderAssetEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -68,6 +79,8 @@ export default function BuilderAssetEditorPage() {
   const [sidePanel, setSidePanel] = useState<SidePanel>("blocks");
   const [saveBlockOpen, setSaveBlockOpen] = useState(false);
   const [saveBlockHtml, setSaveBlockHtml] = useState("");
+  const [editMode, setEditMode] = useState<EditMode>("code");
+  const [selection, setSelection] = useState<VisualSelection | null>(null);
 
   // hidratar quando o asset carrega
   const lastLoadedId = useRef<string | null>(null);
@@ -151,6 +164,27 @@ export default function BuilderAssetEditorPage() {
     setSaveBlockOpen(true);
   };
 
+  // ===== Modo visual: garante bids antes de entrar e aplica patches =====
+  const enterVisualMode = () => {
+    setHtml((prev) => ensureBids(prev));
+    setEditMode("visual");
+    setSidePanel("properties");
+  };
+
+  const exitVisualMode = () => {
+    setEditMode("code");
+    setSelection(null);
+    if (sidePanel === "properties") setSidePanel("blocks");
+  };
+
+  const handleVisualPatch = (patch: BuilderPatch) => {
+    setHtml((prev) => applyPatch(prev, patch));
+    // Se editou texto, actualizar selecção local
+    if (patch.type === "text" && selection && selection.bid === patch.bid) {
+      setSelection({ ...selection, text: patch.value });
+    }
+  };
+
   const metadataDirty = useMemo(
     () => !!asset && (name !== asset.name || status !== asset.status),
     [asset, name, status],
@@ -194,6 +228,24 @@ export default function BuilderAssetEditorPage() {
 
           {asset && (
             <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-0.5 rounded-md border bg-muted/40 p-0.5 mr-1">
+                <Button
+                  size="sm"
+                  variant={editMode === "code" ? "secondary" : "ghost"}
+                  className="h-7 px-2 text-xs"
+                  onClick={exitVisualMode}
+                >
+                  <Code2 className="h-3.5 w-3.5 mr-1" /> Código
+                </Button>
+                <Button
+                  size="sm"
+                  variant={editMode === "visual" ? "secondary" : "ghost"}
+                  className="h-7 px-2 text-xs"
+                  onClick={enterVisualMode}
+                >
+                  <MousePointerClick className="h-3.5 w-3.5 mr-1" /> Visual
+                </Button>
+              </div>
               <Select value={status} onValueChange={(v) => setStatus(v as BuilderAssetStatus)}>
                 <SelectTrigger className="h-8 w-[130px]">
                   <SelectValue />
@@ -264,12 +316,21 @@ export default function BuilderAssetEditorPage() {
           ) : (
             <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
               <ResizablePanel defaultSize={40} minSize={25}>
-                <BuilderCodeEditor
-                  ref={editorRef}
-                  value={html}
-                  onChange={setHtml}
-                  saveState={saveState}
-                />
+                {editMode === "code" ? (
+                  <BuilderCodeEditor
+                    ref={editorRef}
+                    value={html}
+                    onChange={setHtml}
+                    saveState={saveState}
+                  />
+                ) : (
+                  <BuilderVisualEditor
+                    html={html}
+                    selectedBid={selection?.bid ?? null}
+                    onSelect={setSelection}
+                    onPatch={handleVisualPatch}
+                  />
+                )}
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={38} minSize={25}>
@@ -279,6 +340,14 @@ export default function BuilderAssetEditorPage() {
               <ResizablePanel defaultSize={22} minSize={18} maxSize={35}>
                 <div className="h-full flex flex-col">
                   <div className="flex gap-1 p-1 bg-muted rounded-md text-xs m-2 mb-0 shrink-0">
+                    {editMode === "visual" && (
+                      <button
+                        className={`flex-1 px-2 py-1.5 rounded flex items-center justify-center gap-1.5 ${sidePanel === "properties" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                        onClick={() => setSidePanel("properties")}
+                      >
+                        <SlidersHorizontal className="h-3.5 w-3.5" /> Propriedades
+                      </button>
+                    )}
                     <button
                       className={`flex-1 px-2 py-1.5 rounded flex items-center justify-center gap-1.5 ${sidePanel === "blocks" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
                       onClick={() => setSidePanel("blocks")}
@@ -293,7 +362,13 @@ export default function BuilderAssetEditorPage() {
                     </button>
                   </div>
                   <div className="flex-1 min-h-0">
-                    {sidePanel === "blocks" ? (
+                    {sidePanel === "properties" ? (
+                      <BuilderPropertiesPanel
+                        selection={selection}
+                        onPatch={handleVisualPatch}
+                        onClear={() => setSelection(null)}
+                      />
+                    ) : sidePanel === "blocks" ? (
                       <BuilderBlocksPanel onInsert={handleInsertBlock} />
                     ) : (
                       <BuilderVersionsPanel
