@@ -33,6 +33,7 @@ import {
   useBuilderAssetDomains,
   useAddBuilderAssetDomain,
   useDeleteBuilderAssetDomain,
+  useVerifyBuilderDomain,
 } from "@/modules/builder/hooks/useBuilderPublications";
 
 interface Props {
