@@ -65,7 +65,51 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(row.html, {
+    // Injecta snippet de tracking + banner de consentimento antes de </body>
+    const supabaseUrl = SUPABASE_URL;
+    const trackerSnippet = `
+<script>(function(){
+  var ASSET="${row.asset_id}";
+  var SLUG="${(slug || "").replace(/"/g, "")}";
+  var API="${supabaseUrl}/rest/v1/rpc/track_builder_event";
+  var KEY="${Deno.env.get("SUPABASE_ANON_KEY") || ""}";
+  var STORE="lov_builder_consent";
+  var SES="lov_builder_session";
+  function uuid(){return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,function(c){return(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)})}
+  function sid(){var s=sessionStorage.getItem(SES);if(!s){s=uuid();sessionStorage.setItem(SES,s)}return s}
+  function consent(){return localStorage.getItem(STORE)}
+  function send(type, meta){
+    if(consent()!=="yes")return;
+    try{
+      fetch(API,{method:"POST",headers:{"Content-Type":"application/json","apikey":KEY,"Authorization":"Bearer "+KEY},body:JSON.stringify({_asset_id:ASSET,_event_type:type,_slug:SLUG,_hostname:location.hostname,_path:location.pathname,_referrer:document.referrer,_user_agent:navigator.userAgent,_session_id:sid(),_metadata:meta||{}})}).catch(function(){});
+    }catch(e){}
+  }
+  function pageview(){send("view")}
+  function bind(){
+    document.addEventListener("click",function(e){var t=e.target.closest("a,button");if(t)send("click",{tag:t.tagName,text:(t.innerText||"").slice(0,80),href:t.href||null})},true);
+    document.addEventListener("submit",function(e){send("form_submit",{id:e.target.id||null,name:e.target.name||null})},true);
+  }
+  function banner(){
+    if(consent())return;
+    var b=document.createElement("div");
+    b.setAttribute("role","dialog");
+    b.style.cssText="position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483647;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;font:14px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)";
+    b.innerHTML='<span style="flex:1;min-width:200px">Esta página utiliza cookies para medir audiência de forma anónima.</span><button data-a="no" style="background:transparent;color:#cbd5e1;border:1px solid #475569;border-radius:8px;padding:8px 14px;cursor:pointer">Recusar</button><button data-a="yes" style="background:#3b82f6;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer">Aceitar</button>';
+    document.body.appendChild(b);
+    b.addEventListener("click",function(e){var a=e.target.getAttribute("data-a");if(!a)return;localStorage.setItem(STORE,a);b.remove();if(a==="yes")pageview()});
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){bind();banner();pageview()});
+  else{bind();banner();pageview()}
+})();</script>`;
+
+    let html = row.html as string;
+    if (/<\/body>/i.test(html)) {
+      html = html.replace(/<\/body>/i, `${trackerSnippet}</body>`);
+    } else {
+      html = html + trackerSnippet;
+    }
+
+    return new Response(html, {
       status: 200,
       headers: {
         ...corsHeaders,
