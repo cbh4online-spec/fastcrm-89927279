@@ -52,6 +52,7 @@ export default function BuilderAssetEditorPage() {
   const [status, setStatus] = useState<BuilderAssetStatus>("draft");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [publishOpen, setPublishOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
 
   // hidratar quando o asset carrega
   const lastLoadedId = useRef<string | null>(null);
