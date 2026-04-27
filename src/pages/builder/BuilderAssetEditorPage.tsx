@@ -1,88 +1,232 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
+import { ArrowLeft, AlertCircle, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { BUILDER_ASSET_TYPES, type BuilderAsset } from "@/modules/builder/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import {
+  BUILDER_ASSET_TYPES,
+  type BuilderAssetStatus,
+} from "@/modules/builder/types";
 import { BuilderPreviewFrame } from "@/modules/builder/components/BuilderPreviewFrame";
+import { BuilderCodeEditor, type SaveState } from "@/modules/builder/components/BuilderCodeEditor";
+import { BuilderVersionsPanel } from "@/modules/builder/components/BuilderVersionsPanel";
+import {
+  useBuilderAsset,
+  useUpdateBuilderAsset,
+} from "@/modules/builder/hooks/useBuilderAssets";
+
+const AUTOSAVE_DEBOUNCE_MS = 2000;
+
+const STATUS_LABEL: Record<BuilderAssetStatus, string> = {
+  draft: "Rascunho",
+  published: "Publicado",
+  archived: "Arquivado",
+};
 
 export default function BuilderAssetEditorPage() {
   const { id } = useParams<{ id: string }>();
+  const { data: asset, isLoading, error } = useBuilderAsset(id);
+  const updateAsset = useUpdateBuilderAsset();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["builder-asset", id],
-    queryFn: async () => {
-      if (!id) return null;
-      const { data, error } = await supabase
-        .from("builder_assets")
-        .select("*")
-        .eq("id", id)
-        .is("deleted_at", null)
-        .maybeSingle();
-      if (error) throw error;
-      return data as BuilderAsset | null;
-    },
-    enabled: !!id,
-  });
+  const [html, setHtml] = useState("");
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState<BuilderAssetStatus>("draft");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+
+  // hidratar quando o asset carrega
+  const lastLoadedId = useRef<string | null>(null);
+  useEffect(() => {
+    if (asset && asset.id !== lastLoadedId.current) {
+      setHtml(asset.html);
+      setName(asset.name);
+      setStatus(asset.status);
+      setSaveState("idle");
+      lastLoadedId.current = asset.id;
+    }
+  }, [asset]);
+
+  // autosave do HTML com debounce
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!asset) return;
+    if (html === asset.html) return;
+    setSaveState("dirty");
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setSaveState("saving");
+      try {
+        await updateAsset.mutateAsync({ id: asset.id, html });
+        setSaveState("saved");
+      } catch (err) {
+        setSaveState("error");
+        toast.error("Erro ao guardar", {
+          description: err instanceof Error ? err.message : undefined,
+        });
+      }
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html, asset?.id, asset?.html]);
+
+  // salvar antes de fechar a tab
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (saveState === "dirty" || saveState === "saving") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [saveState]);
+
+  const handleSaveMetadata = async () => {
+    if (!asset) return;
+    try {
+      await updateAsset.mutateAsync({
+        id: asset.id,
+        name: name !== asset.name ? name : undefined,
+        status: status !== asset.status ? status : undefined,
+      });
+      toast.success("Metadata guardada");
+    } catch (err) {
+      toast.error("Erro ao guardar metadata", {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
+
+  const metadataDirty = useMemo(
+    () => !!asset && (name !== asset.name || status !== asset.status),
+    [asset, name, status],
+  );
 
   return (
     <DashboardLayout>
       <Helmet>
-        <title>{data?.name ? `${data.name} · Builder` : "Builder"} · FastCRM</title>
+        <title>{asset?.name ? `${asset.name} · Builder` : "Builder"} · FastCRM</title>
       </Helmet>
 
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/dashboard/builder">
-              <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
-            </Link>
-          </Button>
+      <div className="flex flex-col h-[calc(100vh-64px)]">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b bg-background">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Button asChild variant="ghost" size="sm" className="shrink-0">
+              <Link to="/dashboard/builder">
+                <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+              </Link>
+            </Button>
+            {isLoading ? (
+              <Skeleton className="h-8 w-64" />
+            ) : asset ? (
+              <>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-8 max-w-sm font-medium"
+                  placeholder="Nome do asset"
+                  maxLength={120}
+                />
+                <Badge variant="outline" className="shrink-0">
+                  {BUILDER_ASSET_TYPES.find((t) => t.value === asset.type)?.label ?? asset.type}
+                </Badge>
+                <span className="text-xs text-muted-foreground hidden md:inline shrink-0">
+                  /{asset.slug}
+                </span>
+              </>
+            ) : null}
+          </div>
+
+          {asset && (
+            <div className="flex items-center gap-2 shrink-0">
+              <Select value={status} onValueChange={(v) => setStatus(v as BuilderAssetStatus)}>
+                <SelectTrigger className="h-8 w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(STATUS_LABEL) as BuilderAssetStatus[]).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {STATUS_LABEL[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={handleSaveMetadata}
+                disabled={!metadataDirty || updateAsset.isPending}
+              >
+                Aplicar
+              </Button>
+            </div>
+          )}
         </div>
 
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-1/3" />
-            <Skeleton className="h-[600px] w-full rounded-lg" />
-          </div>
-        ) : error || !data ? (
-          <div className="flex items-center gap-3 text-destructive p-6 border border-destructive/30 rounded-lg">
-            <AlertCircle className="h-5 w-5" />
-            <div>
-              <p className="font-medium">Asset não encontrado</p>
-              <p className="text-sm text-muted-foreground">
-                Pode ter sido removido ou não tens acesso.
-              </p>
+        {/* Body */}
+        <div className="flex-1 min-h-0 p-3">
+          {isLoading ? (
+            <div className="grid grid-cols-3 gap-3 h-full">
+              <Skeleton className="h-full" />
+              <Skeleton className="h-full" />
+              <Skeleton className="h-full" />
             </div>
-          </div>
-        ) : (
-          <>
-            <div className="mb-4">
-              <h1 className="text-2xl font-semibold tracking-tight">{data.name}</h1>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline">
-                  {BUILDER_ASSET_TYPES.find((t) => t.value === data.type)?.label ?? data.type}
-                </Badge>
-                <Badge variant="secondary" className="capitalize">
-                  {data.status}
-                </Badge>
-                <span className="text-xs text-muted-foreground">/{data.slug}</span>
+          ) : error || !asset ? (
+            <div className="flex items-center gap-3 text-destructive p-6 border border-destructive/30 rounded-lg max-w-xl mx-auto mt-12">
+              <AlertCircle className="h-5 w-5" />
+              <div>
+                <p className="font-medium">Asset não encontrado</p>
+                <p className="text-sm text-muted-foreground">
+                  Pode ter sido removido ou não tens acesso.
+                </p>
               </div>
             </div>
-
-            <div className="h-[calc(100vh-280px)] min-h-[500px]">
-              <BuilderPreviewFrame html={data.html} />
-            </div>
-
-            <p className="text-xs text-muted-foreground mt-3">
-              Edição inline e versioning estarão disponíveis na Fase 2.
-            </p>
-          </>
-        )}
+          ) : (
+            <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
+              <ResizablePanel defaultSize={42} minSize={25}>
+                <BuilderCodeEditor value={html} onChange={setHtml} saveState={saveState} />
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={40} minSize={25}>
+                <BuilderPreviewFrame html={html} />
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={18} minSize={15} maxSize={30}>
+                <BuilderVersionsPanel
+                  assetId={asset.id}
+                  workspaceId={asset.workspace_id}
+                  currentHtml={html}
+                  onRestore={(restoredHtml, version) => {
+                    setHtml(restoredHtml);
+                    toast.success(`Restaurado v${version.version_number}`, {
+                      description: "Será guardado automaticamente em alguns segundos.",
+                    });
+                  }}
+                />
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
