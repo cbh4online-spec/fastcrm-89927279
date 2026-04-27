@@ -228,6 +228,24 @@ export default function BuilderAssetEditorPage() {
 
           {asset && (
             <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-0.5 rounded-md border bg-muted/40 p-0.5 mr-1">
+                <Button
+                  size="sm"
+                  variant={editMode === "code" ? "secondary" : "ghost"}
+                  className="h-7 px-2 text-xs"
+                  onClick={exitVisualMode}
+                >
+                  <Code2 className="h-3.5 w-3.5 mr-1" /> Código
+                </Button>
+                <Button
+                  size="sm"
+                  variant={editMode === "visual" ? "secondary" : "ghost"}
+                  className="h-7 px-2 text-xs"
+                  onClick={enterVisualMode}
+                >
+                  <MousePointerClick className="h-3.5 w-3.5 mr-1" /> Visual
+                </Button>
+              </div>
               <Select value={status} onValueChange={(v) => setStatus(v as BuilderAssetStatus)}>
                 <SelectTrigger className="h-8 w-[130px]">
                   <SelectValue />
@@ -298,12 +316,21 @@ export default function BuilderAssetEditorPage() {
           ) : (
             <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
               <ResizablePanel defaultSize={40} minSize={25}>
-                <BuilderCodeEditor
-                  ref={editorRef}
-                  value={html}
-                  onChange={setHtml}
-                  saveState={saveState}
-                />
+                {editMode === "code" ? (
+                  <BuilderCodeEditor
+                    ref={editorRef}
+                    value={html}
+                    onChange={setHtml}
+                    saveState={saveState}
+                  />
+                ) : (
+                  <BuilderVisualEditor
+                    html={html}
+                    selectedBid={selection?.bid ?? null}
+                    onSelect={setSelection}
+                    onPatch={handleVisualPatch}
+                  />
+                )}
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={38} minSize={25}>
@@ -313,6 +340,14 @@ export default function BuilderAssetEditorPage() {
               <ResizablePanel defaultSize={22} minSize={18} maxSize={35}>
                 <div className="h-full flex flex-col">
                   <div className="flex gap-1 p-1 bg-muted rounded-md text-xs m-2 mb-0 shrink-0">
+                    {editMode === "visual" && (
+                      <button
+                        className={`flex-1 px-2 py-1.5 rounded flex items-center justify-center gap-1.5 ${sidePanel === "properties" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                        onClick={() => setSidePanel("properties")}
+                      >
+                        <SlidersHorizontal className="h-3.5 w-3.5" /> Propriedades
+                      </button>
+                    )}
                     <button
                       className={`flex-1 px-2 py-1.5 rounded flex items-center justify-center gap-1.5 ${sidePanel === "blocks" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
                       onClick={() => setSidePanel("blocks")}
@@ -327,7 +362,13 @@ export default function BuilderAssetEditorPage() {
                     </button>
                   </div>
                   <div className="flex-1 min-h-0">
-                    {sidePanel === "blocks" ? (
+                    {sidePanel === "properties" ? (
+                      <BuilderPropertiesPanel
+                        selection={selection}
+                        onPatch={handleVisualPatch}
+                        onClear={() => setSelection(null)}
+                      />
+                    ) : sidePanel === "blocks" ? (
                       <BuilderBlocksPanel onInsert={handleInsertBlock} />
                     ) : (
                       <BuilderVersionsPanel
