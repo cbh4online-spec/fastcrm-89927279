@@ -60,6 +60,7 @@ export function BuilderPublishPanel({
   const publish = usePublishBuilderAsset();
   const addDomain = useAddBuilderAssetDomain();
   const deleteDomain = useDeleteBuilderAssetDomain();
+  const verifyDomain = useVerifyBuilderDomain();
 
   const [notes, setNotes] = useState("");
   const [newHostname, setNewHostname] = useState("");
