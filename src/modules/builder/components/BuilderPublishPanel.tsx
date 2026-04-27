@@ -229,43 +229,103 @@ export function BuilderPublishPanel({
                 )}
 
                 <ul className="space-y-2">
-                  {domains.map((d) => (
-                    <li
-                      key={d.id}
-                      className="flex items-center justify-between gap-2 p-2 border rounded-md bg-card"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-mono truncate">
-                            {d.hostname}
-                            {d.path_prefix !== "/" ? d.path_prefix : ""}
-                          </span>
-                          {d.verified ? (
-                            <Badge variant="secondary" className="h-5 text-[10px]">
-                              <Check className="h-2.5 w-2.5 mr-1" /> Verificado
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="h-5 text-[10px]">
-                              Por verificar
-                            </Badge>
-                          )}
+                  {domains.map((d) => {
+                    const recordHost = `_lovable-builder.${d.hostname}`;
+                    return (
+                      <li
+                        key={d.id}
+                        className="flex flex-col gap-2 p-3 border rounded-md bg-card"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-mono truncate">
+                              {d.hostname}
+                              {d.path_prefix !== "/" ? d.path_prefix : ""}
+                            </span>
+                            {d.verified ? (
+                              <Badge variant="secondary" className="h-5 text-[10px]">
+                                <Check className="h-2.5 w-2.5 mr-1" /> Verificado
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="h-5 text-[10px]">
+                                Por verificar
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {!d.verified && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  try {
+                                    const res = await verifyDomain.mutateAsync({
+                                      domainId: d.id,
+                                      assetId,
+                                    });
+                                    if (res.verified) {
+                                      toast.success("Domínio verificado");
+                                    } else {
+                                      toast.error("TXT não encontrado", {
+                                        description: `Cria TXT em ${res.record_host} = ${res.expected_token}`,
+                                      });
+                                    }
+                                  } catch (err) {
+                                    toast.error("Erro ao verificar", {
+                                      description:
+                                        err instanceof Error ? err.message : undefined,
+                                    });
+                                  }
+                                }}
+                                disabled={verifyDomain.isPending}
+                              >
+                                {verifyDomain.isPending ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  "Verificar DNS"
+                                )}
+                              </Button>
+                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => deleteDomain.mutate({ id: d.id, assetId })}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                         {!d.verified && (
-                          <code className="text-[10px] text-muted-foreground break-all">
-                            TXT _lovable_builder = {d.verification_token}
-                          </code>
+                          <div className="text-[11px] bg-muted/50 rounded p-2 space-y-1">
+                            <p className="text-muted-foreground">
+                              Cria este registo TXT no DNS do domínio:
+                            </p>
+                            <div className="grid grid-cols-[60px_1fr] gap-x-2 font-mono">
+                              <span className="text-muted-foreground">Host</span>
+                              <button
+                                type="button"
+                                onClick={() => copyUrl(recordHost)}
+                                className="text-left truncate hover:underline"
+                                title="Copiar"
+                              >
+                                {recordHost}
+                              </button>
+                              <span className="text-muted-foreground">Valor</span>
+                              <button
+                                type="button"
+                                onClick={() => copyUrl(d.verification_token)}
+                                className="text-left break-all hover:underline"
+                                title="Copiar"
+                              >
+                                {d.verification_token}
+                              </button>
+                            </div>
+                          </div>
                         )}
-                      </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => deleteDomain.mutate({ id: d.id, assetId })}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 <div className="flex gap-2">
