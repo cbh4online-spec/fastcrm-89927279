@@ -23,6 +23,7 @@ interface Props {
   assetType: string; // 'landing' | 'email' | ...
   fullHtml: string;
   selection: VisualSelection | null;
+  selectionOuterHtml: string | null;
   onReplaceFullHtml: (html: string) => void;
   onPatch: (patch: BuilderPatch) => void;
 }
