@@ -48,6 +48,13 @@ import { AIProductAssistant } from "./AIProductAssistant";
 import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
 import { ProductImageGalleryManager } from "./ProductImageGalleryManager";
+import {
+  ProductPhysicalAttributesSection,
+  EMPTY_PHYSICAL,
+  physicalToPayload,
+  physicalFromProduct,
+  type PhysicalAttributesValue,
+} from "./ProductPhysicalAttributesSection";
 import { ProductSpecificationsEditor } from "./ProductSpecificationsEditor";
 import { ProductVideoSearch } from "./ProductVideoSearch";
 import { PostCreationSuggestionsCard } from "./PostCreationSuggestionsCard";
@@ -143,6 +150,7 @@ export function CreateProductDialog({
   const [b2bPublished, setB2bPublished] = useState(true);
   // Location
   const [location, setLocation] = useState("");
+  const [physical, setPhysical] = useState<PhysicalAttributesValue>(EMPTY_PHYSICAL);
   // Post-creation suggestions
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string; workspace_id: string } | null>(null);
 
@@ -271,6 +279,8 @@ export function CreateProductDialog({
       setB2bPublished(product.b2b_published ?? true);
       // Location
       setLocation((product as any).location || "");
+      // Physical attributes
+      setPhysical(physicalFromProduct(product as any));
       setHasDraft(false);
     } else {
       // Try to load draft from localStorage
@@ -406,6 +416,8 @@ export function CreateProductDialog({
     setLaborNotes("");
     // Reset B2B Portal visibility
     setB2bPublished(true);
+    // Reset physical attributes
+    setPhysical(EMPTY_PHYSICAL);
     // Reset post-creation suggestions
     setCreatedProduct(null);
   };
@@ -452,6 +464,8 @@ export function CreateProductDialog({
     data.b2b_published = b2bPublished;
     // Location
     data.location = location || undefined;
+    // Physical attributes (frascos líquidos, peso, dimensões, embalagem)
+    Object.assign(data, physicalToPayload(physical));
 
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product!.id, ...data });
@@ -939,6 +953,12 @@ export function CreateProductDialog({
                 productName={name}
                 productCategory={category}
                 productType={productType}
+              />
+
+              {/* Atributos físicos: peso, volume/capacidade, dimensões e tipo de embalagem */}
+              <ProductPhysicalAttributesSection
+                value={physical}
+                onChange={setPhysical}
               />
 
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>

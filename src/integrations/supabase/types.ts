@@ -52112,6 +52112,7 @@ export type Database = {
           discontinued_at: string | null
           discontinued_reason: string | null
           embedding: string | null
+          height_cm: number | null
           id: string
           images: string[] | null
           included_quantity: number | null
@@ -52123,6 +52124,7 @@ export type Database = {
           labor_notes: string | null
           last_cost: number | null
           last_purchase_date: string | null
+          length_cm: number | null
           line: string | null
           location: string | null
           low_stock_threshold: number
@@ -52134,6 +52136,7 @@ export type Database = {
           operational_cost: number | null
           order_multiple: number | null
           pack_size: number | null
+          package_type: string | null
           partner_notes: string | null
           price_on_request: boolean
           primary_image_index: number | null
@@ -52181,7 +52184,12 @@ export type Database = {
           updated_at: string
           validity_days: number | null
           views_count: number
+          volume_unit: string | null
+          volume_value: number | null
           weight: number | null
+          weight_gross: number | null
+          weight_net: number | null
+          width_cm: number | null
           workspace_id: string
         }
         Insert: {
@@ -52219,6 +52227,7 @@ export type Database = {
           discontinued_at?: string | null
           discontinued_reason?: string | null
           embedding?: string | null
+          height_cm?: number | null
           id?: string
           images?: string[] | null
           included_quantity?: number | null
@@ -52230,6 +52239,7 @@ export type Database = {
           labor_notes?: string | null
           last_cost?: number | null
           last_purchase_date?: string | null
+          length_cm?: number | null
           line?: string | null
           location?: string | null
           low_stock_threshold?: number
@@ -52241,6 +52251,7 @@ export type Database = {
           operational_cost?: number | null
           order_multiple?: number | null
           pack_size?: number | null
+          package_type?: string | null
           partner_notes?: string | null
           price_on_request?: boolean
           primary_image_index?: number | null
@@ -52288,7 +52299,12 @@ export type Database = {
           updated_at?: string
           validity_days?: number | null
           views_count?: number
+          volume_unit?: string | null
+          volume_value?: number | null
           weight?: number | null
+          weight_gross?: number | null
+          weight_net?: number | null
+          width_cm?: number | null
           workspace_id: string
         }
         Update: {
@@ -52326,6 +52342,7 @@ export type Database = {
           discontinued_at?: string | null
           discontinued_reason?: string | null
           embedding?: string | null
+          height_cm?: number | null
           id?: string
           images?: string[] | null
           included_quantity?: number | null
@@ -52337,6 +52354,7 @@ export type Database = {
           labor_notes?: string | null
           last_cost?: number | null
           last_purchase_date?: string | null
+          length_cm?: number | null
           line?: string | null
           location?: string | null
           low_stock_threshold?: number
@@ -52348,6 +52366,7 @@ export type Database = {
           operational_cost?: number | null
           order_multiple?: number | null
           pack_size?: number | null
+          package_type?: string | null
           partner_notes?: string | null
           price_on_request?: boolean
           primary_image_index?: number | null
@@ -52395,7 +52414,12 @@ export type Database = {
           updated_at?: string
           validity_days?: number | null
           views_count?: number
+          volume_unit?: string | null
+          volume_value?: number | null
           weight?: number | null
+          weight_gross?: number | null
+          weight_net?: number | null
+          width_cm?: number | null
           workspace_id?: string
         }
         Relationships: [

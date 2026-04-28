@@ -294,6 +294,15 @@ export function useUpdateProduct() {
       if (input.commercial_description !== undefined) updateData.commercial_description = input.commercial_description;
       if (input.benefits !== undefined) updateData.benefits = input.benefits;
       if (input.conditions !== undefined) updateData.conditions = input.conditions;
+      // Physical attributes (frascos líquidos, peso, dimensões, embalagem)
+      if (input.weight_net !== undefined) updateData.weight_net = input.weight_net;
+      if (input.weight_gross !== undefined) updateData.weight_gross = input.weight_gross;
+      if (input.volume_value !== undefined) updateData.volume_value = input.volume_value;
+      if (input.volume_unit !== undefined) updateData.volume_unit = input.volume_unit;
+      if (input.length_cm !== undefined) updateData.length_cm = input.length_cm;
+      if (input.width_cm !== undefined) updateData.width_cm = input.width_cm;
+      if (input.height_cm !== undefined) updateData.height_cm = input.height_cm;
+      if (input.package_type !== undefined) updateData.package_type = input.package_type;
 
       const { data, error } = await supabase
         .from("products")
