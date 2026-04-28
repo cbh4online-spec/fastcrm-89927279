@@ -9276,6 +9276,53 @@ export type Database = {
           },
         ]
       }
+      builder_asset_variants: {
+        Row: {
+          asset_id: string
+          created_at: string
+          created_by: string
+          html: string
+          id: string
+          is_primary: boolean
+          label: string
+          notes: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          created_by?: string
+          html?: string
+          id?: string
+          is_primary?: boolean
+          label: string
+          notes?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          created_by?: string
+          html?: string
+          id?: string
+          is_primary?: boolean
+          label?: string
+          notes?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_asset_variants_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "builder_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       builder_asset_versions: {
         Row: {
           asset_id: string
