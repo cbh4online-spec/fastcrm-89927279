@@ -68,6 +68,14 @@ const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPag
 
 // FastCRM V2 — premium app shell preview
 const DashboardV2Page = lazy(() => import("@/pages/app-v2/DashboardV2Page"));
+
+// Marketing public pages
+const MarketingLayout = lazy(() => import("@/marketing/layout/MarketingLayout"));
+const MarketingPricingPage = lazy(() => import("@/marketing/pages/MarketingPricingPage"));
+const MarketingFeaturesIndexPage = lazy(() => import("@/marketing/pages/MarketingFeaturesIndexPage"));
+const MarketingCasesPage = lazy(() => import("@/marketing/pages/MarketingCasesPage"));
+const MarketingAboutPage = lazy(() => import("@/marketing/pages/MarketingAboutPage"));
+const MarketingContactPage = lazy(() => import("@/marketing/pages/MarketingContactPage"));
 // /lp/:workspaceSlug/:pageSlug → redirect to canonical /p/:workspaceSlug/:pageSlug
 function LandingPageAliasRedirect() {
   const { workspaceSlug, pageSlug } = useParams();
@@ -203,6 +211,15 @@ const App = () => (
                 {/* FastCRM V2 preview (premium shell) */}
                 <Route path="/app-v2" element={<Navigate to="/app-v2/dashboard" replace />} />
                 <Route path="/app-v2/dashboard" element={<DashboardV2Page />} />
+
+                {/* Marketing public pages */}
+                <Route element={<MarketingLayout />}>
+                  <Route path="/precos" element={<MarketingPricingPage />} />
+                  <Route path="/funcionalidades" element={<MarketingFeaturesIndexPage />} />
+                  <Route path="/casos" element={<MarketingCasesPage />} />
+                  <Route path="/sobre" element={<MarketingAboutPage />} />
+                  <Route path="/contacto" element={<MarketingContactPage />} />
+                </Route>
 
                 {/* CRM and all other routes - WITH CRM providers */}
                 <Route path="/*" element={<CRMRoutesV2 />} />
