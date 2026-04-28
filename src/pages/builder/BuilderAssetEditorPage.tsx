@@ -194,6 +194,16 @@ export default function BuilderAssetEditorPage() {
     [asset, name, status],
   );
 
+  const selectionOuterHtml = useMemo(
+    () => (selection?.bid ? getOuterHtmlByBid(html, selection.bid) : null),
+    [html, selection?.bid],
+  );
+
+  const handleReplaceFullHtml = (newHtml: string) => {
+    setHtml(ensureBids(newHtml));
+    setSelection(null);
+  };
+
   return (
     <DashboardLayout>
       <Helmet>
