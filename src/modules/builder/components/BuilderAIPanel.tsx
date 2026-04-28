@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Wand2, Languages, Shuffle, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Sparkles, Wand2, Languages, Shuffle, Image as ImageIcon, Loader2, Eye, RefreshCw, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
