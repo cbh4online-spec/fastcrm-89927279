@@ -78,6 +78,10 @@ export function BuilderPropertiesPanel({ selection, fullHtml, onPatch, onClear }
         </Button>
       </div>
 
+      <div className="px-3 py-2 border-b shrink-0">
+        <BlockAIRefactorButton selection={selection} fullHtml={fullHtml} onPatch={onPatch} />
+      </div>
+
       <Tabs defaultValue="content" className="flex-1 min-h-0 flex flex-col">
         <TabsList className="grid grid-cols-3 m-2 mb-0 shrink-0">
           <TabsTrigger value="content" className="text-xs">Conteúdo</TabsTrigger>

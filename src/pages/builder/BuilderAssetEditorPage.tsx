@@ -401,6 +401,7 @@ export default function BuilderAssetEditorPage() {
                     {sidePanel === "properties" ? (
                       <BuilderPropertiesPanel
                         selection={selection}
+                        fullHtml={html}
                         onPatch={handleVisualPatch}
                         onClear={() => setSelection(null)}
                       />
