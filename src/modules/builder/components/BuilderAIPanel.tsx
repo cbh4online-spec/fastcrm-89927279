@@ -93,7 +93,7 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
       const data = await callAI({
         mode: "refactor",
         prompt: refactorPrompt,
-        selectionHtml: selection?.outerHtml,
+        selectionHtml: selectionOuterHtml ?? undefined,
         fullHtml: hasSelection ? undefined : fullHtml,
       });
       if (data?.html) {
@@ -122,7 +122,7 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
       const data = await callAI({
         mode: "variants",
         variants: 3,
-        selectionHtml: selection?.outerHtml,
+        selectionHtml: selectionOuterHtml ?? undefined,
       });
       if (Array.isArray(data?.variants) && data.variants.length > 0) {
         setVariants(data.variants);
@@ -147,7 +147,7 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
       const data = await callAI({
         mode: "translate",
         targetLang,
-        selectionHtml: selection?.outerHtml,
+        selectionHtml: selectionOuterHtml ?? undefined,
         fullHtml: hasSelection ? undefined : fullHtml,
       });
       if (data?.html) {
