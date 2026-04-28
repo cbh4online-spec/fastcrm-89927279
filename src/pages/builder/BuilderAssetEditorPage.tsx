@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save, Code2, MousePointerClick, SlidersHorizontal, Download } from "lucide-react";
+import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save, Code2, MousePointerClick, SlidersHorizontal, Download, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,11 @@ import {
 } from "@/modules/builder/components/BuilderVisualEditor";
 import { BuilderPropertiesPanel } from "@/modules/builder/components/BuilderPropertiesPanel";
 import { BuilderExportDialog } from "@/modules/builder/components/BuilderExportDialog";
+import { BuilderAIPanel } from "@/modules/builder/components/BuilderAIPanel";
 import {
   ensureBids,
   applyPatch,
+  getOuterHtmlByBid,
   type BuilderPatch,
 } from "@/modules/builder/lib/builderHtmlPatch";
 import {
@@ -60,7 +62,7 @@ const STATUS_LABEL: Record<BuilderAssetStatus, string> = {
   archived: "Arquivado",
 };
 
-type SidePanel = "blocks" | "versions" | "properties";
+type SidePanel = "blocks" | "versions" | "properties" | "ai";
 type EditMode = "code" | "visual";
 
 export default function BuilderAssetEditorPage() {
@@ -191,6 +193,16 @@ export default function BuilderAssetEditorPage() {
     () => !!asset && (name !== asset.name || status !== asset.status),
     [asset, name, status],
   );
+
+  const selectionOuterHtml = useMemo(
+    () => (selection?.bid ? getOuterHtmlByBid(html, selection.bid) : null),
+    [html, selection?.bid],
+  );
+
+  const handleReplaceFullHtml = (newHtml: string) => {
+    setHtml(ensureBids(newHtml));
+    setSelection(null);
+  };
 
   return (
     <DashboardLayout>
@@ -371,6 +383,12 @@ export default function BuilderAssetEditorPage() {
                     >
                       <History className="h-3.5 w-3.5" /> Versões
                     </button>
+                    <button
+                      className={`flex-1 px-2 py-1.5 rounded flex items-center justify-center gap-1.5 ${sidePanel === "ai" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                      onClick={() => setSidePanel("ai")}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" /> IA
+                    </button>
                   </div>
                   <div className="flex-1 min-h-0">
                     {sidePanel === "properties" ? (
@@ -381,6 +399,15 @@ export default function BuilderAssetEditorPage() {
                       />
                     ) : sidePanel === "blocks" ? (
                       <BuilderBlocksPanel onInsert={handleInsertBlock} />
+                    ) : sidePanel === "ai" ? (
+                      <BuilderAIPanel
+                        assetType={asset.type}
+                        fullHtml={html}
+                        selection={selection}
+                        selectionOuterHtml={selectionOuterHtml}
+                        onReplaceFullHtml={handleReplaceFullHtml}
+                        onPatch={handleVisualPatch}
+                      />
                     ) : (
                       <BuilderVersionsPanel
                         assetId={asset.id}

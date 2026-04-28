@@ -56,7 +56,16 @@ export function stripBids(html: string): string {
 export type BuilderPatch =
   | { type: "text"; bid: string; value: string }
   | { type: "attr"; bid: string; name: string; value: string | null }
-  | { type: "style"; bid: string; styles: Record<string, string | null> };
+  | { type: "style"; bid: string; styles: Record<string, string | null> }
+  | { type: "replaceOuter"; bid: string; value: string };
+
+/** Devolve o outerHTML do elemento com o bid indicado, ou null. */
+export function getOuterHtmlByBid(html: string, bid: string): string | null {
+  if (!html?.trim() || !bid) return null;
+  const doc = parseDoc(html);
+  const el = doc.querySelector(`[${BID_ATTR}="${cssEscape(bid)}"]`);
+  return el ? (el as HTMLElement).outerHTML : null;
+}
 
 /** Aplica um patch ao HTML. Devolve o HTML actualizado. */
 export function applyPatch(html: string, patch: BuilderPatch): string {
@@ -84,6 +93,16 @@ export function applyPatch(html: string, patch: BuilderPatch): string {
     });
     // limpar atributo style se ficou vazio
     if (!el.getAttribute("style")?.trim()) el.removeAttribute("style");
+  } else if (patch.type === "replaceOuter") {
+    // Substitui o elemento inteiro por novo HTML (assume que o novo HTML é um único elemento root).
+    const tpl = doc.createElement("template");
+    tpl.innerHTML = patch.value.trim();
+    const newNode = tpl.content.firstElementChild;
+    if (newNode && el.parentNode) {
+      // Preservar o bid no novo elemento para manter a selecção utilizável
+      (newNode as HTMLElement).setAttribute(BID_ATTR, patch.bid);
+      el.parentNode.replaceChild(newNode, el);
+    }
   }
 
   return serializeDoc(doc, originalHadHtml);
