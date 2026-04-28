@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save, Code2, MousePointerClick, SlidersHorizontal, Download, Sparkles } from "lucide-react";
+import { ArrowLeft, AlertCircle, Rocket, BarChart3, Blocks, History, Save, Code2, MousePointerClick, SlidersHorizontal, Download, Sparkles, Shuffle } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ import {
 import { BuilderPropertiesPanel } from "@/modules/builder/components/BuilderPropertiesPanel";
 import { BuilderExportDialog } from "@/modules/builder/components/BuilderExportDialog";
 import { BuilderAIPanel } from "@/modules/builder/components/BuilderAIPanel";
+import { BuilderVariantsPanel } from "@/modules/builder/components/BuilderVariantsPanel";
 import {
   ensureBids,
   applyPatch,
@@ -62,7 +63,7 @@ const STATUS_LABEL: Record<BuilderAssetStatus, string> = {
   archived: "Arquivado",
 };
 
-type SidePanel = "blocks" | "versions" | "properties" | "ai";
+type SidePanel = "blocks" | "versions" | "properties" | "ai" | "variants";
 type EditMode = "code" | "visual";
 
 export default function BuilderAssetEditorPage() {
@@ -389,6 +390,12 @@ export default function BuilderAssetEditorPage() {
                     >
                       <Sparkles className="h-3.5 w-3.5" /> IA
                     </button>
+                    <button
+                      className={`flex-1 px-2 py-1.5 rounded flex items-center justify-center gap-1.5 ${sidePanel === "variants" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                      onClick={() => setSidePanel("variants")}
+                    >
+                      <Shuffle className="h-3.5 w-3.5" /> A/B
+                    </button>
                   </div>
                   <div className="flex-1 min-h-0">
                     {sidePanel === "properties" ? (
@@ -407,6 +414,14 @@ export default function BuilderAssetEditorPage() {
                         selectionOuterHtml={selectionOuterHtml}
                         onReplaceFullHtml={handleReplaceFullHtml}
                         onPatch={handleVisualPatch}
+                      />
+                    ) : sidePanel === "variants" ? (
+                      <BuilderVariantsPanel
+                        assetId={asset.id}
+                        workspaceId={asset.workspace_id}
+                        assetType={asset.type}
+                        currentHtml={html}
+                        onApplyVariant={handleReplaceFullHtml}
                       />
                     ) : (
                       <BuilderVersionsPanel
