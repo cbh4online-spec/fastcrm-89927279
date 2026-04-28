@@ -74,10 +74,12 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
       const data = await callAI({
         mode: isEmail ? "generate_email" : "generate_page",
         prompt: genPrompt,
+        tone: genTone,
+        lang: genLang,
       });
       if (data?.html) {
-        onReplaceFullHtml(data.html);
-        toast.success("Conteúdo gerado", { description: "HTML substituído. Revê e ajusta." });
+        setPreviewHtml(data.html);
+        setPreviewOpen(true);
       } else {
         toast.error("Resposta vazia da IA");
       }
@@ -86,6 +88,18 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
     } finally {
       setBusy(null);
     }
+  }
+
+  function applyPreview() {
+    if (!previewHtml) return;
+    onReplaceFullHtml(previewHtml);
+    toast.success("Conteúdo aplicado", { description: "HTML substituído. O autosave guarda na próxima edição." });
+    setPreviewOpen(false);
+    setPreviewHtml(null);
+  }
+
+  async function regeneratePreview() {
+    await handleGenerate();
   }
 
   async function handleRefactor() {
