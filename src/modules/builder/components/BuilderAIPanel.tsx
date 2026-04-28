@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Wand2, Languages, Shuffle, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Sparkles, Wand2, Languages, Shuffle, Image as ImageIcon, Loader2, Eye, RefreshCw, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,11 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
 
   // Generate full
   const [genPrompt, setGenPrompt] = useState("");
+  const [genTone, setGenTone] = useState("persuasivo");
+  const [genLang, setGenLang] = useState("pt");
+  // Generate preview
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   // Refactor
   const [refactorPrompt, setRefactorPrompt] = useState("Reescreve mais persuasivo e curto");
   // Translate
@@ -69,10 +74,12 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
       const data = await callAI({
         mode: isEmail ? "generate_email" : "generate_page",
         prompt: genPrompt,
+        tone: genTone,
+        lang: genLang,
       });
       if (data?.html) {
-        onReplaceFullHtml(data.html);
-        toast.success("Conteúdo gerado", { description: "HTML substituído. Revê e ajusta." });
+        setPreviewHtml(data.html);
+        setPreviewOpen(true);
       } else {
         toast.error("Resposta vazia da IA");
       }
@@ -81,6 +88,18 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
     } finally {
       setBusy(null);
     }
+  }
+
+  function applyPreview() {
+    if (!previewHtml) return;
+    onReplaceFullHtml(previewHtml);
+    toast.success("Conteúdo aplicado", { description: "HTML substituído. O autosave guarda na próxima edição." });
+    setPreviewOpen(false);
+    setPreviewHtml(null);
+  }
+
+  async function regeneratePreview() {
+    await handleGenerate();
   }
 
   async function handleRefactor() {
@@ -240,12 +259,42 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
                 className="text-sm"
               />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Tom</Label>
+                <select
+                  value={genTone}
+                  onChange={(e) => setGenTone(e.target.value)}
+                  className="w-full h-8 text-sm rounded-md border bg-background px-2"
+                >
+                  <option value="persuasivo">Persuasivo</option>
+                  <option value="profissional">Profissional</option>
+                  <option value="casual">Casual</option>
+                  <option value="direto">Direto</option>
+                  <option value="entusiasta">Entusiasta</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Idioma</Label>
+                <select
+                  value={genLang}
+                  onChange={(e) => setGenLang(e.target.value)}
+                  className="w-full h-8 text-sm rounded-md border bg-background px-2"
+                >
+                  <option value="pt">Português (PT)</option>
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                </select>
+              </div>
+            </div>
             <Button size="sm" className="w-full" onClick={handleGenerate} disabled={busy !== null}>
-              {busy === "generate" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-1.5" />}
-              Gerar (substitui HTML)
+              {busy === "generate" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
+              Gerar e pré-visualizar
             </Button>
-            <p className="text-[11px] text-muted-foreground">Substitui todo o HTML actual. O autosave guarda na próxima edição.</p>
+            <p className="text-[11px] text-muted-foreground">Mostra preview lado-a-lado antes de aplicar. Nada é alterado até confirmares.</p>
           </TabsContent>
+
 
           {/* REFACTOR */}
           <TabsContent value="refactor" className="space-y-3 mt-3">
@@ -312,6 +361,52 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
           </TabsContent>
         </Tabs>
       </ScrollArea>
+
+      {/* GENERATE PREVIEW DIALOG */}
+      <Dialog open={previewOpen} onOpenChange={(o) => { setPreviewOpen(o); if (!o) setPreviewHtml(null); }}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4" /> Preview da geração IA
+            </DialogTitle>
+            <DialogDescription>
+              Compara o conteúdo actual com o gerado. Aplica para substituir o HTML, ou descarta para manter o original.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 overflow-hidden">
+            <div className="flex flex-col min-h-0">
+              <div className="text-xs font-medium text-muted-foreground mb-1 px-1">Antes (actual)</div>
+              <iframe
+                srcDoc={`<!doctype html><html><head><script src="https://cdn.tailwindcss.com"></script></head><body>${fullHtml || '<div class="p-8 text-gray-400 text-center">Vazio</div>'}</body></html>`}
+                className="flex-1 w-full border rounded bg-white min-h-[400px]"
+                sandbox="allow-same-origin"
+                title="Antes"
+              />
+            </div>
+            <div className="flex flex-col min-h-0">
+              <div className="text-xs font-medium text-primary mb-1 px-1">Depois (gerado)</div>
+              <iframe
+                srcDoc={`<!doctype html><html><head><script src="https://cdn.tailwindcss.com"></script></head><body>${previewHtml ?? ''}</body></html>`}
+                className="flex-1 w-full border-2 border-primary/40 rounded bg-white min-h-[400px]"
+                sandbox="allow-same-origin"
+                title="Depois"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setPreviewOpen(false); setPreviewHtml(null); }}>
+              <X className="h-4 w-4 mr-1.5" /> Descartar
+            </Button>
+            <Button variant="outline" onClick={regeneratePreview} disabled={busy !== null}>
+              {busy === "generate" ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
+              Regenerar
+            </Button>
+            <Button onClick={applyPreview}>
+              <Check className="h-4 w-4 mr-1.5" /> Aplicar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* VARIANTS DIALOG */}
       <Dialog open={variantsOpen} onOpenChange={setVariantsOpen}>
