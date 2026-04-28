@@ -56,7 +56,16 @@ export function stripBids(html: string): string {
 export type BuilderPatch =
   | { type: "text"; bid: string; value: string }
   | { type: "attr"; bid: string; name: string; value: string | null }
-  | { type: "style"; bid: string; styles: Record<string, string | null> };
+  | { type: "style"; bid: string; styles: Record<string, string | null> }
+  | { type: "replaceOuter"; bid: string; value: string };
+
+/** Devolve o outerHTML do elemento com o bid indicado, ou null. */
+export function getOuterHtmlByBid(html: string, bid: string): string | null {
+  if (!html?.trim() || !bid) return null;
+  const doc = parseDoc(html);
+  const el = doc.querySelector(`[${BID_ATTR}="${cssEscape(bid)}"]`);
+  return el ? (el as HTMLElement).outerHTML : null;
+}
 
 /** Aplica um patch ao HTML. Devolve o HTML actualizado. */
 export function applyPatch(html: string, patch: BuilderPatch): string {
