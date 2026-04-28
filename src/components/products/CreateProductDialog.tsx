@@ -955,6 +955,12 @@ export function CreateProductDialog({
                 productType={productType}
               />
 
+              {/* Atributos físicos: peso, volume/capacidade, dimensões e tipo de embalagem */}
+              <ProductPhysicalAttributesSection
+                value={physical}
+                onChange={setPhysical}
+              />
+
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
                 <CollapsibleTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="w-full justify-between">
