@@ -259,12 +259,42 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
                 className="text-sm"
               />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Tom</Label>
+                <select
+                  value={genTone}
+                  onChange={(e) => setGenTone(e.target.value)}
+                  className="w-full h-8 text-sm rounded-md border bg-background px-2"
+                >
+                  <option value="persuasivo">Persuasivo</option>
+                  <option value="profissional">Profissional</option>
+                  <option value="casual">Casual</option>
+                  <option value="direto">Direto</option>
+                  <option value="entusiasta">Entusiasta</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Idioma</Label>
+                <select
+                  value={genLang}
+                  onChange={(e) => setGenLang(e.target.value)}
+                  className="w-full h-8 text-sm rounded-md border bg-background px-2"
+                >
+                  <option value="pt">Português (PT)</option>
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                </select>
+              </div>
+            </div>
             <Button size="sm" className="w-full" onClick={handleGenerate} disabled={busy !== null}>
-              {busy === "generate" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-1.5" />}
-              Gerar (substitui HTML)
+              {busy === "generate" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
+              Gerar e pré-visualizar
             </Button>
-            <p className="text-[11px] text-muted-foreground">Substitui todo o HTML actual. O autosave guarda na próxima edição.</p>
+            <p className="text-[11px] text-muted-foreground">Mostra preview lado-a-lado antes de aplicar. Nada é alterado até confirmares.</p>
           </TabsContent>
+
 
           {/* REFACTOR */}
           <TabsContent value="refactor" className="space-y-3 mt-3">
