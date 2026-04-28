@@ -41,9 +41,11 @@ import {
 } from "@/modules/builder/components/BuilderVisualEditor";
 import { BuilderPropertiesPanel } from "@/modules/builder/components/BuilderPropertiesPanel";
 import { BuilderExportDialog } from "@/modules/builder/components/BuilderExportDialog";
+import { BuilderAIPanel } from "@/modules/builder/components/BuilderAIPanel";
 import {
   ensureBids,
   applyPatch,
+  getOuterHtmlByBid,
   type BuilderPatch,
 } from "@/modules/builder/lib/builderHtmlPatch";
 import {
