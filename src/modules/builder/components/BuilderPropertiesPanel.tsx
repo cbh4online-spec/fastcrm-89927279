@@ -6,9 +6,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AlignLeft, AlignCenter, AlignRight, AlignJustify, X } from "lucide-react";
 import type { VisualSelection } from "./BuilderVisualEditor";
 import type { BuilderPatch } from "../lib/builderHtmlPatch";
+import { BlockAIRefactorButton } from "./BlockAIRefactorButton";
 
 interface Props {
   selection: VisualSelection | null;
+  fullHtml: string;
   onPatch: (patch: BuilderPatch) => void;
   onClear: () => void;
 }
@@ -38,7 +40,7 @@ function normalizeColor(value: string | undefined): string {
   return "#000000";
 }
 
-export function BuilderPropertiesPanel({ selection, onPatch, onClear }: Props) {
+export function BuilderPropertiesPanel({ selection, fullHtml, onPatch, onClear }: Props) {
   if (!selection) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-6 text-xs text-muted-foreground">
