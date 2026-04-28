@@ -30,7 +30,7 @@ interface Props {
 
 type Variant = { label: string; html: string };
 
-export function BuilderAIPanel({ assetType, fullHtml, selection, onReplaceFullHtml, onPatch }: Props) {
+export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterHtml, onReplaceFullHtml, onPatch }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
 
   // Generate full
