@@ -383,6 +383,12 @@ export default function BuilderAssetEditorPage() {
                     >
                       <History className="h-3.5 w-3.5" /> Versões
                     </button>
+                    <button
+                      className={`flex-1 px-2 py-1.5 rounded flex items-center justify-center gap-1.5 ${sidePanel === "ai" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                      onClick={() => setSidePanel("ai")}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" /> IA
+                    </button>
                   </div>
                   <div className="flex-1 min-h-0">
                     {sidePanel === "properties" ? (
@@ -393,6 +399,15 @@ export default function BuilderAssetEditorPage() {
                       />
                     ) : sidePanel === "blocks" ? (
                       <BuilderBlocksPanel onInsert={handleInsertBlock} />
+                    ) : sidePanel === "ai" ? (
+                      <BuilderAIPanel
+                        assetType={asset.type}
+                        fullHtml={html}
+                        selection={selection}
+                        selectionOuterHtml={selectionOuterHtml}
+                        onReplaceFullHtml={handleReplaceFullHtml}
+                        onPatch={handleVisualPatch}
+                      />
                     ) : (
                       <BuilderVersionsPanel
                         assetId={asset.id}
