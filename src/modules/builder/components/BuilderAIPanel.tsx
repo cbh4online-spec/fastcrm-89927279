@@ -362,6 +362,52 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
         </Tabs>
       </ScrollArea>
 
+      {/* GENERATE PREVIEW DIALOG */}
+      <Dialog open={previewOpen} onOpenChange={(o) => { setPreviewOpen(o); if (!o) setPreviewHtml(null); }}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4" /> Preview da geração IA
+            </DialogTitle>
+            <DialogDescription>
+              Compara o conteúdo actual com o gerado. Aplica para substituir o HTML, ou descarta para manter o original.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 overflow-hidden">
+            <div className="flex flex-col min-h-0">
+              <div className="text-xs font-medium text-muted-foreground mb-1 px-1">Antes (actual)</div>
+              <iframe
+                srcDoc={`<!doctype html><html><head><script src="https://cdn.tailwindcss.com"></script></head><body>${fullHtml || '<div class="p-8 text-gray-400 text-center">Vazio</div>'}</body></html>`}
+                className="flex-1 w-full border rounded bg-white min-h-[400px]"
+                sandbox="allow-same-origin"
+                title="Antes"
+              />
+            </div>
+            <div className="flex flex-col min-h-0">
+              <div className="text-xs font-medium text-primary mb-1 px-1">Depois (gerado)</div>
+              <iframe
+                srcDoc={`<!doctype html><html><head><script src="https://cdn.tailwindcss.com"></script></head><body>${previewHtml ?? ''}</body></html>`}
+                className="flex-1 w-full border-2 border-primary/40 rounded bg-white min-h-[400px]"
+                sandbox="allow-same-origin"
+                title="Depois"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setPreviewOpen(false); setPreviewHtml(null); }}>
+              <X className="h-4 w-4 mr-1.5" /> Descartar
+            </Button>
+            <Button variant="outline" onClick={regeneratePreview} disabled={busy !== null}>
+              {busy === "generate" ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
+              Regenerar
+            </Button>
+            <Button onClick={applyPreview}>
+              <Check className="h-4 w-4 mr-1.5" /> Aplicar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* VARIANTS DIALOG */}
       <Dialog open={variantsOpen} onOpenChange={setVariantsOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
