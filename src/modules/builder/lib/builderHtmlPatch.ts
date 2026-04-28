@@ -93,6 +93,16 @@ export function applyPatch(html: string, patch: BuilderPatch): string {
     });
     // limpar atributo style se ficou vazio
     if (!el.getAttribute("style")?.trim()) el.removeAttribute("style");
+  } else if (patch.type === "replaceOuter") {
+    // Substitui o elemento inteiro por novo HTML (assume que o novo HTML é um único elemento root).
+    const tpl = doc.createElement("template");
+    tpl.innerHTML = patch.value.trim();
+    const newNode = tpl.content.firstElementChild;
+    if (newNode && el.parentNode) {
+      // Preservar o bid no novo elemento para manter a selecção utilizável
+      (newNode as HTMLElement).setAttribute(BID_ATTR, patch.bid);
+      el.parentNode.replaceChild(newNode, el);
+    }
   }
 
   return serializeDoc(doc, originalHadHtml);
