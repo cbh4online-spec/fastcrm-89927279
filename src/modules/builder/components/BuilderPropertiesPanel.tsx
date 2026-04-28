@@ -6,9 +6,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AlignLeft, AlignCenter, AlignRight, AlignJustify, X } from "lucide-react";
 import type { VisualSelection } from "./BuilderVisualEditor";
 import type { BuilderPatch } from "../lib/builderHtmlPatch";
+import { BlockAIRefactorButton } from "./BlockAIRefactorButton";
 
 interface Props {
   selection: VisualSelection | null;
+  fullHtml: string;
   onPatch: (patch: BuilderPatch) => void;
   onClear: () => void;
 }
@@ -38,7 +40,7 @@ function normalizeColor(value: string | undefined): string {
   return "#000000";
 }
 
-export function BuilderPropertiesPanel({ selection, onPatch, onClear }: Props) {
+export function BuilderPropertiesPanel({ selection, fullHtml, onPatch, onClear }: Props) {
   if (!selection) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-6 text-xs text-muted-foreground">
@@ -74,6 +76,10 @@ export function BuilderPropertiesPanel({ selection, onPatch, onClear }: Props) {
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClear} aria-label="Desseleccionar">
           <X className="h-3.5 w-3.5" />
         </Button>
+      </div>
+
+      <div className="px-3 py-2 border-b shrink-0">
+        <BlockAIRefactorButton selection={selection} fullHtml={fullHtml} onPatch={onPatch} />
       </div>
 
       <Tabs defaultValue="content" className="flex-1 min-h-0 flex flex-col">
