@@ -19,21 +19,32 @@ interface ReqBody {
   targetLang?: string;
   variants?: number; // for A/B
   model?: string;
+  tone?: string; // persuasivo | profissional | casual | direto | entusiasta
+  lang?: string; // pt | en | es | fr
 }
 
+const LANG_LABEL: Record<string, string> = {
+  pt: "português de Portugal",
+  en: "English",
+  es: "español",
+  fr: "français",
+};
+
 const SYSTEMS: Record<Mode, string> = {
-  generate_page: `És um designer/copywriter sénior. Devolves UM ficheiro HTML completo (<!doctype html>...) com Tailwind via CDN para uma landing page profissional, responsiva, em português de Portugal. Usa hierarquia clara (hero, benefícios, prova social, CTA, FAQ, footer). NÃO incluas explicações, devolve apenas HTML.`,
-  generate_email: `És um copywriter de email marketing sénior. Devolves UM HTML de email transacional/marketing inline-styled (sem <link>, sem JS), largura máx 600px, compatível com Gmail/Outlook, em português de Portugal. Devolve apenas HTML.`,
+  generate_page: `És um designer/copywriter sénior. Devolves UM ficheiro HTML completo (<!doctype html>...) com Tailwind via CDN para uma landing page profissional, responsiva. Usa hierarquia clara (hero, benefícios, prova social, CTA, FAQ, footer). NÃO incluas explicações, devolve apenas HTML.`,
+  generate_email: `És um copywriter de email marketing sénior. Devolves UM HTML de email transacional/marketing inline-styled (sem <link>, sem JS), largura máx 600px, compatível com Gmail/Outlook. Devolve apenas HTML.`,
   refactor: `És um editor de copy e HTML. Recebes um snippet HTML e devolves uma versão melhorada conforme o pedido do utilizador, mantendo a mesma estrutura/tags exteriores quando possível. Devolve APENAS o HTML refactorizado, sem markdown, sem comentários.`,
   variants: `És um copywriter de conversão. Recebes um snippet HTML e geras N variantes alternativas (mesma estrutura, copy diferente). Devolve um JSON com a forma {"variants":[{"label":"A","html":"..."},...]}. Sem markdown. Apenas JSON válido.`,
   translate: `És um tradutor profissional. Traduz o conteúdo de texto do HTML para o idioma indicado, preservando rigorosamente todas as tags, atributos e estrutura. Devolve apenas o HTML traduzido.`,
 };
 
 function buildUserMessage(b: ReqBody): string {
+  const lang = LANG_LABEL[b.lang ?? "pt"] ?? "português de Portugal";
+  const tone = b.tone ?? "persuasivo";
   switch (b.mode) {
     case "generate_page":
     case "generate_email":
-      return `Pedido: ${b.prompt ?? ""}`;
+      return `Idioma: ${lang}\nTom: ${tone}\n\nPedido: ${b.prompt ?? ""}`;
     case "refactor":
       return `Instrução: ${b.prompt ?? "Melhora este bloco"}\n\nHTML actual:\n${b.selectionHtml ?? b.fullHtml ?? ""}`;
     case "variants":
