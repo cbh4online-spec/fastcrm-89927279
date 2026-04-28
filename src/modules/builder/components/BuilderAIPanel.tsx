@@ -35,6 +35,11 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
 
   // Generate full
   const [genPrompt, setGenPrompt] = useState("");
+  const [genTone, setGenTone] = useState("persuasivo");
+  const [genLang, setGenLang] = useState("pt");
+  // Generate preview
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   // Refactor
   const [refactorPrompt, setRefactorPrompt] = useState("Reescreve mais persuasivo e curto");
   // Translate
