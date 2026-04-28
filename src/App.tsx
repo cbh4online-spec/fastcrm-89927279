@@ -204,6 +204,15 @@ const App = () => (
                 <Route path="/app-v2" element={<Navigate to="/app-v2/dashboard" replace />} />
                 <Route path="/app-v2/dashboard" element={<DashboardV2Page />} />
 
+                {/* Marketing public pages */}
+                <Route element={<MarketingLayout />}>
+                  <Route path="/precos" element={<MarketingPricingPage />} />
+                  <Route path="/funcionalidades" element={<MarketingFeaturesIndexPage />} />
+                  <Route path="/casos" element={<MarketingCasesPage />} />
+                  <Route path="/sobre" element={<MarketingAboutPage />} />
+                  <Route path="/contacto" element={<MarketingContactPage />} />
+                </Route>
+
                 {/* CRM and all other routes - WITH CRM providers */}
                 <Route path="/*" element={<CRMRoutesV2 />} />
               </Routes>
