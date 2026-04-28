@@ -68,6 +68,14 @@ const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPag
 
 // FastCRM V2 — premium app shell preview
 const DashboardV2Page = lazy(() => import("@/pages/app-v2/DashboardV2Page"));
+
+// Marketing public pages
+const MarketingLayout = lazy(() => import("@/marketing/layout/MarketingLayout"));
+const MarketingPricingPage = lazy(() => import("@/marketing/pages/MarketingPricingPage"));
+const MarketingFeaturesIndexPage = lazy(() => import("@/marketing/pages/MarketingFeaturesIndexPage"));
+const MarketingCasesPage = lazy(() => import("@/marketing/pages/MarketingCasesPage"));
+const MarketingAboutPage = lazy(() => import("@/marketing/pages/MarketingAboutPage"));
+const MarketingContactPage = lazy(() => import("@/marketing/pages/MarketingContactPage"));
 // /lp/:workspaceSlug/:pageSlug → redirect to canonical /p/:workspaceSlug/:pageSlug
 function LandingPageAliasRedirect() {
   const { workspaceSlug, pageSlug } = useParams();
