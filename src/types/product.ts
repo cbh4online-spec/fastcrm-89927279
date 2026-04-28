@@ -184,6 +184,15 @@ export interface CreateProductInput {
   image_url?: string;
   // Multiple image URLs from CSV import
   image_urls?: string[];
+  // Physical attributes (frascos líquidos, peso, dimensões, embalagem)
+  weight_net?: number | null;
+  weight_gross?: number | null;
+  volume_value?: number | null;
+  volume_unit?: 'ml' | 'L' | 'g' | 'kg' | 'oz' | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  package_type?: string | null;
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {
