@@ -62,7 +62,7 @@ const STATUS_LABEL: Record<BuilderAssetStatus, string> = {
   archived: "Arquivado",
 };
 
-type SidePanel = "blocks" | "versions" | "properties";
+type SidePanel = "blocks" | "versions" | "properties" | "ai";
 type EditMode = "code" | "visual";
 
 export default function BuilderAssetEditorPage() {
