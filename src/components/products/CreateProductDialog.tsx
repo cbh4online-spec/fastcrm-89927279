@@ -251,10 +251,17 @@ export function CreateProductDialog({
       setShortDescription(product.short_description || "");
       setSku(product.sku || "");
       setDirectCost(product.direct_cost?.toString() || "");
+      setDirectCostMode(((product as any).direct_cost_mode as CostMode) || "value");
       setOperationalCost(product.operational_cost?.toString() || "");
+      setOperationalCostMode(((product as any).operational_cost_mode as CostMode) || "value");
+      setOperationalCostBase(((product as any).operational_cost_base as CostBase) || "price");
       setCommissionDefault(product.commission_default?.toString() || "");
+      setCommissionMode(((product as any).commission_mode as CostMode) || "percent");
+      setCommissionBase(((product as any).commission_base as CostBase) || "price");
       setTaxRateEstimate(product.tax_rate_estimate_pct?.toString() || "");
+      setTaxRateMode(((product as any).tax_rate_mode as CostMode) || "percent");
       setTargetMargin(product.target_margin_pct?.toString() || "");
+      setTargetMarginMode(((product as any).target_margin_mode as CostMode) || "percent");
       setBundlePriceMode((product.bundle_price_mode as "auto" | "manual") || "auto");
       setShowAdvanced(
         !!product.direct_cost ||
