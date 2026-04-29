@@ -456,10 +456,17 @@ export function CreateProductDialog({
       specifications: Object.keys(specifications).length > 0 ? specifications : undefined,
       demo_video_url: demoVideoUrl || undefined,
       direct_cost: directCost ? parseFloat(directCost) : undefined,
+      direct_cost_mode: directCostMode,
       operational_cost: operationalCost ? parseFloat(operationalCost) : undefined,
+      operational_cost_mode: operationalCostMode,
+      operational_cost_base: operationalCostBase,
       commission_default: commissionDefault ? parseFloat(commissionDefault) : undefined,
+      commission_mode: commissionMode,
+      commission_base: commissionBase,
       tax_rate_estimate_pct: taxRateEstimate ? parseFloat(taxRateEstimate) : undefined,
+      tax_rate_mode: taxRateMode,
       target_margin_pct: targetMargin ? parseFloat(targetMargin) : undefined,
+      target_margin_mode: targetMarginMode,
     };
 
     // Bundle specific fields
