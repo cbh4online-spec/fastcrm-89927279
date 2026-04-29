@@ -69,8 +69,8 @@ export function ProductsList() {
 
   const goToMobileQuickCreate = useCallback((barcode?: string) => {
     const path = barcode
-      ? `/mobile/products/quick-create?barcode=${encodeURIComponent(barcode)}`
-      : "/mobile/products/quick-create";
+      ? `/dashboard/products/quick-create?barcode=${encodeURIComponent(barcode)}`
+      : "/dashboard/products/quick-create";
     navigate(path);
   }, [navigate]);
 

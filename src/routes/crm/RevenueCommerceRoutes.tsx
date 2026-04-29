@@ -41,7 +41,8 @@ export function RevenueCommerceRoutes() {
       <Route path="/dashboard/fastclub/*" element={<Navigate to="/club/fastclub" replace />} />
 
       {/* Mobile */}
-      <Route path="/mobile/products/quick-create" element={<MobileQuickProductCreate />} />
+      <Route path="/dashboard/products/quick-create" element={<MobileQuickProductCreate />} />
+      <Route path="/mobile/products/quick-create" element={<Navigate to="/dashboard/products/quick-create" replace />} />
     </>
   );
 }
