@@ -175,10 +175,13 @@ export function CreateProductDialog({
   const isLoading = createProduct.isPending || updateProduct.isPending;
   const isBundle = productType === "composite";
 
-  // Calculate margins in real-time
+  // Calculate margins in real-time (resolve mode/base into € amounts)
   const price = parseFloat(basePrice) || 0;
-  const cost = parseFloat(directCost) || 0;
-  const opCost = parseFloat(operationalCost) || 0;
+  const directCostNum = parseFloat(directCost) || 0;
+  const operationalCostNum = parseFloat(operationalCost) || 0;
+  // Direct cost: if percent, base is always price (no other base makes sense)
+  const cost = resolveCostAmount(directCostNum, directCostMode, "price", { price, directCost: 0 });
+  const opCost = resolveCostAmount(operationalCostNum, operationalCostMode, operationalCostBase, { price, directCost: cost });
   const grossMargin = price - cost;
   const grossMarginPct = price > 0 ? (grossMargin / price) * 100 : 0;
   const contributionMargin = price - cost - opCost;
