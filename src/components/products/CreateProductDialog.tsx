@@ -48,6 +48,7 @@ import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/prod
 import { AIProductAssistant } from "./AIProductAssistant";
 import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
+import { CostInput, type CostMode, type CostBase, resolveCostAmount } from "./CostInput";
 import { ProductImageGalleryManager } from "./ProductImageGalleryManager";
 import {
   ProductPhysicalAttributesSection,
@@ -117,10 +118,17 @@ export function CreateProductDialog({
   const [shortDescription, setShortDescription] = useState("");
   const [sku, setSku] = useState("");
   const [directCost, setDirectCost] = useState("");
+  const [directCostMode, setDirectCostMode] = useState<CostMode>("value");
   const [operationalCost, setOperationalCost] = useState("");
+  const [operationalCostMode, setOperationalCostMode] = useState<CostMode>("value");
+  const [operationalCostBase, setOperationalCostBase] = useState<CostBase>("price");
   const [commissionDefault, setCommissionDefault] = useState("");
+  const [commissionMode, setCommissionMode] = useState<CostMode>("percent");
+  const [commissionBase, setCommissionBase] = useState<CostBase>("price");
   const [taxRateEstimate, setTaxRateEstimate] = useState("");
+  const [taxRateMode, setTaxRateMode] = useState<CostMode>("percent");
   const [targetMargin, setTargetMargin] = useState("");
+  const [targetMarginMode, setTargetMarginMode] = useState<CostMode>("percent");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [bundlePriceMode, setBundlePriceMode] = useState<"auto" | "manual">("auto");
   // Consumption model fields
@@ -167,10 +175,43 @@ export function CreateProductDialog({
   const isLoading = createProduct.isPending || updateProduct.isPending;
   const isBundle = productType === "composite";
 
-  // Calculate margins in real-time
+  // Pré-preenche custos a partir dos defaults da categoria (apenas em criação e quando campos vazios)
+  useEffect(() => {
+    if (isEditing || !category || !existingCategories) return;
+    const cat = existingCategories.find((c: any) => c.name === category) as any;
+    if (!cat) return;
+    if (!directCost && cat.default_direct_cost != null) {
+      setDirectCost(String(cat.default_direct_cost));
+      if (cat.default_direct_cost_mode) setDirectCostMode(cat.default_direct_cost_mode);
+    }
+    if (!operationalCost && cat.default_operational_cost != null) {
+      setOperationalCost(String(cat.default_operational_cost));
+      if (cat.default_operational_cost_mode) setOperationalCostMode(cat.default_operational_cost_mode);
+      if (cat.default_operational_cost_base) setOperationalCostBase(cat.default_operational_cost_base);
+    }
+    if (!commissionDefault && cat.default_commission != null) {
+      setCommissionDefault(String(cat.default_commission));
+      if (cat.default_commission_mode) setCommissionMode(cat.default_commission_mode);
+      if (cat.default_commission_base) setCommissionBase(cat.default_commission_base);
+    }
+    if (!taxRateEstimate && cat.default_tax_rate != null) {
+      setTaxRateEstimate(String(cat.default_tax_rate));
+      if (cat.default_tax_rate_mode) setTaxRateMode(cat.default_tax_rate_mode);
+    }
+    if (!targetMargin && cat.default_target_margin != null) {
+      setTargetMargin(String(cat.default_target_margin));
+      if (cat.default_target_margin_mode) setTargetMarginMode(cat.default_target_margin_mode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, existingCategories, isEditing]);
+
+  // Calculate margins in real-time (resolve mode/base into € amounts)
   const price = parseFloat(basePrice) || 0;
-  const cost = parseFloat(directCost) || 0;
-  const opCost = parseFloat(operationalCost) || 0;
+  const directCostNum = parseFloat(directCost) || 0;
+  const operationalCostNum = parseFloat(operationalCost) || 0;
+  // Direct cost: if percent, base is always price (no other base makes sense)
+  const cost = resolveCostAmount(directCostNum, directCostMode, "price", { price, directCost: 0 });
+  const opCost = resolveCostAmount(operationalCostNum, operationalCostMode, operationalCostBase, { price, directCost: cost });
   const grossMargin = price - cost;
   const grossMarginPct = price > 0 ? (grossMargin / price) * 100 : 0;
   const contributionMargin = price - cost - opCost;
@@ -240,10 +281,17 @@ export function CreateProductDialog({
       setShortDescription(product.short_description || "");
       setSku(product.sku || "");
       setDirectCost(product.direct_cost?.toString() || "");
+      setDirectCostMode(((product as any).direct_cost_mode as CostMode) || "value");
       setOperationalCost(product.operational_cost?.toString() || "");
+      setOperationalCostMode(((product as any).operational_cost_mode as CostMode) || "value");
+      setOperationalCostBase(((product as any).operational_cost_base as CostBase) || "price");
       setCommissionDefault(product.commission_default?.toString() || "");
+      setCommissionMode(((product as any).commission_mode as CostMode) || "percent");
+      setCommissionBase(((product as any).commission_base as CostBase) || "price");
       setTaxRateEstimate(product.tax_rate_estimate_pct?.toString() || "");
+      setTaxRateMode(((product as any).tax_rate_mode as CostMode) || "percent");
       setTargetMargin(product.target_margin_pct?.toString() || "");
+      setTargetMarginMode(((product as any).target_margin_mode as CostMode) || "percent");
       setBundlePriceMode((product.bundle_price_mode as "auto" | "manual") || "auto");
       setShowAdvanced(
         !!product.direct_cost ||
@@ -438,10 +486,17 @@ export function CreateProductDialog({
       specifications: Object.keys(specifications).length > 0 ? specifications : undefined,
       demo_video_url: demoVideoUrl || undefined,
       direct_cost: directCost ? parseFloat(directCost) : undefined,
+      direct_cost_mode: directCostMode,
       operational_cost: operationalCost ? parseFloat(operationalCost) : undefined,
+      operational_cost_mode: operationalCostMode,
+      operational_cost_base: operationalCostBase,
       commission_default: commissionDefault ? parseFloat(commissionDefault) : undefined,
+      commission_mode: commissionMode,
+      commission_base: commissionBase,
       tax_rate_estimate_pct: taxRateEstimate ? parseFloat(taxRateEstimate) : undefined,
+      tax_rate_mode: taxRateMode,
       target_margin_pct: targetMargin ? parseFloat(targetMargin) : undefined,
+      target_margin_mode: targetMarginMode,
     };
 
     // Bundle specific fields
@@ -1004,76 +1059,57 @@ export function CreateProductDialog({
                       : "Define custos para calcular margens automaticamente."}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="directCost">Custo Direto</Label>
-                      <Input
-                        id="directCost"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={directCost}
-                        onChange={(e) => setDirectCost(e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="operationalCost">Custo Operacional</Label>
-                      <Input
-                        id="operationalCost"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={operationalCost}
-                        onChange={(e) => setOperationalCost(e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <CostInput
+                      id="directCost"
+                      label="Custo Direto"
+                      value={directCost}
+                      onValueChange={setDirectCost}
+                      mode={directCostMode}
+                      onModeChange={setDirectCostMode}
+                    />
+                    <CostInput
+                      id="operationalCost"
+                      label="Custo Operacional"
+                      value={operationalCost}
+                      onValueChange={setOperationalCost}
+                      mode={operationalCostMode}
+                      onModeChange={setOperationalCostMode}
+                      base={operationalCostBase}
+                      onBaseChange={setOperationalCostBase}
+                      showBase
+                    />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="commission">Comissão (%)</Label>
-                      <Input
-                        id="commission"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={commissionDefault}
-                        onChange={(e) => setCommissionDefault(e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="taxRate">Imposto (%)</Label>
-                      <Input
-                        id="taxRate"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={taxRateEstimate}
-                        onChange={(e) => setTaxRateEstimate(e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="targetMargin">Margem Alvo (%)</Label>
-                      <Input
-                        id="targetMargin"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={targetMargin}
-                        onChange={(e) => setTargetMargin(e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <CostInput
+                      id="commission"
+                      label="Comissão"
+                      value={commissionDefault}
+                      onValueChange={setCommissionDefault}
+                      mode={commissionMode}
+                      onModeChange={setCommissionMode}
+                      base={commissionBase}
+                      onBaseChange={setCommissionBase}
+                      showBase
+                    />
+                    <CostInput
+                      id="taxRate"
+                      label="Imposto"
+                      value={taxRateEstimate}
+                      onValueChange={setTaxRateEstimate}
+                      mode={taxRateMode}
+                      onModeChange={setTaxRateMode}
+                      percentOnly
+                    />
+                    <CostInput
+                      id="targetMargin"
+                      label="Margem Alvo"
+                      value={targetMargin}
+                      onValueChange={setTargetMargin}
+                      mode={targetMarginMode}
+                      onModeChange={setTargetMarginMode}
+                    />
                   </div>
 
                   {/* Real-time margin preview */}

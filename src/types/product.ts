@@ -24,10 +24,17 @@ export interface Product {
   short_description: string | null;
   sku: string | null;
   direct_cost: number | null;
+  direct_cost_mode?: "value" | "percent" | null;
   operational_cost: number | null;
+  operational_cost_mode?: "value" | "percent" | null;
+  operational_cost_base?: "price" | "direct_cost" | null;
   commission_default: number | null;
+  commission_mode?: "value" | "percent" | null;
+  commission_base?: "price" | "direct_cost" | null;
   tax_rate_estimate_pct: number | null;
+  tax_rate_mode?: "value" | "percent" | null;
   target_margin_pct: number | null;
+  target_margin_mode?: "value" | "percent" | null;
   images: string[];
   created_by: string;
   created_at: string;
@@ -139,10 +146,17 @@ export interface CreateProductInput {
   short_description?: string;
   sku?: string;
   direct_cost?: number;
+  direct_cost_mode?: "value" | "percent";
   operational_cost?: number;
+  operational_cost_mode?: "value" | "percent";
+  operational_cost_base?: "price" | "direct_cost";
   commission_default?: number;
+  commission_mode?: "value" | "percent";
+  commission_base?: "price" | "direct_cost";
   tax_rate_estimate_pct?: number;
+  tax_rate_mode?: "value" | "percent";
   target_margin_pct?: number;
+  target_margin_mode?: "value" | "percent";
   images?: string[];
   // Phase B fields
   total_units?: number;

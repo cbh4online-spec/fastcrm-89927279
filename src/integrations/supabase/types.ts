@@ -50422,6 +50422,18 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string
+          default_commission: number | null
+          default_commission_base: string | null
+          default_commission_mode: string | null
+          default_direct_cost: number | null
+          default_direct_cost_mode: string | null
+          default_operational_cost: number | null
+          default_operational_cost_base: string | null
+          default_operational_cost_mode: string | null
+          default_target_margin: number | null
+          default_target_margin_mode: string | null
+          default_tax_rate: number | null
+          default_tax_rate_mode: string | null
           description: string | null
           icon: string | null
           id: string
@@ -50438,6 +50450,18 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string
+          default_commission?: number | null
+          default_commission_base?: string | null
+          default_commission_mode?: string | null
+          default_direct_cost?: number | null
+          default_direct_cost_mode?: string | null
+          default_operational_cost?: number | null
+          default_operational_cost_base?: string | null
+          default_operational_cost_mode?: string | null
+          default_target_margin?: number | null
+          default_target_margin_mode?: string | null
+          default_tax_rate?: number | null
+          default_tax_rate_mode?: string | null
           description?: string | null
           icon?: string | null
           id?: string
@@ -50454,6 +50478,18 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string
+          default_commission?: number | null
+          default_commission_base?: string | null
+          default_commission_mode?: string | null
+          default_direct_cost?: number | null
+          default_direct_cost_mode?: string | null
+          default_operational_cost?: number | null
+          default_operational_cost_base?: string | null
+          default_operational_cost_mode?: string | null
+          default_target_margin?: number | null
+          default_target_margin_mode?: string | null
+          default_tax_rate?: number | null
+          default_tax_rate_mode?: string | null
           description?: string | null
           icon?: string | null
           id?: string
@@ -52796,7 +52832,9 @@ export type Database = {
           business_types: string[] | null
           category: string | null
           commercial_description: string | null
+          commission_base: string
           commission_default: number | null
+          commission_mode: string
           compare_at_price: number | null
           competitor_price_low: number | null
           competitor_source: string | null
@@ -52812,6 +52850,7 @@ export type Database = {
           delivery_notes: string | null
           demo_video_url: string | null
           direct_cost: number | null
+          direct_cost_mode: string
           discontinued_at: string | null
           discontinued_reason: string | null
           embedding: string | null
@@ -52837,6 +52876,8 @@ export type Database = {
           moq: number | null
           name: string
           operational_cost: number | null
+          operational_cost_base: string
+          operational_cost_mode: string
           order_multiple: number | null
           pack_size: number | null
           package_type: string | null
@@ -52876,9 +52917,11 @@ export type Database = {
           store_visibility: string
           subcategory: string | null
           tags: string[]
+          target_margin_mode: string
           target_margin_pct: number | null
           tax_included: boolean
           tax_rate_estimate_pct: number | null
+          tax_rate_mode: string
           total_units: number | null
           track_stock: boolean | null
           typical_duration_days: number | null
@@ -52911,7 +52954,9 @@ export type Database = {
           business_types?: string[] | null
           category?: string | null
           commercial_description?: string | null
+          commission_base?: string
           commission_default?: number | null
+          commission_mode?: string
           compare_at_price?: number | null
           competitor_price_low?: number | null
           competitor_source?: string | null
@@ -52927,6 +52972,7 @@ export type Database = {
           delivery_notes?: string | null
           demo_video_url?: string | null
           direct_cost?: number | null
+          direct_cost_mode?: string
           discontinued_at?: string | null
           discontinued_reason?: string | null
           embedding?: string | null
@@ -52952,6 +52998,8 @@ export type Database = {
           moq?: number | null
           name: string
           operational_cost?: number | null
+          operational_cost_base?: string
+          operational_cost_mode?: string
           order_multiple?: number | null
           pack_size?: number | null
           package_type?: string | null
@@ -52991,9 +53039,11 @@ export type Database = {
           store_visibility?: string
           subcategory?: string | null
           tags?: string[]
+          target_margin_mode?: string
           target_margin_pct?: number | null
           tax_included?: boolean
           tax_rate_estimate_pct?: number | null
+          tax_rate_mode?: string
           total_units?: number | null
           track_stock?: boolean | null
           typical_duration_days?: number | null
@@ -53026,7 +53076,9 @@ export type Database = {
           business_types?: string[] | null
           category?: string | null
           commercial_description?: string | null
+          commission_base?: string
           commission_default?: number | null
+          commission_mode?: string
           compare_at_price?: number | null
           competitor_price_low?: number | null
           competitor_source?: string | null
@@ -53042,6 +53094,7 @@ export type Database = {
           delivery_notes?: string | null
           demo_video_url?: string | null
           direct_cost?: number | null
+          direct_cost_mode?: string
           discontinued_at?: string | null
           discontinued_reason?: string | null
           embedding?: string | null
@@ -53067,6 +53120,8 @@ export type Database = {
           moq?: number | null
           name?: string
           operational_cost?: number | null
+          operational_cost_base?: string
+          operational_cost_mode?: string
           order_multiple?: number | null
           pack_size?: number | null
           package_type?: string | null
@@ -53106,9 +53161,11 @@ export type Database = {
           store_visibility?: string
           subcategory?: string | null
           tags?: string[]
+          target_margin_mode?: string
           target_margin_pct?: number | null
           tax_included?: boolean
           tax_rate_estimate_pct?: number | null
+          tax_rate_mode?: string
           total_units?: number | null
           track_stock?: boolean | null
           typical_duration_days?: number | null
@@ -72438,6 +72495,14 @@ export type Database = {
       aggregate_bio_analytics_daily: {
         Args: { target_date?: string }
         Returns: undefined
+      }
+      apply_category_costs_to_products: {
+        Args: {
+          p_category_id: string
+          p_fields?: string[]
+          p_include_subcategories?: boolean
+        }
+        Returns: Json
       }
       award_xp: {
         Args: {
