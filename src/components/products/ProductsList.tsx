@@ -53,6 +53,9 @@ import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
 import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileProductsView } from "./mobile/MobileProductsView";
+import { MobileProductDetailSheet } from "./mobile/MobileProductDetailSheet";
 
 export function ProductsList() {
   const state = useProductsListState();
