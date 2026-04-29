@@ -12,6 +12,7 @@ const BackofficeUsersV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeUse
 const BackofficeSubscriptionsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSubscriptionsV2"));
 const BackofficePermissionsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficePermissionsV2"));
 const ModuleOnboardingAdminPage = lazy(() => import("@/pages/super-admin/ModuleOnboardingAdminPage"));
+const TeamProgressionPage = lazy(() => import("@/pages/team/TeamProgressionPage"));
 const VerticalLandingPage = lazy(() => import("@/pages/VerticalLandingPage"));
 const EventRsvpResponse = lazy(() => import("@/pages/EventRsvpResponse"));
 const AcceptWorkspaceInvite = lazy(() => import("@/pages/AcceptWorkspaceInvite"));
