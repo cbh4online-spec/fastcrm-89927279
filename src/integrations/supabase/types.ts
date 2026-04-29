@@ -27656,6 +27656,45 @@ export type Database = {
           },
         ]
       }
+      field_catalog: {
+        Row: {
+          created_at: string
+          data_type: string
+          field_key: string
+          id: string
+          is_sensitive: boolean
+          label: string
+          object_key: string
+          section: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_type?: string
+          field_key: string
+          id?: string
+          is_sensitive?: boolean
+          label: string
+          object_key: string
+          section?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_type?: string
+          field_key?: string
+          id?: string
+          is_sensitive?: boolean
+          label?: string
+          object_key?: string
+          section?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       field_permissions: {
         Row: {
           created_at: string
@@ -73081,6 +73120,10 @@ export type Database = {
       }
       get_user_calendar_ids: { Args: never; Returns: string[] }
       get_user_workspace_ids: { Args: never; Returns: string[] }
+      get_user_workspace_role: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: string
+      }
       get_vendesimples_import_summary: {
         Args: never
         Returns: {
