@@ -1,77 +1,86 @@
-# Onboarding Guiado por Módulo
+## Diagnóstico
 
-Cada módulo do marketplace passa a ter uma **apresentação de boas-vindas** (formato slides) que funciona como guia de utilização. O acesso ao módulo só é libertado depois do utilizador completar a apresentação. Quem instalou o módulo antes da feature mantém o acesso (grandfathering opcional).
+O scanner já está integrado no **wizard mobile** (`MQPCStepSKU.tsx` — botão `ScanLine` ao lado do input SKU) e o `MQPCStepImages.tsx` já usa `<input capture="environment">` (abre câmara nativa do telemóvel).
 
-## Objetivo
+**O que falta** (e explica os screenshots enviados):
 
-- Reduzir fricção: o utilizador percebe o módulo antes de o usar.
-- Garantir adoção: ninguém entra "às cegas" num módulo.
-- Reaproveitável: o guia pode ser revisitado a qualquer momento ("Ajuda → Ver tour").
+1. **Screenshot IMG_1086** mostra o `CreateProductDialog.tsx` (diálogo "Criar Produto" usado em desktop **e** quando o utilizador abre a partir da listagem de produtos no telemóvel) — o campo "Código / SKU / Referência" só tem lupa de pesquisa. **Não tem botão de câmara/scanner**, apesar do `BarcodeScannerModal` existir e ser usado noutros sítios (`ProductsList`, `B2BStockPage`, `PurchaseOrderForm`, `GoodsReceiptForm`).
+2. **Galeria de imagens do diálogo desktop** (`ProductImageGalleryManager`) só permite upload de ficheiros — não tem botão para "Tirar foto" com a câmara, nem usa `capture="environment"`.
+3. **Screenshot IMG_1085** (MQPC mobile) já tem o botão `ScanLine`, mas o utilizador pode não o estar a ver porque está num build em cache, ou porque entra pelo diálogo `CreateProductDialog` (desktop) em vez do wizard mobile.
+4. **Erro de runtime**: `Cannot stop, scanner is not running or paused` — o `BarcodeScannerModal` chama `scanner.stop()` sem verificar o estado, gerando exceções no console quando o utilizador fecha rapidamente.
 
-## Arquitetura
+---
+
+## Decisões de produto / UX
+
+- A **câmara para ler códigos** deve estar disponível em **todos os pontos onde se cria/edita produto** — não só no MQPC mobile.
+- A **câmara para fotografar produtos** deve estar disponível tanto no wizard mobile (já existe via `capture="environment"`) como no diálogo desktop, com **dois botões distintos** na zona de imagens: "Carregar ficheiros" e "Tirar foto" (este último usa `capture="environment"` em mobile e abre stream de webcam em desktop).
+- Em desktop sem câmara, o botão "Tirar foto" cai graciosamente para "selecionar ficheiro".
+- O `BarcodeScannerModal` deve permitir alternar **flash/lanterna** (quando suportado) e ter tratamento robusto do ciclo `start/stop` para eliminar o erro de consola.
+
+---
+
+## Estrutura técnica
 
 ```text
-Instalar módulo  ───►  Apresentação obrigatória  ───►  Acesso libertado
-   (marketplace)         (slides + ações)              (ModuleGuard OK)
-                              │
-                              └─► Registo em module_onboarding_completions
+CreateProductDialog.tsx (desktop)
+  └── [novo] botão ScanLine ao lado da lupa no campo SKU
+        └── BarcodeScannerModal (já existe)
+              └── onScan → setSku(code) + setSkuSearchTrigger(prev+1)
+
+ProductImageGalleryManager.tsx (desktop)
+  └── [novo] botão "Tirar foto" + <input capture="environment">
+        OU getUserMedia → canvas → blob (desktop com webcam)
+
+BarcodeScannerModal.tsx
+  └── [fix] guardar estado isRunning antes de stop()
+  └── [fix] evitar removeChild error ao desmontar
+  └── [novo] toggle de lanterna (torch) quando track.applyConstraints suporta
 ```
 
-## Componentes a criar
+---
 
-**1. Base de dados (migração)**
-- `module_onboarding_presentations` — slides por módulo (slug do módulo, ordem, título, conteúdo MD/HTML, imagem, CTA opcional, duração mínima).
-- `module_onboarding_completions` — registo por (workspace_id, user_id, module_slug, completed_at, slides_viewed, skipped). RLS: utilizador só lê/escreve os seus próprios.
-- Seed inicial com 3–5 slides para os módulos críticos (CRM, Produtos, Vendas, Marketing, Inbox).
+## Plano de implementação
 
-**2. Componente `ModulePresentationViewer`**
-- Reutiliza o padrão "slides app" (1920x1080 escalável) já documentado no projeto.
-- Navegação: setas, dots, barra de progresso, botão "Concluir" só ativo no último slide.
-- Tempo mínimo por slide (anti-skip rápido); botão "Saltar" disponível só para super_admin.
-- Ao concluir → INSERT em `module_onboarding_completions` → invalida cache → liberta módulo.
+1. **`CreateProductDialog.tsx`** (linhas 678-703):
+   - Importar `BarcodeScannerModal` e `ScanLine` do lucide.
+   - Adicionar `const [scannerOpen, setScannerOpen] = useState(false)`.
+   - Inserir botão `ScanLine` entre o `Input` e o `Button` da lupa.
+   - Ao receber código: `setSku(code)` + `setSkuSearchTrigger(prev => prev + 1)` (dispara pesquisa automática).
 
-**3. Atualização do `ModuleGuard`**
-- Após verificar instalação, verificar se há `module_onboarding_completions` para o utilizador atual.
-- Se não houver → mostrar `ModulePresentationViewer` em vez do conteúdo do módulo.
-- Se houver → render normal dos children.
-- Bypass para super_admin (config) e para módulos sem apresentação definida.
+2. **`ProductImageGalleryManager.tsx`**:
+   - Adicionar segundo `<input ref capture="environment" accept="image/*">` escondido.
+   - Novo botão "Tirar foto" (ícone `Camera`) ao lado de "Carregar imagens".
+   - Reaproveitar o pipeline de upload existente.
 
-**4. Hook `useModuleOnboarding(moduleSlug)`**
-- Devolve `{ slides, isCompleted, completeMutation, skipMutation }`.
-- Cache via React Query, invalida `workspace-modules` quando completa.
+3. **`BarcodeScannerModal.tsx`** — robustez:
+   - Adicionar `if (scannerRef.current?.isScanning)` antes de `stop()`.
+   - Envolver `stop()` em try/catch silencioso.
+   - Limpar `innerHTML` do container `barcode-scanner-view` antes de desmontar (evita o `removeChild` error).
+   - Adicionar toggle de torch (lanterna) usando `track.applyConstraints({ advanced: [{ torch: true }] })` quando suportado.
+   - Mensagem clara quando em iframe (preview do Lovable bloqueia getUserMedia) — sugerir testar em preview publicado.
 
-**5. Editor de apresentações (Super Admin)**
-- Página em `/dashboard/super-admin/module-onboarding` para criar/editar slides por módulo.
-- Lista de módulos + drawer com editor de slides (drag-and-drop para reordenar, preview ao vivo).
-- Permite duplicar slides entre módulos.
+4. **`MQPCStepImages.tsx`**:
+   - Já está correto. Apenas adicionar segundo botão visível "Tirar foto agora" separado de "Galeria" para clarificar a intenção (ambos usam o mesmo file input mas com `capture` vs sem).
 
-**6. Re-acesso ao guia**
-- Botão "Ver guia do módulo" no header de cada módulo (chama o viewer em modo "review", sem bloquear).
+5. **Verificar `MQPCStepSKU.tsx`**: já tem botão. Garantir que o build não está em cache — forçar reimport limpo.
 
-## Fluxo do utilizador
+---
 
-1. Utilizador instala módulo X no marketplace.
-2. Ao navegar para `/dashboard/X` → `ModuleGuard` deteta que falta onboarding.
-3. Apresentação fullscreen abre automaticamente (5–8 slides com texto, imagens, mini-vídeos GIF opcionais).
-4. No último slide: CTA "Começar a usar [Módulo]" → grava conclusão → entra no módulo.
-5. A qualquer momento: botão "Ver tour" no header → reabre o viewer em modo review.
+## Critérios de aceitação
 
-## Detalhes técnicos
+- [ ] No diálogo `CreateProductDialog` (desktop e mobile fora do MQPC), aparece botão de câmara/scanner ao lado do campo SKU/EAN.
+- [ ] Ao ler um código com a câmara, o SKU é preenchido e a pesquisa IA é disparada automaticamente.
+- [ ] Na zona de imagens do diálogo desktop, existe botão "Tirar foto" que abre câmara nativa no telemóvel ou webcam no desktop.
+- [ ] O erro `Cannot stop, scanner is not running or paused` deixa de aparecer na consola.
+- [ ] O erro `Failed to execute 'removeChild'` deixa de aparecer ao fechar o scanner.
+- [ ] Botão de lanterna funciona em telemóveis Android compatíveis.
+- [ ] Mensagem clara em iframe de preview a indicar que a câmara só funciona em produção publicada.
 
-- **RLS**: `module_onboarding_completions` com policies `user_id = auth.uid()` para SELECT/INSERT; super_admin bypass para gestão.
-- **Migração de dados existentes**: opção 1 — marcar todos os módulos já instalados como "completados" (grandfathering, sem disrupção). Opção 2 — forçar todos a ver. **Recomendação: grandfathering** para evitar fricção em utilizadores ativos.
-- **Slides storage**: conteúdo em JSON estruturado (`{ heading, body, image_url, bullets[], cta }`) — não HTML livre, para segurança e edição fácil.
-- **Imagens**: bucket Supabase Storage `module-onboarding-assets` (público leitura, super_admin escrita).
-- **i18n**: campo `lang` por slide (PT/EN/ES/FR) — fallback para PT.
-- **Analytics**: registar tempo por slide e taxa de conclusão em `module_action_logs` (já existe).
+---
 
-## Fora do âmbito (fase 1)
+## Riscos / pontos por validar
 
-- Vídeo embebido (usar GIF/imagem por agora).
-- Quiz/validação de compreensão.
-- Tour interativo *in-product* (Shepherd.js) — pode vir em fase 2.
-- Geração automática de slides por IA — pode vir em fase 2 reutilizando `builder-ai`.
-
-## Pergunta antes de implementar
-
-**Conteúdo inicial dos slides**: começo com slides genéricos (3 por módulo crítico: "O que é", "O que podes fazer", "Como começar") que tu depois editas no painel super_admin? Ou queres que eu gere conteúdo específico para uma lista de módulos que indiques?
+- **Iframe do Lovable**: `getUserMedia` está bloqueado no preview. O scanner só funcionará na URL publicada (`fastcrm.lovable.app`) ou em domínio próprio. Vamos manter mensagem informativa.
+- **html5-qrcode** já está como dependência (usado em `HRKioskPage`). Não é necessário instalar nada novo.
+- **Permissões**: a primeira utilização pede permissão de câmara — comportamento normal do browser.
