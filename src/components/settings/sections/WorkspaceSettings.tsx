@@ -212,6 +212,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       setInviteDialogOpen(false);
       setInviteEmail("");
       setInviteRole("agent");
+      setInviteCommercialProfile("vendedor");
     } catch (error: any) {
       console.warn('[WORKSPACES] INVITE_FAILED', error.message || error);
       toast.error(error.message || "Erro ao enviar convite");
