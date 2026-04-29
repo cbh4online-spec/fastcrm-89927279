@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { ScanText, FileText, ClipboardList, Sparkles, MessageSquare, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { StepUpload } from "@/components/products/ocr/StepUpload";
