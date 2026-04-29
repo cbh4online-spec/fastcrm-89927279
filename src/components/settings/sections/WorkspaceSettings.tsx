@@ -122,6 +122,9 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const [manualEmail, setManualEmail] = useState("");
   const [manualRole, setManualRole] = useState<WorkspaceRole>("agent");
   const [editRole, setEditRole] = useState<WorkspaceRole>("agent");
+  const [inviteCommercialProfile, setInviteCommercialProfile] = useState<CommercialProfile>("vendedor");
+  const [manualCommercialProfile, setManualCommercialProfile] = useState<CommercialProfile>("vendedor");
+  const [editCommercialProfile, setEditCommercialProfile] = useState<CommercialProfile>("vendedor");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load workspace details
