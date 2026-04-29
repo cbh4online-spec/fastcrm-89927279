@@ -32,16 +32,26 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'workspace_id obrigatório' }), { status: 400, headers: corsHeaders })
     }
 
-    // Verify workspace membership
-    const { data: member } = await supabase
-      .from('workspace_members')
-      .select('id')
-      .eq('workspace_id', workspace_id)
+    // Super admin bypass
+    const { data: superRole } = await supabase
+      .from('user_roles')
+      .select('role')
       .eq('user_id', user.id)
+      .eq('role', 'super_admin')
       .maybeSingle()
 
-    if (!member) {
-      return new Response(JSON.stringify({ error: 'Acesso negado' }), { status: 403, headers: corsHeaders })
+    if (!superRole) {
+      // Verify workspace membership
+      const { data: member } = await supabase
+        .from('workspace_members')
+        .select('id')
+        .eq('workspace_id', workspace_id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!member) {
+        return new Response(JSON.stringify({ error: 'Acesso negado' }), { status: 403, headers: corsHeaders })
+      }
     }
 
     // If product_id provided, return single product analytics
