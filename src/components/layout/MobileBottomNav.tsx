@@ -104,4 +104,4 @@ export const MobileBottomNav = React.forwardRef<HTMLElement, MobileBottomNavProp
       </ul>
     </nav>
   );
-}
+});
