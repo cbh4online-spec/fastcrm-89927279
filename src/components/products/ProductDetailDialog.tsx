@@ -49,6 +49,7 @@ import {
   FileText,
   TrendingUp,
   ImageIcon,
+  Send,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
@@ -85,6 +86,7 @@ import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
 import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
 import { ProductActivityLog } from "./ProductActivityLog";
+import { ProductPublishingPanel } from "./ProductPublishingPanel";
 import { useProductImages } from "@/hooks/useProductImages";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
@@ -338,6 +340,9 @@ export function ProductDetailDialog({
                       <TabsTrigger value="progressions" className="text-xs px-2.5 py-1 h-7">Progressões</TabsTrigger>
                       <TabsTrigger value="cycles" className="text-xs px-2.5 py-1 h-7">Ciclos</TabsTrigger>
                       <TabsTrigger value="sheet" className="text-xs px-2.5 py-1 h-7">Ficha</TabsTrigger>
+                      <TabsTrigger value="publishing" className="text-xs px-2.5 py-1 h-7">
+                        <Send className="h-3 w-3 mr-1" />Publicação
+                      </TabsTrigger>
                     </TabsList>
 
                     {/* Linha 2 — Avançado */}
@@ -606,6 +611,10 @@ export function ProductDetailDialog({
 
                   <TabsContent value="sheet" className="mt-4">
                     <ProductSheetSettings product={product} />
+                  </TabsContent>
+
+                  <TabsContent value="publishing" className="mt-4">
+                    <ProductPublishingPanel productId={product.id} />
                   </TabsContent>
 
                   <TabsContent value="relations" className="mt-4">

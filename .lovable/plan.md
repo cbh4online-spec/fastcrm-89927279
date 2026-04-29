@@ -1,76 +1,71 @@
 ## Diagnóstico
 
-A plataforma já tem duas camadas de permissões parcialmente construídas, mas **nenhuma cobre Produtos ao detalhe e nenhuma é efectivamente aplicada nos formulários**:
+Hoje há **4 canais de publicação distintos** para um produto, mas estão dispersos pela UI e dois deles não são óbvios:
 
-- `field_permissions` (workspace_id, object_key, role, field_key, permission_level: hidden/view/edit) — usada pelo diálogo "Permissões por Campo" em Definições → Segurança. Para Produtos só lista 5 campos (`name`, `price`, `cost`, `margin`, `description`) — desfasado das ~80 colunas reais (`base_price`, `direct_cost`, `target_margin_pct`, `stock_quantity`, `barcode`, etc.).
-- `profile_field_permissions` (por sales_function) — paralela e usada pelo `useFieldPermissions` em algumas páginas.
-- `object_permissions` — controla CRUD por role/objecto, já cobre Produtos corretamente.
-- Os formulários de Produto (`CreateProductDialog`, `ProductDetailDialog`, `MQPCWizard`, `MobileProductDetailSheet`) **não consultam `field_permissions`** — qualquer regra definida hoje não tem efeito real.
+| Canal | Coluna/tabela | Como se ativa hoje | Estado |
+|---|---|---|---|
+| Portal B2B | `products.b2b_published` | Toggle existe no `CreateProductDialog` (linha 521) | OK |
+| Loja online | `products.store_published` | Toggle disperso, há mutação em `useProductsListState` | OK |
+| Ficha pública | `products.sheet_published` | Aba "Ficha" do `ProductDetailDialog` (`ProductSheetSettings`) | OK |
+| Catálogos digitais (folheáveis) | `product_catalog_items` (manual) | **Só via "Adicionar produtos" no editor de cada catálogo** | **Origem da confusão** |
+
+O utilizador esperava que ao publicar um produto, ele aparecesse automaticamente no menu **Catálogos**. Mas esses catálogos são curados manualmente — só aparecem produtos que tenham sido adicionados explicitamente. **Não há ponto único onde o utilizador veja "onde é que este produto está publicado" e possa decidir tudo a partir do produto.**
 
 ## Decisões de produto e UX
 
-1. **Catálogo de campos completo** — registar todos os campos editáveis de Produto, agrupados por secção lógica:
-   - Identificação: `name`, `sku`, `barcode`, `category`, `line`, `tags`, `brand_logo_url`, `product_type`, `status`
-   - Comercial: `short_description`, `commercial_description`, `benefits`, `conditions`, `demo_video_url`
-   - Preço: `base_price`, `currency`, `tax_rate_estimate_pct`, `tax_included`, `setup_fee`, `recurring_fee`, `billing_type`, `billing_frequency`, `competitor_price_low`, `competitor_source`
-   - Custos e margem: `direct_cost`, `operational_cost`, `target_margin_pct`, `commission_default`, `labor_hours`, `labor_hourly_rate`, `labor_included_in_price`, `labor_notes`
-   - Stock e logística: `stock_status`, `stock_quantity`, `track_stock`, `low_stock_threshold`, `min_order_quantity`, `order_multiple`, `pack_size`, `weight`, `delivery_estimate`, `delivery_notes`, `delivery_mode`
-   - Conteúdo: `images`, `primary_image_index`, `specifications`
-   - Loja / publicação: `store_published`, `store_featured`, `store_visibility`, `store_category_id`, `store_sort_order`, `b2b_published`, `sheet_published`, `sheet_slug`, `business_types`
-   - Consumo (serviços): `consumption_model`, `included_quantity`, `unit_name`, `unit_duration`, `validity_days`, `total_units`, `recommended_frequency`, `typical_duration_days`, `is_trackable`
-   - Bundle: `bundle_price_mode`
-2. **Diálogo dedicado para Produtos** — criar uma nova vista "Permissões — Produtos" com:
-   - Selector de role (owner sempre `edit`, bloqueado).
-   - Pesquisa de campo + filtro por secção.
-   - Por linha (campo): radio Oculto / Ver / Editar (mantém modelo `permission_level`).
-   - Acções rápidas por secção: "Tudo Editar / Ver / Ocultar".
-   - Botão "Aplicar a outras roles" (copiar configuração da role activa).
-   - Indicador de alterações pendentes + Guardar/Reverter.
-3. **Aplicação real nos formulários de Produto** — criar hook `useProductFieldPermissions(role)` que devolve `getLevel(field)` e helpers `isHidden(field)` / `isReadOnly(field)`. Integrar em:
-   - `CreateProductDialog` e `ProductDetailDialog` (web)
-   - `MQPCWizard` / `MQPCStepDetails` (mobile quick-create)
-   - `MobileProductDetailSheet`
-   - Cada campo respeita: `hidden` (não renderiza), `view` (renderiza desativado), `edit` (normal).
-4. **Defesa server-side** — trigger PostgreSQL `validate_product_field_permissions` em INSERT/UPDATE de `products`: para cada coluna alterada, verificar `field_permissions` da role do utilizador. Se `hidden` ou `view`, rejeitar a alteração (excepto owner/admin/super_admin). Garante que nenhum cliente pode contornar a UI.
-5. **Auditoria** — registar alterações ao `field_permissions` em `activity_logs` (quem, quando, antes/depois) via trigger.
+1. Criar um único componente reutilizável **`ProductPublishingPanel`** que mostra:
+   - 3 toggles (Portal B2B, Loja online, Ficha pública) com descrição clara e badge de canais ativos.
+   - Lista pesquisável dos catálogos digitais do workspace, com checkbox para adicionar/remover este produto.
+   - Atalho "Gerir catálogos" para a página de gestão.
+   - Link directo para a ficha pública quando publicada.
+2. Integrar o painel em **dois locais**:
+   - **`ProductDetailDialog`** — nova aba "Publicação" (entre "Ficha" e "Relações") com gravação imediata por toggle.
+   - **`CreateProductDialog`** — secção "Onde publicar" no fim do formulário (modo "local"); ao gravar o produto, aplicam-se os toggles e adiciona-se aos catálogos selecionados.
+3. **Indicador na lista** de produtos: melhorar a coluna "Loja Online" / "Portal B2B" existente para mostrar também "Ficha" e nº de catálogos digitais (badge clicável que abre directamente a aba Publicação).
+4. **Sincronia bidirecional**: se um produto for adicionado/removido no editor de um catálogo, o painel reflecte isso na próxima abertura (já garantido pela query `product-catalog-membership`).
 
 ## Estrutura técnica
 
-- **DB (migração)**:
-  - Tabela `field_catalog` (workspace-agnóstica, seed): `object_key`, `field_key`, `label`, `section`, `data_type`, `sort_order`. Permite descobrir/expandir campos sem hard-code no frontend.
-  - Trigger `tg_products_field_permissions` em `products` BEFORE INSERT/UPDATE.
-  - Função `get_user_role_in_workspace(uuid, uuid)` (já pode existir; reutilizar).
-  - Trigger `tg_field_permissions_audit` para `activity_logs`.
-- **Frontend**:
-  - `src/config/productFieldsCatalog.ts` — fonte única dos campos com secções e labels (também usada para popular `field_catalog`).
-  - `src/hooks/useProductFieldPermissions.ts` — query `field_permissions` filtrada por role corrente + helpers.
-  - `src/components/settings/security/ProductFieldPermissionsDialog.tsx` — novo diálogo dedicado com pesquisa, secções colapsáveis, copy entre roles.
-  - Atualizar `FieldPermissionsDialog.tsx` para abrir o novo diálogo quando `selectedObject === "products"` (mantém os outros objectos como estão por agora).
-  - Wrappers `<PermissionField level=...>` para reuso nos formulários de Produto.
+Sem alterações de DB — toda a infra existe (`product_catalogs`, `product_catalog_items` com unique `(catalog_id, product_id)`). Componentes:
+
+- **`src/components/products/ProductPublishingPanel.tsx`** (novo)
+  - Props: `productId | null`, `initial`, `onLocalChange`, `compact`.
+  - Modo edit: persiste cada toggle directamente em `products` e `product_catalog_items` com optimistic updates.
+  - Modo create: mantém estado local e expõe-no via `onLocalChange` para o `CreateProductDialog` aplicar no submit.
+  - Reutiliza `useWorkspace`, `supabase` client, queries com TanStack Query.
+
+- **`src/components/products/ProductDetailDialog.tsx`** (edit)
+  - Acrescentar `<TabsTrigger value="publishing">Publicação</TabsTrigger>` (linha ~340) com ícone `Send`/`Globe`.
+  - Adicionar `<TabsContent value="publishing">` que renderiza `<ProductPublishingPanel productId={productId} />`.
+
+- **`src/components/products/CreateProductDialog.tsx`** (edit)
+  - Importar `ProductPublishingPanel`.
+  - Adicionar estado `selectedCatalogIds` e usar `onLocalChange` para receber as decisões.
+  - Render do painel numa secção `Collapsible` "Onde publicar" antes dos botões de ação.
+  - No `handleSubmit`, depois do `useCreateProduct.mutateAsync`, fazer batch `insert` em `product_catalog_items` para os IDs selecionados (opcional — já temos `b2bPublished` no payload).
+
+- **`src/components/products/table/ProductsDataTable.tsx`** (pequeno ajuste)
+  - Coluna existente `b2b_published`/`store_published` continua. Adicionar coluna opcional `publishing_channels` que mostra ícones com tooltip resumindo os 4 canais.
 
 ## Plano de implementação
 
-1. Migração: criar `field_catalog`, fazer seed dos campos de Produto, criar trigger de validação em `products` e trigger de auditoria em `field_permissions`.
-2. Criar `productFieldsCatalog.ts` (espelho do seed, para UI).
-3. Criar `useProductFieldPermissions` hook.
-4. Construir `ProductFieldPermissionsDialog` com pesquisa, secções, ações em massa, copy entre roles.
-5. Ligar o novo diálogo a partir de Definições → Segurança (e do botão "Permissões por Campo" quando o objecto é Produtos).
-6. Integrar permissões em `CreateProductDialog`, `ProductDetailDialog`, `MQPCWizard`, `MobileProductDetailSheet` (campo a campo).
-7. QA: validar com roles diferentes (admin, agent, viewer) — criar produto, editar, ver lista; validar mobile; validar que UPDATE bloqueado server-side devolve mensagem clara.
+1. Criar `ProductPublishingPanel.tsx` com toggles + lista de catálogos + mutações.
+2. Integrar nova aba "Publicação" em `ProductDetailDialog`.
+3. Integrar secção "Onde publicar" em `CreateProductDialog` + lógica de aplicar catálogos no submit.
+4. Acrescentar coluna unificada de canais em `ProductsDataTable` (não-default; opt-in via preset).
+5. QA: criar produto novo com 2 catálogos selecionados, abrir "Catálogos" → confirmar inclusão; alterar toggles a partir do detalhe e confirmar que `usePartnerCatalog` / `useStoreProducts` reflectem; remover do catálogo via editor antigo e confirmar que o painel actualiza.
 
 ## Critérios de aceitação
 
-- Admin vê todos os campos de Produto no diálogo, agrupados por secção, com pesquisa.
-- Alterar para `hidden` esconde imediatamente o campo nos 4 formulários de Produto após refresh.
-- Alterar para `view` torna o campo apenas leitura.
-- Tentativa de UPDATE via API a um campo `hidden`/`view` é rejeitada pelo trigger.
-- Owner ignora restrições; super_admin idem.
-- Alterações no diálogo aparecem em `activity_logs`.
-- Sem regressões nos outros objectos (Empresas, Contactos, Leads, Oportunidades, Propostas) — diálogo antigo continua disponível.
+- Editar um produto abre uma aba "Publicação" que lista os 4 canais e o estado de inclusão em catálogos digitais.
+- Marcar um catálogo no painel adiciona o produto ao catálogo (e vice-versa) sem precisar de abrir o editor.
+- Criar um produto novo permite escolher canais e catálogos no mesmo formulário; tudo é persistido no submit.
+- O painel mostra um link directo para a ficha pública quando esta existe.
+- A lista de produtos pode mostrar uma coluna "Canais" com os 4 indicadores.
 
 ## Riscos e pontos por validar
 
-- **Performance do trigger** em UPDATE de produtos — mitigar lendo `field_permissions` numa única query e iterando só sobre colunas em `OLD IS DISTINCT FROM NEW`.
-- **Compatibilidade com importadores em massa** (ex.: `Product Import Pipeline`) — owner/admin não são afectados; importadores correm como service_role e devem continuar a passar (trigger ignora service_role).
-- **Coexistência** com `profile_field_permissions` (por sales_function) — manter ambos por agora; alinhar numa fase 2.
-- Confirmar com o utilizador se quer também aplicar este nível de detalhe a Empresas/Contactos/etc. agora, ou apenas Produtos primeiro (assumido **apenas Produtos** nesta entrega).
+- **Permissões**: respeitar o sistema de permissões de campo (`store_published`, `b2b_published`, `sheet_published` já estão no catálogo) — se o user tiver `view`, o toggle aparece desativado.
+- **Conflito com `ProductSheetSettings`**: a aba "Ficha" continua a existir para configuração avançada (slug, watermark, etc.); a nova aba só faz o toggle on/off. Sem duplicação funcional, apenas atalho.
+- Confirmar que a unique constraint `(catalog_id, product_id)` é tratada graciosamente (já está no código com `if (!error.message.includes("duplicate"))`).
+- Não alterar comportamento dos catálogos existentes — a inclusão manual via editor continua a funcionar exactamente como hoje.
