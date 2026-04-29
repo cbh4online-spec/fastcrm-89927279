@@ -34,6 +34,23 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
   const [skuInput, setSkuInput] = useState("");
   const [searchResult, setSearchResult] = useState<SKUSearchResult | null>(null);
   const [searched, setSearched] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const runSearch = async (sku: string) => {
+    if (!sku) {
+      toast.error("Introduza um SKU ou referência");
+      return;
+    }
+    try {
+      const result = await searchBySKU.mutateAsync(sku);
+      setSearchResult(result);
+      setSearched(true);
+    } catch (err: any) {
+      toast.error("Erro na pesquisa: " + err.message);
+      setSearched(true);
+      setSearchResult({ found: false });
+    }
+  };
 
   const handleSearch = async () => {
     const sku = skuInput.trim();
