@@ -13524,6 +13524,80 @@ export type Database = {
           },
         ]
       }
+      campaign_coupons: {
+        Row: {
+          campaign_id: string
+          code: string
+          contact_id: string | null
+          coupon_type: Database["public"]["Enums"]["coupon_type"]
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          max_uses_per_customer: number | null
+          uses_count: number
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          code: string
+          contact_id?: string | null
+          coupon_type?: Database["public"]["Enums"]["coupon_type"]
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          max_uses_per_customer?: number | null
+          uses_count?: number
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          code?: string
+          contact_id?: string | null
+          coupon_type?: Database["public"]["Enums"]["coupon_type"]
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          max_uses_per_customer?: number | null
+          uses_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_coupons_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_coupons_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_coupons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "campaign_coupons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_experiments: {
         Row: {
           base_campaign_id: string
@@ -13751,6 +13825,87 @@ export type Database = {
           },
         ]
       }
+      campaign_redemptions: {
+        Row: {
+          campaign_id: string
+          cart_value: number
+          channel: Database["public"]["Enums"]["campaign_channel"] | null
+          contact_id: string | null
+          coupon_id: string | null
+          created_at: string
+          discount_amount: number
+          id: string
+          metadata: Json
+          order_id: string | null
+          proposal_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          cart_value?: number
+          channel?: Database["public"]["Enums"]["campaign_channel"] | null
+          contact_id?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          metadata?: Json
+          order_id?: string | null
+          proposal_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          cart_value?: number
+          channel?: Database["public"]["Enums"]["campaign_channel"] | null
+          contact_id?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          metadata?: Json
+          order_id?: string | null
+          proposal_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_redemptions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_redemptions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_redemptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "campaign_redemptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_report_snapshots: {
         Row: {
           campaign_id: string
@@ -13793,6 +13948,58 @@ export type Database = {
           },
           {
             foreignKeyName: "campaign_report_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_rules: {
+        Row: {
+          action: Json
+          campaign_id: string
+          condition: Json
+          created_at: string
+          eval_order: number
+          id: string
+          workspace_id: string
+        }
+        Insert: {
+          action?: Json
+          campaign_id: string
+          condition?: Json
+          created_at?: string
+          eval_order?: number
+          id?: string
+          workspace_id: string
+        }
+        Update: {
+          action?: Json
+          campaign_id?: string
+          condition?: Json
+          created_at?: string
+          eval_order?: number
+          id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_rules_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "campaign_rules_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -13964,6 +14171,55 @@ export type Database = {
           },
         ]
       }
+      campaign_targets: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          target_kind: string
+          target_value: string
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          target_kind: string
+          target_value: string
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          target_kind?: string
+          target_value?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_targets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_targets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "campaign_targets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_trigger_executions: {
         Row: {
           action_result: Json | null
@@ -14127,6 +14383,156 @@ export type Database = {
             columns: ["experiment_id"]
             isOneToOne: false
             referencedRelation: "campaign_experiments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          ab_traffic_pct: number | null
+          ab_variant: string | null
+          archived_at: string | null
+          audience: Database["public"]["Enums"]["campaign_audience"]
+          audience_config: Json
+          brand_slugs: string[] | null
+          category_slugs: string[] | null
+          channels: Database["public"]["Enums"]["campaign_channel"][]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_given: number
+          ends_at: string | null
+          enforce_omnibus: boolean
+          excluded_product_ids: string[] | null
+          exclusive_group: string | null
+          hour_end: number | null
+          hour_start: number | null
+          id: string
+          internal_code: string | null
+          max_total_budget: number | null
+          max_total_uses: number | null
+          max_uses_per_customer: number | null
+          mechanic: Database["public"]["Enums"]["campaign_mechanic"]
+          mechanic_config: Json
+          min_cart_value: number | null
+          min_quantity: number | null
+          name: string
+          priority: number
+          product_ids: string[] | null
+          requires_coupon: boolean
+          revenue_generated: number
+          stackable: boolean
+          starts_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          tag_slugs: string[] | null
+          target_scope: string
+          timezone: string | null
+          updated_at: string
+          uses_count: number
+          weekdays: number[] | null
+          workspace_id: string
+        }
+        Insert: {
+          ab_traffic_pct?: number | null
+          ab_variant?: string | null
+          archived_at?: string | null
+          audience?: Database["public"]["Enums"]["campaign_audience"]
+          audience_config?: Json
+          brand_slugs?: string[] | null
+          category_slugs?: string[] | null
+          channels?: Database["public"]["Enums"]["campaign_channel"][]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_given?: number
+          ends_at?: string | null
+          enforce_omnibus?: boolean
+          excluded_product_ids?: string[] | null
+          exclusive_group?: string | null
+          hour_end?: number | null
+          hour_start?: number | null
+          id?: string
+          internal_code?: string | null
+          max_total_budget?: number | null
+          max_total_uses?: number | null
+          max_uses_per_customer?: number | null
+          mechanic: Database["public"]["Enums"]["campaign_mechanic"]
+          mechanic_config?: Json
+          min_cart_value?: number | null
+          min_quantity?: number | null
+          name: string
+          priority?: number
+          product_ids?: string[] | null
+          requires_coupon?: boolean
+          revenue_generated?: number
+          stackable?: boolean
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          tag_slugs?: string[] | null
+          target_scope?: string
+          timezone?: string | null
+          updated_at?: string
+          uses_count?: number
+          weekdays?: number[] | null
+          workspace_id: string
+        }
+        Update: {
+          ab_traffic_pct?: number | null
+          ab_variant?: string | null
+          archived_at?: string | null
+          audience?: Database["public"]["Enums"]["campaign_audience"]
+          audience_config?: Json
+          brand_slugs?: string[] | null
+          category_slugs?: string[] | null
+          channels?: Database["public"]["Enums"]["campaign_channel"][]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_given?: number
+          ends_at?: string | null
+          enforce_omnibus?: boolean
+          excluded_product_ids?: string[] | null
+          exclusive_group?: string | null
+          hour_end?: number | null
+          hour_start?: number | null
+          id?: string
+          internal_code?: string | null
+          max_total_budget?: number | null
+          max_total_uses?: number | null
+          max_uses_per_customer?: number | null
+          mechanic?: Database["public"]["Enums"]["campaign_mechanic"]
+          mechanic_config?: Json
+          min_cart_value?: number | null
+          min_quantity?: number | null
+          name?: string
+          priority?: number
+          product_ids?: string[] | null
+          requires_coupon?: boolean
+          revenue_generated?: number
+          stackable?: boolean
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          tag_slugs?: string[] | null
+          target_scope?: string
+          timezone?: string | null
+          updated_at?: string
+          uses_count?: number
+          weekdays?: number[] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "campaigns_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -73160,6 +73566,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      validate_campaign_coupon: {
+        Args: { p_code: string; p_contact_id?: string; p_workspace_id: string }
+        Returns: {
+          campaign_id: string
+          coupon_id: string
+          mechanic: Database["public"]["Enums"]["campaign_mechanic"]
+          mechanic_config: Json
+          reason: string
+          valid: boolean
+        }[]
+      }
       validate_memory: {
         Args: {
           p_is_valid: boolean
@@ -73316,6 +73733,47 @@ export type Database = {
       builder_asset_type: "site" | "landing" | "funnel" | "form" | "newsletter"
       c2c_buyer_status: "active" | "suspended"
       c2c_seller_status: "pending" | "approved" | "rejected" | "suspended"
+      campaign_audience:
+        | "all"
+        | "new_customers"
+        | "returning"
+        | "vip"
+        | "segment"
+        | "b2b_tier"
+        | "geo"
+        | "birthday"
+        | "referral"
+        | "custom"
+      campaign_channel: "store_b2c" | "marketplace_c2c" | "b2b" | "crm" | "all"
+      campaign_mechanic:
+        | "percentage_discount"
+        | "fixed_amount_discount"
+        | "fixed_price"
+        | "bogo"
+        | "buy_n_get_n_pct"
+        | "bundle"
+        | "volume_tiered"
+        | "free_shipping"
+        | "gift_product"
+        | "cashback"
+        | "store_credit"
+        | "cart_progressive"
+        | "flash_sale"
+        | "happy_hour"
+        | "seasonal"
+        | "launch_price"
+        | "clearance"
+        | "first_purchase"
+        | "birthday"
+        | "referral"
+        | "loyalty"
+      campaign_status:
+        | "draft"
+        | "scheduled"
+        | "active"
+        | "paused"
+        | "expired"
+        | "archived"
       client_role:
         | "client_admin"
         | "client_financial"
@@ -73351,6 +73809,7 @@ export type Database = {
         | "renewed"
       conversation_rule_scope: "workspace" | "ai_persona" | "flow" | "channel"
       conversation_rule_type: "DO" | "DONT" | "STOP" | "REDIRECT"
+      coupon_type: "public" | "private" | "single_use" | "multi_use" | "auto"
       crm_entity_type: "contacts" | "opportunities"
       crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
@@ -73844,6 +74303,50 @@ export const Constants = {
       builder_asset_type: ["site", "landing", "funnel", "form", "newsletter"],
       c2c_buyer_status: ["active", "suspended"],
       c2c_seller_status: ["pending", "approved", "rejected", "suspended"],
+      campaign_audience: [
+        "all",
+        "new_customers",
+        "returning",
+        "vip",
+        "segment",
+        "b2b_tier",
+        "geo",
+        "birthday",
+        "referral",
+        "custom",
+      ],
+      campaign_channel: ["store_b2c", "marketplace_c2c", "b2b", "crm", "all"],
+      campaign_mechanic: [
+        "percentage_discount",
+        "fixed_amount_discount",
+        "fixed_price",
+        "bogo",
+        "buy_n_get_n_pct",
+        "bundle",
+        "volume_tiered",
+        "free_shipping",
+        "gift_product",
+        "cashback",
+        "store_credit",
+        "cart_progressive",
+        "flash_sale",
+        "happy_hour",
+        "seasonal",
+        "launch_price",
+        "clearance",
+        "first_purchase",
+        "birthday",
+        "referral",
+        "loyalty",
+      ],
+      campaign_status: [
+        "draft",
+        "scheduled",
+        "active",
+        "paused",
+        "expired",
+        "archived",
+      ],
       client_role: [
         "client_admin",
         "client_financial",
@@ -73883,6 +74386,7 @@ export const Constants = {
       ],
       conversation_rule_scope: ["workspace", "ai_persona", "flow", "channel"],
       conversation_rule_type: ["DO", "DONT", "STOP", "REDIRECT"],
+      coupon_type: ["public", "private", "single_use", "multi_use", "auto"],
       crm_entity_type: ["contacts", "opportunities"],
       crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
