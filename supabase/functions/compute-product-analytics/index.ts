@@ -32,15 +32,25 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'workspace_id obrigatório' }), { status: 400, headers: corsHeaders })
     }
 
-    // Super admin bypass
-    const { data: superRole } = await supabase
-      .from('user_roles')
-      .select('role')
+    // Super admin bypass — user_roles.user_id references profiles.id, not auth.users.id
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
       .eq('user_id', user.id)
-      .eq('role', 'super_admin')
       .maybeSingle()
 
-    if (!superRole) {
+    let isSuperAdmin = false
+    if (profile?.id) {
+      const { data: superRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', profile.id)
+        .eq('role', 'super_admin')
+        .maybeSingle()
+      isSuperAdmin = !!superRole
+    }
+
+    if (!isSuperAdmin) {
       // Verify workspace membership
       const { data: member } = await supabase
         .from('workspace_members')
