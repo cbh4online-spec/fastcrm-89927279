@@ -1,71 +1,60 @@
 ## Diagnóstico
 
-Hoje há **4 canais de publicação distintos** para um produto, mas estão dispersos pela UI e dois deles não são óbvios:
+Ao clicar em **"Criar Produto em Rascunho"** no passo 6 do wizard OCR, o INSERT na tabela `products` falha silenciosamente (toast de erro genérico).
 
-| Canal | Coluna/tabela | Como se ativa hoje | Estado |
-|---|---|---|---|
-| Portal B2B | `products.b2b_published` | Toggle existe no `CreateProductDialog` (linha 521) | OK |
-| Loja online | `products.store_published` | Toggle disperso, há mutação em `useProductsListState` | OK |
-| Ficha pública | `products.sheet_published` | Aba "Ficha" do `ProductDetailDialog` (`ProductSheetSettings`) | OK |
-| Catálogos digitais (folheáveis) | `product_catalog_items` (manual) | **Só via "Adicionar produtos" no editor de cada catálogo** | **Origem da confusão** |
+Causa raíz confirmada via inspeção do schema da BD:
 
-O utilizador esperava que ao publicar um produto, ele aparecesse automaticamente no menu **Catálogos**. Mas esses catálogos são curados manualmente — só aparecem produtos que tenham sido adicionados explicitamente. **Não há ponto único onde o utilizador veja "onde é que este produto está publicado" e possa decidir tudo a partir do produto.**
+```
+products_status_check: CHECK (status = ANY (ARRAY['active','archived']))
+```
 
-## Decisões de produto e UX
+O código em `src/pages/ProductOCRCreate.tsx` (linha 194) envia `status: "draft"`, mas a tabela `products` só aceita `active` ou `archived`. Resultado: violação de check constraint → INSERT rejeitado → erro Postgres devolvido ao cliente → toast "Erro ao criar produto".
 
-1. Criar um único componente reutilizável **`ProductPublishingPanel`** que mostra:
-   - 3 toggles (Portal B2B, Loja online, Ficha pública) com descrição clara e badge de canais ativos.
-   - Lista pesquisável dos catálogos digitais do workspace, com checkbox para adicionar/remover este produto.
-   - Atalho "Gerir catálogos" para a página de gestão.
-   - Link directo para a ficha pública quando publicada.
-2. Integrar o painel em **dois locais**:
-   - **`ProductDetailDialog`** — nova aba "Publicação" (entre "Ficha" e "Relações") com gravação imediata por toggle.
-   - **`CreateProductDialog`** — secção "Onde publicar" no fim do formulário (modo "local"); ao gravar o produto, aplicam-se os toggles e adiciona-se aos catálogos selecionados.
-3. **Indicador na lista** de produtos: melhorar a coluna "Loja Online" / "Portal B2B" existente para mostrar também "Ficha" e nº de catálogos digitais (badge clicável que abre directamente a aba Publicação).
-4. **Sincronia bidirecional**: se um produto for adicionado/removido no editor de um catálogo, o painel reflecte isso na próxima abertura (já garantido pela query `product-catalog-membership`).
+Não existe nenhuma coluna ou flag dedicada a "rascunho" na tabela `products`. O conceito de rascunho do wizard OCR precisa de um mapeamento próprio.
 
-## Estrutura técnica
+## Decisões de produto
 
-Sem alterações de DB — toda a infra existe (`product_catalogs`, `product_catalog_items` com unique `(catalog_id, product_id)`). Componentes:
-
-- **`src/components/products/ProductPublishingPanel.tsx`** (novo)
-  - Props: `productId | null`, `initial`, `onLocalChange`, `compact`.
-  - Modo edit: persiste cada toggle directamente em `products` e `product_catalog_items` com optimistic updates.
-  - Modo create: mantém estado local e expõe-no via `onLocalChange` para o `CreateProductDialog` aplicar no submit.
-  - Reutiliza `useWorkspace`, `supabase` client, queries com TanStack Query.
-
-- **`src/components/products/ProductDetailDialog.tsx`** (edit)
-  - Acrescentar `<TabsTrigger value="publishing">Publicação</TabsTrigger>` (linha ~340) com ícone `Send`/`Globe`.
-  - Adicionar `<TabsContent value="publishing">` que renderiza `<ProductPublishingPanel productId={productId} />`.
-
-- **`src/components/products/CreateProductDialog.tsx`** (edit)
-  - Importar `ProductPublishingPanel`.
-  - Adicionar estado `selectedCatalogIds` e usar `onLocalChange` para receber as decisões.
-  - Render do painel numa secção `Collapsible` "Onde publicar" antes dos botões de ação.
-  - No `handleSubmit`, depois do `useCreateProduct.mutateAsync`, fazer batch `insert` em `product_catalog_items` para os IDs selecionados (opcional — já temos `b2bPublished` no payload).
-
-- **`src/components/products/table/ProductsDataTable.tsx`** (pequeno ajuste)
-  - Coluna existente `b2b_published`/`store_published` continua. Adicionar coluna opcional `publishing_channels` que mostra ícones com tooltip resumindo os 4 canais.
+- O wizard OCR deve poder criar produtos **não publicados, em revisão**, sem violar o schema atual.
+- Não vale a pena alterar o `products_status_check` (afeta toda a aplicação). Em vez disso, mapear o conceito "rascunho OCR" às flags de visibilidade já existentes:
+  - `status = 'active'` (obrigatório pelo schema)
+  - `store_published = false`
+  - `b2b_published = false`
+  - `b2b_visible = false`
+  - `sheet_published = false`
+  - Sinalizar a origem/estado de revisão via `metadata.ocr_draft = true` e via `pending_fields` (já populado).
+- Assim o produto fica criado, **invisível em todas as lojas/canais**, e aparece nas listas internas como "a aguardar revisão" sem expor ao cliente final.
 
 ## Plano de implementação
 
-1. Criar `ProductPublishingPanel.tsx` com toggles + lista de catálogos + mutações.
-2. Integrar nova aba "Publicação" em `ProductDetailDialog`.
-3. Integrar secção "Onde publicar" em `CreateProductDialog` + lógica de aplicar catálogos no submit.
-4. Acrescentar coluna unificada de canais em `ProductsDataTable` (não-default; opt-in via preset).
-5. QA: criar produto novo com 2 catálogos selecionados, abrir "Catálogos" → confirmar inclusão; alterar toggles a partir do detalhe e confirmar que `usePartnerCatalog` / `useStoreProducts` reflectem; remover do catálogo via editor antigo e confirmar que o painel actualiza.
+### 1. `src/pages/ProductOCRCreate.tsx` — corrigir INSERT em `products`
+- Substituir `status: "draft"` por `status: "active"`.
+- Acrescentar flags de não publicação:
+  - `store_published: false`, `b2b_published: false`, `b2b_visible: false`, `sheet_published: false`.
+- Marcar `metadata.ocr_draft = true` e `metadata.review_required = pendingFields.length > 0` para distinguir nas listagens.
+- Garantir que `tax_rate_estimate_pct` respeita o intervalo 0–100 (já temos parse, mas adicionar clamp defensivo).
+
+### 2. Tratamento de erro mais informativo
+- No `catch`, fazer `console.error` com o objeto Postgres completo (`code`, `message`, `details`, `hint`).
+- Toast deve mostrar `e.message` em vez de string genérica quando disponível (já parcialmente feito), e adicionar fallback com `details/hint`.
+
+### 3. Redirecionamento pós-criação
+- Manter navegação para `/dashboard/products`, mas adicionar `?highlight=<id>&filter=ocr_draft` para o utilizador encontrar o produto recém-criado (não bloquear o fix se a página de listagem ainda não suportar — apenas query string informativa).
+
+### 4. QA
+- Criar produto a partir do wizard com EAN único e confirmar que aparece em `/dashboard/products` como inativo na loja.
+- Confirmar que `product_content`, `product_sales_support`, `product_validation_tasks` ficam ligados ao novo `product_id`.
+- Confirmar que `product_ocr_documents.product_id` fica preenchido.
+- Repetir com EAN duplicado → deve mostrar mensagem de duplicação.
+- Repetir sem PVP/Custo/IVA/Stock → produto criado + tarefas de validação pendentes geradas.
 
 ## Critérios de aceitação
 
-- Editar um produto abre uma aba "Publicação" que lista os 4 canais e o estado de inclusão em catálogos digitais.
-- Marcar um catálogo no painel adiciona o produto ao catálogo (e vice-versa) sem precisar de abrir o editor.
-- Criar um produto novo permite escolher canais e catálogos no mesmo formulário; tudo é persistido no submit.
-- O painel mostra um link directo para a ficha pública quando esta existe.
-- A lista de produtos pode mostrar uma coluna "Canais" com os 4 indicadores.
+- Carregar documento → wizard até passo 6 → "Criar Produto" → produto criado sem erro.
+- Produto não fica visível em B2C/B2B/site sheet (todas as flags publish a `false`).
+- Toast de sucesso e navegação para `/dashboard/products`.
+- Em caso de erro real, mensagem clara em vez de "Erro ao criar produto".
 
-## Riscos e pontos por validar
+## Riscos / por validar
 
-- **Permissões**: respeitar o sistema de permissões de campo (`store_published`, `b2b_published`, `sheet_published` já estão no catálogo) — se o user tiver `view`, o toggle aparece desativado.
-- **Conflito com `ProductSheetSettings`**: a aba "Ficha" continua a existir para configuração avançada (slug, watermark, etc.); a nova aba só faz o toggle on/off. Sem duplicação funcional, apenas atalho.
-- Confirmar que a unique constraint `(catalog_id, product_id)` é tratada graciosamente (já está no código com `if (!error.message.includes("duplicate"))`).
-- Não alterar comportamento dos catálogos existentes — a inclusão manual via editor continua a funcionar exactamente como hoje.
+- Se o utilizador esperar literalmente um estado `draft` visível na UI das listagens, será necessário num passo seguinte (fora deste fix) introduzir uma coluna `lifecycle_state` ou alargar o enum `status`. Para já, o filtro por `metadata->>'ocr_draft' = 'true'` cobre o caso.
+- `tax_rate_estimate_pct` tem CHECK 0–100; valores fora do intervalo (raros mas possíveis no OCR) provocariam novo erro — adicionamos clamp.
