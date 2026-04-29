@@ -19,7 +19,7 @@ export function MQPCFloatingButton() {
     } catch {
       /* noop */
     }
-    navigate("/mobile/products/quick-create");
+    navigate("/dashboard/products/quick-create");
   };
 
   return (
