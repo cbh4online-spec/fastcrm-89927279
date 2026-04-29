@@ -432,6 +432,9 @@ export function PricingTabContent() {
       {/* Price Lists Manager */}
       <Separator className="my-8" />
       <PriceListsManager />
+
+      <Separator className="my-8" />
+      <CampaignsManager />
     </div>
   );
 }
