@@ -63,6 +63,7 @@ export function ProductsList() {
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const comparisonProducts = useMemo(() => {
     if (!state.products) return [];
