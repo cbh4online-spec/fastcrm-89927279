@@ -50740,6 +50740,109 @@ export type Database = {
           },
         ]
       }
+      product_content: {
+        Row: {
+          benefits: Json | null
+          catalog_text: string | null
+          created_at: string
+          created_by: string | null
+          generated_by_ai: boolean | null
+          id: string
+          in_store_text: string | null
+          long_description: string | null
+          meta_description: string | null
+          olfactory_experience: string | null
+          precautions: string | null
+          product_id: string
+          proposal_text: string | null
+          reviewed: boolean | null
+          sensory_experience: string | null
+          seo_keywords: Json | null
+          seo_title: string | null
+          short_description: string | null
+          short_title: string | null
+          tags: Json | null
+          updated_at: string
+          usage_instructions: string | null
+          whatsapp_text: string | null
+          workspace_id: string
+        }
+        Insert: {
+          benefits?: Json | null
+          catalog_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          generated_by_ai?: boolean | null
+          id?: string
+          in_store_text?: string | null
+          long_description?: string | null
+          meta_description?: string | null
+          olfactory_experience?: string | null
+          precautions?: string | null
+          product_id: string
+          proposal_text?: string | null
+          reviewed?: boolean | null
+          sensory_experience?: string | null
+          seo_keywords?: Json | null
+          seo_title?: string | null
+          short_description?: string | null
+          short_title?: string | null
+          tags?: Json | null
+          updated_at?: string
+          usage_instructions?: string | null
+          whatsapp_text?: string | null
+          workspace_id: string
+        }
+        Update: {
+          benefits?: Json | null
+          catalog_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          generated_by_ai?: boolean | null
+          id?: string
+          in_store_text?: string | null
+          long_description?: string | null
+          meta_description?: string | null
+          olfactory_experience?: string | null
+          precautions?: string | null
+          product_id?: string
+          proposal_text?: string | null
+          reviewed?: boolean | null
+          sensory_experience?: string | null
+          seo_keywords?: Json | null
+          seo_title?: string | null
+          short_description?: string | null
+          short_title?: string | null
+          tags?: Json | null
+          updated_at?: string
+          usage_instructions?: string | null
+          whatsapp_text?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_content_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_content_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_content_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_creation_idempotency: {
         Row: {
           created_at: string
@@ -51359,6 +51462,107 @@ export type Database = {
           },
         ]
       }
+      product_kit_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_validated: boolean | null
+          kit_id: string
+          product_id: string | null
+          product_name_suggested: string | null
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_validated?: boolean | null
+          kit_id: string
+          product_id?: string | null
+          product_name_suggested?: string | null
+          quantity?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_validated?: boolean | null
+          kit_id?: string
+          product_id?: string | null
+          product_name_suggested?: string | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_kit_items_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "product_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_kit_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_kit_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_kit_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_kits: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          kit_type: string | null
+          name: string
+          source: string | null
+          status: string | null
+          updated_at: string
+          validation_status: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kit_type?: string | null
+          name: string
+          source?: string | null
+          status?: string | null
+          updated_at?: string
+          validation_status?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kit_type?: string | null
+          name?: string
+          source?: string | null
+          status?: string | null
+          updated_at?: string
+          validation_status?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       product_market_research: {
         Row: {
           competitors_json: Json | null
@@ -51439,6 +51643,97 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_ocr_documents: {
+        Row: {
+          ai_model: string | null
+          ai_tokens_used: number | null
+          created_at: string
+          created_by: string | null
+          field_confidence: Json | null
+          file_name: string
+          file_path: string
+          file_size_bytes: number | null
+          file_type: string
+          file_url: string
+          id: string
+          ocr_confidence: number | null
+          ocr_raw_text: string | null
+          ocr_structured_data: Json | null
+          processed_at: string | null
+          processing_error: string | null
+          processing_status: string
+          product_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_model?: string | null
+          ai_tokens_used?: number | null
+          created_at?: string
+          created_by?: string | null
+          field_confidence?: Json | null
+          file_name: string
+          file_path: string
+          file_size_bytes?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          ocr_confidence?: number | null
+          ocr_raw_text?: string | null
+          ocr_structured_data?: Json | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_status?: string
+          product_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_model?: string | null
+          ai_tokens_used?: number | null
+          created_at?: string
+          created_by?: string | null
+          field_confidence?: Json | null
+          file_name?: string
+          file_path?: string
+          file_size_bytes?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          ocr_confidence?: number | null
+          ocr_raw_text?: string | null
+          ocr_structured_data?: Json | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_status?: string
+          product_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_ocr_documents_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ocr_documents_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_ocr_documents_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -52019,36 +52314,63 @@ export type Database = {
       }
       product_relations: {
         Row: {
+          confidence: string | null
           created_at: string
+          created_by: string | null
           id: string
           is_active: boolean
           reason: string | null
+          related_product_name_suggested: string | null
+          relation_reason: string | null
           relation_type: string
           sort_order: number
+          source: string | null
           source_product_id: string
           target_product_id: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          validation_status: string | null
           workspace_id: string
         }
         Insert: {
+          confidence?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           is_active?: boolean
           reason?: string | null
+          related_product_name_suggested?: string | null
+          relation_reason?: string | null
           relation_type: string
           sort_order?: number
+          source?: string | null
           source_product_id: string
           target_product_id: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: string | null
           workspace_id: string
         }
         Update: {
+          confidence?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           is_active?: boolean
           reason?: string | null
+          related_product_name_suggested?: string | null
+          relation_reason?: string | null
           relation_type?: string
           sort_order?: number
+          source?: string | null
           source_product_id?: string
           target_product_id?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -52106,6 +52428,109 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_sales_support: {
+        Row: {
+          counter_script: string | null
+          created_at: string
+          created_by: string | null
+          do_not_sell_as: Json | null
+          faqs: Json | null
+          generated_by_ai: boolean | null
+          how_to_explain: string | null
+          id: string
+          ideal_customer: string | null
+          in_store_script: string | null
+          internal_notes: string | null
+          objections: Json | null
+          olfactory_arguments: Json | null
+          positioning: string | null
+          product_id: string
+          reviewed: boolean | null
+          sales_alerts: Json | null
+          sales_arguments: Json | null
+          sales_team_script: string | null
+          sell_as: Json | null
+          sensory_arguments: Json | null
+          updated_at: string
+          whatsapp_script: string | null
+          workspace_id: string
+        }
+        Insert: {
+          counter_script?: string | null
+          created_at?: string
+          created_by?: string | null
+          do_not_sell_as?: Json | null
+          faqs?: Json | null
+          generated_by_ai?: boolean | null
+          how_to_explain?: string | null
+          id?: string
+          ideal_customer?: string | null
+          in_store_script?: string | null
+          internal_notes?: string | null
+          objections?: Json | null
+          olfactory_arguments?: Json | null
+          positioning?: string | null
+          product_id: string
+          reviewed?: boolean | null
+          sales_alerts?: Json | null
+          sales_arguments?: Json | null
+          sales_team_script?: string | null
+          sell_as?: Json | null
+          sensory_arguments?: Json | null
+          updated_at?: string
+          whatsapp_script?: string | null
+          workspace_id: string
+        }
+        Update: {
+          counter_script?: string | null
+          created_at?: string
+          created_by?: string | null
+          do_not_sell_as?: Json | null
+          faqs?: Json | null
+          generated_by_ai?: boolean | null
+          how_to_explain?: string | null
+          id?: string
+          ideal_customer?: string | null
+          in_store_script?: string | null
+          internal_notes?: string | null
+          objections?: Json | null
+          olfactory_arguments?: Json | null
+          positioning?: string | null
+          product_id?: string
+          reviewed?: boolean | null
+          sales_alerts?: Json | null
+          sales_arguments?: Json | null
+          sales_team_script?: string | null
+          sell_as?: Json | null
+          sensory_arguments?: Json | null
+          updated_at?: string
+          whatsapp_script?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_sales_support_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_sales_support_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_sales_support_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -52616,6 +53041,91 @@ export type Database = {
           },
         ]
       }
+      product_validation_tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          current_value: string | null
+          due_date: string | null
+          field_label: string | null
+          field_name: string
+          id: string
+          notes: string | null
+          priority: string | null
+          product_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          suggested_value: string | null
+          task_type: string | null
+          updated_at: string
+          validation_status: string | null
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_value?: string | null
+          due_date?: string | null
+          field_label?: string | null
+          field_name: string
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          product_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          suggested_value?: string | null
+          task_type?: string | null
+          updated_at?: string
+          validation_status?: string | null
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_value?: string | null
+          due_date?: string | null
+          field_label?: string | null
+          field_name?: string
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          product_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          suggested_value?: string | null
+          task_type?: string | null
+          updated_at?: string
+          validation_status?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_validation_tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_validation_tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_validation_tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           attributes: Json
@@ -52871,6 +53381,7 @@ export type Database = {
           business_types: string[] | null
           category: string | null
           commercial_description: string | null
+          commercial_name: string | null
           commission_base: string
           commission_default: number | null
           commission_mode: string
@@ -52892,12 +53403,20 @@ export type Database = {
           direct_cost_mode: string
           discontinued_at: string | null
           discontinued_reason: string | null
+          distributor: string | null
           embedding: string | null
           height_cm: number | null
           id: string
           images: string[] | null
           included_quantity: number | null
+          is_cross_sell: boolean | null
+          is_cross_sell_validation_status: string | null
+          is_impulse_product: boolean | null
+          is_kit_candidate: boolean | null
+          is_kit_candidate_validation_status: string | null
           is_quick_created: boolean | null
+          is_seasonal: boolean | null
+          is_seasonal_validation_status: string | null
           is_trackable: boolean | null
           labor_hourly_rate: number | null
           labor_hours: number | null
@@ -52914,13 +53433,16 @@ export type Database = {
           min_order_quantity: number | null
           moq: number | null
           name: string
+          ocr_source_document_id: string | null
           operational_cost: number | null
           operational_cost_base: string
           operational_cost_mode: string
           order_multiple: number | null
+          origin_country: string | null
           pack_size: number | null
           package_type: string | null
           partner_notes: string | null
+          pending_fields: Json | null
           price_on_request: boolean
           primary_image_index: number | null
           product_condition: string | null
@@ -52966,9 +53488,11 @@ export type Database = {
           typical_duration_days: number | null
           unit_duration: number | null
           unit_name: string | null
+          unit_of_sale: string | null
           updated_at: string
           validity_days: number | null
           views_count: number
+          volume_text: string | null
           volume_unit: string | null
           volume_value: number | null
           weight: number | null
@@ -52993,6 +53517,7 @@ export type Database = {
           business_types?: string[] | null
           category?: string | null
           commercial_description?: string | null
+          commercial_name?: string | null
           commission_base?: string
           commission_default?: number | null
           commission_mode?: string
@@ -53014,12 +53539,20 @@ export type Database = {
           direct_cost_mode?: string
           discontinued_at?: string | null
           discontinued_reason?: string | null
+          distributor?: string | null
           embedding?: string | null
           height_cm?: number | null
           id?: string
           images?: string[] | null
           included_quantity?: number | null
+          is_cross_sell?: boolean | null
+          is_cross_sell_validation_status?: string | null
+          is_impulse_product?: boolean | null
+          is_kit_candidate?: boolean | null
+          is_kit_candidate_validation_status?: string | null
           is_quick_created?: boolean | null
+          is_seasonal?: boolean | null
+          is_seasonal_validation_status?: string | null
           is_trackable?: boolean | null
           labor_hourly_rate?: number | null
           labor_hours?: number | null
@@ -53036,13 +53569,16 @@ export type Database = {
           min_order_quantity?: number | null
           moq?: number | null
           name: string
+          ocr_source_document_id?: string | null
           operational_cost?: number | null
           operational_cost_base?: string
           operational_cost_mode?: string
           order_multiple?: number | null
+          origin_country?: string | null
           pack_size?: number | null
           package_type?: string | null
           partner_notes?: string | null
+          pending_fields?: Json | null
           price_on_request?: boolean
           primary_image_index?: number | null
           product_condition?: string | null
@@ -53088,9 +53624,11 @@ export type Database = {
           typical_duration_days?: number | null
           unit_duration?: number | null
           unit_name?: string | null
+          unit_of_sale?: string | null
           updated_at?: string
           validity_days?: number | null
           views_count?: number
+          volume_text?: string | null
           volume_unit?: string | null
           volume_value?: number | null
           weight?: number | null
@@ -53115,6 +53653,7 @@ export type Database = {
           business_types?: string[] | null
           category?: string | null
           commercial_description?: string | null
+          commercial_name?: string | null
           commission_base?: string
           commission_default?: number | null
           commission_mode?: string
@@ -53136,12 +53675,20 @@ export type Database = {
           direct_cost_mode?: string
           discontinued_at?: string | null
           discontinued_reason?: string | null
+          distributor?: string | null
           embedding?: string | null
           height_cm?: number | null
           id?: string
           images?: string[] | null
           included_quantity?: number | null
+          is_cross_sell?: boolean | null
+          is_cross_sell_validation_status?: string | null
+          is_impulse_product?: boolean | null
+          is_kit_candidate?: boolean | null
+          is_kit_candidate_validation_status?: string | null
           is_quick_created?: boolean | null
+          is_seasonal?: boolean | null
+          is_seasonal_validation_status?: string | null
           is_trackable?: boolean | null
           labor_hourly_rate?: number | null
           labor_hours?: number | null
@@ -53158,13 +53705,16 @@ export type Database = {
           min_order_quantity?: number | null
           moq?: number | null
           name?: string
+          ocr_source_document_id?: string | null
           operational_cost?: number | null
           operational_cost_base?: string
           operational_cost_mode?: string
           order_multiple?: number | null
+          origin_country?: string | null
           pack_size?: number | null
           package_type?: string | null
           partner_notes?: string | null
+          pending_fields?: Json | null
           price_on_request?: boolean
           primary_image_index?: number | null
           product_condition?: string | null
@@ -53210,9 +53760,11 @@ export type Database = {
           typical_duration_days?: number | null
           unit_duration?: number | null
           unit_name?: string | null
+          unit_of_sale?: string | null
           updated_at?: string
           validity_days?: number | null
           views_count?: number
+          volume_text?: string | null
           volume_unit?: string | null
           volume_value?: number | null
           weight?: number | null
