@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Edit2, Sparkles, Target, ArrowLeft, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Sparkles, Target, ArrowLeft, Check, X, ArrowUp, ArrowDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
