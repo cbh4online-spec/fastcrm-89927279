@@ -57,6 +57,7 @@ async function fetchPresentation(moduleSlug: string, tier: PresentationTier, lan
     .maybeSingle();
   if (primary) return primary as unknown as ModulePresentation;
 
+
   const { data: fallback } = await supabase
     .from("module_presentations" as any)
     .select("*")
