@@ -1,10 +1,12 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useModuleOnboarding } from "@/hooks/useModuleOnboarding";
 import { Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { ModulePresentationViewer } from "@/components/onboarding/ModulePresentationViewer";
+import { toast } from "sonner";
 
 interface ModuleGuardProps {
   moduleSlug: string;
@@ -16,16 +18,24 @@ interface ModuleGuardProps {
 /**
  * Guard component that checks if a workspace has access to a specific module.
  * If not installed, shows a message to install from marketplace.
+ * If installed but onboarding presentation not completed, forces the user to view it.
  */
-export function ModuleGuard({ 
-  moduleSlug, 
-  moduleName, 
+export function ModuleGuard({
+  moduleSlug,
+  moduleName,
   children,
-  fallbackPath = "/dashboard/marketplace"
+  fallbackPath = "/dashboard/marketplace",
 }: ModuleGuardProps) {
-  const { installedModuleIds, isLoading } = useWorkspaceModules();
+  const { installedModuleIds, isLoading: modulesLoading } = useWorkspaceModules();
+  const {
+    slides,
+    requiresOnboarding,
+    isLoading: onboardingLoading,
+    completeMutation,
+    isSuperAdmin,
+  } = useModuleOnboarding(moduleSlug);
 
-  if (isLoading) {
+  if (modulesLoading || onboardingLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[50vh]">
@@ -55,16 +65,33 @@ export function ModuleGuard({
               <p className="text-sm text-muted-foreground text-center">
                 Para aceder a esta funcionalidade, instale o módulo através do Marketplace.
               </p>
-              <Button 
-                onClick={() => window.location.href = fallbackPath}
-                className="w-full"
-              >
+              <Button onClick={() => (window.location.href = fallbackPath)} className="w-full">
                 Ir para Marketplace
               </Button>
             </CardContent>
           </Card>
         </div>
       </DashboardLayout>
+    );
+  }
+
+  if (requiresOnboarding) {
+    return (
+      <ModulePresentationViewer
+        moduleName={moduleName}
+        slides={slides}
+        isSuperAdmin={isSuperAdmin}
+        isSubmitting={completeMutation.isPending}
+        onComplete={async (payload) => {
+          try {
+            await completeMutation.mutateAsync(payload);
+            toast.success(`Bem-vindo a ${moduleName}!`);
+          } catch (err) {
+            toast.error("Não foi possível registar a conclusão. Tenta novamente.");
+            throw err;
+          }
+        }}
+      />
     );
   }
 
