@@ -70284,6 +70284,7 @@ export type Database = {
       }
       workspace_members: {
         Row: {
+          commercial_profile: Database["public"]["Enums"]["commercial_profile"]
           created_at: string
           id: string
           role: Database["public"]["Enums"]["workspace_role"]
@@ -70292,6 +70293,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          commercial_profile?: Database["public"]["Enums"]["commercial_profile"]
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["workspace_role"]
@@ -70300,6 +70302,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          commercial_profile?: Database["public"]["Enums"]["commercial_profile"]
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["workspace_role"]
@@ -73780,6 +73783,7 @@ export type Database = {
         | "client_operational"
         | "client_viewer"
       client_user_status: "active" | "suspended" | "pending"
+      commercial_profile: "vendedor" | "gestor" | "diretor" | "ceo"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -74354,6 +74358,7 @@ export const Constants = {
         "client_viewer",
       ],
       client_user_status: ["active", "suspended", "pending"],
+      commercial_profile: ["vendedor", "gestor", "diretor", "ceo"],
       condition_operator: [
         "equals",
         "not_equals",

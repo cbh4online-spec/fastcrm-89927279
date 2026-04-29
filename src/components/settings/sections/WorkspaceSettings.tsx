@@ -82,6 +82,15 @@ const roleColors: Record<WorkspaceRole, string> = {
 
 const editableRoles: WorkspaceRole[] = ["admin", "agent", "viewer"];
 
+export type CommercialProfile = "vendedor" | "gestor" | "diretor" | "ceo";
+
+const commercialProfileOptions: { value: CommercialProfile; label: string; description: string }[] = [
+  { value: "vendedor", label: "Vendedor", description: "Foco individual em vendas e quota" },
+  { value: "gestor", label: "Gestor", description: "Coordena equipa de vendas" },
+  { value: "diretor", label: "Diretor", description: "Direção comercial e estratégia" },
+  { value: "ceo", label: "CEO", description: "Liderança executiva da empresa" },
+];
+
 export function WorkspaceSettings({ searchQuery = "", matchedSections }: WorkspaceSettingsProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -122,6 +131,9 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const [manualEmail, setManualEmail] = useState("");
   const [manualRole, setManualRole] = useState<WorkspaceRole>("agent");
   const [editRole, setEditRole] = useState<WorkspaceRole>("agent");
+  const [inviteCommercialProfile, setInviteCommercialProfile] = useState<CommercialProfile>("vendedor");
+  const [manualCommercialProfile, setManualCommercialProfile] = useState<CommercialProfile>("vendedor");
+  const [editCommercialProfile, setEditCommercialProfile] = useState<CommercialProfile>("vendedor");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load workspace details
@@ -177,6 +189,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
         body: {
           email: inviteEmail.trim(),
           role: inviteRole,
+          commercial_profile: inviteCommercialProfile,
           workspaceId: currentWorkspace.id,
           domain: getPublicBaseUrl(),
         },
@@ -199,6 +212,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       setInviteDialogOpen(false);
       setInviteEmail("");
       setInviteRole("agent");
+      setInviteCommercialProfile("vendedor");
     } catch (error: any) {
       console.warn('[WORKSPACES] INVITE_FAILED', error.message || error);
       toast.error(error.message || "Erro ao enviar convite");
@@ -228,6 +242,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
             workspace_id: currentWorkspace.id,
             user_id: existingProfile.user_id,
             role: manualRole,
+            commercial_profile: manualCommercialProfile,
           });
 
         if (memberError) {
@@ -259,6 +274,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       setManualName("");
       setManualEmail("");
       setManualRole("agent");
+      setManualCommercialProfile("vendedor");
     } catch (error) {
       console.warn('[WORKSPACES] ADD_MEMBER_FAILED', (error as Error).message);
       toast.error("Erro ao adicionar membro");
@@ -274,7 +290,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
     try {
       const { error } = await supabase
         .from("workspace_members")
-        .update({ role: editRole })
+        .update({ role: editRole, commercial_profile: editCommercialProfile })
         .eq("id", selectedMember.id);
 
       if (error) throw error;
@@ -338,6 +354,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const openEditDialog = (member: WorkspaceMember) => {
     setSelectedMember(member);
     setEditRole(member.role);
+    setEditCommercialProfile(((member as any).commercial_profile as CommercialProfile) || "vendedor");
     setEditMemberDialogOpen(true);
   };
 
@@ -780,6 +797,22 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="inviteCommercialProfile">Perfil comercial</Label>
+              <Select value={inviteCommercialProfile} onValueChange={(v) => setInviteCommercialProfile(v as CommercialProfile)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {commercialProfileOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex flex-col">
+                        <span>{opt.label}</span>
+                        <span className="text-xs text-muted-foreground">{opt.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
@@ -827,6 +860,22 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="manualCommercialProfile">Perfil comercial</Label>
+              <Select value={manualCommercialProfile} onValueChange={(v) => setManualCommercialProfile(v as CommercialProfile)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {commercialProfileOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex flex-col">
+                        <span>{opt.label}</span>
+                        <span className="text-xs text-muted-foreground">{opt.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddManualDialogOpen(false)}>
@@ -859,6 +908,22 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                   {editableRoles.map((role) => (
                     <SelectItem key={role} value={role}>
                       {roleLabels[role]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Perfil comercial</Label>
+              <Select value={editCommercialProfile} onValueChange={(v) => setEditCommercialProfile(v as CommercialProfile)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {commercialProfileOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex flex-col">
+                        <span>{opt.label}</span>
+                        <span className="text-xs text-muted-foreground">{opt.description}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
