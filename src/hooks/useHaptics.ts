@@ -26,7 +26,6 @@ function vibrate(pattern: number | number[]) {
   // Respect users that opted out of motion / can break in iframes
   try {
     if ("vibrate" in navigator) {
-      // @ts-expect-error vibrate exists at runtime in mobile browsers
       navigator.vibrate(pattern);
     }
   } catch {
