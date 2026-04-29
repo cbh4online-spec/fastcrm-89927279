@@ -1,0 +1,383 @@
+import { useState, useCallback } from "react";
+import { Helmet } from "react-helmet-async";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { ScanText, FileText, ClipboardList, Sparkles, MessageSquare, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { StepUpload } from "@/components/products/ocr/StepUpload";
+import { StepReviewOCR } from "@/components/products/ocr/StepReviewOCR";
+import { StepProductSheet } from "@/components/products/ocr/StepProductSheet";
+import { StepContent } from "@/components/products/ocr/StepContent";
+import { StepSalesSupport } from "@/components/products/ocr/StepSalesSupport";
+import { StepSummary } from "@/components/products/ocr/StepSummary";
+import {
+  emptyContent,
+  emptyProductSheet,
+  emptySalesSupport,
+  type OCRDocument,
+  type OCRStructuredData,
+  type ProductContentData,
+  type ProductSheetData,
+  type SalesSupportData,
+} from "@/components/products/ocr/types";
+import { useNavigate } from "react-router-dom";
+
+const STEPS = [
+  { id: 1, title: "Upload", icon: FileText, desc: "Carregar documento" },
+  { id: 2, title: "Leitura OCR", icon: ScanText, desc: "Rever extração" },
+  { id: 3, title: "Ficha técnica", icon: ClipboardList, desc: "Dados do produto" },
+  { id: 4, title: "Conteúdo", icon: Sparkles, desc: "Loja e catálogo" },
+  { id: 5, title: "Argumentário", icon: MessageSquare, desc: "Apoio à venda" },
+  { id: 6, title: "Resumo", icon: CheckCircle2, desc: "Validar e criar" },
+];
+
+export default function ProductOCRCreate() {
+  const { currentWorkspace } = useWorkspace();
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [doc, setDoc] = useState<OCRDocument | null>(null);
+  const [structured, setStructured] = useState<OCRStructuredData | null>(null);
+  const [sheet, setSheet] = useState<ProductSheetData>(emptyProductSheet());
+  const [content, setContent] = useState<ProductContentData>(emptyContent());
+  const [sales, setSales] = useState<SalesSupportData>(emptySalesSupport());
+  const [creating, setCreating] = useState(false);
+
+  // Após extração, mapear automático para sheet
+  const applyExtractionToSheet = useCallback((data: OCRStructuredData) => {
+    setStructured(data);
+    setSheet((prev) => ({
+      ...prev,
+      name: data.general?.name ?? prev.name,
+      commercial_name: data.general?.commercial_name ?? prev.commercial_name,
+      brand: data.general?.brand ?? prev.brand,
+      line: data.general?.product_line ?? prev.line,
+      category: data.general?.category ?? prev.category,
+      subcategory: data.general?.subcategory ?? prev.subcategory,
+      product_type: data.general?.product_type ?? prev.product_type,
+      volume_text: data.identification?.volume ?? prev.volume_text,
+      unit_of_sale: data.identification?.unit ?? prev.unit_of_sale,
+      barcode: data.identification?.ean ?? prev.barcode,
+      sku: data.identification?.sku ?? prev.sku,
+      origin_country: data.identification?.origin_country ?? prev.origin_country,
+      distributor: data.identification?.distributor ?? prev.distributor,
+    }));
+  }, []);
+
+  const next = () => setStep((s) => Math.min(6, s + 1));
+  const prev = () => setStep((s) => Math.max(1, s - 1));
+
+  const generateContent = useCallback(async () => {
+    if (!structured) {
+      toast.error("Faz primeiro a leitura do documento.");
+      return;
+    }
+    toast.loading("A gerar conteúdo comercial…", { id: "gen" });
+    try {
+      const { data, error } = await supabase.functions.invoke("product-ocr-generate-content", {
+        body: { product_data: { sheet, ocr: structured } },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const gen = data?.generated;
+      if (gen?.content) {
+        setContent({
+          short_title: gen.content.short_title ?? "",
+          seo_title: gen.content.seo_title ?? "",
+          short_description: gen.content.short_description ?? "",
+          long_description: gen.content.long_description ?? "",
+          benefits: gen.content.benefits ?? [],
+          usage_instructions: gen.content.usage_instructions ?? "",
+          precautions: gen.content.precautions ?? "",
+          meta_description: gen.content.meta_description ?? "",
+          seo_keywords: gen.content.seo_keywords ?? [],
+          catalog_text: gen.content.catalog_text ?? "",
+          proposal_text: gen.content.proposal_text ?? "",
+          whatsapp_text: gen.content.whatsapp_text ?? "",
+          in_store_text: gen.content.in_store_text ?? "",
+          sensory_experience: gen.content.sensory_experience ?? "",
+          olfactory_experience: gen.content.olfactory_experience ?? "",
+          tags: gen.content.tags ?? [],
+        });
+      }
+      if (gen?.sales_support) {
+        setSales({
+          positioning: gen.sales_support.positioning ?? "",
+          ideal_customer: gen.sales_support.ideal_customer ?? "",
+          sales_arguments: gen.sales_support.sales_arguments ?? [],
+          sensory_arguments: gen.sales_support.sensory_arguments ?? [],
+          olfactory_arguments: gen.sales_support.olfactory_arguments ?? [],
+          how_to_explain: gen.sales_support.how_to_explain ?? "",
+          faqs: gen.sales_support.faqs ?? [],
+          objections: gen.sales_support.objections ?? [],
+          sales_alerts: gen.sales_support.sales_alerts ?? [],
+          do_not_sell_as: gen.sales_support.do_not_sell_as ?? [],
+          sell_as: gen.sales_support.sell_as ?? [],
+          counter_script: gen.sales_support.counter_script ?? "",
+          whatsapp_script: gen.sales_support.whatsapp_script ?? "",
+          in_store_script: gen.sales_support.in_store_script ?? "",
+          sales_team_script: gen.sales_support.sales_team_script ?? "",
+          internal_notes: gen.sales_support.internal_notes ?? "",
+        });
+      }
+      toast.success("Conteúdo gerado com sucesso.", { id: "gen" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao gerar conteúdo.", { id: "gen" });
+    }
+  }, [structured, sheet]);
+
+  const computePendingFields = useCallback((): string[] => {
+    const pending: string[] = [];
+    if (!sheet.base_price) pending.push("PVP");
+    if (!sheet.direct_cost) pending.push("Preço de custo");
+    if (!sheet.tax_rate_estimate_pct) pending.push("IVA");
+    if (!sheet.stock_quantity) pending.push("Stock inicial");
+    if (sheet.is_seasonal_validation_status === "pending" && sheet.is_seasonal) pending.push("Classificação sazonal");
+    if (sheet.is_cross_sell_validation_status === "pending" && sheet.is_cross_sell) pending.push("Sugestões de venda cruzada");
+    if (sheet.is_kit_candidate_validation_status === "pending" && sheet.is_kit_candidate) pending.push("Sugestões de kit");
+    return pending;
+  }, [sheet]);
+
+  const createProduct = useCallback(async () => {
+    if (!currentWorkspace) {
+      toast.error("Workspace não disponível.");
+      return;
+    }
+    if (!sheet.name.trim()) {
+      toast.error("O nome do produto é obrigatório.");
+      return;
+    }
+    setCreating(true);
+    try {
+      // 1. Verificar EAN duplicado
+      if (sheet.barcode?.trim()) {
+        const { data: existing } = await supabase
+          .from("products")
+          .select("id, name")
+          .eq("workspace_id", currentWorkspace.id)
+          .eq("barcode", sheet.barcode.trim())
+          .limit(1)
+          .maybeSingle();
+        if (existing) {
+          toast.error(`Já existe um produto com EAN ${sheet.barcode}: ${existing.name}. Validar antes de criar.`);
+          setCreating(false);
+          return;
+        }
+      }
+
+      const pendingFields = computePendingFields();
+      const userId = (await supabase.auth.getUser()).data.user?.id ?? null;
+
+      const numOrNull = (v: string) => {
+        if (!v) return null;
+        const n = parseFloat(v.replace(",", "."));
+        return isFinite(n) ? n : null;
+      };
+      const intOrNull = (v: string) => {
+        if (!v) return null;
+        const n = parseInt(v, 10);
+        return isFinite(n) ? n : null;
+      };
+
+      // 2. Criar produto em rascunho
+      const { data: prod, error: prodErr } = await supabase
+        .from("products")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          name: sheet.name.trim(),
+          commercial_name: sheet.commercial_name || null,
+          product_type: sheet.product_type || "physical",
+          status: "draft",
+          category: sheet.category || null,
+          subcategory: sheet.subcategory || null,
+          line: sheet.line || null,
+          short_description: content.short_description || null,
+          commercial_description: content.long_description || null,
+          benefits: content.benefits?.length ? content.benefits : null,
+          sku: sheet.sku || null,
+          barcode: sheet.barcode || null,
+          volume_text: sheet.volume_text || null,
+          unit_of_sale: sheet.unit_of_sale || null,
+          origin_country: sheet.origin_country || null,
+          distributor: sheet.distributor || null,
+          direct_cost: numOrNull(sheet.direct_cost),
+          base_price: numOrNull(sheet.base_price),
+          tax_rate_estimate_pct: numOrNull(sheet.tax_rate_estimate_pct),
+          stock_quantity: intOrNull(sheet.stock_quantity) ?? 0,
+          low_stock_threshold: intOrNull(sheet.low_stock_threshold),
+          is_seasonal: sheet.is_seasonal,
+          is_seasonal_validation_status: sheet.is_seasonal_validation_status,
+          is_impulse_product: sheet.is_impulse_product,
+          is_cross_sell: sheet.is_cross_sell,
+          is_cross_sell_validation_status: sheet.is_cross_sell_validation_status,
+          is_kit_candidate: sheet.is_kit_candidate,
+          is_kit_candidate_validation_status: sheet.is_kit_candidate_validation_status,
+          pending_fields: pendingFields,
+          ocr_source_document_id: doc?.id ?? null,
+          tags: content.tags?.length ? content.tags : null,
+          created_by: userId,
+          created_channel: "ocr_wizard",
+          metadata: {
+            ocr: {
+              document_id: doc?.id,
+              confidence: doc?.ocr_confidence,
+              field_confidence: doc?.field_confidence,
+            },
+            sensory_experience: content.sensory_experience || null,
+            olfactory_experience: content.olfactory_experience || null,
+          },
+        })
+        .select("id")
+        .single();
+      if (prodErr) throw prodErr;
+      const productId = prod.id;
+
+      // 3. Conteúdo
+      await supabase.from("product_content").insert({
+        workspace_id: currentWorkspace.id,
+        product_id: productId,
+        ...content,
+        created_by: userId,
+      });
+
+      // 4. Sales support
+      await supabase.from("product_sales_support").insert({
+        workspace_id: currentWorkspace.id,
+        product_id: productId,
+        ...sales,
+        created_by: userId,
+      });
+
+      // 5. Ligar documento OCR ao produto
+      if (doc?.id) {
+        await supabase.from("product_ocr_documents").update({ product_id: productId }).eq("id", doc.id);
+      }
+
+      // 6. Tarefas de validação para campos pendentes
+      if (pendingFields.length > 0) {
+        const tasks = pendingFields.map((f) => ({
+          workspace_id: currentWorkspace.id,
+          product_id: productId,
+          field_name: f.toLowerCase().replace(/\s+/g, "_"),
+          field_label: f,
+          task_type: "pending_field",
+          validation_status: "pending",
+          priority: "medium",
+          created_by: userId,
+        }));
+        await supabase.from("product_validation_tasks").insert(tasks);
+      }
+
+      toast.success("Produto criado em rascunho com sucesso.");
+      navigate(`/dashboard/products`);
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Erro ao criar produto.");
+    } finally {
+      setCreating(false);
+    }
+  }, [currentWorkspace, sheet, content, sales, doc, computePendingFields, navigate]);
+
+  const progress = (step / 6) * 100;
+
+  return (
+    <DashboardLayout>
+      <Helmet>
+        <title>Criar Produto por OCR | FastCRM</title>
+      </Helmet>
+
+      <div className="container mx-auto py-6 px-4 max-w-6xl space-y-6">
+        <header>
+          <h1 className="text-2xl font-bold tracking-tight">Criação Inteligente de Produtos por OCR</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Carrega um PDF, rótulo, fotografia ou ficha técnica. A IA lê o documento, organiza os dados e prepara conteúdo comercial para validação.
+          </p>
+        </header>
+
+        {/* Stepper */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+            {STEPS.map((s) => {
+              const Icon = s.icon;
+              const active = step === s.id;
+              const done = step > s.id;
+              return (
+                <div key={s.id} className="flex flex-col items-center min-w-[80px] flex-1">
+                  <div
+                    className={`h-9 w-9 rounded-full flex items-center justify-center border-2 transition-colors ${
+                      done
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : active
+                        ? "border-primary text-primary bg-primary/5"
+                        : "border-muted text-muted-foreground"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <p className={`text-xs mt-2 font-medium text-center ${active ? "text-primary" : "text-muted-foreground"}`}>
+                    {s.title}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          <Progress value={progress} className="h-1 mt-2" />
+        </Card>
+
+        {/* Conteúdo de cada passo */}
+        <div className="min-h-[400px]">
+          {step === 1 && (
+            <StepUpload
+              workspaceId={currentWorkspace?.id ?? ""}
+              currentDoc={doc}
+              onUploaded={(d) => { setDoc(d); }}
+              onExtracted={(d, data) => { setDoc(d); applyExtractionToSheet(data); next(); }}
+            />
+          )}
+          {step === 2 && doc && structured && (
+            <StepReviewOCR doc={doc} data={structured} onChange={setStructured} />
+          )}
+          {step === 3 && (
+            <StepProductSheet sheet={sheet} onChange={setSheet} fieldConfidence={doc?.field_confidence ?? {}} />
+          )}
+          {step === 4 && (
+            <StepContent content={content} onChange={setContent} onGenerate={generateContent} />
+          )}
+          {step === 5 && (
+            <StepSalesSupport sales={sales} onChange={setSales} onGenerate={generateContent} />
+          )}
+          {step === 6 && (
+            <StepSummary
+              sheet={sheet}
+              content={content}
+              sales={sales}
+              pendingFields={computePendingFields()}
+              creating={creating}
+              onCreate={createProduct}
+            />
+          )}
+        </div>
+
+        {/* Navegação */}
+        <div className="flex items-center justify-between pt-4 border-t">
+          <Button variant="outline" onClick={prev} disabled={step === 1}>
+            <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+          </Button>
+          <p className="text-xs text-muted-foreground">Passo {step} de 6</p>
+          {step < 6 ? (
+            <Button onClick={next} disabled={step === 1 && !doc}>
+              Seguinte <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button onClick={createProduct} disabled={creating}>
+              {creating ? "A criar…" : "Criar Produto"}
+            </Button>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
