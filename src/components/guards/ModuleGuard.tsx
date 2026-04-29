@@ -15,11 +15,6 @@ interface ModuleGuardProps {
   fallbackPath?: string;
 }
 
-/**
- * Guard component that checks if a workspace has access to a specific module.
- * If not installed, shows a message to install from marketplace.
- * If installed but onboarding presentation not completed, forces the user to view it.
- */
 export function ModuleGuard({
   moduleSlug,
   moduleName,
@@ -28,12 +23,15 @@ export function ModuleGuard({
 }: ModuleGuardProps) {
   const { installedModuleIds, isLoading: modulesLoading } = useWorkspaceModules();
   const {
+    presentation,
     slides,
+    quiz,
     requiresOnboarding,
     isLoading: onboardingLoading,
     completeMutation,
+    submitQuizMutation,
     isSuperAdmin,
-  } = useModuleOnboarding(moduleSlug);
+  } = useModuleOnboarding(moduleSlug, "welcome");
 
   if (modulesLoading || onboardingLoading) {
     return (
@@ -80,14 +78,33 @@ export function ModuleGuard({
       <ModulePresentationViewer
         moduleName={moduleName}
         slides={slides}
+        quiz={quiz}
+        minScorePercent={presentation?.min_score_percent ?? 70}
+        xpReward={presentation?.xp_reward ?? 50}
+        allowLiveMode={presentation?.allow_live_mode ?? true}
         isSuperAdmin={isSuperAdmin}
         isSubmitting={completeMutation.isPending}
+        isQuizSubmitting={submitQuizMutation.isPending}
         onComplete={async (payload) => {
           try {
             await completeMutation.mutateAsync(payload);
-            toast.success(`Bem-vindo a ${moduleName}!`);
+            if (quiz.length === 0) toast.success(`Bem-vindo a ${moduleName}!`);
           } catch (err) {
             toast.error("Não foi possível registar a conclusão. Tenta novamente.");
+            throw err;
+          }
+        }}
+        onSubmitQuiz={async (answers) => {
+          try {
+            const r = await submitQuizMutation.mutateAsync(answers);
+            if (r?.passed) {
+              toast.success(`Quiz aprovado! +${r.xp_awarded} XP`);
+            } else {
+              toast.error(`Pontuação insuficiente (${r?.score_percent}%). Revê o guia e tenta novamente.`);
+            }
+            return r;
+          } catch (err) {
+            toast.error("Não foi possível submeter o quiz.");
             throw err;
           }
         }}
@@ -98,9 +115,6 @@ export function ModuleGuard({
   return <>{children}</>;
 }
 
-/**
- * Higher-order component for wrapping page components with module protection.
- */
 export function withModuleGuard<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   moduleSlug: string,
