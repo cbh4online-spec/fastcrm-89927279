@@ -222,6 +222,11 @@ export function FieldPermissionsDialog({
   const Icon = selectedObjectData?.icon || Building2;
 
   return (
+    <>
+    <ProductFieldPermissionsDialog
+      open={productsOpen}
+      onOpenChange={setProductsOpen}
+    />
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
@@ -361,5 +366,6 @@ export function FieldPermissionsDialog({
         </ScrollArea>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
