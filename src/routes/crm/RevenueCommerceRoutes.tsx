@@ -14,6 +14,7 @@ const BackgroundJobsPage = lazy(() => import("@/pages/BackgroundJobsPage"));
 const CommandCenterV2Page = lazy(() => import("@/pages/CommandCenterV2Page"));
 const FastClubApplicationsPage = lazy(() => import("@/pages/fastclub/FastClubApplicationsPage"));
 const MobileQuickProductCreate = lazy(() => import("@/pages/MobileQuickProductCreate"));
+const ProductOCRCreate = lazy(() => import("@/pages/ProductOCRCreate"));
 
 export function RevenueCommerceRoutes() {
   return (
