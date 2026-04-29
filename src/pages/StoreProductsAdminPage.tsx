@@ -67,6 +67,9 @@ export default function StoreProductsAdminPage() {
             <Button variant="outline" onClick={() => setAiDialogOpen(true)} className="gap-2">
               <Sparkles className="h-4 w-4" /> Criar com IA
             </Button>
+            <Button variant="outline" onClick={() => navigate("/dashboard/products/ocr-create")} className="gap-2">
+              <ScanText className="h-4 w-4" /> Criar por OCR
+            </Button>
             <Button variant="ghost" onClick={() => navigate("/dashboard/products/quick-create")} className="gap-2">
               <Package className="h-4 w-4" /> Criar Rápido
             </Button>
