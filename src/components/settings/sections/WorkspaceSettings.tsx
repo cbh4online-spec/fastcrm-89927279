@@ -818,10 +818,19 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
           <DialogHeader>
             <DialogTitle>Adicionar Membro</DialogTitle>
             <DialogDescription>
-              Adicione um utilizador existente ao workspace.
+              Crie um novo utilizador ou adicione um existente ao workspace.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="manualName">Nome completo</Label>
+              <Input
+                id="manualName"
+                placeholder="João Silva"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="manualEmail">Email do utilizador</Label>
               <Input
@@ -831,6 +840,19 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 value={manualEmail}
                 onChange={(e) => setManualEmail(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="manualPassword">Palavra-passe (opcional)</Label>
+              <Input
+                id="manualPassword"
+                type="text"
+                placeholder="Deixe vazio para gerar automaticamente"
+                value={manualPassword}
+                onChange={(e) => setManualPassword(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Mínimo 8 caracteres. Se vazia, será gerada automaticamente.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="manualRole">Cargo</Label>
