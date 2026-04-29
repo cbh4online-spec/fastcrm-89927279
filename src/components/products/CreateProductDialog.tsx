@@ -591,6 +591,8 @@ export function CreateProductDialog({
       console.error("[Publishing] applyPendingCatalogs:", e);
     }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const priceValue = parseFloat(basePrice) || 0;
