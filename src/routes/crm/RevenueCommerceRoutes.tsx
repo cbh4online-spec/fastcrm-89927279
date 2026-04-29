@@ -49,6 +49,11 @@ export function RevenueCommerceRoutes() {
       <Route path="/mobile/products/quick-create" element={<MobileQuickProductCreate />} />
       <Route path="/mobile/products/quick-create/*" element={<MobileQuickProductCreate />} />
       <Route path="/products/quick-create" element={<MobileQuickProductCreate />} />
+
+      {/* Criação Inteligente de Produtos por OCR */}
+      <Route path="/dashboard/products/ocr-create" element={<ProductOCRCreate />} />
+      <Route path="/dashboard/products/ocr-create/*" element={<ProductOCRCreate />} />
+      <Route path="/products/ocr-create" element={<ProductOCRCreate />} />
     </>
   );
 }
