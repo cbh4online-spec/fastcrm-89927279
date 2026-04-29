@@ -64,6 +64,8 @@ import { ProductImage360Viewer } from "./ProductImage360Viewer";
 import { ProductVariantsManager } from "./ProductVariantsManager";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
 import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
+import { ProductPublishingPanel } from "./ProductPublishingPanel";
+import { supabase } from "@/integrations/supabase/client";
 
 const DRAFT_STORAGE_KEY = "product-form-draft";
 
@@ -158,6 +160,9 @@ export function CreateProductDialog({
   const [scannerOpen, setScannerOpen] = useState(false);
   // B2B Portal visibility
   const [b2bPublished, setB2bPublished] = useState(true);
+  const [storePublished, setStorePublished] = useState(false);
+  const [sheetPublished, setSheetPublished] = useState(false);
+  const [pendingCatalogIds, setPendingCatalogIds] = useState<string[]>([]);
   // Location
   const [location, setLocation] = useState("");
   const [physical, setPhysical] = useState<PhysicalAttributesValue>(EMPTY_PHYSICAL);
