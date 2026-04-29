@@ -16,13 +16,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Info, Upload, Trash2, Save, Loader2, LogOut } from "lucide-react";
+import { Info, Upload, Trash2, Save, Loader2, LogOut, KeyRound } from "lucide-react";
+import { ChangePasswordDialog } from "../ChangePasswordDialog";
 
 export function ProfileSettings() {
   const { t } = useTranslation("settings");
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [firstName, setFirstName] = useState(
     user?.user_metadata?.first_name || user?.user_metadata?.full_name?.split(" ")[0] || ""
   );
@@ -193,6 +195,20 @@ export function ProfileSettings() {
 
       <Separator />
 
+      {/* Security - Change password */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">Segurança</h3>
+        <p className="text-xs text-muted-foreground">
+          Atualize a sua palavra-passe regularmente para manter a conta segura.
+        </p>
+        <Button variant="outline" size="sm" onClick={() => setChangePasswordOpen(true)}>
+          <KeyRound className="mr-2 h-4 w-4" />
+          Alterar palavra-passe
+        </Button>
+      </div>
+
+      <Separator />
+
       {/* Logout */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-destructive">{t("profile_logout")}</h3>
@@ -202,6 +218,11 @@ export function ProfileSettings() {
           {t("profile_logout")}
         </Button>
       </div>
+
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+      />
     </div>
   );
 }
