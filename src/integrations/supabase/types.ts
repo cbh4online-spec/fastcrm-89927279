@@ -42747,6 +42747,99 @@ export type Database = {
           },
         ]
       }
+      module_onboarding_completions: {
+        Row: {
+          completed_at: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          module_slug: string
+          skipped: boolean
+          slides_viewed: number
+          total_slides: number
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          module_slug: string
+          skipped?: boolean
+          slides_viewed?: number
+          total_slides?: number
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          module_slug?: string
+          skipped?: boolean
+          slides_viewed?: number
+          total_slides?: number
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      module_onboarding_presentations: {
+        Row: {
+          body: string | null
+          bullets: Json
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_url: string | null
+          heading: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          lang: string
+          min_duration_seconds: number
+          module_slug: string
+          slide_order: number
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          bullets?: Json
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          heading: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          lang?: string
+          min_duration_seconds?: number
+          module_slug: string
+          slide_order?: number
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          bullets?: Json
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          heading?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          lang?: string
+          min_duration_seconds?: number
+          module_slug?: string
+          slide_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       module_pricing: {
         Row: {
           base_price_monthly: number | null
