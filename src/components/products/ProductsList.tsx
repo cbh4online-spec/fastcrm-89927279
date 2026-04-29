@@ -53,6 +53,9 @@ import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
 import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileProductsView } from "./mobile/MobileProductsView";
+import { MobileProductDetailSheet } from "./mobile/MobileProductDetailSheet";
 
 export function ProductsList() {
   const state = useProductsListState();
@@ -60,6 +63,7 @@ export function ProductsList() {
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const comparisonProducts = useMemo(() => {
     if (!state.products) return [];
@@ -166,6 +170,100 @@ export function ProductsList() {
 
     return groups;
   }, [state.productTypesConfig, state.billingTypesConfig, state.categories, state.workspaceTags]);
+
+  // Mobile: vista dedicada para a tab "Produtos"
+  if (isMobile && state.activeTab === "products") {
+    return (
+      <>
+        <MobileProductsView
+          products={state.filteredProducts}
+          isLoading={state.isLoading}
+          searchValue={state.searchValue}
+          onSearchChange={state.setSearchValue}
+          formatCurrency={state.formatCurrency}
+          getProductTypeLabel={state.getProductTypeLabel}
+          totalCount={state.totalProducts}
+          onOpenProduct={(p) => state.setDetailProduct(p)}
+          onEditProduct={(p) => state.setEditProduct(p)}
+          onArchiveProduct={(p) => state.handleArchive(p)}
+          onDeleteProduct={(p) => state.setDeleteConfirmProduct(p)}
+          onCreate={() => state.setCreateOpen(true)}
+          onScan={() => state.setScannerOpen(true)}
+          onRefresh={() => state.refetch()}
+        />
+
+        {/* Dialogs partilhados */}
+        <CreateProductDialog open={state.createOpen} onOpenChange={state.setCreateOpen} />
+        <CreateProductDialog
+          open={!!state.editProduct}
+          onOpenChange={(open) => !open && state.setEditProduct(null)}
+          product={state.editProduct ?? undefined}
+        />
+        <MobileProductDetailSheet
+          productId={state.detailProduct?.id ?? null}
+          open={!!state.detailProduct}
+          onClose={() => state.setDetailProduct(null)}
+          onEdit={() => {
+            const p = state.detailProduct;
+            state.setDetailProduct(null);
+            if (p) state.setEditProduct(p);
+          }}
+          onArchive={() => {
+            if (state.detailProduct) {
+              state.handleArchive(state.detailProduct);
+              state.setDetailProduct(null);
+            }
+          }}
+          formatCurrency={state.formatCurrency}
+        />
+        <BatchSKUImportDialog open={state.batchImportOpen} onOpenChange={state.setBatchImportOpen} />
+
+        <AlertDialog
+          open={!!state.deleteConfirmProduct}
+          onOpenChange={(open) => !open && state.setDeleteConfirmProduct(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminar produto?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem a certeza que pretende eliminar "{state.deleteConfirmProduct?.name}"?
+                Esta ação é irreversível.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={state.handleDeleteConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <BarcodeScannerModal
+          open={state.scannerOpen}
+          onOpenChange={state.setScannerOpen}
+          onScan={state.handleBarcodeScan}
+        />
+        <BarcodeResultPanel
+          open={state.scanResultOpen}
+          onOpenChange={(v) => { state.setScanResultOpen(v); if (!v) state.resetScan(); }}
+          result={state.scanResult}
+          barcode={state.scannedBarcode}
+          isLoading={state.scanLoading}
+          onOpenProduct={(id) => {
+            const p = state.products?.find(pr => pr.id === id);
+            if (p) state.setDetailProduct(p);
+          }}
+          onQuickCreate={(barcode) => {
+            window.location.href = `/mqpc?barcode=${encodeURIComponent(barcode)}`;
+          }}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 -m-6">
