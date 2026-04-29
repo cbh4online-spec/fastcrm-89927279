@@ -250,3 +250,33 @@ export function useReorderProductCategories() {
     },
   });
 }
+
+export type CategoryCostField = "direct_cost" | "operational_cost" | "commission" | "tax_rate" | "target_margin";
+
+export function useApplyCategoryCostsToProducts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      categoryId: string;
+      includeSubcategories?: boolean;
+      fields?: CategoryCostField[];
+    }) => {
+      const { data, error } = await supabase.rpc("apply_category_costs_to_products" as any, {
+        p_category_id: params.categoryId,
+        p_include_subcategories: params.includeSubcategories ?? true,
+        p_fields: params.fields ?? ["direct_cost", "operational_cost", "commission", "tax_rate", "target_margin"],
+      });
+      if (error) throw error;
+      return data as { success: boolean; affected_products: number; category_name: string };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success(`${data.affected_products} produto(s) atualizados em "${data.category_name}"`);
+    },
+    onError: (error: any) => {
+      console.warn("[PRODUCTS] APPLY_CATEGORY_COSTS_FAILED", error.message);
+      toast.error("Erro ao aplicar custos: " + (error.message ?? ""));
+    },
+  });
+}
