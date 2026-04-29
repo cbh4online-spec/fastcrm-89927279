@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, Package, Sparkles, Info, ExternalLink, Plus, Weight } from "lucide-react";
+import { Search, Package, Sparkles, Info, ExternalLink, Plus, Weight, ScanText } from "lucide-react";
 import { toast } from "sonner";
 import { StoreQuickProductDialog } from "@/components/store/StoreQuickProductDialog";
 import { CreateProductDialog } from "@/components/products/CreateProductDialog";
@@ -66,6 +66,9 @@ export default function StoreProductsAdminPage() {
             </Button>
             <Button variant="outline" onClick={() => setAiDialogOpen(true)} className="gap-2">
               <Sparkles className="h-4 w-4" /> Criar com IA
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/dashboard/products/ocr-create")} className="gap-2">
+              <ScanText className="h-4 w-4" /> Criar por OCR
             </Button>
             <Button variant="ghost" onClick={() => navigate("/dashboard/products/quick-create")} className="gap-2">
               <Package className="h-4 w-4" /> Criar Rápido
