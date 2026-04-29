@@ -195,6 +195,20 @@ export function ProfileSettings() {
 
       <Separator />
 
+      {/* Security - Change password */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">Segurança</h3>
+        <p className="text-xs text-muted-foreground">
+          Atualize a sua palavra-passe regularmente para manter a conta segura.
+        </p>
+        <Button variant="outline" size="sm" onClick={() => setChangePasswordOpen(true)}>
+          <KeyRound className="mr-2 h-4 w-4" />
+          Alterar palavra-passe
+        </Button>
+      </div>
+
+      <Separator />
+
       {/* Logout */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-destructive">{t("profile_logout")}</h3>
@@ -204,6 +218,11 @@ export function ProfileSettings() {
           {t("profile_logout")}
         </Button>
       </div>
+
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+      />
     </div>
   );
 }
