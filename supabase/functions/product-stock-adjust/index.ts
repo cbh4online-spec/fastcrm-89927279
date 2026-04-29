@@ -95,10 +95,10 @@ Deno.serve(async (req) => {
         break
       case 'reserve':
         if (Math.abs(quantity) > (currentQty - currentReserved)) {
-          return new Response(JSON.stringify({
+          return jsonResponse({
             error: 'Stock insuficiente para reserva',
             available: currentQty - currentReserved
-          }), { status: 400, headers: corsHeaders })
+          }, 400)
         }
         newReserved = currentReserved + Math.abs(quantity)
         break
