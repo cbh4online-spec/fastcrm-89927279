@@ -79,7 +79,7 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
         </p>
       </div>
 
-      {/* Search input */}
+      {/* Search input + scanner */}
       <div className="flex gap-2">
         <Input
           placeholder="Ex: DS-2CD2143G2-I"
@@ -91,11 +91,47 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
           className="flex-1"
         />
         <Button
+          type="button"
+          variant="outline"
+          onClick={() => setScannerOpen(true)}
+          disabled={searchBySKU.isPending}
+          size="icon"
+          className="shrink-0 h-10 w-10"
+          aria-label="Ler com câmara"
+          title="Ler código de barras com a câmara"
+        >
+          <ScanLine className="h-4 w-4" />
+        </Button>
+        <Button
           onClick={handleSearch}
           disabled={searchBySKU.isPending || !skuInput.trim()}
           size="icon"
           className="shrink-0 h-10 w-10"
+          aria-label="Pesquisar"
         >
+          {searchBySKU.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+
+      {/* Hint to use scanner */}
+      <button
+        type="button"
+        onClick={() => setScannerOpen(true)}
+        className="w-full flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ScanLine className="h-3.5 w-3.5" />
+        Ou use a câmara / leitor de código de barras
+      </button>
+
+      <BarcodeScannerModal
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onScan={handleScanned}
+      />
           {searchBySKU.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
