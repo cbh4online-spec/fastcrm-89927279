@@ -82,6 +82,15 @@ const roleColors: Record<WorkspaceRole, string> = {
 
 const editableRoles: WorkspaceRole[] = ["admin", "agent", "viewer"];
 
+export type CommercialProfile = "vendedor" | "gestor" | "diretor" | "ceo";
+
+const commercialProfileOptions: { value: CommercialProfile; label: string; description: string }[] = [
+  { value: "vendedor", label: "Vendedor", description: "Foco individual em vendas e quota" },
+  { value: "gestor", label: "Gestor", description: "Coordena equipa de vendas" },
+  { value: "diretor", label: "Diretor", description: "Direção comercial e estratégia" },
+  { value: "ceo", label: "CEO", description: "Liderança executiva da empresa" },
+];
+
 export function WorkspaceSettings({ searchQuery = "", matchedSections }: WorkspaceSettingsProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
