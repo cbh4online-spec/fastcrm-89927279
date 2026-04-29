@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, Package, Sparkles, Info, ExternalLink, Plus, Weight } from "lucide-react";
+import { Search, Package, Sparkles, Info, ExternalLink, Plus, Weight, ScanText } from "lucide-react";
 import { toast } from "sonner";
 import { StoreQuickProductDialog } from "@/components/store/StoreQuickProductDialog";
 import { CreateProductDialog } from "@/components/products/CreateProductDialog";
