@@ -118,10 +118,17 @@ export function CreateProductDialog({
   const [shortDescription, setShortDescription] = useState("");
   const [sku, setSku] = useState("");
   const [directCost, setDirectCost] = useState("");
+  const [directCostMode, setDirectCostMode] = useState<CostMode>("value");
   const [operationalCost, setOperationalCost] = useState("");
+  const [operationalCostMode, setOperationalCostMode] = useState<CostMode>("value");
+  const [operationalCostBase, setOperationalCostBase] = useState<CostBase>("price");
   const [commissionDefault, setCommissionDefault] = useState("");
+  const [commissionMode, setCommissionMode] = useState<CostMode>("percent");
+  const [commissionBase, setCommissionBase] = useState<CostBase>("price");
   const [taxRateEstimate, setTaxRateEstimate] = useState("");
+  const [taxRateMode, setTaxRateMode] = useState<CostMode>("percent");
   const [targetMargin, setTargetMargin] = useState("");
+  const [targetMarginMode, setTargetMarginMode] = useState<CostMode>("percent");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [bundlePriceMode, setBundlePriceMode] = useState<"auto" | "manual">("auto");
   // Consumption model fields
