@@ -228,14 +228,6 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
     }
   };
 
-        });
-      }
-      onOpenChange(false);
-      form.reset();
-    } catch (error) {
-      // Error handled in mutation
-    }
-  };
 
   const handleGenerateFromTheme = async () => {
     if (!theme.trim()) {
