@@ -52,22 +52,12 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
     }
   };
 
-  const handleSearch = async () => {
-    const sku = skuInput.trim();
-    if (!sku) {
-      toast.error("Introduza um SKU ou referência");
-      return;
-    }
+  const handleSearch = () => runSearch(skuInput.trim());
 
-    try {
-      const result = await searchBySKU.mutateAsync(sku);
-      setSearchResult(result);
-      setSearched(true);
-    } catch (err: any) {
-      toast.error("Erro na pesquisa: " + err.message);
-      setSearched(true);
-      setSearchResult({ found: false });
-    }
+  const handleScanned = (code: string) => {
+    setScannerOpen(false);
+    setSkuInput(code);
+    runSearch(code.trim());
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
