@@ -17,6 +17,8 @@ import { VoiceConversationWidget } from "@/components/voice/VoiceConversationWid
 import { GlobalNoCreditsDialog } from "@/components/credits/GlobalNoCreditsDialog";
 import { CopilotDrawer } from "@/components/copilot/CopilotDrawer";
 import { useSessionTracker } from "@/hooks/useSessionTracker";
+import { MobileBottomNav } from "./MobileBottomNav";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DashboardLayoutProps {
   children: ReactNode;
