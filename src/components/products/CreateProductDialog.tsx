@@ -571,7 +571,26 @@ export function CreateProductDialog({
     onOpenChange(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const applyPendingCatalogs = async (productId: string) => {
+    if (!pendingCatalogIds.length) return;
+    try {
+      const rows = pendingCatalogIds.map((catalog_id) => ({
+        catalog_id,
+        product_id: productId,
+        sort_order: 0,
+      }));
+      // Upsert ignoring duplicates via onConflict
+      const { error } = await supabase
+        .from("product_catalog_items")
+        .upsert(rows as any, { onConflict: "catalog_id,product_id", ignoreDuplicates: true });
+      if (error) {
+        console.error("[Publishing] Failed to add to catalogs:", error);
+        toast.error("Produto guardado, mas falhou ao adicionar a alguns catálogos");
+      }
+    } catch (e: any) {
+      console.error("[Publishing] applyPendingCatalogs:", e);
+    }
+  };
     e.preventDefault();
     
     const priceValue = parseFloat(basePrice) || 0;
