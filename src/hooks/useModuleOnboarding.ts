@@ -66,7 +66,7 @@ async function fetchPresentation(moduleSlug: string, tier: PresentationTier, lan
     .eq("lang", "pt")
     .eq("is_active", true)
     .maybeSingle();
-  return (fallback ?? null) as ModulePresentation | null;
+  return (fallback ?? null) as unknown as ModulePresentation | null;
 }
 
 export function useModuleOnboarding(moduleSlug: string, tier: PresentationTier = "welcome") {
