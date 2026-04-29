@@ -464,15 +464,59 @@ export function ProductImageGalleryManager({
         </Card>
       )}
 
+      {/* Upload / Camera Actions */}
+      <Card className="p-3">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || images.length >= maxImages}
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Carregar imagens
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={uploading || images.length >= maxImages}
+            title="Abrir câmara do dispositivo"
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            Tirar foto
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2 text-center">
+          Até {maxImages} imagens • Compressão automática • A câmara abre nativamente em telemóveis
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+      </Card>
+
       {/* Empty State */}
       {images.length === 0 && !hasAvailableSkuImages && (
         <Card className="p-6 text-center border-dashed">
           <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-          <p className="text-sm text-muted-foreground">
-            Nenhuma imagem adicionada
-          </p>
+          <p className="text-sm text-muted-foreground">Nenhuma imagem adicionada</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Pesquise por SKU para encontrar imagens ou gere com IA
+            Carregue, tire foto, pesquise por SKU ou gere com IA
           </p>
         </Card>
       )}
