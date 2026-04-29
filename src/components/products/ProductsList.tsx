@@ -196,7 +196,7 @@ export function ProductsList() {
           onEditProduct={(p) => state.setEditProduct(p)}
           onArchiveProduct={(p) => state.handleArchive(p)}
           onDeleteProduct={(p) => state.setDeleteConfirmProduct(p)}
-          onCreate={() => state.setCreateOpen(true)}
+          onCreate={() => goToMobileQuickCreate()}
           onScan={() => state.setScannerOpen(true)}
           onRefresh={() => state.refetch()}
         />
@@ -267,7 +267,9 @@ export function ProductsList() {
             if (p) state.setDetailProduct(p);
           }}
           onQuickCreate={(barcode) => {
-            window.location.href = `/mqpc?barcode=${encodeURIComponent(barcode)}`;
+            state.setScanResultOpen(false);
+            state.resetScan();
+            goToMobileQuickCreate(barcode);
           }}
         />
       </>
@@ -510,7 +512,9 @@ export function ProductsList() {
           if (p) state.setDetailProduct(p);
         }}
         onQuickCreate={(barcode) => {
-          window.open(`/mqpc?barcode=${encodeURIComponent(barcode)}`, "_blank");
+          state.setScanResultOpen(false);
+          state.resetScan();
+          goToMobileQuickCreate(barcode);
         }}
       />
     </div>
