@@ -14,6 +14,7 @@ const BackgroundJobsPage = lazy(() => import("@/pages/BackgroundJobsPage"));
 const CommandCenterV2Page = lazy(() => import("@/pages/CommandCenterV2Page"));
 const FastClubApplicationsPage = lazy(() => import("@/pages/fastclub/FastClubApplicationsPage"));
 const MobileQuickProductCreate = lazy(() => import("@/pages/MobileQuickProductCreate"));
+const ProductOCRCreate = lazy(() => import("@/pages/ProductOCRCreate"));
 
 export function RevenueCommerceRoutes() {
   return (
@@ -48,6 +49,11 @@ export function RevenueCommerceRoutes() {
       <Route path="/mobile/products/quick-create" element={<MobileQuickProductCreate />} />
       <Route path="/mobile/products/quick-create/*" element={<MobileQuickProductCreate />} />
       <Route path="/products/quick-create" element={<MobileQuickProductCreate />} />
+
+      {/* Criação Inteligente de Produtos por OCR */}
+      <Route path="/dashboard/products/ocr-create" element={<ProductOCRCreate />} />
+      <Route path="/dashboard/products/ocr-create/*" element={<ProductOCRCreate />} />
+      <Route path="/products/ocr-create" element={<ProductOCRCreate />} />
     </>
   );
 }

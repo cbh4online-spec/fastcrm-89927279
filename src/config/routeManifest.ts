@@ -223,6 +223,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("pitch",        "Apresentação",     "/dashboard/pitch",             Presentation,"vendas"),
   e("invoices",     "Faturas",          "/dashboard/invoices",          Receipt,     "vendas", { moduleSlug: "invoices", menuKey: "invoices" }),
   e("products",     "Produtos",         "/dashboard/products",          Package,     "vendas", { menuKey: "products" }),
+  e("products-ocr", "Criar por OCR",    "/dashboard/products/ocr-create", ScanText,  "vendas", { menuKey: "products" }),
   e("order-notes",  "Notas Encomenda",  "/dashboard/order-notes",       ClipboardList,"vendas"),
   e("bundles",      "Pacotes",          "/dashboard/bundles",           Layers,      "vendas"),
   e("payments",     "Pagamentos",       "/dashboard/payments",          CreditCard,  "vendas"),
