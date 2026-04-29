@@ -1296,24 +1296,30 @@ export function CreateProductDialog({
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* B2B Portal Section */}
-              <Card className="p-4 border-dashed">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="b2bPublished" className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-primary" />
-                      Publicar no Portal B2B
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Quando ativo, este produto ficará visível no catálogo para clientes B2B
-                    </p>
-                  </div>
-                  <Switch
-                    id="b2bPublished"
-                    checked={b2bPublished}
-                    onCheckedChange={setB2bPublished}
-                  />
-                </div>
+              {/* Publishing Channels Section */}
+              <Card className="p-4">
+                <ProductPublishingPanel
+                  productId={isEditing && product ? product.id : null}
+                  initial={
+                    isEditing
+                      ? {
+                          b2b_published: b2bPublished,
+                          store_published: storePublished,
+                          sheet_published: sheetPublished,
+                        }
+                      : {
+                          b2b_published: b2bPublished,
+                          store_published: storePublished,
+                          sheet_published: sheetPublished,
+                        }
+                  }
+                  onLocalChange={(next) => {
+                    setB2bPublished(next.b2b_published);
+                    setStorePublished(next.store_published);
+                    setSheetPublished(next.sheet_published);
+                    setPendingCatalogIds(next.catalogIds);
+                  }}
+                />
               </Card>
             </div>
 
