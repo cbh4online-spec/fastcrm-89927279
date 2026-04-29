@@ -48,6 +48,7 @@ import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/prod
 import { AIProductAssistant } from "./AIProductAssistant";
 import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
+import { CostInput, type CostMode, type CostBase, resolveCostAmount } from "./CostInput";
 import { ProductImageGalleryManager } from "./ProductImageGalleryManager";
 import {
   ProductPhysicalAttributesSection,
