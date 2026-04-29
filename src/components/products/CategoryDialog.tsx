@@ -90,6 +90,7 @@ interface CategoryDialogProps {
 export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogProps) {
   const createCategory = useCreateProductCategory();
   const updateCategory = useUpdateProductCategory();
+  const applyCategoryCosts = useApplyCategoryCostsToProducts();
   const { data: existingCategories } = useProductCategoriesList();
   const { generateCategory, generateCategoryImage, suggestCategoryDetails } = useCategoryAIAssistant();
   const isEditing = !!category;
@@ -98,6 +99,15 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<string>>(new Set());
+
+  // --- Cost defaults state ---
+  const [directCost, setDirectCost] = useState<CostState>(emptyCost("value"));
+  const [opCost, setOpCost] = useState<CostState>(emptyCost("value", "price"));
+  const [commission, setCommission] = useState<CostState>(emptyCost("percent", "price"));
+  const [taxRate, setTaxRate] = useState<CostState>(emptyCost("percent"));
+  const [targetMargin, setTargetMargin] = useState<CostState>(emptyCost("percent"));
+  const [includeSubcats, setIncludeSubcats] = useState(true);
+  const [confirmApplyOpen, setConfirmApplyOpen] = useState(false);
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -120,6 +130,28 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
         is_active: category.is_active,
       });
       setPreviewImage(category.image_url || null);
+      setDirectCost({
+        value: category.default_direct_cost?.toString() ?? "",
+        mode: (category.default_direct_cost_mode as CostMode) ?? "value",
+      });
+      setOpCost({
+        value: category.default_operational_cost?.toString() ?? "",
+        mode: (category.default_operational_cost_mode as CostMode) ?? "value",
+        base: (category.default_operational_cost_base as CostBase) ?? "price",
+      });
+      setCommission({
+        value: category.default_commission?.toString() ?? "",
+        mode: (category.default_commission_mode as CostMode) ?? "percent",
+        base: (category.default_commission_base as CostBase) ?? "price",
+      });
+      setTaxRate({
+        value: category.default_tax_rate?.toString() ?? "",
+        mode: (category.default_tax_rate_mode as CostMode) ?? "percent",
+      });
+      setTargetMargin({
+        value: category.default_target_margin?.toString() ?? "",
+        mode: (category.default_target_margin_mode as CostMode) ?? "percent",
+      });
     } else {
       form.reset({
         name: "",
@@ -131,15 +163,40 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
       setPreviewImage(null);
       setTheme("");
       setAppliedSuggestions(new Set());
+      setDirectCost(emptyCost("value"));
+      setOpCost(emptyCost("value", "price"));
+      setCommission(emptyCost("percent", "price"));
+      setTaxRate(emptyCost("percent"));
+      setTargetMargin(emptyCost("percent"));
     }
   }, [category, form, open]);
 
+  const buildCostDefaults = () => {
+    const num = (s: string) => (s.trim() === "" ? null : Number(s));
+    return {
+      default_direct_cost: num(directCost.value),
+      default_direct_cost_mode: directCost.mode,
+      default_operational_cost: num(opCost.value),
+      default_operational_cost_mode: opCost.mode,
+      default_operational_cost_base: opCost.base ?? "price",
+      default_commission: num(commission.value),
+      default_commission_mode: commission.mode,
+      default_commission_base: commission.base ?? "price",
+      default_tax_rate: num(taxRate.value),
+      default_tax_rate_mode: taxRate.mode,
+      default_target_margin: num(targetMargin.value),
+      default_target_margin_mode: targetMargin.mode,
+    };
+  };
+
   const onSubmit = async (data: CategoryFormData) => {
     try {
+      const costDefaults = buildCostDefaults();
       if (isEditing && category) {
         await updateCategory.mutateAsync({
           id: category.id,
           ...data,
+          ...costDefaults,
         });
       } else {
         await createCategory.mutateAsync({
@@ -148,6 +205,29 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
           color: data.color,
           image_url: data.image_url,
           is_active: data.is_active,
+          ...costDefaults,
+        });
+      }
+      onOpenChange(false);
+      form.reset();
+    } catch (error) {
+      // Error handled in mutation
+    }
+  };
+
+  const handleApplyToExisting = async () => {
+    if (!category) return;
+    try {
+      await applyCategoryCosts.mutateAsync({
+        categoryId: category.id,
+        includeSubcategories: includeSubcats,
+      });
+      setConfirmApplyOpen(false);
+    } catch {
+      /* handled */
+    }
+  };
+
         });
       }
       onOpenChange(false);
