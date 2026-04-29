@@ -137,4 +137,4 @@ export const BarcodeResultPanel = React.forwardRef<HTMLDivElement, Props>(functi
       </DialogContent>
     </Dialog>
   );
-}
+});
