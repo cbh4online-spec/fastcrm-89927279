@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Edit2, Sparkles, Target, ArrowLeft, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Sparkles, Target, ArrowLeft, Check, X, ArrowUp, ArrowDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -259,6 +259,8 @@ function PresentationEditor({
 }
 
 // ============ Quiz Manager ============
+const MAX_QUESTIONS = 7;
+
 function QuizManagerButton({ presentation, onChanged }: { presentation: any; onChanged: () => void }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -276,19 +278,50 @@ function QuizManagerButton({ presentation, onChanged }: { presentation: any; onC
     enabled: open,
   });
 
+  const questions = quizzesQuery.data ?? [];
+  const count = questions.length;
+  const atLimit = count >= MAX_QUESTIONS;
+
   const addQuestion = useMutation({
     mutationFn: async () => {
+      if (atLimit) throw new Error(`Limite de ${MAX_QUESTIONS} perguntas atingido.`);
       const { error } = await supabase.from("module_quizzes" as any).insert({
         presentation_id: presentation.id,
         question: "Nova pergunta",
         options: ["Opção A", "Opção B", "Opção C", "Opção D"],
         correct_option_index: 0,
-        order_index: (quizzesQuery.data?.length ?? 0),
+        order_index: count,
+        is_active: true,
       });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-quizzes", presentation.id] }),
+    onSuccess: () => {
+      toast.success("Pergunta adicionada");
+      queryClient.invalidateQueries({ queryKey: ["admin-quizzes", presentation.id] });
+    },
+    onError: (e: any) => toast.error(e.message),
   });
+
+  const reorder = useMutation({
+    mutationFn: async ({ from, to }: { from: number; to: number }) => {
+      if (to < 0 || to >= questions.length) return;
+      const next = [...questions];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      // Persist new order_index for affected rows
+      const updates = next.map((q, idx) =>
+        supabase.from("module_quizzes" as any).update({ order_index: idx }).eq("id", q.id)
+      );
+      const results = await Promise.all(updates);
+      const err = results.find((r: any) => r.error);
+      if (err?.error) throw err.error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-quizzes", presentation.id] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const counterTone =
+    count === 0 ? "text-muted-foreground" : atLimit ? "text-amber-600" : "text-emerald-600";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -298,22 +331,51 @@ function QuizManagerButton({ presentation, onChanged }: { presentation: any; onC
           Quiz ({quizzesQuery.data?.length ?? "..."})
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Quiz · {presentation.title}</DialogTitle>
+          <DialogTitle className="flex items-center justify-between gap-3 flex-wrap">
+            <span>Quiz · {presentation.title}</span>
+            <Badge variant="outline" className={counterTone}>
+              {count}/{MAX_QUESTIONS} perguntas
+            </Badge>
+          </DialogTitle>
         </DialogHeader>
+
         <div className="space-y-3">
-          {(quizzesQuery.data ?? []).length >= 7 && (
-            <p className="text-xs text-amber-600">Recomendado: máximo 7 perguntas por quiz.</p>
-          )}
-          {(quizzesQuery.data ?? []).map((q, i) => (
-            <QuestionEditor key={q.id} question={q} index={i} onChanged={() => {
-              queryClient.invalidateQueries({ queryKey: ["admin-quizzes", presentation.id] });
-              onChanged();
-            }} />
+          <p className="text-xs text-muted-foreground">
+            Cria até <strong>{MAX_QUESTIONS} perguntas</strong>. Marca a opção correta com o círculo verde
+            e usa as setas para reordenar.
+          </p>
+
+          {questions.map((q, i) => (
+            <QuestionEditor
+              key={q.id}
+              question={q}
+              index={i}
+              total={count}
+              onMove={(dir) => reorder.mutate({ from: i, to: i + dir })}
+              isReordering={reorder.isPending}
+              onChanged={() => {
+                queryClient.invalidateQueries({ queryKey: ["admin-quizzes", presentation.id] });
+                onChanged();
+              }}
+            />
           ))}
-          <Button variant="outline" onClick={() => addQuestion.mutate()} disabled={addQuestion.isPending}>
-            <Plus className="w-4 h-4 mr-1" /> Adicionar pergunta
+
+          {count === 0 && (
+            <Card className="p-6 text-center text-sm text-muted-foreground border-dashed">
+              Ainda não há perguntas. Adiciona a primeira para começar.
+            </Card>
+          )}
+
+          <Button
+            variant="outline"
+            onClick={() => addQuestion.mutate()}
+            disabled={addQuestion.isPending || atLimit}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            {atLimit ? `Limite de ${MAX_QUESTIONS} atingido` : "Adicionar pergunta"}
           </Button>
         </div>
       </DialogContent>
@@ -321,7 +383,16 @@ function QuizManagerButton({ presentation, onChanged }: { presentation: any; onC
   );
 }
 
-function QuestionEditor({ question, index, onChanged }: { question: any; index: number; onChanged: () => void }) {
+function QuestionEditor({
+  question, index, total, onMove, isReordering, onChanged,
+}: {
+  question: any;
+  index: number;
+  total: number;
+  onMove: (dir: -1 | 1) => void;
+  isReordering: boolean;
+  onChanged: () => void;
+}) {
   const [q, setQ] = useState({
     question: question.question,
     options: Array.isArray(question.options) ? question.options : [],
@@ -332,6 +403,12 @@ function QuestionEditor({ question, index, onChanged }: { question: any; index: 
 
   const save = useMutation({
     mutationFn: async () => {
+      if (!q.question.trim()) throw new Error("Pergunta não pode estar vazia.");
+      if (q.options.length < 2) throw new Error("Mínimo de 2 opções.");
+      if (q.options.some((o: string) => !o.trim())) throw new Error("Opções não podem estar vazias.");
+      if (q.correct_option_index < 0 || q.correct_option_index >= q.options.length) {
+        throw new Error("Seleciona a opção correta.");
+      }
       const { error } = await supabase.from("module_quizzes" as any).update(q).eq("id", question.id);
       if (error) throw error;
     },
@@ -352,48 +429,93 @@ function QuestionEditor({ question, index, onChanged }: { question: any; index: 
     next[i] = val;
     setQ({ ...q, options: next });
   };
-  const addOption = () => setQ({ ...q, options: [...q.options, "Nova opção"] });
+  const addOption = () => {
+    if (q.options.length >= 6) return;
+    setQ({ ...q, options: [...q.options, "Nova opção"] });
+  };
   const removeOption = (i: number) => {
-    const next = q.options.filter((_, idx) => idx !== i);
-    setQ({
-      ...q,
-      options: next,
-      correct_option_index: Math.min(q.correct_option_index, next.length - 1),
-    });
+    if (q.options.length <= 2) return;
+    const next = q.options.filter((_: string, idx: number) => idx !== i);
+    let nextCorrect = q.correct_option_index;
+    if (i === q.correct_option_index) nextCorrect = 0;
+    else if (i < q.correct_option_index) nextCorrect = q.correct_option_index - 1;
+    setQ({ ...q, options: next, correct_option_index: nextCorrect });
   };
 
   return (
     <Card className="p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
-        <span className="text-xs font-semibold text-muted-foreground mt-2">P{index + 1}</span>
-        <div className="flex-1">
-          <Textarea value={q.question} onChange={(e) => setQ({ ...q, question: e.target.value })} rows={2} placeholder="Pergunta..." />
+        <div className="flex flex-col items-center gap-1 pt-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            disabled={index === 0 || isReordering}
+            onClick={() => onMove(-1)}
+            title="Mover para cima"
+          >
+            <ArrowUp className="w-3.5 h-3.5" />
+          </Button>
+          <span className="text-xs font-semibold text-muted-foreground">P{index + 1}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            disabled={index === total - 1 || isReordering}
+            onClick={() => onMove(1)}
+            title="Mover para baixo"
+          >
+            <ArrowDown className="w-3.5 h-3.5" />
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => remove.mutate()}>
+        <div className="flex-1">
+          <Textarea
+            value={q.question}
+            onChange={(e) => setQ({ ...q, question: e.target.value })}
+            rows={2}
+            placeholder="Pergunta..."
+          />
+        </div>
+        <Button variant="ghost" size="icon" onClick={() => remove.mutate()} title="Remover pergunta">
           <Trash2 className="w-4 h-4 text-destructive" />
         </Button>
       </div>
 
-      <div className="space-y-2 pl-7">
+      <div className="space-y-2 pl-9">
         {q.options.map((opt: string, i: number) => (
           <div key={i} className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setQ({ ...q, correct_option_index: i })}
-              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                q.correct_option_index === i ? "border-emerald-500 bg-emerald-500 text-white" : "border-muted-foreground/30"
+              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                q.correct_option_index === i
+                  ? "border-emerald-500 bg-emerald-500 text-white"
+                  : "border-muted-foreground/30 hover:border-emerald-500/60"
               }`}
               title="Marcar como correta"
             >
               {q.correct_option_index === i && <Check className="w-3.5 h-3.5" />}
             </button>
             <Input value={opt} onChange={(e) => setOption(i, e.target.value)} />
-            <Button variant="ghost" size="icon" onClick={() => removeOption(i)} disabled={q.options.length <= 2}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => removeOption(i)}
+              disabled={q.options.length <= 2}
+              title="Remover opção"
+            >
               <X className="w-4 h-4" />
             </Button>
           </div>
         ))}
-        <Button variant="ghost" size="sm" onClick={addOption}>
-          <Plus className="w-3 h-3 mr-1" /> Adicionar opção
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={addOption}
+          disabled={q.options.length >= 6}
+        >
+          <Plus className="w-3 h-3 mr-1" />
+          {q.options.length >= 6 ? "Máximo 6 opções" : "Adicionar opção"}
         </Button>
       </div>
 
