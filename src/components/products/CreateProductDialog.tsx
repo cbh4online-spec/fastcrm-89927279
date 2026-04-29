@@ -1029,76 +1029,57 @@ export function CreateProductDialog({
                       : "Define custos para calcular margens automaticamente."}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="directCost">Custo Direto</Label>
-                      <Input
-                        id="directCost"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={directCost}
-                        onChange={(e) => setDirectCost(e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="operationalCost">Custo Operacional</Label>
-                      <Input
-                        id="operationalCost"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={operationalCost}
-                        onChange={(e) => setOperationalCost(e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <CostInput
+                      id="directCost"
+                      label="Custo Direto"
+                      value={directCost}
+                      onValueChange={setDirectCost}
+                      mode={directCostMode}
+                      onModeChange={setDirectCostMode}
+                    />
+                    <CostInput
+                      id="operationalCost"
+                      label="Custo Operacional"
+                      value={operationalCost}
+                      onValueChange={setOperationalCost}
+                      mode={operationalCostMode}
+                      onModeChange={setOperationalCostMode}
+                      base={operationalCostBase}
+                      onBaseChange={setOperationalCostBase}
+                      showBase
+                    />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="commission">Comissão (%)</Label>
-                      <Input
-                        id="commission"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={commissionDefault}
-                        onChange={(e) => setCommissionDefault(e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="taxRate">Imposto (%)</Label>
-                      <Input
-                        id="taxRate"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={taxRateEstimate}
-                        onChange={(e) => setTaxRateEstimate(e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="targetMargin">Margem Alvo (%)</Label>
-                      <Input
-                        id="targetMargin"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={targetMargin}
-                        onChange={(e) => setTargetMargin(e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <CostInput
+                      id="commission"
+                      label="Comissão"
+                      value={commissionDefault}
+                      onValueChange={setCommissionDefault}
+                      mode={commissionMode}
+                      onModeChange={setCommissionMode}
+                      base={commissionBase}
+                      onBaseChange={setCommissionBase}
+                      showBase
+                    />
+                    <CostInput
+                      id="taxRate"
+                      label="Imposto"
+                      value={taxRateEstimate}
+                      onValueChange={setTaxRateEstimate}
+                      mode={taxRateMode}
+                      onModeChange={setTaxRateMode}
+                      percentOnly
+                    />
+                    <CostInput
+                      id="targetMargin"
+                      label="Margem Alvo"
+                      value={targetMargin}
+                      onValueChange={setTargetMargin}
+                      mode={targetMarginMode}
+                      onModeChange={setTargetMarginMode}
+                    />
                   </div>
 
                   {/* Real-time margin preview */}
