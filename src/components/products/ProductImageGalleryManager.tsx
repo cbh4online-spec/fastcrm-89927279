@@ -143,6 +143,12 @@ export function ProductImageGalleryManager({
     },
     [currentWorkspace?.id, images, maxImages, onImagesChange]
   );
+  // Toggle SKU image selection
+  const toggleSkuImage = useCallback((imageUrl: string) => {
+    setSelectedSkuImages((prev) => {
+      const next = new Set(prev);
+      if (next.has(imageUrl)) {
+        next.delete(imageUrl);
       } else {
         next.add(imageUrl);
       }
