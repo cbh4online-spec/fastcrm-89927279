@@ -69,13 +69,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useAdaptive ? (collapsed ? "lg:pl-16" : "lg:pl-[280px]") : collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
             <TopBar onMenuClick={() => setSidebarOpen(true)} />
             <AIUsageBanner />
-            <main className="flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background">
+            <main
+              className={`flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background mobile-scroll-momentum ${isMobile ? "with-mobile-nav-pb" : ""}`}
+            >
               {children}
             </main>
             {showFAB && <MQPCFloatingButton />}
             <VoiceConversationWidget />
             <GlobalNoCreditsDialog />
             <CopilotDrawer />
+            {isMobile && <MobileBottomNav onMenuClick={() => setSidebarOpen(true)} />}
           </div>
         </div>
       </WorkspaceStatusGuard>
