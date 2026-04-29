@@ -175,6 +175,36 @@ export function CreateProductDialog({
   const isLoading = createProduct.isPending || updateProduct.isPending;
   const isBundle = productType === "composite";
 
+  // Pré-preenche custos a partir dos defaults da categoria (apenas em criação e quando campos vazios)
+  useEffect(() => {
+    if (isEditing || !category || !existingCategories) return;
+    const cat = existingCategories.find((c: any) => c.name === category) as any;
+    if (!cat) return;
+    if (!directCost && cat.default_direct_cost != null) {
+      setDirectCost(String(cat.default_direct_cost));
+      if (cat.default_direct_cost_mode) setDirectCostMode(cat.default_direct_cost_mode);
+    }
+    if (!operationalCost && cat.default_operational_cost != null) {
+      setOperationalCost(String(cat.default_operational_cost));
+      if (cat.default_operational_cost_mode) setOperationalCostMode(cat.default_operational_cost_mode);
+      if (cat.default_operational_cost_base) setOperationalCostBase(cat.default_operational_cost_base);
+    }
+    if (!commissionDefault && cat.default_commission != null) {
+      setCommissionDefault(String(cat.default_commission));
+      if (cat.default_commission_mode) setCommissionMode(cat.default_commission_mode);
+      if (cat.default_commission_base) setCommissionBase(cat.default_commission_base);
+    }
+    if (!taxRateEstimate && cat.default_tax_rate != null) {
+      setTaxRateEstimate(String(cat.default_tax_rate));
+      if (cat.default_tax_rate_mode) setTaxRateMode(cat.default_tax_rate_mode);
+    }
+    if (!targetMargin && cat.default_target_margin != null) {
+      setTargetMargin(String(cat.default_target_margin));
+      if (cat.default_target_margin_mode) setTargetMarginMode(cat.default_target_margin_mode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, existingCategories, isEditing]);
+
   // Calculate margins in real-time (resolve mode/base into € amounts)
   const price = parseFloat(basePrice) || 0;
   const directCostNum = parseFloat(directCost) || 0;
