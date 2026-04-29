@@ -258,10 +258,17 @@ export function useUpdateProduct() {
       if (input.short_description !== undefined) updateData.short_description = input.short_description;
       if (input.sku !== undefined) updateData.sku = input.sku;
       if (input.direct_cost !== undefined) updateData.direct_cost = input.direct_cost;
+      if (input.direct_cost_mode !== undefined) updateData.direct_cost_mode = input.direct_cost_mode;
       if (input.operational_cost !== undefined) updateData.operational_cost = input.operational_cost;
+      if (input.operational_cost_mode !== undefined) updateData.operational_cost_mode = input.operational_cost_mode;
+      if (input.operational_cost_base !== undefined) updateData.operational_cost_base = input.operational_cost_base;
       if (input.commission_default !== undefined) updateData.commission_default = input.commission_default;
+      if (input.commission_mode !== undefined) updateData.commission_mode = input.commission_mode;
+      if (input.commission_base !== undefined) updateData.commission_base = input.commission_base;
       if (input.tax_rate_estimate_pct !== undefined) updateData.tax_rate_estimate_pct = input.tax_rate_estimate_pct;
+      if (input.tax_rate_mode !== undefined) updateData.tax_rate_mode = input.tax_rate_mode;
       if (input.target_margin_pct !== undefined) updateData.target_margin_pct = input.target_margin_pct;
+      if (input.target_margin_mode !== undefined) updateData.target_margin_mode = input.target_margin_mode;
       if (input.images !== undefined) updateData.images = input.images;
       if (input.bundle_price_mode !== undefined) updateData.bundle_price_mode = input.bundle_price_mode;
       if (input.total_units !== undefined) updateData.total_units = input.total_units;
