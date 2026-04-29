@@ -27,11 +27,24 @@ import {
   useCreateProductCategory,
   useUpdateProductCategory,
   useProductCategoriesList,
+  useApplyCategoryCostsToProducts,
   ProductCategory,
 } from "@/hooks/useProductCategories";
 import { useCategoryAIAssistant } from "@/hooks/useCategoryAIAssistant";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CostInput, type CostMode, type CostBase } from "./CostInput";
+import { TrendingUp, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
