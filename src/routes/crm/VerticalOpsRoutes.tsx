@@ -36,6 +36,7 @@ export function VerticalOpsRoutes() {
       <Route path="/super-admin-v2/billing" element={<RequireSuperAdmin><BackofficeSubscriptionsV2 /></RequireSuperAdmin>} />
       <Route path="/super-admin-v2/permissions" element={<RequireSuperAdmin><BackofficePermissionsV2 /></RequireSuperAdmin>} />
       <Route path="/dashboard/super-admin/module-onboarding" element={<RequireSuperAdmin><ModuleOnboardingAdminPage /></RequireSuperAdmin>} />
+      <Route path="/dashboard/super-admin/module-presentations" element={<RequireSuperAdmin><ModulePresentationsAdminPage /></RequireSuperAdmin>} />
       <Route path="/dashboard/team/progression" element={<TeamProgressionPage />} />
       <Route path="/clinicas" element={<VerticalLandingPage />} />
       <Route path="/imobiliarias" element={<VerticalLandingPage />} />
