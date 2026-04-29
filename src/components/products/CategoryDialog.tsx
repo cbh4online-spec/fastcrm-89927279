@@ -56,6 +56,18 @@ const categorySchema = z.object({
 
 type CategoryFormData = z.infer<typeof categorySchema>;
 
+type CostState = {
+  value: string;
+  mode: CostMode;
+  base?: CostBase;
+};
+
+const emptyCost = (mode: CostMode = "value", base?: CostBase): CostState => ({
+  value: "",
+  mode,
+  base,
+});
+
 const PRESET_COLORS = [
   "#3B82F6", // Blue
   "#10B981", // Green
