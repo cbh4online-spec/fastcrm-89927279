@@ -288,4 +288,4 @@ export const BarcodeScannerModal = React.forwardRef<HTMLDivElement, Props>(funct
       </DialogContent>
     </Dialog>
   );
-}
+});
