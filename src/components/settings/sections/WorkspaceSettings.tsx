@@ -352,6 +352,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const openEditDialog = (member: WorkspaceMember) => {
     setSelectedMember(member);
     setEditRole(member.role);
+    setEditCommercialProfile(((member as any).commercial_profile as CommercialProfile) || "vendedor");
     setEditMemberDialogOpen(true);
   };
 
