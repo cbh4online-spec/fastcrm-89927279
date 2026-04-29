@@ -129,6 +129,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const [inviteRole, setInviteRole] = useState<WorkspaceRole>("agent");
   const [manualName, setManualName] = useState("");
   const [manualEmail, setManualEmail] = useState("");
+  const [manualPassword, setManualPassword] = useState("");
   const [manualRole, setManualRole] = useState<WorkspaceRole>("agent");
   const [editRole, setEditRole] = useState<WorkspaceRole>("agent");
   const [inviteCommercialProfile, setInviteCommercialProfile] = useState<CommercialProfile>("vendedor");
@@ -226,58 +227,44 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
 
     setIsSubmitting(true);
     try {
-      // First, create or get the user profile
-      // Note: In production, you'd want to check if user exists first
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .eq("email", manualEmail.trim())
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("create-workspace-member", {
+        body: {
+          email: manualEmail.trim(),
+          fullName: manualName.trim() || undefined,
+          password: manualPassword.trim() || undefined,
+          role: manualRole,
+          commercial_profile: manualCommercialProfile,
+          workspaceId: currentWorkspace.id,
+        },
+      });
 
-      if (existingProfile) {
-        // User exists, add them to workspace
-        const { error: memberError } = await supabase
-          .from("workspace_members")
-          .insert({
-            workspace_id: currentWorkspace.id,
-            user_id: existingProfile.user_id,
-            role: manualRole,
-            commercial_profile: manualCommercialProfile,
-          });
-
-        if (memberError) {
-          if (memberError.code === "23505") {
-            toast.error("Este utilizador já é membro do workspace");
-          } else {
-            throw memberError;
-          }
-        } else {
-          console.log(`[WORKSPACES] Added member: ${existingProfile.user_id} as ${manualRole}`);
-          emitKernelEvent({
-            workspace_id: currentWorkspace.id,
-            type: 'MEMBER.ADDED',
-            entity_kind: 'workspace_member',
-            entity_id: existingProfile.user_id,
-            source_module: 'admin-workspaces',
-            payload: { user_id: existingProfile.user_id, role: manualRole },
-          });
-          toast.success("Membro adicionado com sucesso");
-          refetchMembers();
-        }
-      } else {
-        // For manual add without existing user, we'd need a different approach
-        // For now, show a message to use invite instead
-        toast.error("Utilizador não encontrado. Use a opção de convite para novos utilizadores.");
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
       }
+
+      console.log(`[WORKSPACES] Added member: ${data?.user_id} as ${manualRole}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'MEMBER.ADDED',
+        entity_kind: 'workspace_member',
+        entity_id: data?.user_id,
+        source_module: 'admin-workspaces',
+        payload: { user_id: data?.user_id, role: manualRole },
+      });
+      toast.success("Membro adicionado com sucesso");
+      refetchMembers();
 
       setAddManualDialogOpen(false);
       setManualName("");
       setManualEmail("");
+      setManualPassword("");
       setManualRole("agent");
       setManualCommercialProfile("vendedor");
     } catch (error) {
       console.warn('[WORKSPACES] ADD_MEMBER_FAILED', (error as Error).message);
-      toast.error("Erro ao adicionar membro");
+      toast.error("Erro ao adicionar membro: " + (error as Error).message);
     } finally {
       setIsSubmitting(false);
     }
@@ -831,10 +818,19 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
           <DialogHeader>
             <DialogTitle>Adicionar Membro</DialogTitle>
             <DialogDescription>
-              Adicione um utilizador existente ao workspace.
+              Crie um novo utilizador ou adicione um existente ao workspace.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="manualName">Nome completo</Label>
+              <Input
+                id="manualName"
+                placeholder="João Silva"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="manualEmail">Email do utilizador</Label>
               <Input
@@ -844,6 +840,19 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 value={manualEmail}
                 onChange={(e) => setManualEmail(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="manualPassword">Palavra-passe (opcional)</Label>
+              <Input
+                id="manualPassword"
+                type="text"
+                placeholder="Deixe vazio para gerar automaticamente"
+                value={manualPassword}
+                onChange={(e) => setManualPassword(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Mínimo 8 caracteres. Se vazia, será gerada automaticamente.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="manualRole">Cargo</Label>
