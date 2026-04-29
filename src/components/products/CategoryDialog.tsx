@@ -651,6 +651,101 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
               </div>
             </div>
 
+            {/* ===== Custos por defeito ===== */}
+            <Card className="p-4 space-y-4 border-dashed">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <span className="font-medium text-sm">Custos por defeito</span>
+                <Badge variant="outline" className="text-[10px]">Opcional</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Estes valores são pré-preenchidos quando se cria um novo produto nesta categoria.
+                Cada campo aceita valor (€) ou percentagem (%).
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <CostInput
+                  id="cat-direct-cost"
+                  label="Custo Direto"
+                  value={directCost.value}
+                  onValueChange={(v) => setDirectCost((s) => ({ ...s, value: v }))}
+                  mode={directCost.mode}
+                  onModeChange={(m) => setDirectCost((s) => ({ ...s, mode: m }))}
+                />
+                <CostInput
+                  id="cat-op-cost"
+                  label="Custo Operacional"
+                  value={opCost.value}
+                  onValueChange={(v) => setOpCost((s) => ({ ...s, value: v }))}
+                  mode={opCost.mode}
+                  onModeChange={(m) => setOpCost((s) => ({ ...s, mode: m }))}
+                  base={opCost.base}
+                  onBaseChange={(b) => setOpCost((s) => ({ ...s, base: b }))}
+                  showBase
+                />
+                <CostInput
+                  id="cat-commission"
+                  label="Comissão"
+                  value={commission.value}
+                  onValueChange={(v) => setCommission((s) => ({ ...s, value: v }))}
+                  mode={commission.mode}
+                  onModeChange={(m) => setCommission((s) => ({ ...s, mode: m }))}
+                  base={commission.base}
+                  onBaseChange={(b) => setCommission((s) => ({ ...s, base: b }))}
+                  showBase
+                />
+                <CostInput
+                  id="cat-tax"
+                  label="Imposto"
+                  value={taxRate.value}
+                  onValueChange={(v) => setTaxRate((s) => ({ ...s, value: v }))}
+                  mode={taxRate.mode}
+                  onModeChange={(m) => setTaxRate((s) => ({ ...s, mode: m }))}
+                  percentOnly
+                />
+                <CostInput
+                  id="cat-target-margin"
+                  label="Margem Alvo"
+                  value={targetMargin.value}
+                  onValueChange={(v) => setTargetMargin((s) => ({ ...s, value: v }))}
+                  mode={targetMargin.mode}
+                  onModeChange={(m) => setTargetMargin((s) => ({ ...s, mode: m }))}
+                />
+              </div>
+
+              {isEditing && (
+                <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">Aplicar a produtos existentes</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sobrescreve os custos dos produtos atuais desta categoria.
+                    </p>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeSubcats}
+                        onChange={(e) => setIncludeSubcats(e.target.checked)}
+                        className="rounded"
+                      />
+                      Incluir subcategorias
+                    </label>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmApplyOpen(true)}
+                    disabled={applyCategoryCosts.isPending}
+                  >
+                    {applyCategoryCosts.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : null}
+                    Aplicar agora
+                  </Button>
+                </div>
+              )}
+            </Card>
+
             <div className="flex justify-end gap-2 pt-4">
               <Button
                 type="button"
@@ -669,6 +764,28 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                 {isEditing ? "Guardar" : "Criar Categoria"}
               </Button>
             </div>
+
+            <AlertDialog open={confirmApplyOpen} onOpenChange={setConfirmApplyOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    Confirmar aplicação em massa
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Os custos por defeito desta categoria{includeSubcats ? " e das suas subcategorias" : ""} serão
+                    aplicados a TODOS os produtos correspondentes. Esta operação sobrescreve os valores atuais
+                    e fica registada no log de atividade. Não é possível desfazer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleApplyToExisting}>
+                    Aplicar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </form>
         </Form>
       </DialogContent>
