@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProduct } from "@/hooks/useProducts";
-import { useFormatCurrency } from "@/hooks/useFormatCurrency";
 import { haptics } from "@/hooks/useHaptics";
 import { ProductDetailDialog } from "../ProductDetailDialog";
 
@@ -19,6 +18,7 @@ interface MobileProductDetailSheetProps {
   onClose: () => void;
   onEdit: () => void;
   onArchive: () => void;
+  formatCurrency: (n: number) => string;
 }
 
 type MobileTab = "overview" | "pricing" | "stock" | "variants" | "images" | "more";
@@ -33,12 +33,11 @@ const TABS: { id: MobileTab; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function MobileProductDetailSheet({
-  productId, open, onClose, onEdit, onArchive,
+  productId, open, onClose, onEdit, onArchive, formatCurrency,
 }: MobileProductDetailSheetProps) {
   const [tab, setTab] = useState<MobileTab>("overview");
   const [fullDialogOpen, setFullDialogOpen] = useState(false);
   const { data: product, isLoading } = useProduct(productId ?? undefined);
-  const formatCurrency = useFormatCurrency();
 
   const handleShare = async () => {
     if (!product) return;
