@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,12 +59,20 @@ import { MobileProductsView } from "./mobile/MobileProductsView";
 import { MobileProductDetailSheet } from "./mobile/MobileProductDetailSheet";
 
 export function ProductsList() {
+  const navigate = useNavigate();
   const state = useProductsListState();
   const { data: pricingRules = [] } = usePricingRules();
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  const goToMobileQuickCreate = useCallback((barcode?: string) => {
+    const path = barcode
+      ? `/mobile/products/quick-create?barcode=${encodeURIComponent(barcode)}`
+      : "/mobile/products/quick-create";
+    navigate(path);
+  }, [navigate]);
 
   const comparisonProducts = useMemo(() => {
     if (!state.products) return [];
