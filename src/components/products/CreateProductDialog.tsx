@@ -330,8 +330,11 @@ export function CreateProductDialog({
       setLaborHourlyRate(product.labor_hourly_rate || null);
       setLaborIncludedInPrice(product.labor_included_in_price ?? true);
       setLaborNotes(product.labor_notes || "");
-      // B2B Portal visibility
+      // Publishing channels
       setB2bPublished(product.b2b_published ?? true);
+      setStorePublished((product as any).store_published ?? false);
+      setSheetPublished(product.sheet_published ?? false);
+      setPendingCatalogIds([]);
       // Location
       setLocation((product as any).location || "");
       // Physical attributes
@@ -469,8 +472,11 @@ export function CreateProductDialog({
     setLaborHourlyRate(null);
     setLaborIncludedInPrice(true);
     setLaborNotes("");
-    // Reset B2B Portal visibility
+    // Reset publishing channels
     setB2bPublished(true);
+    setStorePublished(false);
+    setSheetPublished(false);
+    setPendingCatalogIds([]);
     // Reset physical attributes
     setPhysical(EMPTY_PHYSICAL);
     // Reset post-creation suggestions
@@ -522,19 +528,26 @@ export function CreateProductDialog({
     data.labor_included_in_price = laborIncludedInPrice;
     data.labor_notes = laborNotes || undefined;
 
-    // B2B Portal visibility
+    // Publishing channels
     data.b2b_published = b2bPublished;
+    (data as any).store_published = storePublished;
+    (data as any).sheet_published = sheetPublished;
     // Location
     data.location = location || undefined;
     // Physical attributes (frascos líquidos, peso, dimensões, embalagem)
     Object.assign(data, physicalToPayload(physical));
 
+    let savedProductId: string | null = null;
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product!.id, ...data });
+      savedProductId = product!.id;
     } else {
       const created = await createProduct.mutateAsync(data);
+      savedProductId = created?.id ?? null;
       // Show post-creation suggestions instead of closing immediately
       if (created?.id && created?.workspace_id) {
+        // Apply selected digital catalogs (create mode)
+        await applyPendingCatalogs(created.id);
         setCreatedProduct({ id: created.id, name: created.name, workspace_id: created.workspace_id });
         // Clear draft after successful save
         localStorage.removeItem(DRAFT_STORAGE_KEY);
@@ -543,6 +556,11 @@ export function CreateProductDialog({
         setShowCostWarning(false);
         return; // Don't close dialog yet - show suggestions
       }
+    }
+
+    // Apply pending catalogs (edit mode or fallback)
+    if (savedProductId) {
+      await applyPendingCatalogs(savedProductId);
     }
 
     // Clear draft after successful save
