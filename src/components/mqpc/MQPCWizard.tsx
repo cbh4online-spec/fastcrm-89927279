@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
 import { MQPCStepSKU, type SKUSearchResult } from "./MQPCStepSKU";
@@ -16,6 +16,8 @@ const STEPS = ["SKU", "Imagens", "Dados", "Extras"];
 
 export function MQPCWizard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialBarcode = searchParams.get("barcode") || "";
   const { currentWorkspace } = useWorkspace();
   const { data: categories = [] } = useAdminStoreCategories();
   const { trackMQPCCreatedDraft, trackMQPCCreatedActive } = useCRMAnalytics();
@@ -99,7 +101,8 @@ export function MQPCWizard() {
 
   const goBack = () => {
     if (step > 0) setStep(step - 1);
-    else navigate(-1);
+    else if (window.history.length > 1) navigate(-1);
+    else navigate("/dashboard/products");
   };
 
   const handleCreate = async () => {
