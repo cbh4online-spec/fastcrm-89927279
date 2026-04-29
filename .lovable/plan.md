@@ -1,111 +1,77 @@
+# Onboarding Guiado por Módulo
 
-O utilizador pergunta como captar leads através dos ebooks. O sistema de lead magnet já foi implementado nas mensagens anteriores (gating configurável, captura de nome/email/telemóvel, dedupe com CRM). 
+Cada módulo do marketplace passa a ter uma **apresentação de boas-vindas** (formato slides) que funciona como guia de utilização. O acesso ao módulo só é libertado depois do utilizador completar a apresentação. Quem instalou o módulo antes da feature mantém o acesso (grandfathering opcional).
 
-Vou apresentar um plano estratégico de como usar o que já existe, em vez de re-implementar. Isto é mais consultoria/orientação do que código novo.
+## Objetivo
 
-Vou verificar rapidamente o estado actual para confirmar.
+- Reduzir fricção: o utilizador percebe o módulo antes de o usar.
+- Garantir adoção: ninguém entra "às cegas" num módulo.
+- Reaproveitável: o guia pode ser revisitado a qualquer momento ("Ajuda → Ver tour").
 
-# Plano: Estratégia de Captação de Leads via eBooks
+## Arquitetura
 
-## Diagnóstico
-O sistema já tem toda a infraestrutura técnica para captar leads em ebooks (implementada nas sessões anteriores):
-- Gating configurável por ebook (sempre / após N páginas / nunca)
-- Formulário com nome, email, telemóvel (campos configuráveis)
-- Dedupe automático contra Contactos e Leads existentes
-- Tracking de leitura ligado ao CRM (páginas vistas, tempo, conclusão)
-
-O que falta é a **estratégia de uso** e algumas **melhorias de conversão**.
-
-## Estratégia recomendada (boas práticas seniores)
-
-### 1. Configuração óptima por tipo de ebook
-| Tipo de eBook | Trigger | Campos obrigatórios |
-|---|---|---|
-| Lead magnet topo de funil (guias, checklists) | Após 2-3 páginas (teaser) | Nome + Email |
-| Conteúdo premium (estudos, cases) | Sempre (gate total) | Nome + Email + Telemóvel |
-| Material de nurturing (clientes existentes) | Nunca | — |
-
-**Porquê teaser**: mostrar valor antes de pedir dados aumenta conversão em 30-50%.
-
-### 2. Melhorias de conversão a implementar
-1. **Headline persuasiva no gate** — campo configurável já existe, mas adicionar sub-título e bullet points de benefícios
-2. **Prova social** — mostrar "X pessoas já leram este ebook" no gate
-3. **Double opt-in opcional** — enviar email de confirmação (RGPD-friendly)
-4. **Thank-you state** — após captura, mostrar mensagem personalizada antes de abrir o ebook
-
-### 3. Distribuição (onde partilhar o link)
-- Loja online (banner "Download grátis")
-- Funis (já existe `funnel_ebooks`)
-- WhatsApp / SMS outbound (sequências SDR)
-- Assinatura de email
-- Posts sociais com OG image automática
-- QR code em materiais físicos
-
-### 4. Follow-up automático (fechar o ciclo)
-Quando lead é capturado → disparar:
-- **Email imediato** com link do ebook (caso saia antes de ler)
-- **Sequência SDR** após 1-3-7 dias se não converter
-- **Notificação ao gestor** quando lead atinge >70% de leitura (sinal forte)
-- **Score automático** baseado em páginas lidas + tempo
-
-### 5. Métricas a acompanhar (dashboard)
-- Taxa de conversão (visualizações → leads capturados)
-- Taxa de leitura completa (leads → ebook concluído)
-- Origem dos leads (UTM tracking)
-- Tempo médio até captura
-- CTAs clicados dentro do ebook
-
-## O que proponho construir agora
-
-Apenas as **melhorias de conversão e follow-up** que faltam:
-
-1. **Gate optimizado**
-   - Adicionar campo `lead_gate_subtitle` e `lead_gate_benefits` (array de bullets) à tabela `ebooks`
-   - Mostrar ícone/imagem do ebook no gate
-   - Botão CTA com microcopy persuasiva configurável
-
-2. **Email automático pós-captura**
-   - Edge function `ebook-lead-welcome` que envia email com link do ebook
-   - Template personalizável por ebook
-
-3. **Notificação ao gestor**
-   - Trigger no kernel event `ebook.read_completed` quando >70% lido
-   - Cria tarefa/notificação no CRM com ficha do lead
-
-4. **Dashboard de conversão**
-   - Nova secção em `/dashboard/ebooks/[id]/analytics`
-   - KPIs: views, leads capturados, taxa conversão, leitura completa
-   - Lista de leads recentes com link directo para a ficha CRM
-
-5. **Documentação no editor**
-   - Painel "Boas práticas" com sugestões de configuração por tipo de ebook
-
-## Estrutura técnica
 ```text
-ebooks (novas colunas)
-├── lead_gate_subtitle: text
-├── lead_gate_benefits: text[]
-├── lead_gate_cta_label: text
-└── welcome_email_enabled: bool
-
-Edge Functions (novas)
-├── ebook-lead-welcome (envia email pós-captura)
-└── ebook-completion-notify (notifica gestor quando >70%)
-
-UI
-├── EbookLeadGate.tsx (melhorado com subtitle + benefits)
-├── EbookAnalyticsPanel.tsx (novo dashboard)
-└── EbookEditorShell.tsx (secção "Boas Práticas")
+Instalar módulo  ───►  Apresentação obrigatória  ───►  Acesso libertado
+   (marketplace)         (slides + ações)              (ModuleGuard OK)
+                              │
+                              └─► Registo em module_onboarding_completions
 ```
 
-## Critérios de aceitação
-- Gate mostra benefícios e CTA persuasiva
-- Email automático chega ao lead em < 30 segundos
-- Gestor recebe notificação quando lead lê >70%
-- Dashboard mostra funil de conversão por ebook
-- Configuração por ebook documentada no editor
+## Componentes a criar
 
-## Riscos / pontos por validar
-- Confirmar provedor de email (Resend já está integrado nas SDR sequences — reutilizar)
-- Definir threshold de "lead quente" (sugiro 70%, ajustável por ebook)
-- RGPD: incluir checkbox de consentimento e link para política de privacidade no gate
+**1. Base de dados (migração)**
+- `module_onboarding_presentations` — slides por módulo (slug do módulo, ordem, título, conteúdo MD/HTML, imagem, CTA opcional, duração mínima).
+- `module_onboarding_completions` — registo por (workspace_id, user_id, module_slug, completed_at, slides_viewed, skipped). RLS: utilizador só lê/escreve os seus próprios.
+- Seed inicial com 3–5 slides para os módulos críticos (CRM, Produtos, Vendas, Marketing, Inbox).
+
+**2. Componente `ModulePresentationViewer`**
+- Reutiliza o padrão "slides app" (1920x1080 escalável) já documentado no projeto.
+- Navegação: setas, dots, barra de progresso, botão "Concluir" só ativo no último slide.
+- Tempo mínimo por slide (anti-skip rápido); botão "Saltar" disponível só para super_admin.
+- Ao concluir → INSERT em `module_onboarding_completions` → invalida cache → liberta módulo.
+
+**3. Atualização do `ModuleGuard`**
+- Após verificar instalação, verificar se há `module_onboarding_completions` para o utilizador atual.
+- Se não houver → mostrar `ModulePresentationViewer` em vez do conteúdo do módulo.
+- Se houver → render normal dos children.
+- Bypass para super_admin (config) e para módulos sem apresentação definida.
+
+**4. Hook `useModuleOnboarding(moduleSlug)`**
+- Devolve `{ slides, isCompleted, completeMutation, skipMutation }`.
+- Cache via React Query, invalida `workspace-modules` quando completa.
+
+**5. Editor de apresentações (Super Admin)**
+- Página em `/dashboard/super-admin/module-onboarding` para criar/editar slides por módulo.
+- Lista de módulos + drawer com editor de slides (drag-and-drop para reordenar, preview ao vivo).
+- Permite duplicar slides entre módulos.
+
+**6. Re-acesso ao guia**
+- Botão "Ver guia do módulo" no header de cada módulo (chama o viewer em modo "review", sem bloquear).
+
+## Fluxo do utilizador
+
+1. Utilizador instala módulo X no marketplace.
+2. Ao navegar para `/dashboard/X` → `ModuleGuard` deteta que falta onboarding.
+3. Apresentação fullscreen abre automaticamente (5–8 slides com texto, imagens, mini-vídeos GIF opcionais).
+4. No último slide: CTA "Começar a usar [Módulo]" → grava conclusão → entra no módulo.
+5. A qualquer momento: botão "Ver tour" no header → reabre o viewer em modo review.
+
+## Detalhes técnicos
+
+- **RLS**: `module_onboarding_completions` com policies `user_id = auth.uid()` para SELECT/INSERT; super_admin bypass para gestão.
+- **Migração de dados existentes**: opção 1 — marcar todos os módulos já instalados como "completados" (grandfathering, sem disrupção). Opção 2 — forçar todos a ver. **Recomendação: grandfathering** para evitar fricção em utilizadores ativos.
+- **Slides storage**: conteúdo em JSON estruturado (`{ heading, body, image_url, bullets[], cta }`) — não HTML livre, para segurança e edição fácil.
+- **Imagens**: bucket Supabase Storage `module-onboarding-assets` (público leitura, super_admin escrita).
+- **i18n**: campo `lang` por slide (PT/EN/ES/FR) — fallback para PT.
+- **Analytics**: registar tempo por slide e taxa de conclusão em `module_action_logs` (já existe).
+
+## Fora do âmbito (fase 1)
+
+- Vídeo embebido (usar GIF/imagem por agora).
+- Quiz/validação de compreensão.
+- Tour interativo *in-product* (Shepherd.js) — pode vir em fase 2.
+- Geração automática de slides por IA — pode vir em fase 2 reutilizando `builder-ai`.
+
+## Pergunta antes de implementar
+
+**Conteúdo inicial dos slides**: começo com slides genéricos (3 por módulo crítico: "O que é", "O que podes fazer", "Como começar") que tu depois editas no painel super_admin? Ou queres que eu gere conteúdo específico para uma lista de módulos que indiques?
