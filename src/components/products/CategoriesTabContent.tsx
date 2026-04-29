@@ -145,11 +145,13 @@ export function CategoriesTabContent() {
                 >
                   <TableCell>
                     {category.image_url ? (
-                      <img
-                        src={category.image_url}
-                        alt={category.name}
-                        className="w-10 h-10 rounded-lg object-cover"
-                      />
+                      <div className="w-10 h-10 rounded-lg bg-muted/50 overflow-hidden flex items-center justify-center">
+                        <img
+                          src={category.image_url}
+                          alt={category.name}
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
                     ) : (
                       <div
                         className="w-10 h-10 rounded-lg flex items-center justify-center"

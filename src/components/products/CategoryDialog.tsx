@@ -483,12 +483,12 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                       <FormControl>
                         <div className="space-y-3">
                           {/* Image Preview */}
-                          <div className="relative aspect-square w-full max-w-[200px] mx-auto rounded-lg border bg-muted/50 overflow-hidden">
+                          <div className="relative aspect-square w-full max-w-[200px] mx-auto rounded-lg border bg-muted/50 overflow-hidden flex items-center justify-center">
                             {(previewImage || currentImageUrl) ? (
                               <img
                                 src={previewImage || currentImageUrl}
                                 alt="Preview"
-                                className="w-full h-full object-cover"
+                                className="max-w-full max-h-full object-contain m-auto"
                               />
                             ) : (
                               <div className="flex items-center justify-center h-full text-muted-foreground">
