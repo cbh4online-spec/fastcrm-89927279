@@ -272,6 +272,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       setManualName("");
       setManualEmail("");
       setManualRole("agent");
+      setManualCommercialProfile("vendedor");
     } catch (error) {
       console.warn('[WORKSPACES] ADD_MEMBER_FAILED', (error as Error).message);
       toast.error("Erro ao adicionar membro");
