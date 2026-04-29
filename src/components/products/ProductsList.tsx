@@ -242,20 +242,6 @@ export function ProductsList() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {state.scannerOpen && (
-          <BarcodeScannerModal
-            open={state.scannerOpen}
-            onClose={() => state.setScannerOpen(false)}
-            onScan={state.handleBarcodeScanned}
-          />
-        )}
-        {state.barcodeResult && (
-          <BarcodeResultPanel
-            result={state.barcodeResult}
-            onClose={() => state.setBarcodeResult(null)}
-            onCreateProduct={state.handleCreateFromBarcode}
-          />
-        )}
       </>
     );
   }
