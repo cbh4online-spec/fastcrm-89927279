@@ -253,7 +253,7 @@ export function MQPCWizard() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto px-4 py-6">
-        {step === 0 && <MQPCStepSKU onSKUResult={handleSKUResult} onSkip={handleSKUSkip} />}
+        {step === 0 && <MQPCStepSKU onSKUResult={handleSKUResult} onSkip={handleSKUSkip} initialSku={initialBarcode} />}
         {step === 1 && <MQPCStepImages images={images} onImagesChange={setImages} />}
         {step === 2 && <MQPCStepDetails details={details} onDetailsChange={setDetails} errors={detailErrors} aiPrefilled={aiPrefilled} />}
         {step === 3 && (

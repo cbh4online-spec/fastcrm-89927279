@@ -27,11 +27,12 @@ interface SKUSearchResult {
 interface MQPCStepSKUProps {
   onSKUResult: (result: SKUSearchResult, sku: string) => void;
   onSkip: () => void;
+  initialSku?: string;
 }
 
-export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
+export function MQPCStepSKU({ onSKUResult, onSkip, initialSku }: MQPCStepSKUProps) {
   const { searchBySKU } = useProductAIAssistant();
-  const [skuInput, setSkuInput] = useState("");
+  const [skuInput, setSkuInput] = useState(initialSku ?? "");
   const [searchResult, setSearchResult] = useState<SKUSearchResult | null>(null);
   const [searched, setSearched] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
