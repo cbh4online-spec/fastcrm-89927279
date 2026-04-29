@@ -242,6 +242,25 @@ export function ProductsList() {
           </AlertDialogContent>
         </AlertDialog>
 
+        <BarcodeScannerModal
+          open={state.scannerOpen}
+          onOpenChange={state.setScannerOpen}
+          onScan={state.handleBarcodeScan}
+        />
+        <BarcodeResultPanel
+          open={state.scanResultOpen}
+          onOpenChange={(v) => { state.setScanResultOpen(v); if (!v) state.resetScan(); }}
+          result={state.scanResult}
+          barcode={state.scannedBarcode}
+          isLoading={state.scanLoading}
+          onOpenProduct={(id) => {
+            const p = state.products?.find(pr => pr.id === id);
+            if (p) state.setDetailProduct(p);
+          }}
+          onQuickCreate={(barcode) => {
+            window.location.href = `/mqpc?barcode=${encodeURIComponent(barcode)}`;
+          }}
+        />
       </>
     );
   }
