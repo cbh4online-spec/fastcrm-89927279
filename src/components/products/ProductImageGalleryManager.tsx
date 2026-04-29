@@ -1,19 +1,25 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { 
-  Check, 
-  ChevronLeft, 
-  ChevronRight, 
-  Star, 
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Star,
   Image as ImageIcon,
   Plus,
   Trash2,
-  GripVertical
+  GripVertical,
+  Camera,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { toast } from "sonner";
 
 interface ProductImageGalleryManagerProps {
   images: string[];
