@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle, Save, MapPin } from "lucide-react";
+import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle, Save, MapPin, ScanLine } from "lucide-react";
+import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import {
   AlertDialog,
@@ -146,6 +147,7 @@ export function CreateProductDialog({
   const [showCostWarning, setShowCostWarning] = useState(false);
   const [showMarginWarning, setShowMarginWarning] = useState(false);
   const [skuSearchTrigger, setSkuSearchTrigger] = useState(0);
+  const [scannerOpen, setScannerOpen] = useState(false);
   // B2B Portal visibility
   const [b2bPublished, setB2bPublished] = useState(true);
   // Location
@@ -690,6 +692,16 @@ export function CreateProductDialog({
                     type="button"
                     variant="outline"
                     size="icon"
+                    onClick={() => setScannerOpen(true)}
+                    title="Ler código de barras com a câmara"
+                    aria-label="Ler com câmara"
+                  >
+                    <ScanLine className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
                     disabled={!sku.trim()}
                     onClick={() => setSkuSearchTrigger(prev => prev + 1)}
                     title="Pesquisar dados do produto"
@@ -698,9 +710,19 @@ export function CreateProductDialog({
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Insira o código e clique na lupa para pesquisar informações automaticamente
+                  Insira o código, leia com a câmara ou clique na lupa para pesquisar automaticamente
                 </p>
               </div>
+
+              <BarcodeScannerModal
+                open={scannerOpen}
+                onOpenChange={setScannerOpen}
+                onScan={(code) => {
+                  setSku(code);
+                  setScannerOpen(false);
+                  setTimeout(() => setSkuSearchTrigger((prev) => prev + 1), 50);
+                }}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="name">Nome *</Label>

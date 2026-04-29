@@ -1,19 +1,25 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { 
-  Check, 
-  ChevronLeft, 
-  ChevronRight, 
-  Star, 
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Star,
   Image as ImageIcon,
   Plus,
   Trash2,
-  GripVertical
+  GripVertical,
+  Camera,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { toast } from "sonner";
 
 interface ProductImageGalleryManagerProps {
   images: string[];
@@ -32,10 +38,114 @@ export function ProductImageGalleryManager({
   const [selectedSkuImages, setSelectedSkuImages] = useState<Set<string>>(new Set());
   const [previewIndex, setPreviewIndex] = useState(0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const { currentWorkspace } = useWorkspace();
 
+  // Compress + upload selected files via presign edge function
+  const handleFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      if (!currentWorkspace?.id) {
+        toast.error("Workspace não encontrado");
+        return;
+      }
+      const remaining = maxImages - images.length;
+      if (remaining <= 0) {
+        toast.error(`Máximo de ${maxImages} imagens`);
+        return;
+      }
+      const selected = Array.from(files).slice(0, remaining);
+      setUploading(true);
+      try {
+        // Compress to JPEG max 1600px
+        const compress = (file: File): Promise<Blob> =>
+          new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+              const MAX = 1600;
+              let { width, height } = img;
+              if (width > MAX || height > MAX) {
+                if (width > height) {
+                  height = Math.round((height * MAX) / width);
+                  width = MAX;
+                } else {
+                  width = Math.round((width * MAX) / height);
+                  height = MAX;
+                }
+              }
+              const canvas = document.createElement("canvas");
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext("2d");
+              if (!ctx) return reject(new Error("Canvas context indisponível"));
+              ctx.drawImage(img, 0, 0, width, height);
+              canvas.toBlob(
+                (b) => (b ? resolve(b) : reject(new Error("Falha na compressão"))),
+                "image/jpeg",
+                0.85
+              );
+            };
+            img.onerror = () => reject(new Error("Imagem inválida"));
+            img.src = URL.createObjectURL(file);
+          });
+
+        const fileMeta = selected.map((f) => ({
+          filename: f.name,
+          content_type: "image/jpeg",
+          size_bytes: f.size,
+        }));
+
+        const { data, error } = await supabase.functions.invoke("product-images-presign", {
+          body: { files: fileMeta, context: { channel: "desktop_dialog", intent: "product_create" } },
+          headers: { "X-Workspace-Id": currentWorkspace.id },
+        });
+        if (error) throw new Error(error.message || "Falha ao preparar upload");
+        const uploads = data?.data?.uploads as Array<{ signed_upload_url: string; public_url: string; file_id: string }>;
+        if (!uploads?.length) throw new Error("Resposta inválida do servidor");
+
+        const uploadedUrls: string[] = [];
+        for (let i = 0; i < selected.length; i++) {
+          try {
+            const blob = await compress(selected[i]);
+            const res = await fetch(uploads[i].signed_upload_url, {
+              method: "PUT",
+              body: blob,
+              headers: { "Content-Type": "image/jpeg" },
+            });
+            if (!res.ok) throw new Error(`Upload falhou (${res.status})`);
+            uploadedUrls.push(uploads[i].public_url);
+            // Fire-and-forget confirm
+            supabase
+              .from("storage_upload_intents" as any)
+              .update({ status: "uploaded", updated_at: new Date().toISOString() })
+              .eq("id", uploads[i].file_id)
+              .then(() => {});
+          } catch (err) {
+            console.warn("[PRODUCT_IMAGES] upload failed", (err as Error).message);
+          }
+        }
+
+        if (uploadedUrls.length > 0) {
+          onImagesChange([...images, ...uploadedUrls].slice(0, maxImages));
+          toast.success(`${uploadedUrls.length} imagem(ns) adicionada(s)`);
+        } else {
+          toast.error("Nenhuma imagem foi carregada");
+        }
+      } catch (err) {
+        toast.error("Erro ao carregar imagens: " + (err as Error).message);
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        if (cameraInputRef.current) cameraInputRef.current.value = "";
+      }
+    },
+    [currentWorkspace?.id, images, maxImages, onImagesChange]
+  );
   // Toggle SKU image selection
   const toggleSkuImage = useCallback((imageUrl: string) => {
-    setSelectedSkuImages(prev => {
+    setSelectedSkuImages((prev) => {
       const next = new Set(prev);
       if (next.has(imageUrl)) {
         next.delete(imageUrl);
@@ -354,15 +464,59 @@ export function ProductImageGalleryManager({
         </Card>
       )}
 
+      {/* Upload / Camera Actions */}
+      <Card className="p-3">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || images.length >= maxImages}
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Carregar imagens
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={uploading || images.length >= maxImages}
+            title="Abrir câmara do dispositivo"
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            Tirar foto
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2 text-center">
+          Até {maxImages} imagens • Compressão automática • A câmara abre nativamente em telemóveis
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+      </Card>
+
       {/* Empty State */}
       {images.length === 0 && !hasAvailableSkuImages && (
         <Card className="p-6 text-center border-dashed">
           <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-          <p className="text-sm text-muted-foreground">
-            Nenhuma imagem adicionada
-          </p>
+          <p className="text-sm text-muted-foreground">Nenhuma imagem adicionada</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Pesquise por SKU para encontrar imagens ou gere com IA
+            Carregue, tire foto, pesquise por SKU ou gere com IA
           </p>
         </Card>
       )}
