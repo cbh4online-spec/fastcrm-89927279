@@ -26,6 +26,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { id: "search", label: "Pesquisa global", keys: { mac: ["⌘", "K"], win: ["Ctrl", "K"] }, description: "Pesquisa contactos, leads, campanhas e mais" },
       { id: "help", label: "Abrir atalhos de teclado", keys: { mac: ["?"], win: ["?"] } },
       { id: "kb", label: "Abrir base de conhecimento", keys: { mac: ["⌘", "H"], win: ["Ctrl", "H"] } },
+      { id: "onboarding-guide", label: "Abrir guia de onboarding do módulo actual", keys: { mac: ["Shift", "G"], win: ["Shift", "G"] }, description: "Reabre a apresentação do módulo onde estás" },
       { id: "escape", label: "Fechar modal / painel", keys: { mac: ["Esc"], win: ["Esc"] } },
       { id: "save", label: "Guardar formulário", keys: { mac: ["⌘", "S"], win: ["Ctrl", "S"] } },
       { id: "new", label: "Novo item (contexto actual)", keys: { mac: ["⌘", "N"], win: ["Ctrl", "N"] } },
