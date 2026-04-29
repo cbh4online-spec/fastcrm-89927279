@@ -24,6 +24,7 @@ export function ProfileSettings() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [firstName, setFirstName] = useState(
     user?.user_metadata?.first_name || user?.user_metadata?.full_name?.split(" ")[0] || ""
   );
