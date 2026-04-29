@@ -23,7 +23,7 @@ import {
   Plus, PanelLeft, PanelLeftClose, Store, RefreshCw,
   Upload, ScanLine, Columns, AlertTriangle, Trash2,
   Package, Repeat, FileBox, Tag, CircleDollarSign,
-  Calendar, Layers, Download,
+  Calendar, Layers, Download, ScanText,
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
