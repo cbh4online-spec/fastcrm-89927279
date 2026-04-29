@@ -88,7 +88,7 @@ export type CampaignInput = Partial<Omit<Campaign, "id" | "workspace_id" | "uses
   Pick<Campaign, "name" | "mechanic">;
 
 export function useCampaigns() {
-  const { workspace } = useCurrentWorkspace();
+  const { currentWorkspace: workspace } = useWorkspace();
   return useQuery({
     queryKey: ["campaigns", workspace?.id],
     enabled: !!workspace?.id,
@@ -107,7 +107,7 @@ export function useCampaigns() {
 
 export function useCreateCampaign() {
   const qc = useQueryClient();
-  const { workspace } = useCurrentWorkspace();
+  const { currentWorkspace: workspace } = useWorkspace();
   return useMutation({
     mutationFn: async (input: CampaignInput) => {
       if (!workspace?.id) throw new Error("Sem workspace activo");
