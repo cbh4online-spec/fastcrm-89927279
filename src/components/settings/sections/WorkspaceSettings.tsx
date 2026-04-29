@@ -240,6 +240,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
             workspace_id: currentWorkspace.id,
             user_id: existingProfile.user_id,
             role: manualRole,
+            commercial_profile: manualCommercialProfile,
           });
 
         if (memberError) {
