@@ -858,9 +858,22 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddManualDialogOpen(false)}>
+            <div className="space-y-2">
+              <Label htmlFor="manualCommercialProfile">Perfil comercial</Label>
+              <Select value={manualCommercialProfile} onValueChange={(v) => setManualCommercialProfile(v as CommercialProfile)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {commercialProfileOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex flex-col">
+                        <span>{opt.label}</span>
+                        <span className="text-xs text-muted-foreground">{opt.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
               Cancelar
             </Button>
             <Button onClick={handleAddManualMember} disabled={isSubmitting || !manualEmail.trim()}>
