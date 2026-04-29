@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
-import { Search, Loader2, PackageCheck, ArrowRight, SkipForward, ImageIcon, Tag, DollarSign, AlertCircle } from "lucide-react";
+import { Search, Loader2, PackageCheck, ArrowRight, SkipForward, ImageIcon, Tag, DollarSign, AlertCircle, ScanLine } from "lucide-react";
 import { toast } from "sonner";
+import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
 
 interface SKUSearchResult {
   found: boolean;
