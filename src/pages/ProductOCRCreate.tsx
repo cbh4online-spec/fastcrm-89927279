@@ -182,8 +182,12 @@ export default function ProductOCRCreate() {
         const n = parseInt(v, 10);
         return isFinite(n) ? n : null;
       };
+      const clamp = (v: number | null, min: number, max: number) =>
+        v === null ? null : Math.min(max, Math.max(min, v));
 
-      // 2. Criar produto em rascunho
+      // 2. Criar produto (status='active' obrigatório pelo schema; flags de
+      // publicação ficam todas a false → produto invisível em qualquer canal
+      // até revisão manual. Marcador 'ocr_draft' em metadata).
       const { data: prod, error: prodErr } = await supabase
         .from("products")
         .insert({
@@ -191,7 +195,11 @@ export default function ProductOCRCreate() {
           name: sheet.name.trim(),
           commercial_name: sheet.commercial_name || null,
           product_type: sheet.product_type || "physical",
-          status: "draft",
+          status: "active",
+          store_published: false,
+          b2b_published: false,
+          b2b_visible: false,
+          sheet_published: false,
           category: sheet.category || null,
           subcategory: sheet.subcategory || null,
           line: sheet.line || null,
@@ -206,7 +214,7 @@ export default function ProductOCRCreate() {
           distributor: sheet.distributor || null,
           direct_cost: numOrNull(sheet.direct_cost),
           base_price: numOrNull(sheet.base_price),
-          tax_rate_estimate_pct: numOrNull(sheet.tax_rate_estimate_pct),
+          tax_rate_estimate_pct: clamp(numOrNull(sheet.tax_rate_estimate_pct), 0, 100),
           stock_quantity: intOrNull(sheet.stock_quantity) ?? 0,
           low_stock_threshold: intOrNull(sheet.low_stock_threshold),
           is_seasonal: sheet.is_seasonal,
@@ -222,6 +230,8 @@ export default function ProductOCRCreate() {
           created_by: userId,
           created_channel: "ocr_wizard",
           metadata: {
+            ocr_draft: true,
+            review_required: pendingFields.length > 0,
             ocr: {
               document_id: doc?.id,
               confidence: doc?.ocr_confidence,
@@ -233,7 +243,15 @@ export default function ProductOCRCreate() {
         })
         .select("id")
         .single();
-      if (prodErr) throw prodErr;
+      if (prodErr) {
+        console.error("[OCR-Create] products insert error", {
+          code: (prodErr as any).code,
+          message: prodErr.message,
+          details: (prodErr as any).details,
+          hint: (prodErr as any).hint,
+        });
+        throw prodErr;
+      }
       const productId = prod.id;
 
       // 3. Conteúdo
@@ -305,10 +323,12 @@ export default function ProductOCRCreate() {
       }
 
       toast.success("Produto criado em rascunho com sucesso.");
-      navigate(`/dashboard/products`);
-    } catch (e) {
-      console.error(e);
-      toast.error(e instanceof Error ? e.message : "Erro ao criar produto.");
+      navigate(`/dashboard/products?highlight=${productId}&filter=ocr_draft`);
+    } catch (e: any) {
+      console.error("[OCR-Create] failed", e);
+      const msg = e?.message || "Erro ao criar produto.";
+      const detail = e?.details || e?.hint;
+      toast.error(detail ? `${msg} — ${detail}` : msg);
     } finally {
       setCreating(false);
     }
