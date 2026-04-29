@@ -222,7 +222,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   };
 
   const handleAddManualMember = async () => {
-    if (!manualName.trim() || !manualEmail.trim() || !currentWorkspace) return;
+    if (!manualEmail.trim() || !currentWorkspace) return;
 
     setIsSubmitting(true);
     try {
