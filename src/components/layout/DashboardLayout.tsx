@@ -35,6 +35,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const useAdaptive = adaptiveSidebar || !shellV2;
   const { collapsed } = useSidebarCollapse();
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
+  const isMobile = useIsMobile();
   useSessionTracker();
 
   if (authLoading || workspaceLoading) {
