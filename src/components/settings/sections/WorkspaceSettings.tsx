@@ -874,6 +874,9 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddManualDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleAddManualMember} disabled={isSubmitting || !manualEmail.trim()}>
