@@ -3,7 +3,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
-export interface ProductCategory {
+export type CostMode = "value" | "percent";
+export type CostBase = "price" | "direct_cost";
+
+export interface CategoryCostDefaults {
+  default_direct_cost?: number | null;
+  default_direct_cost_mode?: CostMode | null;
+  default_operational_cost?: number | null;
+  default_operational_cost_mode?: CostMode | null;
+  default_operational_cost_base?: CostBase | null;
+  default_commission?: number | null;
+  default_commission_mode?: CostMode | null;
+  default_commission_base?: CostBase | null;
+  default_tax_rate?: number | null;
+  default_tax_rate_mode?: CostMode | null;
+  default_target_margin?: number | null;
+  default_target_margin_mode?: CostMode | null;
+}
+
+export interface ProductCategory extends CategoryCostDefaults {
   id: string;
   workspace_id: string;
   name: string;
@@ -19,7 +37,7 @@ export interface ProductCategory {
   updated_at: string;
 }
 
-export interface CreateProductCategoryInput {
+export interface CreateProductCategoryInput extends CategoryCostDefaults {
   name: string;
   description?: string;
   color?: string;
