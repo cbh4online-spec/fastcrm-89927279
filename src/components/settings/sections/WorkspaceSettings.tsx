@@ -288,7 +288,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
     try {
       const { error } = await supabase
         .from("workspace_members")
-        .update({ role: editRole })
+        .update({ role: editRole, commercial_profile: editCommercialProfile })
         .eq("id", selectedMember.id);
 
       if (error) throw error;
