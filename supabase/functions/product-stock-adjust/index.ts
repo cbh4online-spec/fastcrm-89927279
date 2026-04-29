@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
       }).then(() => {})
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       movement_id: movement.id,
       stock: {
@@ -181,11 +181,15 @@ Deno.serve(async (req) => {
         is_low_stock: isLowStock,
         is_out_of_stock: isOutOfStock,
       }
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    })
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: corsHeaders
-    })
+    console.error('product-stock-adjust error', err)
+    // Resposta resiliente: 200 + fallback para evitar crash do cliente
+    return jsonResponse({
+      success: false,
+      fallback: true,
+      error: err instanceof Error ? err.message : 'internal_error',
+    }, 200)
   }
 })
