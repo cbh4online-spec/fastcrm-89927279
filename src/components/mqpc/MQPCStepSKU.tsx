@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
-import { Search, Loader2, PackageCheck, ArrowRight, SkipForward, ImageIcon, Tag, DollarSign, AlertCircle } from "lucide-react";
+import { Search, Loader2, PackageCheck, ArrowRight, SkipForward, ImageIcon, Tag, DollarSign, AlertCircle, ScanLine } from "lucide-react";
 import { toast } from "sonner";
+import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
 
 interface SKUSearchResult {
   found: boolean;
@@ -33,14 +34,13 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
   const [skuInput, setSkuInput] = useState("");
   const [searchResult, setSearchResult] = useState<SKUSearchResult | null>(null);
   const [searched, setSearched] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
-  const handleSearch = async () => {
-    const sku = skuInput.trim();
+  const runSearch = async (sku: string) => {
     if (!sku) {
       toast.error("Introduza um SKU ou referência");
       return;
     }
-
     try {
       const result = await searchBySKU.mutateAsync(sku);
       setSearchResult(result);
@@ -50,6 +50,14 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
       setSearched(true);
       setSearchResult({ found: false });
     }
+  };
+
+  const handleSearch = () => runSearch(skuInput.trim());
+
+  const handleScanned = (code: string) => {
+    setScannerOpen(false);
+    setSkuInput(code);
+    runSearch(code.trim());
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -71,7 +79,7 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
         </p>
       </div>
 
-      {/* Search input */}
+      {/* Search input + scanner */}
       <div className="flex gap-2">
         <Input
           placeholder="Ex: DS-2CD2143G2-I"
@@ -83,10 +91,23 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
           className="flex-1"
         />
         <Button
+          type="button"
+          variant="outline"
+          onClick={() => setScannerOpen(true)}
+          disabled={searchBySKU.isPending}
+          size="icon"
+          className="shrink-0 h-10 w-10"
+          aria-label="Ler com câmara"
+          title="Ler código de barras com a câmara"
+        >
+          <ScanLine className="h-4 w-4" />
+        </Button>
+        <Button
           onClick={handleSearch}
           disabled={searchBySKU.isPending || !skuInput.trim()}
           size="icon"
           className="shrink-0 h-10 w-10"
+          aria-label="Pesquisar"
         >
           {searchBySKU.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -95,6 +116,22 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
           )}
         </Button>
       </div>
+
+      {/* Hint to use scanner */}
+      <button
+        type="button"
+        onClick={() => setScannerOpen(true)}
+        className="w-full flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ScanLine className="h-3.5 w-3.5" />
+        Ou use a câmara / leitor de código de barras
+      </button>
+
+      <BarcodeScannerModal
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onScan={handleScanned}
+      />
 
       {/* Loading state */}
       {searchBySKU.isPending && (
