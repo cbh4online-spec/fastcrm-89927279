@@ -306,6 +306,7 @@ export function ProductsList() {
             { label: "Exportar", icon: <Download className="h-4 w-4" />, onClick: () => setExportOpen(true), variant: "outline" as const, className: "hidden md:inline-flex" },
             { label: "Importar", icon: <Upload className="h-4 w-4" />, onClick: () => setImportWizardOpen(true), variant: "outline" as const, className: "hidden md:inline-flex" },
             { label: "Importar SKUs", icon: <Upload className="h-4 w-4" />, onClick: () => state.setBatchImportOpen(true), variant: "outline" as const, className: "hidden md:inline-flex" },
+            { label: "Criar por OCR", icon: <ScanText className="h-4 w-4" />, onClick: () => navigate("/dashboard/products/ocr-create"), variant: "outline" as const },
             { label: "Criar Produto", icon: <Plus className="h-4 w-4" />, onClick: () => state.setCreateOpen(true) },
           ] : undefined}
         />
