@@ -23,11 +23,11 @@ Deno.serve(async (req) => {
     // Auth guard
     const token = req.headers.get('Authorization')?.replace('Bearer ', '')
     if (!token) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      return jsonResponse({ error: 'Unauthorized' }, 401)
     }
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      return jsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     const body = await req.json()
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (!member) {
-      return new Response(JSON.stringify({ error: 'Acesso negado' }), { status: 403, headers: corsHeaders })
+      return jsonResponse({ error: 'Acesso negado' }, 403)
     }
 
     // Get current stock
@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (!product) {
-      return new Response(JSON.stringify({ error: 'Produto não encontrado' }), { status: 404, headers: corsHeaders })
+      return jsonResponse({ error: 'Produto não encontrado' }, 404)
     }
 
     const currentQty = product.stock_quantity ?? 0
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
         // For transfers, we just record the movement (location changes)
         break
       default:
-        return new Response(JSON.stringify({ error: 'Tipo de movimento inválido' }), { status: 400, headers: corsHeaders })
+        return jsonResponse({ error: 'Tipo de movimento inválido' }, 400)
     }
 
     // Record movement
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (movErr) {
-      return new Response(JSON.stringify({ error: movErr.message }), { status: 500, headers: corsHeaders })
+      return jsonResponse({ error: movErr.message }, 500)
     }
 
     // Update product stock
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
       .eq('workspace_id', workspace_id)
 
     if (updateErr) {
-      return new Response(JSON.stringify({ error: updateErr.message }), { status: 500, headers: corsHeaders })
+      return jsonResponse({ error: updateErr.message }, 500)
     }
 
     // Check low stock alert
