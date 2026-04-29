@@ -8,10 +8,12 @@ import {
   Key,
   Fingerprint,
   FileKey,
+  Package,
 } from "lucide-react";
 import { ObjectPermissionsDialog } from "../security/ObjectPermissionsDialog";
 import { FieldPermissionsDialog } from "../security/FieldPermissionsDialog";
 import { IPRestrictionsDialog } from "../security/IPRestrictionsDialog";
+import { ProductFieldPermissionsDialog } from "../security/ProductFieldPermissionsDialog";
 
 interface SecuritySettingsProps {
   searchQuery?: string;
@@ -25,6 +27,7 @@ export function SecuritySettings({ searchQuery = "", matchedSections }: Security
 
   const [objectPermissionsOpen, setObjectPermissionsOpen] = useState(false);
   const [fieldPermissionsOpen, setFieldPermissionsOpen] = useState(false);
+  const [productFieldPermissionsOpen, setProductFieldPermissionsOpen] = useState(false);
   const [ipRestrictionsOpen, setIPRestrictionsOpen] = useState(false);
 
   const shouldShow = (sectionId: string) => {
@@ -57,6 +60,16 @@ export function SecuritySettings({ searchQuery = "", matchedSections }: Security
           description="Definir quem pode ver/editar cada campo"
           action={
             <Button variant="outline" onClick={() => setFieldPermissionsOpen(true)}>
+              Configurar
+            </Button>
+          }
+        />
+        <SettingsItem
+          title="Permissões — Produtos (campo a campo)"
+          description="Controlar Oculto / Ver / Editar para cada campo do catálogo de produtos por função"
+          action={
+            <Button variant="outline" onClick={() => setProductFieldPermissionsOpen(true)}>
+              <Package className="h-4 w-4 mr-2" />
               Configurar
             </Button>
           }
@@ -175,6 +188,10 @@ export function SecuritySettings({ searchQuery = "", matchedSections }: Security
       <FieldPermissionsDialog
         open={fieldPermissionsOpen}
         onOpenChange={setFieldPermissionsOpen}
+      />
+      <ProductFieldPermissionsDialog
+        open={productFieldPermissionsOpen}
+        onOpenChange={setProductFieldPermissionsOpen}
       />
       <IPRestrictionsDialog
         open={ipRestrictionsOpen}

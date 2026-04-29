@@ -1,109 +1,76 @@
 ## Diagnóstico
 
-Consegui reproduzir o problema em viewport mobile na rota `/dashboard/products`:
+A plataforma já tem duas camadas de permissões parcialmente construídas, mas **nenhuma cobre Produtos ao detalhe e nenhuma é efectivamente aplicada nos formulários**:
 
-1. Ao clicar em **Criar produto**, o modal abre corretamente.
-2. Ao clicar no botão de **câmara / scanner** dentro do modal, a aplicação sai do fluxo e vai para `/onboarding`.
-3. O mesmo comportamento acontece ao clicar no botão **Scan código** no topo da página mobile de produtos.
-4. Existem avisos de React relacionados com `BarcodeScannerModal`, `BarcodeResultPanel` e `MobileBottomNav` a receberem refs indevidos, sinal de que algum wrapper/slot está a tentar tratar estes componentes como elementos DOM diretos.
-5. O fluxo mobile tem três caminhos concorrentes para criar/ler produto:
-   - FAB global `MQPCFloatingButton` para `/mobile/products/quick-create`
-   - botão `Criar produto` que abre `CreateProductDialog`
-   - botão `Scan código` que abre `BarcodeScannerModal`
+- `field_permissions` (workspace_id, object_key, role, field_key, permission_level: hidden/view/edit) — usada pelo diálogo "Permissões por Campo" em Definições → Segurança. Para Produtos só lista 5 campos (`name`, `price`, `cost`, `margin`, `description`) — desfasado das ~80 colunas reais (`base_price`, `direct_cost`, `target_margin_pct`, `stock_quantity`, `barcode`, etc.).
+- `profile_field_permissions` (por sales_function) — paralela e usada pelo `useFieldPermissions` em algumas páginas.
+- `object_permissions` — controla CRUD por role/objecto, já cobre Produtos corretamente.
+- Os formulários de Produto (`CreateProductDialog`, `ProductDetailDialog`, `MQPCWizard`, `MobileProductDetailSheet`) **não consultam `field_permissions`** — qualquer regra definida hoje não tem efeito real.
 
-O erro anterior foi tratado só ao nível do posicionamento do FAB. Isso não cobre o problema real: os botões de scanner/câmara dentro da página/modal continuam a provocar uma troca de estado/rota, e o fluxo mobile continua fragmentado.
+## Decisões de produto e UX
 
-## Decisões de produto/UX
-
-Vou estabilizar o fluxo mobile com uma regra simples:
-
-- Em telemóvel, **Criar Produto** deve usar sempre o wizard mobile dedicado (`/mobile/products/quick-create`) em vez de abrir o modal desktop `CreateProductDialog`.
-- O botão **Scan código** deve abrir o scanner sem interferir com onboarding, navegação inferior ou overlays.
-- No preview Lovable, onde a câmara pode estar bloqueada por iframe, o scanner deve cair para modo manual de forma controlada, sem redirecionar.
-- A rota `/mobile/products/quick-create` deve estar blindada dentro do layout/autenticação existente para não cair em onboarding por loading transitório.
+1. **Catálogo de campos completo** — registar todos os campos editáveis de Produto, agrupados por secção lógica:
+   - Identificação: `name`, `sku`, `barcode`, `category`, `line`, `tags`, `brand_logo_url`, `product_type`, `status`
+   - Comercial: `short_description`, `commercial_description`, `benefits`, `conditions`, `demo_video_url`
+   - Preço: `base_price`, `currency`, `tax_rate_estimate_pct`, `tax_included`, `setup_fee`, `recurring_fee`, `billing_type`, `billing_frequency`, `competitor_price_low`, `competitor_source`
+   - Custos e margem: `direct_cost`, `operational_cost`, `target_margin_pct`, `commission_default`, `labor_hours`, `labor_hourly_rate`, `labor_included_in_price`, `labor_notes`
+   - Stock e logística: `stock_status`, `stock_quantity`, `track_stock`, `low_stock_threshold`, `min_order_quantity`, `order_multiple`, `pack_size`, `weight`, `delivery_estimate`, `delivery_notes`, `delivery_mode`
+   - Conteúdo: `images`, `primary_image_index`, `specifications`
+   - Loja / publicação: `store_published`, `store_featured`, `store_visibility`, `store_category_id`, `store_sort_order`, `b2b_published`, `sheet_published`, `sheet_slug`, `business_types`
+   - Consumo (serviços): `consumption_model`, `included_quantity`, `unit_name`, `unit_duration`, `validity_days`, `total_units`, `recommended_frequency`, `typical_duration_days`, `is_trackable`
+   - Bundle: `bundle_price_mode`
+2. **Diálogo dedicado para Produtos** — criar uma nova vista "Permissões — Produtos" com:
+   - Selector de role (owner sempre `edit`, bloqueado).
+   - Pesquisa de campo + filtro por secção.
+   - Por linha (campo): radio Oculto / Ver / Editar (mantém modelo `permission_level`).
+   - Acções rápidas por secção: "Tudo Editar / Ver / Ocultar".
+   - Botão "Aplicar a outras roles" (copiar configuração da role activa).
+   - Indicador de alterações pendentes + Guardar/Reverter.
+3. **Aplicação real nos formulários de Produto** — criar hook `useProductFieldPermissions(role)` que devolve `getLevel(field)` e helpers `isHidden(field)` / `isReadOnly(field)`. Integrar em:
+   - `CreateProductDialog` e `ProductDetailDialog` (web)
+   - `MQPCWizard` / `MQPCStepDetails` (mobile quick-create)
+   - `MobileProductDetailSheet`
+   - Cada campo respeita: `hidden` (não renderiza), `view` (renderiza desativado), `edit` (normal).
+4. **Defesa server-side** — trigger PostgreSQL `validate_product_field_permissions` em INSERT/UPDATE de `products`: para cada coluna alterada, verificar `field_permissions` da role do utilizador. Se `hidden` ou `view`, rejeitar a alteração (excepto owner/admin/super_admin). Garante que nenhum cliente pode contornar a UI.
+5. **Auditoria** — registar alterações ao `field_permissions` em `activity_logs` (quem, quando, antes/depois) via trigger.
 
 ## Estrutura técnica
 
-### 1. Corrigir `MobileProductsView`
-- Alterar `onCreate` no contexto mobile para navegar diretamente para `/mobile/products/quick-create`.
-- Manter o modal `CreateProductDialog` para desktop/tablet, mas não como caminho principal no mobile.
-- Garantir que os handlers `onClick` dos botões mobile usam `preventDefault` e `stopPropagation` quando necessário.
-
-### 2. Corrigir `ProductsList`
-- No branch mobile (`isMobile && activeTab === "products"`):
-  - `onCreate` passa a navegar para o wizard mobile.
-  - `onQuickCreate` deixa de usar `window.location.href` para uma rota inexistente `/mqpc` e passa a usar React Router para `/mobile/products/quick-create?barcode=...`.
-  - Remover/evitar fluxos que provoquem reload completo da app.
-
-### 3. Corrigir `MQPCWizard` para aceitar barcode inicial
-- Ler `barcode` da query string.
-- Se existir, pré-preencher o SKU no passo 1.
-- Permitir continuar a pesquisa/IA a partir desse código sem perder estado.
-- Substituir `navigate(-1)` no botão voltar por fallback seguro para `/dashboard/products` quando não houver histórico fiável.
-
-### 4. Fortalecer `BarcodeScannerModal`
-- Transformar o componente em `forwardRef` para eliminar o aviso “Function components cannot be given refs”.
-- Tornar a abertura/fecho idempotente:
-  - parar stream da câmara de forma segura;
-  - limpar container sem causar erros DOM;
-  - não disparar navegação nenhuma dentro do modal.
-- Garantir fallback para modo manual em iframe/preview sem trocar de rota.
-- Adicionar `onPointerDown/onClick` defensivo no botão de câmara quando usado dentro de modal.
-
-### 5. Corrigir `BarcodeResultPanel`
-- Aplicar `forwardRef` se estiver a ser tratado por Radix/Sheet/Dialog como elemento com ref.
-- Corrigir `onQuickCreate` para usar navegação SPA, não `window.open`/`window.location.href`.
-
-### 6. Reduzir risco de redirect falso para onboarding
-- Rever `DashboardLayout`/`WorkspaceContext` para não redirecionar para `/onboarding` durante estados transitórios de carregamento/refresh de workspace.
-- Se `workspaces.length === 0`, só redirecionar quando o carregamento terminou e já houve uma tentativa válida de carregar workspaces.
-- Evitar que um evento de scanner/câmara faça remontar providers e reavaliar workspace como vazio.
+- **DB (migração)**:
+  - Tabela `field_catalog` (workspace-agnóstica, seed): `object_key`, `field_key`, `label`, `section`, `data_type`, `sort_order`. Permite descobrir/expandir campos sem hard-code no frontend.
+  - Trigger `tg_products_field_permissions` em `products` BEFORE INSERT/UPDATE.
+  - Função `get_user_role_in_workspace(uuid, uuid)` (já pode existir; reutilizar).
+  - Trigger `tg_field_permissions_audit` para `activity_logs`.
+- **Frontend**:
+  - `src/config/productFieldsCatalog.ts` — fonte única dos campos com secções e labels (também usada para popular `field_catalog`).
+  - `src/hooks/useProductFieldPermissions.ts` — query `field_permissions` filtrada por role corrente + helpers.
+  - `src/components/settings/security/ProductFieldPermissionsDialog.tsx` — novo diálogo dedicado com pesquisa, secções colapsáveis, copy entre roles.
+  - Atualizar `FieldPermissionsDialog.tsx` para abrir o novo diálogo quando `selectedObject === "products"` (mantém os outros objectos como estão por agora).
+  - Wrappers `<PermissionField level=...>` para reuso nos formulários de Produto.
 
 ## Plano de implementação
 
-1. Atualizar `ProductsList.tsx`:
-   - adicionar `useNavigate`;
-   - criar `goToMobileQuickCreate(barcode?)`;
-   - usar esse handler nos botões mobile de criar e no resultado do scanner;
-   - remover `window.location.href` e `window.open` nos fluxos de quick create.
-
-2. Atualizar `MobileProductsView.tsx`:
-   - reforçar os handlers dos botões `Criar produto` e `Scan código` com eventos seguros;
-   - evitar propagação para elementos fixos/overlays.
-
-3. Atualizar `MQPCStepSKU.tsx` e/ou `MQPCWizard.tsx`:
-   - aceitar SKU/barcode inicial por props ou query string;
-   - pré-preencher input;
-   - garantir navegação de volta segura para `/dashboard/products`.
-
-4. Atualizar `BarcodeScannerModal.tsx`:
-   - converter para `React.forwardRef`;
-   - manter API atual (`open`, `onOpenChange`, `onScan`);
-   - garantir fallback manual em preview;
-   - impedir qualquer navegação/submit acidental.
-
-5. Atualizar `BarcodeResultPanel.tsx`:
-   - converter para `forwardRef` se necessário;
-   - garantir que quick create navega para `/mobile/products/quick-create?barcode=...`.
-
-6. Rever `DashboardLayout.tsx`/`WorkspaceContext.tsx`:
-   - blindar o redirect para `/onboarding` contra estado transitório;
-   - manter o comportamento correto para utilizadores realmente sem workspace.
+1. Migração: criar `field_catalog`, fazer seed dos campos de Produto, criar trigger de validação em `products` e trigger de auditoria em `field_permissions`.
+2. Criar `productFieldsCatalog.ts` (espelho do seed, para UI).
+3. Criar `useProductFieldPermissions` hook.
+4. Construir `ProductFieldPermissionsDialog` com pesquisa, secções, ações em massa, copy entre roles.
+5. Ligar o novo diálogo a partir de Definições → Segurança (e do botão "Permissões por Campo" quando o objecto é Produtos).
+6. Integrar permissões em `CreateProductDialog`, `ProductDetailDialog`, `MQPCWizard`, `MobileProductDetailSheet` (campo a campo).
+7. QA: validar com roles diferentes (admin, agent, viewer) — criar produto, editar, ver lista; validar mobile; validar que UPDATE bloqueado server-side devolve mensagem clara.
 
 ## Critérios de aceitação
 
-- Em mobile, clicar **Criar produto** abre o wizard mobile, não o dashboard/onboarding.
-- Em mobile, clicar **Scan código** abre scanner/manual fallback, não muda de rota.
-- Dentro do modal de produto, clicar na câmara não manda a app para `/onboarding` nem `/dashboard`.
-- No preview Lovable, se a câmara estiver bloqueada, aparece modo manual com mensagem clara.
-- Em app publicada/domínio próprio, o scanner deve tentar usar a câmara real.
-- O quick create com barcode deve preservar o código no wizard.
-- Sem warnings de ref relacionados com `BarcodeScannerModal`, `BarcodeResultPanel` e `MobileBottomNav`.
-- Sem navegação via `window.location.href`/`window.open` nos fluxos internos SPA.
-- Testado em mobile 390x844 e desktop para não quebrar o modal desktop.
+- Admin vê todos os campos de Produto no diálogo, agrupados por secção, com pesquisa.
+- Alterar para `hidden` esconde imediatamente o campo nos 4 formulários de Produto após refresh.
+- Alterar para `view` torna o campo apenas leitura.
+- Tentativa de UPDATE via API a um campo `hidden`/`view` é rejeitada pelo trigger.
+- Owner ignora restrições; super_admin idem.
+- Alterações no diálogo aparecem em `activity_logs`.
+- Sem regressões nos outros objectos (Empresas, Contactos, Leads, Oportunidades, Propostas) — diálogo antigo continua disponível.
 
 ## Riscos e pontos por validar
 
-- A câmara real não pode ser totalmente validada no preview Lovable se estiver em iframe; será validado o fallback manual e a ausência de redirects.
-- Se o utilizador estiver mesmo sem workspace, o redirect para onboarding deve continuar a acontecer corretamente.
-- Se houver cookies/banner a sobrepor botões em mobile, poderá ser necessário ajustar z-index/posição, mas isso é secundário ao bug principal de navegação.
+- **Performance do trigger** em UPDATE de produtos — mitigar lendo `field_permissions` numa única query e iterando só sobre colunas em `OLD IS DISTINCT FROM NEW`.
+- **Compatibilidade com importadores em massa** (ex.: `Product Import Pipeline`) — owner/admin não são afectados; importadores correm como service_role e devem continuar a passar (trigger ignora service_role).
+- **Coexistência** com `profile_field_permissions` (por sales_function) — manter ambos por agora; alinhar numa fase 2.
+- Confirmar com o utilizador se quer também aplicar este nível de detalhe a Empresas/Contactos/etc. agora, ou apenas Produtos primeiro (assumido **apenas Produtos** nesta entrega).

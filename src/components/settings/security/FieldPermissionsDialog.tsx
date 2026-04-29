@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ProductFieldPermissionsDialog } from "./ProductFieldPermissionsDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -130,6 +131,17 @@ export function FieldPermissionsDialog({
   const [pendingChanges, setPendingChanges] = useState<Map<string, PermissionLevel>>(
     new Map()
   );
+  const [productsOpen, setProductsOpen] = useState(false);
+
+  // When user picks "products", redirect to the dedicated detailed dialog.
+  useEffect(() => {
+    if (open && selectedObject === "products") {
+      setProductsOpen(true);
+      onOpenChange(false);
+      // reset for next time
+      setSelectedObject("companies");
+    }
+  }, [open, selectedObject, onOpenChange]);
 
   const { data: permissions, isLoading } = useQuery({
     queryKey: ["field-permissions", currentWorkspace?.id],
@@ -210,6 +222,11 @@ export function FieldPermissionsDialog({
   const Icon = selectedObjectData?.icon || Building2;
 
   return (
+    <>
+    <ProductFieldPermissionsDialog
+      open={productsOpen}
+      onOpenChange={setProductsOpen}
+    />
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
@@ -349,5 +366,6 @@ export function FieldPermissionsDialog({
         </ScrollArea>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
