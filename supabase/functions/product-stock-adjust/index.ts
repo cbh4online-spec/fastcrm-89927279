@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     // Get current stock
     const { data: product } = await supabase
       .from('products')
-      .select('stock_quantity, stock_reserved, track_stock')
+      .select('stock_quantity, stock_reserved, track_stock, low_stock_threshold')
       .eq('id', product_id)
       .eq('workspace_id', workspace_id)
       .single()
