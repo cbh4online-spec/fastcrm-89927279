@@ -132,13 +132,6 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
         onOpenChange={setScannerOpen}
         onScan={handleScanned}
       />
-          {searchBySKU.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
 
       {/* Loading state */}
       {searchBySKU.isPending && (
