@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Info, Upload, Trash2, Save, Loader2, LogOut } from "lucide-react";
+import { Info, Upload, Trash2, Save, Loader2, LogOut, KeyRound } from "lucide-react";
+import { ChangePasswordDialog } from "../ChangePasswordDialog";
 
 export function ProfileSettings() {
   const { t } = useTranslation("settings");
