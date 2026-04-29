@@ -323,10 +323,12 @@ export default function ProductOCRCreate() {
       }
 
       toast.success("Produto criado em rascunho com sucesso.");
-      navigate(`/dashboard/products`);
-    } catch (e) {
-      console.error(e);
-      toast.error(e instanceof Error ? e.message : "Erro ao criar produto.");
+      navigate(`/dashboard/products?highlight=${productId}&filter=ocr_draft`);
+    } catch (e: any) {
+      console.error("[OCR-Create] failed", e);
+      const msg = e?.message || "Erro ao criar produto.";
+      const detail = e?.details || e?.hint;
+      toast.error(detail ? `${msg} — ${detail}` : msg);
     } finally {
       setCreating(false);
     }
