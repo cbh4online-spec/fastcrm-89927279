@@ -927,6 +927,9 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditMemberDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleUpdateMemberRole} disabled={isSubmitting}>
