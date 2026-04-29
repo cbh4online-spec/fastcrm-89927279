@@ -189,6 +189,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
         body: {
           email: inviteEmail.trim(),
           role: inviteRole,
+          commercial_profile: inviteCommercialProfile,
           workspaceId: currentWorkspace.id,
           domain: getPublicBaseUrl(),
         },
