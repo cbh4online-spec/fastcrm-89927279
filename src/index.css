@@ -227,6 +227,42 @@
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-area-pl {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .safe-area-pr {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  /* When mobile bottom nav is mounted, lift content above it */
+  .with-mobile-nav-pb {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+  .mobile-tap-highlight-none {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-scroll-momentum {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Lock body scroll on mobile when standalone PWA to feel like an app */
+@media (display-mode: standalone) {
+  html, body {
+    overscroll-behavior-y: none;
+  }
+}
+
+@layer utilities {
 
   /* Override react-pageflip's user-select:none when highlight mode is active */
   .highlight-mode-active .stf__wrapper,
