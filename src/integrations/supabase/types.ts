@@ -7590,6 +7590,54 @@ export type Database = {
           },
         ]
       }
+      badge_definitions: {
+        Row: {
+          category: string
+          code: string
+          color: string
+          created_at: string
+          criteria: Json
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          module_slug: string | null
+          name: string
+          updated_at: string
+          xp_reward: number
+        }
+        Insert: {
+          category?: string
+          code: string
+          color?: string
+          created_at?: string
+          criteria?: Json
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          module_slug?: string | null
+          name: string
+          updated_at?: string
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          color?: string
+          created_at?: string
+          criteria?: Json
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          module_slug?: string | null
+          name?: string
+          updated_at?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       bank_partners: {
         Row: {
           avg_approval_rate: number | null
@@ -42801,6 +42849,7 @@ export type Database = {
           lang: string
           min_duration_seconds: number
           module_slug: string
+          presentation_id: string | null
           slide_order: number
           updated_at: string
         }
@@ -42818,6 +42867,7 @@ export type Database = {
           lang?: string
           min_duration_seconds?: number
           module_slug: string
+          presentation_id?: string | null
           slide_order?: number
           updated_at?: string
         }
@@ -42835,8 +42885,65 @@ export type Database = {
           lang?: string
           min_duration_seconds?: number
           module_slug?: string
+          presentation_id?: string | null
           slide_order?: number
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_onboarding_presentations_presentation_id_fkey"
+            columns: ["presentation_id"]
+            isOneToOne: false
+            referencedRelation: "module_presentations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_presentations: {
+        Row: {
+          allow_live_mode: boolean
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          lang: string
+          min_score_percent: number
+          module_slug: string
+          tier: string
+          title: string
+          unlock_after_days: number
+          updated_at: string
+          xp_reward: number
+        }
+        Insert: {
+          allow_live_mode?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          lang?: string
+          min_score_percent?: number
+          module_slug: string
+          tier?: string
+          title: string
+          unlock_after_days?: number
+          updated_at?: string
+          xp_reward?: number
+        }
+        Update: {
+          allow_live_mode?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          lang?: string
+          min_score_percent?: number
+          module_slug?: string
+          tier?: string
+          title?: string
+          unlock_after_days?: number
+          updated_at?: string
+          xp_reward?: number
         }
         Relationships: []
       }
@@ -42887,6 +42994,103 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      module_quiz_attempts: {
+        Row: {
+          answers: Json
+          correct_answers: number
+          created_at: string
+          id: string
+          module_slug: string
+          passed: boolean
+          presentation_id: string
+          score_percent: number
+          total_questions: number
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          answers?: Json
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          module_slug: string
+          passed?: boolean
+          presentation_id: string
+          score_percent: number
+          total_questions?: number
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          answers?: Json
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          module_slug?: string
+          passed?: boolean
+          presentation_id?: string
+          score_percent?: number
+          total_questions?: number
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_quiz_attempts_presentation_id_fkey"
+            columns: ["presentation_id"]
+            isOneToOne: false
+            referencedRelation: "module_presentations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_quizzes: {
+        Row: {
+          correct_option_index: number
+          created_at: string
+          explanation: string | null
+          id: string
+          is_active: boolean
+          options: Json
+          order_index: number
+          presentation_id: string
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          correct_option_index: number
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          is_active?: boolean
+          options?: Json
+          order_index?: number
+          presentation_id: string
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          correct_option_index?: number
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          is_active?: boolean
+          options?: Json
+          order_index?: number
+          presentation_id?: string
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_quizzes_presentation_id_fkey"
+            columns: ["presentation_id"]
+            isOneToOne: false
+            referencedRelation: "module_presentations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       module_sso_sessions: {
         Row: {
@@ -66271,6 +66475,38 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badge_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notification_preferences: {
         Row: {
           channel_email: boolean
@@ -66327,6 +66563,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_progression: {
+        Row: {
+          badges_earned: number
+          created_at: string
+          current_level: number
+          id: string
+          last_activity_at: string
+          modules_completed: number
+          quizzes_passed: number
+          total_xp: number
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          badges_earned?: number
+          created_at?: string
+          current_level?: number
+          id?: string
+          last_activity_at?: string
+          modules_completed?: number
+          quizzes_passed?: number
+          total_xp?: number
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          badges_earned?: number
+          created_at?: string
+          current_level?: number
+          id?: string
+          last_activity_at?: string
+          modules_completed?: number
+          quizzes_passed?: number
+          total_xp?: number
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -71020,6 +71298,42 @@ export type Database = {
           },
         ]
       }
+      xp_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          reference_id: string | null
+          reference_type: string | null
+          user_id: string
+          workspace_id: string
+          xp_amount: number
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id: string
+          workspace_id: string
+          xp_amount: number
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id?: string
+          workspace_id?: string
+          xp_amount?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       c2c_sellers_public: {
@@ -71633,6 +71947,22 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_progression_leaderboard: {
+        Row: {
+          avatar_url: string | null
+          badges_earned: number | null
+          current_level: number | null
+          full_name: string | null
+          last_activity_at: string | null
+          modules_completed: number | null
+          quizzes_passed: number | null
+          rank: number | null
+          total_xp: number | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       acquire_agent_lock:
@@ -71700,6 +72030,18 @@ export type Database = {
         Args: { target_date?: string }
         Returns: undefined
       }
+      award_xp: {
+        Args: {
+          _event_type: string
+          _metadata?: Json
+          _reference_id?: string
+          _reference_type?: string
+          _user_id: string
+          _workspace_id: string
+          _xp_amount: number
+        }
+        Returns: Json
+      }
       batch_reorder_objectives: {
         Args: { p_ids: string[]; p_positions: number[] }
         Returns: undefined
@@ -71712,6 +72054,7 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: number
       }
+      calculate_level_from_xp: { Args: { _xp: number }; Returns: number }
       calculate_module_margin: {
         Args: {
           p_end_date?: string
@@ -72754,6 +73097,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: string
+      }
+      submit_quiz_attempt: {
+        Args: {
+          _answers: Json
+          _presentation_id: string
+          _workspace_id: string
+        }
+        Returns: Json
       }
       supersede_memory: {
         Args: {
