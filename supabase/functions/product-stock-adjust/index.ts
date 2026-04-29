@@ -2,8 +2,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Content-Type': 'application/json',
 }
+
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: corsHeaders })
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,11 +23,11 @@ Deno.serve(async (req) => {
     // Auth guard
     const token = req.headers.get('Authorization')?.replace('Bearer ', '')
     if (!token) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      return jsonResponse({ error: 'Unauthorized' }, 401)
     }
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      return jsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     const body = await req.json()
@@ -56,19 +60,19 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (!member) {
-      return new Response(JSON.stringify({ error: 'Acesso negado' }), { status: 403, headers: corsHeaders })
+      return jsonResponse({ error: 'Acesso negado' }, 403)
     }
 
     // Get current stock
     const { data: product } = await supabase
       .from('products')
-      .select('stock_quantity, stock_reserved, track_stock')
+      .select('stock_quantity, stock_reserved, track_stock, low_stock_threshold')
       .eq('id', product_id)
       .eq('workspace_id', workspace_id)
       .single()
 
     if (!product) {
-      return new Response(JSON.stringify({ error: 'Produto não encontrado' }), { status: 404, headers: corsHeaders })
+      return jsonResponse({ error: 'Produto não encontrado' }, 404)
     }
 
     const currentQty = product.stock_quantity ?? 0
@@ -91,10 +95,10 @@ Deno.serve(async (req) => {
         break
       case 'reserve':
         if (Math.abs(quantity) > (currentQty - currentReserved)) {
-          return new Response(JSON.stringify({
+          return jsonResponse({
             error: 'Stock insuficiente para reserva',
             available: currentQty - currentReserved
-          }), { status: 400, headers: corsHeaders })
+          }, 400)
         }
         newReserved = currentReserved + Math.abs(quantity)
         break
@@ -105,7 +109,7 @@ Deno.serve(async (req) => {
         // For transfers, we just record the movement (location changes)
         break
       default:
-        return new Response(JSON.stringify({ error: 'Tipo de movimento inválido' }), { status: 400, headers: corsHeaders })
+        return jsonResponse({ error: 'Tipo de movimento inválido' }, 400)
     }
 
     // Record movement
@@ -130,7 +134,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (movErr) {
-      return new Response(JSON.stringify({ error: movErr.message }), { status: 500, headers: corsHeaders })
+      return jsonResponse({ error: movErr.message }, 500)
     }
 
     // Update product stock
@@ -146,7 +150,7 @@ Deno.serve(async (req) => {
       .eq('workspace_id', workspace_id)
 
     if (updateErr) {
-      return new Response(JSON.stringify({ error: updateErr.message }), { status: 500, headers: corsHeaders })
+      return jsonResponse({ error: updateErr.message }, 500)
     }
 
     // Check low stock alert
@@ -167,7 +171,7 @@ Deno.serve(async (req) => {
       }).then(() => {})
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       movement_id: movement.id,
       stock: {
@@ -177,11 +181,15 @@ Deno.serve(async (req) => {
         is_low_stock: isLowStock,
         is_out_of_stock: isOutOfStock,
       }
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    })
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: corsHeaders
-    })
+    console.error('product-stock-adjust error', err)
+    // Resposta resiliente: 200 + fallback para evitar crash do cliente
+    return jsonResponse({
+      success: false,
+      fallback: true,
+      error: err instanceof Error ? err.message : 'internal_error',
+    }, 200)
   }
 })
