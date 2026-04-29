@@ -1,3 +1,4 @@
+import * as React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Home, Users, Inbox, BarChart3, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,7 +49,10 @@ const TABS: Tab[] = [
  *
  * Hidden on tablet/desktop (≥ md breakpoint).
  */
-export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
+export const MobileBottomNav = React.forwardRef<HTMLElement, MobileBottomNavProps>(function MobileBottomNav(
+  { onMenuClick },
+  _ref,
+) {
   const location = useLocation();
 
   return (
@@ -100,4 +104,4 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
       </ul>
     </nav>
   );
-}
+});

@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,16 +16,19 @@ interface Props {
   onQuickCreate?: (barcode: string) => void;
 }
 
-export function BarcodeResultPanel({
-  open,
-  onOpenChange,
-  result,
-  barcode,
-  isLoading,
-  onAddQty,
-  onOpenProduct,
-  onQuickCreate,
-}: Props) {
+export const BarcodeResultPanel = React.forwardRef<HTMLDivElement, Props>(function BarcodeResultPanel(
+  {
+    open,
+    onOpenChange,
+    result,
+    barcode,
+    isLoading,
+    onAddQty,
+    onOpenProduct,
+    onQuickCreate,
+  },
+  _ref,
+) {
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,4 +137,4 @@ export function BarcodeResultPanel({
       </DialogContent>
     </Dialog>
   );
-}
+});

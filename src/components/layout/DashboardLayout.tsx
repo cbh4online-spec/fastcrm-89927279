@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { AdaptiveDashboardProvider } from "@/contexts/AdaptiveDashboardContext";
 import { Sidebar } from "./Sidebar";
 import { SidebarV1 } from "./SidebarV1";
@@ -38,6 +38,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const isMobile = useIsMobile();
   useSessionTracker();
 
+  // Lembrar se já vimos workspaces nesta sessão para não cair em onboarding
+  // por estados transitórios (refetch, remount após câmara/scanner, etc.)
+  const hadWorkspacesRef = useRef(false);
+  useEffect(() => {
+    if (workspaces.length > 0) hadWorkspacesRef.current = true;
+  }, [workspaces.length]);
+
   if (authLoading || workspaceLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -50,8 +57,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return <Navigate to="/login" replace />;
   }
 
-  // If user has no workspaces, redirect to onboarding
-  if (workspaces.length === 0) {
+  // Só redirecionar para onboarding se nunca chegámos a ter workspaces nesta sessão.
+  if (workspaces.length === 0 && !hadWorkspacesRef.current) {
     return <Navigate to="/onboarding" replace />;
   }
 

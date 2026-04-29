@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,10 @@ const isInIframe = (() => {
   }
 })();
 
-export function BarcodeScannerModal({ open, onOpenChange, onScan }: Props) {
+export const BarcodeScannerModal = React.forwardRef<HTMLDivElement, Props>(function BarcodeScannerModal(
+  { open, onOpenChange, onScan },
+  _ref,
+) {
   const [mode, setMode] = useState<"camera" | "input">(isInIframe ? "input" : "camera");
   const [inputValue, setInputValue] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -284,4 +288,4 @@ export function BarcodeScannerModal({ open, onOpenChange, onScan }: Props) {
       </DialogContent>
     </Dialog>
   );
-}
+});
