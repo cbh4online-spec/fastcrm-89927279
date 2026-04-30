@@ -158,36 +158,38 @@ export function logAIUsage(params: {
   const tokens_total = params.tokens_input + params.tokens_output;
 
   // Fire-and-forget: never block the main flow
-  supabase
-    .from("ai_usage_logs")
-    .insert({
-      workspace_id: params.workspace_id,
-      feature: params.feature,
-      model: params.model,
-      provider: params.provider ?? "lovable",
-      tokens_input: params.tokens_input,
-      tokens_output: params.tokens_output,
-      tokens_total,
-      cost_usd: cost,
-      request_type: params.request_type ?? "completion",
-      latency_ms: params.latency_ms ?? null,
-      was_cached: params.was_cached ?? false,
-      was_error: params.was_error ?? false,
-      error_type: params.error_type ?? null,
-      entity_type: params.entity_type ?? null,
-      entity_id: params.entity_id ?? null,
-      job_id: params.job_id ?? null,
-      user_id: params.user_id ?? null,
-    })
+  Promise.resolve(
+    supabase
+      .from("ai_usage_logs")
+      .insert({
+        workspace_id: params.workspace_id,
+        feature: params.feature,
+        model: params.model,
+        provider: params.provider ?? "lovable",
+        tokens_input: params.tokens_input,
+        tokens_output: params.tokens_output,
+        tokens_total,
+        cost_usd: cost,
+        request_type: params.request_type ?? "completion",
+        latency_ms: params.latency_ms ?? null,
+        was_cached: params.was_cached ?? false,
+        was_error: params.was_error ?? false,
+        error_type: params.error_type ?? null,
+        entity_type: params.entity_type ?? null,
+        entity_id: params.entity_id ?? null,
+        job_id: params.job_id ?? null,
+        user_id: params.user_id ?? null,
+      })
+  )
     .then(() => {
       // Increment monthly totals
-      supabase
-        .rpc("increment_ai_usage", {
+      return Promise.resolve(
+        supabase.rpc("increment_ai_usage", {
           p_workspace_id: params.workspace_id,
           p_tokens: tokens_total,
           p_cost: cost,
         })
-        .catch((e: Error) => console.error("[AI-INSTRUMENTATION] increment error:", e));
+      ).catch((e: Error) => console.error("[AI-INSTRUMENTATION] increment error:", e));
     })
     .catch((e: Error) => console.error("[AI-INSTRUMENTATION] log error:", e));
 }
