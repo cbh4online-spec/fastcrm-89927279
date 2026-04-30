@@ -60476,6 +60476,72 @@ export type Database = {
           },
         ]
       }
+      sj_course_phases: {
+        Row: {
+          cohort_id: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          end_time: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          phase_order: number
+          start_date: string
+          start_time: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cohort_id: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          phase_order?: number
+          start_date: string
+          start_time?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cohort_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          phase_order?: number
+          start_date?: string
+          start_time?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_course_phases_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "sj_cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_course_phases_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "sj_cohorts_with_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_course_recommendations: {
         Row: {
           contacted_at: string | null
@@ -60726,6 +60792,13 @@ export type Database = {
             columns: ["cohort_id"]
             isOneToOne: false
             referencedRelation: "sj_cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_enrollments_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "sj_cohorts_with_phases"
             referencedColumns: ["id"]
           },
           {
@@ -73510,6 +73583,85 @@ export type Database = {
           {
             foreignKeyName: "c2c_sellers_workspace_id_fkey"
             columns: ["legacy_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sj_cohorts_with_phases: {
+        Row: {
+          capacity: number | null
+          computed_end_date: string | null
+          computed_start_date: string | null
+          course_id: string | null
+          created_at: string | null
+          created_by: string | null
+          end_date: string | null
+          id: string | null
+          name: string | null
+          phases: Json | null
+          phases_count: number | null
+          settings: Json | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          capacity?: number | null
+          computed_end_date?: never
+          computed_start_date?: never
+          course_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          id?: string | null
+          name?: string | null
+          phases?: never
+          phases_count?: never
+          settings?: Json | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          capacity?: number | null
+          computed_end_date?: never
+          computed_start_date?: never
+          course_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          id?: string | null
+          name?: string | null
+          phases?: never
+          phases_count?: never
+          settings?: Json | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_cohorts_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "sj_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_cohorts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "sj_cohorts_workspace_id_fkey"
+            columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
