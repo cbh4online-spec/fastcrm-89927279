@@ -131,10 +131,13 @@ export function ProfilePermissionsSettings() {
         .upsert(rows, { onConflict: "workspace_id,sales_function,menu_key" });
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile-menu-permissions"] });
-      queryClient.invalidateQueries({ queryKey: ["menu-permissions"] });
+    onSuccess: async () => {
       setMenuChanges(new Map());
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["profile-menu-permissions", workspaceId], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["menu-permissions", workspaceId], refetchType: "active" }),
+      ]);
+      await queryClient.refetchQueries({ queryKey: ["profile-menu-permissions", workspaceId] });
       toast.success("Permissões de menus guardadas");
     },
     onError: (err: any) => toast.error(`Erro ao guardar: ${err?.message ?? "desconhecido"}`),
@@ -186,9 +189,10 @@ export function ProfilePermissionsSettings() {
         .upsert(rows, { onConflict: "workspace_id,sales_function,page_key,field_key" });
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile-field-permissions"] });
+    onSuccess: async () => {
       setFieldChanges(new Map());
+      await queryClient.invalidateQueries({ queryKey: ["profile-field-permissions", workspaceId], refetchType: "active" });
+      await queryClient.refetchQueries({ queryKey: ["profile-field-permissions", workspaceId] });
       toast.success("Permissões de campos guardadas");
     },
     onError: (err: any) => toast.error(`Erro ao guardar: ${err?.message ?? "desconhecido"}`),
@@ -286,8 +290,16 @@ export function ProfilePermissionsSettings() {
                   {menuChanges.size > 0 && (
                     <Badge variant="secondary">{menuChanges.size} alteração(ões)</Badge>
                   )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => queryClient.refetchQueries({ queryKey: ["profile-menu-permissions", workspaceId] })}
+                    title="Recarregar do servidor"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => setMenuChanges(new Map())} disabled={menuChanges.size === 0}>
-                    <RefreshCw className="h-4 w-4 mr-1" /> Repor
+                    Repor
                   </Button>
                   <Button size="sm" onClick={() => saveMenus.mutate()} disabled={menuChanges.size === 0 || saveMenus.isPending}>
                     <Save className="h-4 w-4 mr-1" /> Guardar
@@ -397,8 +409,16 @@ export function ProfilePermissionsSettings() {
                   {fieldChanges.size > 0 && (
                     <Badge variant="secondary">{fieldChanges.size} alteração(ões)</Badge>
                   )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => queryClient.refetchQueries({ queryKey: ["profile-field-permissions", workspaceId] })}
+                    title="Recarregar do servidor"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => setFieldChanges(new Map())} disabled={fieldChanges.size === 0}>
-                    <RefreshCw className="h-4 w-4 mr-1" /> Repor
+                    Repor
                   </Button>
                   <Button size="sm" onClick={() => saveFields.mutate()} disabled={fieldChanges.size === 0 || saveFields.isPending}>
                     <Save className="h-4 w-4 mr-1" /> Guardar
