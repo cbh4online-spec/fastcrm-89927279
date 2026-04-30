@@ -300,17 +300,30 @@ export default function ClientCatalogPage() {
                         {product.short_description}
                       </p>
                     )}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-lg font-bold text-primary">
-                          {(product.effective_price ?? product.base_price).toFixed(2)}€
-                        </p>
-                        {product.has_discount && (
-                          <p className="text-xs text-muted-foreground line-through">
-                            {product.base_price.toFixed(2)}€
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="space-y-0.5">
+                        {product.compare_at_price != null && product.compare_at_price > 0 && (
+                          <p className="text-[11px] text-muted-foreground leading-tight">
+                            PVP recomendado{" "}
+                            <span className="font-medium text-foreground/70">
+                              {product.compare_at_price.toFixed(2)}€
+                            </span>{" "}
+                            <span className="text-[10px]">c/IVA</span>
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground">sem IVA</p>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-lg font-bold text-primary leading-none">
+                            {(product.effective_price ?? product.base_price).toFixed(2)}€
+                          </p>
+                          {product.has_discount && (
+                            <span className="text-xs text-muted-foreground line-through">
+                              {product.base_price.toFixed(2)}€
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          Preço base s/IVA
+                        </p>
                       </div>
                       <Button 
                         size="sm"
