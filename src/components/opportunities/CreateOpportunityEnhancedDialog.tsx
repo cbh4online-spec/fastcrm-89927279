@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateOpportunityEnhanced } from "@/hooks/useOpportunitiesEnhanced";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
+import { useActivePipeline } from "@/hooks/usePipelines";
 import { useLeads } from "@/hooks/useLeads";
 import { useContacts } from "@/hooks/useContacts";
 import { useCompanies } from "@/hooks/useCompanies";
@@ -79,7 +80,8 @@ export function CreateOpportunityEnhancedDialog({
   initialCompanyId,
 }: CreateOpportunityEnhancedDialogProps) {
   const createOpportunity = useCreateOpportunityEnhanced();
-  const { data: stages } = usePipelineStages();
+  const { activeId: activePipelineId } = useActivePipeline();
+  const { data: stages } = usePipelineStages(activePipelineId);
   const { trackOpportunityCreated } = useCRMAnalytics();
   const { data: leads } = useLeads();
   const { contacts } = useContacts();

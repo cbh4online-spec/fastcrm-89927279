@@ -104,6 +104,10 @@ export function useOpportunitiesEnhanced(filters?: {
         query = query.eq("stage_id", filters.stageId);
       }
 
+      if (filters?.pipelineId) {
+        query = query.eq("pipeline_id", filters.pipelineId);
+      }
+
       const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;

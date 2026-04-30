@@ -45017,6 +45017,7 @@ export type Database = {
           payment_provider:
             | Database["public"]["Enums"]["payment_provider"]
             | null
+          pipeline_id: string | null
           priority_level: string | null
           probability: number | null
           renewal_date: string | null
@@ -45064,6 +45065,7 @@ export type Database = {
           payment_provider?:
             | Database["public"]["Enums"]["payment_provider"]
             | null
+          pipeline_id?: string | null
           priority_level?: string | null
           probability?: number | null
           renewal_date?: string | null
@@ -45111,6 +45113,7 @@ export type Database = {
           payment_provider?:
             | Database["public"]["Enums"]["payment_provider"]
             | null
+          pipeline_id?: string | null
           priority_level?: string | null
           probability?: number | null
           renewal_date?: string | null
@@ -45147,6 +45150,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
             referencedColumns: ["id"]
           },
           {
