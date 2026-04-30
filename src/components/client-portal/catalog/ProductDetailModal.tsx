@@ -237,11 +237,11 @@ export function ProductDetailModal({
                       </p>
                       <div className="flex items-baseline gap-2">
                         <p className="text-lg font-bold text-primary leading-tight">
-                          {unitPriceNet.toFixed(2)}€
+                          {formatCurrency(unitPriceNet)}
                         </p>
                         {showStrikethrough && (
                           <span className="text-xs text-muted-foreground line-through">
-                            {product.base_price.toFixed(2)}€
+                            {formatCurrency(product.base_price)}
                           </span>
                         )}
                       </div>
