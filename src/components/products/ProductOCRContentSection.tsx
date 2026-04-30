@@ -126,7 +126,7 @@ function ObjectionBlock({ items }: { items: any[] }) {
   );
 }
 
-export function ProductOCRContentSection({ productId }: Props) {
+export function ProductOCRContentSection({ productId, showEmpty = false }: Props) {
   const { data: content, isLoading: loadingContent } = useQuery({
     queryKey: ["product-content", productId],
     queryFn: async () => {
