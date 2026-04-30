@@ -134,6 +134,7 @@ export function useAskFastCRM() {
         // Consume credit for AI copilot
         const userId = user?.id;
         if (userId && currentWorkspace?.id) {
+          // eslint-disable-next-line no-restricted-syntax -- baseline: docs/security/credits-frontend-hardening.md (migrar para edge `ask-fastcrm`)
           const { data: creditResult } = await (supabase as any).rpc("consume_funnel_credits", {
             p_workspace_id: currentWorkspace.id,
             p_user_id: userId,

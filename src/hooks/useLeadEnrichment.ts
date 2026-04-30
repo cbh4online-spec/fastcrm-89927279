@@ -59,6 +59,7 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
       if (!currentWorkspace) throw new Error("No workspace");
 
       // Consume credit before enrichment
+      // eslint-disable-next-line no-restricted-syntax -- baseline: docs/security/credits-frontend-hardening.md (migrar para edge `enrich-lead`)
       const { data: creditResult, error: creditError } = await (supabase as any).rpc("consume_funnel_credits", {
         p_workspace_id: currentWorkspace.id,
         p_user_id: (await supabase.auth.getUser()).data.user?.id,
