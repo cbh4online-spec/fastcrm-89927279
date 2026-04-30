@@ -145,6 +145,9 @@ export function ProductStockTab({ product }: ProductStockTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Valorização FIFO */}
+      <ProductValuationCard productId={product.id} />
+
       {/* Stock Overview Cards */}
       <div className="grid grid-cols-4 gap-3">
         <Card className="p-4 text-center">
