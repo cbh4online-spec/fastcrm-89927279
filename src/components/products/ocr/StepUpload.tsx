@@ -220,8 +220,18 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
 
             <Button onClick={runExtraction} disabled={extracting} size="lg" className="w-full">
               {extracting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ScanText className="h-4 w-4 mr-2" />}
-              {extracting ? "A processar com IA…" : "Ler documento"}
+              {extracting
+                ? "A processar com IA…"
+                : extractCost > 0
+                ? `Ler documento (${extractCost} crédito${extractCost === 1 ? "" : "s"})`
+                : "Ler documento"}
             </Button>
+            {extractCost > 0 && !extracting && (
+              <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 justify-center w-full">
+                <Coins className="h-3.5 w-3.5" />
+                Esta acção debita {extractCost} crédito{extractCost === 1 ? "" : "s"} ao confirmar.
+              </p>
+            )}
           </div>
         )}
       </CardContent>
