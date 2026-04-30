@@ -116,10 +116,23 @@ interface FeedPostCardProps {
   post: TeamFeedPost;
   currentUserId?: string;
   onReaction: (postId: string, emoji: string) => void;
+  onComment: (postId: string, content: string) => Promise<boolean>;
 }
 
-function FeedPostCard({ post, currentUserId, onReaction }: FeedPostCardProps) {
+function FeedPostCard({ post, currentUserId, onReaction, onComment }: FeedPostCardProps) {
   const [showReactions, setShowReactions] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  const handleComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim() || posting) return;
+    setPosting(true);
+    const ok = await onComment(post.id, commentText);
+    setPosting(false);
+    if (ok) setCommentText('');
+  };
+
   const config = postTypeConfig[post.post_type];
   const Icon = config.icon;
 
