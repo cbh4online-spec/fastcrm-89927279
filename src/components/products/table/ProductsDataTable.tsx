@@ -235,7 +235,7 @@ function getCellTooltipText(
     case "margin":
       if (product.base_price && product.direct_cost) {
         const m = ((product.base_price - product.direct_cost) / product.base_price) * 100;
-        return `${m.toFixed(1)}%`;
+        return `${m.toFixed(2)}%`;
       }
       return "";
     case "billing_type": return getBillingTypeLabel(product.billing_type) || "";
