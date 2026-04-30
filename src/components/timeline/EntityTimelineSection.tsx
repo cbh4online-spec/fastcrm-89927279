@@ -254,7 +254,7 @@ export function EntityTimelineSection({
 
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, title, status, created_at, updated_at")
+        .select("id, title, status, created_at, updated_at, created_by")
         .eq("related_type", entityType)
         .eq("related_id", entityId)
         .order("created_at", { ascending: false })
@@ -273,7 +273,7 @@ export function EntityTimelineSection({
 
       const { data, error } = await supabase
         .from("entity_notes")
-        .select("id, content, note_type, created_at")
+        .select("id, content, note_type, created_at, created_by")
         .eq("entity_type", entityType)
         .eq("entity_id", entityId)
         .order("created_at", { ascending: false })
