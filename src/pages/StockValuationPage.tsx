@@ -71,7 +71,7 @@ export default function StockValuationPage() {
       "Valor stock a custo",
       "Base s/IVA actual", "Base s/IVA sugerido",
       "PVP unit.", "Valor a PVP",
-      "Margem €", "Margem %",
+      "Margem €", "Margem % s/PVP", "Markup % s/Custo",
     ];
     const lines = filtered.map((r) => [
       r.sku || "",
