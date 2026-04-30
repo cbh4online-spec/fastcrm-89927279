@@ -124,6 +124,54 @@ Deno.serve(async (req) => {
 
     if (docErr || !doc) return json({ error: "Documento não encontrado", fallback: true }, 200);
 
+    // ── DÉBITO DE CRÉDITOS (server-side, autoritário) ──
+    const OCR_ACTION_KEY = "ai_document_ocr";
+    const idempotencyKey = `${document_id}:extract`;
+    let creditsConsumed = 0;
+    if (doc.workspace_id) {
+      const { data: consumeRes, error: consumeErr } = await supabase.rpc("consume_funnel_credits", {
+        p_workspace_id: doc.workspace_id,
+        p_user_id: userRes.user.id,
+        p_action_key: OCR_ACTION_KEY,
+        p_idempotency_key: idempotencyKey,
+        p_reference_type: "product_ocr_document",
+        p_reference_id: document_id,
+        p_metadata: { file_name: doc.file_name, source: "product-ocr-extract" },
+      });
+      if (consumeErr) {
+        console.error("[product-ocr-extract] consume_funnel_credits error:", consumeErr);
+        return json({ error: "Erro ao validar créditos", fallback: true }, 200);
+      }
+      const consumeRow = Array.isArray(consumeRes) ? consumeRes[0] : consumeRes;
+      if (!consumeRow?.success) {
+        return json({
+          error: consumeRow?.message || "Créditos insuficientes",
+          code: "insufficient_credits",
+          fallback: true,
+        }, 200);
+      }
+      creditsConsumed = consumeRow?.credits_consumed ?? 0;
+    }
+
+    // helper para estornar quando algo falha após o débito
+    const refundOnFailure = async (reason: string) => {
+      if (!doc.workspace_id || creditsConsumed === 0) return;
+      try {
+        await supabase.rpc("refund_funnel_credits", {
+          p_workspace_id: doc.workspace_id,
+          p_user_id: userRes.user.id,
+          p_action_key: OCR_ACTION_KEY,
+          p_idempotency_key: idempotencyKey,
+          p_reference_type: "product_ocr_document",
+          p_reference_id: document_id,
+          p_reason: reason,
+          p_metadata: {},
+        });
+      } catch (rfErr) {
+        console.error("[product-ocr-extract] refund failed:", rfErr);
+      }
+    };
+
     // marcar processing
     await supabase
       .from("product_ocr_documents")
@@ -197,6 +245,8 @@ Deno.serve(async (req) => {
         .from("product_ocr_documents")
         .update({ processing_status: "failed", processing_error: `${status}: ${errText.slice(0, 500)}` })
         .eq("id", document_id);
+      // estornar créditos: a IA falhou
+      await refundOnFailure(`ai_error_${status}`);
       return json({ error: userMsg, status, fallback: true }, 200);
     }
 

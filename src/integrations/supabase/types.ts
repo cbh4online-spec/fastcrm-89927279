@@ -74090,6 +74090,24 @@ export type Database = {
         }[]
       }
       refresh_recommendation_views: { Args: never; Returns: undefined }
+      refund_funnel_credits: {
+        Args: {
+          p_action_key: string
+          p_idempotency_key: string
+          p_metadata?: Json
+          p_reason?: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          balance_remaining: number
+          credits_refunded: number
+          message: string
+          success: boolean
+        }[]
+      }
       register_invoice_payment: {
         Args: {
           p_amount: number
