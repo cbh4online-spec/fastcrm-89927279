@@ -42,7 +42,11 @@ const BASELINE: Record<string, string[]> = {
     "src/hooks/useLeadEnrichment.ts", // lead_enrich_* — migrar para edge `enrich-lead`
   ],
   refund_funnel_credits: [],
-  admin_assign_credits: [],
+  admin_assign_credits: [
+    // legítimo: protegido por is_super_admin no frontend + RLS server-side.
+    // Idealmente migrar para edge `admin-assign-credits` numa sprint futura.
+    "src/components/super-admin/WorkspacesSection.tsx",
+  ],
   credit_pricing_rules: [
     "src/hooks/useCreditWallet.ts", // substituir por edge `pricing-actions` (Fase 2)
   ],
