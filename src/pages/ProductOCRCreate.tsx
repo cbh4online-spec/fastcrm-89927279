@@ -357,7 +357,7 @@ export default function ProductOCRCreate() {
           origin_country: sheet.origin_country || null,
           distributor: sheet.distributor || null,
           direct_cost: numOrNull(sheet.direct_cost),
-          base_price: numOrNull(sheet.base_price),
+          base_price: numOrNull(sheet.base_price) ?? 0,
           tax_rate_estimate_pct: clamp(numOrNull(sheet.tax_rate_estimate_pct), 0, 100),
           stock_quantity: intOrNull(sheet.stock_quantity) ?? 0,
           low_stock_threshold: intOrNull(sheet.low_stock_threshold),
