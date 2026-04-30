@@ -63,12 +63,12 @@ Deno.serve(async (req) => {
   const startTime = performance.now();
 
   try {
-    const { messages, leadData, opportunityData, channel, lastMessageAt } = await req.json();
+    const { messages, leadData, opportunityData, channel, lastMessageAt, workspace_id, conversation_id } = await req.json();
+    const workspaceId: string | undefined = workspace_id;
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'heavy', 'conversation-intelligence');
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'heavy', 'conversation-intelligence');
       if (!gate.allowed) {
         return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
           status: 200,
@@ -289,18 +289,24 @@ Forneça uma análise completa de inteligência de vendas.`;
     const data = await response.json()
 
     // AI Usage Instrumentation
-    try {
-      const _usage = data?.usage;
-      logAIUsage({
-        workspace_id: workspace_id,
-        feature: 'conversation-intelligence',
-        model: data?.model || 'google/gemini-3-flash-preview',
-        tokens_input: _usage?.prompt_tokens ?? 0,
-        tokens_output: _usage?.completion_tokens ?? 0,
-        request_type: 'completion',
-        latency_ms: Date.now() - (_startTime ?? Date.now()),
-      });
-    } catch (_e) { /* instrumentation error - non-blocking */ };
+    if (workspaceId) {
+      try {
+        const _usage = data?.usage;
+        logAIUsage({
+          workspace_id: workspaceId,
+          feature: 'conversation-intelligence',
+          model: data?.model || 'google/gemini-3-flash-preview',
+          tokens_input: _usage?.prompt_tokens ?? 0,
+          tokens_output: _usage?.completion_tokens ?? 0,
+          request_type: 'tool_use',
+          latency_ms: Date.now() - _startTime,
+          entity_type: conversation_id ? 'conversation' : undefined,
+          entity_id: conversation_id ?? undefined,
+        });
+      } catch (e) {
+        console.warn('[CONV-INTELLIGENCE] logAIUsage failed:', e);
+      }
+    }
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall || toolCall.function.name !== "analyze_conversation") {

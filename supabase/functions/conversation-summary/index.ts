@@ -157,18 +157,24 @@ Gere um resumo conciso seguindo o formato especificado.`;
     const data = await response.json()
 
     // AI Usage Instrumentation
-    try {
-      const _usage = data?.usage;
-      logAIUsage({
-        workspace_id: workspace_id,
-        feature: 'conversation-summary',
-        model: data?.model || 'google/gemini-3-flash-preview',
-        tokens_input: _usage?.prompt_tokens ?? 0,
-        tokens_output: _usage?.completion_tokens ?? 0,
-        request_type: 'completion',
-        latency_ms: Date.now() - (_startTime ?? Date.now()),
-      });
-    } catch (_e) { /* instrumentation error - non-blocking */ };
+    if (workspaceId) {
+      try {
+        const _usage = data?.usage;
+        logAIUsage({
+          workspace_id: workspaceId,
+          feature: 'conversation-summary',
+          model: data?.model || 'google/gemini-3-flash-preview',
+          tokens_input: _usage?.prompt_tokens ?? 0,
+          tokens_output: _usage?.completion_tokens ?? 0,
+          request_type: 'completion',
+          latency_ms: Date.now() - _startTime,
+          entity_type: conversationId ? 'conversation' : undefined,
+          entity_id: conversationId ?? undefined,
+        });
+      } catch (e) {
+        console.warn('[CONV-SUMMARY] logAIUsage failed:', e);
+      }
+    }
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall || toolCall.function.name !== "summarize_conversation") {

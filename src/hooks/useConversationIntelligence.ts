@@ -69,7 +69,9 @@ export function useConversationIntelligence() {
       leadData?: LeadData,
       opportunityData?: OpportunityData,
       channel?: string,
-      lastMessageAt?: string
+      lastMessageAt?: string,
+      workspaceId?: string,
+      conversationId?: string
     ): Promise<ConversationIntelligence | null> => {
       setIsLoading(true);
       setError(null);
@@ -89,6 +91,8 @@ export function useConversationIntelligence() {
               opportunityData,
               channel,
               lastMessageAt,
+              workspace_id: workspaceId,
+              conversation_id: conversationId,
             },
           }
         );

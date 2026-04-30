@@ -254,16 +254,22 @@ Canais: ${[...new Set(conversations.map((c: any) => c.channel))].join(", ")}`;
     // AI Usage Instrumentation
     try {
       const _usage = aiData?.usage;
+      const _entityType = contact_id ? 'contact' : 'lead';
+      const _entityId = contact_id ?? lead_id;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id,
         feature: 'compute-conversation-signals',
         model: aiData?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,
         tokens_output: _usage?.completion_tokens ?? 0,
-        request_type: 'completion',
-        latency_ms: Date.now() - (_startTime ?? Date.now()),
+        request_type: 'tool_use',
+        latency_ms: Date.now() - _startTime,
+        entity_type: _entityType,
+        entity_id: _entityId,
       });
-    } catch (_e) { /* instrumentation error - non-blocking */ };
+    } catch (e) {
+      console.warn('[compute-conversation-signals] logAIUsage failed:', e);
+    }
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
       throw new Error("No tool call in AI response");

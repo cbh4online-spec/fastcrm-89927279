@@ -59,6 +59,8 @@ export function useConversationSummary({
             leadName,
             channel,
             lastMessageAt,
+            workspaceId,
+            conversationId,
           },
         }
       );
