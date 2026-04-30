@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -11,17 +11,35 @@ import { toast } from "sonner";
 import { ConversationalOnboarding } from "@/components/onboarding/ConversationalOnboarding";
 
 export default function Onboarding() {
-  const { user } = useAuth();
-  const { createWorkspace, workspaces, currentWorkspace } = useWorkspace();
+  const { user, loading: authLoading } = useAuth();
+  const { createWorkspace, workspaces, currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const navigate = useNavigate();
   const [workspaceName, setWorkspaceName] = useState("");
   const [creating, setCreating] = useState(false);
   const [showIntelligentOnboarding, setShowIntelligentOnboarding] = useState(false);
 
-  // If user already has workspaces, redirect to dashboard
-  if (workspaces.length > 0 && !showIntelligentOnboarding) {
-    navigate("/dashboard", { replace: true });
-    return null;
+  // Redirect side-effects (NEVER call navigate() during render)
+  useEffect(() => {
+    if (authLoading || workspaceLoading) return;
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    if (workspaces.length > 0 && !showIntelligentOnboarding) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [authLoading, workspaceLoading, user, workspaces.length, showIntelligentOnboarding, navigate]);
+
+  // Loading / pre-redirect state — render a friendly placeholder instead of a blank screen
+  if (authLoading || workspaceLoading || !user || (workspaces.length > 0 && !showIntelligentOnboarding)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm">A preparar o teu espaço de trabalho…</p>
+        </div>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
