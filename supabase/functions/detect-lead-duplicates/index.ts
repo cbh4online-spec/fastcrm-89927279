@@ -120,17 +120,18 @@ Deno.serve(async (req) => {
       .eq("workspace_id", workspace_id)
       .eq("status", "pending");
 
-    // Fetch all active leads
+    // Fetch all active leads (cap to keep function within CPU budget)
+    const MAX_LEADS = 500;
     const { data: leads, error: leadsErr } = await supabase
       .from("leads")
       .select("id, name, email, phone, tax_id, external_username, external_instagram_id, ghl_contact_id, company_name, city, source, website, created_at, updated_at")
       .eq("workspace_id", workspace_id)
       .is("deleted_at", null)
-      .order("created_at", { ascending: true })
-      .limit(1000);
+      .order("updated_at", { ascending: false })
+      .limit(MAX_LEADS);
 
     if (leadsErr) throw leadsErr;
-    if (!leads?.length) return new Response(JSON.stringify({ groups: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!leads?.length) return new Response(JSON.stringify({ groups: 0, total_leads_scanned: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const matches: DuplicateMatch[] = [];
     const processedPairs = new Set<string>();
@@ -185,110 +186,99 @@ Deno.serve(async (req) => {
       }
     }
 
-    // === LEVEL 2: Strong Duplicates (confidence 75-94%) ===
-    // Same email domain + similar name
-    for (let i = 0; i < leads.length; i++) {
-      for (let j = i + 1; j < leads.length; j++) {
-        const a = leads[i], b = leads[j];
-        const pk = pairKey(a.id, b.id);
-        if (processedPairs.has(pk)) continue;
-
-        const matchedFields: string[] = [];
-        let score = 0;
-
-        // Similar name
-        if (a.name && b.name) {
-          const nameSim = levenshteinSimilarity(a.name, b.name);
-          if (nameSim >= 0.85) { score += 40; matchedFields.push("name"); }
-          else if (nameSim >= 0.70) { score += 20; matchedFields.push("name"); }
-        }
-
-        // Same company
-        if (a.company_name && b.company_name) {
-          const compSim = levenshteinSimilarity(a.company_name, b.company_name);
-          if (compSim >= 0.80) { score += 25; matchedFields.push("company_name"); }
-        }
-
-        // Same email domain
-        if (a.email && b.email) {
-          const domA = extractEmailDomain(a.email);
-          const domB = extractEmailDomain(b.email);
-          if (domA && domB && domA === domB && !["gmail.com", "hotmail.com", "yahoo.com", "outlook.com"].includes(domA)) {
-            score += 15; matchedFields.push("email_domain");
-          }
-        }
-
-        // Same city
-        if (a.city && b.city && normalizeString(a.city) === normalizeString(b.city)) {
-          score += 10; matchedFields.push("city");
-        }
-
-        // Same source
-        if (a.source && b.source && a.source === b.source) {
-          score += 5; matchedFields.push("source");
-        }
-
-        if (score >= 50 && matchedFields.length >= 2) {
-          processedPairs.add(pk);
-          matches.push({
-            lead_ids: [a.id, b.id],
-            confidence: Math.min(score, 94),
-            match_type: "strong",
-            reason: `Correspondência forte: ${matchedFields.join(", ")}`,
-            matched_fields: matchedFields,
-            master_candidate_id: pickMaster([a, b]),
-          });
-        }
-      }
+    // === Blocking strategy: only compare leads sharing first 2 normalized chars of the name ===
+    // Reduces pairs from O(n²) (~125k for n=500) to a much smaller subset.
+    const buckets = new Map<string, Lead[]>();
+    for (const lead of leads) {
+      const norm = normalizeString(lead.name || "");
+      if (!norm) continue;
+      const key = norm.substring(0, 2);
+      const arr = buckets.get(key) || [];
+      arr.push(lead);
+      buckets.set(key, arr);
     }
 
-    // === LEVEL 3: Probable Duplicates (confidence 50-74%) ===
-    for (let i = 0; i < leads.length; i++) {
-      for (let j = i + 1; j < leads.length; j++) {
-        const a = leads[i], b = leads[j];
-        const pk = pairKey(a.id, b.id);
-        if (processedPairs.has(pk)) continue;
+    const startTime = Date.now();
+    const TIME_BUDGET_MS = 1500; // leave headroom under the 2s CPU limit
+    let timedOut = false;
 
-        const matchedFields: string[] = [];
-        let score = 0;
+    outer:
+    for (const bucketLeads of buckets.values()) {
+      if (bucketLeads.length < 2) continue;
 
-        // Similar name (lower threshold)
-        if (a.name && b.name) {
-          const sim = levenshteinSimilarity(a.name, b.name);
-          if (sim >= 0.70) { score += 30; matchedFields.push("name"); }
-        }
+      for (let i = 0; i < bucketLeads.length; i++) {
+        if (Date.now() - startTime > TIME_BUDGET_MS) { timedOut = true; break outer; }
 
-        // Similar company
-        if (a.company_name && b.company_name) {
-          const sim = levenshteinSimilarity(a.company_name, b.company_name);
-          if (sim >= 0.65) { score += 15; matchedFields.push("company_name"); }
-        }
+        for (let j = i + 1; j < bucketLeads.length; j++) {
+          const a = bucketLeads[i], b = bucketLeads[j];
+          const pk = pairKey(a.id, b.id);
+          if (processedPairs.has(pk)) continue;
 
-        // Similar contact pattern (phone prefix)
-        if (a.phone && b.phone) {
-          const phoneA = normalizePhone(a.phone);
-          const phoneB = normalizePhone(b.phone);
-          if (phoneA.length >= 6 && phoneB.length >= 6 && phoneA.substring(0, 6) === phoneB.substring(0, 6)) {
-            score += 10; matchedFields.push("phone_prefix");
+          const matchedFields: string[] = [];
+          let score = 0;
+
+          // Similar name
+          let nameSim = 0;
+          if (a.name && b.name) {
+            nameSim = levenshteinSimilarity(a.name, b.name);
+            if (nameSim >= 0.85) { score += 40; matchedFields.push("name"); }
+            else if (nameSim >= 0.70) { score += 30; matchedFields.push("name"); }
           }
-        }
 
-        // Similar activity timing (created within 1 hour)
-        const timeDiff = Math.abs(new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-        if (timeDiff < 3600000) {
-          score += 10; matchedFields.push("created_timing");
-        }
+          // Same company
+          if (a.company_name && b.company_name) {
+            const compSim = levenshteinSimilarity(a.company_name, b.company_name);
+            if (compSim >= 0.80) { score += 25; matchedFields.push("company_name"); }
+            else if (compSim >= 0.65) { score += 15; matchedFields.push("company_name"); }
+          }
 
-        if (score >= 40 && matchedFields.includes("name")) {
-          processedPairs.add(pk);
-          matches.push({
-            lead_ids: [a.id, b.id],
-            confidence: Math.min(score, 74),
-            match_type: "probable",
-            reason: `Correspondência provável: ${matchedFields.join(", ")}`,
-            matched_fields: matchedFields,
-            master_candidate_id: pickMaster([a, b]),
-          });
+          // Same email domain (excluding free providers)
+          if (a.email && b.email) {
+            const domA = extractEmailDomain(a.email);
+            const domB = extractEmailDomain(b.email);
+            if (domA && domB && domA === domB && !["gmail.com", "hotmail.com", "yahoo.com", "outlook.com"].includes(domA)) {
+              score += 15; matchedFields.push("email_domain");
+            }
+          }
+
+          // Phone prefix
+          if (a.phone && b.phone) {
+            const phoneA = normalizePhone(a.phone);
+            const phoneB = normalizePhone(b.phone);
+            if (phoneA.length >= 6 && phoneB.length >= 6 && phoneA.substring(0, 6) === phoneB.substring(0, 6)) {
+              score += 10; matchedFields.push("phone_prefix");
+            }
+          }
+
+          // Same city
+          if (a.city && b.city && normalizeString(a.city) === normalizeString(b.city)) {
+            score += 10; matchedFields.push("city");
+          }
+
+          // Created within 1 hour
+          const timeDiff = Math.abs(new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          if (timeDiff < 3600000) {
+            score += 5; matchedFields.push("created_timing");
+          }
+
+          // Same source
+          if (a.source && b.source && a.source === b.source) {
+            score += 5; matchedFields.push("source");
+          }
+
+          if (score >= 50 && matchedFields.length >= 2) {
+            processedPairs.add(pk);
+            const matchType = score >= 75 ? "strong" : "probable";
+            const cap = matchType === "strong" ? 94 : 74;
+            matches.push({
+              lead_ids: [a.id, b.id],
+              confidence: Math.min(score, cap),
+              match_type: matchType,
+              reason: `Correspondência ${matchType === "strong" ? "forte" : "provável"}: ${matchedFields.join(", ")}`,
+              matched_fields: matchedFields,
+              master_candidate_id: pickMaster([a, b]),
+            });
+          }
         }
       }
     }
@@ -326,14 +316,25 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ groups: groupsCreated, total_leads_scanned: leads.length }),
+      JSON.stringify({
+        groups: groupsCreated,
+        total_leads_scanned: leads.length,
+        timed_out: timedOut,
+        capped_to: MAX_LEADS,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("detect-lead-duplicates error:", err);
+    // Resilient: 200 OK + fallback so the client never crashes (blank screen)
     return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        groups: 0,
+        total_leads_scanned: 0,
+        fallback: true,
+        internal_error: err instanceof Error ? err.message : String(err),
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
