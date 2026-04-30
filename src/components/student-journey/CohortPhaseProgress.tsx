@@ -2,31 +2,60 @@ import { useMemo } from "react";
 import { Calendar, Layers } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useCohortPhases } from "@/hooks/useCohortPhases";
+import { useCohortPhases, type CohortPhase } from "@/hooks/useCohortPhases";
 import { cn } from "@/lib/utils";
 
 interface CohortPhaseProgressProps {
   cohortId: string;
+  /** Datas da própria turma — usadas como fallback quando não há fases registadas. */
+  fallbackStartDate?: string | null;
+  fallbackEndDate?: string | null;
+  fallbackTitle?: string;
   className?: string;
   compact?: boolean;
 }
 
 /**
- * Mostra a próxima sessão (fase) e o progresso "X de Y fases"
- * baseado nas fases activas da cohort.
+ * Mostra a próxima sessão (fase) e o progresso "X de Y fases".
  *
- * - Próxima fase = primeira fase com end_date >= hoje (ordenada por start_date).
- * - Se todas as fases já terminaram, mostra a última como "Concluído".
- * - Se não houver fases, mostra "Sem fases definidas".
+ * Estratégia:
+ * - Se a turma tem fases em `sj_course_phases`, usa-as.
+ * - Caso contrário, e se a turma tiver `start_date`/`end_date`, gera em runtime
+ *   uma fase virtual única (não persistida) para garantir que a listagem
+ *   continua a mostrar a próxima sessão.
+ * - Sem fases nem datas → "Sem datas definidas".
  */
-export function CohortPhaseProgress({ cohortId, className, compact }: CohortPhaseProgressProps) {
+export function CohortPhaseProgress({
+  cohortId,
+  fallbackStartDate,
+  fallbackEndDate,
+  fallbackTitle = "Sessão única",
+  className,
+  compact,
+}: CohortPhaseProgressProps) {
   const { phases, isLoading } = useCohortPhases(cohortId);
 
+  const effectivePhases = useMemo<Array<Pick<CohortPhase, "start_date" | "end_date" | "title">>>(() => {
+    if (phases.length) return phases;
+    if (fallbackStartDate && fallbackEndDate) {
+      return [
+        {
+          start_date: fallbackStartDate,
+          end_date: fallbackEndDate,
+          title: fallbackTitle,
+        },
+      ];
+    }
+    return [];
+  }, [phases, fallbackStartDate, fallbackEndDate, fallbackTitle]);
+
+  const isVirtual = phases.length === 0 && effectivePhases.length > 0;
+
   const { nextPhase, currentIndex, total, allFinished } = useMemo(() => {
-    if (!phases.length) {
+    if (!effectivePhases.length) {
       return { nextPhase: null, currentIndex: 0, total: 0, allFinished: false };
     }
-    const sorted = [...phases].sort((a, b) => a.start_date.localeCompare(b.start_date));
+    const sorted = [...effectivePhases].sort((a, b) => a.start_date.localeCompare(b.start_date));
     const today = new Date().toISOString().slice(0, 10);
     const idx = sorted.findIndex((p) => p.end_date >= today);
     if (idx === -1) {
@@ -43,18 +72,16 @@ export function CohortPhaseProgress({ cohortId, className, compact }: CohortPhas
       total: sorted.length,
       allFinished: false,
     };
-  }, [phases]);
+  }, [effectivePhases]);
 
   if (isLoading) {
-    return (
-      <div className={cn("text-xs text-muted-foreground", className)}>A carregar fases…</div>
-    );
+    return <div className={cn("text-xs text-muted-foreground", className)}>A carregar fases…</div>;
   }
 
   if (!total) {
     return (
       <div className={cn("text-xs text-muted-foreground italic", className)}>
-        Sem fases definidas
+        Sem datas definidas
       </div>
     );
   }
@@ -81,6 +108,7 @@ export function CohortPhaseProgress({ cohortId, className, compact }: CohortPhas
       <span className="flex items-center gap-1 text-muted-foreground">
         <Layers className={cn("h-3.5 w-3.5", compact && "h-3 w-3")} />
         Fase {Math.min(currentIndex, total)} de {total}
+        {isVirtual ? <span className="italic"> · auto</span> : null}
       </span>
     </div>
   );
