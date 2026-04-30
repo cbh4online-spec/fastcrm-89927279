@@ -15,8 +15,56 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CalendarIcon, Check, Pencil, X, Loader2, ExternalLink, Sparkles } from "lucide-react";
-import { format, parse, isValid } from "date-fns";
+import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+
+// Robust date parser — handles dd/MM/yyyy, dd-MM-yyyy, yyyy-MM-dd and 2-digit years.
+// Avoids browser-dependent `new Date(str)`.
+function parseUserDate(input: string): Date | null {
+  if (!input) return null;
+  const s = String(input).trim();
+  const dmy = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (dmy) {
+    let [, d, m, y] = dmy;
+    let yy = parseInt(y, 10);
+    if (yy < 100) yy += yy >= 50 ? 1900 : 2000;
+    const dd = parseInt(d, 10);
+    const mm = parseInt(m, 10);
+    if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    const dt = new Date(Date.UTC(yy, mm - 1, dd));
+    if (dt.getUTCDate() !== dd || dt.getUTCMonth() !== mm - 1) return null;
+    return dt;
+  }
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const dt = new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]));
+    if (dt.getUTCDate() !== +iso[3] || dt.getUTCMonth() !== +iso[2] - 1) return null;
+    return dt;
+  }
+  return null;
+}
+
+function toIsoDate(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Auto-format input: digits-only -> dd/mm/yyyy with slashes inserted as user types.
+function autoFormatDateInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+// Convert any stored date value to dd/MM/yyyy text for display in the input.
+function valueToDisplayDate(val: unknown): string {
+  if (!val) return "";
+  const d = parseUserDate(String(val));
+  return d ? format(d, "dd/MM/yyyy") : String(val);
+}
 import { cn } from "@/lib/utils";
 import { FieldSuggestion } from "@/hooks/useFieldSuggestions";
 import { InlineFieldSuggestion } from "@/components/ai/InlineFieldSuggestion";
@@ -67,27 +115,47 @@ export function InlineEditableField({
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setEditedValue(value);
-  }, [value]);
+    // For date fields, normalise stored ISO into dd/MM/yyyy text for the editor.
+    if (fieldType === "date") {
+      setEditedValue(valueToDisplayDate(value));
+    } else {
+      setEditedValue(value);
+    }
+  }, [value, fieldType]);
 
   const hasValue = value !== undefined && value !== null && value !== "" && 
     !(Array.isArray(value) && value.length === 0);
   const showSuggestion = !hasValue && suggestion && suggestion.confidence >= 0.5;
 
   const handleStartEdit = () => {
-    setEditedValue(value);
+    setEditedValue(fieldType === "date" ? valueToDisplayDate(value) : value);
     setIsEditing(true);
   };
 
   const handleCancel = () => {
-    setEditedValue(value);
+    setEditedValue(fieldType === "date" ? valueToDisplayDate(value) : value);
     setIsEditing(false);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onChange(editedValue);
+      let toSave: unknown = editedValue;
+      if (fieldType === "date") {
+        const raw = (editedValue as string) ?? "";
+        if (!raw || !raw.trim()) {
+          toSave = null;
+        } else {
+          const d = parseUserDate(raw);
+          if (!d) {
+            console.warn("[InlineEditableField] Invalid date:", raw);
+            setIsSaving(false);
+            return; // keep editing, don't lose user input
+          }
+          toSave = toIsoDate(d);
+        }
+      }
+      await onChange(toSave);
       setIsEditing(false);
     } catch (error) {
       console.error("Error saving field:", error);
@@ -123,12 +191,10 @@ export function InlineEditableField({
     switch (fieldType) {
       case "boolean":
         return val ? "Sim" : "Não";
-      case "date":
-        try {
-          return format(new Date(val as string), "dd/MM/yyyy");
-        } catch {
-          return String(val);
-        }
+      case "date": {
+        const d = parseUserDate(String(val));
+        return d ? format(d, "dd/MM/yyyy") : String(val);
+      }
       case "number":
         return new Intl.NumberFormat('pt-PT').format(Number(val));
       case "currency":
@@ -202,24 +268,19 @@ export function InlineEditableField({
         );
 
       case "date": {
-        const dateValue = editedValue ? new Date(editedValue as string) : undefined;
-        const dateDisplayText = dateValue && isValid(dateValue) ? format(dateValue, "dd/MM/yyyy") : (editedValue as string) || "";
+        // editedValue is kept as raw user text (dd/MM/yyyy) while typing.
+        // We try to parse it for the calendar selection only.
+        const rawText = (editedValue as string) || "";
+        const parsedDate = parseUserDate(rawText);
         return (
           <div className="flex items-center gap-1">
             <Input
-              value={dateDisplayText}
+              inputMode="numeric"
+              value={rawText}
               onChange={(e) => {
-                const raw = e.target.value;
-                // Try to parse dd/MM/yyyy as the user types
-                if (raw.length === 10) {
-                  const parsed = parse(raw, "dd/MM/yyyy", new Date());
-                  if (isValid(parsed)) {
-                    setEditedValue(parsed.toISOString());
-                    return;
-                  }
-                }
-                // Store raw text so user can keep typing
-                setEditedValue(raw);
+                // Auto-insert slashes; never block the user.
+                const formatted = autoFormatDateInput(e.target.value);
+                setEditedValue(formatted);
               }}
               onKeyDown={handleKeyDown}
               className="h-8 text-sm w-[130px]"
@@ -236,10 +297,11 @@ export function InlineEditableField({
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={dateValue && isValid(dateValue) ? dateValue : undefined}
+                  selected={parsedDate ?? undefined}
                   onSelect={(date) => {
                     if (date) {
-                      setEditedValue(date.toISOString());
+                      // Store as display text so the input stays consistent.
+                      setEditedValue(format(date, "dd/MM/yyyy"));
                     }
                   }}
                   locale={pt}
