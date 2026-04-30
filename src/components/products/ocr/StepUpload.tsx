@@ -128,7 +128,10 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
       });
       if (error) throw error;
       if (data?.code === "insufficient_credits") {
-        toast.dismiss("extract");
+        toast.error(
+          `Créditos insuficientes para ler o documento. São necessários ${extractCost} crédito${extractCost === 1 ? "" : "s"}.`,
+          { id: "extract" }
+        );
         triggerNoCreditsDialog({
           actionLabel: "Leitura OCR de documento",
           creditsNeeded: extractCost,
