@@ -189,9 +189,10 @@ export function ProfilePermissionsSettings() {
         .upsert(rows, { onConflict: "workspace_id,sales_function,page_key,field_key" });
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile-field-permissions"] });
+    onSuccess: async () => {
       setFieldChanges(new Map());
+      await queryClient.invalidateQueries({ queryKey: ["profile-field-permissions", workspaceId], refetchType: "active" });
+      await queryClient.refetchQueries({ queryKey: ["profile-field-permissions", workspaceId] });
       toast.success("Permissões de campos guardadas");
     },
     onError: (err: any) => toast.error(`Erro ao guardar: ${err?.message ?? "desconhecido"}`),
