@@ -204,7 +204,7 @@ export function ProfilePermissionsSettings() {
 
   const saveFields = useMutation({
     mutationFn: async () => {
-      if (!workspaceId) throw new Error("Sem workspace ativo");
+      await assertCanManagePermissions();
       const norm = (s: string) => (s ?? "").trim().toLowerCase();
       const rows = Array.from(fieldChanges.entries()).map(([key, visible]) => {
         const [sales_function, page_key, field_key] = key.split(":");
