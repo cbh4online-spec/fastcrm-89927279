@@ -27,6 +27,8 @@ import {
 import { useTeamFeed, type TeamFeedPost } from '@/hooks/useMeetingAutomations';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { TeamFeedComposer } from './TeamFeedComposer';
+import { Input } from '@/components/ui/input';
 
 const postTypeConfig: Record<TeamFeedPost['post_type'], {
   icon: typeof Calendar;
@@ -67,51 +69,8 @@ interface TeamFeedProps {
 }
 
 export function TeamFeed({ className }: TeamFeedProps) {
-  const { posts, isLoading, addReaction } = useTeamFeed();
+  const { posts, isLoading, addReaction, createPost, addComment } = useTeamFeed();
   const { user } = useAuth();
-
-  if (isLoading) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Feed da Equipa
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-4 w-1/3" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (posts.length === 0) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Feed da Equipa
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Ainda não há publicações no feed</p>
-            <p className="text-sm">
-              Resumos de reuniões internas aparecerão aqui
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className={className}>
@@ -122,14 +81,32 @@ export function TeamFeed({ className }: TeamFeedProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {posts.map(post => (
-          <FeedPostCard 
-            key={post.id} 
-            post={post} 
-            currentUserId={user?.id}
-            onReaction={addReaction}
-          />
-        ))}
+        <TeamFeedComposer onSubmit={createPost} />
+
+        {isLoading ? (
+          [1, 2, 3].map((i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ))
+        ) : posts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Ainda não há publicações no feed</p>
+            <p className="text-sm">Sê o primeiro a partilhar algo com a equipa</p>
+          </div>
+        ) : (
+          posts.map((post) => (
+            <FeedPostCard
+              key={post.id}
+              post={post}
+              currentUserId={user?.id}
+              onReaction={addReaction}
+              onComment={addComment}
+            />
+          ))
+        )}
       </CardContent>
     </Card>
   );
@@ -139,10 +116,23 @@ interface FeedPostCardProps {
   post: TeamFeedPost;
   currentUserId?: string;
   onReaction: (postId: string, emoji: string) => void;
+  onComment: (postId: string, content: string) => Promise<boolean>;
 }
 
-function FeedPostCard({ post, currentUserId, onReaction }: FeedPostCardProps) {
+function FeedPostCard({ post, currentUserId, onReaction, onComment }: FeedPostCardProps) {
   const [showReactions, setShowReactions] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  const handleComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim() || posting) return;
+    setPosting(true);
+    const ok = await onComment(post.id, commentText);
+    setPosting(false);
+    if (ok) setCommentText('');
+  };
+
   const config = postTypeConfig[post.post_type];
   const Icon = config.icon;
 
@@ -277,6 +267,25 @@ function FeedPostCard({ post, currentUserId, onReaction }: FeedPostCardProps) {
           </Badge>
         ))}
       </div>
+
+      {/* Comment input */}
+      <form onSubmit={handleComment} className="flex gap-2 pt-2">
+        <Input
+          placeholder="Escreve um comentário…"
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          maxLength={1000}
+          className="h-8 text-sm"
+        />
+        <Button
+          type="submit"
+          size="sm"
+          variant="secondary"
+          disabled={posting || !commentText.trim()}
+        >
+          {posting ? '…' : 'Enviar'}
+        </Button>
+      </form>
     </div>
   );
 }

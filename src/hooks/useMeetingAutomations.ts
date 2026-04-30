@@ -494,10 +494,61 @@ export function useTeamFeed() {
       .eq('id', postId);
   };
 
+  const createPost = async (input: {
+    title: string;
+    content: string;
+    post_type?: TeamFeedPost['post_type'];
+  }) => {
+    if (!currentWorkspace?.id || !user?.id) {
+      toast.error('Sessão inválida');
+      return false;
+    }
+    const title = input.title?.trim();
+    const content = input.content?.trim();
+    if (!title || !content) {
+      toast.error('Preenche título e mensagem');
+      return false;
+    }
+    const { error } = await supabase.from('team_feed_posts').insert({
+      workspace_id: currentWorkspace.id,
+      user_id: user.id,
+      post_type: input.post_type ?? 'update',
+      title,
+      content,
+      metadata: {},
+    });
+    if (error) {
+      console.error('createPost error', error);
+      toast.error('Não foi possível publicar: ' + error.message);
+      return false;
+    }
+    toast.success('Publicado no feed da equipa');
+    return true;
+  };
+
+  const addComment = async (postId: string, content: string) => {
+    if (!user?.id) return false;
+    const text = content?.trim();
+    if (!text) return false;
+    const { error } = await supabase.from('team_feed_comments').insert({
+      post_id: postId,
+      user_id: user.id,
+      content: text,
+    });
+    if (error) {
+      console.error('addComment error', error);
+      toast.error('Não foi possível comentar: ' + error.message);
+      return false;
+    }
+    return true;
+  };
+
   return {
     posts,
     isLoading,
     addReaction,
+    createPost,
+    addComment,
   };
 }
 
