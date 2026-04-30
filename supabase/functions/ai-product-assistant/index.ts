@@ -144,7 +144,7 @@ interface SKUSearchResult {
     const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64, storeName, settingsType, existingEntries, industryContext } = await req.json() as AssistantRequest & { storeName?: string };
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (workspaceId ?? null);
+    const _gateWsId = reqWorkspaceId ?? null;
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'light', 'ai-product-assistant');
       if (!gate.allowed) {
