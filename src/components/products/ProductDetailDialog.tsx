@@ -119,6 +119,9 @@ export function ProductDetailDialog({
   const updateProduct = useUpdateProduct();
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
+  const { canSeeField } = useFieldPermissions();
+  const showCost = canSeeField("products", "direct_cost");
+  const showMargin = canSeeField("products", "gross_margin");
 
   const [heroIdx, setHeroIdx] = useState(0);
 
