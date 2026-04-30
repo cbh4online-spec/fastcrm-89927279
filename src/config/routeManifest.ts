@@ -434,6 +434,8 @@ export function getSearchableRoutes(
     if (r.status !== "active") return false;
     if (r.moduleSlug && !installed.has(r.moduleSlug)) return false;
     if (r.menuKey && !canAccess(r.menuKey)) return false;
+    // Also enforce profile-level permission by route key (matches sidebar behavior)
+    if (!canAccess(r.key)) return false;
     return true;
   });
 }
