@@ -57,6 +57,8 @@ export function DashboardCoreRoutes() {
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/dashboard/onboarding" element={<OnboardingHubPage />} />
       <Route path="/dashboard/admin/activation" element={<ActivationAdminPage />} />
+      <Route path="/dashboards" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboards/*" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<WeeklyDashboard />} />
       <Route path="/dashboard/command-center" element={<CommandCenter />} />
       <Route path="/dashboard/objects" element={<Navigate to="/objects" replace />} />
