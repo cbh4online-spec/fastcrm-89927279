@@ -66,8 +66,12 @@ export default function StockValuationPage() {
 
   const exportCsv = () => {
     const headers = [
-      "SKU", "Produto", "Categoria", "Stock", "Custo médio FIFO",
-      "Valor a custo", "PVP", "Valor a PVP", "Margem latente €", "Margem %",
+      "SKU", "Produto", "Categoria", "Stock",
+      "Custo unit.", "Custo operacional unit.", "Custo total unit.",
+      "Valor stock a custo",
+      "Base s/IVA actual", "Base s/IVA sugerido",
+      "PVP unit.", "Valor a PVP",
+      "Margem €", "Margem %",
     ];
     const lines = filtered.map((r) => [
       r.sku || "",
@@ -75,7 +79,11 @@ export default function StockValuationPage() {
       r.category || "",
       r.current_stock,
       r.fifo_avg_cost.toFixed(4),
+      r.operational_cost_unit.toFixed(4),
+      r.total_unit_cost.toFixed(4),
       r.total_cost_value.toFixed(2),
+      r.unit_sale_price.toFixed(2),
+      r.suggested_base_price != null ? r.suggested_base_price.toFixed(2) : "",
       r.unit_sale_price.toFixed(2),
       r.total_sale_value.toFixed(2),
       r.latent_margin.toFixed(2),
