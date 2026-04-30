@@ -493,7 +493,7 @@ export default function ProductOCRCreate() {
     } finally {
       setCreating(false);
     }
-  }, [currentWorkspace, sheet, content, sales, doc, computePendingFields, navigate]);
+  }, [currentWorkspace, sheet, content, sales, doc, structured, computePendingFields, navigate]);
 
   const progress = (step / 6) * 100;
 
