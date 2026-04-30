@@ -135,12 +135,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { messages, context, conversationId } = (await req.json()) as TagRequest;
+    const { messages, context, conversationId, workspace_id } = (await req.json()) as TagRequest;
+    const userId = claimsData.user.id;
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'micro', 'ai-auto-tags');
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'micro', 'ai-auto-tags');
       if (!gate.allowed) {
         return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
           status: 200,
