@@ -222,7 +222,7 @@ export function ProductDetailModal({
                       {product.compare_at_price != null && product.compare_at_price > 0 ? (
                         <>
                           <p className="text-lg font-semibold text-foreground/80 leading-tight">
-                            {product.compare_at_price.toFixed(2)}€
+                            {formatCurrency(product.compare_at_price)}
                           </p>
                           <p className="text-[11px] text-muted-foreground">com IVA</p>
                         </>
