@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const { message, workspaceId, conversationHistory = [], clientUserId, companyId }: DiagnosticRequest = await req.json();
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : null;
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'heavy', 'ai-diagnostic-assistant');
       if (!gate.allowed) {

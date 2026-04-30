@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     const body: CopilotRequest = await req.json();
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : null;
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'heavy', 'sj-copilot');
       if (!gate.allowed) {
@@ -501,7 +501,7 @@ Se não tiveres dados suficientes, indica explicitamente o que precisas.`;
     try {
       const _usage = aiData?.usage;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id: workspaceId,
         feature: 'sj-copilot',
         model: aiData?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,
