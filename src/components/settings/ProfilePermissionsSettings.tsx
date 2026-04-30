@@ -310,6 +310,7 @@ export function ProfilePermissionsSettings() {
         <TabsList>
           <TabsTrigger value="menus">Menus & Sub-menus</TabsTrigger>
           <TabsTrigger value="fields">Campos por Página</TabsTrigger>
+          <TabsTrigger value="audit"><History className="h-3.5 w-3.5 mr-1" />Auditoria</TabsTrigger>
         </TabsList>
 
         {/* ── TAB: Menus & Sub-menus ── */}
