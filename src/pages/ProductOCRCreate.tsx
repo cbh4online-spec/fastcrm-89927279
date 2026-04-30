@@ -42,6 +42,7 @@ const STEPS = [
 export default function ProductOCRCreate() {
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [doc, setDoc] = useState<OCRDocument | null>(null);
   const [structured, setStructured] = useState<OCRStructuredData | null>(null);
@@ -49,6 +50,124 @@ export default function ProductOCRCreate() {
   const [content, setContent] = useState<ProductContentData>(emptyContent());
   const [sales, setSales] = useState<SalesSupportData>(emptySalesSupport());
   const [creating, setCreating] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [hydratedFromDraft, setHydratedFromDraft] = useState(false);
+
+  // ---------------------------------------------------------------
+  // RECUPERAÇÃO DE RASCUNHO
+  // (a) ?doc=<id> → carrega esse documento específico
+  // (b) sem ?doc, ao montar → procura rascunho recente (<24h) deste workspace
+  //     e propõe ao utilizador retomar onde ficou.
+  // ---------------------------------------------------------------
+  const hydrateFromDocumentId = useCallback(async (docId: string) => {
+    setRestoring(true);
+    try {
+      const { data, error } = await supabase
+        .from("product_ocr_documents")
+        .select("*")
+        .eq("id", docId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error("Rascunho não encontrado.");
+        return;
+      }
+      if (data.product_id) {
+        toast.info("Este documento já gerou um produto.");
+        navigate(`/dashboard/products?highlight=${data.product_id}`);
+        return;
+      }
+      // restaurar OCRDocument + structured
+      const restoredDoc = {
+        id: data.id,
+        file_name: data.file_name,
+        file_type: data.file_type,
+        file_url: data.file_url,
+        file_path: data.file_path,
+        ocr_confidence: data.ocr_confidence,
+        field_confidence: (data.field_confidence ?? {}) as Record<string, number>,
+        ocr_raw_text: data.ocr_raw_text,
+      } as unknown as OCRDocument;
+      setDoc(restoredDoc);
+      if (data.ocr_structured_data) {
+        setStructured(data.ocr_structured_data as unknown as OCRStructuredData);
+      }
+      const ws = (data.wizard_state ?? null) as null | {
+        step?: number;
+        sheet?: ProductSheetData;
+        content?: ProductContentData;
+        sales?: SalesSupportData;
+        structured?: OCRStructuredData;
+      };
+      if (ws) {
+        if (ws.sheet) setSheet({ ...emptyProductSheet(), ...ws.sheet });
+        if (ws.content) setContent({ ...emptyContent(), ...ws.content });
+        if (ws.sales) setSales({ ...emptySalesSupport(), ...ws.sales });
+        if (ws.structured && !data.ocr_structured_data) setStructured(ws.structured);
+        if (typeof ws.step === "number") setStep(Math.min(6, Math.max(1, ws.step)));
+      }
+      setHydratedFromDraft(true);
+      toast.success("Rascunho recuperado. Podes continuar de onde parou.");
+    } catch (e) {
+      console.error("[OCR-Restore] failed", e);
+      toast.error("Falha ao recuperar rascunho.");
+    } finally {
+      setRestoring(false);
+    }
+  }, [navigate]);
+
+  // (a) URL com ?doc=
+  useEffect(() => {
+    const docId = searchParams.get("doc");
+    if (docId && !doc) {
+      hydrateFromDocumentId(docId);
+    }
+  }, [searchParams, doc, hydrateFromDocumentId]);
+
+  // (b) sem ?doc → procurar rascunho recente
+  useEffect(() => {
+    if (!currentWorkspace?.id) return;
+    if (searchParams.get("doc")) return;
+    if (doc || hydratedFromDraft) return;
+    let cancelled = false;
+    (async () => {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from("product_ocr_documents")
+        .select("id, file_name, wizard_last_saved_at, wizard_state")
+        .eq("workspace_id", currentWorkspace.id)
+        .is("product_id", null)
+        .not("wizard_state", "is", null)
+        .gte("wizard_last_saved_at", since)
+        .order("wizard_last_saved_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const ws = data.wizard_state as { step?: number } | null;
+      const stepNum = ws?.step ?? 1;
+      const when = data.wizard_last_saved_at
+        ? formatDistanceToNow(new Date(data.wizard_last_saved_at), { locale: pt, addSuffix: true })
+        : "recentemente";
+      toast.info(
+        `Rascunho recente encontrado (passo ${stepNum}/6, ${when}).`,
+        {
+          duration: 12000,
+          action: {
+            label: "Continuar",
+            onClick: () => {
+              setSearchParams({ doc: data.id });
+            },
+          },
+          cancel: {
+            label: "Começar do zero",
+            onClick: () => {},
+          },
+        },
+      );
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkspace?.id]);
 
   // Após extração, mapear automático para sheet
   const applyExtractionToSheet = useCallback((data: OCRStructuredData) => {
