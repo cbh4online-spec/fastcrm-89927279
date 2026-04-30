@@ -126,6 +126,17 @@ Responde APENAS com JSON: {"summary": "1-2 frases sobre o lead", "nextAction": "
     }
 
     const aiData = await response.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "process-form-submission",
+        model: "google/gemini-2.5-flash-lite",
+        tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const content = aiData.choices?.[0]?.message?.content;
     
     if (content) {

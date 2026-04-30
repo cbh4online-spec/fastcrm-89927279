@@ -215,6 +215,17 @@ Fornece uma explicação estruturada com:
       });
 
       const aiData = await aiResponse.json();
+      // Log AI usage (fire-and-forget)
+      try {
+        logAIUsage({
+          workspace_id: workspace_id,
+          feature: "sj-course-recommendations",
+          model: "google/gemini-3-flash-preview",
+          tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+          tokens_output: aiData?.usage?.completion_tokens ?? 0,
+        });
+      } catch (_e) { /* logging never blocks */ }
+
       const explanation = aiData.choices?.[0]?.message?.content || "Explicação não disponível.";
 
       return new Response(

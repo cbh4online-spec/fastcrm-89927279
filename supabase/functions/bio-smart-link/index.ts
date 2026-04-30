@@ -108,6 +108,17 @@ Responde APENAS com o JSON, sem markdown.`;
     }
 
     const copyData = await copyResponse.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspaceId,
+        feature: "bio-smart-link",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: copyData?.usage?.prompt_tokens ?? 0,
+        tokens_output: copyData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const rawCopy = copyData.choices?.[0]?.message?.content || "{}";
     // Strip markdown fences if present
     const cleanJson = rawCopy.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();

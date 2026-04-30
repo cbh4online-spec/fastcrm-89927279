@@ -112,6 +112,17 @@ serve(async (req) => {
     }
 
     const data = await res.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "kb-ai-search",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: data?.usage?.prompt_tokens ?? 0,
+        tokens_output: data?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const answer =
       data.choices?.[0]?.message?.content ?? "Sem resposta disponível.";
 

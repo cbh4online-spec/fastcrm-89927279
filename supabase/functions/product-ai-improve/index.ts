@@ -204,6 +204,17 @@ Gera APENAS os campos pedidos.`;
     }
 
     const aiData = await aiResponse.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "product-ai-improve",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
       console.error("[PRODUCTS] No tool call in AI response:", JSON.stringify(aiData));

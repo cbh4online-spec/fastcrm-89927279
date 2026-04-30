@@ -266,6 +266,17 @@ Deno.serve(async (req) => {
       }
 
       const aiData = await aiRes.json();
+      // Log AI usage (fire-and-forget)
+      try {
+        logAIUsage({
+          workspace_id: workspace_id,
+          feature: "ai-c2c-listing-assistant",
+          model: "google/gemini-3-flash-preview",
+          tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+          tokens_output: aiData?.usage?.completion_tokens ?? 0,
+        });
+      } catch (_e) { /* logging never blocks */ }
+
       const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       if (!imageUrl) throw new Error("No image returned from AI");
 

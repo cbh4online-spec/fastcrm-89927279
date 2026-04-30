@@ -146,6 +146,17 @@ Return JSON only: {"business_maturity": "...", "digital_readiness": "..."}`
 
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
+          // Log AI usage (fire-and-forget)
+          try {
+            logAIUsage({
+              workspace_id: workspaceId,
+              feature: "generate-dynamic-template-context",
+              model: "google/gemini-3-flash-preview",
+              tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+              tokens_output: aiData?.usage?.completion_tokens ?? 0,
+            });
+          } catch (_e) { /* logging never blocks */ }
+
           const content = aiData.choices?.[0]?.message?.content || '';
           const clean = content.replace(/```json\n?|\n?```/g, '').trim();
           const parsed = JSON.parse(clean);

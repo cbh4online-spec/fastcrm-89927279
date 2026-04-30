@@ -123,6 +123,17 @@ ${productContext ? `CONTEXTO: O cliente está a ver o produto "${productContext.
     }
 
     const aiData = await aiResponse.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "store-ai-advisor",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     let content = aiData.choices?.[0]?.message?.content || '';
 
     // Extract product IDs from response

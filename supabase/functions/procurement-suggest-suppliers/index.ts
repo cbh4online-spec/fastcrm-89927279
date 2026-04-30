@@ -184,6 +184,17 @@ serve(async (req) => {
             });
             if (aiResp.ok) {
               const aiData = await aiResp.json();
+              // Log AI usage (fire-and-forget)
+              try {
+                logAIUsage({
+                  workspace_id: workspace_id,
+                  feature: "procurement-suggest-suppliers",
+                  model: "google/gemini-3-flash-preview",
+                  tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+                  tokens_output: aiData?.usage?.completion_tokens ?? 0,
+                });
+              } catch (_e) { /* logging never blocks */ }
+
               aiExplanation = aiData.choices?.[0]?.message?.content;
             }
           } catch { /* ignore AI failure, deterministic result stands */ }

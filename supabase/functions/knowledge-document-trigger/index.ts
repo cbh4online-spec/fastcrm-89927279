@@ -503,6 +503,17 @@ async function extractPDFFromBase64(base64: string, apiKey: string, isPartial: b
   }
 
   const result = await response.json();
+  // Log AI usage (fire-and-forget)
+  try {
+    logAIUsage({
+      workspace_id: workspace_id,
+      feature: "knowledge-document-trigger",
+      model: "google/gemini-2.5-flash",
+      tokens_input: result?.usage?.prompt_tokens ?? 0,
+      tokens_output: result?.usage?.completion_tokens ?? 0,
+    });
+  } catch (_e) { /* logging never blocks */ }
+
   return result.choices?.[0]?.message?.content || '';
 }
 

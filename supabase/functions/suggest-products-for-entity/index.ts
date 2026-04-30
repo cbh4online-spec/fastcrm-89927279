@@ -466,6 +466,17 @@ Responde APENAS JSON sem markdown:
 
     if (!response.ok) return [];
     const aiResponse = await response.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "suggest-products-for-entity",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: aiResponse?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiResponse?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const content = aiResponse.choices?.[0]?.message?.content || "";
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return [];

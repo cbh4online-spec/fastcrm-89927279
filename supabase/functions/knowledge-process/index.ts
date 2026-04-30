@@ -196,6 +196,17 @@ Responde em JSON:
     }
 
     const aiResponse = await response.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "knowledge-process",
+        model: "google/gemini-2.5-flash",
+        tokens_input: aiResponse?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiResponse?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const contentText = aiResponse.choices?.[0]?.message?.content || "";
 
     console.log("[AI-KNOWLEDGE] AI_RESPONSE length=", contentText.length);

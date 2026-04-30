@@ -92,6 +92,17 @@ Responde em JSON:
     if (!resp.ok) return null;
 
     const data = await resp.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "auto-price-monitor",
+        model: "google/gemini-2.5-flash-lite",
+        tokens_input: data?.usage?.prompt_tokens ?? 0,
+        tokens_output: data?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const content = data.choices?.[0]?.message?.content || "";
     const jsonMatch = content.match(/\{[\s\S]*?\}/);
     if (!jsonMatch) return null;

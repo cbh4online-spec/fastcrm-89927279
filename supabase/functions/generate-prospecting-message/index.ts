@@ -148,6 +148,17 @@ Responde APENAS com um JSON no formato:
     }
 
     const data = await response.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "generate-prospecting-message",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: data?.usage?.prompt_tokens ?? 0,
+        tokens_output: data?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const content = data.choices?.[0]?.message?.content || "";
 
     // Parse JSON from response

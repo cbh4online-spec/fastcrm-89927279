@@ -161,6 +161,17 @@ Tags do workspace: ${JSON.stringify(workspaceTags)}`,
     }
 
     const data = await resp.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "ai-entity-tags",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: data?.usage?.prompt_tokens ?? 0,
+        tokens_output: data?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
       return new Response(JSON.stringify({ success: true, created: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

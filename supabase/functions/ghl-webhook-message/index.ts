@@ -1076,6 +1076,17 @@ async function triggerAutopilotResponse(
 
         if (intentResponse.ok) {
           const intentData = await intentResponse.json();
+          // Log AI usage (fire-and-forget)
+          try {
+            logAIUsage({
+              workspace_id: workspace_id,
+              feature: "ghl-webhook-message",
+              model: "google/gemini-2.5-flash-lite",
+              tokens_input: intentData?.usage?.prompt_tokens ?? 0,
+              tokens_output: intentData?.usage?.completion_tokens ?? 0,
+            });
+          } catch (_e) { /* logging never blocks */ }
+
           const intentText = intentData.choices?.[0]?.message?.content || "";
           try {
             const cleaned = intentText.replace(/```json\n?|```\n?/g, "").trim();

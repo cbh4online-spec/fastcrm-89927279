@@ -85,6 +85,17 @@ Exemplo: "preciso de ajuda com clientes" -> "clientes CRM gestão vendas relacio
     let searchTerms = message;
     if (keywordResponse.ok) {
       const keywordData = await keywordResponse.json();
+      // Log AI usage (fire-and-forget)
+      try {
+        logAIUsage({
+          workspace_id: workspaceId,
+          feature: "ai-diagnostic-assistant",
+          model: "google/gemini-2.5-flash-lite",
+          tokens_input: keywordData?.usage?.prompt_tokens ?? 0,
+          tokens_output: keywordData?.usage?.completion_tokens ?? 0,
+        });
+      } catch (_e) { /* logging never blocks */ }
+
       const keywords = keywordData.choices?.[0]?.message?.content?.trim();
       if (keywords) {
         searchTerms = `${message} ${keywords}`;
