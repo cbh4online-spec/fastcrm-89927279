@@ -1,6 +1,6 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -8,12 +8,14 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Devolver 200 com flag `deprecated` para o cliente tratar graciosamente
+  // (em vez de 410 que dispara erro genérico no supabase-js e crasha a UI).
   return new Response(JSON.stringify({
-    error: "DEPRECATED: Module credits have been replaced by the subscription model. Use module-checkout instead.",
     deprecated: true,
-    redirect: "module-checkout",
+    error: "DEPRECATED: A compra de créditos avulsos foi substituída pelo modelo de subscrição. Use o módulo de Faturação.",
+    redirect: "/settings/billing",
   }), {
-    status: 410,
+    status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

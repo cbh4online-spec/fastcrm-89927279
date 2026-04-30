@@ -38,22 +38,36 @@ export function useCreditPurchase() {
   });
 
   // Purchase mutation
+  // NOTA: A função `module-purchase-credits` foi descontinuada — o sistema migrou
+  // para o modelo de subscrição. Em vez de crashar a UI, redirecionamos para billing.
   const purchaseCredits = useMutation({
     mutationFn: async (packageId: string) => {
       if (!workspaceId) throw new Error("Workspace não encontrado");
       const { data, error } = await supabase.functions.invoke("module-purchase-credits", {
         body: { workspaceId, packageId },
       });
+      // Detectar deprecação (a edge function devolve 410 com `deprecated: true`)
+      if (data?.deprecated || (error && /deprecated|410/i.test(error.message || ""))) {
+        const e = new Error("DEPRECATED");
+        (e as Error & { deprecated?: boolean }).deprecated = true;
+        throw e;
+      }
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data as { url: string; sessionId: string };
     },
     onSuccess: (data) => {
-      if (data.url) {
+      if (data?.url) {
         window.open(data.url, "_blank");
       }
     },
     onError: (err) => {
+      const isDeprecated = (err as Error & { deprecated?: boolean })?.deprecated;
+      if (isDeprecated) {
+        toast.info("A compra de créditos avulsos foi descontinuada. Será redirecionado para a gestão da subscrição.");
+        setTimeout(() => { window.location.href = "/settings/billing"; }, 1200);
+        return;
+      }
       toast.error(err instanceof Error ? err.message : "Erro ao iniciar compra");
     },
   });
