@@ -172,6 +172,7 @@ Deno.serve(async (req) => {
         return `[${b.block_type}] ${b.title} (score: ${b.score}%, status: ${b.status})\n${filledFields.join("\n")}`;
       }).join("\n\n");
 
+      const _startTime = Date.now();
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
