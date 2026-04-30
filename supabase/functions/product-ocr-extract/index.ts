@@ -2,6 +2,7 @@
 // product-ocr-documents e extrai dados estruturados de produto via
 // Lovable AI Gateway (Gemini 2.5 Pro multimodal).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
