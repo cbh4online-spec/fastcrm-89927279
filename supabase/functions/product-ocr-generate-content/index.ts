@@ -1,6 +1,7 @@
 // Gera conteúdo comercial e argumentário para um produto a partir de
 // dados extraídos por OCR + ficha técnica editada.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,16 +104,22 @@ Deno.serve(async (req) => {
     if (!userRes?.user) return json({ error: "Sessão inválida", fallback: true }, 200);
 
     const body = await req.json().catch(() => ({}));
-    const { product_data } = body as { product_data?: Record<string, unknown> };
+    const { product_data, workspace_id, document_id } = body as {
+      product_data?: Record<string, unknown>;
+      workspace_id?: string;
+      document_id?: string;
+    };
     if (!product_data) return json({ error: "product_data obrigatório", fallback: true }, 200);
 
     const userPrompt = `Ficha técnica do produto:\n\n${JSON.stringify(product_data, null, 2)}\n\nGera o conteúdo comercial e argumentário completo conforme as regras.`;
 
+    const aiStart = Date.now();
+    const aiModel = "google/gemini-2.5-pro";
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: aiModel,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
@@ -128,6 +135,22 @@ Deno.serve(async (req) => {
       if (status === 429) msg = "Limite de pedidos atingido. Tenta novamente daqui a uns minutos.";
       else if (status === 402) msg = "Créditos AI esgotados. Adiciona créditos no workspace.";
       console.error("AI error:", status, errText);
+      if (workspace_id) {
+        logAIUsage({
+          workspace_id,
+          feature: "product-ocr-generate-content",
+          model: aiModel,
+          provider: "lovable",
+          tokens_input: 0,
+          tokens_output: 0,
+          latency_ms: Date.now() - aiStart,
+          was_error: true,
+          error_type: status === 429 ? "rate_limit" : status === 402 ? "payment_required" : "api_error",
+          entity_type: "product_ocr_document",
+          entity_id: document_id,
+          user_id: userRes.user.id,
+        });
+      }
       return json({ error: msg, status, fallback: true }, 200);
     }
 
@@ -139,6 +162,22 @@ Deno.serve(async (req) => {
       parsed = m ? JSON.parse(m[0]) : {};
     }
     const cleaned = sanitizeAll(parsed);
+
+    if (workspace_id) {
+      logAIUsage({
+        workspace_id,
+        feature: "product-ocr-generate-content",
+        model: aiModel,
+        provider: "lovable",
+        tokens_input: data.usage?.prompt_tokens ?? 0,
+        tokens_output: data.usage?.completion_tokens ?? 0,
+        request_type: "completion",
+        latency_ms: Date.now() - aiStart,
+        entity_type: "product_ocr_document",
+        entity_id: document_id,
+        user_id: userRes.user.id,
+      });
+    }
 
     return json({ success: true, generated: cleaned });
   } catch (e) {

@@ -2,6 +2,7 @@
 // product-ocr-documents e extrai dados estruturados de produto via
 // Lovable AI Gateway (Gemini 2.5 Pro multimodal).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -151,6 +152,8 @@ Deno.serve(async (req) => {
       throw new Error(`Tipo de ficheiro não suportado: ${mime}`);
     }
 
+    const aiStart = Date.now();
+    const aiModel = "google/gemini-2.5-pro";
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -158,7 +161,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: aiModel,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: parts },
@@ -173,6 +176,23 @@ Deno.serve(async (req) => {
       let userMsg = "Erro ao processar com IA";
       if (status === 429) userMsg = "Limite de pedidos atingido. Tenta novamente daqui a uns minutos.";
       else if (status === 402) userMsg = "Créditos AI esgotados. Adiciona créditos no workspace.";
+      // telemetria de erro
+      if (doc.workspace_id) {
+        logAIUsage({
+          workspace_id: doc.workspace_id,
+          feature: "product-ocr-extract",
+          model: aiModel,
+          provider: "lovable",
+          tokens_input: 0,
+          tokens_output: 0,
+          latency_ms: Date.now() - aiStart,
+          was_error: true,
+          error_type: status === 429 ? "rate_limit" : status === 402 ? "payment_required" : "api_error",
+          entity_type: "product_ocr_document",
+          entity_id: document_id,
+          user_id: userRes.user.id,
+        });
+      }
       await supabase
         .from("product_ocr_documents")
         .update({ processing_status: "failed", processing_error: `${status}: ${errText.slice(0, 500)}` })
@@ -205,11 +225,28 @@ Deno.serve(async (req) => {
         ocr_confidence: isFinite(overallConf) ? overallConf : null,
         field_confidence: fieldConf,
         processing_status: "completed",
-        ai_model: "google/gemini-2.5-pro",
+        ai_model: aiModel,
         ai_tokens_used: aiData.usage?.total_tokens ?? null,
         processed_at: new Date().toISOString(),
       })
       .eq("id", document_id);
+
+    // telemetria de sucesso → ai_usage_logs (consumo de créditos)
+    if (doc.workspace_id) {
+      logAIUsage({
+        workspace_id: doc.workspace_id,
+        feature: "product-ocr-extract",
+        model: aiModel,
+        provider: "lovable",
+        tokens_input: aiData.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData.usage?.completion_tokens ?? 0,
+        request_type: "completion",
+        latency_ms: Date.now() - aiStart,
+        entity_type: "product_ocr_document",
+        entity_id: document_id,
+        user_id: userRes.user.id,
+      });
+    }
 
     return json({ success: true, data: cleaned, document_id });
   } catch (e) {
