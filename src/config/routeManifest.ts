@@ -40,7 +40,7 @@ import {
   ArrowUpDown, Headphones, Clock, Timer,
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
   Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
-  Eye, Rocket, ShoppingBasket, UserCog, Gavel,
+  Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -227,6 +227,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("products-ocr-drafts", "Rascunhos OCR", "/dashboard/products/ocr-drafts", ScanText, "vendas", { menuKey: "products", visibleInSidebar: false }),
   e("order-notes",  "Notas Encomenda",  "/dashboard/order-notes",       ClipboardList,"vendas"),
   e("bundles",      "Pacotes",          "/dashboard/bundles",           Layers,      "vendas"),
+  e("composite-products", "Produtos Compostos", "/dashboard/composite-products", Boxes, "vendas", { menuKey: "products" }),
   e("payments",     "Pagamentos",       "/dashboard/payments",          CreditCard,  "vendas"),
   e("packages",     "Pacotes",          "/dashboard/packages",          Package,     "vendas", { visibleInSidebar: false }),
   e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
