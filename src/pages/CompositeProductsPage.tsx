@@ -225,8 +225,9 @@ export default function CompositeProductsPage() {
 }
 
 function KitRow({ kit }: { kit: CompositeProduct }) {
-  const guard = guardConfig[kit.margin_guard_level ?? "safe"];
+  const guard = guardConfig[kit.margin_guard_level ?? "safe"] ?? guardConfig.safe;
   const status = statusConfig[kit.status] ?? statusConfig.draft;
+  const compType = (kit.composition_type ?? "fixed_kit").replace(/_/g, " ");
   return (
     <TableRow>
       <TableCell>
@@ -245,7 +246,7 @@ function KitRow({ kit }: { kit: CompositeProduct }) {
         </div>
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        <Badge variant="outline" className="font-normal">{kit.composition_type.replace(/_/g, " ")}</Badge>
+        <Badge variant="outline" className="font-normal">{compType}</Badge>
       </TableCell>
       <TableCell>
         <Badge variant="outline" className={status.className}>{status.label}</Badge>
