@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Image as ImageIcon, Loader2, RefreshCw, ScanText, Coins } from "lucide-react";
@@ -25,6 +26,7 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
   const [extracting, setExtracting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   const { getCost, canAfford } = useCreditWallet();
   const extractCost = getCost(OCR_EXTRACT_ACTION);
 
