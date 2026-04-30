@@ -120,17 +120,18 @@ Deno.serve(async (req) => {
       .eq("workspace_id", workspace_id)
       .eq("status", "pending");
 
-    // Fetch all active leads
+    // Fetch all active leads (cap to keep function within CPU budget)
+    const MAX_LEADS = 500;
     const { data: leads, error: leadsErr } = await supabase
       .from("leads")
       .select("id, name, email, phone, tax_id, external_username, external_instagram_id, ghl_contact_id, company_name, city, source, website, created_at, updated_at")
       .eq("workspace_id", workspace_id)
       .is("deleted_at", null)
-      .order("created_at", { ascending: true })
-      .limit(1000);
+      .order("updated_at", { ascending: false })
+      .limit(MAX_LEADS);
 
     if (leadsErr) throw leadsErr;
-    if (!leads?.length) return new Response(JSON.stringify({ groups: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!leads?.length) return new Response(JSON.stringify({ groups: 0, total_leads_scanned: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const matches: DuplicateMatch[] = [];
     const processedPairs = new Set<string>();
