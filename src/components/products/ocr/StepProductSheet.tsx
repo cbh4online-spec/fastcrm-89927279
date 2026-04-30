@@ -13,13 +13,25 @@ interface Props {
   fieldConfidence: Record<string, ConfidenceLevel>;
 }
 
-export function StepProductSheet({ sheet, onChange, fieldConfidence }: Props) {
-  const set = <K extends keyof ProductSheetData>(k: K, v: ProductSheetData[K]) =>
-    onChange({ ...sheet, [k]: v });
+interface FieldProps {
+  label: string;
+  k: keyof ProductSheetData;
+  conf?: string;
+  type?: string;
+  placeholder?: string;
+  sheet: ProductSheetData;
+  fieldConfidence: Record<string, ConfidenceLevel>;
+  onChange: (s: ProductSheetData) => void;
+}
 
-  const Field = ({ label, k, conf, type = "text", placeholder }: {
-    label: string; k: keyof ProductSheetData; conf?: string; type?: string; placeholder?: string;
-  }) => (
+function Field({ label, k, conf, type = "text", placeholder, sheet, fieldConfidence, onChange }: FieldProps) {
+  const value = sheet[k];
+  const displayValue =
+    value === null || value === undefined || typeof value === "boolean" || typeof value === "object"
+      ? ""
+      : String(value);
+
+  return (
     <div>
       <div className="flex justify-between items-center mb-1">
         <Label className="text-xs">{label}</Label>
@@ -27,11 +39,36 @@ export function StepProductSheet({ sheet, onChange, fieldConfidence }: Props) {
       </div>
       <Input
         type={type}
-        value={(sheet[k] as string) ?? ""}
-        onChange={(e) => set(k, e.target.value as ProductSheetData[typeof k])}
+        inputMode={type === "number" ? "decimal" : undefined}
+        step={type === "number" ? "any" : undefined}
+        value={displayValue}
+        onChange={(e) => {
+          const raw = e.target.value;
+          const next: any = type === "number"
+            ? (raw === "" ? null : Number(raw.replace(",", ".")))
+            : raw;
+          onChange({ ...sheet, [k]: next });
+        }}
         placeholder={placeholder ?? "Pendente de validação"}
       />
     </div>
+  );
+}
+
+export function StepProductSheet({ sheet, onChange, fieldConfidence }: Props) {
+  const set = <K extends keyof ProductSheetData>(k: K, v: ProductSheetData[K]) =>
+    onChange({ ...sheet, [k]: v });
+
+  const f = (label: string, k: keyof ProductSheetData, conf?: string, type?: string) => (
+    <Field
+      label={label}
+      k={k}
+      conf={conf}
+      type={type}
+      sheet={sheet}
+      fieldConfidence={fieldConfidence}
+      onChange={onChange}
+    />
   );
 
   return (
@@ -42,19 +79,19 @@ export function StepProductSheet({ sheet, onChange, fieldConfidence }: Props) {
           <CardDescription>Identificação e classificação do produto.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
-          <Field label="Nome do produto *" k="name" conf="name" />
-          <Field label="Nome comercial" k="commercial_name" conf="commercial_name" />
-          <Field label="Marca" k="brand" conf="brand" />
-          <Field label="Linha" k="line" conf="product_line" />
-          <Field label="Categoria" k="category" conf="category" />
-          <Field label="Subcategoria" k="subcategory" conf="subcategory" />
-          <Field label="Tipo de produto" k="product_type" conf="product_type" />
-          <Field label="Volume / peso" k="volume_text" conf="volume" />
-          <Field label="Unidade de venda" k="unit_of_sale" conf="unit" />
-          <Field label="EAN" k="barcode" conf="ean" />
-          <Field label="SKU interno" k="sku" conf="sku" />
-          <Field label="País de origem" k="origin_country" conf="origin_country" />
-          <Field label="Distribuidor" k="distributor" conf="distributor" />
+          {f("Nome do produto *", "name", "name")}
+          {f("Nome comercial", "commercial_name", "commercial_name")}
+          {f("Marca", "brand", "brand")}
+          {f("Linha", "line", "product_line")}
+          {f("Categoria", "category", "category")}
+          {f("Subcategoria", "subcategory", "subcategory")}
+          {f("Tipo de produto", "product_type", "product_type")}
+          {f("Volume / peso", "volume_text", "volume")}
+          {f("Unidade de venda", "unit_of_sale", "unit")}
+          {f("EAN", "barcode", "ean")}
+          {f("SKU interno", "sku", "sku")}
+          {f("País de origem", "origin_country", "origin_country")}
+          {f("Distribuidor", "distributor", "distributor")}
           <div>
             <Label className="text-xs mb-1 block">Estado</Label>
             <Select value={sheet.status} onValueChange={(v) => set("status", v as ProductSheetData["status"])}>
@@ -76,11 +113,11 @@ export function StepProductSheet({ sheet, onChange, fieldConfidence }: Props) {
           <CardDescription>Preço, margem, stock e classificações comerciais.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
-          <Field label="Preço de custo (€)" k="direct_cost" type="number" />
-          <Field label="PVP (€)" k="base_price" type="number" />
-          <Field label="IVA (%)" k="tax_rate_estimate_pct" type="number" />
-          <Field label="Stock inicial" k="stock_quantity" type="number" />
-          <Field label="Stock mínimo" k="low_stock_threshold" type="number" />
+          {f("Preço de custo (€)", "direct_cost", undefined, "number")}
+          {f("PVP (€)", "base_price", undefined, "number")}
+          {f("IVA (%)", "tax_rate_estimate_pct", undefined, "number")}
+          {f("Stock inicial", "stock_quantity", undefined, "number")}
+          {f("Stock mínimo", "low_stock_threshold", undefined, "number")}
 
           <div className="sm:col-span-2 mt-2 pt-3 border-t space-y-3">
             <p className="text-xs font-medium text-muted-foreground">Classificações comerciais (sugeridas pela IA — validar manualmente)</p>
