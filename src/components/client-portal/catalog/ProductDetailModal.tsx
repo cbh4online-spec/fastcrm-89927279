@@ -20,6 +20,7 @@ import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductAttributeTags } from "./ProductAttributeTags";
 import { ProductTagsFooter } from "./ProductTagsFooter";
 import { calculateVAT, calculateGross } from "@/types/order-note";
+import { formatCurrency } from "@/lib/formatters";
 import {
   Minus,
   Plus,
@@ -221,7 +222,7 @@ export function ProductDetailModal({
                       {product.compare_at_price != null && product.compare_at_price > 0 ? (
                         <>
                           <p className="text-lg font-semibold text-foreground/80 leading-tight">
-                            {product.compare_at_price.toFixed(2)}€
+                            {formatCurrency(product.compare_at_price)}
                           </p>
                           <p className="text-[11px] text-muted-foreground">com IVA</p>
                         </>
@@ -236,11 +237,11 @@ export function ProductDetailModal({
                       </p>
                       <div className="flex items-baseline gap-2">
                         <p className="text-lg font-bold text-primary leading-tight">
-                          {unitPriceNet.toFixed(2)}€
+                          {formatCurrency(unitPriceNet)}
                         </p>
                         {showStrikethrough && (
                           <span className="text-xs text-muted-foreground line-through">
-                            {product.base_price.toFixed(2)}€
+                            {formatCurrency(product.base_price)}
                           </span>
                         )}
                       </div>
@@ -289,15 +290,15 @@ export function ProductDetailModal({
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between text-muted-foreground">
                       <span>Subtotal (s/IVA)</span>
-                      <span>{(unitPriceNet * quantity).toFixed(2)}€</span>
+                      <span>{formatCurrency(unitPriceNet * quantity)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>IVA ({vatRate}%)</span>
-                      <span>{lineVat.toFixed(2)}€</span>
+                      <span>{formatCurrency(lineVat)}</span>
                     </div>
                     <div className="flex justify-between font-semibold text-base pt-1">
                       <span>Total (c/IVA)</span>
-                      <span className="text-primary">{lineGross.toFixed(2)}€</span>
+                      <span className="text-primary">{formatCurrency(lineGross)}</span>
                     </div>
                   </div>
                   
