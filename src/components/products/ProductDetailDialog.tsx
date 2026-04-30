@@ -84,6 +84,7 @@ import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductLifecycleTab } from "./ProductLifecycleTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
+import { ProductOCRContentSection } from "./ProductOCRContentSection";
 import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
 import { ProductActivityLog } from "./ProductActivityLog";
 import { ProductPublishingPanel } from "./ProductPublishingPanel";
@@ -491,12 +492,25 @@ export function ProductDetailDialog({
                       sheetPublished={product.sheet_published}
                     />
 
-                    {product.short_description && (
-                      <Card className="p-3">
-                        <p className="text-xs text-muted-foreground mb-1">Descrição</p>
-                        <p className="text-sm">{product.short_description}</p>
+                    {(product.short_description || (product as any).commercial_description) && (
+                      <Card className="p-3 space-y-2">
+                        {product.short_description && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Descrição Curta</p>
+                            <p className="text-sm whitespace-pre-wrap">{product.short_description}</p>
+                          </div>
+                        )}
+                        {(product as any).commercial_description && (product as any).commercial_description !== product.short_description && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Descrição Comercial</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{(product as any).commercial_description}</p>
+                          </div>
+                        )}
                       </Card>
                     )}
+
+                    {/* Conteúdo OCR/IA: textos longos, scripts, argumentário */}
+                    <ProductOCRContentSection productId={product.id} />
 
                     {/* Tags */}
                     <ProductTagsEditor productId={product.id} />
