@@ -135,10 +135,8 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
       if (data?.error) throw new Error(data.error);
 
       // Invalidar wallet/ledger para refletir o débito feito server-side
-      try {
-        const { useQueryClient } = await import("@tanstack/react-query");
-        // queryClient invalidation é tratada pelo invalidate global no hook quando o utilizador refrescar.
-      } catch { /* noop */ }
+      queryClient.invalidateQueries({ queryKey: ["credit-wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["credit-ledger"] });
 
       const extracted = data?.data as OCRStructuredData;
       const updatedDoc: OCRDocument = {
