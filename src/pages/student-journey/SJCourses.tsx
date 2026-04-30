@@ -39,6 +39,7 @@ import { pt } from "date-fns/locale";
 import { CreateCourseDialog } from "@/components/student-journey/CreateCourseDialog";
 import { CreateCohortDialog } from "@/components/student-journey/CreateCohortDialog";
 import { EditCourseDialog } from "@/components/student-journey/EditCourseDialog";
+import { CohortPhaseProgress } from "@/components/student-journey/CohortPhaseProgress";
 import { SJCourse } from "@/types/studentJourney";
 
 const COURSE_TYPE_LABELS: Record<CourseType, string> = {
@@ -247,6 +248,7 @@ export default function SJCourses() {
                         <TableHead>Turma</TableHead>
                         <TableHead>Estado</TableHead>
                         <TableHead>Início</TableHead>
+                        <TableHead>Próxima sessão / Fases</TableHead>
                         <TableHead>Capacidade</TableHead>
                         <TableHead>Inscritos</TableHead>
                         <TableHead className="w-12"></TableHead>
@@ -268,6 +270,9 @@ export default function SJCourses() {
                               {cohort.start_date
                                 ? format(new Date(cohort.start_date), "dd MMM yyyy", { locale: pt })
                                 : "-"}
+                            </TableCell>
+                            <TableCell>
+                              <CohortPhaseProgress cohortId={cohort.id} compact />
                             </TableCell>
                             <TableCell>{cohort.capacity || "∞"}</TableCell>
                             <TableCell>
