@@ -347,6 +347,11 @@ export default function ProductOCRCreate() {
 
       const pendingFields = computePendingFields();
       const userId = (await supabase.auth.getUser()).data.user?.id ?? null;
+      if (!userId) {
+        toast.error("Sessão expirada. Volta a iniciar sessão antes de criar o produto.");
+        setCreating(false);
+        return;
+      }
 
       const numOrNull = (v: string) => {
         if (!v) return null;
@@ -392,7 +397,8 @@ export default function ProductOCRCreate() {
           base_price: numOrNull(sheet.base_price) ?? 0,
           tax_rate_estimate_pct: clamp(numOrNull(sheet.tax_rate_estimate_pct), 0, 100),
           stock_quantity: intOrNull(sheet.stock_quantity) ?? 0,
-          low_stock_threshold: intOrNull(sheet.low_stock_threshold),
+          // low_stock_threshold é NOT NULL com default 5 — não enviar null
+          low_stock_threshold: intOrNull(sheet.low_stock_threshold) ?? 5,
           is_seasonal: sheet.is_seasonal,
           is_seasonal_validation_status: sheet.is_seasonal_validation_status,
           is_impulse_product: sheet.is_impulse_product,
@@ -402,7 +408,9 @@ export default function ProductOCRCreate() {
           is_kit_candidate_validation_status: sheet.is_kit_candidate_validation_status,
           pending_fields: pendingFields,
           ocr_source_document_id: doc?.id ?? null,
-          tags: content.tags?.length ? content.tags : null,
+          // tags é NOT NULL com default '{}' — usar array vazio em vez de null
+          tags: content.tags?.length ? content.tags : [],
+          // created_by é NOT NULL — exigir sessão antes de inserir
           created_by: userId,
           created_channel: "ocr_wizard",
           metadata: {
