@@ -179,10 +179,17 @@ export function ProfilePermissionsSettings() {
   const saveFields = useMutation({
     mutationFn: async () => {
       if (!workspaceId) throw new Error("Sem workspace ativo");
+      const norm = (s: string) => (s ?? "").trim().toLowerCase();
       const rows = Array.from(fieldChanges.entries()).map(([key, visible]) => {
         const [sales_function, page_key, field_key] = key.split(":");
-        return { workspace_id: workspaceId, sales_function, page_key, field_key, visible };
-      });
+        return {
+          workspace_id: workspaceId,
+          sales_function: norm(sales_function),
+          page_key: norm(page_key),
+          field_key: norm(field_key),
+          visible,
+        };
+      }).filter(r => r.sales_function && r.page_key && r.field_key);
       if (rows.length === 0) return;
       const { error } = await supabase
         .from("profile_field_permissions")
