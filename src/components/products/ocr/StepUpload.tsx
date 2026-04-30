@@ -109,6 +109,9 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
 
     // Guard UX: saldo insuficiente → abrir dialog de compra de créditos antes de chamar a edge function
     if (extractCost > 0 && !canAfford(OCR_EXTRACT_ACTION)) {
+      toast.error(
+        `Créditos insuficientes para ler o documento. São necessários ${extractCost} crédito${extractCost === 1 ? "" : "s"}.`
+      );
       triggerNoCreditsDialog({
         actionLabel: "Leitura OCR de documento",
         creditsNeeded: extractCost,
