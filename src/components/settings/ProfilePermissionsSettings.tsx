@@ -118,9 +118,29 @@ export function ProfilePermissionsSettings() {
   const isGroupNoneVisible = (fn: string, items: RouteEntry[]) =>
     items.every((item) => !getMenuVisible(fn, item.key));
 
+  // Valida sessão + role owner/admin no workspace ativo. Devolve user.
+  const assertCanManagePermissions = async () => {
+    if (!workspaceId) throw new Error("Sem workspace ativo");
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      throw new Error("Sessão expirada ou utilizador não autenticado. Faça login novamente.");
+    }
+    const { data: member, error: memberErr } = await supabase
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (memberErr) throw new Error("Erro ao verificar permissões no workspace.");
+    if (!member || (member.role !== "owner" && member.role !== "admin")) {
+      throw new Error("Sem permissões para gerir permissões de campos.");
+    }
+    return user;
+  };
+
   const saveMenus = useMutation({
     mutationFn: async () => {
-      if (!workspaceId) throw new Error("Sem workspace ativo");
+      await assertCanManagePermissions();
       const norm = (s: string) => (s ?? "").trim().toLowerCase();
       const rows = Array.from(menuChanges.entries()).map(([key, visible]) => {
         const [sales_function, menu_key] = key.split(":");
