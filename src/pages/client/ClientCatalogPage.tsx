@@ -25,6 +25,7 @@ import {
   X
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function ClientCatalogPage() {
   const { clientUser } = useClientAuth();
