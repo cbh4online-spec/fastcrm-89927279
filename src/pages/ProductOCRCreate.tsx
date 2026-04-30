@@ -468,7 +468,7 @@ export default function ProductOCRCreate() {
         await supabase.from("product_ocr_documents").update({ product_id: productId }).eq("id", doc.id);
       }
 
-      // 6. Tarefas de validação para campos pendentes
+      // 7. Tarefas de validação para campos pendentes
       if (pendingFields.length > 0) {
         const tasks = pendingFields.map((f) => ({
           workspace_id: currentWorkspace.id,
