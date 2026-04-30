@@ -10,9 +10,10 @@ interface Props {
   content: ProductContentData;
   onChange: (c: ProductContentData) => void;
   onGenerate: () => void;
+  generateCost?: number;
 }
 
-export function StepContent({ content, onChange, onGenerate }: Props) {
+export function StepContent({ content, onChange, onGenerate, generateCost = 0 }: Props) {
   const set = <K extends keyof ProductContentData>(k: K, v: ProductContentData[K]) =>
     onChange({ ...content, [k]: v });
 
@@ -26,8 +27,9 @@ export function StepContent({ content, onChange, onGenerate }: Props) {
           <CardTitle>Passo 4 — Conteúdo para loja e catálogo</CardTitle>
           <CardDescription>Conteúdo gerado pela IA. Edita livremente antes de criar o produto.</CardDescription>
         </div>
-        <Button onClick={onGenerate} variant="secondary" size="sm">
-          <Sparkles className="h-4 w-4 mr-1" /> Gerar com IA
+        <Button onClick={onGenerate} variant="secondary" size="sm" title={generateCost > 0 ? `Custa ${generateCost} crédito${generateCost === 1 ? "" : "s"}` : undefined}>
+          <Sparkles className="h-4 w-4 mr-1" />
+          {generateCost > 0 ? `Gerar com IA (${generateCost} créd.)` : "Gerar com IA"}
         </Button>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2">

@@ -10,9 +10,10 @@ interface Props {
   sales: SalesSupportData;
   onChange: (s: SalesSupportData) => void;
   onGenerate: () => void;
+  generateCost?: number;
 }
 
-export function StepSalesSupport({ sales, onChange, onGenerate }: Props) {
+export function StepSalesSupport({ sales, onChange, onGenerate, generateCost = 0 }: Props) {
   const set = <K extends keyof SalesSupportData>(k: K, v: SalesSupportData[K]) =>
     onChange({ ...sales, [k]: v });
   const setList = (k: "sales_arguments" | "sensory_arguments" | "olfactory_arguments" | "sales_alerts" | "do_not_sell_as" | "sell_as", v: string) =>
@@ -35,8 +36,9 @@ export function StepSalesSupport({ sales, onChange, onGenerate }: Props) {
           <CardTitle>Passo 5 — Argumentário Comercial</CardTitle>
           <CardDescription>Posicionamento, FAQs, objeções e scripts de venda.</CardDescription>
         </div>
-        <Button onClick={onGenerate} variant="secondary" size="sm">
-          <Sparkles className="h-4 w-4 mr-1" /> Gerar com IA
+        <Button onClick={onGenerate} variant="secondary" size="sm" title={generateCost > 0 ? `Custa ${generateCost} crédito${generateCost === 1 ? "" : "s"}` : undefined}>
+          <Sparkles className="h-4 w-4 mr-1" />
+          {generateCost > 0 ? `Gerar com IA (${generateCost} créd.)` : "Gerar com IA"}
         </Button>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2">

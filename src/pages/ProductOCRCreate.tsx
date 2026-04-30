@@ -30,6 +30,10 @@ import {
 } from "@/components/products/ocr/types";
 import { buildSpecsFromStructured } from "@/components/products/ocr/buildSpecsFromStructured";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
+
+const OCR_GENERATE_CONTENT_ACTION = "product_ocr_generate_content";
 
 const STEPS = [
   { id: 1, title: "Upload", icon: FileText, desc: "Carregar documento" },
@@ -53,6 +57,8 @@ export default function ProductOCRCreate() {
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [hydratedFromDraft, setHydratedFromDraft] = useState(false);
+  const { getCost, canAfford, consumeCredits } = useCreditWallet();
+  const generateContentCost = getCost(OCR_GENERATE_CONTENT_ACTION);
 
   // ---------------------------------------------------------------
   // RECUPERAÇÃO DE RASCUNHO
@@ -217,8 +223,29 @@ export default function ProductOCRCreate() {
       toast.error("Faz primeiro a leitura do documento.");
       return;
     }
+
+    // Guard: saldo insuficiente → abrir dialog de compra de créditos
+    if (generateContentCost > 0 && !canAfford(OCR_GENERATE_CONTENT_ACTION)) {
+      triggerNoCreditsDialog({
+        actionLabel: "Geração de Conteúdo Comercial (OCR)",
+        creditsNeeded: generateContentCost,
+      });
+      return;
+    }
+
     toast.loading("A gerar conteúdo comercial…", { id: "gen" });
     try {
+      // Debitar créditos primeiro (idempotente por documento)
+      if (generateContentCost > 0 && doc?.id) {
+        await consumeCredits.mutateAsync({
+          actionKey: OCR_GENERATE_CONTENT_ACTION,
+          idempotencyKey: `${doc.id}:generate-content`,
+          referenceType: "product_ocr_document",
+          referenceId: doc.id,
+          metadata: { product_name: sheet.name || null },
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke("product-ocr-generate-content", {
         body: {
           product_data: { sheet, ocr: structured },
@@ -273,7 +300,7 @@ export default function ProductOCRCreate() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao gerar conteúdo.", { id: "gen" });
     }
-  }, [structured, sheet]);
+  }, [structured, sheet, doc?.id, generateContentCost, canAfford, consumeCredits, currentWorkspace?.id]);
 
   const computePendingFields = useCallback((): string[] => {
     const pending: string[] = [];
@@ -577,10 +604,10 @@ export default function ProductOCRCreate() {
             <StepProductSheet sheet={sheet} onChange={setSheet} fieldConfidence={doc?.field_confidence ?? {}} />
           )}
           {step === 4 && (
-            <StepContent content={content} onChange={setContent} onGenerate={generateContent} />
+            <StepContent content={content} onChange={setContent} onGenerate={generateContent} generateCost={generateContentCost} />
           )}
           {step === 5 && (
-            <StepSalesSupport sales={sales} onChange={setSales} onGenerate={generateContent} />
+            <StepSalesSupport sales={sales} onChange={setSales} onGenerate={generateContent} generateCost={generateContentCost} />
           )}
           {step === 6 && (
             <StepSummary

@@ -1,10 +1,14 @@
 import { useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Image as ImageIcon, Loader2, RefreshCw, ScanText } from "lucide-react";
+import { Upload, FileText, Image as ImageIcon, Loader2, RefreshCw, ScanText, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import type { OCRDocument, OCRStructuredData } from "./types";
+
+const OCR_EXTRACT_ACTION = "ai_document_ocr";
 
 interface Props {
   workspaceId: string;
@@ -21,6 +25,8 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
   const [extracting, setExtracting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { getCost, canAfford, consumeCredits } = useCreditWallet();
+  const extractCost = getCost(OCR_EXTRACT_ACTION);
 
   const handleFile = useCallback(async (file: File) => {
     if (!workspaceId) {
@@ -98,9 +104,30 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
 
   const runExtraction = useCallback(async () => {
     if (!currentDoc) return;
+
+    // Guard: saldo insuficiente → abrir dialog de compra de créditos
+    if (extractCost > 0 && !canAfford(OCR_EXTRACT_ACTION)) {
+      triggerNoCreditsDialog({
+        actionLabel: "Leitura OCR de documento",
+        creditsNeeded: extractCost,
+      });
+      return;
+    }
+
     setExtracting(true);
     toast.loading("A ler documento com IA…", { id: "extract" });
     try {
+      // Debitar créditos primeiro (idempotente por documento)
+      if (extractCost > 0) {
+        await consumeCredits.mutateAsync({
+          actionKey: OCR_EXTRACT_ACTION,
+          idempotencyKey: `${currentDoc.id}:extract`,
+          referenceType: "product_ocr_document",
+          referenceId: currentDoc.id,
+          metadata: { file_name: currentDoc.file_name },
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke("product-ocr-extract", {
         body: { document_id: currentDoc.id },
       });
@@ -122,7 +149,7 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
     } finally {
       setExtracting(false);
     }
-  }, [currentDoc, onExtracted]);
+  }, [currentDoc, onExtracted, extractCost, canAfford, consumeCredits]);
 
   return (
     <Card>
@@ -193,8 +220,18 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
 
             <Button onClick={runExtraction} disabled={extracting} size="lg" className="w-full">
               {extracting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ScanText className="h-4 w-4 mr-2" />}
-              {extracting ? "A processar com IA…" : "Ler documento"}
+              {extracting
+                ? "A processar com IA…"
+                : extractCost > 0
+                ? `Ler documento (${extractCost} crédito${extractCost === 1 ? "" : "s"})`
+                : "Ler documento"}
             </Button>
+            {extractCost > 0 && !extracting && (
+              <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 justify-center w-full">
+                <Coins className="h-3.5 w-3.5" />
+                Esta acção debita {extractCost} crédito{extractCost === 1 ? "" : "s"} ao confirmar.
+              </p>
+            )}
           </div>
         )}
       </CardContent>
