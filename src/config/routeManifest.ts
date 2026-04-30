@@ -224,6 +224,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("invoices",     "Faturas",          "/dashboard/invoices",          Receipt,     "vendas", { moduleSlug: "invoices", menuKey: "invoices" }),
   e("products",     "Produtos",         "/dashboard/products",          Package,     "vendas", { menuKey: "products" }),
   e("products-ocr", "Criar por OCR",    "/dashboard/products/ocr-create", ScanText,  "vendas", { menuKey: "products" }),
+  e("products-ocr-drafts", "Rascunhos OCR", "/dashboard/products/ocr-drafts", ScanText, "vendas", { menuKey: "products", visibleInSidebar: false }),
   e("order-notes",  "Notas Encomenda",  "/dashboard/order-notes",       ClipboardList,"vendas"),
   e("bundles",      "Pacotes",          "/dashboard/bundles",           Layers,      "vendas"),
   e("payments",     "Pagamentos",       "/dashboard/payments",          CreditCard,  "vendas"),

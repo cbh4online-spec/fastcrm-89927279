@@ -15,6 +15,7 @@ const CommandCenterV2Page = lazy(() => import("@/pages/CommandCenterV2Page"));
 const FastClubApplicationsPage = lazy(() => import("@/pages/fastclub/FastClubApplicationsPage"));
 const MobileQuickProductCreate = lazy(() => import("@/pages/MobileQuickProductCreate"));
 const ProductOCRCreate = lazy(() => import("@/pages/ProductOCRCreate"));
+const ProductOCRDrafts = lazy(() => import("@/pages/ProductOCRDrafts"));
 
 export function RevenueCommerceRoutes() {
   return (
@@ -54,6 +55,7 @@ export function RevenueCommerceRoutes() {
       <Route path="/dashboard/products/ocr-create" element={<ProductOCRCreate />} />
       <Route path="/dashboard/products/ocr-create/*" element={<ProductOCRCreate />} />
       <Route path="/products/ocr-create" element={<ProductOCRCreate />} />
+      <Route path="/dashboard/products/ocr-drafts" element={<ProductOCRDrafts />} />
     </>
   );
 }
