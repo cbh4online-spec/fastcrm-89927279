@@ -121,27 +121,23 @@ export function ProfilePermissionsSettings() {
   const saveMenus = useMutation({
     mutationFn: async () => {
       if (!workspaceId) throw new Error("Sem workspace ativo");
-      const entries = Array.from(menuChanges.entries());
-      for (const [key, visible] of entries) {
+      const rows = Array.from(menuChanges.entries()).map(([key, visible]) => {
         const [sales_function, menu_key] = key.split(":");
-        const existing = menuPerms?.find(
-          (p) => p.sales_function === sales_function && p.menu_key === menu_key
-        );
-        if (existing) {
-          await supabase.from("profile_menu_permissions").update({ visible }).eq("id", existing.id);
-        } else {
-          await supabase
-            .from("profile_menu_permissions")
-            .insert({ sales_function, menu_key, visible, workspace_id: workspaceId });
-        }
-      }
+        return { workspace_id: workspaceId, sales_function, menu_key, visible };
+      });
+      if (rows.length === 0) return;
+      const { error } = await supabase
+        .from("profile_menu_permissions")
+        .upsert(rows, { onConflict: "workspace_id,sales_function,menu_key" });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile-menu-permissions"] });
+      queryClient.invalidateQueries({ queryKey: ["menu-permissions"] });
       setMenuChanges(new Map());
       toast.success("Permissões de menus guardadas");
     },
-    onError: () => toast.error("Erro ao guardar permissões de menus"),
+    onError: (err: any) => toast.error(`Erro ao guardar: ${err?.message ?? "desconhecido"}`),
   });
 
   // ── Field permissions ──
