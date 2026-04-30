@@ -50,6 +50,7 @@ import {
   getMovementTypeLabel,
   getReasonLabel,
 } from "@/hooks/useProductStock";
+import { ProductValuationCard } from "./ProductValuationCard";
 
 interface ProductStockTabProps {
   product: {
