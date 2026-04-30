@@ -316,14 +316,25 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ groups: groupsCreated, total_leads_scanned: leads.length }),
+      JSON.stringify({
+        groups: groupsCreated,
+        total_leads_scanned: leads.length,
+        timed_out: timedOut,
+        capped_to: MAX_LEADS,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("detect-lead-duplicates error:", err);
+    // Resilient: 200 OK + fallback so the client never crashes (blank screen)
     return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        groups: 0,
+        total_leads_scanned: 0,
+        fallback: true,
+        internal_error: err instanceof Error ? err.message : String(err),
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
