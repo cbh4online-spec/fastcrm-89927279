@@ -656,7 +656,7 @@ export function ProductDetailDialog({
                   </TabsContent>
 
                   <TabsContent value="ai-content" className="mt-4">
-                    <ProductOCRContentSection productId={product.id} />
+                    <ProductOCRContentSection productId={product.id} showEmpty />
                   </TabsContent>
 
                   <TabsContent value="specs" className="mt-4">
