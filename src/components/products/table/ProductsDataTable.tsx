@@ -287,9 +287,11 @@ export function ProductsDataTable({
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Shared horizontal scroll wrapper for header + body */}
+          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden flex flex-col">
           {/* Sticky header */}
-          <Table ref={tableRef} style={{ tableLayout: "fixed", width: "auto" }}>
+          <Table ref={tableRef} style={{ tableLayout: "fixed", width: "auto", minWidth: "100%" }}>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]" style={{ width: 50 }}>
@@ -329,7 +331,7 @@ export function ProductsDataTable({
           <div
             ref={parentRef}
             className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
-            style={{ minHeight: 200 }}
+            style={{ minHeight: 200, width: "max-content", minWidth: "100%" }}
           >
             <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -398,6 +400,7 @@ export function ProductsDataTable({
                 );
               })}
             </div>
+          </div>
           </div>
 
           {/* Row count footer */}
