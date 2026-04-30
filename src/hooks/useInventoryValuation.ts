@@ -17,6 +17,7 @@ export interface InventoryValuationRow {
   total_sale_value: number;
   latent_margin: number;
   latent_margin_pct: number;
+  markup_pct: number;
 }
 
 export interface InventorySummary {
