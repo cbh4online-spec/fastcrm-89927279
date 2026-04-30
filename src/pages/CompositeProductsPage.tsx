@@ -246,7 +246,7 @@ function KitRow({ kit }: { kit: CompositeProduct }) {
         </div>
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        <Badge variant="outline" className="font-normal">{kit.composition_type.replace(/_/g, " ")}</Badge>
+        <Badge variant="outline" className="font-normal">{compType}</Badge>
       </TableCell>
       <TableCell>
         <Badge variant="outline" className={status.className}>{status.label}</Badge>
