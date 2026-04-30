@@ -20,6 +20,7 @@ import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductAttributeTags } from "./ProductAttributeTags";
 import { ProductTagsFooter } from "./ProductTagsFooter";
 import { calculateVAT, calculateGross } from "@/types/order-note";
+import { formatCurrency } from "@/lib/formatters";
 import {
   Minus,
   Plus,
