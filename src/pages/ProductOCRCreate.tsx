@@ -487,11 +487,30 @@ export default function ProductOCRCreate() {
       </Helmet>
 
       <div className="container mx-auto py-6 px-4 max-w-6xl space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold tracking-tight">Criação Inteligente de Produtos por OCR</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Carrega um PDF, rótulo, fotografia ou ficha técnica. A IA lê o documento, organiza os dados e prepara conteúdo comercial para validação.
-          </p>
+        <header className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight">Criação Inteligente de Produtos por OCR</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Carrega um PDF, rótulo, fotografia ou ficha técnica. A IA lê o documento, organiza os dados e prepara conteúdo comercial para validação.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {doc?.id && (
+              <div
+                className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border bg-muted/40"
+                aria-live="polite"
+                title="O teu progresso é guardado automaticamente. Podes fechar esta página e retomar quando quiseres."
+              >
+                {saveStatus === "saving" && (<><Loader2 className="h-3.5 w-3.5 animate-spin" /> a guardar…</>)}
+                {saveStatus === "saved" && lastSavedAt && (<><Cloud className="h-3.5 w-3.5 text-primary" /> guardado {formatDistanceToNow(lastSavedAt, { locale: pt, addSuffix: true })}</>)}
+                {saveStatus === "error" && (<><CloudOff className="h-3.5 w-3.5 text-destructive" /> falha a guardar</>)}
+                {saveStatus === "idle" && (<><Cloud className="h-3.5 w-3.5 text-muted-foreground" /> auto-save activo</>)}
+              </div>
+            )}
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/products/ocr-drafts")} className="gap-1.5">
+              <History className="h-4 w-4" /> Rascunhos
+            </Button>
+          </div>
         </header>
 
         {/* Stepper */}
