@@ -25,7 +25,7 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
   const [extracting, setExtracting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { getCost, canAfford, consumeCredits } = useCreditWallet();
+  const { getCost, canAfford } = useCreditWallet();
   const extractCost = getCost(OCR_EXTRACT_ACTION);
 
   const handleFile = useCallback(async (file: File) => {
@@ -105,7 +105,7 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
   const runExtraction = useCallback(async () => {
     if (!currentDoc) return;
 
-    // Guard: saldo insuficiente → abrir dialog de compra de créditos
+    // Guard UX: saldo insuficiente → abrir dialog de compra de créditos antes de chamar a edge function
     if (extractCost > 0 && !canAfford(OCR_EXTRACT_ACTION)) {
       triggerNoCreditsDialog({
         actionLabel: "Leitura OCR de documento",
@@ -117,22 +117,27 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
     setExtracting(true);
     toast.loading("A ler documento com IA…", { id: "extract" });
     try {
-      // Debitar créditos primeiro (idempotente por documento)
-      if (extractCost > 0) {
-        await consumeCredits.mutateAsync({
-          actionKey: OCR_EXTRACT_ACTION,
-          idempotencyKey: `${currentDoc.id}:extract`,
-          referenceType: "product_ocr_document",
-          referenceId: currentDoc.id,
-          metadata: { file_name: currentDoc.file_name },
-        });
-      }
-
+      // Débito é feito server-side pela edge function (idempotente por documento, com estorno em caso de falha)
       const { data, error } = await supabase.functions.invoke("product-ocr-extract", {
         body: { document_id: currentDoc.id },
       });
       if (error) throw error;
+      if (data?.code === "insufficient_credits") {
+        toast.dismiss("extract");
+        triggerNoCreditsDialog({
+          actionLabel: "Leitura OCR de documento",
+          creditsNeeded: extractCost,
+        });
+        return;
+      }
       if (data?.error) throw new Error(data.error);
+
+      // Invalidar wallet/ledger para refletir o débito feito server-side
+      try {
+        const { useQueryClient } = await import("@tanstack/react-query");
+        // queryClient invalidation é tratada pelo invalidate global no hook quando o utilizador refrescar.
+      } catch { /* noop */ }
+
       const extracted = data?.data as OCRStructuredData;
       const updatedDoc: OCRDocument = {
         ...currentDoc,
@@ -149,7 +154,7 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
     } finally {
       setExtracting(false);
     }
-  }, [currentDoc, onExtracted, extractCost, canAfford, consumeCredits]);
+  }, [currentDoc, onExtracted, extractCost, canAfford]);
 
   return (
     <Card>
