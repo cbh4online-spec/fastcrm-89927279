@@ -295,6 +295,10 @@ export default function ProductOCRCreate() {
       toast.error("O nome do produto é obrigatório.");
       return;
     }
+    const parsedPrice = sheet.base_price ? parseFloat(sheet.base_price.replace(",", ".")) : NaN;
+    if (!isFinite(parsedPrice) || parsedPrice <= 0) {
+      toast.warning("PVP não preenchido — o produto será criado com PVP a 0€ e ficará marcado como pendente de revisão.", { duration: 6000 });
+    }
     setCreating(true);
     try {
       // 1. Verificar EAN duplicado
@@ -357,7 +361,7 @@ export default function ProductOCRCreate() {
           origin_country: sheet.origin_country || null,
           distributor: sheet.distributor || null,
           direct_cost: numOrNull(sheet.direct_cost),
-          base_price: numOrNull(sheet.base_price),
+          base_price: numOrNull(sheet.base_price) ?? 0,
           tax_rate_estimate_pct: clamp(numOrNull(sheet.tax_rate_estimate_pct), 0, 100),
           stock_quantity: intOrNull(sheet.stock_quantity) ?? 0,
           low_stock_threshold: intOrNull(sheet.low_stock_threshold),
