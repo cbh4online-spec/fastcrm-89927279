@@ -44,6 +44,7 @@ import {
 import { Message } from "@/hooks/useMessages";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface Props {
   messages: Message[];
@@ -51,6 +52,7 @@ interface Props {
   opportunityData?: OpportunityData;
   channel?: string;
   lastMessageAt?: string;
+  conversationId?: string;
   onCreateOpportunity?: () => void;
   onScheduleFollowup?: () => void;
   onInsertReply?: (text: string) => void;
@@ -81,10 +83,12 @@ export function ConversationIntelligencePanel({
   opportunityData,
   channel,
   lastMessageAt,
+  conversationId,
   onCreateOpportunity,
   onScheduleFollowup,
   onInsertReply,
 }: Props) {
+  const { currentWorkspace } = useWorkspace();
   const { isLoading, intelligence, analyzeConversation } = useConversationIntelligence();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     intent: true,
@@ -98,7 +102,15 @@ export function ConversationIntelligencePanel({
   };
 
   const handleAnalyze = async () => {
-    const result = await analyzeConversation(messages, leadData, opportunityData, channel, lastMessageAt);
+    const result = await analyzeConversation(
+      messages,
+      leadData,
+      opportunityData,
+      channel,
+      lastMessageAt,
+      currentWorkspace?.id,
+      conversationId,
+    );
     
     // Emit CONVERSATION.INTENT_DETECTED kernel event on success
     if (result) {
