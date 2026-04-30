@@ -146,10 +146,10 @@ export function useProductsListState() {
 
   // --- Column preferences ---
   const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences(
-    "products-table-columns",
+    "products-table-columns-v2",
     PRODUCT_COLUMNS
   );
-  const colWidths = useColumnWidths("products-table-columns", INITIAL_COL_WIDTHS);
+  const colWidths = useColumnWidths("products-table-columns-v2", INITIAL_COL_WIDTHS);
   const tableRef = useRef<HTMLTableElement | null>(null);
 
   // Global mouse events for column resize
