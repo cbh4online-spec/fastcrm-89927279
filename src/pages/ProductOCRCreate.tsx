@@ -30,6 +30,10 @@ import {
 } from "@/components/products/ocr/types";
 import { buildSpecsFromStructured } from "@/components/products/ocr/buildSpecsFromStructured";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
+
+const OCR_GENERATE_CONTENT_ACTION = "product_ocr_generate_content";
 
 const STEPS = [
   { id: 1, title: "Upload", icon: FileText, desc: "Carregar documento" },
@@ -53,6 +57,8 @@ export default function ProductOCRCreate() {
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [hydratedFromDraft, setHydratedFromDraft] = useState(false);
+  const { getCost, canAfford, consumeCredits } = useCreditWallet();
+  const generateContentCost = getCost(OCR_GENERATE_CONTENT_ACTION);
 
   // ---------------------------------------------------------------
   // RECUPERAÇÃO DE RASCUNHO
