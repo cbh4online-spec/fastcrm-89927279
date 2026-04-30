@@ -2,6 +2,7 @@ import { aiGate } from '../_shared/ai-gate.ts';
 
 
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -171,7 +172,7 @@ First check if any existing template would be a good starting point. If so, reco
       userPrompt += `\n\nUser provided these clarifying answers:\n${JSON.stringify(clarifyingAnswers, null, 2)}\n\nNow generate the complete blueprint based on these answers.`;
     }
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await __loggedAIFetch(workspace_id ?? null, "generate-blueprint", {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,

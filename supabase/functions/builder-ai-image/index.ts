@@ -1,3 +1,4 @@
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 // Builder AI Image: generate images via Lovable AI Gateway (Nano Banana)
 // deno-lint-ignore-file no-explicit-any
 
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
         ]
       : prompt;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await __loggedAIFetch(null, "builder-ai-image", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -273,7 +274,7 @@ async function importFromPortal({
         .map((r: any) => `## ${r.title}\nURL: ${r.url}\n${(r.description || "").slice(0, 1500)}`)
         .join("\n\n---\n\n");
 
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResp = await __loggedAIFetch(workspaceId ?? null, "hr-portal-auto-import", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${lovableKey}`,

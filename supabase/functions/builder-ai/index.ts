@@ -1,3 +1,4 @@
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 // Builder AI: text generation, refactor, A/B variants
 // deno-lint-ignore-file no-explicit-any
 
@@ -92,7 +93,7 @@ Deno.serve(async (req) => {
       { role: "user", content: buildUserMessage(body) },
     ];
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await __loggedAIFetch(null, "builder-ai", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model, messages, stream: false }),

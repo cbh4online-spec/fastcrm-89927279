@@ -2,6 +2,7 @@ import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 import { corsHeaders } from "../_shared/cors.ts";
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -87,7 +88,7 @@ REGRAS:
 - O briefing deve ser útil numa call de vendas ou preparação de outreach
 - Evita jargão técnico, texto académico e disclaimers excessivos`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await __loggedAIFetch(workspaceId ?? null, "account-brief-generate-brief", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

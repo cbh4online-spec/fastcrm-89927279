@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -116,7 +117,7 @@ ${cost_price ? `Preço de Custo: ${cost_price}€` : ""}
 Resultados de pesquisa de mercado:
 ${searchContext || "Sem resultados de pesquisa disponíveis. Faz uma estimativa baseada no tipo de produto e categoria."}`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await __loggedAIFetch(workspace_id ?? null, "ai-market-price-research", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

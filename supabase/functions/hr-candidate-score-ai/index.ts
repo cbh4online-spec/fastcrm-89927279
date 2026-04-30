@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -51,7 +52,7 @@ serve(async (req) => {
       ? JSON.stringify((candidate as any).cv_parsed_data, null, 2)
       : `Nome: ${(candidate as any).first_name} ${(candidate as any).last_name}\nEmail: ${(candidate as any).email}`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await __loggedAIFetch(null, "hr-candidate-score-ai", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

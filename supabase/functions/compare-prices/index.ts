@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -60,7 +61,7 @@ async function validateWithAI(
 ): Promise<AIValidation | null> {
   try {
     const snippet = resultText.slice(0, 2000);
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await __loggedAIFetch(workspace_id ?? null, "compare-prices", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableKey}`,

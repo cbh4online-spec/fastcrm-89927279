@@ -2,6 +2,7 @@ import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 import { corsHeaders } from "../_shared/cors.ts";
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -66,7 +67,7 @@ ${contentBlocks.join("\n\n")}
 Extrai a seguinte informação em formato JSON. Sê factual — se não encontrares dados, usa null. Distingue factos de inferências.
 Presta especial atenção a: redes sociais da empresa (LinkedIn, Instagram, Facebook, Twitter/X, YouTube, TikTok), emails e telefones públicos, e pessoas-chave da equipa com os seus cargos, departamento, senioridade e contactos individuais.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await __loggedAIFetch(workspaceId ?? null, "account-brief-extract-structured", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
