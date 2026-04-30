@@ -80,11 +80,20 @@ async function downloadAsBase64(supabase: ReturnType<typeof createClient>, path:
   const { data, error } = await supabase.storage.from("product-ocr-documents").download(path);
   if (error || !data) throw new Error(`Falha ao baixar ficheiro: ${error?.message ?? "no data"}`);
   const buf = new Uint8Array(await data.arrayBuffer());
-  // base64 encode em chunks (evita stack overflow em ficheiros grandes)
+  // base64 encode robusto: itera byte-a-byte em chunks pequenos para evitar
+  // "Maximum call stack size exceeded" causado pelo spread (...) com arrays grandes.
+  // O spread no V8/Deno tem limite ~65k argumentos — em ficheiros perto de 1.5MB
+  // com chunks de 0x8000 (32k) já dá erro intermitente em alguns runtimes.
+  const CHUNK = 8192; // 8KB — seguro em qualquer runtime
   let binary = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < buf.length; i += chunk) {
-    binary += String.fromCharCode(...buf.subarray(i, i + chunk));
+  for (let i = 0; i < buf.length; i += CHUNK) {
+    const slice = buf.subarray(i, Math.min(i + CHUNK, buf.length));
+    // construir string char-a-char (sem spread) elimina risco de stack overflow
+    let part = "";
+    for (let j = 0; j < slice.length; j++) {
+      part += String.fromCharCode(slice[j]);
+    }
+    binary += part;
   }
   return btoa(binary);
 }
