@@ -151,7 +151,8 @@ export function ProfilePermissionsSettings() {
       .eq("user_id", user.id)
       .maybeSingle();
     if (memberErr) throw new Error("Erro ao verificar permissões no workspace.");
-    if (!member || (member.role !== "owner" && member.role !== "admin")) {
+    const allowedRoles = ["owner", "admin", "agency"];
+    if (!member || !allowedRoles.includes(member.role)) {
       throw new Error(
         `Sem permissões para gerir permissões de campos. (role atual: ${member?.role ?? "nenhum"})`
       );
