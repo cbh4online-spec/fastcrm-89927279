@@ -64,7 +64,7 @@ export interface CompositeComponent {
   unit_cost_snapshot: number | null;
   unit_price_snapshot: number | null;
   notes: string | null;
-  product?: { id: string; name: string; sku: string | null; base_price: number; cost_price?: number | null; images: any };
+  product?: { id: string; name: string; sku: string | null; base_price: number; direct_cost?: number | null; avg_cost?: number | null; images: any };
 }
 
 export interface CompositeGroup {
@@ -252,7 +252,7 @@ export function useCompositeComponents(kitId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_kit_items")
-        .select("*, product:products(id, name, sku, base_price, cost_price, images)")
+        .select("*, product:products(id, name, sku, base_price, direct_cost, avg_cost, images)")
         .eq("kit_id", kitId!)
         .order("sort_order", { ascending: true });
       if (error) throw error;
@@ -269,13 +269,13 @@ export function useAddComponent() {
       // Snapshot price/cost
       const { data: prod } = await supabase
         .from("products")
-        .select("base_price, cost_price")
+        .select("base_price, direct_cost, avg_cost")
         .eq("id", input.product_id)
         .maybeSingle();
       const { error } = await supabase.from("product_kit_items").insert({
         ...input,
         unit_price_snapshot: prod?.base_price ?? null,
-        unit_cost_snapshot: prod?.cost_price ?? null,
+        unit_cost_snapshot: prod?.direct_cost ?? prod?.avg_cost ?? null,
       } as any);
       if (error) throw error;
     },
@@ -529,7 +529,7 @@ export function calcKitTotals(components: CompositeComponent[]) {
   let totalCost = 0;
   let totalPrice = 0;
   for (const c of components) {
-    const cost = Number(c.unit_cost_snapshot ?? c.product?.cost_price ?? 0);
+    const cost = Number(c.unit_cost_snapshot ?? c.product?.direct_cost ?? c.product?.avg_cost ?? 0);
     const price = Number(c.unit_price_snapshot ?? c.product?.base_price ?? 0);
     totalCost += cost * c.quantity;
     totalPrice += price * c.quantity;
