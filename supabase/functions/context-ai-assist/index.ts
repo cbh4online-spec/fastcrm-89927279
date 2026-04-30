@@ -380,6 +380,18 @@ Deno.serve(async (req) => {
       }
 
       const aiData = await aiResponse.json();
+      try {
+        const _u = aiData?.usage;
+        logAIUsage({
+          workspace_id: workspaceId,
+          feature: 'context-ai-assist:suggest_alerts',
+          model: aiData?.model || 'google/gemini-3-flash-preview',
+          tokens_input: _u?.prompt_tokens ?? 0,
+          tokens_output: _u?.completion_tokens ?? 0,
+          request_type: 'tool_use',
+          latency_ms: Date.now() - _startTime,
+        });
+      } catch (e) { console.warn('[context-ai-assist:suggest_alerts] logAIUsage failed:', e); }
       const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
       const suggestions = toolCall ? JSON.parse(toolCall.function.arguments).suggestions : [];
 
@@ -489,6 +501,18 @@ Deno.serve(async (req) => {
       }
 
       const aiData = await aiResponse.json();
+      try {
+        const _u = aiData?.usage;
+        logAIUsage({
+          workspace_id: workspaceId,
+          feature: 'context-ai-assist:suggest_metrics_and_targets',
+          model: aiData?.model || 'google/gemini-3-flash-preview',
+          tokens_input: _u?.prompt_tokens ?? 0,
+          tokens_output: _u?.completion_tokens ?? 0,
+          request_type: 'tool_use',
+          latency_ms: Date.now() - _startTime,
+        });
+      } catch (e) { console.warn('[context-ai-assist:suggest_metrics_and_targets] logAIUsage failed:', e); }
       const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
       const suggestions = toolCall ? JSON.parse(toolCall.function.arguments).suggestions : [];
 
