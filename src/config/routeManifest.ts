@@ -28,7 +28,7 @@ import {
   MessageSquare, Briefcase, UserPlus, Zap, Phone,
   Inbox, Calendar, Send, FileText, Presentation,
   Mail, Megaphone, Workflow, PenTool, Globe, Link2, Instagram,
-  Receipt, Package, Layers, CreditCard, BarChart3, Target,
+  Receipt, Package, Layers, CreditCard, BarChart3, Target, Coins,
   ShoppingBag, Store, CheckSquare,
   CalendarDays, ShoppingCart, Truck, ClipboardList,
   Warehouse, FileQuestion, ListChecks, Upload,
