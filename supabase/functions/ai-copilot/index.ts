@@ -19,6 +19,9 @@ interface CopilotRequest {
   messages?: { role: string; content: string; direction?: string }[];
   leadData?: Record<string, unknown>;
   conversationContext?: string;
+  workspace_id?: string;
+  entity_type?: string;
+  entity_id?: string;
 }
 
 const systemPrompts: Record<CopilotAction, string> = {
