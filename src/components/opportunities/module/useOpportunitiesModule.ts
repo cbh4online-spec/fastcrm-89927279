@@ -8,6 +8,7 @@ import {
 } from "@/hooks/useOpportunitiesEnhanced";
 import { useDeleteOpportunity } from "@/hooks/useOpportunities";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
+import { useActivePipeline } from "@/hooks/usePipelines";
 import { useDealScores } from "@/hooks/useDealScores";
 import { SavedView, useSavedViews, useUpdateSavedView, useDeleteSavedView } from "@/hooks/useSavedViews";
 import { applyFilters, FilterCondition } from "@/hooks/useFilterEngine";
@@ -96,10 +97,13 @@ export function useOpportunitiesModule(): OpportunitiesModuleState {
   const [showCreateViewDialog, setShowCreateViewDialog] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
+  const { activeId: activePipelineId, activePipeline } = useActivePipeline();
+
   const { data: opportunities, isLoading: oppLoading } = useOpportunitiesEnhanced({
     status: statusFilter !== "all" ? statusFilter : undefined,
+    pipelineId: activePipelineId || undefined,
   });
-  const { data: stages, isLoading: stagesLoading } = usePipelineStages();
+  const { data: stages, isLoading: stagesLoading } = usePipelineStages(activePipelineId);
   const moveOpportunity = useMoveOpportunityEnhanced();
   const closeOpportunity = useCloseOpportunity();
   const deleteOpportunity = useDeleteOpportunity();
