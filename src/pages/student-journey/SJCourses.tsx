@@ -248,6 +248,7 @@ export default function SJCourses() {
                         <TableHead>Turma</TableHead>
                         <TableHead>Estado</TableHead>
                         <TableHead>Início</TableHead>
+                        <TableHead>Próxima sessão / Fases</TableHead>
                         <TableHead>Capacidade</TableHead>
                         <TableHead>Inscritos</TableHead>
                         <TableHead className="w-12"></TableHead>
