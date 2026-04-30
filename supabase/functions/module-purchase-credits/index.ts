@@ -72,7 +72,20 @@ serve(async (req) => {
       return jsonResponse({ fallback: true, error: "Pacote indisponível" }, 200);
     }
 
-    // ---- Stripe ----
+    // ---- Gateway workspace (agência Método Pare) ----
+    // Todos os pagamentos de créditos correm sempre na conta Stripe da plataforma
+    // (workspace marcado como is_payment_gateway = true).
+    const { data: gatewayWsId, error: gatewayErr } = await adminClient
+      .rpc("get_payment_gateway_workspace_id");
+    if (gatewayErr || !gatewayWsId) {
+      console.error("[module-purchase-credits] no payment gateway workspace configured", gatewayErr);
+      return jsonResponse({
+        fallback: true,
+        error: "Gateway de pagamentos não configurado. Contacte o administrador.",
+      }, 200);
+    }
+
+    // ---- Stripe (sempre a chave da plataforma / Método Pare) ----
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
       return jsonResponse({ fallback: true, error: "Stripe não configurado" }, 200);
@@ -111,19 +124,24 @@ serve(async (req) => {
       success_url: `${baseUrl}/settings/billing?purchase=success&session_id={CHECKOUT_SESSION_ID}&credits=${pkg.credits_amount}`,
       cancel_url: `${baseUrl}/settings/billing?purchase=cancelled`,
       metadata: {
-        workspace_id: workspaceId,
+        buyer_workspace_id: workspaceId,
+        gateway_workspace_id: gatewayWsId,
         user_id: user.id,
         package_id: pkg.id,
         credits_amount: String(pkg.credits_amount),
         kind: "credit_package",
+        // legado — manter para compatibilidade com webhooks/handlers existentes
+        workspace_id: workspaceId,
       },
       payment_intent_data: {
         metadata: {
-          workspace_id: workspaceId,
+          buyer_workspace_id: workspaceId,
+          gateway_workspace_id: gatewayWsId,
           user_id: user.id,
           package_id: pkg.id,
           credits_amount: String(pkg.credits_amount),
           kind: "credit_package",
+          workspace_id: workspaceId,
         },
       },
     });

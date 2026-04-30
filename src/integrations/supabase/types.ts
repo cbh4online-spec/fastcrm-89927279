@@ -72827,6 +72827,7 @@ export type Database = {
           founding_date: string | null
           id: string
           instagram_url: string | null
+          is_payment_gateway: boolean
           legal_nature: string | null
           linkedin_url: string | null
           logo_url: string | null
@@ -72869,6 +72870,7 @@ export type Database = {
           founding_date?: string | null
           id?: string
           instagram_url?: string | null
+          is_payment_gateway?: boolean
           legal_nature?: string | null
           linkedin_url?: string | null
           logo_url?: string | null
@@ -72911,6 +72913,7 @@ export type Database = {
           founding_date?: string | null
           id?: string
           instagram_url?: string | null
+          is_payment_gateway?: boolean
           legal_nature?: string | null
           linkedin_url?: string | null
           logo_url?: string | null
@@ -74313,6 +74316,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_payment_gateway_workspace_id: { Args: never; Returns: string }
       get_persona_decision_config: {
         Args: { p_persona_id: string }
         Returns: Json
