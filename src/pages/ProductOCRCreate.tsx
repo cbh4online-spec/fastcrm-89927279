@@ -28,6 +28,7 @@ import {
   type ProductSheetData,
   type SalesSupportData,
 } from "@/components/products/ocr/types";
+import { buildSpecsFromStructured } from "@/components/products/ocr/buildSpecsFromStructured";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 const STEPS = [
@@ -450,12 +451,24 @@ export default function ProductOCRCreate() {
         created_by: userId,
       });
 
-      // 5. Ligar documento OCR ao produto
+      // 5. Specs técnicas a partir do OCR estruturado
+      const specRows = buildSpecsFromStructured(currentWorkspace.id, productId, structured);
+      if (specRows.length > 0) {
+        const { error: specErr } = await supabase
+          .from("product_spec_attributes" as any)
+          .insert(specRows);
+        if (specErr) {
+          console.error("[OCR-Create] product_spec_attributes insert error", specErr);
+          // não bloqueia: produto fica criado mesmo se specs falharem
+        }
+      }
+
+      // 6. Ligar documento OCR ao produto
       if (doc?.id) {
         await supabase.from("product_ocr_documents").update({ product_id: productId }).eq("id", doc.id);
       }
 
-      // 6. Tarefas de validação para campos pendentes
+      // 7. Tarefas de validação para campos pendentes
       if (pendingFields.length > 0) {
         const tasks = pendingFields.map((f) => ({
           workspace_id: currentWorkspace.id,
@@ -480,7 +493,7 @@ export default function ProductOCRCreate() {
     } finally {
       setCreating(false);
     }
-  }, [currentWorkspace, sheet, content, sales, doc, computePendingFields, navigate]);
+  }, [currentWorkspace, sheet, content, sales, doc, structured, computePendingFields, navigate]);
 
   const progress = (step / 6) * 100;
 

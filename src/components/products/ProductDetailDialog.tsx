@@ -50,6 +50,7 @@ import {
   TrendingUp,
   ImageIcon,
   Send,
+  Sparkles,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
@@ -358,6 +359,9 @@ export function ProductDetailDialog({
                       <TabsTrigger value="documents" className="text-xs px-2.5 py-1 h-7">
                         <FileText className="h-3 w-3 mr-1" />Documentos
                       </TabsTrigger>
+                      <TabsTrigger value="ai-content" className="text-xs px-2.5 py-1 h-7">
+                        <Sparkles className="h-3 w-3 mr-1" />Conteúdo IA
+                      </TabsTrigger>
                       <TabsTrigger value="specs" className="text-xs px-2.5 py-1 h-7">
                         <ClipboardList className="h-3 w-3 mr-1" />Specs
                       </TabsTrigger>
@@ -649,6 +653,10 @@ export function ProductDetailDialog({
 
                   <TabsContent value="documents" className="mt-4">
                     <ProductDocumentsTab product={product} />
+                  </TabsContent>
+
+                  <TabsContent value="ai-content" className="mt-4">
+                    <ProductOCRContentSection productId={product.id} showEmpty />
                   </TabsContent>
 
                   <TabsContent value="specs" className="mt-4">

@@ -8,6 +8,8 @@ import { Sparkles, FileText, MessageSquare, Store, Send, HelpCircle, ShieldAlert
 
 interface Props {
   productId: string;
+  /** When true, render an empty-state message instead of returning null when no AI content exists. */
+  showEmpty?: boolean;
 }
 
 interface ProductContent {
@@ -124,7 +126,7 @@ function ObjectionBlock({ items }: { items: any[] }) {
   );
 }
 
-export function ProductOCRContentSection({ productId }: Props) {
+export function ProductOCRContentSection({ productId, showEmpty = false }: Props) {
   const { data: content, isLoading: loadingContent } = useQuery({
     queryKey: ["product-content", productId],
     queryFn: async () => {
@@ -162,7 +164,20 @@ export function ProductOCRContentSection({ productId }: Props) {
     );
   }
 
-  if (!content && !sales) return null;
+  if (!content && !sales) {
+    if (showEmpty) {
+      return (
+        <Card className="p-8 text-center">
+          <Sparkles className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground mb-1">Sem conteúdo gerado por IA</p>
+          <p className="text-xs text-muted-foreground">
+            Crie o produto via OCR ou use o assistente para gerar descrições, argumentário e scripts de venda.
+          </p>
+        </Card>
+      );
+    }
+    return null;
+  }
 
   const hasContent = !!content && (
     content.long_description || content.catalog_text || content.proposal_text ||
@@ -177,7 +192,17 @@ export function ProductOCRContentSection({ productId }: Props) {
     asArray(sales.objections).length > 0
   );
 
-  if (!hasContent && !hasSales) return null;
+  if (!hasContent && !hasSales) {
+    if (showEmpty) {
+      return (
+        <Card className="p-8 text-center">
+          <Sparkles className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">Sem conteúdo gerado por IA disponível para mostrar.</p>
+        </Card>
+      );
+    }
+    return null;
+  }
 
   return (
     <Card className="p-4 space-y-3">
