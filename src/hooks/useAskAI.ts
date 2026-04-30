@@ -104,7 +104,7 @@ export function useAskAI() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentWorkspace?.id]);
 
   const classifyIntent = useCallback(
     (messages: CopilotMessage[]) => 
