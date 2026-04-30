@@ -23,9 +23,8 @@ Deno.serve(async (req) => {
     const { action, blockId, workspaceId, blockType, fields, richText } = await req.json();
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'heavy', 'context-ai-assist');
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'heavy', 'context-ai-assist');
       if (!gate.allowed) {
         return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
           status: 200,
@@ -137,6 +136,20 @@ Deno.serve(async (req) => {
       }
 
       const aiData = await aiResponse.json();
+      try {
+        const _u = aiData?.usage;
+        logAIUsage({
+          workspace_id: workspaceId,
+          feature: 'context-ai-assist:suggest_fields',
+          model: aiData?.model || 'google/gemini-3-flash-preview',
+          tokens_input: _u?.prompt_tokens ?? 0,
+          tokens_output: _u?.completion_tokens ?? 0,
+          request_type: 'tool_use',
+          latency_ms: Date.now() - _startTime,
+          entity_type: 'context_block',
+          entity_id: blockId,
+        });
+      } catch (e) { console.warn('[context-ai-assist:suggest_fields] logAIUsage failed:', e); }
       const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
       const suggestions = toolCall ? JSON.parse(toolCall.function.arguments).suggestions : [];
 
@@ -225,21 +238,21 @@ Deno.serve(async (req) => {
         throw new Error("AI gateway error");
       }
 
-      const aiData = await aiResponse.json()
+      const aiData = await aiResponse.json();
 
-    // AI Usage Instrumentation
-    try {
-      const _usage = aiData?.usage;
-      logAIUsage({
-        workspace_id: workspace_id,
-        feature: 'context-ai-assist',
-        model: aiData?.model || 'google/gemini-3-flash-preview',
-        tokens_input: _usage?.prompt_tokens ?? 0,
-        tokens_output: _usage?.completion_tokens ?? 0,
-        request_type: 'completion',
-        latency_ms: Date.now() - (_startTime ?? Date.now()),
-      });
-    } catch (_e) { /* instrumentation error - non-blocking */ };
+      // AI Usage Instrumentation
+      try {
+        const _usage = aiData?.usage;
+        logAIUsage({
+          workspace_id: workspaceId,
+          feature: 'context-ai-assist:generate_actions',
+          model: aiData?.model || 'google/gemini-3-flash-preview',
+          tokens_input: _usage?.prompt_tokens ?? 0,
+          tokens_output: _usage?.completion_tokens ?? 0,
+          request_type: 'tool_use',
+          latency_ms: Date.now() - (typeof _startTime !== 'undefined' ? _startTime : Date.now()),
+        });
+      } catch (e) { console.warn('[context-ai-assist:generate_actions] logAIUsage failed:', e); }
       const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
       const actions = toolCall ? JSON.parse(toolCall.function.arguments).actions : [];
 
