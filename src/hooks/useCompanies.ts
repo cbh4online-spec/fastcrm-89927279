@@ -267,6 +267,7 @@ export function useCompanies() {
       const updateData: Record<string, unknown> = { updated_by: user?.id };
       if (data.name !== undefined) updateData.name = data.name;
       if (data.tax_id !== undefined) updateData.tax_id = data.tax_id;
+      if (data.client_number !== undefined) updateData.client_number = data.client_number;
       if (data.website !== undefined) updateData.website = data.website;
       if (data.industry !== undefined) updateData.industry = data.industry;
       if (data.size !== undefined) updateData.size = data.size;
