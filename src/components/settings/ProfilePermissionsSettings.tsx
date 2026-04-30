@@ -13,9 +13,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "sonner";
 import {
   Shield, Save, RefreshCw, User, Eye, Briefcase, Crown,
-  ChevronRight, Search, Plus, Trash2,
+  ChevronRight, Search, Plus, Trash2, History,
 } from "lucide-react";
 import { ROUTE_MANIFEST, NAV_GROUPS, type RouteEntry } from "@/config/routeManifest";
+import { PermissionAuditTab } from "./PermissionAuditTab";
 
 const SALES_FUNCTIONS = [
   { value: "vendedor", label: "Vendedor", icon: User, color: "text-green-500" },
@@ -308,6 +309,7 @@ export function ProfilePermissionsSettings() {
         <TabsList>
           <TabsTrigger value="menus">Menus & Sub-menus</TabsTrigger>
           <TabsTrigger value="fields">Campos por Página</TabsTrigger>
+          <TabsTrigger value="audit"><History className="h-3.5 w-3.5 mr-1" />Auditoria</TabsTrigger>
         </TabsList>
 
         {/* ── TAB: Menus & Sub-menus ── */}
@@ -566,6 +568,10 @@ export function ProfilePermissionsSettings() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <PermissionAuditTab workspaceId={workspaceId} />
         </TabsContent>
       </Tabs>
     </div>
