@@ -322,7 +322,10 @@ export function ProductsDataTable({
                     </TableHead>
                   );
                 })}
-                <TableHead className="w-[50px]" style={{ width: 50 }} />
+                <TableHead
+                  className="sticky right-0 bg-background z-20 border-l border-border"
+                  style={{ width: 56, minWidth: 56, maxWidth: 56 }}
+                />
               </TableRow>
             </TableHeader>
           </Table>
@@ -370,7 +373,10 @@ export function ProductsDataTable({
                         </div>
                       );
                     })}
-                    <div className="flex items-center px-2" style={{ width: 50, minWidth: 50 }}>
+                    <div
+                      className="sticky right-0 flex items-center justify-center bg-background border-l border-border"
+                      style={{ width: 56, minWidth: 56, maxWidth: 56, flexShrink: 0, height: ROW_HEIGHT }}
+                    >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
