@@ -18,6 +18,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { ROUTE_MANIFEST, NAV_GROUPS, type RouteEntry } from "@/config/routeManifest";
+import { PermissionAuditTab } from "./PermissionAuditTab";
 
 const SALES_FUNCTIONS = [
   { value: "vendedor", label: "Vendedor", icon: User, color: "text-green-500" },
