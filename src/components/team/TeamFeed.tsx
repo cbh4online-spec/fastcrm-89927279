@@ -27,6 +27,8 @@ import {
 import { useTeamFeed, type TeamFeedPost } from '@/hooks/useMeetingAutomations';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { TeamFeedComposer } from './TeamFeedComposer';
+import { Input } from '@/components/ui/input';
 
 const postTypeConfig: Record<TeamFeedPost['post_type'], {
   icon: typeof Calendar;
