@@ -401,6 +401,7 @@ export function ProductsDataTable({
               })}
             </div>
           </div>
+          </div>
 
           {/* Row count footer */}
           <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground">
