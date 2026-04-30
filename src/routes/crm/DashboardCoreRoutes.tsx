@@ -39,6 +39,7 @@ const PricingPage = lazy(() => import("@/pages/PricingPage"));
 const ChangelogPage = lazy(() => import("@/pages/ChangelogPage"));
 const GDPRBackofficePage = lazy(() => import("@/modules/growth-seo/pages/GDPRBackofficePage"));
 const BlogDashboard = lazy(() => import("@/pages/dashboard/blog/index"));
+const CreditHistoryPage = lazy(() => import("@/pages/CreditHistoryPage"));
 
 export function DashboardCoreRoutes() {
   return (
@@ -85,6 +86,8 @@ export function DashboardCoreRoutes() {
       <Route path="/dashboard/metodo-vision" element={<VisionPage />} />
       <Route path="/dashboard/community" element={<Navigate to="/club/fastclub" replace />} />
       <Route path="/dashboard/blog" element={<BlogDashboard />} />
+      <Route path="/dashboard/credits" element={<CreditHistoryPage />} />
+      <Route path="/settings/credits" element={<CreditHistoryPage />} />
 
       {/* Settings */}
       <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
