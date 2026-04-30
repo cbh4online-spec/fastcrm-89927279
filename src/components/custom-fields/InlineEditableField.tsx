@@ -241,24 +241,21 @@ export function InlineEditableField({
         );
 
       case "date": {
-        const dateValue = editedValue ? new Date(editedValue as string) : undefined;
-        const dateDisplayText = dateValue && isValid(dateValue) ? format(dateValue, "dd/MM/yyyy") : (editedValue as string) || "";
+        // editedValue is kept as raw user text (dd/MM/yyyy) while typing.
+        // We try to parse it for the calendar selection only.
+        const rawText = typeof editedValue === "string" && /^\d{4}-\d{2}-\d{2}/.test(editedValue)
+          ? valueToDisplayDate(editedValue) // value came from DB in ISO; show as dd/MM/yyyy
+          : (editedValue as string) || "";
+        const parsedDate = parseUserDate(rawText);
         return (
           <div className="flex items-center gap-1">
             <Input
-              value={dateDisplayText}
+              inputMode="numeric"
+              value={rawText}
               onChange={(e) => {
-                const raw = e.target.value;
-                // Try to parse dd/MM/yyyy as the user types
-                if (raw.length === 10) {
-                  const parsed = parse(raw, "dd/MM/yyyy", new Date());
-                  if (isValid(parsed)) {
-                    setEditedValue(parsed.toISOString());
-                    return;
-                  }
-                }
-                // Store raw text so user can keep typing
-                setEditedValue(raw);
+                // Auto-insert slashes; never block the user.
+                const formatted = autoFormatDateInput(e.target.value);
+                setEditedValue(formatted);
               }}
               onKeyDown={handleKeyDown}
               className="h-8 text-sm w-[130px]"
@@ -275,10 +272,11 @@ export function InlineEditableField({
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={dateValue && isValid(dateValue) ? dateValue : undefined}
+                  selected={parsedDate ?? undefined}
                   onSelect={(date) => {
                     if (date) {
-                      setEditedValue(date.toISOString());
+                      // Store as display text so the input stays consistent.
+                      setEditedValue(format(date, "dd/MM/yyyy"));
                     }
                   }}
                   locale={pt}
