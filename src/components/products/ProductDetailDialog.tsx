@@ -400,26 +400,31 @@ export function ProductDetailDialog({
                         </p>
                       </Card>
 
-                      <Card className="p-3">
-                        <p className="text-xs text-muted-foreground">
-                          {isBundle ? "Custo Total" : "Custo Direto"}
-                        </p>
-                        {product.direct_cost !== null ? (
-                          <>
-                            <p className="text-xl font-semibold mt-0.5">
-                              {formatCurrency(product.direct_cost, product.currency)}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              Margem: {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(1)}%
-                            </p>
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground mt-2">Não definido</p>
-                        )}
-                      </Card>
+                      {showCost && (
+                        <Card className="p-3">
+                          <p className="text-xs text-muted-foreground">
+                            {isBundle ? "Custo Total" : "Custo Direto"}
+                          </p>
+                          {product.direct_cost !== null ? (
+                            <>
+                              <p className="text-xl font-semibold mt-0.5">
+                                {formatCurrency(product.direct_cost, product.currency)}
+                              </p>
+                              {showMargin && (
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  Margem: {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(1)}%
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-sm text-muted-foreground mt-2">Não definido</p>
+                          )}
+                        </Card>
+                      )}
                     </div>
 
                     {/* Margin Protection & Market Research */}
+                    {showMargin && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <MarginProtectionCard
                         price={product.base_price}
