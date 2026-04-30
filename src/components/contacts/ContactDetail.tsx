@@ -17,7 +17,7 @@ import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/
 import { ConfigurableEntitySidebar } from "@/components/crm/ConfigurableEntitySidebar";
 import { CustomizableKPIDashboard } from "@/components/crm/CustomizableKPIDashboard";
 import { UnifiedLayoutCustomizer } from "@/components/crm/UnifiedLayoutCustomizer";
-import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
+import { EntityTimelineSection } from "@/components/timeline/EntityTimelineSection";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { useLayoutConfig, DEFAULT_SIDEBAR_MODULES } from "@/hooks/useLayoutConfig";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -500,11 +500,11 @@ export function ContactDetail() {
 
                 {/* Timeline Tab - Default */}
                 <TabsContent value="timeline" className="space-y-4">
-                  <ActivityTimeline
+                  <EntityTimelineSection
                     entityType="contact"
                     entityId={id}
-                    limit={50}
-                    className="min-h-[400px]"
+                    entityName={contact?.name || "contacto"}
+                    maxHeight="600px"
                   />
                 </TabsContent>
 
