@@ -1,59 +1,86 @@
-## Auditoria de Consumo de Créditos AI — Estado Final
+## Diagnóstico
 
-### Diagnóstico inicial
-- 530 edge functions no projecto, das quais ~90 chamam Lovable AI Gateway.
-- 18 funções com bug **ReferenceError silencioso** (variável `workspace_id` referenciada quando só `workspaceId` foi destructurada) — gerava erros há ~22 dias sem que o utilizador soubesse, **bloqueando** registos de consumo no `ai_usage_logs`.
-- 45 funções a usar Lovable AI **sem instrumentação** (`logAIUsage` não chamado).
+O wizard de criação de produtos por OCR (`/dashboard/products/ocr-create`) faz duas chamadas IA pagas, mas **nenhuma delas debita a wallet de créditos do workspace**:
 
-### Fase 1 — OCR (concluída em loop anterior)
-- `product-ocr-extract`, `product-ocr-generate-content` instrumentados.
+| Etapa | Edge function | `logAIUsage` (técnico) | `consume_funnel_credits` (wallet) |
+|---|---|---|---|
+| Passo 2 — Leitura OCR | `product-ocr-extract` | ✅ presente | ❌ **em falta** |
+| Passo 4 — Geração de conteúdo | `product-ocr-generate-content` | ✅ presente | ❌ **em falta** |
 
-### Fase 2 — Lotes 1+2 (concluída em loops anteriores)
-- Lote 1: `ai-copilot`, `ai-analyze-lead`, `ai-auto-tags`.
-- Lote 2: `conversation-summary`, `conversation-intelligence`, `compute-conversation-signals`, `context-ai-assist`.
-- Frontend hooks actualizados: `useAskAI`, `useAutoTags`, `useConversationSummary`, `useConversationIntelligence`, `ConversationIntelligencePanel`.
+Consequências:
+- O utilizador pode gerar leituras e conteúdos AI ilimitadamente sem ver o saldo descer.
+- Os relatórios de consumo no `credit_ledger` não refletem este fluxo (apenas o `ai_usage_logs` técnico tem o registo).
+- Inconsistência face a outros fluxos (`useStrategicBriefs`, `useLandingPageCopy`, ebooks, etc.) que já fazem `consumeCredits.mutateAsync(...)` antes de invocar a função.
 
-### Fase 2 — Lote 3 (varrimento completo automatizado, este loop)
-Script Python aplicou correcções nas 15 funções com bug DEAD_VAR confirmado:
+Regra existente na BD (já criada, **não** precisa migration):
+- `ai_document_ocr` — 3 créditos — módulo `intelligence` — activa.
 
-**Padrões corrigidos automaticamente:**
-1. `typeof workspace_id !== 'undefined' ? workspace_id : null` → `workspaceId ?? null`
-2. `if (workspace_id)` → `if (workspaceId)`
-3. `aiGate(workspace_id, …)` → `aiGate(workspaceId, …)`
-4. `workspace_id: workspace_id` (em logs) → `workspace_id: workspaceId`
-5. Fallback ternário aninhado removido: `: (typeof workspace_id !== 'undefined' ? workspace_id : null)` → `: null`
+Falta a regra para a geração de conteúdo comercial (passo 4), que é uma chamada AI pesada (texto longo + argumentário). Proponho criar:
+- `product_ocr_generate_content` — **5 créditos** — módulo `products`.
 
-**Funções corrigidas (15):**
-- `ai-automation-suggestions`, `ai-cart-recommendations`, `ai-dashboard-insights`, `ai-product-assistant`, `ai-revenue-engine`
-- `bio-generate-image`, `bio-smart-link`, `contact-enrich`, `productivity-coach`, `vision-ai-copilot`
-- `ai-diagnostic-assistant`, `ai-field-suggestions`, `knowledge-query`, `sj-copilot`, `sj-course-recommendations`
+## Decisões de produto/UX
 
-**Falsos positivos confirmados (3, sem alteração):**
-- `flow-engine`, `ghl-webhook-message`, `knowledge-document-process` — destructuram `workspace_id` (snake_case) noutro escopo, uso correcto.
+1. **Cobrar por acção, não por wizard inteiro**: o utilizador paga 3 créditos quando carrega em "Ler documento" e 5 créditos quando carrega em "Gerar conteúdo". Isto permite repetir só a etapa que falhou sem cobrar tudo de novo.
+2. **Pré-validação de saldo**: antes de invocar a edge function, verificar `canAfford(actionKey)`. Se não tiver saldo, abrir o `GlobalNoCreditsDialog` (via `triggerNoCreditsDialog`) com label adequada e custo.
+3. **Cobrar antes de invocar**: padrão idêntico a `useStrategicBriefs` — `await consumeCredits.mutateAsync(...)` primeiro; só se o débito tiver sucesso é que se chama a edge function. Se a edge function falhar depois, mostramos toast de erro mas o crédito já foi consumido (mesmo padrão dos restantes fluxos AI da app).
+4. **Idempotência**: passar `idempotencyKey = ${doc.id}:extract` e `${doc.id}:generate-content` para evitar duplo débito em caso de duplo-clique ou retry.
+5. **Referência rastreável**: `referenceType="product_ocr_document"`, `referenceId=doc.id` para auditoria no `credit_ledger`.
+6. **Mostrar custo no botão**: textos passam a ser "Ler documento (3 créditos)" e "Gerar conteúdo (5 créditos)" para transparência.
 
-### Resultado pós-Lote 3
-- DEAD_VAR: 18 → **0 reais** (3 falsos positivos validados manualmente).
-- Funções OK (com instrumentação válida): 119 → **134**.
-- Todos os 15 ficheiros alterados passam `deno check`.
+## Estrutura técnica
 
-### Fase 3 — Instrumentação automática (concluída)
-- Script Python injectou wrapper `__loggedAIFetch` em **33 funções AI** que chamavam o gateway sem registar consumo.
-- Helper local mede latência, captura `usage.prompt_tokens` / `usage.completion_tokens`, regista erros HTTP/network e nunca bloqueia o flow principal (fire-and-forget).
-- Bonus: detectado typo `ai-gateway.lovable.dev` (com hífen) em `account-brief-corporate-lookup` — corrigido para `ai.gateway.lovable.dev` via wrapper.
-- Bug pré-existente em `_shared/ai-instrumentation.ts` (`.catch()` em `PostgrestFilterBuilder`) — corrigido envolvendo em `Promise.resolve(...)`.
+### 1. Migration — nova regra de pricing
+```sql
+INSERT INTO public.credit_pricing_rules
+  (action_key, label, description, credits_cost, module, category, is_active)
+VALUES
+  ('product_ocr_generate_content',
+   'Geração de Conteúdo Comercial (OCR)',
+   'Gera descrições, argumentário de venda e textos de catálogo a partir do documento OCR.',
+   5, 'products', 'ai_generation', true)
+ON CONFLICT (action_key) DO NOTHING;
+```
 
-**Funções instrumentadas (33):** account-brief-{compare-accounts, corporate-lookup, extract-structured, generate-brief}, ai-{batch-estimate-weights, catalog-suggest, market-price-research, shipping-suggest}, builder-ai{,-image}, compare-prices, ebook-{ai-assist, generate}, email-campaign-wizard, generate-{blueprint, bot-comments, executive-brief, flow-ai, objective-plan}, hr-{buddy-match-ai, candidate-score-ai, cv-parse-ai, face-verify, job-ai-assist, portal-auto-import, review-ai-suggest-rating, talent-search}, marketing-ai-copilot, process-{portfolio-allocation, strategy-layer, workspace-memory}, supplier-web-search, ticket-ai-reply.
+### 2. `src/components/products/ocr/StepUpload.tsx` — débito antes da extração
+- Importar `useCreditWallet` + `triggerNoCreditsDialog`.
+- Em `runExtraction`:
+  - obter `getCost('ai_document_ocr')` e `canAfford('ai_document_ocr')`;
+  - se não pode, abrir dialog e abortar;
+  - `await consumeCredits.mutateAsync({ actionKey: 'ai_document_ocr', idempotencyKey: \`${currentDoc.id}:extract\`, referenceType: 'product_ocr_document', referenceId: currentDoc.id });`
+  - só depois `supabase.functions.invoke("product-ocr-extract", ...)`.
+- Atualizar texto do botão para incluir o custo.
 
-### Resultado Final (Fases 1+2+3)
-| Categoria | Antes | Depois |
-|---|---|---|
-| Funções OK (instrumentadas) | 119 | **167** (+48) |
-| MISSING_LOG (sem registo) | 45 | **12** (todas hooks não-AI legítimos) |
-| DEAD_VAR (bug silencioso) | 18 | **0 reais** |
+### 3. `src/pages/ProductOCRCreate.tsx` — débito antes da geração de conteúdo
+- Em `generateContent` aplicar o mesmo padrão com `actionKey='product_ocr_generate_content'` e `idempotencyKey=\`${doc.id}:generate-content\``.
+- Atualizar o botão correspondente (em `StepProductSheet` ou onde estiver a chamar `generateContent`) para mostrar o custo.
 
-12 MISSING_LOG restantes são todas justificadas: `auth-email-hook`, `billing-assistant`, `ebook-lead-welcome`, `firecrawl-market-search`, `handle-email-suppression`, `preview-transactional-email`, `process-email-queue`, `system-run-smoke-tests`, `telegram-poll`, `telegram-send`, `twilio-send-sms`, `vision-duo-invite` — não fazem chamadas a modelos AI directos.
+### 4. (Opcional, recomendado) — defesa em profundidade nas edge functions
+Hoje a wallet só é validada no frontend. Para garantir que não passa por chamadas directas à edge function, podemos validar no servidor também:
+- No início de `product-ocr-extract` e `product-ocr-generate-content`, chamar `consume_funnel_credits` com `service_role` se o frontend não enviou idempotency key, ou pelo menos verificar saldo. **Decisão**: deixar para uma segunda fase para não alargar o âmbito; o padrão actual da app é débito client-side e é consistente.
 
-### Fases pendentes
-- **Fase 4** — Ligar `ai_usage_logs` ao `credit_ledger` para reconciliação automática de billing.
-- **Monitorização** — Dashboard interno com funções sem registo nos últimos 7 dias para detectar regressões.
+## Plano de implementação
 
+1. Criar migration com a regra `product_ocr_generate_content` (5 créditos).
+2. Editar `StepUpload.tsx` — guard + débito + label do botão.
+3. Editar `ProductOCRCreate.tsx` (`generateContent`) — guard + débito + label do botão.
+4. Ajustar o componente que renderiza o botão "Gerar conteúdo" para receber o custo.
+5. QA manual:
+   - Saldo suficiente: ler doc → saldo desce 3, gerar conteúdo → saldo desce 5, `credit_ledger` mostra duas entradas com `reference_id = doc.id`.
+   - Saldo insuficiente: dialog "Sem créditos" abre, edge function não é chamada (verificar Network).
+   - Duplo-clique: idempotencyKey impede segundo débito.
+   - Falha da edge function após débito: toast de erro, crédito permanece debitado (consistente com restantes fluxos).
+
+## Critérios de aceitação
+
+- [ ] Carregar em "Ler documento" debita 3 créditos visíveis na wallet.
+- [ ] Carregar em "Gerar conteúdo" debita 5 créditos visíveis na wallet.
+- [ ] Sem saldo, ambos os botões abrem o dialog de compra de créditos e não invocam a edge function.
+- [ ] `credit_ledger` regista as transações com `module`, `action_key`, `reference_type='product_ocr_document'`, `reference_id`.
+- [ ] Repetir a mesma acção no mesmo documento (mesmo idempotency key) não duplica o débito.
+- [ ] Botões mostram o custo em créditos.
+
+## Riscos e pontos por validar
+
+- **Custo de 5 créditos para geração de conteúdo**: confirmar com o utilizador se concorda ou prefere outro valor (3? 4? 6?).
+- **Cobrança antes vs. depois da chamada AI**: padrão actual da app é "antes". Se a IA falhar o crédito não é estornado. Aceitável?
+- **Defesa server-side (edge function)**: deixada para segunda fase. Confirma?
