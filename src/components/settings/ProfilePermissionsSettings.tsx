@@ -13,8 +13,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "sonner";
 import {
   Shield, Save, RefreshCw, User, Eye, Briefcase, Crown,
-  ChevronRight, Search, Plus, Trash2,
+  ChevronRight, Search, Plus, Trash2, History,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
 import { ROUTE_MANIFEST, NAV_GROUPS, type RouteEntry } from "@/config/routeManifest";
 
 const SALES_FUNCTIONS = [
