@@ -104,9 +104,30 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
 
   const runExtraction = useCallback(async () => {
     if (!currentDoc) return;
+
+    // Guard: saldo insuficiente → abrir dialog de compra de créditos
+    if (extractCost > 0 && !canAfford(OCR_EXTRACT_ACTION)) {
+      triggerNoCreditsDialog({
+        actionLabel: "Leitura OCR de documento",
+        creditsNeeded: extractCost,
+      });
+      return;
+    }
+
     setExtracting(true);
     toast.loading("A ler documento com IA…", { id: "extract" });
     try {
+      // Debitar créditos primeiro (idempotente por documento)
+      if (extractCost > 0) {
+        await consumeCredits.mutateAsync({
+          actionKey: OCR_EXTRACT_ACTION,
+          idempotencyKey: `${currentDoc.id}:extract`,
+          referenceType: "product_ocr_document",
+          referenceId: currentDoc.id,
+          metadata: { file_name: currentDoc.file_name },
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke("product-ocr-extract", {
         body: { document_id: currentDoc.id },
       });
@@ -128,7 +149,7 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
     } finally {
       setExtracting(false);
     }
-  }, [currentDoc, onExtracted]);
+  }, [currentDoc, onExtracted, extractCost, canAfford, consumeCredits]);
 
   return (
     <Card>
