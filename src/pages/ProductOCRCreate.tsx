@@ -295,6 +295,9 @@ export default function ProductOCRCreate() {
       toast.error("O nome do produto é obrigatório.");
       return;
     }
+    if (!sheet.base_price || numOrNull(sheet.base_price) === null) {
+      toast.warning("PVP não preenchido — o produto será criado com PVP a 0€ e ficará marcado como pendente de revisão.", { duration: 6000 });
+    }
     setCreating(true);
     try {
       // 1. Verificar EAN duplicado
