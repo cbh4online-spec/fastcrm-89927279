@@ -84,6 +84,7 @@ import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductLifecycleTab } from "./ProductLifecycleTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
+import { ProductOCRContentSection } from "./ProductOCRContentSection";
 import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
 import { ProductActivityLog } from "./ProductActivityLog";
 import { ProductPublishingPanel } from "./ProductPublishingPanel";
