@@ -290,8 +290,16 @@ export function ProfilePermissionsSettings() {
                   {menuChanges.size > 0 && (
                     <Badge variant="secondary">{menuChanges.size} alteração(ões)</Badge>
                   )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => queryClient.refetchQueries({ queryKey: ["profile-menu-permissions", workspaceId] })}
+                    title="Recarregar do servidor"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => setMenuChanges(new Map())} disabled={menuChanges.size === 0}>
-                    <RefreshCw className="h-4 w-4 mr-1" /> Repor
+                    Repor
                   </Button>
                   <Button size="sm" onClick={() => saveMenus.mutate()} disabled={menuChanges.size === 0 || saveMenus.isPending}>
                     <Save className="h-4 w-4 mr-1" /> Guardar
