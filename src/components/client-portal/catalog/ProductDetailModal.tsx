@@ -90,6 +90,8 @@ interface ProductDetailModalProps {
   vatRate?: number;
   effectivePrice?: number;
   hasDiscount?: boolean;
+  onTagClick?: (tag: string) => void;
+  activeTag?: string | null;
 }
 
 export function ProductDetailModal({
@@ -100,6 +102,8 @@ export function ProductDetailModal({
   vatRate = 23,
   effectivePrice,
   hasDiscount,
+  onTagClick,
+  activeTag,
 }: ProductDetailModalProps) {
   const [quantity, setQuantity] = useState(1);
 
