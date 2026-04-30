@@ -84,8 +84,10 @@ export default function SJCohorts() {
               </CardHeader>
               <CardContent>
                 <Badge className={cn(statusConfig.bgColor, statusConfig.color, "border-0")}>{statusConfig.label}</Badge>
+                <div className="mt-3">
+                  <CohortPhaseProgress cohortId={cohort.id} compact />
+                </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">
-                  {cohort.start_date && <div className="flex items-center gap-1"><Calendar className="h-4 w-4" />{format(new Date(cohort.start_date), "dd MMM yyyy", { locale: pt })}</div>}
                   {cohort.capacity && <div className="flex items-center gap-1"><Users className="h-4 w-4" />Máx. {cohort.capacity}</div>}
                 </div>
               </CardContent>
