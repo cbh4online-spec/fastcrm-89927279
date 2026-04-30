@@ -13,11 +13,38 @@ interface Product {
   effective_price: number;
   has_discount: boolean;
   category: string | null;
+  subcategory?: string | null;
+  line?: string | null;
   images: string[] | null;
   primary_image_index: number | null;
   specifications: Record<string, any> | null;
   status: string;
   workspace_id: string;
+  benefits?: string[] | null;
+  conditions?: string | null;
+  tags?: string[] | null;
+  recommended_frequency?: string | null;
+  typical_duration_days?: number | null;
+  included_quantity?: number | null;
+  unit_name?: string | null;
+  pack_size?: number | null;
+  min_order_quantity?: number | null;
+  order_multiple?: number | null;
+  delivery_estimate?: string | null;
+  stock_status?: string | null;
+  weight_net?: number | null;
+  weight_gross?: number | null;
+  volume_value?: number | null;
+  volume_unit?: string | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  package_type?: string | null;
+  barcode?: string | null;
+  demo_video_url?: string | null;
+  brand_logo_url?: string | null;
+  compare_at_price?: number | null;
+  promo_label?: string | null;
 }
 
 interface ProductFilters {
@@ -98,7 +125,9 @@ export function useClientProducts(
 
       let query = supabase
         .from("products")
-        .select("id, name, sku, short_description, commercial_description, base_price, category, images, primary_image_index, specifications, status, workspace_id")
+        .select(
+          "id, name, sku, short_description, commercial_description, base_price, category, subcategory, line, images, primary_image_index, specifications, status, workspace_id, benefits, conditions, tags, recommended_frequency, typical_duration_days, included_quantity, unit_name, pack_size, min_order_quantity, order_multiple, delivery_estimate, stock_status, weight_net, weight_gross, volume_value, volume_unit, length_cm, width_cm, height_cm, package_type, barcode, demo_video_url, brand_logo_url, compare_at_price, promo_label",
+        )
         .eq("workspace_id", workspaceId)
         .eq("status", "active")
         .eq("b2b_published", true)
