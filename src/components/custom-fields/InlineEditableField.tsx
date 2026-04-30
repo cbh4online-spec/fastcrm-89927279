@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CalendarIcon, Check, Pencil, X, Loader2, ExternalLink, Sparkles } from "lucide-react";
-import { format, isValid } from "date-fns";
+import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
 // Robust date parser — handles dd/MM/yyyy, dd-MM-yyyy, yyyy-MM-dd and 2-digit years.
