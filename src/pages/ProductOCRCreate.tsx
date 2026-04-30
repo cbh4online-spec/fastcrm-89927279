@@ -347,6 +347,11 @@ export default function ProductOCRCreate() {
 
       const pendingFields = computePendingFields();
       const userId = (await supabase.auth.getUser()).data.user?.id ?? null;
+      if (!userId) {
+        toast.error("Sessão expirada. Volta a iniciar sessão antes de criar o produto.");
+        setCreating(false);
+        return;
+      }
 
       const numOrNull = (v: string) => {
         if (!v) return null;
