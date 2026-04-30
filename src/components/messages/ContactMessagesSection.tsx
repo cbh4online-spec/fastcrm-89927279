@@ -350,11 +350,41 @@ export function ContactMessagesSection({
           toast.error("Telefone não disponível");
         }
         break;
+      case 'instagram': {
+        // Instagram não suporta pré-preencher mensagens via URL.
+        // Estratégia: copiar mensagem para o clipboard + abrir a DM (ou perfil) numa nova aba.
+        navigator.clipboard.writeText(draft.content).catch(() => {});
+
+        const igUrl = entityContext?.instagram_url?.trim();
+        let username: string | null = null;
+        if (igUrl) {
+          try {
+            const u = new URL(igUrl.startsWith("http") ? igUrl : `https://${igUrl}`);
+            // ex: instagram.com/ruipinheirocoach/
+            username = u.pathname.replace(/^\/+|\/+$/g, "").split("/")[0] || null;
+          } catch {
+            // fallback: extrair handle de strings tipo "@handle" ou "handle"
+            const m = igUrl.match(/(?:instagram\.com\/)?@?([a-zA-Z0-9._]+)/);
+            username = m?.[1] ?? null;
+          }
+        }
+
+        if (username) {
+          // Abre directamente a janela de DM com o utilizador
+          window.open(`https://www.instagram.com/direct/new/?username=${encodeURIComponent(username)}`, "_blank");
+          toast.success("Mensagem copiada — cole na conversa do Instagram", { duration: 5000 });
+        } else {
+          // Sem handle — abre o inbox geral
+          window.open("https://www.instagram.com/direct/inbox/", "_blank");
+          toast.info("Mensagem copiada — Instagram aberto. Sem handle do contacto para abrir a DM directa.", { duration: 6000 });
+        }
+        break;
+      }
       default:
         handleCopy();
         toast.info("Mensagem copiada - cole no canal desejado");
     }
-  }, [draft, selectedChannel, entityEmail, entityPhone, handleCopy]);
+  }, [draft, selectedChannel, entityEmail, entityPhone, entityContext, handleCopy]);
 
   // Modify draft with AI
   const handleModifyDraft = useCallback(async (action: 'shorten' | 'formal' | 'friendly' | 'rewrite') => {
