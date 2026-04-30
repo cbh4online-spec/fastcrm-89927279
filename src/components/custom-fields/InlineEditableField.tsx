@@ -58,6 +58,13 @@ function autoFormatDateInput(raw: string): string {
   if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
+
+// Convert any stored date value to dd/MM/yyyy text for display in the input.
+function valueToDisplayDate(val: unknown): string {
+  if (!val) return "";
+  const d = parseUserDate(String(val));
+  return d ? format(d, "dd/MM/yyyy") : String(val);
+}
 import { cn } from "@/lib/utils";
 import { FieldSuggestion } from "@/hooks/useFieldSuggestions";
 import { InlineFieldSuggestion } from "@/components/ai/InlineFieldSuggestion";
