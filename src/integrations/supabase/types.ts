@@ -19059,6 +19059,401 @@ export type Database = {
           },
         ]
       }
+      composite_product_ai_suggestions: {
+        Row: {
+          client_id: string | null
+          confidence: number | null
+          created_at: string
+          estimated_margin_pct: number | null
+          estimated_revenue: number | null
+          id: string
+          kit_id: string | null
+          payload: Json
+          rationale: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggestion_type: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          estimated_margin_pct?: number | null
+          estimated_revenue?: number | null
+          id?: string
+          kit_id?: string | null
+          payload?: Json
+          rationale?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggestion_type: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          client_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          estimated_margin_pct?: number | null
+          estimated_revenue?: number | null
+          id?: string
+          kit_id?: string | null
+          payload?: Json
+          rationale?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggestion_type?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "composite_product_ai_suggestions_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "product_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composite_product_ai_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "composite_product_ai_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      composite_product_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_required: boolean | null
+          kit_id: string
+          max_choices: number | null
+          min_choices: number | null
+          name: string
+          sort_order: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_required?: boolean | null
+          kit_id: string
+          max_choices?: number | null
+          min_choices?: number | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_required?: boolean | null
+          kit_id?: string
+          max_choices?: number | null
+          min_choices?: number | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "composite_product_groups_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "product_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composite_product_groups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "composite_product_groups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      composite_product_pricing_rules: {
+        Row: {
+          channel: string | null
+          client_segment: string | null
+          created_at: string
+          discount_pct: number | null
+          id: string
+          is_active: boolean | null
+          kit_id: string
+          min_quantity: number | null
+          price: number | null
+          rule_type: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string | null
+          client_segment?: string | null
+          created_at?: string
+          discount_pct?: number | null
+          id?: string
+          is_active?: boolean | null
+          kit_id: string
+          min_quantity?: number | null
+          price?: number | null
+          rule_type: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channel?: string | null
+          client_segment?: string | null
+          created_at?: string
+          discount_pct?: number | null
+          id?: string
+          is_active?: boolean | null
+          kit_id?: string
+          min_quantity?: number | null
+          price?: number | null
+          rule_type?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "composite_product_pricing_rules_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "product_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composite_product_pricing_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "composite_product_pricing_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      composite_product_simulations: {
+        Row: {
+          created_at: string
+          expected_quantity: number
+          id: string
+          inputs: Json | null
+          kit_id: string
+          margin_pct: number | null
+          margin_risk: string | null
+          missing_components: Json | null
+          recommendation: string | null
+          required_stock: Json | null
+          total_cost: number | null
+          total_revenue: number | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          expected_quantity?: number
+          id?: string
+          inputs?: Json | null
+          kit_id: string
+          margin_pct?: number | null
+          margin_risk?: string | null
+          missing_components?: Json | null
+          recommendation?: string | null
+          required_stock?: Json | null
+          total_cost?: number | null
+          total_revenue?: number | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          expected_quantity?: number
+          id?: string
+          inputs?: Json | null
+          kit_id?: string
+          margin_pct?: number | null
+          margin_risk?: string | null
+          missing_components?: Json | null
+          recommendation?: string | null
+          required_stock?: Json | null
+          total_cost?: number | null
+          total_revenue?: number | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "composite_product_simulations_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "product_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composite_product_simulations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "composite_product_simulations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      composite_product_substitutes: {
+        Row: {
+          created_at: string
+          estimated_margin_pct: number | null
+          id: string
+          is_active: boolean | null
+          kit_id: string
+          original_product_id: string
+          priority: number | null
+          reason: string | null
+          substitute_product_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_margin_pct?: number | null
+          id?: string
+          is_active?: boolean | null
+          kit_id: string
+          original_product_id: string
+          priority?: number | null
+          reason?: string | null
+          substitute_product_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          estimated_margin_pct?: number | null
+          id?: string
+          is_active?: boolean | null
+          kit_id?: string
+          original_product_id?: string
+          priority?: number | null
+          reason?: string | null
+          substitute_product_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "composite_product_substitutes_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "product_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composite_product_substitutes_original_product_id_fkey"
+            columns: ["original_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composite_product_substitutes_original_product_id_fkey"
+            columns: ["original_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "composite_product_substitutes_original_product_id_fkey"
+            columns: ["original_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composite_product_substitutes_substitute_product_id_fkey"
+            columns: ["substitute_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composite_product_substitutes_substitute_product_id_fkey"
+            columns: ["substitute_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "composite_product_substitutes_substitute_product_id_fkey"
+            columns: ["substitute_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "composite_product_substitutes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "composite_product_substitutes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumption_logs: {
         Row: {
           acquired_product_id: string
@@ -51474,33 +51869,61 @@ export type Database = {
       }
       product_kit_items: {
         Row: {
+          allows_substitution: boolean | null
           created_at: string
+          group_id: string | null
           id: string
+          is_required: boolean | null
           is_validated: boolean | null
           kit_id: string
+          notes: string | null
           product_id: string | null
           product_name_suggested: string | null
           quantity: number
+          sort_order: number | null
+          unit_cost_snapshot: number | null
+          unit_price_snapshot: number | null
         }
         Insert: {
+          allows_substitution?: boolean | null
           created_at?: string
+          group_id?: string | null
           id?: string
+          is_required?: boolean | null
           is_validated?: boolean | null
           kit_id: string
+          notes?: string | null
           product_id?: string | null
           product_name_suggested?: string | null
           quantity?: number
+          sort_order?: number | null
+          unit_cost_snapshot?: number | null
+          unit_price_snapshot?: number | null
         }
         Update: {
+          allows_substitution?: boolean | null
           created_at?: string
+          group_id?: string | null
           id?: string
+          is_required?: boolean | null
           is_validated?: boolean | null
           kit_id?: string
+          notes?: string | null
           product_id?: string | null
           product_name_suggested?: string | null
           quantity?: number
+          sort_order?: number | null
+          unit_cost_snapshot?: number | null
+          unit_price_snapshot?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_kit_items_group_fk"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "composite_product_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_kit_items_kit_id_fkey"
             columns: ["kit_id"]
@@ -51533,42 +51956,87 @@ export type Database = {
       }
       product_kits: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
+          category: string | null
+          composition_type: string
           created_at: string
           created_by: string | null
           description: string | null
+          discount_pct: number | null
+          fixed_price: number | null
           id: string
+          image_url: string | null
           kit_type: string | null
+          margin_guard_level: string | null
+          metadata: Json | null
+          min_margin_pct: number | null
           name: string
+          pricing_mode: string
+          requires_approval: boolean | null
+          sales_channels: string[] | null
+          sku: string | null
           source: string | null
           status: string | null
           updated_at: string
           validation_status: string | null
+          visibility_b2b: boolean | null
           workspace_id: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          composition_type?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
+          discount_pct?: number | null
+          fixed_price?: number | null
           id?: string
+          image_url?: string | null
           kit_type?: string | null
+          margin_guard_level?: string | null
+          metadata?: Json | null
+          min_margin_pct?: number | null
           name: string
+          pricing_mode?: string
+          requires_approval?: boolean | null
+          sales_channels?: string[] | null
+          sku?: string | null
           source?: string | null
           status?: string | null
           updated_at?: string
           validation_status?: string | null
+          visibility_b2b?: boolean | null
           workspace_id: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          composition_type?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
+          discount_pct?: number | null
+          fixed_price?: number | null
           id?: string
+          image_url?: string | null
           kit_type?: string | null
+          margin_guard_level?: string | null
+          metadata?: Json | null
+          min_margin_pct?: number | null
           name?: string
+          pricing_mode?: string
+          requires_approval?: boolean | null
+          sales_channels?: string[] | null
+          sku?: string | null
           source?: string | null
           status?: string | null
           updated_at?: string
           validation_status?: string | null
+          visibility_b2b?: boolean | null
           workspace_id?: string
         }
         Relationships: []
@@ -73621,6 +74089,7 @@ export type Database = {
         Args: { _auth_user_id: string }
         Returns: Database["public"]["Enums"]["client_role"][]
       }
+      get_composite_kit_stock: { Args: { _kit_id: string }; Returns: Json }
       get_entity_memory_stats: {
         Args: {
           p_entity_id: string
@@ -73794,14 +74263,19 @@ export type Database = {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
       }
-      has_workspace_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["workspace_role"]
-          _user_id: string
-          _workspace_id: string
-        }
-        Returns: boolean
-      }
+      has_workspace_role:
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["workspace_role"]
+              _user_id: string
+              _workspace_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: { _roles: string[]; _user_id: string; _workspace_id: string }
+            Returns: boolean
+          }
       increment_agent_completion: {
         Args: { p_agent_id: string }
         Returns: undefined
