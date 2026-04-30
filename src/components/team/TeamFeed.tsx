@@ -267,6 +267,25 @@ function FeedPostCard({ post, currentUserId, onReaction, onComment }: FeedPostCa
           </Badge>
         ))}
       </div>
+
+      {/* Comment input */}
+      <form onSubmit={handleComment} className="flex gap-2 pt-2">
+        <Input
+          placeholder="Escreve um comentário…"
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          maxLength={1000}
+          className="h-8 text-sm"
+        />
+        <Button
+          type="submit"
+          size="sm"
+          variant="secondary"
+          disabled={posting || !commentText.trim()}
+        >
+          {posting ? '…' : 'Enviar'}
+        </Button>
+      </form>
     </div>
   );
 }
