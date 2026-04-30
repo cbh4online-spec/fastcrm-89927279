@@ -98,7 +98,9 @@ export function useClientProducts(
 
       let query = supabase
         .from("products")
-        .select("id, name, sku, short_description, commercial_description, base_price, category, images, primary_image_index, specifications, status, workspace_id")
+        .select(
+          "id, name, sku, short_description, commercial_description, base_price, category, subcategory, line, images, primary_image_index, specifications, status, workspace_id, benefits, conditions, tags, recommended_frequency, typical_duration_days, included_quantity, unit_name, pack_size, min_order_quantity, order_multiple, delivery_estimate, stock_status, weight_net, weight_gross, volume_value, volume_unit, length_cm, width_cm, height_cm, package_type, barcode, demo_video_url, brand_logo_url, compare_at_price, promo_label",
+        )
         .eq("workspace_id", workspaceId)
         .eq("status", "active")
         .eq("b2b_published", true)
