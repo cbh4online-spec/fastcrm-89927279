@@ -193,6 +193,24 @@ export default function ProductOCRCreate() {
   const next = () => setStep((s) => Math.min(6, s + 1));
   const prev = () => setStep((s) => Math.max(1, s - 1));
 
+  // ---------------------------------------------------------------
+  // AUTO-SAVE (debounced) → product_ocr_documents.wizard_state
+  // Só guarda enquanto o documento existe e ainda não foi convertido.
+  // ---------------------------------------------------------------
+  const snapshot = useMemo(() => ({
+    step,
+    sheet,
+    content,
+    sales,
+    structured,
+  }), [step, sheet, content, sales, structured]);
+
+  const { status: saveStatus, lastSavedAt } = useOCRWizardAutoSave(
+    doc?.id ?? null,
+    snapshot,
+    !!doc?.id && !creating && !restoring,
+  );
+
   const generateContent = useCallback(async () => {
     if (!structured) {
       toast.error("Faz primeiro a leitura do documento.");
