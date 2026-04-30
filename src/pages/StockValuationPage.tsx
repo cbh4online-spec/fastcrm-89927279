@@ -71,7 +71,7 @@ export default function StockValuationPage() {
       "Valor stock a custo",
       "Base s/IVA actual", "Base s/IVA sugerido",
       "PVP unit.", "Valor a PVP",
-      "Margem €", "Margem %",
+      "Margem €", "Margem % s/PVP", "Markup % s/Custo",
     ];
     const lines = filtered.map((r) => [
       r.sku || "",
@@ -88,6 +88,7 @@ export default function StockValuationPage() {
       r.total_sale_value.toFixed(2),
       r.latent_margin.toFixed(2),
       r.latent_margin_pct.toFixed(2),
+      r.markup_pct.toFixed(2),
     ].join(";"));
     const csv = [headers.join(";"), ...lines].join("\n");
     const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8;" });
@@ -210,7 +211,7 @@ export default function StockValuationPage() {
                   <TableHead colSpan={3} className="text-center border-r bg-blue-50/50 dark:bg-blue-950/20">
                     Preços de venda
                   </TableHead>
-                  <TableHead colSpan={2} className="text-center bg-emerald-50/50 dark:bg-emerald-950/20">
+                  <TableHead colSpan={3} className="text-center bg-emerald-50/50 dark:bg-emerald-950/20">
                     Margem
                   </TableHead>
                 </TableRow>
@@ -219,33 +220,38 @@ export default function StockValuationPage() {
                   <TableHead className="cursor-pointer" onClick={() => toggleSort("name")}>Produto</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("stock")}>Un.</TableHead>
-                  <TableHead className="text-right">P.Custo</TableHead>
-                  <TableHead className="text-right">Custo Op.</TableHead>
-                  <TableHead className="text-right font-semibold">Custo Total</TableHead>
-                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("cost_value")}>
+                  <TableHead className="text-right" title="Custo médio FIFO do produto">P.Custo</TableHead>
+                  <TableHead className="text-right" title="Custo operacional unitário (logística, overhead, etc.)">Custo Op.</TableHead>
+                  <TableHead className="text-right font-semibold" title="P.Custo + Custo Operacional">Custo Total</TableHead>
+                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("cost_value")} title="Stock × Custo Total">
                     Valor stock
                   </TableHead>
                   <TableHead className="text-right">Base s/IVA actual</TableHead>
-                  <TableHead className="text-right">Base s/IVA sugerido</TableHead>
+                  <TableHead className="text-right" title="Preço sugerido com base na margem alvo do produto">Base s/IVA sugerido</TableHead>
                   <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("sale_value")}>
                     Valor a PVP
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin")}>€</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin_pct")}>%</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin")} title="Stock × (PVP − Custo Total)">€ lucro</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin_pct")} title="(PVP − Custo Total) ÷ PVP — padrão contabilístico PT, sempre 0–100%">
+                    % s/PVP
+                  </TableHead>
+                  <TableHead className="text-right" title="(PVP − Custo Total) ÷ Custo Total — markup, pode ultrapassar 100%">
+                    % s/Custo
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 12 }).map((_, j) => (
+                      {Array.from({ length: 13 }).map((_, j) => (
                         <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={13} className="text-center text-muted-foreground py-12">
                       Sem produtos para mostrar
                     </TableCell>
                   </TableRow>
@@ -293,6 +299,9 @@ export default function StockValuationPage() {
                           <Badge variant={r.latent_margin_pct < 0 ? "destructive" : r.latent_margin_pct < 15 ? "secondary" : "default"}>
                             {r.latent_margin_pct.toFixed(1)}%
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground">
+                          {r.markup_pct.toFixed(0)}%
                         </TableCell>
                       </TableRow>
                     );

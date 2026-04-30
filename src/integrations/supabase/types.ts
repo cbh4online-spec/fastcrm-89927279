@@ -73811,6 +73811,7 @@ export type Database = {
           fifo_avg_cost: number
           latent_margin: number
           latent_margin_pct: number
+          markup_pct: number
           operational_cost_unit: number
           product_id: string
           product_name: string
