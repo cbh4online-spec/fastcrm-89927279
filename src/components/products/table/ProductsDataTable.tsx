@@ -323,9 +323,12 @@ export function ProductsDataTable({
                   );
                 })}
                 <TableHead
-                  className="sticky right-0 bg-background z-20 border-l border-border shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)]"
+                  scope="col"
+                  className="sticky right-0 bg-background z-20 border-l border-border shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.08)] text-center"
                   style={{ width: 56, minWidth: 56, maxWidth: 56 }}
-                />
+                >
+                  <span className="sr-only">Ações</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
           </Table>
@@ -347,7 +350,7 @@ export function ProductsDataTable({
                     key={product.id}
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
-                    className="flex items-center border-b border-border hover:bg-muted/50 transition-colors relative"
+                    className="group/row flex items-center border-b border-border hover:bg-muted/50 transition-colors relative"
                     style={{
                       position: "absolute",
                       top: 0,
@@ -362,6 +365,7 @@ export function ProductsDataTable({
                       <Checkbox
                         checked={selectedIds.includes(product.id)}
                         onCheckedChange={(checked) => onSelectOne(product.id, checked as boolean)}
+                        aria-label={`Selecionar ${product.name}`}
                       />
                     </div>
                     {visibleCols.map((colId) => {
@@ -378,30 +382,37 @@ export function ProductsDataTable({
                       );
                     })}
                     <div
-                      className="sticky right-0 ml-auto flex items-center justify-center bg-background border-l border-border shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] flex-shrink-0"
+                      className="sticky right-0 ml-auto flex items-center justify-center bg-background group-hover/row:bg-muted/50 border-l border-border shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.08)] flex-shrink-0 transition-colors"
                       style={{ width: 56, minWidth: 56, maxWidth: 56, height: ROW_HEIGHT, zIndex: 10 }}
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Ações para ${product.name}`}
+                            className="h-8 w-8 rounded-md hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
+                          >
+                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                          </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem onClick={() => onOpenDetail(product)}>
-                            <Eye className="h-4 w-4 mr-2" /> Ver detalhes
+                            <Eye className="h-4 w-4 mr-2" aria-hidden="true" /> Ver detalhes
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onEdit(product)}>
-                            <Edit className="h-4 w-4 mr-2" /> Editar
+                            <Edit className="h-4 w-4 mr-2" aria-hidden="true" /> Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onArchive(product)}>
                             {product.status === "active" ? (
-                              <><Archive className="h-4 w-4 mr-2" /> Arquivar</>
+                              <><Archive className="h-4 w-4 mr-2" aria-hidden="true" /> Arquivar</>
                             ) : (
-                              <><RotateCcw className="h-4 w-4 mr-2" /> Reativar</>
+                              <><RotateCcw className="h-4 w-4 mr-2" aria-hidden="true" /> Reativar</>
                             )}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => onDelete(product)} className="text-destructive focus:text-destructive">
-                            <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                            <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" /> Eliminar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
