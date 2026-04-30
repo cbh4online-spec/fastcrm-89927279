@@ -88,6 +88,7 @@ export default function StockValuationPage() {
       r.total_sale_value.toFixed(2),
       r.latent_margin.toFixed(2),
       r.latent_margin_pct.toFixed(2),
+      r.markup_pct.toFixed(2),
     ].join(";"));
     const csv = [headers.join(";"), ...lines].join("\n");
     const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8;" });
