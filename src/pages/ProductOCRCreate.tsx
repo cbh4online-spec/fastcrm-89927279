@@ -136,7 +136,7 @@ export default function ProductOCRCreate() {
         structured?: OCRStructuredData;
       };
       if (ws) {
-        if (ws.sheet) setSheet({ ...emptyProductSheet(), ...ws.sheet });
+        if (ws.sheet) setSheet(normalizeDraftSheet(ws.sheet));
         if (ws.content) setContent({ ...emptyContent(), ...ws.content });
         if (ws.sales) setSales({ ...emptySalesSupport(), ...ws.sales });
         if (ws.structured && !data.ocr_structured_data) setStructured(ws.structured);
@@ -333,10 +333,10 @@ export default function ProductOCRCreate() {
 
   const computePendingFields = useCallback((): string[] => {
     const pending: string[] = [];
-    if (!sheet.base_price) pending.push("PVP");
-    if (!sheet.direct_cost) pending.push("Preço de custo");
-    if (!sheet.tax_rate_estimate_pct) pending.push("IVA");
-    if (!sheet.stock_quantity) pending.push("Stock inicial");
+    if (!parseDraftNumber(sheet.base_price)) pending.push("PVP");
+    if (!parseDraftNumber(sheet.direct_cost)) pending.push("Preço de custo");
+    if (!parseDraftNumber(sheet.tax_rate_estimate_pct)) pending.push("IVA");
+    if (parseDraftInteger(sheet.stock_quantity) === null) pending.push("Stock inicial");
     if (sheet.is_seasonal_validation_status === "pending" && sheet.is_seasonal) pending.push("Classificação sazonal");
     if (sheet.is_cross_sell_validation_status === "pending" && sheet.is_cross_sell) pending.push("Sugestões de venda cruzada");
     if (sheet.is_kit_candidate_validation_status === "pending" && sheet.is_kit_candidate) pending.push("Sugestões de kit");
@@ -352,7 +352,7 @@ export default function ProductOCRCreate() {
       toast.error("O nome do produto é obrigatório.");
       return;
     }
-    const parsedPrice = sheet.base_price ? parseFloat(sheet.base_price.replace(",", ".")) : NaN;
+    const parsedPrice = parseDraftNumber(sheet.base_price) ?? NaN;
     if (!isFinite(parsedPrice) || parsedPrice <= 0) {
       toast.warning("PVP não preenchido — o produto será criado com PVP a 0€ e ficará marcado como pendente de revisão.", { duration: 6000 });
     }
@@ -382,16 +382,6 @@ export default function ProductOCRCreate() {
         return;
       }
 
-      const numOrNull = (v: string) => {
-        if (!v) return null;
-        const n = parseFloat(v.replace(",", "."));
-        return isFinite(n) ? n : null;
-      };
-      const intOrNull = (v: string) => {
-        if (!v) return null;
-        const n = parseInt(v, 10);
-        return isFinite(n) ? n : null;
-      };
       const clamp = (v: number | null, min: number, max: number) =>
         v === null ? null : Math.min(max, Math.max(min, v));
 
