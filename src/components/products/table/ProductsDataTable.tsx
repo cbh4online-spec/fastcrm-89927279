@@ -290,14 +290,22 @@ export function ProductsDataTable({
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Shared horizontal scroll wrapper for header + body */}
           <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden flex flex-col">
-          {/* Sticky header */}
-          <Table ref={tableRef} style={{ tableLayout: "fixed", width: "auto", minWidth: "100%" }}>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]" style={{ width: 50 }}>
+          {/* Sticky header (sticky to top of vertical scroll body and right edge for actions col) */}
+          <Table
+            ref={tableRef}
+            style={{ tableLayout: "fixed", width: "auto", minWidth: "100%" }}
+            className="border-b border-border"
+          >
+            <TableHeader className="bg-background">
+              <TableRow className="hover:bg-transparent">
+                <TableHead
+                  className="bg-background"
+                  style={{ width: 50, minWidth: 50 }}
+                >
                   <Checkbox
                     checked={products.length > 0 && products.every((p) => selectedIds.includes(p.id))}
                     onCheckedChange={onSelectAll}
+                    aria-label="Selecionar todos os produtos"
                   />
                 </TableHead>
                 {visibleCols.map((colId) => {
@@ -308,7 +316,7 @@ export function ProductsDataTable({
                     <TableHead
                       key={col.id}
                       data-col-id={col.id}
-                      className="relative select-none"
+                      className="relative select-none bg-background"
                       style={{ width: w, minWidth: 60, maxWidth: 600 }}
                     >
                       <span className="truncate block pr-2">{col.label}</span>
@@ -324,8 +332,8 @@ export function ProductsDataTable({
                 })}
                 <TableHead
                   scope="col"
-                  className="sticky right-0 bg-background z-20 border-l border-border shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.08)] text-center"
-                  style={{ width: 56, minWidth: 56, maxWidth: 56 }}
+                  className="sticky right-0 bg-background border-l border-border text-center shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.12)]"
+                  style={{ width: 56, minWidth: 56, maxWidth: 56, zIndex: 30 }}
                 >
                   <span className="sr-only">Ações</span>
                 </TableHead>
@@ -350,7 +358,7 @@ export function ProductsDataTable({
                     key={product.id}
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
-                    className="group/row flex items-center border-b border-border hover:bg-muted/50 transition-colors relative"
+                    className="group/row flex items-center border-b border-border hover:bg-muted/50 transition-colors"
                     style={{
                       position: "absolute",
                       top: 0,
@@ -359,6 +367,9 @@ export function ProductsDataTable({
                       minWidth: "100%",
                       transform: `translateY(${virtualRow.start}px)`,
                       height: ROW_HEIGHT,
+                      // isolate creates a new stacking context per row so sticky z-index
+                      // never interferes with sibling rows or external menus.
+                      isolation: "isolate",
                     }}
                   >
                     <div className="flex items-center px-4 flex-shrink-0" style={{ width: 50, minWidth: 50 }}>
@@ -382,8 +393,8 @@ export function ProductsDataTable({
                       );
                     })}
                     <div
-                      className="sticky right-0 ml-auto flex items-center justify-center bg-background group-hover/row:bg-muted/50 border-l border-border shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.08)] flex-shrink-0 transition-colors"
-                      style={{ width: 56, minWidth: 56, maxWidth: 56, height: ROW_HEIGHT, zIndex: 10 }}
+                      className="sticky right-0 ml-auto flex items-center justify-center bg-background group-hover/row:bg-muted/50 border-l border-border shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.12)] flex-shrink-0 transition-colors"
+                      style={{ width: 56, minWidth: 56, maxWidth: 56, height: ROW_HEIGHT, zIndex: 20 }}
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
