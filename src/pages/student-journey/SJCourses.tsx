@@ -39,6 +39,7 @@ import { pt } from "date-fns/locale";
 import { CreateCourseDialog } from "@/components/student-journey/CreateCourseDialog";
 import { CreateCohortDialog } from "@/components/student-journey/CreateCohortDialog";
 import { EditCourseDialog } from "@/components/student-journey/EditCourseDialog";
+import { CohortPhaseProgress } from "@/components/student-journey/CohortPhaseProgress";
 import { SJCourse } from "@/types/studentJourney";
 
 const COURSE_TYPE_LABELS: Record<CourseType, string> = {
