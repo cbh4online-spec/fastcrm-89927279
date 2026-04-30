@@ -200,59 +200,103 @@ export default function StockValuationPage() {
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
+                {/* Linha 1: grupos */}
+                <TableRow className="bg-muted/40">
+                  <TableHead colSpan={2} className="border-r">Produto</TableHead>
+                  <TableHead className="text-right border-r">Stock</TableHead>
+                  <TableHead colSpan={4} className="text-center border-r bg-amber-50/50 dark:bg-amber-950/20">
+                    Custos (s/IVA)
+                  </TableHead>
+                  <TableHead colSpan={3} className="text-center border-r bg-blue-50/50 dark:bg-blue-950/20">
+                    Preços de venda
+                  </TableHead>
+                  <TableHead colSpan={2} className="text-center bg-emerald-50/50 dark:bg-emerald-950/20">
+                    Margem
+                  </TableHead>
+                </TableRow>
+                {/* Linha 2: colunas detalhadas */}
                 <TableRow>
                   <TableHead className="cursor-pointer" onClick={() => toggleSort("name")}>Produto</TableHead>
                   <TableHead>SKU</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("stock")}>Stock</TableHead>
-                  <TableHead className="text-right">Custo unit.</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("cost_value")}>Valor a custo</TableHead>
-                  <TableHead className="text-right">PVP unit.</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("sale_value")}>Valor a PVP</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin")}>Margem €</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin_pct")}>Margem %</TableHead>
+                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("stock")}>Un.</TableHead>
+                  <TableHead className="text-right">P.Custo</TableHead>
+                  <TableHead className="text-right">Custo Op.</TableHead>
+                  <TableHead className="text-right font-semibold">Custo Total</TableHead>
+                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("cost_value")}>
+                    Valor stock
+                  </TableHead>
+                  <TableHead className="text-right">Base s/IVA actual</TableHead>
+                  <TableHead className="text-right">Base s/IVA sugerido</TableHead>
+                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("sale_value")}>
+                    Valor a PVP
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin")}>€</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin_pct")}>%</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 9 }).map((_, j) => (
+                      {Array.from({ length: 12 }).map((_, j) => (
                         <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={12} className="text-center text-muted-foreground py-12">
                       Sem produtos para mostrar
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((r) => (
-                    <TableRow key={r.product_id}>
-                      <TableCell className="font-medium">{r.product_name}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{r.sku || "—"}</TableCell>
-                      <TableCell className="text-right">
-                        {r.current_stock <= 0 ? (
-                          <Badge variant="destructive">0</Badge>
-                        ) : (
-                          fmt(r.current_stock, false)
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">{fmt(r.fifo_avg_cost)}</TableCell>
-                      <TableCell className="text-right font-medium">{fmt(r.total_cost_value)}</TableCell>
-                      <TableCell className="text-right">{fmt(r.unit_sale_price)}</TableCell>
-                      <TableCell className="text-right font-medium">{fmt(r.total_sale_value)}</TableCell>
-                      <TableCell className={`text-right font-medium ${r.latent_margin < 0 ? "text-destructive" : "text-emerald-600"}`}>
-                        {fmt(r.latent_margin)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={r.latent_margin_pct < 0 ? "destructive" : r.latent_margin_pct < 15 ? "secondary" : "default"}>
-                          {r.latent_margin_pct.toFixed(1)}%
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filtered.map((r) => {
+                    const suggested = r.suggested_base_price;
+                    const delta = suggested != null ? r.unit_sale_price - suggested : null;
+                    return (
+                      <TableRow key={r.product_id}>
+                        <TableCell className="font-medium">{r.product_name}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{r.sku || "—"}</TableCell>
+                        <TableCell className="text-right border-r">
+                          {r.current_stock <= 0 ? (
+                            <Badge variant="destructive">0</Badge>
+                          ) : (
+                            fmt(r.current_stock, false)
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">{fmt(r.fifo_avg_cost)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {r.operational_cost_unit > 0 ? fmt(r.operational_cost_unit) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">{fmt(r.total_unit_cost)}</TableCell>
+                        <TableCell className="text-right font-medium border-r">{fmt(r.total_cost_value)}</TableCell>
+                        <TableCell className="text-right">{fmt(r.unit_sale_price)}</TableCell>
+                        <TableCell className="text-right">
+                          {suggested != null ? (
+                            <div className="flex flex-col items-end leading-tight">
+                              <span className="font-medium">{fmt(suggested)}</span>
+                              {delta != null && Math.abs(delta) >= 0.01 && (
+                                <span className={`text-[10px] ${delta < 0 ? "text-destructive" : "text-emerald-600"}`}>
+                                  {delta > 0 ? "+" : ""}{fmt(delta)}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">sem margem alvo</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium border-r">{fmt(r.total_sale_value)}</TableCell>
+                        <TableCell className={`text-right font-medium ${r.latent_margin < 0 ? "text-destructive" : "text-emerald-600"}`}>
+                          {fmt(r.latent_margin)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={r.latent_margin_pct < 0 ? "destructive" : r.latent_margin_pct < 15 ? "secondary" : "default"}>
+                            {r.latent_margin_pct.toFixed(1)}%
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
