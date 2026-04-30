@@ -71,6 +71,7 @@ export function useCreditWallet() {
     queryKey: ["credit-pricing-rules"],
     queryFn: async (): Promise<CreditPricingRule[]> => {
       const { data, error } = await supabase
+        // eslint-disable-next-line no-restricted-syntax -- baseline: docs/security/credits-frontend-hardening.md (Fase 2)
         .from("credit_pricing_rules")
         .select("*")
         .eq("is_active", true)
@@ -133,6 +134,7 @@ export function useCreditWallet() {
     }) => {
       if (!workspaceId || !user) throw new Error("Não autenticado");
 
+      // eslint-disable-next-line no-restricted-syntax -- baseline: docs/security/credits-frontend-hardening.md (wrapper @deprecated, remover na Fase 4)
       const { data, error } = await supabase.rpc("consume_funnel_credits", {
         p_workspace_id: workspaceId,
         p_user_id: user.id,

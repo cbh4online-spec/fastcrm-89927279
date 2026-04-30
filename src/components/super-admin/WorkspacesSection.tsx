@@ -501,6 +501,7 @@ export function WorkspacesSection() {
   const assignCredits = useMutation({
     mutationFn: async ({ workspaceId, amount, description }: { workspaceId: string; amount: number; description: string }) => {
       if (!user) throw new Error("Não autenticado");
+      // eslint-disable-next-line no-restricted-syntax -- baseline: docs/security/credits-frontend-hardening.md (legítimo: super-admin protegido por is_super_admin + RLS)
       const { data, error } = await supabase.rpc("admin_assign_credits", {
         p_workspace_id: workspaceId,
         p_admin_user_id: user.id,
