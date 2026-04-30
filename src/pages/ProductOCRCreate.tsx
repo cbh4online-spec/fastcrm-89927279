@@ -35,6 +35,35 @@ import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 
 const OCR_GENERATE_CONTENT_ACTION = "product_ocr_generate_content";
 
+const toDraftInputString = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  return String(value);
+};
+
+const normalizeDraftSheet = (value?: Partial<ProductSheetData> | null): ProductSheetData => {
+  const merged = { ...emptyProductSheet(), ...(value ?? {}) } as ProductSheetData & Record<string, unknown>;
+  return {
+    ...merged,
+    direct_cost: toDraftInputString(merged.direct_cost),
+    base_price: toDraftInputString(merged.base_price),
+    tax_rate_estimate_pct: toDraftInputString(merged.tax_rate_estimate_pct),
+    stock_quantity: toDraftInputString(merged.stock_quantity),
+    low_stock_threshold: toDraftInputString(merged.low_stock_threshold),
+  };
+};
+
+const parseDraftNumber = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return null;
+  const n = typeof value === "number" ? value : parseFloat(String(value).replace(",", "."));
+  return isFinite(n) ? n : null;
+};
+
+const parseDraftInteger = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return null;
+  const n = typeof value === "number" ? value : parseInt(String(value), 10);
+  return isFinite(n) ? n : null;
+};
+
 const STEPS = [
   { id: 1, title: "Upload", icon: FileText, desc: "Carregar documento" },
   { id: 2, title: "Leitura OCR", icon: ScanText, desc: "Rever extração" },
