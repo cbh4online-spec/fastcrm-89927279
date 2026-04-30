@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
     const { name, email, phone, workspaceId, settings: enrichSettings } = await req.json();
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (workspaceId ?? null);
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'medium', 'contact-enrich');
       if (!gate.allowed) {

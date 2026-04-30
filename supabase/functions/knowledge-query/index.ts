@@ -198,7 +198,7 @@ ${ragContext}
     try {
       const _usage = aiResponse?.usage;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id: workspaceId,
         feature: 'knowledge-query',
         model: aiResponse?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,

@@ -1,60 +1,42 @@
-## Diagnóstico
+## Auditoria de Consumo de Créditos AI — Estado Final
 
-Ao clicar em **"Criar Produto em Rascunho"** no passo 6 do wizard OCR, o INSERT na tabela `products` falha silenciosamente (toast de erro genérico).
+### Diagnóstico inicial
+- 530 edge functions no projecto, das quais ~90 chamam Lovable AI Gateway.
+- 18 funções com bug **ReferenceError silencioso** (variável `workspace_id` referenciada quando só `workspaceId` foi destructurada) — gerava erros há ~22 dias sem que o utilizador soubesse, **bloqueando** registos de consumo no `ai_usage_logs`.
+- 45 funções a usar Lovable AI **sem instrumentação** (`logAIUsage` não chamado).
 
-Causa raíz confirmada via inspeção do schema da BD:
+### Fase 1 — OCR (concluída em loop anterior)
+- `product-ocr-extract`, `product-ocr-generate-content` instrumentados.
 
-```
-products_status_check: CHECK (status = ANY (ARRAY['active','archived']))
-```
+### Fase 2 — Lotes 1+2 (concluída em loops anteriores)
+- Lote 1: `ai-copilot`, `ai-analyze-lead`, `ai-auto-tags`.
+- Lote 2: `conversation-summary`, `conversation-intelligence`, `compute-conversation-signals`, `context-ai-assist`.
+- Frontend hooks actualizados: `useAskAI`, `useAutoTags`, `useConversationSummary`, `useConversationIntelligence`, `ConversationIntelligencePanel`.
 
-O código em `src/pages/ProductOCRCreate.tsx` (linha 194) envia `status: "draft"`, mas a tabela `products` só aceita `active` ou `archived`. Resultado: violação de check constraint → INSERT rejeitado → erro Postgres devolvido ao cliente → toast "Erro ao criar produto".
+### Fase 2 — Lote 3 (varrimento completo automatizado, este loop)
+Script Python aplicou correcções nas 15 funções com bug DEAD_VAR confirmado:
 
-Não existe nenhuma coluna ou flag dedicada a "rascunho" na tabela `products`. O conceito de rascunho do wizard OCR precisa de um mapeamento próprio.
+**Padrões corrigidos automaticamente:**
+1. `typeof workspace_id !== 'undefined' ? workspace_id : null` → `workspaceId ?? null`
+2. `if (workspace_id)` → `if (workspaceId)`
+3. `aiGate(workspace_id, …)` → `aiGate(workspaceId, …)`
+4. `workspace_id: workspace_id` (em logs) → `workspace_id: workspaceId`
+5. Fallback ternário aninhado removido: `: (typeof workspace_id !== 'undefined' ? workspace_id : null)` → `: null`
 
-## Decisões de produto
+**Funções corrigidas (15):**
+- `ai-automation-suggestions`, `ai-cart-recommendations`, `ai-dashboard-insights`, `ai-product-assistant`, `ai-revenue-engine`
+- `bio-generate-image`, `bio-smart-link`, `contact-enrich`, `productivity-coach`, `vision-ai-copilot`
+- `ai-diagnostic-assistant`, `ai-field-suggestions`, `knowledge-query`, `sj-copilot`, `sj-course-recommendations`
 
-- O wizard OCR deve poder criar produtos **não publicados, em revisão**, sem violar o schema atual.
-- Não vale a pena alterar o `products_status_check` (afeta toda a aplicação). Em vez disso, mapear o conceito "rascunho OCR" às flags de visibilidade já existentes:
-  - `status = 'active'` (obrigatório pelo schema)
-  - `store_published = false`
-  - `b2b_published = false`
-  - `b2b_visible = false`
-  - `sheet_published = false`
-  - Sinalizar a origem/estado de revisão via `metadata.ocr_draft = true` e via `pending_fields` (já populado).
-- Assim o produto fica criado, **invisível em todas as lojas/canais**, e aparece nas listas internas como "a aguardar revisão" sem expor ao cliente final.
+**Falsos positivos confirmados (3, sem alteração):**
+- `flow-engine`, `ghl-webhook-message`, `knowledge-document-process` — destructuram `workspace_id` (snake_case) noutro escopo, uso correcto.
 
-## Plano de implementação
+### Resultado pós-Lote 3
+- DEAD_VAR: 18 → **0 reais** (3 falsos positivos validados manualmente).
+- Funções OK (com instrumentação válida): 119 → **134**.
+- Todos os 15 ficheiros alterados passam `deno check`.
 
-### 1. `src/pages/ProductOCRCreate.tsx` — corrigir INSERT em `products`
-- Substituir `status: "draft"` por `status: "active"`.
-- Acrescentar flags de não publicação:
-  - `store_published: false`, `b2b_published: false`, `b2b_visible: false`, `sheet_published: false`.
-- Marcar `metadata.ocr_draft = true` e `metadata.review_required = pendingFields.length > 0` para distinguir nas listagens.
-- Garantir que `tax_rate_estimate_pct` respeita o intervalo 0–100 (já temos parse, mas adicionar clamp defensivo).
-
-### 2. Tratamento de erro mais informativo
-- No `catch`, fazer `console.error` com o objeto Postgres completo (`code`, `message`, `details`, `hint`).
-- Toast deve mostrar `e.message` em vez de string genérica quando disponível (já parcialmente feito), e adicionar fallback com `details/hint`.
-
-### 3. Redirecionamento pós-criação
-- Manter navegação para `/dashboard/products`, mas adicionar `?highlight=<id>&filter=ocr_draft` para o utilizador encontrar o produto recém-criado (não bloquear o fix se a página de listagem ainda não suportar — apenas query string informativa).
-
-### 4. QA
-- Criar produto a partir do wizard com EAN único e confirmar que aparece em `/dashboard/products` como inativo na loja.
-- Confirmar que `product_content`, `product_sales_support`, `product_validation_tasks` ficam ligados ao novo `product_id`.
-- Confirmar que `product_ocr_documents.product_id` fica preenchido.
-- Repetir com EAN duplicado → deve mostrar mensagem de duplicação.
-- Repetir sem PVP/Custo/IVA/Stock → produto criado + tarefas de validação pendentes geradas.
-
-## Critérios de aceitação
-
-- Carregar documento → wizard até passo 6 → "Criar Produto" → produto criado sem erro.
-- Produto não fica visível em B2C/B2B/site sheet (todas as flags publish a `false`).
-- Toast de sucesso e navegação para `/dashboard/products`.
-- Em caso de erro real, mensagem clara em vez de "Erro ao criar produto".
-
-## Riscos / por validar
-
-- Se o utilizador esperar literalmente um estado `draft` visível na UI das listagens, será necessário num passo seguinte (fora deste fix) introduzir uma coluna `lifecycle_state` ou alargar o enum `status`. Para já, o filtro por `metadata->>'ocr_draft' = 'true'` cobre o caso.
-- `tax_rate_estimate_pct` tem CHECK 0–100; valores fora do intervalo (raros mas possíveis no OCR) provocariam novo erro — adicionamos clamp.
+### Próximos passos sugeridos
+- **Fase 3** — Adicionar instrumentação às 45 funções `MISSING_LOG` que são genuinamente IA (filtrar fora hooks como `auth-email-hook`, `telegram-send`, `process-email-queue`).
+- **Fase 4** — Ligar `ai_usage_logs` ao `credit_ledger` para reconciliação automática de billing.
+- **Monitorização** — Criar dashboard interno mostrando funções sem registo nos últimos 7 dias (detecta regressões deste padrão).

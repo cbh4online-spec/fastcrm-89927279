@@ -228,7 +228,7 @@ Com base nestes dados, avalia a empresa.`;
     try {
       const _usage = aiData?.usage;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id: workspaceId,
         feature: 'ai-revenue-engine',
         model: aiData?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,

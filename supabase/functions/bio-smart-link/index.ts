@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     const { url, blockType, workspaceId } = await req.json();
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (workspaceId ?? null);
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'light', 'bio-smart-link');
       if (!gate.allowed) {
