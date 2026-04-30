@@ -131,10 +131,13 @@ export function ProfilePermissionsSettings() {
         .upsert(rows, { onConflict: "workspace_id,sales_function,menu_key" });
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile-menu-permissions"] });
-      queryClient.invalidateQueries({ queryKey: ["menu-permissions"] });
+    onSuccess: async () => {
       setMenuChanges(new Map());
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["profile-menu-permissions", workspaceId], refetchType: "active" }),
+        queryClient.invalidateQueries({ queryKey: ["menu-permissions", workspaceId], refetchType: "active" }),
+      ]);
+      await queryClient.refetchQueries({ queryKey: ["profile-menu-permissions", workspaceId] });
       toast.success("Permissões de menus guardadas");
     },
     onError: (err: any) => toast.error(`Erro ao guardar: ${err?.message ?? "desconhecido"}`),
