@@ -95,7 +95,10 @@ function useTeamNotes(entityType: string, entityId: string) {
       queryClient.invalidateQueries({ queryKey: ['team-notes', entityType, entityId] });
       toast.success('Nota adicionada');
     },
-    onError: () => toast.error('Erro ao adicionar nota'),
+    onError: (err: any) => {
+      console.error('addNote error', err);
+      toast.error('Erro ao adicionar nota: ' + (err?.message || 'desconhecido'));
+    },
   });
 
   const deleteNote = useMutation({
