@@ -35,6 +35,35 @@ import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 
 const OCR_GENERATE_CONTENT_ACTION = "product_ocr_generate_content";
 
+const toDraftInputString = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  return String(value);
+};
+
+const normalizeDraftSheet = (value?: Partial<ProductSheetData> | null): ProductSheetData => {
+  const merged = { ...emptyProductSheet(), ...(value ?? {}) } as ProductSheetData & Record<string, unknown>;
+  return {
+    ...merged,
+    direct_cost: toDraftInputString(merged.direct_cost),
+    base_price: toDraftInputString(merged.base_price),
+    tax_rate_estimate_pct: toDraftInputString(merged.tax_rate_estimate_pct),
+    stock_quantity: toDraftInputString(merged.stock_quantity),
+    low_stock_threshold: toDraftInputString(merged.low_stock_threshold),
+  };
+};
+
+const parseDraftNumber = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return null;
+  const n = typeof value === "number" ? value : parseFloat(String(value).replace(",", "."));
+  return isFinite(n) ? n : null;
+};
+
+const parseDraftInteger = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return null;
+  const n = typeof value === "number" ? value : parseInt(String(value), 10);
+  return isFinite(n) ? n : null;
+};
+
 const STEPS = [
   { id: 1, title: "Upload", icon: FileText, desc: "Carregar documento" },
   { id: 2, title: "Leitura OCR", icon: ScanText, desc: "Rever extração" },
@@ -107,7 +136,7 @@ export default function ProductOCRCreate() {
         structured?: OCRStructuredData;
       };
       if (ws) {
-        if (ws.sheet) setSheet({ ...emptyProductSheet(), ...ws.sheet });
+        if (ws.sheet) setSheet(normalizeDraftSheet(ws.sheet));
         if (ws.content) setContent({ ...emptyContent(), ...ws.content });
         if (ws.sales) setSales({ ...emptySalesSupport(), ...ws.sales });
         if (ws.structured && !data.ocr_structured_data) setStructured(ws.structured);
@@ -304,10 +333,10 @@ export default function ProductOCRCreate() {
 
   const computePendingFields = useCallback((): string[] => {
     const pending: string[] = [];
-    if (!sheet.base_price) pending.push("PVP");
-    if (!sheet.direct_cost) pending.push("Preço de custo");
-    if (!sheet.tax_rate_estimate_pct) pending.push("IVA");
-    if (!sheet.stock_quantity) pending.push("Stock inicial");
+    if (!parseDraftNumber(sheet.base_price)) pending.push("PVP");
+    if (!parseDraftNumber(sheet.direct_cost)) pending.push("Preço de custo");
+    if (!parseDraftNumber(sheet.tax_rate_estimate_pct)) pending.push("IVA");
+    if (parseDraftInteger(sheet.stock_quantity) === null) pending.push("Stock inicial");
     if (sheet.is_seasonal_validation_status === "pending" && sheet.is_seasonal) pending.push("Classificação sazonal");
     if (sheet.is_cross_sell_validation_status === "pending" && sheet.is_cross_sell) pending.push("Sugestões de venda cruzada");
     if (sheet.is_kit_candidate_validation_status === "pending" && sheet.is_kit_candidate) pending.push("Sugestões de kit");
@@ -323,7 +352,7 @@ export default function ProductOCRCreate() {
       toast.error("O nome do produto é obrigatório.");
       return;
     }
-    const parsedPrice = sheet.base_price ? parseFloat(sheet.base_price.replace(",", ".")) : NaN;
+    const parsedPrice = parseDraftNumber(sheet.base_price) ?? NaN;
     if (!isFinite(parsedPrice) || parsedPrice <= 0) {
       toast.warning("PVP não preenchido — o produto será criado com PVP a 0€ e ficará marcado como pendente de revisão.", { duration: 6000 });
     }
@@ -353,16 +382,6 @@ export default function ProductOCRCreate() {
         return;
       }
 
-      const numOrNull = (v: string) => {
-        if (!v) return null;
-        const n = parseFloat(v.replace(",", "."));
-        return isFinite(n) ? n : null;
-      };
-      const intOrNull = (v: string) => {
-        if (!v) return null;
-        const n = parseInt(v, 10);
-        return isFinite(n) ? n : null;
-      };
       const clamp = (v: number | null, min: number, max: number) =>
         v === null ? null : Math.min(max, Math.max(min, v));
 
@@ -393,12 +412,12 @@ export default function ProductOCRCreate() {
           unit_of_sale: sheet.unit_of_sale || null,
           origin_country: sheet.origin_country || null,
           distributor: sheet.distributor || null,
-          direct_cost: numOrNull(sheet.direct_cost),
-          base_price: numOrNull(sheet.base_price) ?? 0,
-          tax_rate_estimate_pct: clamp(numOrNull(sheet.tax_rate_estimate_pct), 0, 100),
-          stock_quantity: intOrNull(sheet.stock_quantity) ?? 0,
+          direct_cost: parseDraftNumber(sheet.direct_cost),
+          base_price: parseDraftNumber(sheet.base_price) ?? 0,
+          tax_rate_estimate_pct: clamp(parseDraftNumber(sheet.tax_rate_estimate_pct), 0, 100),
+          stock_quantity: parseDraftInteger(sheet.stock_quantity) ?? 0,
           // low_stock_threshold é NOT NULL com default 5 — não enviar null
-          low_stock_threshold: intOrNull(sheet.low_stock_threshold) ?? 5,
+          low_stock_threshold: parseDraftInteger(sheet.low_stock_threshold) ?? 5,
           is_seasonal: sheet.is_seasonal,
           is_seasonal_validation_status: sheet.is_seasonal_validation_status,
           is_impulse_product: sheet.is_impulse_product,
