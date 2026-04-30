@@ -53,11 +53,13 @@ Deno.serve(async (req) => {
     }
 
     const metadata = session.metadata || {};
-    if (metadata.type !== "credit_purchase") {
+    // Aceita ambos os formatos (legacy "type" e novo "kind")
+    const isCreditPurchase = metadata.type === "credit_purchase" || metadata.kind === "credit_package";
+    if (!isCreditPurchase) {
       throw new Error("Invalid session type");
     }
 
-    const workspaceId = metadata.workspace_id;
+    const workspaceId = metadata.buyer_workspace_id || metadata.workspace_id;
     const packageId = metadata.package_id;
     const creditsAmount = parseInt(metadata.credits_amount, 10);
     const paymentIntentId = typeof session.payment_intent === "string"
