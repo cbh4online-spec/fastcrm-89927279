@@ -255,7 +255,7 @@ export function ProductDetailDialog({
                       <span className="text-xl font-bold text-primary">
                         {formatCurrency(product.base_price, product.currency)}
                       </span>
-                      {product.direct_cost !== null && (
+                      {showMargin && product.direct_cost !== null && (
                         <span className="text-xs text-muted-foreground">
                           Margem {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(0)}%
                         </span>
