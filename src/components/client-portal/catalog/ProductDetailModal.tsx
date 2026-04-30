@@ -212,20 +212,41 @@ export function ProductDetailModal({
 
                 {/* Price Section */}
                 <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-sm text-muted-foreground">Preço unitário (s/IVA)</span>
-                    <div className="text-right">
-                      <span className="text-lg font-semibold">
-                        {unitPriceNet.toFixed(2)}€
-                      </span>
-                      {showStrikethrough && (
-                        <span className="text-sm text-muted-foreground line-through ml-2">
-                          {product.base_price.toFixed(2)}€
-                        </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Preço recomendado c/IVA */}
+                    <div className="rounded-md border border-border bg-background/60 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        PVP recomendado
+                      </p>
+                      {product.compare_at_price != null && product.compare_at_price > 0 ? (
+                        <>
+                          <p className="text-lg font-semibold text-foreground/80 leading-tight">
+                            {product.compare_at_price.toFixed(2)}€
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">com IVA</p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">—</p>
                       )}
                     </div>
+                    {/* Preço base s/IVA */}
+                    <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-primary/80">
+                        Preço base (seu)
+                      </p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-lg font-bold text-primary leading-tight">
+                          {unitPriceNet.toFixed(2)}€
+                        </p>
+                        {showStrikethrough && (
+                          <span className="text-xs text-muted-foreground line-through">
+                            {product.base_price.toFixed(2)}€
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">sem IVA</p>
+                    </div>
                   </div>
-                  
                   
                   <Separator />
                   
