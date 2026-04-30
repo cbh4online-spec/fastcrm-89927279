@@ -245,6 +245,8 @@ Deno.serve(async (req) => {
         .from("product_ocr_documents")
         .update({ processing_status: "failed", processing_error: `${status}: ${errText.slice(0, 500)}` })
         .eq("id", document_id);
+      // estornar créditos: a IA falhou
+      await refundOnFailure(`ai_error_${status}`);
       return json({ error: userMsg, status, fallback: true }, 200);
     }
 
