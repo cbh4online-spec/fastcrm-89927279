@@ -28,6 +28,7 @@ import {
   type ProductSheetData,
   type SalesSupportData,
 } from "@/components/products/ocr/types";
+import { buildSpecsFromStructured } from "@/components/products/ocr/buildSpecsFromStructured";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 const STEPS = [
