@@ -218,6 +218,41 @@ function RenderProductCell({
   }
 }
 
+function getCellTooltipText(
+  product: Product,
+  columnId: string,
+  helpers: Pick<ProductsDataTableProps, "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency">,
+): string {
+  const { getProductTypeLabel, getBillingTypeLabel, formatCurrency } = helpers;
+  switch (columnId) {
+    case "name": return product.name || "";
+    case "sku": return product.sku || "";
+    case "product_type": return getProductTypeLabel(product.product_type) || "";
+    case "category": return product.category || "";
+    case "base_price": return product.base_price != null ? formatCurrency(product.base_price, product.currency) : "";
+    case "direct_cost": return product.direct_cost != null ? formatCurrency(product.direct_cost, product.currency) : "";
+    case "operational_cost": return product.operational_cost != null ? formatCurrency(product.operational_cost, product.currency) : "";
+    case "margin":
+      if (product.base_price && product.direct_cost) {
+        const m = ((product.base_price - product.direct_cost) / product.base_price) * 100;
+        return `${m.toFixed(1)}%`;
+      }
+      return "";
+    case "billing_type": return getBillingTypeLabel(product.billing_type) || "";
+    case "billing_frequency": return product.billing_frequency || "";
+    case "status": return productStatusLabels[product.status] || "";
+    case "total_units": return product.total_units != null ? String(product.total_units) : "";
+    case "unit_duration": return product.unit_duration ? `${product.unit_duration} min` : "";
+    case "validity_days": return product.validity_days ? `${product.validity_days} dias` : "";
+    case "tax_rate_estimate_pct": return product.tax_rate_estimate_pct ? `${product.tax_rate_estimate_pct}%` : "";
+    case "commission_default": return product.commission_default ? `${product.commission_default}%` : "";
+    case "delivery_mode": return product.delivery_mode || "";
+    case "created_at": return format(new Date(product.created_at), "dd/MM/yyyy", { locale: pt });
+    case "updated_at": return format(new Date(product.updated_at), "dd/MM/yyyy", { locale: pt });
+    default: return "";
+  }
+}
+
 const ROW_HEIGHT = 48;
 
 export function ProductsDataTable({
@@ -381,14 +416,18 @@ export function ProductsDataTable({
                     </div>
                     {visibleCols.map((colId) => {
                       const w = colWidths.getWidth(colId);
+                      const tooltipText = getCellTooltipText(product, colId, helpers);
                       return (
                         <div
                           key={colId}
                           data-col-id={colId}
-                          className="flex items-center px-4 text-sm flex-shrink-0"
-                          style={{ width: w, maxWidth: w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                          className="flex items-center px-4 text-sm flex-shrink-0 min-w-0"
+                          style={{ width: w, maxWidth: w }}
+                          title={tooltipText || undefined}
                         >
-                          <RenderProductCell product={product} columnId={colId} helpers={helpers} />
+                          <div className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap [&>*]:max-w-full [&>*]:truncate">
+                            <RenderProductCell product={product} columnId={colId} helpers={helpers} />
+                          </div>
                         </div>
                       );
                     })}
