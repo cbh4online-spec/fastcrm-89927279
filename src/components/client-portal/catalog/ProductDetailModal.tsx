@@ -377,6 +377,20 @@ export function ProductDetailModal({
                 </TabsContent>
               </Tabs>
             </div>
+
+            {/* Tags Footer — clickable chips for catalog filtering */}
+            <ProductTagsFooter
+              tags={product.tags ?? null}
+              onTagClick={
+                onTagClick
+                  ? (tag) => {
+                      onTagClick(tag);
+                      onOpenChange(false);
+                    }
+                  : undefined
+              }
+              activeTag={activeTag}
+            />
           </div>
         </ScrollArea>
       </DialogContent>
