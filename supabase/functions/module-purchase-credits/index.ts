@@ -72,7 +72,20 @@ serve(async (req) => {
       return jsonResponse({ fallback: true, error: "Pacote indisponível" }, 200);
     }
 
-    // ---- Stripe ----
+    // ---- Gateway workspace (agência Método Pare) ----
+    // Todos os pagamentos de créditos correm sempre na conta Stripe da plataforma
+    // (workspace marcado como is_payment_gateway = true).
+    const { data: gatewayWsId, error: gatewayErr } = await adminClient
+      .rpc("get_payment_gateway_workspace_id");
+    if (gatewayErr || !gatewayWsId) {
+      console.error("[module-purchase-credits] no payment gateway workspace configured", gatewayErr);
+      return jsonResponse({
+        fallback: true,
+        error: "Gateway de pagamentos não configurado. Contacte o administrador.",
+      }, 200);
+    }
+
+    // ---- Stripe (sempre a chave da plataforma / Método Pare) ----
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
       return jsonResponse({ fallback: true, error: "Stripe não configurado" }, 200);
