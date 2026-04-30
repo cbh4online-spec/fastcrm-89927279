@@ -1,6 +1,20 @@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, BookOpen, Sparkles, PlayCircle } from "lucide-react";
+import {
+  BookOpen,
+  Sparkles,
+  PlayCircle,
+  ShieldCheck,
+  Leaf,
+  Zap,
+  Heart,
+  Star,
+  Droplet,
+  Sun,
+  Award,
+} from "lucide-react";
+
+const BENEFIT_ICONS = [ShieldCheck, Leaf, Zap, Heart, Star, Droplet, Sun, Award];
 
 interface ProductOverviewTabProps {
   commercialDescription: string | null;
