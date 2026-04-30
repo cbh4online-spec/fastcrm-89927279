@@ -225,8 +225,9 @@ export default function CompositeProductsPage() {
 }
 
 function KitRow({ kit }: { kit: CompositeProduct }) {
-  const guard = guardConfig[kit.margin_guard_level ?? "safe"];
+  const guard = guardConfig[kit.margin_guard_level ?? "safe"] ?? guardConfig.safe;
   const status = statusConfig[kit.status] ?? statusConfig.draft;
+  const compType = (kit.composition_type ?? "fixed_kit").replace(/_/g, " ");
   return (
     <TableRow>
       <TableCell>
