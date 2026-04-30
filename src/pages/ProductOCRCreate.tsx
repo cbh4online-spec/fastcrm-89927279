@@ -604,10 +604,10 @@ export default function ProductOCRCreate() {
             <StepProductSheet sheet={sheet} onChange={setSheet} fieldConfidence={doc?.field_confidence ?? {}} />
           )}
           {step === 4 && (
-            <StepContent content={content} onChange={setContent} onGenerate={generateContent} />
+            <StepContent content={content} onChange={setContent} onGenerate={generateContent} generateCost={generateContentCost} />
           )}
           {step === 5 && (
-            <StepSalesSupport sales={sales} onChange={setSales} onGenerate={generateContent} />
+            <StepSalesSupport sales={sales} onChange={setSales} onGenerate={generateContent} generateCost={generateContentCost} />
           )}
           {step === 6 && (
             <StepSummary
