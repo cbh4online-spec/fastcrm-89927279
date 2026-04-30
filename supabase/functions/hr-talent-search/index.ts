@@ -1,5 +1,47 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
+
+// ── AI usage logging helper (auto-injected) ───────────────────────────────────
+async function __loggedAIFetch(
+  workspaceId: string | null,
+  feature: string,
+  init: RequestInit,
+  urlOverride?: string
+): Promise<Response> {
+  const start = Date.now();
+  const url = urlOverride ?? "https://ai.gateway.lovable.dev/v1/chat/completions";
+  const body = init.body ? JSON.parse(init.body as string) : {};
+  const model = body.model || "google/gemini-3-flash-preview";
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch (e) {
+    if (workspaceId) {
+      logAIUsage({
+        workspace_id: workspaceId, feature, model,
+        tokens_input: 0, tokens_output: 0,
+        latency_ms: Date.now() - start,
+        was_error: true, error_type: "network",
+      });
+    }
+    throw e;
+  }
+  if (!workspaceId) return response;
+  const clone = response.clone();
+  clone.json().then((data: any) => {
+    logAIUsage({
+      workspace_id: workspaceId, feature, model,
+      tokens_input: data?.usage?.prompt_tokens ?? 0,
+      tokens_output: data?.usage?.completion_tokens ?? 0,
+      latency_ms: Date.now() - start,
+      was_error: !response.ok,
+      error_type: response.ok ? undefined : `http_${response.status}`,
+    });
+  }).catch(() => {});
+  return response;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -433,7 +475,7 @@ async function parseContentWithAI(markdown: string, portalName: string, sourceUr
   if (!lovableKey) return [];
 
   try {
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await __loggedAIFetch(workspace_id ?? null, "hr-talent-search", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableKey}`,
@@ -558,7 +600,7 @@ async function handleRssFeed({ rss_url, workspace_id, supabase, firecrawlKey, lo
 
   console.log("Parsing RSS content with AI, length:", rawContent.length);
 
-  const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const aiResp = await __loggedAIFetch(workspace_id ?? null, "hr-talent-search", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${lovableKey}`,
@@ -705,7 +747,7 @@ Page title: ${title}
 Content:
 ${content.slice(0, 3000)}`;
 
-        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const aiResp = await __loggedAIFetch(workspace_id ?? null, "hr-talent-search", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${lovableKey}`,
