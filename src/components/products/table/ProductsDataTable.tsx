@@ -323,155 +323,160 @@ export function ProductsDataTable({
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Compute total width once for header + rows */}
+          {(() => null)()}
           {/* Shared horizontal scroll wrapper for header + body */}
-          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden flex flex-col">
-          {/* Sticky header (sticky to top of vertical scroll body and right edge for actions col) */}
-          <Table
-            ref={tableRef}
-            style={{ tableLayout: "fixed", width: "auto", minWidth: "100%" }}
-            className="border-b border-border"
-          >
-            <TableHeader className="bg-background">
-              <TableRow className="hover:bg-transparent">
-                <TableHead
-                  className="bg-background"
-                  style={{ width: 50, minWidth: 50 }}
-                >
-                  <Checkbox
-                    checked={products.length > 0 && products.every((p) => selectedIds.includes(p.id))}
-                    onCheckedChange={onSelectAll}
-                    aria-label="Selecionar todos os produtos"
-                  />
-                </TableHead>
-                {visibleCols.map((colId) => {
-                  const col = PRODUCT_COLUMNS.find((c) => c.id === colId);
-                  if (!col) return null;
-                  const w = colWidths.getWidth(col.id);
-                  return (
-                    <TableHead
-                      key={col.id}
-                      data-col-id={col.id}
-                      className="relative select-none bg-background"
-                      style={{ width: w, minWidth: 60, maxWidth: 600 }}
-                    >
-                      <span className="truncate block pr-2">{col.label}</span>
-                      <div
-                        className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize group hover:bg-primary/20 z-10"
-                        onMouseDown={(e) => { e.preventDefault(); colWidths.startResize(col.id, e.clientX); }}
-                        onDoubleClick={() => colWidths.autoFitColumn(col.id, tableRef)}
-                      >
-                        <div className="absolute right-0 top-1/4 bottom-1/4 w-px bg-border group-hover:bg-primary transition-colors" />
-                      </div>
-                    </TableHead>
-                  );
-                })}
-                <TableHead
-                  scope="col"
-                  className="sticky right-0 bg-background border-l border-border text-center shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.12)]"
-                  style={{ width: 56, minWidth: 56, maxWidth: 56, zIndex: 30 }}
-                >
-                  <span className="sr-only">Ações</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-          </Table>
-
-          {/* Virtualized body — uses same horizontal scroll as header (parent wrapper) */}
-          <div
-            ref={parentRef}
-            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
-            style={{ minHeight: 200, width: "max-content", minWidth: "100%" }}
-          >
-            <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
-              {virtualizer.getVirtualItems().map((virtualRow) => {
-                const product = products[virtualRow.index];
-                // Compute total width of data columns to position the sticky-action column correctly
-                const dataColsWidth = visibleCols.reduce((sum, cid) => sum + colWidths.getWidth(cid), 0);
-                const rowWidth = 50 + dataColsWidth + 56; // checkbox + cols + actions
-                return (
-                  <div
-                    key={product.id}
-                    data-index={virtualRow.index}
-                    ref={virtualizer.measureElement}
-                    className="group/row flex items-center border-b border-border hover:bg-muted/50 transition-colors"
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: rowWidth,
-                      minWidth: "100%",
-                      transform: `translateY(${virtualRow.start}px)`,
-                      height: ROW_HEIGHT,
-                      // isolate creates a new stacking context per row so sticky z-index
-                      // never interferes with sibling rows or external menus.
-                      isolation: "isolate",
-                    }}
+          <div className="flex-1 min-h-0 overflow-x-auto flex flex-col">
+            {(() => {
+              const dataColsWidth = visibleCols.reduce((sum, cid) => sum + colWidths.getWidth(cid), 0);
+              const totalWidth = 50 + dataColsWidth + 56; // checkbox + cols + actions
+              return (
+                <>
+                  {/* Sticky header */}
+                  <Table
+                    ref={tableRef}
+                    style={{ tableLayout: "fixed", width: totalWidth, minWidth: "100%" }}
+                    className="border-b border-border flex-shrink-0"
                   >
-                    <div className="flex items-center px-4 flex-shrink-0" style={{ width: 50, minWidth: 50 }}>
-                      <Checkbox
-                        checked={selectedIds.includes(product.id)}
-                        onCheckedChange={(checked) => onSelectOne(product.id, checked as boolean)}
-                        aria-label={`Selecionar ${product.name}`}
-                      />
-                    </div>
-                    {visibleCols.map((colId) => {
-                      const w = colWidths.getWidth(colId);
-                      const tooltipText = getCellTooltipText(product, colId, helpers);
-                      return (
-                        <div
-                          key={colId}
-                          data-col-id={colId}
-                          className="flex items-center px-4 text-sm flex-shrink-0 min-w-0"
-                          style={{ width: w, maxWidth: w }}
-                          title={tooltipText || undefined}
+                    <TableHeader className="bg-background">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead
+                          className="bg-background"
+                          style={{ width: 50, minWidth: 50 }}
                         >
-                          <div className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap [&>*]:max-w-full [&>*]:truncate">
-                            <RenderProductCell product={product} columnId={colId} helpers={helpers} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div
-                      className="sticky right-0 ml-auto flex items-center justify-center bg-background group-hover/row:bg-muted/50 border-l border-border shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.12)] flex-shrink-0 transition-colors"
-                      style={{ width: 56, minWidth: 56, maxWidth: 56, height: ROW_HEIGHT, zIndex: 20 }}
-                    >
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Ações para ${product.name}`}
-                            className="h-8 w-8 rounded-md hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
+                          <Checkbox
+                            checked={products.length > 0 && products.every((p) => selectedIds.includes(p.id))}
+                            onCheckedChange={onSelectAll}
+                            aria-label="Selecionar todos os produtos"
+                          />
+                        </TableHead>
+                        {visibleCols.map((colId) => {
+                          const col = PRODUCT_COLUMNS.find((c) => c.id === colId);
+                          if (!col) return null;
+                          const w = colWidths.getWidth(col.id);
+                          return (
+                            <TableHead
+                              key={col.id}
+                              data-col-id={col.id}
+                              className="relative select-none bg-background"
+                              style={{ width: w, minWidth: 60, maxWidth: 600 }}
+                            >
+                              <span className="truncate block pr-2">{col.label}</span>
+                              <div
+                                className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize group hover:bg-primary/20 z-10"
+                                onMouseDown={(e) => { e.preventDefault(); colWidths.startResize(col.id, e.clientX); }}
+                                onDoubleClick={() => colWidths.autoFitColumn(col.id, tableRef)}
+                              >
+                                <div className="absolute right-0 top-1/4 bottom-1/4 w-px bg-border group-hover:bg-primary transition-colors" />
+                              </div>
+                            </TableHead>
+                          );
+                        })}
+                        <TableHead
+                          scope="col"
+                          className="sticky right-0 bg-background border-l border-border text-center shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.12)]"
+                          style={{ width: 56, minWidth: 56, maxWidth: 56, zIndex: 30 }}
+                        >
+                          <span className="sr-only">Ações</span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                  </Table>
+
+                  {/* Virtualized body — vertical scroll only, horizontal handled by parent wrapper */}
+                  <div
+                    ref={parentRef}
+                    className="flex-1 min-h-0 overflow-y-auto overflow-x-visible"
+                    style={{ minHeight: 200, width: totalWidth, minWidth: "100%" }}
+                  >
+                    <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
+                      {virtualizer.getVirtualItems().map((virtualRow) => {
+                        const product = products[virtualRow.index];
+                        return (
+                          <div
+                            key={product.id}
+                            data-index={virtualRow.index}
+                            ref={virtualizer.measureElement}
+                            className="group/row flex items-center border-b border-border hover:bg-muted/50 transition-colors"
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              width: totalWidth,
+                              minWidth: "100%",
+                              transform: `translateY(${virtualRow.start}px)`,
+                              height: ROW_HEIGHT,
+                              isolation: "isolate",
+                            }}
                           >
-                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => onOpenDetail(product)}>
-                            <Eye className="h-4 w-4 mr-2" aria-hidden="true" /> Ver detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onEdit(product)}>
-                            <Edit className="h-4 w-4 mr-2" aria-hidden="true" /> Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onArchive(product)}>
-                            {product.status === "active" ? (
-                              <><Archive className="h-4 w-4 mr-2" aria-hidden="true" /> Arquivar</>
-                            ) : (
-                              <><RotateCcw className="h-4 w-4 mr-2" aria-hidden="true" /> Reativar</>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => onDelete(product)} className="text-destructive focus:text-destructive">
-                            <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" /> Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <div className="flex items-center px-4 flex-shrink-0" style={{ width: 50, minWidth: 50 }}>
+                              <Checkbox
+                                checked={selectedIds.includes(product.id)}
+                                onCheckedChange={(checked) => onSelectOne(product.id, checked as boolean)}
+                                aria-label={`Selecionar ${product.name}`}
+                              />
+                            </div>
+                            {visibleCols.map((colId) => {
+                              const w = colWidths.getWidth(colId);
+                              const tooltipText = getCellTooltipText(product, colId, helpers);
+                              return (
+                                <div
+                                  key={colId}
+                                  data-col-id={colId}
+                                  className="flex items-center px-4 text-sm flex-shrink-0 min-w-0"
+                                  style={{ width: w, maxWidth: w }}
+                                  title={tooltipText || undefined}
+                                >
+                                  <div className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap [&>*]:max-w-full [&>*]:truncate">
+                                    <RenderProductCell product={product} columnId={colId} helpers={helpers} />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            <div
+                              className="sticky right-0 ml-auto flex items-center justify-center bg-background group-hover/row:bg-muted/50 border-l border-border shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.12)] flex-shrink-0 transition-colors"
+                              style={{ width: 56, minWidth: 56, maxWidth: 56, height: ROW_HEIGHT, zIndex: 20 }}
+                            >
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={`Ações para ${product.name}`}
+                                    className="h-8 w-8 rounded-md hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuItem onClick={() => onOpenDetail(product)}>
+                                    <Eye className="h-4 w-4 mr-2" aria-hidden="true" /> Ver detalhes
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onEdit(product)}>
+                                    <Edit className="h-4 w-4 mr-2" aria-hidden="true" /> Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onArchive(product)}>
+                                    {product.status === "active" ? (
+                                      <><Archive className="h-4 w-4 mr-2" aria-hidden="true" /> Arquivar</>
+                                    ) : (
+                                      <><RotateCcw className="h-4 w-4 mr-2" aria-hidden="true" /> Reativar</>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => onDelete(product)} className="text-destructive focus:text-destructive">
+                                    <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" /> Eliminar
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Row count footer */}
