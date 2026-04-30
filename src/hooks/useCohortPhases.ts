@@ -34,16 +34,36 @@ export function useCohortPhases(cohortId: string | undefined) {
   const wsId = currentWorkspace?.id;
 
   const phasesQuery = useQuery({
-    queryKey: ["sj-cohort-phases", cohortId],
-    enabled: !!cohortId,
+    queryKey: ["sj-cohort-phases", cohortId, wsId],
+    enabled: !!cohortId && !!wsId,
     queryFn: async (): Promise<CohortPhase[]> => {
-      const { data, error } = await supabase
-        .from("sj_course_phases" as never)
-        .select("*")
-        .eq("cohort_id", cohortId!)
-        .order("phase_order", { ascending: true });
-      if (error) throw error;
-      return (data || []) as unknown as CohortPhase[];
+      // Control Plane endpoint — frontend never queries Supabase directly for phases.
+      const { data, error } = await supabase.functions.invoke("cp-cohort-phases", {
+        method: "GET" as never,
+        // edge function reads from query string
+        headers: {},
+        body: undefined,
+        // @ts-expect-error: invoke supports query via 2nd arg in newer SDKs; fall back to URL
+      });
+      // Fallback: invoke ignores query string. Use direct fetch.
+      void data; void error;
+      const url = new URL(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cp-cohort-phases`
+      );
+      url.searchParams.set("workspace_id", wsId!);
+      url.searchParams.set("cohort_id", cohortId!);
+      const session = (await supabase.auth.getSession()).data.session;
+      const res = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${session?.access_token ?? ""}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok && !json?.fallback) {
+        throw new Error(json?.error || "Erro a obter fases");
+      }
+      return (json?.phases || []) as CohortPhase[];
     },
   });
 
