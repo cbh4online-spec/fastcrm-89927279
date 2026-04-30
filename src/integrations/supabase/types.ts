@@ -54201,6 +54201,51 @@ export type Database = {
           },
         ]
       }
+      profile_permission_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          changed_at: string
+          field_key: string | null
+          id: string
+          menu_key: string | null
+          new_visible: boolean | null
+          old_visible: boolean | null
+          page_key: string | null
+          sales_function: string | null
+          table_name: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          changed_at?: string
+          field_key?: string | null
+          id?: string
+          menu_key?: string | null
+          new_visible?: boolean | null
+          old_visible?: boolean | null
+          page_key?: string | null
+          sales_function?: string | null
+          table_name: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          changed_at?: string
+          field_key?: string | null
+          id?: string
+          menu_key?: string | null
+          new_visible?: boolean | null
+          old_visible?: boolean | null
+          page_key?: string | null
+          sales_function?: string | null
+          table_name?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
