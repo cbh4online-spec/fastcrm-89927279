@@ -36,7 +36,24 @@ Script Python aplicou correcções nas 15 funções com bug DEAD_VAR confirmado:
 - Funções OK (com instrumentação válida): 119 → **134**.
 - Todos os 15 ficheiros alterados passam `deno check`.
 
-### Próximos passos sugeridos
-- **Fase 3** — Adicionar instrumentação às 45 funções `MISSING_LOG` que são genuinamente IA (filtrar fora hooks como `auth-email-hook`, `telegram-send`, `process-email-queue`).
+### Fase 3 — Instrumentação automática (concluída)
+- Script Python injectou wrapper `__loggedAIFetch` em **33 funções AI** que chamavam o gateway sem registar consumo.
+- Helper local mede latência, captura `usage.prompt_tokens` / `usage.completion_tokens`, regista erros HTTP/network e nunca bloqueia o flow principal (fire-and-forget).
+- Bonus: detectado typo `ai-gateway.lovable.dev` (com hífen) em `account-brief-corporate-lookup` — corrigido para `ai.gateway.lovable.dev` via wrapper.
+- Bug pré-existente em `_shared/ai-instrumentation.ts` (`.catch()` em `PostgrestFilterBuilder`) — corrigido envolvendo em `Promise.resolve(...)`.
+
+**Funções instrumentadas (33):** account-brief-{compare-accounts, corporate-lookup, extract-structured, generate-brief}, ai-{batch-estimate-weights, catalog-suggest, market-price-research, shipping-suggest}, builder-ai{,-image}, compare-prices, ebook-{ai-assist, generate}, email-campaign-wizard, generate-{blueprint, bot-comments, executive-brief, flow-ai, objective-plan}, hr-{buddy-match-ai, candidate-score-ai, cv-parse-ai, face-verify, job-ai-assist, portal-auto-import, review-ai-suggest-rating, talent-search}, marketing-ai-copilot, process-{portfolio-allocation, strategy-layer, workspace-memory}, supplier-web-search, ticket-ai-reply.
+
+### Resultado Final (Fases 1+2+3)
+| Categoria | Antes | Depois |
+|---|---|---|
+| Funções OK (instrumentadas) | 119 | **167** (+48) |
+| MISSING_LOG (sem registo) | 45 | **12** (todas hooks não-AI legítimos) |
+| DEAD_VAR (bug silencioso) | 18 | **0 reais** |
+
+12 MISSING_LOG restantes são todas justificadas: `auth-email-hook`, `billing-assistant`, `ebook-lead-welcome`, `firecrawl-market-search`, `handle-email-suppression`, `preview-transactional-email`, `process-email-queue`, `system-run-smoke-tests`, `telegram-poll`, `telegram-send`, `twilio-send-sms`, `vision-duo-invite` — não fazem chamadas a modelos AI directos.
+
+### Fases pendentes
 - **Fase 4** — Ligar `ai_usage_logs` ao `credit_ledger` para reconciliação automática de billing.
-- **Monitorização** — Criar dashboard interno mostrando funções sem registo nos últimos 7 dias (detecta regressões deste padrão).
+- **Monitorização** — Dashboard interno com funções sem registo nos últimos 7 dias para detectar regressões.
+

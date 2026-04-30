@@ -1,6 +1,58 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
+
+// ── AI usage logging helper (auto-injected) ───────────────────────────────────
+async function __loggedAIFetch(
+  workspaceId: string | null,
+  feature: string,
+  init: RequestInit
+): Promise<Response> {
+  const start = Date.now();
+  const url = "https://ai.gateway.lovable.dev/v1/chat/completions";
+  const body = init.body ? JSON.parse(init.body as string) : {};
+  const model = body.model || "google/gemini-3-flash-preview";
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch (e) {
+    if (workspaceId) {
+      logAIUsage({
+        workspace_id: workspaceId,
+        feature,
+        model,
+        tokens_input: 0,
+        tokens_output: 0,
+        latency_ms: Date.now() - start,
+        was_error: true,
+        error_type: "network",
+      });
+    }
+    throw e;
+  }
+
+  if (!workspaceId) return response;
+
+  const clone = response.clone();
+  clone.json().then((data: any) => {
+    const tokens_input = data?.usage?.prompt_tokens ?? 0;
+    const tokens_output = data?.usage?.completion_tokens ?? 0;
+    logAIUsage({
+      workspace_id: workspaceId,
+      feature,
+      model,
+      tokens_input,
+      tokens_output,
+      latency_ms: Date.now() - start,
+      was_error: !response.ok,
+      error_type: response.ok ? undefined : `http_${response.status}`,
+    });
+  }).catch(() => {});
+
+  return response;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -89,7 +141,7 @@ serve(async (req) => {
       });
     }
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await __loggedAIFetch(workspace_id ?? null, "generate-executive-brief", {
       method: "POST",
       headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({

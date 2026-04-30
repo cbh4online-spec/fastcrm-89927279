@@ -2,6 +2,58 @@ import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 import { corsHeaders } from "../_shared/cors.ts";
 
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
+
+// ── AI usage logging helper (auto-injected) ───────────────────────────────────
+async function __loggedAIFetch(
+  workspaceId: string | null,
+  feature: string,
+  init: RequestInit
+): Promise<Response> {
+  const start = Date.now();
+  const url = "https://ai.gateway.lovable.dev/v1/chat/completions";
+  const body = init.body ? JSON.parse(init.body as string) : {};
+  const model = body.model || "google/gemini-3-flash-preview";
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch (e) {
+    if (workspaceId) {
+      logAIUsage({
+        workspace_id: workspaceId,
+        feature,
+        model,
+        tokens_input: 0,
+        tokens_output: 0,
+        latency_ms: Date.now() - start,
+        was_error: true,
+        error_type: "network",
+      });
+    }
+    throw e;
+  }
+
+  if (!workspaceId) return response;
+
+  const clone = response.clone();
+  clone.json().then((data: any) => {
+    const tokens_input = data?.usage?.prompt_tokens ?? 0;
+    const tokens_output = data?.usage?.completion_tokens ?? 0;
+    logAIUsage({
+      workspace_id: workspaceId,
+      feature,
+      model,
+      tokens_input,
+      tokens_output,
+      latency_ms: Date.now() - start,
+      was_error: !response.ok,
+      error_type: response.ok ? undefined : `http_${response.status}`,
+    });
+  }).catch(() => {});
+
+  return response;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -87,7 +139,7 @@ REGRAS:
 - O briefing deve ser útil numa call de vendas ou preparação de outreach
 - Evita jargão técnico, texto académico e disclaimers excessivos`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await __loggedAIFetch(workspaceId ?? null, "account-brief-generate-brief", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
