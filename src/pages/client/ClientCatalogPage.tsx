@@ -207,8 +207,20 @@ export default function ClientCatalogPage() {
             </div>
 
             {hasActiveFilters && (
-              <div className="mt-4 flex items-center gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">Filtros ativos:</span>
+                {filters.tag && (
+                  <Badge variant="default" className="gap-1 pl-2 pr-1 py-1">
+                    Tag: {filters.tag}
+                    <button
+                      onClick={() => setFilters({ ...filters, tag: undefined })}
+                      className="ml-1 hover:bg-primary-foreground/20 rounded-sm p-0.5"
+                      aria-label={`Remover tag ${filters.tag}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
                   <X className="h-4 w-4 mr-1" />
                   Limpar todos
