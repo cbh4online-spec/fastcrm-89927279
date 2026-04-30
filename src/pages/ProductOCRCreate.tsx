@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
@@ -8,7 +8,10 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
-import { ScanText, FileText, ClipboardList, Sparkles, MessageSquare, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ScanText, FileText, ClipboardList, Sparkles, MessageSquare, CheckCircle2, ChevronLeft, ChevronRight, Cloud, CloudOff, Loader2, History } from "lucide-react";
+import { useOCRWizardAutoSave } from "@/hooks/useOCRWizardAutoSave";
+import { formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
 import { StepUpload } from "@/components/products/ocr/StepUpload";
 import { StepReviewOCR } from "@/components/products/ocr/StepReviewOCR";
 import { StepProductSheet } from "@/components/products/ocr/StepProductSheet";
@@ -25,7 +28,7 @@ import {
   type ProductSheetData,
   type SalesSupportData,
 } from "@/components/products/ocr/types";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const STEPS = [
   { id: 1, title: "Upload", icon: FileText, desc: "Carregar documento" },
