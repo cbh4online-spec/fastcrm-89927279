@@ -216,6 +216,10 @@ const App = () => (
                 <Route path="/app-v2" element={<Navigate to="/app-v2/dashboard" replace />} />
                 <Route path="/app-v2/dashboard" element={<DashboardV2Page />} />
 
+                {/* Legacy dashboard alias */}
+                <Route path="/dashboards" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboards/*" element={<Navigate to="/dashboard" replace />} />
+
                 {/* Marketing public pages */}
                 <Route element={<MarketingLayout />}>
                   <Route path="/precos" element={<MarketingPricingPage />} />
