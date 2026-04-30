@@ -250,7 +250,22 @@ Deno.serve(async (req) => {
       }
 
       const fileBuffer = await fileData.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
+      // base64 encode robusto: spread (...) com Uint8Array grande causa
+      // "Maximum call stack size exceeded" (limite ~65k argumentos no V8/Deno).
+      // Iteramos byte-a-byte em chunks pequenos para garantir compatibilidade
+      // com ficheiros até 20MB sem rebentar o stack.
+      const bytes = new Uint8Array(fileBuffer);
+      const CHUNK = 8192;
+      let binary = "";
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        const slice = bytes.subarray(i, Math.min(i + CHUNK, bytes.length));
+        let part = "";
+        for (let j = 0; j < slice.length; j++) {
+          part += String.fromCharCode(slice[j]);
+        }
+        binary += part;
+      }
+      const base64 = btoa(binary);
 
       // Use vision model for OCR
       const isImage = job.file_type.startsWith("image/");
