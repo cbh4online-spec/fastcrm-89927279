@@ -1,6 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
+import i18n from "@/i18n";
 import { calculateVAT, calculateGross } from "@/types/order-note";
 import { formatCurrency } from "@/lib/formatters";
+
+beforeAll(async () => {
+  // Garante locale pt-PT para Intl.NumberFormat (vírgula decimal, € à direita)
+  await i18n.changeLanguage("pt");
+});
 
 /**
  * Testes de renderização de preços na ficha de produto.
