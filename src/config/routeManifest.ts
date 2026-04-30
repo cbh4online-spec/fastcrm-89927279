@@ -388,6 +388,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("settings-team",         "Equipa",          "/settings/team",              UsersRound,   "administracao", { menuKey: "team" }),
   e("settings-permissions",  "Permissões",      "/settings/permissions",       KeyRound,     "administracao"),
   e("settings-billing",      "Faturação",       "/settings/billing",           CreditCard,   "administracao"),
+  e("credits-history",       "Histórico de Créditos", "/dashboard/credits",     Coins,        "administracao"),
   e("settings-integrations", "Integrações",     "/settings/integrations",      Plug,         "administracao", { menuKey: "integrations" }),
   e("settings-workspace",    "Workspace",       "/settings/workspace",         FolderCog,    "administracao"),
   e("settings-roles",        "Papéis",          "/settings/roles",             ShieldCheck,  "administracao"),
