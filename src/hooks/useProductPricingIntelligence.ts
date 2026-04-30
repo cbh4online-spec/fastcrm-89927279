@@ -155,15 +155,21 @@ export function useRunMarketResearch() {
 
 // ---- Helpers ----
 
+/**
+ * Calcula o estado da margem.
+ * IMPORTANTE: `price` deve ser o preço **líquido (sem IVA)** — usar `getNetPrice()` antes.
+ * `currentMargin` é a margem comercial (% sobre o preço de venda), consistente com a coluna "Margem".
+ */
 export function getMarginStatus(
   price: number | null | undefined,
   cost: number | null | undefined,
   rules: PricingRule[],
   category?: string | null
 ): { status: "healthy" | "warning" | "danger" | "unknown"; minMargin: number; currentMargin: number | null } {
-  if (!price || !cost || cost <= 0) return { status: "unknown", minMargin: 0, currentMargin: null };
+  if (!price || !cost || cost <= 0 || price <= 0) return { status: "unknown", minMargin: 0, currentMargin: null };
 
-  const currentMargin = ((price - cost) / cost) * 100;
+  // Margem comercial sobre preço líquido (consistente em todo o sistema)
+  const currentMargin = ((price - cost) / price) * 100;
 
   // Find applicable rule
   const productRule = rules.find((r) => r.applies_to === "all");

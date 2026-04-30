@@ -19,6 +19,7 @@ import {
   type BillingType,
 } from "@/types/product";
 import { toast } from "sonner";
+import { calcMarginPct, getNetPrice } from "@/utils/productPricing";
 
 export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -32,6 +33,7 @@ export const PRODUCT_COLUMNS: ColumnConfig[] = [
   { id: "operational_cost", label: "Custo Operacional", category: "business", defaultVisible: false },
   { id: "margin", label: "Margem", category: "business", defaultVisible: true },
   { id: "margin_status", label: "Saúde Margem", category: "business", defaultVisible: true },
+  { id: "recommended_price", label: "PVP Recomendado", category: "business", defaultVisible: false },
   { id: "billing_type", label: "Cobrança", category: "business", defaultVisible: true },
   { id: "billing_frequency", label: "Frequência", category: "business", defaultVisible: false },
   { id: "status", label: "Estado", category: "basic", defaultVisible: false },
@@ -49,7 +51,7 @@ export const PRODUCT_COLUMNS: ColumnConfig[] = [
 
 export const INITIAL_COL_WIDTHS: Record<string, number> = {
   name: 220, sku: 120, product_type: 100, category: 130,
-  base_price: 90, direct_cost: 100, operational_cost: 100, margin: 80, margin_status: 90,
+  base_price: 90, direct_cost: 100, operational_cost: 100, margin: 80, margin_status: 90, recommended_price: 110,
   billing_type: 100, billing_frequency: 100, status: 90,
   store_published: 90, b2b_published: 80, total_units: 80,
   unit_duration: 90, validity_days: 90, tax_rate_estimate_pct: 80,
@@ -342,13 +344,15 @@ export function useProductsListState() {
           result = result.filter((p) => !p.direct_cost || p.direct_cost === 0);
           break;
         case "smart_negative_margin":
-          result = result.filter((p) => p.direct_cost && p.direct_cost > p.base_price);
+          result = result.filter((p) => {
+            const net = getNetPrice(p);
+            return p.direct_cost && net > 0 && p.direct_cost > net;
+          });
           break;
         case "smart_low_margin":
           result = result.filter((p) => {
-            if (!p.base_price || !p.direct_cost || p.base_price === 0) return false;
-            const margin = ((p.base_price - p.direct_cost) / p.base_price) * 100;
-            return margin > 0 && margin < 15;
+            const m = calcMarginPct(p);
+            return m != null && m > 0 && m < 15;
           });
           break;
         case "smart_no_image":
