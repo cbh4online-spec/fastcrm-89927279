@@ -13,13 +13,25 @@ interface Props {
   fieldConfidence: Record<string, ConfidenceLevel>;
 }
 
-export function StepProductSheet({ sheet, onChange, fieldConfidence }: Props) {
-  const set = <K extends keyof ProductSheetData>(k: K, v: ProductSheetData[K]) =>
-    onChange({ ...sheet, [k]: v });
+interface FieldProps {
+  label: string;
+  k: keyof ProductSheetData;
+  conf?: string;
+  type?: string;
+  placeholder?: string;
+  sheet: ProductSheetData;
+  fieldConfidence: Record<string, ConfidenceLevel>;
+  onChange: (s: ProductSheetData) => void;
+}
 
-  const Field = ({ label, k, conf, type = "text", placeholder }: {
-    label: string; k: keyof ProductSheetData; conf?: string; type?: string; placeholder?: string;
-  }) => (
+function Field({ label, k, conf, type = "text", placeholder, sheet, fieldConfidence, onChange }: FieldProps) {
+  const value = sheet[k];
+  const displayValue =
+    value === null || value === undefined || typeof value === "boolean" || typeof value === "object"
+      ? ""
+      : String(value);
+
+  return (
     <div>
       <div className="flex justify-between items-center mb-1">
         <Label className="text-xs">{label}</Label>
@@ -27,11 +39,36 @@ export function StepProductSheet({ sheet, onChange, fieldConfidence }: Props) {
       </div>
       <Input
         type={type}
-        value={(sheet[k] as string) ?? ""}
-        onChange={(e) => set(k, e.target.value as ProductSheetData[typeof k])}
+        inputMode={type === "number" ? "decimal" : undefined}
+        step={type === "number" ? "any" : undefined}
+        value={displayValue}
+        onChange={(e) => {
+          const raw = e.target.value;
+          const next: any = type === "number"
+            ? (raw === "" ? null : Number(raw.replace(",", ".")))
+            : raw;
+          onChange({ ...sheet, [k]: next });
+        }}
         placeholder={placeholder ?? "Pendente de validação"}
       />
     </div>
+  );
+}
+
+export function StepProductSheet({ sheet, onChange, fieldConfidence }: Props) {
+  const set = <K extends keyof ProductSheetData>(k: K, v: ProductSheetData[K]) =>
+    onChange({ ...sheet, [k]: v });
+
+  const f = (label: string, k: keyof ProductSheetData, conf?: string, type?: string) => (
+    <Field
+      label={label}
+      k={k}
+      conf={conf}
+      type={type}
+      sheet={sheet}
+      fieldConfidence={fieldConfidence}
+      onChange={onChange}
+    />
   );
 
   return (
