@@ -73648,6 +73648,22 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: number
       }
+      calculate_fifo_inventory_value: {
+        Args: { _workspace_id: string }
+        Returns: {
+          category: string
+          current_stock: number
+          fifo_avg_cost: number
+          latent_margin: number
+          latent_margin_pct: number
+          product_id: string
+          product_name: string
+          sku: string
+          total_cost_value: number
+          total_sale_value: number
+          unit_sale_price: number
+        }[]
+      }
       calculate_level_from_xp: { Args: { _xp: number }; Returns: number }
       calculate_module_margin: {
         Args: {
@@ -74224,6 +74240,19 @@ export type Database = {
       get_workspace_health_summary: {
         Args: { p_workspace_id: string }
         Returns: Json
+      }
+      get_workspace_inventory_summary: {
+        Args: { _workspace_id: string }
+        Returns: {
+          avg_margin_pct: number
+          negative_margin_count: number
+          total_cost_value: number
+          total_latent_margin: number
+          total_products: number
+          total_sale_value: number
+          total_units: number
+          zero_stock_count: number
+        }[]
       }
       get_workspace_stripe_config: {
         Args: { p_workspace_id: string }
