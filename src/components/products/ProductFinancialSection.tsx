@@ -150,62 +150,66 @@ export function ProductFinancialSection({ product }: ProductFinancialSectionProp
       </div>
 
       {/* Margins */}
-      <Card className="p-4 space-y-4">
-        <h3 className="font-medium flex items-center gap-2">
-          <Percent className="h-4 w-4" />
-          Margens
-        </h3>
+      {showAnyMargin && (
+        <Card className="p-4 space-y-4">
+          <h3 className="font-medium flex items-center gap-2">
+            <Percent className="h-4 w-4" />
+            Margens
+          </h3>
 
-        <MarginBar
-          label="Margem Bruta"
-          value={margins.gross_margin_value}
-          percentage={margins.gross_margin_pct}
-          tooltip="Margem bruta = preço base - custo direto. Indica quanto sobra antes de custos operacionais."
-          target={product.target_margin_pct}
-        />
+          {showGrossMargin && (
+            <MarginBar
+              label="Margem Bruta"
+              value={margins.gross_margin_value}
+              percentage={margins.gross_margin_pct}
+              tooltip="Margem bruta = preço base - custo direto. Indica quanto sobra antes de custos operacionais."
+              target={product.target_margin_pct}
+            />
+          )}
 
-        {(product.operational_cost ?? 0) > 0 && (
-          <MarginBar
-            label="Margem de Contribuição"
-            value={margins.contribution_margin_value}
-            percentage={margins.contribution_margin_pct}
-            tooltip="Margem de contribuição = preço - custos diretos e operacionais. Mostra a contribuição real para o lucro."
-          />
-        )}
+          {showContributionMargin && (product.operational_cost ?? 0) > 0 && (
+            <MarginBar
+              label="Margem de Contribuição"
+              value={margins.contribution_margin_value}
+              percentage={margins.contribution_margin_pct}
+              tooltip="Margem de contribuição = preço - custos diretos e operacionais. Mostra a contribuição real para o lucro."
+            />
+          )}
 
-        {product.target_margin_pct && (
-          <div className="pt-2 border-t">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Margem Alvo</span>
-              <Badge variant="secondary">{product.target_margin_pct}%</Badge>
-            </div>
-            {margins.gross_margin_pct < product.target_margin_pct && (
-              <p className="text-xs text-yellow-600 mt-1">
-                ⚠️ Margem atual está abaixo da meta definida
-              </p>
-            )}
-          </div>
-        )}
-
-        {product.tax_rate_estimate_pct && (
-          <div className="pt-2 border-t">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Imposto Estimado</span>
-              <Badge variant="outline">{product.tax_rate_estimate_pct}%</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Após impostos: ~
-              {formatCurrency(
-                margins.gross_margin_value * (1 - product.tax_rate_estimate_pct / 100),
-                product.currency
+          {showTargetMargin && product.target_margin_pct && (
+            <div className="pt-2 border-t">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Margem Alvo</span>
+                <Badge variant="secondary">{product.target_margin_pct}%</Badge>
+              </div>
+              {margins.gross_margin_pct < product.target_margin_pct && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  ⚠️ Margem atual está abaixo da meta definida
+                </p>
               )}
-            </p>
-          </div>
-        )}
-      </Card>
+            </div>
+          )}
+
+          {showTaxEstimate && product.tax_rate_estimate_pct && (
+            <div className="pt-2 border-t">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Imposto Estimado</span>
+                <Badge variant="outline">{product.tax_rate_estimate_pct}%</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Após impostos: ~
+                {formatCurrency(
+                  margins.gross_margin_value * (1 - product.tax_rate_estimate_pct / 100),
+                  product.currency
+                )}
+              </p>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Commission Preview */}
-      {product.commission_default && (
+      {showCommission && product.commission_default && (
         <Card className="p-4">
           <h3 className="font-medium mb-3">Simulação de Comissão</h3>
           <div className="grid grid-cols-3 gap-4 text-center">
