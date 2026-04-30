@@ -19,6 +19,7 @@ import {
   type BillingType,
 } from "@/types/product";
 import { toast } from "sonner";
+import { calcMarginPct, getNetPrice } from "@/utils/productPricing";
 
 export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -343,13 +344,15 @@ export function useProductsListState() {
           result = result.filter((p) => !p.direct_cost || p.direct_cost === 0);
           break;
         case "smart_negative_margin":
-          result = result.filter((p) => p.direct_cost && p.direct_cost > p.base_price);
+          result = result.filter((p) => {
+            const net = getNetPrice(p);
+            return p.direct_cost && net > 0 && p.direct_cost > net;
+          });
           break;
         case "smart_low_margin":
           result = result.filter((p) => {
-            if (!p.base_price || !p.direct_cost || p.base_price === 0) return false;
-            const margin = ((p.base_price - p.direct_cost) / p.base_price) * 100;
-            return margin > 0 && margin < 15;
+            const m = calcMarginPct(p);
+            return m != null && m > 0 && m < 15;
           });
           break;
         case "smart_no_image":
