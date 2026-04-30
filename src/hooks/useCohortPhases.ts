@@ -84,9 +84,9 @@ export function useCohortPhases(cohortId: string | undefined) {
         notes: p.notes?.trim() || null,
       }));
 
-      const { data, error } = await supabase
-        .from("sj_course_phases" as never)
-        .insert(payload)
+      const { data, error } = await (supabase
+        .from("sj_course_phases" as never) as never as ReturnType<typeof supabase.from>)
+        .insert(payload as never)
         .select();
       if (error) throw error;
       return (data || []) as unknown as CohortPhase[];
