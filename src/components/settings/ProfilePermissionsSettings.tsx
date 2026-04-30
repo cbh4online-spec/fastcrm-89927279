@@ -409,8 +409,16 @@ export function ProfilePermissionsSettings() {
                   {fieldChanges.size > 0 && (
                     <Badge variant="secondary">{fieldChanges.size} alteração(ões)</Badge>
                   )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => queryClient.refetchQueries({ queryKey: ["profile-field-permissions", workspaceId] })}
+                    title="Recarregar do servidor"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => setFieldChanges(new Map())} disabled={fieldChanges.size === 0}>
-                    <RefreshCw className="h-4 w-4 mr-1" /> Repor
+                    Repor
                   </Button>
                   <Button size="sm" onClick={() => saveFields.mutate()} disabled={fieldChanges.size === 0 || saveFields.isPending}>
                     <Save className="h-4 w-4 mr-1" /> Guardar
