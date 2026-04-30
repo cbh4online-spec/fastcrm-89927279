@@ -270,9 +270,7 @@ export function InlineEditableField({
       case "date": {
         // editedValue is kept as raw user text (dd/MM/yyyy) while typing.
         // We try to parse it for the calendar selection only.
-        const rawText = typeof editedValue === "string" && /^\d{4}-\d{2}-\d{2}/.test(editedValue)
-          ? valueToDisplayDate(editedValue) // value came from DB in ISO; show as dd/MM/yyyy
-          : (editedValue as string) || "";
+        const rawText = (editedValue as string) || "";
         const parsedDate = parseUserDate(rawText);
         return (
           <div className="flex items-center gap-1">
