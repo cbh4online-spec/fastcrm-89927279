@@ -18,6 +18,7 @@ import { ProductOverviewTab } from "./ProductOverviewTab";
 import { ProductUsageTab } from "./ProductUsageTab";
 import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductAttributeTags } from "./ProductAttributeTags";
+import { ProductTagsFooter } from "./ProductTagsFooter";
 import { calculateVAT, calculateGross } from "@/types/order-note";
 import {
   Minus,
@@ -90,6 +91,8 @@ interface ProductDetailModalProps {
   vatRate?: number;
   effectivePrice?: number;
   hasDiscount?: boolean;
+  onTagClick?: (tag: string) => void;
+  activeTag?: string | null;
 }
 
 export function ProductDetailModal({
@@ -100,6 +103,8 @@ export function ProductDetailModal({
   vatRate = 23,
   effectivePrice,
   hasDiscount,
+  onTagClick,
+  activeTag,
 }: ProductDetailModalProps) {
   const [quantity, setQuantity] = useState(1);
 
@@ -372,6 +377,20 @@ export function ProductDetailModal({
                 </TabsContent>
               </Tabs>
             </div>
+
+            {/* Tags Footer — clickable chips for catalog filtering */}
+            <ProductTagsFooter
+              tags={product.tags ?? null}
+              onTagClick={
+                onTagClick
+                  ? (tag) => {
+                      onTagClick(tag);
+                      onOpenChange(false);
+                    }
+                  : undefined
+              }
+              activeTag={activeTag}
+            />
           </div>
         </ScrollArea>
       </DialogContent>
