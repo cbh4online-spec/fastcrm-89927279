@@ -299,6 +299,9 @@ export default function StockValuationPage() {
                             {r.latent_margin_pct.toFixed(1)}%
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground">
+                          {r.markup_pct.toFixed(0)}%
+                        </TableCell>
                       </TableRow>
                     );
                   })
