@@ -19,6 +19,9 @@ interface CopilotRequest {
   messages?: { role: string; content: string; direction?: string }[];
   leadData?: Record<string, unknown>;
   conversationContext?: string;
+  workspace_id?: string;
+  entity_type?: string;
+  entity_id?: string;
 }
 
 const systemPrompts: Record<CopilotAction, string> = {
@@ -244,12 +247,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { action, messages, leadData, conversationContext }: CopilotRequest = await req.json();
+    const { action, messages, leadData, conversationContext, workspace_id, entity_type, entity_id }: CopilotRequest = await req.json();
 
-    // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'light', 'ai-copilot');
+    // AI Gate check (only when workspace_id is provided)
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'light', 'ai-copilot');
       if (!gate.allowed) {
         return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
           status: 200,
@@ -315,6 +317,25 @@ Deno.serve(async (req) => {
     });
 
     if (!response.ok) {
+      const latencyMs = Date.now() - _startTime;
+      const errorTypeMap: Record<number, string> = { 429: 'rate_limit', 402: 'payment_required' };
+      if (workspace_id) {
+        try {
+          logAIUsage({
+            workspace_id,
+            feature: 'ai-copilot',
+            model: 'google/gemini-3-flash-preview',
+            tokens_input: 0,
+            tokens_output: 0,
+            request_type: 'completion',
+            latency_ms: latencyMs,
+            was_error: true,
+            error_type: errorTypeMap[response.status] ?? `http_${response.status}`,
+            entity_type,
+            entity_id,
+          });
+        } catch (_e) { /* non-blocking */ }
+      }
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Limite de pedidos IA atingido. Tente novamente mais tarde.", fallback: true }),
@@ -338,18 +359,22 @@ Deno.serve(async (req) => {
     const data = await response.json()
 
     // AI Usage Instrumentation
-    try {
-      const _usage = data?.usage;
-      logAIUsage({
-        workspace_id: workspace_id,
-        feature: 'ai-copilot',
-        model: data?.model || 'google/gemini-3-flash-preview',
-        tokens_input: _usage?.prompt_tokens ?? 0,
-        tokens_output: _usage?.completion_tokens ?? 0,
-        request_type: 'completion',
-        latency_ms: Date.now() - (_startTime ?? Date.now()),
-      });
-    } catch (_e) { /* instrumentation error - non-blocking */ };
+    if (workspace_id) {
+      try {
+        const _usage = data?.usage;
+        logAIUsage({
+          workspace_id,
+          feature: 'ai-copilot',
+          model: data?.model || 'google/gemini-3-flash-preview',
+          tokens_input: _usage?.prompt_tokens ?? 0,
+          tokens_output: _usage?.completion_tokens ?? 0,
+          request_type: 'tool_use',
+          latency_ms: Date.now() - _startTime,
+          entity_type,
+          entity_id,
+        });
+      } catch (_e) { /* instrumentation error - non-blocking */ }
+    }
     
     // Extract tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];

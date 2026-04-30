@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export type CopilotAction = 
   | "classify_intent"
@@ -58,6 +59,7 @@ interface CopilotMessage {
 export function useAskAI() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { currentWorkspace } = useWorkspace();
 
   const callCopilot = useCallback(async <T>(
     action: CopilotAction,
@@ -65,6 +67,8 @@ export function useAskAI() {
       messages?: CopilotMessage[];
       leadData?: Record<string, unknown>;
       conversationContext?: string;
+      entity_type?: string;
+      entity_id?: string;
     }
   ): Promise<T | null> => {
     setIsLoading(true);
@@ -72,7 +76,7 @@ export function useAskAI() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("ai-copilot", {
-        body: { action, ...payload },
+        body: { action, workspace_id: currentWorkspace?.id, ...payload },
       });
 
       if (fnError) {
@@ -100,7 +104,7 @@ export function useAskAI() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentWorkspace?.id]);
 
   const classifyIntent = useCallback(
     (messages: CopilotMessage[]) => 

@@ -33,13 +33,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { leadId, workspaceId, messages, conversationChannel, existingOpportunities } = 
+    const { leadId, workspaceId, messages, conversationChannel, existingOpportunities } =
       await req.json() as LeadAnalysisRequest;
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'medium', 'ai-analyze-lead');
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'medium', 'ai-analyze-lead');
       if (!gate.allowed) {
         return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
           status: 200,
@@ -186,6 +185,25 @@ Retorne a análise usando a função analyze_lead.`;
     });
 
     if (!response.ok) {
+      const latencyMs = Date.now() - _startTime;
+      const errorTypeMap: Record<number, string> = { 429: 'rate_limit', 402: 'payment_required' };
+      if (workspaceId) {
+        try {
+          logAIUsage({
+            workspace_id: workspaceId,
+            feature: 'ai-analyze-lead',
+            model: 'google/gemini-2.5-flash',
+            tokens_input: 0,
+            tokens_output: 0,
+            request_type: 'completion',
+            latency_ms: latencyMs,
+            was_error: true,
+            error_type: errorTypeMap[response.status] ?? `http_${response.status}`,
+            entity_type: 'lead',
+            entity_id: leadId,
+          });
+        } catch (_e) { /* non-blocking */ }
+      }
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded", fallback: true }), {
           status: 200,
@@ -205,18 +223,22 @@ Retorne a análise usando a função analyze_lead.`;
     const aiResponse = await response.json()
 
     // AI Usage Instrumentation
-    try {
-      const _usage = aiResponse?.usage;
-      logAIUsage({
-        workspace_id: workspace_id,
-        feature: 'ai-analyze-lead',
-        model: aiResponse?.model || 'google/gemini-3-flash-preview',
-        tokens_input: _usage?.prompt_tokens ?? 0,
-        tokens_output: _usage?.completion_tokens ?? 0,
-        request_type: 'completion',
-        latency_ms: Date.now() - (_startTime ?? Date.now()),
-      });
-    } catch (_e) { /* instrumentation error - non-blocking */ };
+    if (workspaceId) {
+      try {
+        const _usage = aiResponse?.usage;
+        logAIUsage({
+          workspace_id: workspaceId,
+          feature: 'ai-analyze-lead',
+          model: aiResponse?.model || 'google/gemini-2.5-flash',
+          tokens_input: _usage?.prompt_tokens ?? 0,
+          tokens_output: _usage?.completion_tokens ?? 0,
+          request_type: 'tool_use',
+          latency_ms: Date.now() - _startTime,
+          entity_type: 'lead',
+          entity_id: leadId,
+        });
+      } catch (_e) { /* instrumentation error - non-blocking */ }
+    }
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
     
     if (!toolCall?.function?.arguments) {

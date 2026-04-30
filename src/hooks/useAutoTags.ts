@@ -42,6 +42,7 @@ export interface ConversationTagContext {
 export function useAutoTags() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { currentWorkspace } = useWorkspace();
 
   const generateTags = useCallback(
     async (
@@ -59,7 +60,12 @@ export function useAutoTags() {
         }));
 
         const { data, error: fnError } = await supabase.functions.invoke("ai-auto-tags", {
-          body: { messages: formattedMessages, context, conversationId },
+          body: {
+            messages: formattedMessages,
+            context,
+            conversationId,
+            workspace_id: currentWorkspace?.id,
+          },
         });
 
         if (fnError) {
@@ -85,7 +91,7 @@ export function useAutoTags() {
         setIsLoading(false);
       }
     },
-    []
+    [currentWorkspace?.id]
   );
 
   return { generateTags, isLoading, error };
