@@ -18,6 +18,7 @@ import {
 import { ROUTE_MANIFEST, NAV_GROUPS, type RouteEntry } from "@/config/routeManifest";
 import { PermissionAuditTab } from "./PermissionAuditTab";
 import { FieldDefaultsDialog } from "./FieldDefaultsDialog";
+import { WorkspaceInstanceHealthBadge } from "./WorkspaceInstanceHealthBadge";
 
 const SALES_FUNCTIONS = [
   { value: "vendedor", label: "Vendedor", icon: User, color: "text-green-500" },
@@ -314,14 +315,17 @@ export function ProfilePermissionsSettings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          <Eye className="h-5 w-5" />
-          Permissões por Perfil Comercial
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure quais menus, sub-menus e campos cada perfil comercial pode ver. Estas regras restringem adicionalmente as permissões de role do workspace.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            Permissões por Perfil Comercial
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure quais menus, sub-menus e campos cada perfil comercial pode ver. Estas regras restringem adicionalmente as permissões de role do workspace.
+          </p>
+        </div>
+        <WorkspaceInstanceHealthBadge />
       </div>
 
       <Tabs defaultValue="menus">
