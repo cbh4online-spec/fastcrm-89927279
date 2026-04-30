@@ -227,11 +227,11 @@ export function useClientProducts(
             return true;
           });
 
-          return filteredProducts;
+          return applyTagFilter(filteredProducts, filters.tag);
         }
       }
 
-      return productsWithPricing;
+      return applyTagFilter(productsWithPricing, filters.tag);
     },
     enabled: !!workspaceId,
   });
