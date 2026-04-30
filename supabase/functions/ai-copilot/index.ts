@@ -247,12 +247,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { action, messages, leadData, conversationContext }: CopilotRequest = await req.json();
+    const { action, messages, leadData, conversationContext, workspace_id, entity_type, entity_id }: CopilotRequest = await req.json();
 
-    // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'light', 'ai-copilot');
+    // AI Gate check (only when workspace_id is provided)
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'light', 'ai-copilot');
       if (!gate.allowed) {
         return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
           status: 200,
