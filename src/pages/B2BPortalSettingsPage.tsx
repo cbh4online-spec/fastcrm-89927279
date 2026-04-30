@@ -74,8 +74,21 @@ export default function B2BPortalSettingsPage() {
     enabled: !!currentWorkspace?.id,
   });
 
-  // Products count - static for now to avoid type issues
-  const productsCount = 0;
+  // Products count - active products in workspace catalog
+  const { data: productsCount = 0 } = useQuery<number>({
+    queryKey: ["b2b-portal-products-count", currentWorkspace?.id],
+    queryFn: async (): Promise<number> => {
+      if (!currentWorkspace?.id) return 0;
+      const { count, error } = await supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("status", "active");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!currentWorkspace?.id,
+  });
 
   // Fetch clients count
   const { data: clientsCount = 0 } = useQuery<number>({
