@@ -175,12 +175,29 @@ export function ProductDetailModal({
                   )}
                 </div>
 
-                {product.category && (
-                  <Badge variant="secondary">
-                    <Tag className="h-3 w-3 mr-1" />
-                    {product.category}
-                  </Badge>
-                )}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {product.category && (
+                    <Badge variant="secondary">
+                      <Tag className="h-3 w-3 mr-1" />
+                      {product.category}
+                    </Badge>
+                  )}
+                  {product.subcategory && (
+                    <Badge variant="outline" className="text-xs">
+                      {product.subcategory}
+                    </Badge>
+                  )}
+                  {product.line && (
+                    <Badge variant="outline" className="text-xs">
+                      {product.line}
+                    </Badge>
+                  )}
+                  {product.promo_label && (
+                    <Badge className="bg-rose-100 text-rose-700 border-rose-200 text-xs">
+                      {product.promo_label}
+                    </Badge>
+                  )}
+                </div>
 
                 {product.short_description && (
                   <p className="text-muted-foreground">
@@ -270,33 +287,76 @@ export function ProductDetailModal({
               </div>
             </div>
 
-            {/* Technical Details Section */}
+            {/* Rich Tabs */}
             <div className="mt-8">
-              <Tabs defaultValue="technical" className="w-full">
-                <TabsList className="w-full justify-start">
-                  <TabsTrigger value="technical" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Informação Técnica
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="w-full justify-start flex-wrap h-auto">
+                  <TabsTrigger value="overview" className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Visão Geral
                   </TabsTrigger>
-                  <TabsTrigger value="attributes" className="flex items-center gap-2">
+                  <TabsTrigger value="usage" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Como Usar
+                  </TabsTrigger>
+                  <TabsTrigger value="specs" className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4" />
-                    Atributos Clínicos
+                    Especificações
+                  </TabsTrigger>
+                  <TabsTrigger value="clinical" className="flex items-center gap-2">
+                    <Stethoscope className="h-4 w-4" />
+                    Clínico
                     {attributes.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                         {attributes.length}
                       </Badge>
                     )}
                   </TabsTrigger>
                 </TabsList>
-                
-                <TabsContent value="technical" className="pt-4">
-                  <ProductTechnicalInfo
-                    specifications={product.specifications as Record<string, unknown> | null}
+
+                <TabsContent value="overview" className="pt-4">
+                  <ProductOverviewTab
                     commercialDescription={product.commercial_description}
+                    benefits={product.benefits ?? null}
+                    tags={product.tags ?? null}
+                    demoVideoUrl={product.demo_video_url ?? null}
+                    brandLogoUrl={product.brand_logo_url ?? null}
+                    line={product.line ?? null}
                   />
                 </TabsContent>
-                
-                <TabsContent value="attributes" className="pt-4">
+
+                <TabsContent value="usage" className="pt-4">
+                  <ProductUsageTab
+                    recommendedFrequency={product.recommended_frequency ?? null}
+                    typicalDurationDays={product.typical_duration_days ?? null}
+                    packSize={product.pack_size ?? null}
+                    unitName={product.unit_name ?? null}
+                    includedQuantity={product.included_quantity ?? null}
+                    conditions={product.conditions ?? null}
+                    specifications={product.specifications}
+                  />
+                </TabsContent>
+
+                <TabsContent value="specs" className="pt-4">
+                  <ProductSpecsTab
+                    specifications={product.specifications}
+                    weightNet={product.weight_net ?? null}
+                    weightGross={product.weight_gross ?? null}
+                    volumeValue={product.volume_value ?? null}
+                    volumeUnit={product.volume_unit ?? null}
+                    lengthCm={product.length_cm ?? null}
+                    widthCm={product.width_cm ?? null}
+                    heightCm={product.height_cm ?? null}
+                    packageType={product.package_type ?? null}
+                    barcode={product.barcode ?? null}
+                    minOrderQuantity={product.min_order_quantity ?? null}
+                    orderMultiple={product.order_multiple ?? null}
+                    deliveryEstimate={product.delivery_estimate ?? null}
+                    stockStatus={product.stock_status ?? null}
+                  />
+                </TabsContent>
+
+                <TabsContent value="clinical" className="pt-4">
                   {loadingAttributes ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -304,9 +364,9 @@ export function ProductDetailModal({
                   ) : attributes.length > 0 ? (
                     <ProductAttributeTags attributes={attributes} />
                   ) : (
-                    <div className="text-center py-6 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground">
                       <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Sem atributos clínicos definidos</p>
+                      <p className="text-sm">Sem atributos clínicos definidos</p>
                     </div>
                   )}
                 </TabsContent>
