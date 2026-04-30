@@ -27,6 +27,7 @@ interface TagRequest {
   messages: Message[];
   context: ConversationContext;
   conversationId: string;
+  workspace_id?: string;
 }
 
 // Predefined tags with descriptions for the AI
