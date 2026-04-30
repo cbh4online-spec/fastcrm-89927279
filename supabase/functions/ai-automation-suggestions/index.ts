@@ -285,7 +285,7 @@ Deno.serve(async (req) => {
     const { workspaceId } = await req.json();
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (workspaceId ?? null);
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'light', 'ai-automation-suggestions');
       if (!gate.allowed) {
@@ -606,7 +606,7 @@ Return your suggestions using the suggest_automations function. Only include hig
     try {
       const _usage = aiData?.usage;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id: workspaceId,
         feature: 'ai-automation-suggestions',
         model: aiData?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,

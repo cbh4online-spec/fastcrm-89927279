@@ -16,8 +16,8 @@ serve(async (req) => {
 
 
     // AI Gate — enforce credit consumption
-    if (workspace_id) {
-      const gate = await aiGate(workspace_id, 'light', 'ai-cart-recommendations');
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'light', 'ai-cart-recommendations');
       if (!gate.allowed) {
         return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },

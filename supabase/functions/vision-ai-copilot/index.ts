@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
     const { action, visionId, workspaceId } = await req.json();
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (workspaceId ?? null);
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'heavy', 'vision-ai-copilot');
       if (!gate.allowed) {
@@ -270,7 +270,7 @@ ${wins?.map((w: any) => `- ${w.date}: ${w.title} [${w.category || "geral"}]`).jo
     try {
       const _usage = aiData?.usage;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id: workspaceId,
         feature: 'vision-ai-copilot',
         model: aiData?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,

@@ -196,7 +196,7 @@ Gera o resumo do dashboard com insights acionáveis.`;
     try {
       const _usage = aiResponse?.usage;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id: workspaceId,
         feature: 'ai-dashboard-insights',
         model: aiResponse?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,

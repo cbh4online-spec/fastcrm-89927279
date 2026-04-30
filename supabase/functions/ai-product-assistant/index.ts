@@ -144,7 +144,7 @@ interface SKUSearchResult {
     const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64, storeName, settingsType, existingEntries, industryContext } = await req.json() as AssistantRequest & { storeName?: string };
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (workspaceId ?? null);
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'light', 'ai-product-assistant');
       if (!gate.allowed) {
@@ -1819,7 +1819,7 @@ Responda com um array JSON: [entry1, entry2, ...]`;
     try {
       const _usage = data?.usage;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id: workspaceId,
         feature: 'ai-product-assistant',
         model: data?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,
