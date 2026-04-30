@@ -176,27 +176,22 @@ export function ProfilePermissionsSettings() {
   const saveFields = useMutation({
     mutationFn: async () => {
       if (!workspaceId) throw new Error("Sem workspace ativo");
-      const entries = Array.from(fieldChanges.entries());
-      for (const [key, visible] of entries) {
+      const rows = Array.from(fieldChanges.entries()).map(([key, visible]) => {
         const [sales_function, page_key, field_key] = key.split(":");
-        const existing = fieldPerms?.find(
-          (p) => p.sales_function === sales_function && p.page_key === page_key && p.field_key === field_key
-        );
-        if (existing) {
-          await supabase.from("profile_field_permissions").update({ visible }).eq("id", existing.id);
-        } else {
-          await supabase
-            .from("profile_field_permissions")
-            .insert({ sales_function, page_key, field_key, visible, workspace_id: workspaceId });
-        }
-      }
+        return { workspace_id: workspaceId, sales_function, page_key, field_key, visible };
+      });
+      if (rows.length === 0) return;
+      const { error } = await supabase
+        .from("profile_field_permissions")
+        .upsert(rows, { onConflict: "workspace_id,sales_function,page_key,field_key" });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile-field-permissions"] });
       setFieldChanges(new Map());
       toast.success("Permissões de campos guardadas");
     },
-    onError: () => toast.error("Erro ao guardar permissões de campos"),
+    onError: (err: any) => toast.error(`Erro ao guardar: ${err?.message ?? "desconhecido"}`),
   });
 
   // Group field perms by page_key
