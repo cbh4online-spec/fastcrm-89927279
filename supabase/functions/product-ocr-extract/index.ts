@@ -225,11 +225,28 @@ Deno.serve(async (req) => {
         ocr_confidence: isFinite(overallConf) ? overallConf : null,
         field_confidence: fieldConf,
         processing_status: "completed",
-        ai_model: "google/gemini-2.5-pro",
+        ai_model: aiModel,
         ai_tokens_used: aiData.usage?.total_tokens ?? null,
         processed_at: new Date().toISOString(),
       })
       .eq("id", document_id);
+
+    // telemetria de sucesso → ai_usage_logs (consumo de créditos)
+    if (doc.workspace_id) {
+      logAIUsage({
+        workspace_id: doc.workspace_id,
+        feature: "product-ocr-extract",
+        model: aiModel,
+        provider: "lovable",
+        tokens_input: aiData.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData.usage?.completion_tokens ?? 0,
+        request_type: "completion",
+        latency_ms: Date.now() - aiStart,
+        entity_type: "product_ocr_document",
+        entity_id: document_id,
+        user_id: userRes.user.id,
+      });
+    }
 
     return json({ success: true, data: cleaned, document_id });
   } catch (e) {
