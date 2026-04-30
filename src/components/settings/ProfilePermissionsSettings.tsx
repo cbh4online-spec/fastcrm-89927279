@@ -445,6 +445,7 @@ export function ProfilePermissionsSettings() {
                   {fieldChanges.size > 0 && (
                     <Badge variant="secondary">{fieldChanges.size} alteração(ões)</Badge>
                   )}
+                  <FieldDefaultsDialog pageKeys={Object.keys(allFieldsByPage)} />
                   <Button
                     size="sm"
                     variant="ghost"
