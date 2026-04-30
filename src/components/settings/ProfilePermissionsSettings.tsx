@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ROUTE_MANIFEST, NAV_GROUPS, type RouteEntry } from "@/config/routeManifest";
 import { PermissionAuditTab } from "./PermissionAuditTab";
+import { FieldDefaultsDialog } from "./FieldDefaultsDialog";
 
 const SALES_FUNCTIONS = [
   { value: "vendedor", label: "Vendedor", icon: User, color: "text-green-500" },
@@ -444,6 +445,7 @@ export function ProfilePermissionsSettings() {
                   {fieldChanges.size > 0 && (
                     <Badge variant="secondary">{fieldChanges.size} alteração(ões)</Badge>
                   )}
+                  <FieldDefaultsDialog pageKeys={Object.keys(allFieldsByPage)} />
                   <Button
                     size="sm"
                     variant="ghost"
