@@ -124,19 +124,24 @@ serve(async (req) => {
       success_url: `${baseUrl}/settings/billing?purchase=success&session_id={CHECKOUT_SESSION_ID}&credits=${pkg.credits_amount}`,
       cancel_url: `${baseUrl}/settings/billing?purchase=cancelled`,
       metadata: {
-        workspace_id: workspaceId,
+        buyer_workspace_id: workspaceId,
+        gateway_workspace_id: gatewayWsId,
         user_id: user.id,
         package_id: pkg.id,
         credits_amount: String(pkg.credits_amount),
         kind: "credit_package",
+        // legado — manter para compatibilidade com webhooks/handlers existentes
+        workspace_id: workspaceId,
       },
       payment_intent_data: {
         metadata: {
-          workspace_id: workspaceId,
+          buyer_workspace_id: workspaceId,
+          gateway_workspace_id: gatewayWsId,
           user_id: user.id,
           package_id: pkg.id,
           credits_amount: String(pkg.credits_amount),
           kind: "credit_package",
+          workspace_id: workspaceId,
         },
       },
     });
