@@ -210,7 +210,7 @@ export default function StockValuationPage() {
                   <TableHead colSpan={3} className="text-center border-r bg-blue-50/50 dark:bg-blue-950/20">
                     Preços de venda
                   </TableHead>
-                  <TableHead colSpan={2} className="text-center bg-emerald-50/50 dark:bg-emerald-950/20">
+                  <TableHead colSpan={3} className="text-center bg-emerald-50/50 dark:bg-emerald-950/20">
                     Margem
                   </TableHead>
                 </TableRow>
@@ -219,19 +219,24 @@ export default function StockValuationPage() {
                   <TableHead className="cursor-pointer" onClick={() => toggleSort("name")}>Produto</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("stock")}>Un.</TableHead>
-                  <TableHead className="text-right">P.Custo</TableHead>
-                  <TableHead className="text-right">Custo Op.</TableHead>
-                  <TableHead className="text-right font-semibold">Custo Total</TableHead>
-                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("cost_value")}>
+                  <TableHead className="text-right" title="Custo médio FIFO do produto">P.Custo</TableHead>
+                  <TableHead className="text-right" title="Custo operacional unitário (logística, overhead, etc.)">Custo Op.</TableHead>
+                  <TableHead className="text-right font-semibold" title="P.Custo + Custo Operacional">Custo Total</TableHead>
+                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("cost_value")} title="Stock × Custo Total">
                     Valor stock
                   </TableHead>
                   <TableHead className="text-right">Base s/IVA actual</TableHead>
-                  <TableHead className="text-right">Base s/IVA sugerido</TableHead>
+                  <TableHead className="text-right" title="Preço sugerido com base na margem alvo do produto">Base s/IVA sugerido</TableHead>
                   <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("sale_value")}>
                     Valor a PVP
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin")}>€</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin_pct")}>%</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin")} title="Stock × (PVP − Custo Total)">€ lucro</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin_pct")} title="(PVP − Custo Total) ÷ PVP — padrão contabilístico PT, sempre 0–100%">
+                    % s/PVP
+                  </TableHead>
+                  <TableHead className="text-right" title="(PVP − Custo Total) ÷ Custo Total — markup, pode ultrapassar 100%">
+                    % s/Custo
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
