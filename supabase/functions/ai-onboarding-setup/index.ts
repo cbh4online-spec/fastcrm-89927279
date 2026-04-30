@@ -211,6 +211,17 @@ Dá prioridade às automações e KPIs que apoiam o objetivo principal indicado.
     }
 
     const data = await response.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "ai-onboarding-setup",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: data?.usage?.prompt_tokens ?? 0,
+        tokens_output: data?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {

@@ -106,6 +106,17 @@ Deno.serve(async (req) => {
               }),
             });
             const data = await resp.json();
+            // Log AI usage (fire-and-forget)
+            try {
+              logAIUsage({
+                workspace_id: workspace_id,
+                feature: "email-reengagement-ai",
+                model: "google/gemini-3-flash-preview",
+                tokens_input: data?.usage?.prompt_tokens ?? 0,
+                tokens_output: data?.usage?.completion_tokens ?? 0,
+              });
+            } catch (_e) { /* logging never blocks */ }
+
             const content = data.choices?.[0]?.message?.content || "";
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) aiResponse = JSON.parse(jsonMatch[0]);

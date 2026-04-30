@@ -89,6 +89,17 @@ Deno.serve(async (req) => {
 
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
+            // Log AI usage (fire-and-forget)
+            try {
+              logAIUsage({
+                workspace_id: workspace_id,
+                feature: "bot-transfer",
+                model: "google/gemini-2.5-flash-lite",
+                tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+                tokens_output: aiData?.usage?.completion_tokens ?? 0,
+              });
+            } catch (_e) { /* logging never blocks */ }
+
             const content = aiData.choices?.[0]?.message?.content || "";
             try {
               const parsed = JSON.parse(content.replace(/```json?\n?/g, "").replace(/```/g, "").trim());

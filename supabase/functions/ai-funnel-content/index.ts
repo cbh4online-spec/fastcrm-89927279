@@ -75,6 +75,17 @@ Deno.serve(async (req) => {
       }
 
       const aiData = await response.json();
+      // Log AI usage (fire-and-forget)
+      try {
+        logAIUsage({
+          workspace_id: workspace_id,
+          feature: "ai-funnel-content",
+          model: "google/gemini-3.1-flash-image-preview",
+          tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+          tokens_output: aiData?.usage?.completion_tokens ?? 0,
+        });
+      } catch (_e) { /* logging never blocks */ }
+
       const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
       if (!imageUrl) {

@@ -220,6 +220,17 @@ Gera as prioridades para AGORA.`;
     }
 
     const aiResponse = await response.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "ai-member-priorities",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: aiResponse?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiResponse?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const content = aiResponse.choices?.[0]?.message?.content || "";
     
     let parsed;

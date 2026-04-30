@@ -228,6 +228,17 @@ Important rules:
     }
 
     const ocrResult = await ocrResponse.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "rfq-quote-ocr-parse",
+        model: "google/gemini-2.5-flash",
+        tokens_input: ocrResult?.usage?.prompt_tokens ?? 0,
+        tokens_output: ocrResult?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     console.log("[ocr-parse] ai_request_done", { importId });
 
     const toolCall = ocrResult.choices?.[0]?.message?.tool_calls?.[0];

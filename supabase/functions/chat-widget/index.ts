@@ -504,6 +504,17 @@ ${context}`,
     }
 
     const aiData = await aiResponse.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "chat-widget",
+        model: "google/gemini-2.5-flash",
+        tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const responseContent = aiData.choices?.[0]?.message?.content;
     console.log("[CHAT-WIDGET] AI response generated successfully");
     

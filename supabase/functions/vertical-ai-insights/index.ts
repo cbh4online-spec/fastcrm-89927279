@@ -99,6 +99,17 @@ Responde APENAS com um JSON válido neste formato:
     }
 
     const aiData = await aiResponse.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "vertical-ai-insights",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const content = aiData.choices?.[0]?.message?.content || "";
     
     const jsonMatch = content.match(/\{[\s\S]*\}/);

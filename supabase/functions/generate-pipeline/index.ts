@@ -215,6 +215,17 @@ Deno.serve(async (req) => {
     }
 
     const aiResponse = await response.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "generate-pipeline",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: aiResponse?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiResponse?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall || toolCall.function.name !== "generate_pipeline") {

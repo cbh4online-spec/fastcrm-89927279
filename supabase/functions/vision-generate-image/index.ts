@@ -69,6 +69,17 @@ ${description ? `Description: ${description}` : ""}`;
     }
 
     const aiData = await aiResponse.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspaceId,
+        feature: "vision-generate-image",
+        model: "google/gemini-3.1-flash-image-preview",
+        tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (!imageUrl) throw new Error("No image returned from AI");
 

@@ -157,6 +157,17 @@ Exemplo de resposta: crm, gestão clientes, vendas, leads, pipeline, automação
         }
 
         const aiData = await aiResponse.json();
+        // Log AI usage (fire-and-forget)
+        try {
+          logAIUsage({
+            workspace_id: workspace_id,
+            feature: "generate-product-embeddings",
+            model: "google/gemini-2.5-flash-lite",
+            tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+            tokens_output: aiData?.usage?.completion_tokens ?? 0,
+          });
+        } catch (_e) { /* logging never blocks */ }
+
         const keywords = aiData.choices?.[0]?.message?.content?.toLowerCase()?.trim() || "";
         
         if (!keywords) {

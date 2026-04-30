@@ -123,6 +123,17 @@ Deno.serve(async (req) => {
 
         if (keywordResponse.ok) {
           const data = await keywordResponse.json();
+          // Log AI usage (fire-and-forget)
+          try {
+            logAIUsage({
+              workspace_id: workspace_id,
+              feature: "knowledge-semantic-search",
+              model: "text-embedding-3-small",
+              tokens_input: data?.usage?.prompt_tokens ?? 0,
+              tokens_output: data?.usage?.completion_tokens ?? 0,
+            });
+          } catch (_e) { /* logging never blocks */ }
+
           const raw = data.choices?.[0]?.message?.content || "[]";
           const match = raw.match(/\[[\s\S]*\]/);
           if (match) searchTerms = JSON.parse(match[0]);

@@ -194,6 +194,17 @@ Deno.serve(async (req) => {
     }
 
     const aiResult = await response.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "ai-funnel-builder",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: aiResult?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiResult?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     logStep("AI response received");
 
     // Extract tool call result

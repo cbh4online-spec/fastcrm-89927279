@@ -162,6 +162,17 @@ Provide 15 main keywords, 20 long-tail keywords, and 15 question keywords.`;
     }
 
     const data = await response.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "generate-keyword-ideas",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: data?.usage?.prompt_tokens ?? 0,
+        tokens_output: data?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     
     if (!toolCall?.function?.arguments) {

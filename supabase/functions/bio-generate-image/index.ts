@@ -69,6 +69,17 @@ Deno.serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspaceId,
+        feature: "bio-generate-image",
+        model: "google/gemini-2.5-flash-image",
+        tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     console.log("[BIO] AI response keys:", JSON.stringify(Object.keys(aiData)));
     const msg = aiData.choices?.[0]?.message;
     console.log("[BIO] Message keys:", msg ? JSON.stringify(Object.keys(msg)) : "no message");

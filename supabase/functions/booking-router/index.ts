@@ -85,6 +85,17 @@ ${JSON.stringify(calendarDescriptions, null, 2)}`
     }
 
     const aiData = await aiResp.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "booking-router",
+        model: "google/gemini-2.5-flash-lite",
+        tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const matchedId = aiData.choices?.[0]?.message?.content?.trim();
 
     const matchedCalendar = calendars.find((c: any) => c.id === matchedId);

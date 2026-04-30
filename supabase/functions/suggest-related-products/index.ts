@@ -206,6 +206,17 @@ REGRAS:
     }
 
     const aiData = await aiResp.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "suggest-related-products",
+        model: "google/gemini-3-flash-preview",
+        tokens_input: aiData?.usage?.prompt_tokens ?? 0,
+        tokens_output: aiData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     const aiContent = aiData.choices?.[0]?.message?.content || "";
 
     let suggestions: any[] = [];

@@ -748,6 +748,17 @@ async function runPrompt(
     throw Object.assign(new Error(`LLM error ${llmResp.status}: ${errText}`), { category: "AI_PROVIDER_ERROR" as ErrorCategory });
   } else {
     const llmData = await llmResp.json();
+    // Log AI usage (fire-and-forget)
+    try {
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: "ai-employee-executor",
+        model: "google/gemini-2.5-flash",
+        tokens_input: llmData?.usage?.prompt_tokens ?? 0,
+        tokens_output: llmData?.usage?.completion_tokens ?? 0,
+      });
+    } catch (_e) { /* logging never blocks */ }
+
     llmReply = llmData.choices?.[0]?.message?.content?.trim() || localeFallback(settings, locale);
     tokensUsed = llmData.usage?.total_tokens ?? 0;
   }
