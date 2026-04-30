@@ -144,7 +144,7 @@ function RenderProductCell({
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className={margin >= 30 ? "text-green-600" : margin >= 15 ? "text-yellow-600" : "text-destructive"}>
-                  {margin.toFixed(1)}%
+                  {margin.toFixed(2)}%
                 </span>
               </TooltipTrigger>
               <TooltipContent>
