@@ -8,6 +8,8 @@ import { Sparkles, FileText, MessageSquare, Store, Send, HelpCircle, ShieldAlert
 
 interface Props {
   productId: string;
+  /** When true, render an empty-state message instead of returning null when no AI content exists. */
+  showEmpty?: boolean;
 }
 
 interface ProductContent {
