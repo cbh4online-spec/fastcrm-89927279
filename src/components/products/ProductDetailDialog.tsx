@@ -442,6 +442,7 @@ export function ProductDetailDialog({
                         costPrice={product.direct_cost || undefined}
                       />
                     </div>
+                    )}
 
                     {/* Weight AI Panel */}
                     <ProductWeightAIPanel
