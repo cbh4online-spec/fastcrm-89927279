@@ -358,6 +358,9 @@ export function ProductDetailDialog({
                       <TabsTrigger value="documents" className="text-xs px-2.5 py-1 h-7">
                         <FileText className="h-3 w-3 mr-1" />Documentos
                       </TabsTrigger>
+                      <TabsTrigger value="ai-content" className="text-xs px-2.5 py-1 h-7">
+                        <Sparkles className="h-3 w-3 mr-1" />Conteúdo IA
+                      </TabsTrigger>
                       <TabsTrigger value="specs" className="text-xs px-2.5 py-1 h-7">
                         <ClipboardList className="h-3 w-3 mr-1" />Specs
                       </TabsTrigger>
