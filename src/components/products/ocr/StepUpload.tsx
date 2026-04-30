@@ -1,10 +1,14 @@
 import { useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Image as ImageIcon, Loader2, RefreshCw, ScanText } from "lucide-react";
+import { Upload, FileText, Image as ImageIcon, Loader2, RefreshCw, ScanText, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import type { OCRDocument, OCRStructuredData } from "./types";
+
+const OCR_EXTRACT_ACTION = "ai_document_ocr";
 
 interface Props {
   workspaceId: string;
@@ -21,6 +25,8 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
   const [extracting, setExtracting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { getCost, canAfford, consumeCredits } = useCreditWallet();
+  const extractCost = getCost(OCR_EXTRACT_ACTION);
 
   const handleFile = useCallback(async (file: File) => {
     if (!workspaceId) {
