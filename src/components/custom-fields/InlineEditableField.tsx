@@ -115,20 +115,25 @@ export function InlineEditableField({
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setEditedValue(value);
-  }, [value]);
+    // For date fields, normalise stored ISO into dd/MM/yyyy text for the editor.
+    if (fieldType === "date") {
+      setEditedValue(valueToDisplayDate(value));
+    } else {
+      setEditedValue(value);
+    }
+  }, [value, fieldType]);
 
   const hasValue = value !== undefined && value !== null && value !== "" && 
     !(Array.isArray(value) && value.length === 0);
   const showSuggestion = !hasValue && suggestion && suggestion.confidence >= 0.5;
 
   const handleStartEdit = () => {
-    setEditedValue(value);
+    setEditedValue(fieldType === "date" ? valueToDisplayDate(value) : value);
     setIsEditing(true);
   };
 
   const handleCancel = () => {
-    setEditedValue(value);
+    setEditedValue(fieldType === "date" ? valueToDisplayDate(value) : value);
     setIsEditing(false);
   };
 
