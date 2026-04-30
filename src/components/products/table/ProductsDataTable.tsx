@@ -323,14 +323,14 @@ export function ProductsDataTable({
                   );
                 })}
                 <TableHead
-                  className="sticky right-0 bg-background z-20 border-l border-border"
+                  className="sticky right-0 bg-background z-20 border-l border-border shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)]"
                   style={{ width: 56, minWidth: 56, maxWidth: 56 }}
                 />
               </TableRow>
             </TableHeader>
           </Table>
 
-          {/* Virtualized body */}
+          {/* Virtualized body — uses same horizontal scroll as header (parent wrapper) */}
           <div
             ref={parentRef}
             className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
@@ -339,22 +339,26 @@ export function ProductsDataTable({
             <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 const product = products[virtualRow.index];
+                // Compute total width of data columns to position the sticky-action column correctly
+                const dataColsWidth = visibleCols.reduce((sum, cid) => sum + colWidths.getWidth(cid), 0);
+                const rowWidth = 50 + dataColsWidth + 56; // checkbox + cols + actions
                 return (
                   <div
                     key={product.id}
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
-                    className="flex items-center border-b border-border hover:bg-muted/50 transition-colors"
+                    className="flex items-center border-b border-border hover:bg-muted/50 transition-colors relative"
                     style={{
                       position: "absolute",
                       top: 0,
                       left: 0,
-                      width: "100%",
+                      width: rowWidth,
+                      minWidth: "100%",
                       transform: `translateY(${virtualRow.start}px)`,
                       height: ROW_HEIGHT,
                     }}
                   >
-                    <div className="flex items-center px-4" style={{ width: 50, minWidth: 50 }}>
+                    <div className="flex items-center px-4 flex-shrink-0" style={{ width: 50, minWidth: 50 }}>
                       <Checkbox
                         checked={selectedIds.includes(product.id)}
                         onCheckedChange={(checked) => onSelectOne(product.id, checked as boolean)}
@@ -366,7 +370,7 @@ export function ProductsDataTable({
                         <div
                           key={colId}
                           data-col-id={colId}
-                          className="flex items-center px-4 text-sm"
+                          className="flex items-center px-4 text-sm flex-shrink-0"
                           style={{ width: w, maxWidth: w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                         >
                           <RenderProductCell product={product} columnId={colId} helpers={helpers} />
@@ -374,8 +378,8 @@ export function ProductsDataTable({
                       );
                     })}
                     <div
-                      className="sticky right-0 flex items-center justify-center bg-background border-l border-border"
-                      style={{ width: 56, minWidth: 56, maxWidth: 56, flexShrink: 0, height: ROW_HEIGHT }}
+                      className="sticky right-0 ml-auto flex items-center justify-center bg-background border-l border-border shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] flex-shrink-0"
+                      style={{ width: 56, minWidth: 56, maxWidth: 56, height: ROW_HEIGHT, zIndex: 10 }}
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
