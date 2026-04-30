@@ -15,12 +15,23 @@ import {
   getMarginBgColor,
 } from "@/types/product";
 
+import { useFieldPermissions } from "@/hooks/useFieldPermissions";
+
 interface ProductFinancialSectionProps {
   product: Product;
 }
 
 export function ProductFinancialSection({ product }: ProductFinancialSectionProps) {
   const margins = calculateProductMargins(product);
+  const { canSeeField } = useFieldPermissions();
+  const showDirectCost = canSeeField("products", "direct_cost");
+  const showOperationalCost = canSeeField("products", "operational_cost");
+  const showCommission = canSeeField("products", "commission_default");
+  const showGrossMargin = canSeeField("products", "gross_margin");
+  const showContributionMargin = canSeeField("products", "contribution_margin");
+  const showTargetMargin = canSeeField("products", "target_margin");
+  const showTaxEstimate = canSeeField("products", "tax_estimate");
+  const showAnyMargin = showGrossMargin || showContributionMargin || showTargetMargin || showTaxEstimate;
 
   const formatCurrency = (value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
