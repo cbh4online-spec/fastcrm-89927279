@@ -69,51 +69,8 @@ interface TeamFeedProps {
 }
 
 export function TeamFeed({ className }: TeamFeedProps) {
-  const { posts, isLoading, addReaction } = useTeamFeed();
+  const { posts, isLoading, addReaction, createPost, addComment } = useTeamFeed();
   const { user } = useAuth();
-
-  if (isLoading) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Feed da Equipa
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-4 w-1/3" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (posts.length === 0) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Feed da Equipa
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Ainda não há publicações no feed</p>
-            <p className="text-sm">
-              Resumos de reuniões internas aparecerão aqui
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className={className}>
@@ -124,14 +81,32 @@ export function TeamFeed({ className }: TeamFeedProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {posts.map(post => (
-          <FeedPostCard 
-            key={post.id} 
-            post={post} 
-            currentUserId={user?.id}
-            onReaction={addReaction}
-          />
-        ))}
+        <TeamFeedComposer onSubmit={createPost} />
+
+        {isLoading ? (
+          [1, 2, 3].map((i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ))
+        ) : posts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Ainda não há publicações no feed</p>
+            <p className="text-sm">Sê o primeiro a partilhar algo com a equipa</p>
+          </div>
+        ) : (
+          posts.map((post) => (
+            <FeedPostCard
+              key={post.id}
+              post={post}
+              currentUserId={user?.id}
+              onReaction={addReaction}
+              onComment={addComment}
+            />
+          ))
+        )}
       </CardContent>
     </Card>
   );
