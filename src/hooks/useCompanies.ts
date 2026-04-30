@@ -191,6 +191,7 @@ export function useCompanies() {
           updated_by: user.id,
           name: data.name,
           tax_id: data.tax_id || null,
+          client_number: data.client_number || null,
           website: data.website || null,
           domain: domainFromWebsite || null,
           industry: data.industry || null,
