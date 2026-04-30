@@ -272,7 +272,13 @@ export default function SJCourses() {
                                 : "-"}
                             </TableCell>
                             <TableCell>
-                              <CohortPhaseProgress cohortId={cohort.id} compact />
+                              <CohortPhaseProgress
+                                cohortId={cohort.id}
+                                fallbackStartDate={cohort.start_date}
+                                fallbackEndDate={cohort.end_date}
+                                fallbackTitle={cohort.name}
+                                compact
+                              />
                             </TableCell>
                             <TableCell>{cohort.capacity || "∞"}</TableCell>
                             <TableCell>

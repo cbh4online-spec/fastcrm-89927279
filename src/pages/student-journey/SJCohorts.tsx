@@ -85,7 +85,13 @@ export default function SJCohorts() {
               <CardContent>
                 <Badge className={cn(statusConfig.bgColor, statusConfig.color, "border-0")}>{statusConfig.label}</Badge>
                 <div className="mt-3">
-                  <CohortPhaseProgress cohortId={cohort.id} compact />
+                  <CohortPhaseProgress
+                    cohortId={cohort.id}
+                    fallbackStartDate={cohort.start_date}
+                    fallbackEndDate={cohort.end_date}
+                    fallbackTitle={cohort.name}
+                    compact
+                  />
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">
                   {cohort.capacity && <div className="flex items-center gap-1"><Users className="h-4 w-4" />Máx. {cohort.capacity}</div>}
