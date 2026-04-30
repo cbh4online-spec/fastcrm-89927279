@@ -154,7 +154,7 @@ export function StepUpload({ workspaceId, currentDoc, onUploaded, onExtracted }:
     } finally {
       setExtracting(false);
     }
-  }, [currentDoc, onExtracted, extractCost, canAfford]);
+  }, [currentDoc, onExtracted, extractCost, canAfford, queryClient]);
 
   return (
     <Card>
