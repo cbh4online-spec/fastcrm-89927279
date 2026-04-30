@@ -79,7 +79,11 @@ export default function ProductOCRCreate() {
     toast.loading("A gerar conteúdo comercial…", { id: "gen" });
     try {
       const { data, error } = await supabase.functions.invoke("product-ocr-generate-content", {
-        body: { product_data: { sheet, ocr: structured } },
+        body: {
+          product_data: { sheet, ocr: structured },
+          workspace_id: currentWorkspace?.id,
+          document_id: doc?.id,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
