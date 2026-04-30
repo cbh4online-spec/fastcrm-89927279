@@ -260,14 +260,48 @@ Deno.serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content ?? "{}";
-    let parsed: Record<string, unknown> = {};
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      // tentar extrair JSON entre chavetas
+    const content: string = aiData.choices?.[0]?.message?.content ?? "{}";
+
+    // Parse robusto contra JSON mal formado da IA (quebras de linha em strings)
+    const tryParse = (s: string): Record<string, unknown> | null => {
+      try { return JSON.parse(s); } catch { return null; }
+    };
+    const sanitizeJsonString = (s: string): string => {
+      let out = "";
+      let inString = false;
+      let escape = false;
+      for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (escape) { out += ch; escape = false; continue; }
+        if (ch === "\\") { out += ch; escape = true; continue; }
+        if (ch === '"') { inString = !inString; out += ch; continue; }
+        if (inString && (ch === "\n" || ch === "\r" || ch === "\t")) { out += " "; continue; }
+        out += ch;
+      }
+      return out;
+    };
+
+    let parsed: Record<string, unknown> | null = tryParse(content);
+    if (!parsed) {
       const m = content.match(/\{[\s\S]*\}/);
-      parsed = m ? JSON.parse(m[0]) : {};
+      if (m) parsed = tryParse(m[0]);
+    }
+    if (!parsed) {
+      const m = content.match(/\{[\s\S]*\}/);
+      if (m) parsed = tryParse(sanitizeJsonString(m[0]));
+    }
+    if (!parsed) {
+      console.error("product-ocr-extract: JSON inválido. Preview:", content.slice(0, 300));
+      await supabase
+        .from("product_ocr_documents")
+        .update({ processing_status: "failed", processing_error: "AI devolveu JSON inválido" })
+        .eq("id", document_id);
+      await refundOnFailure("invalid_ai_json");
+      return json({
+        error: "A IA devolveu uma resposta inválida. Tenta novamente.",
+        code: "invalid_ai_response",
+        fallback: true,
+      }, 200);
     }
 
     // Sanitizar referências a animais em todos os campos de texto
