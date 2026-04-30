@@ -15,8 +15,6 @@ import {
   Shield, Save, RefreshCw, User, Eye, Briefcase, Crown,
   ChevronRight, Search, Plus, Trash2, History,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { pt } from "date-fns/locale";
 import { ROUTE_MANIFEST, NAV_GROUPS, type RouteEntry } from "@/config/routeManifest";
 import { PermissionAuditTab } from "./PermissionAuditTab";
 
