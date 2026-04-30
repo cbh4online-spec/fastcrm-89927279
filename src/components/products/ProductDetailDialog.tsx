@@ -95,6 +95,7 @@ import { MarginProtectionCard } from "./pricing/MarginProtectionCard";
 import { MarketResearchPanel } from "./pricing/MarketResearchPanel";
 import { ProductWeightAIPanel } from "./ProductWeightAIPanel";
 import { Search as SearchIcon } from "lucide-react";
+import { useFieldPermissions } from "@/hooks/useFieldPermissions";
 
 interface ProductDetailDialogProps {
   open: boolean;
