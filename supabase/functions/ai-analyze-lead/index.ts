@@ -33,13 +33,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { leadId, workspaceId, messages, conversationChannel, existingOpportunities } = 
+    const { leadId, workspaceId, messages, conversationChannel, existingOpportunities } =
       await req.json() as LeadAnalysisRequest;
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'medium', 'ai-analyze-lead');
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'medium', 'ai-analyze-lead');
       if (!gate.allowed) {
         return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
           status: 200,
