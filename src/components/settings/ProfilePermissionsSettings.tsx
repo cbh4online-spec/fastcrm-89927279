@@ -127,6 +127,22 @@ export function ProfilePermissionsSettings() {
     if (userErr || !user) {
       throw new Error("Sessão expirada ou utilizador não autenticado. Faça login novamente.");
     }
+    // Super admin bypass: verifica papel global em user_roles via profile.id
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (profile?.id) {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", profile.id);
+      if (roles?.some((r: any) => r.role === "super_admin")) {
+        return user;
+      }
+    }
+
     const { data: member, error: memberErr } = await supabase
       .from("workspace_members")
       .select("role")
@@ -135,7 +151,9 @@ export function ProfilePermissionsSettings() {
       .maybeSingle();
     if (memberErr) throw new Error("Erro ao verificar permissões no workspace.");
     if (!member || (member.role !== "owner" && member.role !== "admin")) {
-      throw new Error("Sem permissões para gerir permissões de campos.");
+      throw new Error(
+        `Sem permissões para gerir permissões de campos. (role atual: ${member?.role ?? "nenhum"})`
+      );
     }
     return user;
   };
