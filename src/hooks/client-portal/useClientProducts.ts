@@ -53,6 +53,7 @@ interface ProductFilters {
   function?: string;
   pathology?: string;
   line?: string;
+  tag?: string;
 }
 
 interface UseClientProductsReturn {
