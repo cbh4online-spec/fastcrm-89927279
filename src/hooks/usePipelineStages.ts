@@ -31,6 +31,7 @@ export interface CreateStageInput {
   color?: string;
   position?: number;
   expected_days?: number;
+  pipeline_id?: string | null;
 }
 
 export interface UpdateStageInput extends Partial<CreateStageInput> {
@@ -73,13 +74,15 @@ export function useCreatePipelineStage() {
     mutationFn: async (input: CreateStageInput) => {
       if (!currentWorkspace) throw new Error("No workspace selected");
 
-      // Get current max position
-      const { data: stages } = await workspaceClient
+      // Get current max position (within the same pipeline if specified)
+      let posQuery = workspaceClient
         .from("pipeline_stages")
         .select("position")
         .eq("workspace_id", currentWorkspace.id)
         .order("position", { ascending: false })
         .limit(1);
+      if (input.pipeline_id) posQuery = posQuery.eq("pipeline_id", input.pipeline_id);
+      const { data: stages } = await posQuery;
 
       const maxPosition = stages?.[0]?.position ?? -1;
 
@@ -90,7 +93,8 @@ export function useCreatePipelineStage() {
           name: input.name,
           color: input.color || "#6366f1",
           position: input.position ?? maxPosition + 1,
-        })
+          pipeline_id: input.pipeline_id ?? null,
+        } as any)
         .select()
         .single();
 
