@@ -223,8 +223,29 @@ export default function ProductOCRCreate() {
       toast.error("Faz primeiro a leitura do documento.");
       return;
     }
+
+    // Guard: saldo insuficiente → abrir dialog de compra de créditos
+    if (generateContentCost > 0 && !canAfford(OCR_GENERATE_CONTENT_ACTION)) {
+      triggerNoCreditsDialog({
+        actionLabel: "Geração de Conteúdo Comercial (OCR)",
+        creditsNeeded: generateContentCost,
+      });
+      return;
+    }
+
     toast.loading("A gerar conteúdo comercial…", { id: "gen" });
     try {
+      // Debitar créditos primeiro (idempotente por documento)
+      if (generateContentCost > 0 && doc?.id) {
+        await consumeCredits.mutateAsync({
+          actionKey: OCR_GENERATE_CONTENT_ACTION,
+          idempotencyKey: `${doc.id}:generate-content`,
+          referenceType: "product_ocr_document",
+          referenceId: doc.id,
+          metadata: { product_name: sheet.name || null },
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke("product-ocr-generate-content", {
         body: {
           product_data: { sheet, ocr: structured },
@@ -279,7 +300,7 @@ export default function ProductOCRCreate() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao gerar conteúdo.", { id: "gen" });
     }
-  }, [structured, sheet]);
+  }, [structured, sheet, doc?.id, generateContentCost, canAfford, consumeCredits, currentWorkspace?.id]);
 
   const computePendingFields = useCallback((): string[] => {
     const pending: string[] = [];
