@@ -135,7 +135,22 @@ export function InlineEditableField({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onChange(editedValue);
+      let toSave: unknown = editedValue;
+      if (fieldType === "date") {
+        const raw = (editedValue as string) ?? "";
+        if (!raw || !raw.trim()) {
+          toSave = null;
+        } else {
+          const d = parseUserDate(raw);
+          if (!d) {
+            console.warn("[InlineEditableField] Invalid date:", raw);
+            setIsSaving(false);
+            return; // keep editing, don't lose user input
+          }
+          toSave = toIsoDate(d);
+        }
+      }
+      await onChange(toSave);
       setIsEditing(false);
     } catch (error) {
       console.error("Error saving field:", error);
