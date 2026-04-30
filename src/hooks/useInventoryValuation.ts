@@ -9,8 +9,11 @@ export interface InventoryValuationRow {
   category: string | null;
   current_stock: number;
   fifo_avg_cost: number;
+  operational_cost_unit: number;
+  total_unit_cost: number;
   total_cost_value: number;
   unit_sale_price: number;
+  suggested_base_price: number | null;
   total_sale_value: number;
   latent_margin: number;
   latent_margin_pct: number;
@@ -20,6 +23,7 @@ export interface InventorySummary {
   total_products: number;
   total_units: number;
   total_cost_value: number;
+  total_operational_cost_value: number;
   total_sale_value: number;
   total_latent_margin: number;
   avg_margin_pct: number;
