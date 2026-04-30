@@ -70,7 +70,11 @@ export default function ClientCatalogPage() {
     setFilters({});
   };
 
-  const hasActiveFilters = filters.search || filters.category || filters.function || filters.pathology || filters.line;
+  const hasActiveFilters = filters.search || filters.category || filters.function || filters.pathology || filters.line || filters.tag;
+
+  const handleTagClick = (tag: string) => {
+    setFilters({ ...filters, tag });
+  };
 
   return (
     <ClientLayout>
@@ -322,6 +326,8 @@ export default function ClientCatalogPage() {
         onAddToCart={handleAddToCart}
         effectivePrice={selectedProduct?.effective_price}
         hasDiscount={selectedProduct?.has_discount}
+        onTagClick={handleTagClick}
+        activeTag={filters.tag ?? null}
       />
     </ClientLayout>
   );
