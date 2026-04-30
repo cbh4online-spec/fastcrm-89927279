@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.pitch-share-track]
 verify_jwt = false
+
+[functions.stripe-credits-webhook]
+verify_jwt = false
