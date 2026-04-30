@@ -271,6 +271,9 @@ export default function SJCourses() {
                                 ? format(new Date(cohort.start_date), "dd MMM yyyy", { locale: pt })
                                 : "-"}
                             </TableCell>
+                            <TableCell>
+                              <CohortPhaseProgress cohortId={cohort.id} compact />
+                            </TableCell>
                             <TableCell>{cohort.capacity || "∞"}</TableCell>
                             <TableCell>
                               <Badge variant="secondary">{cohortEnrollments.length}</Badge>
