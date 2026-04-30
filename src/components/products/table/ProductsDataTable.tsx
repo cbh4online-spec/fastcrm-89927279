@@ -261,12 +261,14 @@ function getCellTooltipText(
     case "base_price": return product.base_price != null ? formatCurrency(product.base_price, product.currency) : "";
     case "direct_cost": return product.direct_cost != null ? formatCurrency(product.direct_cost, product.currency) : "";
     case "operational_cost": return product.operational_cost != null ? formatCurrency(product.operational_cost, product.currency) : "";
-    case "margin":
-      if (product.base_price && product.direct_cost) {
-        const m = ((product.base_price - product.direct_cost) / product.base_price) * 100;
-        return `${m.toFixed(2)}%`;
-      }
-      return "";
+    case "margin": {
+      const m = calcMarginPct(product);
+      return m == null ? "" : `${m.toFixed(2)}%`;
+    }
+    case "recommended_price": {
+      const r = getRecommendedNetPrice(product);
+      return r == null ? "" : formatCurrency(r, product.currency);
+    }
     case "billing_type": return getBillingTypeLabel(product.billing_type) || "";
     case "billing_frequency": return product.billing_frequency || "";
     case "status": return productStatusLabels[product.status] || "";
