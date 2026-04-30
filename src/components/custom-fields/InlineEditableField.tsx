@@ -164,12 +164,10 @@ export function InlineEditableField({
     switch (fieldType) {
       case "boolean":
         return val ? "Sim" : "Não";
-      case "date":
-        try {
-          return format(new Date(val as string), "dd/MM/yyyy");
-        } catch {
-          return String(val);
-        }
+      case "date": {
+        const d = parseUserDate(String(val));
+        return d ? format(d, "dd/MM/yyyy") : String(val);
+      }
       case "number":
         return new Intl.NumberFormat('pt-PT').format(Number(val));
       case "currency":
