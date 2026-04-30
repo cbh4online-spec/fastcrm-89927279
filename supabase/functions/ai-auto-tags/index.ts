@@ -208,16 +208,36 @@ Analise esta conversa e atribua as tags mais relevantes.`;
     });
 
     if (!response.ok) {
+      const latencyMs = Date.now() - _startTime;
+      const errorTypeMap: Record<number, string> = { 429: 'rate_limit', 402: 'payment_required' };
+      if (workspace_id) {
+        try {
+          logAIUsage({
+            workspace_id,
+            feature: 'ai-auto-tags',
+            model: 'google/gemini-3-flash-preview',
+            tokens_input: 0,
+            tokens_output: 0,
+            request_type: 'completion',
+            latency_ms: latencyMs,
+            was_error: true,
+            error_type: errorTypeMap[response.status] ?? `http_${response.status}`,
+            entity_type: 'conversation',
+            entity_id: conversationId,
+            user_id: userId,
+          });
+        } catch (_e) { /* non-blocking */ }
+      }
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Rate limit exceeded. Try again later.", fallback: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "AI credits exhausted. Please add funds.", fallback: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const errorText = await response.text();
@@ -228,18 +248,23 @@ Analise esta conversa e atribua as tags mais relevantes.`;
     const data = await response.json()
 
     // AI Usage Instrumentation
-    try {
-      const _usage = data?.usage;
-      logAIUsage({
-        workspace_id: workspace_id,
-        feature: 'ai-auto-tags',
-        model: data?.model || 'google/gemini-3-flash-preview',
-        tokens_input: _usage?.prompt_tokens ?? 0,
-        tokens_output: _usage?.completion_tokens ?? 0,
-        request_type: 'completion',
-        latency_ms: Date.now() - (_startTime ?? Date.now()),
-      });
-    } catch (_e) { /* instrumentation error - non-blocking */ };
+    if (workspace_id) {
+      try {
+        const _usage = data?.usage;
+        logAIUsage({
+          workspace_id,
+          feature: 'ai-auto-tags',
+          model: data?.model || 'google/gemini-3-flash-preview',
+          tokens_input: _usage?.prompt_tokens ?? 0,
+          tokens_output: _usage?.completion_tokens ?? 0,
+          request_type: 'tool_use',
+          latency_ms: Date.now() - _startTime,
+          entity_type: 'conversation',
+          entity_id: conversationId,
+          user_id: userId,
+        });
+      } catch (_e) { /* instrumentation error - non-blocking */ }
+    }
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
