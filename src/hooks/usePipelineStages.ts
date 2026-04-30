@@ -37,21 +37,26 @@ export interface UpdateStageInput extends Partial<CreateStageInput> {
   id: string;
 }
 
-export function usePipelineStages() {
+export function usePipelineStages(pipelineId?: string | null) {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
-    queryKey: ["pipeline_stages", currentWorkspace?.id],
+    queryKey: ["pipeline_stages", currentWorkspace?.id, pipelineId ?? "all"],
     queryFn: async () => {
       if (!currentWorkspace) return [];
 
-      const { data, error } = await workspaceClient
+      let query = workspaceClient
         .from("pipeline_stages")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .order("position", { ascending: true });
 
+      if (pipelineId) {
+        query = query.eq("pipeline_id", pipelineId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as PipelineStage[];
     },
