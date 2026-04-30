@@ -358,7 +358,7 @@ export function ProductsDataTable({
                     key={product.id}
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
-                    className="group/row flex items-center border-b border-border hover:bg-muted/50 transition-colors relative"
+                    className="group/row flex items-center border-b border-border hover:bg-muted/50 transition-colors"
                     style={{
                       position: "absolute",
                       top: 0,
@@ -367,6 +367,9 @@ export function ProductsDataTable({
                       minWidth: "100%",
                       transform: `translateY(${virtualRow.start}px)`,
                       height: ROW_HEIGHT,
+                      // isolate creates a new stacking context per row so sticky z-index
+                      // never interferes with sibling rows or external menus.
+                      isolation: "isolate",
                     }}
                   >
                     <div className="flex items-center px-4 flex-shrink-0" style={{ width: 50, minWidth: 50 }}>
@@ -390,8 +393,8 @@ export function ProductsDataTable({
                       );
                     })}
                     <div
-                      className="sticky right-0 ml-auto flex items-center justify-center bg-background group-hover/row:bg-muted/50 border-l border-border shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.08)] flex-shrink-0 transition-colors"
-                      style={{ width: 56, minWidth: 56, maxWidth: 56, height: ROW_HEIGHT, zIndex: 10 }}
+                      className="sticky right-0 ml-auto flex items-center justify-center bg-background group-hover/row:bg-muted/50 border-l border-border shadow-[-4px_0_8px_-4px_hsl(var(--foreground)/0.12)] flex-shrink-0 transition-colors"
+                      style={{ width: 56, minWidth: 56, maxWidth: 56, height: ROW_HEIGHT, zIndex: 20 }}
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
