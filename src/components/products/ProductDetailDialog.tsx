@@ -95,6 +95,7 @@ import { MarginProtectionCard } from "./pricing/MarginProtectionCard";
 import { MarketResearchPanel } from "./pricing/MarketResearchPanel";
 import { ProductWeightAIPanel } from "./ProductWeightAIPanel";
 import { Search as SearchIcon } from "lucide-react";
+import { useFieldPermissions } from "@/hooks/useFieldPermissions";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -119,6 +120,9 @@ export function ProductDetailDialog({
   const updateProduct = useUpdateProduct();
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
+  const { canSeeField } = useFieldPermissions();
+  const showCost = canSeeField("products", "direct_cost");
+  const showMargin = canSeeField("products", "gross_margin");
 
   const [heroIdx, setHeroIdx] = useState(0);
 
@@ -251,7 +255,7 @@ export function ProductDetailDialog({
                       <span className="text-xl font-bold text-primary">
                         {formatCurrency(product.base_price, product.currency)}
                       </span>
-                      {product.direct_cost !== null && (
+                      {showMargin && product.direct_cost !== null && (
                         <span className="text-xs text-muted-foreground">
                           Margem {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(0)}%
                         </span>
@@ -368,9 +372,11 @@ export function ProductDetailDialog({
                       <TabsTrigger value="deliverables" className="text-xs px-2.5 py-1 h-7">
                         <Package className="h-3 w-3 mr-1" />Entregáveis
                       </TabsTrigger>
-                      <TabsTrigger value="price-history" className="text-xs px-2.5 py-1 h-7">
-                        <TrendingUp className="h-3 w-3 mr-1" />Preços
-                      </TabsTrigger>
+                      {showCost && (
+                        <TabsTrigger value="price-history" className="text-xs px-2.5 py-1 h-7">
+                          <TrendingUp className="h-3 w-3 mr-1" />Preços
+                        </TabsTrigger>
+                      )}
                       <TabsTrigger value="audit" className="text-xs px-2.5 py-1 h-7">
                         <History className="h-3 w-3 mr-1" />Auditoria
                       </TabsTrigger>
@@ -396,26 +402,31 @@ export function ProductDetailDialog({
                         </p>
                       </Card>
 
-                      <Card className="p-3">
-                        <p className="text-xs text-muted-foreground">
-                          {isBundle ? "Custo Total" : "Custo Direto"}
-                        </p>
-                        {product.direct_cost !== null ? (
-                          <>
-                            <p className="text-xl font-semibold mt-0.5">
-                              {formatCurrency(product.direct_cost, product.currency)}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              Margem: {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(1)}%
-                            </p>
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground mt-2">Não definido</p>
-                        )}
-                      </Card>
+                      {showCost && (
+                        <Card className="p-3">
+                          <p className="text-xs text-muted-foreground">
+                            {isBundle ? "Custo Total" : "Custo Direto"}
+                          </p>
+                          {product.direct_cost !== null ? (
+                            <>
+                              <p className="text-xl font-semibold mt-0.5">
+                                {formatCurrency(product.direct_cost, product.currency)}
+                              </p>
+                              {showMargin && (
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  Margem: {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(1)}%
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-sm text-muted-foreground mt-2">Não definido</p>
+                          )}
+                        </Card>
+                      )}
                     </div>
 
                     {/* Margin Protection & Market Research */}
+                    {showMargin && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <MarginProtectionCard
                         price={product.base_price}
@@ -433,6 +444,7 @@ export function ProductDetailDialog({
                         costPrice={product.direct_cost || undefined}
                       />
                     </div>
+                    )}
 
                     {/* Weight AI Panel */}
                     <ProductWeightAIPanel
@@ -645,14 +657,16 @@ export function ProductDetailDialog({
                     <ProductDeliverablesManager productId={product.id} />
                   </TabsContent>
 
-                  <TabsContent value="price-history" className="mt-4">
-                    <ProductPriceHistoryTab
-                      productId={product.id}
-                      currentPrice={product.base_price}
-                      costPrice={product.direct_cost}
-                      currency={product.currency}
-                    />
-                  </TabsContent>
+                  {showCost && (
+                    <TabsContent value="price-history" className="mt-4">
+                      <ProductPriceHistoryTab
+                        productId={product.id}
+                        currentPrice={product.base_price}
+                        costPrice={product.direct_cost}
+                        currency={product.currency}
+                      />
+                    </TabsContent>
+                  )}
 
                   <TabsContent value="audit" className="mt-4">
                     <ProductActivityLog productId={product.id} />
