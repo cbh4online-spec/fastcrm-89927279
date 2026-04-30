@@ -318,6 +318,41 @@ export function EntityTimelineSection({
     enabled: !!currentWorkspace?.id && !!entityId && (entityType === "contact" || entityType === "company"),
   });
 
+  // Resolve user profiles for "quem fez" badge
+  const userIds = useMemo(() => {
+    const ids = new Set<string>();
+    activities.forEach((a) => a.created_by && ids.add(a.created_by));
+    tasks.forEach((t: any) => t.created_by && ids.add(t.created_by));
+    notes.forEach((n: any) => n.created_by && ids.add(n.created_by));
+    return Array.from(ids);
+  }, [activities, tasks, notes]);
+
+  const { data: profilesMap = {} } = useQuery({
+    queryKey: ["timeline-profiles", userIds.sort().join(",")],
+    queryFn: async () => {
+      if (userIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email, avatar_url")
+        .in("user_id", userIds);
+      if (error) {
+        console.warn("[Timeline] profiles fetch failed:", error);
+        return {};
+      }
+      const map: Record<string, { name: string; email: string | null; avatar_url: string | null }> = {};
+      (data || []).forEach((p: any) => {
+        map[p.user_id] = {
+          name: p.full_name || p.email?.split("@")[0] || "Utilizador",
+          email: p.email,
+          avatar_url: p.avatar_url,
+        };
+      });
+      return map;
+    },
+    enabled: userIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Combine all activities into unified timeline
   const unifiedTimeline = useMemo(() => {
     const timeline: Array<{
@@ -327,6 +362,7 @@ export function EntityTimelineSection({
       description: string | null;
       date: Date;
       metadata?: Record<string, unknown>;
+      createdBy?: string | null;
     }> = [];
 
     // Track IDs to prevent duplicates
@@ -343,6 +379,7 @@ export function EntityTimelineSection({
           description: activity.description,
           date: new Date(activity.created_at),
           metadata: activity.metadata || undefined,
+          createdBy: activity.created_by,
         });
       }
     });
@@ -363,7 +400,7 @@ export function EntityTimelineSection({
     });
 
     // Add tasks
-    tasks.forEach((task) => {
+    tasks.forEach((task: any) => {
       const taskCreatedId = `task-created-${task.id}`;
       if (!addedIds.has(taskCreatedId)) {
         addedIds.add(taskCreatedId);
@@ -373,6 +410,7 @@ export function EntityTimelineSection({
           title: "Tarefa criada",
           description: task.title,
           date: new Date(task.created_at),
+          createdBy: task.created_by,
         });
       }
 
@@ -387,13 +425,14 @@ export function EntityTimelineSection({
             title: "Tarefa concluída",
             description: task.title,
             date: new Date(task.updated_at),
+            createdBy: task.created_by,
           });
         }
       }
     });
 
     // Add notes
-    notes.forEach((note) => {
+    notes.forEach((note: any) => {
       const noteId = `note-${note.id}`;
       if (!addedIds.has(noteId)) {
         addedIds.add(noteId);
@@ -403,6 +442,7 @@ export function EntityTimelineSection({
           title: note.note_type === "voice" ? "Nota de voz adicionada" : "Nota adicionada",
           description: note.content?.slice(0, 100) || null,
           date: new Date(note.created_at),
+          createdBy: note.created_by,
         });
       }
     });
