@@ -29,6 +29,7 @@ import { PRODUCT_COLUMNS } from "../hooks/useProductsListState";
 import { InlinePriceEditor } from "./InlinePriceEditor";
 import { MarginStatusBadge } from "../pricing/MarginStatusBadge";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
+import { calcMarginPct, calcMarkupPct, getNetPrice, getRecommendedNetPrice, getRecommendedDelta } from "@/utils/productPricing";
 
 interface ProductsDataTableProps {
   products: Product[];
@@ -136,37 +137,65 @@ function RenderProductCell({
       );
     case "operational_cost":
       return <span>{product.operational_cost ? formatCurrency(product.operational_cost, product.currency) : "-"}</span>;
-    case "margin":
-      if (product.base_price && product.direct_cost) {
-        const margin = ((product.base_price - product.direct_cost) / product.base_price) * 100;
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className={margin >= 30 ? "text-green-600" : margin >= 15 ? "text-yellow-600" : "text-destructive"}>
-                  {margin.toFixed(2)}%
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Preço: {formatCurrency(product.base_price, product.currency)}</p>
-                <p>Custo: {formatCurrency(product.direct_cost, product.currency)}</p>
-                <p>Lucro: {formatCurrency(product.base_price - product.direct_cost, product.currency)}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        );
-      }
-      return <span>-</span>;
+    case "margin": {
+      const margin = calcMarginPct(product);
+      if (margin == null) return <span>-</span>;
+      const net = getNetPrice(product);
+      const cost = product.direct_cost || 0;
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className={margin >= 30 ? "text-green-600" : margin >= 15 ? "text-yellow-600" : "text-destructive"}>
+                {margin.toFixed(2)}%
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>PVP s/IVA: {formatCurrency(net, product.currency)}</p>
+              <p>PVP c/IVA: {formatCurrency(product.base_price || 0, product.currency)}</p>
+              <p>Custo: {formatCurrency(cost, product.currency)}</p>
+              <p>Lucro: {formatCurrency(net - cost, product.currency)}</p>
+              <p className="pt-1 border-t mt-1">Markup: {calcMarkupPct(product)?.toFixed(1)}%</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
     case "margin_status":
       return (
         <MarginStatusBadge
-          price={product.base_price}
+          price={getNetPrice(product)}
           cost={product.direct_cost}
           category={product.category}
           rules={helpers.pricingRules || []}
           compact={false}
         />
       );
+    case "recommended_price": {
+      const rec = getRecommendedNetPrice(product);
+      if (rec == null) return <span className="text-muted-foreground">-</span>;
+      const delta = getRecommendedDelta(product);
+      const isBelow = delta && delta.delta < 0;
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className={isBelow ? "text-amber-600 font-medium" : "text-foreground"}>
+                {formatCurrency(rec, product.currency)}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>PVP recomendado (s/IVA)</p>
+              {delta && (
+                <p className={isBelow ? "text-amber-600" : "text-emerald-600"}>
+                  {isBelow ? "Abaixo" : "Acima"} em {formatCurrency(Math.abs(delta.delta), product.currency)} ({delta.deltaPct.toFixed(1)}%)
+                </p>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
     case "billing_type":
       return <span>{getBillingTypeLabel(product.billing_type)}</span>;
     case "billing_frequency":
