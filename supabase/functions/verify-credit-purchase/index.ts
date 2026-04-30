@@ -53,11 +53,13 @@ Deno.serve(async (req) => {
     }
 
     const metadata = session.metadata || {};
-    if (metadata.type !== "credit_purchase") {
+    // Aceita ambos os formatos (legacy "type" e novo "kind")
+    const isCreditPurchase = metadata.type === "credit_purchase" || metadata.kind === "credit_package";
+    if (!isCreditPurchase) {
       throw new Error("Invalid session type");
     }
 
-    const workspaceId = metadata.workspace_id;
+    const workspaceId = metadata.buyer_workspace_id || metadata.workspace_id;
     const packageId = metadata.package_id;
     const creditsAmount = parseInt(metadata.credits_amount, 10);
     const paymentIntentId = typeof session.payment_intent === "string"
@@ -79,22 +81,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Insert purchase record
+    // Insert purchase record (column names match DB schema)
     const { error: purchaseError } = await supabase.from("credit_purchases").insert({
       workspace_id: workspaceId,
-      user_id: user.id,
+      purchased_by: user.id,
       package_id: packageId,
-      credits_amount: creditsAmount,
+      credits_purchased: creditsAmount,
       amount_paid: (session.amount_total || 0) / 100,
       currency: session.currency?.toUpperCase() || "EUR",
-      stripe_session_id: sessionId,
       stripe_payment_intent_id: paymentIntentId,
       status: "completed",
     });
 
     if (purchaseError) {
       logStep("Purchase insert error", purchaseError);
-      throw new Error("Failed to record purchase");
+      throw new Error(`Failed to record purchase: ${purchaseError.message}`);
     }
 
     // Upsert wallet balance
