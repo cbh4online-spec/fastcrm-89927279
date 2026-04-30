@@ -11,6 +11,8 @@ const ProposalTemplateBuilderPage = lazy(() => import("@/pages/ProposalTemplateB
 const Products = lazy(() => import("@/pages/Products"));
 const Packages = lazy(() => import("@/pages/Packages"));
 const BundlesPage = lazy(() => import("@/pages/BundlesPage"));
+const CompositeProductsPage = lazy(() => import("@/pages/CompositeProductsPage"));
+const CompositeProductDetailPage = lazy(() => import("@/pages/CompositeProductDetailPage"));
 
 export function SalesAssetsRoutes() {
   return (
@@ -26,6 +28,8 @@ export function SalesAssetsRoutes() {
       <Route path="/dashboard/b2b-products" element={<Products />} />
       <Route path="/dashboard/packages" element={<Packages />} />
       <Route path="/dashboard/bundles" element={<BundlesPage />} />
+      <Route path="/dashboard/composite-products" element={<CompositeProductsPage />} />
+      <Route path="/dashboard/composite-products/:id" element={<CompositeProductDetailPage />} />
     </>
   );
 }
