@@ -38,17 +38,8 @@ export function useCohortPhases(cohortId: string | undefined) {
     enabled: !!cohortId && !!wsId,
     queryFn: async (): Promise<CohortPhase[]> => {
       // Control Plane endpoint — frontend never queries Supabase directly for phases.
-      const { data, error } = await supabase.functions.invoke("cp-cohort-phases", {
-        method: "GET" as never,
-        // edge function reads from query string
-        headers: {},
-        body: undefined,
-        // @ts-expect-error: invoke supports query via 2nd arg in newer SDKs; fall back to URL
-      });
-      // Fallback: invoke ignores query string. Use direct fetch.
-      void data; void error;
       const url = new URL(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cp-cohort-phases`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cp-cohort-phases`,
       );
       url.searchParams.set("workspace_id", wsId!);
       url.searchParams.set("cohort_id", cohortId!);
