@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FileText } from "lucide-react";
 import { CreateOpportunityEnhancedDialog } from "../CreateOpportunityEnhancedDialog";
-import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog";
+import { PipelinesManagerDialog } from "@/components/crm/PipelinesManagerDialog";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { CreateViewDialog } from "../CreateViewDialog";
 import { OpportunitiesModuleState } from "./useOpportunitiesModule";
@@ -25,7 +25,7 @@ export function OpportunitiesDialogs({ state }: Props) {
         onOpenChange={state.setIsCreateDialogOpen}
       />
 
-      <PipelineSettingsDialog
+      <PipelinesManagerDialog
         open={state.isSettingsDialogOpen}
         onOpenChange={state.setIsSettingsDialogOpen}
       />
