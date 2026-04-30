@@ -601,14 +601,36 @@ export function EntityTimelineSection({
                         <div className="flex-1 min-w-0 pb-4">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-sm font-medium">{activity.title}</p>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {formatActivityTime(activity.date.toISOString())}
-                            </span>
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap cursor-help">
+                                    {formatActivityTime(activity.date.toISOString())}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="left">
+                                  {format(activity.date, "d 'de' MMMM 'de' yyyy 'às' HH:mm:ss", { locale: pt })}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                           {activity.description && (
                             <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
                               {activity.description}
                             </p>
+                          )}
+                          {activity.createdBy && profilesMap[activity.createdBy] && (
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <Avatar className="h-4 w-4">
+                                <AvatarImage src={profilesMap[activity.createdBy].avatar_url || undefined} />
+                                <AvatarFallback className="text-[8px] bg-muted">
+                                  {profilesMap[activity.createdBy].name.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-xs text-muted-foreground">
+                                por <span className="font-medium text-foreground/80">{profilesMap[activity.createdBy].name}</span>
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
