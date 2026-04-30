@@ -73811,11 +73811,14 @@ export type Database = {
           fifo_avg_cost: number
           latent_margin: number
           latent_margin_pct: number
+          operational_cost_unit: number
           product_id: string
           product_name: string
           sku: string
+          suggested_base_price: number
           total_cost_value: number
           total_sale_value: number
+          total_unit_cost: number
           unit_sale_price: number
         }[]
       }
@@ -74404,6 +74407,7 @@ export type Database = {
           negative_margin_count: number
           total_cost_value: number
           total_latent_margin: number
+          total_operational_cost_value: number
           total_products: number
           total_sale_value: number
           total_units: number
