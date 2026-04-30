@@ -121,10 +121,16 @@ export function ProfilePermissionsSettings() {
   const saveMenus = useMutation({
     mutationFn: async () => {
       if (!workspaceId) throw new Error("Sem workspace ativo");
+      const norm = (s: string) => (s ?? "").trim().toLowerCase();
       const rows = Array.from(menuChanges.entries()).map(([key, visible]) => {
         const [sales_function, menu_key] = key.split(":");
-        return { workspace_id: workspaceId, sales_function, menu_key, visible };
-      });
+        return {
+          workspace_id: workspaceId,
+          sales_function: norm(sales_function),
+          menu_key: norm(menu_key),
+          visible,
+        };
+      }).filter(r => r.sales_function && r.menu_key);
       if (rows.length === 0) return;
       const { error } = await supabase
         .from("profile_menu_permissions")
