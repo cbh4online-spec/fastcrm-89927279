@@ -70,9 +70,18 @@ interface UseClientProductsReturn {
   discountPercentage: number;
 }
 
+function applyTagFilter(products: Product[], tag?: string): Product[] {
+  if (!tag) return products;
+  const needle = tag.trim().toLowerCase();
+  return products.filter((p) =>
+    Array.isArray((p as any).tags) &&
+    (p as any).tags.some((t: string) => typeof t === "string" && t.trim().toLowerCase() === needle),
+  );
+}
+
 export function useClientProducts(
   workspaceId: string | undefined,
-  clientUserId?: string
+  clientUserId?: string,
 ): UseClientProductsReturn {
   const [filters, setFilters] = useState<ProductFilters>({});
 
