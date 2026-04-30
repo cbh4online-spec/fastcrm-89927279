@@ -5,6 +5,7 @@ import { DealViewSelectorDropdown } from "../DealViewSelectorDropdown";
 import { ViewSettingsDropdown } from "../ViewSettingsDropdown";
 import { DealsImportExportMenu } from "../DealsImportExportMenu";
 import { OpportunitiesModuleState } from "./useOpportunitiesModule";
+import { PipelineSelector } from "@/components/crm/PipelineSelector";
 
 interface Props {
   state: OpportunitiesModuleState;
@@ -15,7 +16,8 @@ export function OpportunitiesHeader({ state }: Props) {
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <PipelineSelector />
         <DealViewSelectorDropdown
           activeViewId={state.activeViewId}
           onSelectView={state.handleSelectView}
@@ -34,7 +36,7 @@ export function OpportunitiesHeader({ state }: Props) {
         <DealsImportExportMenu opportunities={state.filteredOpportunities} />
         <Button variant="outline" size="sm" onClick={() => state.setIsSettingsDialogOpen(true)}>
           <Settings className="w-4 h-4 mr-2" />
-          {t('pipelineSettings')}
+          Pipelines
         </Button>
         <Button onClick={() => state.setIsCreateDialogOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
           <Plus className="w-4 h-4 mr-2" />
