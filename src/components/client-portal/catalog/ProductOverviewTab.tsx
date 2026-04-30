@@ -78,23 +78,28 @@ export function ProductOverviewTab({
         </div>
       )}
 
-      {/* Benefits — destaque visual */}
+      {/* Benefits — cards com ícones */}
       {cleanBenefits.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             Benefícios principais
           </h4>
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {cleanBenefits.map((benefit, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-2 text-sm bg-muted/40 rounded-md px-3 py-2"
-              >
-                <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span>{benefit}</span>
-              </li>
-            ))}
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {cleanBenefits.map((benefit, i) => {
+              const Icon = BENEFIT_ICONS[i % BENEFIT_ICONS.length];
+              return (
+                <li
+                  key={i}
+                  className="group flex items-start gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-muted/40"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <Icon className="h-4.5 w-4.5" strokeWidth={2} />
+                  </div>
+                  <span className="text-sm leading-snug pt-1">{benefit}</span>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
