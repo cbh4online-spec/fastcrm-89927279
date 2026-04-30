@@ -14,18 +14,22 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductImageGallery } from "./ProductImageGallery";
-import { ProductTechnicalInfo } from "./ProductTechnicalInfo";
+import { ProductOverviewTab } from "./ProductOverviewTab";
+import { ProductUsageTab } from "./ProductUsageTab";
+import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductAttributeTags } from "./ProductAttributeTags";
 import { calculateVAT, calculateGross } from "@/types/order-note";
-import { 
-  Minus, 
-  Plus, 
-  ShoppingCart, 
+import {
+  Minus,
+  Plus,
+  ShoppingCart,
   Package,
   Tag,
   FileText,
   Sparkles,
-  Loader2
+  BookOpen,
+  Stethoscope,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,11 +41,38 @@ interface Product {
   commercial_description: string | null;
   base_price: number;
   category: string | null;
+  subcategory?: string | null;
+  line?: string | null;
   images: string[] | null;
   primary_image_index: number | null;
   specifications: Record<string, unknown> | null;
   status: string;
   workspace_id: string;
+  benefits?: string[] | null;
+  conditions?: string | null;
+  tags?: string[] | null;
+  recommended_frequency?: string | null;
+  typical_duration_days?: number | null;
+  included_quantity?: number | null;
+  unit_name?: string | null;
+  pack_size?: number | null;
+  min_order_quantity?: number | null;
+  order_multiple?: number | null;
+  delivery_estimate?: string | null;
+  stock_status?: string | null;
+  weight_net?: number | null;
+  weight_gross?: number | null;
+  volume_value?: number | null;
+  volume_unit?: string | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  package_type?: string | null;
+  barcode?: string | null;
+  demo_video_url?: string | null;
+  brand_logo_url?: string | null;
+  compare_at_price?: number | null;
+  promo_label?: string | null;
 }
 
 interface ProductAttribute {
