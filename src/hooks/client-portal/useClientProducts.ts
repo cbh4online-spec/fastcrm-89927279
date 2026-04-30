@@ -123,6 +123,27 @@ export function useClientProducts(
         throw error;
       }
 
+      // Fallback: fetch images from product_images relation for products
+      // whose `images` array is empty (dual resolution pattern)
+      const productIdsNeedingImages = (data || [])
+        .filter((p: any) => !p.images || (Array.isArray(p.images) && p.images.length === 0))
+        .map((p: any) => p.id);
+
+      let imagesByProduct: Record<string, string[]> = {};
+      if (productIdsNeedingImages.length > 0) {
+        const { data: relImages } = await supabase
+          .from("product_images")
+          .select("product_id, url, position")
+          .in("product_id", productIdsNeedingImages)
+          .order("position", { ascending: true });
+
+        for (const row of (relImages || []) as any[]) {
+          if (!row.url) continue;
+          if (!imagesByProduct[row.product_id]) imagesByProduct[row.product_id] = [];
+          imagesByProduct[row.product_id].push(row.url);
+        }
+      }
+
       // Apply tier pricing to products
       const productsWithPricing = (data || []).map((product) => {
         const tierPrice = tierPrices.find(tp => tp.product_id === product.id);
@@ -131,9 +152,15 @@ export function useClientProducts(
           tierData,
           tierPrice || null
         );
-        
+
+        const hasArrayImages = Array.isArray(product.images) && product.images.length > 0;
+        const resolvedImages = hasArrayImages
+          ? product.images
+          : (imagesByProduct[product.id] || []);
+
         return {
           ...product,
+          images: resolvedImages,
           effective_price: effectivePrice,
           has_discount: effectivePrice < product.base_price,
         } as Product;
