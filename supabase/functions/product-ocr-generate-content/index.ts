@@ -1,6 +1,7 @@
 // Gera conteúdo comercial e argumentário para um produto a partir de
 // dados extraídos por OCR + ficha técnica editada.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
