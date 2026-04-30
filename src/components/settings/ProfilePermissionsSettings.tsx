@@ -571,6 +571,10 @@ export function ProfilePermissionsSettings() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="audit">
+          <PermissionAuditTab workspaceId={workspaceId} />
+        </TabsContent>
       </Tabs>
     </div>
   );
