@@ -50,6 +50,7 @@ import {
   TrendingUp,
   ImageIcon,
   Send,
+  Sparkles,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
