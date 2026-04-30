@@ -18,6 +18,7 @@ import { ProductOverviewTab } from "./ProductOverviewTab";
 import { ProductUsageTab } from "./ProductUsageTab";
 import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductAttributeTags } from "./ProductAttributeTags";
+import { ProductTagsFooter } from "./ProductTagsFooter";
 import { calculateVAT, calculateGross } from "@/types/order-note";
 import {
   Minus,
