@@ -51,7 +51,7 @@ export function useMenuPermissions() {
       return data as ProfileMenuPerm[];
     },
     enabled: !!currentWorkspace?.id,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
 
   // Combined check: role permission ∩ profile permission
