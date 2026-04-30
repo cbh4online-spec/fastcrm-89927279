@@ -155,11 +155,47 @@ Deno.serve(async (req) => {
     }
 
     const data = await aiResp.json();
-    const content = data.choices?.[0]?.message?.content ?? "{}";
-    let parsed: Record<string, unknown> = {};
-    try { parsed = JSON.parse(content); } catch {
+    const content: string = data.choices?.[0]?.message?.content ?? "{}";
+
+    // Parse robusto: a IA por vezes devolve JSON com strings partidas por
+    // quebras de linha não escapadas (ex: "..."paração",\ne"brilho"...) que
+    // rebentam o JSON.parse. Tentamos várias estratégias antes de desistir.
+    const tryParse = (s: string): Record<string, unknown> | null => {
+      try { return JSON.parse(s); } catch { return null; }
+    };
+    const sanitizeJsonString = (s: string): string => {
+      // Remover quebras de linha dentro de strings, manter fora
+      let out = "";
+      let inString = false;
+      let escape = false;
+      for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (escape) { out += ch; escape = false; continue; }
+        if (ch === "\\") { out += ch; escape = true; continue; }
+        if (ch === '"') { inString = !inString; out += ch; continue; }
+        if (inString && (ch === "\n" || ch === "\r")) { out += " "; continue; }
+        if (inString && ch === "\t") { out += " "; continue; }
+        out += ch;
+      }
+      return out;
+    };
+
+    let parsed: Record<string, unknown> | null = tryParse(content);
+    if (!parsed) {
       const m = content.match(/\{[\s\S]*\}/);
-      parsed = m ? JSON.parse(m[0]) : {};
+      if (m) parsed = tryParse(m[0]);
+    }
+    if (!parsed) {
+      const m = content.match(/\{[\s\S]*\}/);
+      if (m) parsed = tryParse(sanitizeJsonString(m[0]));
+    }
+    if (!parsed) {
+      console.error("generate-content: JSON inválido devolvido pela IA. Preview:", content.slice(0, 300));
+      return json({
+        error: "A IA devolveu uma resposta em formato inválido. Tenta novamente.",
+        code: "invalid_ai_response",
+        fallback: true,
+      }, 200);
     }
     const cleaned = sanitizeAll(parsed);
 
