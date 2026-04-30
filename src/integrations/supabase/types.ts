@@ -73200,6 +73200,10 @@ export type Database = {
         Args: { p_date?: string; p_workspace_id: string }
         Returns: Json
       }
+      can_manage_workspace: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
       check_agent_rate_limit: {
         Args: {
           p_agent_type: string
