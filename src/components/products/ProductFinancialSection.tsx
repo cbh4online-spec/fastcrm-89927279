@@ -115,32 +115,38 @@ export function ProductFinancialSection({ product }: ProductFinancialSectionProp
           </p>
         </Card>
 
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground">Custo Direto</p>
-          <p className="text-xl font-semibold">
-            {product.direct_cost !== null
-              ? formatCurrency(product.direct_cost, product.currency)
-              : "-"}
-          </p>
-        </Card>
+        {showDirectCost && (
+          <Card className="p-4">
+            <p className="text-xs text-muted-foreground">Custo Direto</p>
+            <p className="text-xl font-semibold">
+              {product.direct_cost !== null
+                ? formatCurrency(product.direct_cost, product.currency)
+                : "-"}
+            </p>
+          </Card>
+        )}
 
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground">Custo Operacional</p>
-          <p className="text-xl font-semibold">
-            {product.operational_cost !== null
-              ? formatCurrency(product.operational_cost, product.currency)
-              : "-"}
-          </p>
-        </Card>
+        {showOperationalCost && (
+          <Card className="p-4">
+            <p className="text-xs text-muted-foreground">Custo Operacional</p>
+            <p className="text-xl font-semibold">
+              {product.operational_cost !== null
+                ? formatCurrency(product.operational_cost, product.currency)
+                : "-"}
+            </p>
+          </Card>
+        )}
 
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground">Comissão Padrão</p>
-          <p className="text-xl font-semibold">
-            {product.commission_default !== null
-              ? `${product.commission_default}%`
-              : "-"}
-          </p>
-        </Card>
+        {showCommission && (
+          <Card className="p-4">
+            <p className="text-xs text-muted-foreground">Comissão Padrão</p>
+            <p className="text-xl font-semibold">
+              {product.commission_default !== null
+                ? `${product.commission_default}%`
+                : "-"}
+            </p>
+          </Card>
+        )}
       </div>
 
       {/* Margins */}
