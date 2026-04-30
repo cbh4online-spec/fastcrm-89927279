@@ -51668,6 +51668,8 @@ export type Database = {
           processing_status: string
           product_id: string | null
           updated_at: string
+          wizard_last_saved_at: string | null
+          wizard_state: Json | null
           workspace_id: string
         }
         Insert: {
@@ -51690,6 +51692,8 @@ export type Database = {
           processing_status?: string
           product_id?: string | null
           updated_at?: string
+          wizard_last_saved_at?: string | null
+          wizard_state?: Json | null
           workspace_id: string
         }
         Update: {
@@ -51712,6 +51716,8 @@ export type Database = {
           processing_status?: string
           product_id?: string | null
           updated_at?: string
+          wizard_last_saved_at?: string | null
+          wizard_state?: Json | null
           workspace_id?: string
         }
         Relationships: [
