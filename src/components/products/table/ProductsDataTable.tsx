@@ -416,14 +416,18 @@ export function ProductsDataTable({
                     </div>
                     {visibleCols.map((colId) => {
                       const w = colWidths.getWidth(colId);
+                      const tooltipText = getCellTooltipText(product, colId, helpers);
                       return (
                         <div
                           key={colId}
                           data-col-id={colId}
-                          className="flex items-center px-4 text-sm flex-shrink-0"
-                          style={{ width: w, maxWidth: w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                          className="flex items-center px-4 text-sm flex-shrink-0 min-w-0"
+                          style={{ width: w, maxWidth: w }}
+                          title={tooltipText || undefined}
                         >
-                          <RenderProductCell product={product} columnId={colId} helpers={helpers} />
+                          <div className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap [&>*]:max-w-full [&>*]:truncate">
+                            <RenderProductCell product={product} columnId={colId} helpers={helpers} />
+                          </div>
                         </div>
                       );
                     })}
