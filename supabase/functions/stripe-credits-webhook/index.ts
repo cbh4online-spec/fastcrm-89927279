@@ -49,23 +49,27 @@ serve(async (req) => {
     return ok({ fallback: true, error: "missing_env" });
   }
 
+  // SEGURANÇA: assinatura HMAC obrigatória — nunca aceitar eventos não verificados
+  if (!webhookSecret) {
+    log("missing_webhook_secret_rejected");
+    return ok({ fallback: true, error: "webhook_secret_not_configured" });
+  }
+
   const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
   const admin = createClient(supabaseUrl, serviceKey);
 
-  // ---- Construct + verify event ----
+  // ---- Construct + verify event (signature mandatory) ----
   let event: Stripe.Event;
   const rawBody = await req.text();
+  const sig = req.headers.get("stripe-signature");
+
+  if (!sig) {
+    log("missing_signature_rejected");
+    return ok({ fallback: true, error: "missing_signature" });
+  }
 
   try {
-    if (webhookSecret) {
-      const sig = req.headers.get("stripe-signature");
-      if (!sig) return ok({ fallback: true, error: "missing_signature" });
-      event = await stripe.webhooks.constructEventAsync(rawBody, sig, webhookSecret);
-    } else {
-      // Sem secret configurado, parseia mas avisa nos logs (não falha o pedido)
-      log("no_webhook_secret_configured_unsafe_parse");
-      event = JSON.parse(rawBody) as Stripe.Event;
-    }
+    event = await stripe.webhooks.constructEventAsync(rawBody, sig, webhookSecret);
   } catch (err) {
     log("signature_verification_failed", { error: (err as Error).message });
     return ok({ fallback: true, error: "invalid_signature" });
