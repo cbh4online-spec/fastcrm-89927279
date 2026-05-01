@@ -46557,6 +46557,143 @@ export type Database = {
           },
         ]
       }
+      partner_catalog_page_items: {
+        Row: {
+          created_at: string
+          custom_caption: string | null
+          custom_title: string | null
+          display_order: number
+          id: string
+          page_id: string
+          product_id: string
+          slot: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_caption?: string | null
+          custom_title?: string | null
+          display_order?: number
+          id?: string
+          page_id: string
+          product_id: string
+          slot?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_caption?: string | null
+          custom_title?: string | null
+          display_order?: number
+          id?: string
+          page_id?: string
+          product_id?: string
+          slot?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_catalog_page_items_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "partner_catalog_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_catalog_page_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_catalog_page_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "partner_catalog_page_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_catalog_pages: {
+        Row: {
+          background_color: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description: string | null
+          display_order: number
+          eyebrow: string | null
+          hero_image_url: string | null
+          id: string
+          is_active: boolean
+          slug: string | null
+          template_key: string
+          theme_key: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          background_color?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          display_order?: number
+          eyebrow?: string | null
+          hero_image_url?: string | null
+          id?: string
+          is_active?: boolean
+          slug?: string | null
+          template_key?: string
+          theme_key?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          background_color?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          display_order?: number
+          eyebrow?: string | null
+          hero_image_url?: string | null
+          id?: string
+          is_active?: boolean
+          slug?: string | null
+          template_key?: string
+          theme_key?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_catalog_pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_catalog_pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_order_headers: {
         Row: {
           approved_at: string | null
