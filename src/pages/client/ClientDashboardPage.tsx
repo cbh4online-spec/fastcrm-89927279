@@ -355,11 +355,11 @@ export default function ClientDashboardPage() {
           <div className="space-y-4">
             <QuickReorderWidget />
 
-            <Card className="border-border/50">
+            <Card className="border-[hsl(var(--editorial-border))]/60">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <div className="p-1.5 rounded-lg bg-primary/10">
-                    <Package className="h-4 w-4 text-primary" />
+                <CardTitle className="font-editorial text-xl flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-[hsl(var(--editorial-champagne))]/60">
+                    <Package className="h-4 w-4 text-[hsl(var(--editorial-accent))]" />
                   </div>
                   Top Produtos
                 </CardTitle>
