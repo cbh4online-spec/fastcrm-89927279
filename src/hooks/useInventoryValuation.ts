@@ -8,6 +8,7 @@ export interface InventoryValuationRow {
   sku: string | null;
   category: string | null;
   current_stock: number;
+  low_stock_threshold: number;
   fifo_avg_cost: number;
   operational_cost_unit: number;
   total_unit_cost: number;
