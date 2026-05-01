@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect, useMemo } from "react";
 import { Link, useLocation, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Package, ShoppingCart, FileText, LogOut, Menu, X,
-  User, Building2, Loader2, CreditCard,
+  User, Building2, CreditCard, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { formatMoneyEur } from "@/lib/money";
+import { PartnerLoadingScreen } from "@/components/partner/PartnerLoadingScreen";
 
 interface PartnerLayoutProps {
   children: ReactNode;
