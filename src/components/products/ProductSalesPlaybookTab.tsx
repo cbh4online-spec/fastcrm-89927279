@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2, Sparkles, Info, GripVertical } from "lucide-react";
+import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2, Sparkles, Info, GripVertical, FileDown } from "lucide-react";
+import { generateSalesPlaybookPdf, buildPlaybookFilename } from "./salesPlaybookPdf";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Product } from "@/types/product";
@@ -244,6 +245,31 @@ export function ProductSalesPlaybookTab({ product }: Props) {
             : <>Sem alterações guardadas</>}
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              try {
+                const pdf = generateSalesPlaybookPdf({
+                  productName: product.name,
+                  productSku: product.sku ?? null,
+                  productCategory: product.category ?? null,
+                  script: data.script,
+                  objections: data.objections,
+                  warranty: data.warranty,
+                  updatedAt: data.updated_at ?? null,
+                });
+                pdf.save(buildPlaybookFilename(product.name));
+                toast.success("PDF gerado");
+              } catch (e: any) {
+                toast.error(e?.message || "Erro ao gerar PDF");
+              }
+            }}
+            title={dirty ? "Exporta o conteúdo atualmente no editor (não guardado)" : "Exporta o procedimento em PDF para partilhar"}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            Exportar PDF
+          </Button>
           <Button
             size="sm"
             variant="outline"
