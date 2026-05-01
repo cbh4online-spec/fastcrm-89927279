@@ -1,15 +1,12 @@
 import { useState } from "react";
 
 import { usePartnerAuth } from "@/hooks/partner/usePartnerAuth";
-import { usePartnerCatalog } from "@/hooks/partner/usePartnerCatalog";
+import { usePartnerCatalog, type PartnerCatalogProduct, type PartnerCatalogVariant } from "@/hooks/partner/usePartnerCatalog";
 import { usePartnerCart } from "@/contexts/PartnerCartContext";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Plus, Package } from "lucide-react";
-import { formatMoneyEur } from "@/lib/money";
+import { Loader2, Search, Package } from "lucide-react";
+import { PartnerProductCard } from "@/components/partner/PartnerProductCard";
 
 export default function PartnerCatalogPage() {
   const { partnerUser } = usePartnerAuth();
@@ -27,7 +24,38 @@ export default function PartnerCatalogPage() {
 
   const { addItem } = usePartnerCart();
 
-  const handleAddToCart = (product: typeof products[0]) => {
+  /**
+   * Adiciona o item correcto ao carrinho:
+   * - Se o utilizador escolheu variante, usa-se o ID/SKU/preço/MOQ da variante.
+   * - Caso contrário (produto simples), usa-se o produto pai.
+   * O nome mostrado no carrinho concatena o rótulo da variante quando existe.
+   */
+  const handleAddToCart = ({
+    product,
+    variant,
+  }: {
+    product: PartnerCatalogProduct;
+    variant: PartnerCatalogVariant | null;
+  }) => {
+    if (variant) {
+      const pricing = variant.pricing;
+      const variantImage = variant.images?.[0] ?? product.image_url;
+      const labelSuffix = variant.variant_label ? ` — ${variant.variant_label}` : "";
+      addItem({
+        product_id: variant.id,
+        product_name: `${product.name}${labelSuffix}`,
+        sku: variant.sku,
+        quantity: variant.min_order_quantity ?? 1,
+        unit_price_net: pricing?.price_net ?? variant.base_price ?? 0,
+        pvp_recommended: pricing?.pvp_recommended ?? null,
+        margin_estimated: pricing?.gross_margin_pct ?? null,
+        pack_size: variant.pack_size ?? 1,
+        moq: variant.min_order_quantity ?? 1,
+        image_url: variantImage,
+      });
+      return;
+    }
+
     const pricing = product.pricing;
     addItem({
       product_id: product.id,
@@ -85,50 +113,13 @@ export default function PartnerCatalogPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {products.map((product) => {
-              const pricing = product.pricing;
-              const priceNet = pricing?.price_net ?? product.base_price ?? 0;
-              return (
-                <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  {product.image_url && (
-                    <div className="aspect-square bg-muted relative overflow-hidden">
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  )}
-                  <CardContent className="p-4 space-y-3">
-                    <div>
-                      <p className="font-medium text-sm line-clamp-2">{product.name}</p>
-                      {product.sku && <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>}
-                    </div>
-
-                    {/* Pricing */}
-                    <div className="space-y-1">
-                      <p className="text-lg font-bold">{formatMoneyEur(priceNet)}</p>
-                      {pricing?.price_source && pricing.price_source !== 'base' && (
-                        <Badge variant="outline" className="text-xs">{pricing.price_source === 'price_list' ? 'Preço Lista' : 'Desc. Tier'}</Badge>
-                      )}
-                      {pricing?.pvp_recommended && (
-                        <p className="text-xs text-muted-foreground">PVP: {formatMoneyEur(pricing.pvp_recommended)}</p>
-                      )}
-                      {pricing?.gross_margin_pct != null && (
-                        <p className="text-xs text-green-600">Margem: {pricing.gross_margin_pct.toFixed(1)}%</p>
-                      )}
-                    </div>
-
-                    {/* MOQ / Pack */}
-                    <div className="flex gap-2 text-xs text-muted-foreground">
-                      {product.moq > 1 && <span>MOQ: {product.moq}</span>}
-                      {product.pack_size > 1 && <span>Pack: {product.pack_size}</span>}
-                    </div>
-
-                    <Button size="sm" className="w-full" onClick={() => handleAddToCart(product)} disabled={!product.b2b_sellable}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Adicionar
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {products.map((product) => (
+              <PartnerProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={handleAddToCart}
+              />
+            ))}
           </div>
         )}
     </div>
