@@ -1,8 +1,8 @@
-import { ReactNode, useState, useEffect, useMemo } from "react";
-import { Link, useLocation, Navigate } from "react-router-dom";
+import { ReactNode, useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Package, ShoppingCart, FileText, LogOut, Menu, X,
-  User, Building2, CreditCard, AlertCircle,
+  User, Building2, CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { formatMoneyEur } from "@/lib/money";
-import { PartnerLoadingScreen } from "@/components/partner/PartnerLoadingScreen";
 
 interface PartnerLayoutProps {
   children: ReactNode;
@@ -58,8 +57,16 @@ function hexToHsl(hex: string): string | null {
   }
 }
 
+/**
+ * Apresentacional puro: header, nav, footer, branding.
+ *
+ * O gate de auth (loading / error / not-authenticated) vive no
+ * `PartnerProtectedLayout` para que este componente NÃO seja desmontado
+ * entre transições de rota — eliminando flicker do header e re-fetches
+ * desnecessários de branding entre Dashboard ↔ Catálogo.
+ */
 export function PartnerLayout({ children }: PartnerLayoutProps) {
-  const { partnerUser, loading, error, signOut, isAuthenticated } = usePartnerAuth();
+  const { partnerUser, signOut } = usePartnerAuth();
   const { account } = usePartnerAccount(partnerUser?.partner_account_id);
   const { itemCount } = usePartnerCart();
   const location = useLocation();
@@ -91,41 +98,6 @@ export function PartnerLayout({ children }: PartnerLayoutProps) {
       document.documentElement.style.removeProperty("--ring");
     };
   }, [partnerUser?.workspace_id]);
-
-  // Loading consistente: enquanto verificamos a sessão mostramos sempre o
-  // mesmo ecrã do Suspense, para evitar flicker entre fallback → layout.
-  if (loading) {
-    return <PartnerLoadingScreen message="A carregar o Partner Center…" />;
-  }
-
-  // Falha explícita (timeout / erro de rede / RLS) — em vez de spinner infinito.
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-            <AlertCircle className="h-6 w-6 text-destructive" aria-hidden="true" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold">Não foi possível carregar o portal</h2>
-            <p className="text-sm text-muted-foreground mt-1">{error}</p>
-          </div>
-          <div className="flex gap-2 justify-center">
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Tentar novamente
-            </Button>
-            <Button variant="ghost" onClick={signOut}>
-              Terminar sessão
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/partner/login" replace />;
-  }
 
   const portalName = workspaceBranding?.name ? `${workspaceBranding.name} — Partner Center` : "Partner Center";
 
