@@ -29,7 +29,7 @@ export default function PartnerLoginPage() {
     resolve();
   }, [workspaceSlug]);
 
-  const { signIn, signOut, loading, error, isAuthenticated, user, hasAuthButNoPartner } = usePartnerAuth({ workspaceId });
+  const { signIn, signOut, loading, error, isAuthenticated, user, hasAuthButNoPartner } = usePartnerAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
