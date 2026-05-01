@@ -11,6 +11,7 @@ export interface ProductVariant {
   sku: string | null;
   price_override: number | null;
   stock_quantity: number;
+  stock_reserved: number;
   track_stock: boolean;
   attributes: Record<string, string>;
   is_active: boolean;
