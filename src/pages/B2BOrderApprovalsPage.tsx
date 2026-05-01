@@ -257,6 +257,12 @@ export default function B2BOrderApprovalsPage() {
             })}
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-0">
+            <ApprovalHistoryPanel />
+          </TabsContent>
+        </Tabs>
 
         <Dialog open={!!dialog} onOpenChange={(open) => !open && setDialog(null)}>
           <DialogContent>
