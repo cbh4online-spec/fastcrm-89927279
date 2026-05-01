@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -128,7 +127,6 @@ export default function StockValuationPage() {
   };
 
   return (
-    <DashboardLayout>
     <div className="container mx-auto p-6 space-y-6">
       <Helmet>
         <title>Stock Valorizado (FIFO) | FastCRM</title>
@@ -349,7 +347,6 @@ export default function StockValuationPage() {
         </CardContent>
       </Card>
     </div>
-    </DashboardLayout>
   );
 }
 
