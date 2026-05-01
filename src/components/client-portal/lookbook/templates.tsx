@@ -143,11 +143,11 @@ function PageHeader({ page, align = "left" }: { page: PartnerCatalogPageWithItem
 const HeroSingleTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) => {
   const main = page.items[0];
   return (
-    <div className="min-h-[600px] grid lg:grid-cols-2 gap-12 items-center p-8 md:p-16">
+    <div className="min-h-[400px] md:min-h-[600px] grid lg:grid-cols-2 gap-8 md:gap-12 items-center p-5 sm:p-8 md:p-16">
       <div>
         <PageHeader page={page} />
         {page.description && (
-          <p className="text-base text-[hsl(var(--lb-muted))] max-w-md leading-relaxed mt-4">
+          <p className="text-sm md:text-base text-[hsl(var(--lb-muted))] max-w-md leading-relaxed mt-4">
             {page.description}
           </p>
         )}
@@ -165,9 +165,9 @@ const HeroSingleTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) => {
 const DuoAsymmetricTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) => {
   const [first, second] = page.items;
   return (
-    <div className="p-8 md:p-12">
+    <div className="p-5 sm:p-8 md:p-12">
       <PageHeader page={page} />
-      <div className="grid md:grid-cols-12 gap-8 items-end mt-8">
+      <div className="grid md:grid-cols-12 gap-6 md:gap-8 items-end mt-6 md:mt-8">
         {first && (
           <div className="md:col-span-7">
             <ProductBlock item={first} size="xl" onAdd={() => onAddToCart(first)} />
@@ -186,9 +186,9 @@ const DuoAsymmetricTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) =
 // ============= Template 3: quad-grid =============
 const QuadGridTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) => {
   return (
-    <div className="p-8 md:p-12">
+    <div className="p-5 sm:p-8 md:p-12">
       <PageHeader page={page} />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mt-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 mt-6 md:mt-8">
         {page.items.slice(0, 4).map((item) => (
           <ProductBlock
             key={item.id}
