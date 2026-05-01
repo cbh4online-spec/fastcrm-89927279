@@ -6,11 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2, Sparkles, Info } from "lucide-react";
+import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2, Sparkles, Info, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Product } from "@/types/product";
 import { DEFAULT_SALES_PLAYBOOK, isEmptyOrTemplate } from "./salesPlaybookTemplate";
+import {
+  DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface ObjectionItem {
   objection: string;
