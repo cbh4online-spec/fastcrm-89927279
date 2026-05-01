@@ -246,15 +246,54 @@ function RenderProductCell({
         <Badge variant="outline" className="text-muted-foreground">Oculto</Badge>
       );
     case "total_units":
-      return <span>{product.total_units ?? "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.total_units ?? null}
+          type="integer"
+          min={0}
+          onSave={(v) => onInlinePriceUpdate(product.id, "total_units", v)}
+        />
+      ) : <span>{product.total_units ?? "-"}</span>;
     case "unit_duration":
-      return <span>{product.unit_duration ? `${product.unit_duration} min` : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.unit_duration ?? null}
+          type="integer"
+          min={0}
+          display={product.unit_duration ? `${product.unit_duration} min` : undefined}
+          onSave={(v) => onInlinePriceUpdate(product.id, "unit_duration", v)}
+        />
+      ) : <span>{product.unit_duration ? `${product.unit_duration} min` : "-"}</span>;
     case "validity_days":
-      return <span>{product.validity_days ? `${product.validity_days} dias` : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.validity_days ?? null}
+          type="integer"
+          min={0}
+          display={product.validity_days ? `${product.validity_days} dias` : undefined}
+          onSave={(v) => onInlinePriceUpdate(product.id, "validity_days", v)}
+        />
+      ) : <span>{product.validity_days ? `${product.validity_days} dias` : "-"}</span>;
     case "tax_rate_estimate_pct":
-      return <span>{product.tax_rate_estimate_pct ? `${product.tax_rate_estimate_pct}%` : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.tax_rate_estimate_pct ?? null}
+          type="percent"
+          min={0}
+          max={100}
+          onSave={(v) => onInlinePriceUpdate(product.id, "tax_rate_estimate_pct", v)}
+        />
+      ) : <span>{product.tax_rate_estimate_pct ? `${product.tax_rate_estimate_pct}%` : "-"}</span>;
     case "commission_default":
-      return <span>{product.commission_default ? `${product.commission_default}%` : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.commission_default ?? null}
+          type="percent"
+          min={0}
+          max={100}
+          onSave={(v) => onInlinePriceUpdate(product.id, "commission_default", v)}
+        />
+      ) : <span>{product.commission_default ? `${product.commission_default}%` : "-"}</span>;
     case "delivery_mode":
       return <span>{product.delivery_mode || "-"}</span>;
     case "created_at":
