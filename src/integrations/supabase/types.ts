@@ -54200,9 +54200,6 @@ export type Database = {
           unit_of_sale: string | null
           updated_at: string
           validity_days: number | null
-          variant_attributes: Json
-          variant_label: string | null
-          variant_parent_id: string | null
           views_count: number
           volume_text: string | null
           volume_unit: string | null
@@ -54340,9 +54337,6 @@ export type Database = {
           unit_of_sale?: string | null
           updated_at?: string
           validity_days?: number | null
-          variant_attributes?: Json
-          variant_label?: string | null
-          variant_parent_id?: string | null
           views_count?: number
           volume_text?: string | null
           volume_unit?: string | null
@@ -54480,9 +54474,6 @@ export type Database = {
           unit_of_sale?: string | null
           updated_at?: string
           validity_days?: number | null
-          variant_attributes?: Json
-          variant_label?: string | null
-          variant_parent_id?: string | null
           views_count?: number
           volume_text?: string | null
           volume_unit?: string | null
@@ -54513,27 +54504,6 @@ export type Database = {
             columns: ["store_category_id"]
             isOneToOne: false
             referencedRelation: "product_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_variant_parent_id_fkey"
-            columns: ["variant_parent_id"]
-            isOneToOne: false
-            referencedRelation: "product_catalog"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_variant_parent_id_fkey"
-            columns: ["variant_parent_id"]
-            isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
-          },
-          {
-            foreignKeyName: "products_variant_parent_id_fkey"
-            columns: ["variant_parent_id"]
-            isOneToOne: false
-            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
