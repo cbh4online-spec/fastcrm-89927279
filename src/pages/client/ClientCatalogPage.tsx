@@ -82,6 +82,10 @@ export default function ClientCatalogPage() {
     <ClientLayout>
       <div className="space-y-8">
         <EditorialPageHeader
+          breadcrumbs={[
+            { label: "Portal", to: "/client" },
+            { label: "Catálogo" },
+          ]}
           eyebrow="Portal Profissional · Catálogo"
           title="Catálogo de Produtos"
           subtitle={
