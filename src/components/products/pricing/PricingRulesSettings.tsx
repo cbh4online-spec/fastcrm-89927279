@@ -193,7 +193,10 @@ export function PricingRulesSettings() {
               <p className="text-sm font-medium">Margem mínima global (fallback)</p>
               <p className="text-xs text-muted-foreground">
                 {globalRule ? `${globalRule.min_margin_pct}%` : "10% (padrão)"}
-                {globalRule?.target_margin_pct && ` · Target: ${globalRule.target_margin_pct}%`}
+                {globalRule?.target_margin_pct ? ` · Target: ${globalRule.target_margin_pct}%` : ""}
+                {globalRule?.default_operational_cost_pct != null
+                  ? ` · Custo operacional sugerido: ${globalRule.default_operational_cost_pct}%`
+                  : " · Sem custo operacional sugerido"}
               </p>
             </div>
             <Button
