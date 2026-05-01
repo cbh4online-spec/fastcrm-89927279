@@ -17,7 +17,7 @@ export function PartnerRoutes() {
   return (
     <PartnerAuthProvider>
       <PartnerCartProvider>
-        <Suspense fallback={<PartnerSuspenseFallback />}>
+        <Suspense fallback={<PartnerLoadingScreen message="A preparar o portal…" />}>
           <Routes>
             <Route path="login" element={<PartnerLoginPage />} />
             <Route path="dashboard" element={<PartnerDashboardPage />} />
