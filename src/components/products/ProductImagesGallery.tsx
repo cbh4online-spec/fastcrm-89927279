@@ -45,6 +45,7 @@ import {
 import { useUpdateProduct } from "@/hooks/useProducts";
 import type { Product, ProductImage } from "@/types/product";
 import { toSlug } from "@/utils/slug";
+import { compressImageFile } from "@/utils/image-compression";
 
 /** Build an SEO-friendly filename from product metadata */
 function buildSeoFilename(product: Product, position: number, ext: string): string {
