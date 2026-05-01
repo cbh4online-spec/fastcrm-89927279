@@ -226,8 +226,31 @@ export function ProductDetailDialog({
                       <ImageIcon className="h-14 w-14 text-muted-foreground/30" />
                     </div>
                   )}
+                  {/* Prev / Next navigation */}
+                  {hasMultipleImages && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        disabled={!canGoPrev}
+                        aria-label="Imagem anterior"
+                        className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 hover:bg-background border shadow flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        disabled={!canGoNext}
+                        aria-label="Próxima imagem"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 hover:bg-background border shadow flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
                   {/* Mini gallery thumbnails */}
-                  {displayImages.length > 1 && (
+                  {hasMultipleImages && (
                     <div className="absolute bottom-1.5 left-1.5 right-1.5 flex gap-1 overflow-x-auto">
                       {displayImages.slice(0, 5).map((img, idx) => (
                         <button
