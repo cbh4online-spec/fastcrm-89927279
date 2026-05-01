@@ -100,7 +100,15 @@ function RenderProductCell({
       );
     }
     case "sku":
-      return product.sku ? (
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.sku ?? ""}
+          type="text"
+          maxLength={64}
+          inputWidthClass="w-28"
+          onSave={(v) => onInlinePriceUpdate(product.id, "sku", v)}
+        />
+      ) : product.sku ? (
         <button type="button" onClick={() => onOpenDetail(product)} className="text-muted-foreground hover:text-primary hover:underline transition-colors">
           {product.sku}
         </button>
