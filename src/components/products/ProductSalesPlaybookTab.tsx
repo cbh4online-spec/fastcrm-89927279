@@ -338,14 +338,27 @@ export function ProductSalesPlaybookTab({ product }: Props) {
 
       {/* Reclamação / Garantia */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldCheck className="h-4 w-4 text-emerald-600" />
-            Reclamação &amp; garantia
-          </CardTitle>
-          <CardDescription>
-            Procedimento pós-venda: política de garantia, prazos, fluxo de reclamação e responsáveis.
-          </CardDescription>
+        <CardHeader className="pb-3 flex flex-row items-start justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              Reclamação &amp; garantia
+            </CardTitle>
+            <CardDescription>
+              Procedimento pós-venda: política de garantia, prazos, fluxo de reclamação e responsáveis.
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => generate.mutate("warranty")}
+            disabled={generate.isPending}
+          >
+            {isGenerating("warranty")
+              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              : <Sparkles className="h-4 w-4 mr-1" />}
+            Gerar com IA
+          </Button>
         </CardHeader>
         <CardContent>
           <Textarea
