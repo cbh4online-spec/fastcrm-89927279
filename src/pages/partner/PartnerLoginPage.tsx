@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Building2, AlertCircle } from "lucide-react";
+import { PartnerLoadingScreen } from "@/components/partner/PartnerLoadingScreen";
 
 export default function PartnerLoginPage() {
   const navigate = useNavigate();
@@ -50,11 +51,7 @@ export default function PartnerLoginPage() {
   };
 
   if (loading || !workspaceResolved) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PartnerLoadingScreen message="A preparar o login…" />;
   }
 
   if (hasAuthButNoPartner) {

@@ -1,8 +1,8 @@
 import { lazy, Suspense } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { PartnerCartProvider } from "@/contexts/PartnerCartContext";
 import { PartnerAuthProvider } from "@/contexts/PartnerAuthContext";
+import { PartnerLoadingScreen } from "@/components/partner/PartnerLoadingScreen";
 
 const PartnerLoginPage = lazy(() => import("@/pages/partner/PartnerLoginPage"));
 const PartnerDashboardPage = lazy(() => import("@/pages/partner/PartnerDashboardPage"));
@@ -13,19 +13,11 @@ const PartnerOrdersPage = lazy(() => import("@/pages/partner/PartnerOrdersPage")
 const PartnerOrderDetailPage = lazy(() => import("@/pages/partner/PartnerOrderDetailPage"));
 const PartnerAccountPage = lazy(() => import("@/pages/partner/PartnerAccountPage"));
 
-function PartnerSuspenseFallback() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  );
-}
-
 export function PartnerRoutes() {
   return (
     <PartnerAuthProvider>
       <PartnerCartProvider>
-        <Suspense fallback={<PartnerSuspenseFallback />}>
+        <Suspense fallback={<PartnerLoadingScreen message="A preparar o portal…" />}>
           <Routes>
             <Route path="login" element={<PartnerLoginPage />} />
             <Route path="dashboard" element={<PartnerDashboardPage />} />

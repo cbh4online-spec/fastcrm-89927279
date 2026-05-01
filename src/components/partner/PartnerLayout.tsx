@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect, useMemo } from "react";
 import { Link, useLocation, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Package, ShoppingCart, FileText, LogOut, Menu, X,
-  User, Building2, Loader2, CreditCard,
+  User, Building2, CreditCard, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { formatMoneyEur } from "@/lib/money";
+import { PartnerLoadingScreen } from "@/components/partner/PartnerLoadingScreen";
 
 interface PartnerLayoutProps {
   children: ReactNode;
@@ -58,7 +59,7 @@ function hexToHsl(hex: string): string | null {
 }
 
 export function PartnerLayout({ children }: PartnerLayoutProps) {
-  const { partnerUser, loading, signOut, isAuthenticated } = usePartnerAuth();
+  const { partnerUser, loading, error, signOut, isAuthenticated } = usePartnerAuth();
   const { account } = usePartnerAccount(partnerUser?.partner_account_id);
   const { itemCount } = usePartnerCart();
   const location = useLocation();
@@ -91,12 +92,32 @@ export function PartnerLayout({ children }: PartnerLayoutProps) {
     };
   }, [partnerUser?.workspace_id]);
 
+  // Loading consistente: enquanto verificamos a sessão mostramos sempre o
+  // mesmo ecrã do Suspense, para evitar flicker entre fallback → layout.
   if (loading) {
+    return <PartnerLoadingScreen message="A carregar o Partner Center…" />;
+  }
+
+  // Falha explícita (timeout / erro de rede / RLS) — em vez de spinner infinito.
+  if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">A carregar o Partner Center...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="max-w-md w-full text-center space-y-4">
+          <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+            <AlertCircle className="h-6 w-6 text-destructive" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Não foi possível carregar o portal</h2>
+            <p className="text-sm text-muted-foreground mt-1">{error}</p>
+          </div>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Tentar novamente
+            </Button>
+            <Button variant="ghost" onClick={signOut}>
+              Terminar sessão
+            </Button>
+          </div>
         </div>
       </div>
     );
