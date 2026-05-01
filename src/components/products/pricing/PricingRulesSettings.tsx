@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { ShieldCheck, Plus, Edit, Trash2, Loader2, Target } from "lucide-react";
+import { ShieldCheck, Plus, Edit, Trash2, Loader2, Target, Calculator, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   usePricingRules,
