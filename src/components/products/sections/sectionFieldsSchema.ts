@@ -199,5 +199,50 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
 };
 
 export function getKnownKeys(section: ProductSectionKey): Set<string> {
-  return new Set(SECTION_FIELDS[section].map((f) => f.key));
+  const keys = new Set(SECTION_FIELDS[section].map((f) => f.key));
+  // Esconde também as chaves espelhadas — não são editadas no editor de secções.
+  Object.entries(CANONICAL_COLUMN_MAP).forEach(([k, v]) => {
+    if (v.section === section) keys.add(k);
+  });
+  return keys;
+}
+
+/**
+ * Resolve a vista canónica de atributos de uma secção, fundindo:
+ * 1. Atributos guardados em `attributes` (jsonb)
+ * 2. Colunas SSoT da `products` mapeadas via CANONICAL_COLUMN_MAP
+ *
+ * Usado pela API/Copilot para garantir respostas consistentes
+ * independentemente de onde o dado está guardado.
+ */
+export function resolveCanonicalAttributes(
+  section: ProductSectionKey,
+  rawAttributes: Record<string, any>,
+  productRow: Record<string, any>,
+): Record<string, any> {
+  const out: Record<string, any> = { ...rawAttributes };
+
+  Object.entries(CANONICAL_COLUMN_MAP).forEach(([attrKey, def]) => {
+    if (def.section !== section) return;
+    const colVal = productRow?.[def.column];
+    if (colVal === null || colVal === undefined || colVal === "") return;
+
+    switch (def.transform) {
+      case "weight_kg":
+        out[attrKey] = `${colVal} kg`;
+        break;
+      case "validity_days":
+        out[attrKey] = `${colVal} dias`;
+        break;
+      case "quantity_unit": {
+        const unit = productRow?.unit_name ? ` ${productRow.unit_name}` : "";
+        out[attrKey] = `${colVal}${unit}`;
+        break;
+      }
+      default:
+        out[attrKey] = colVal;
+    }
+  });
+
+  return out;
 }
