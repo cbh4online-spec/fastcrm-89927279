@@ -36,8 +36,10 @@ export function ProductImageGalleryManager({
   onImagesChange,
   skuImages = [],
   maxImages = 10,
+  productName,
 }: ProductImageGalleryManagerProps) {
   const [selectedSkuImages, setSelectedSkuImages] = useState<Set<string>>(new Set());
+  const [webSearchOpen, setWebSearchOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
