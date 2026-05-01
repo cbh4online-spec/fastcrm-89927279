@@ -494,6 +494,17 @@ export function ProductImageGalleryManager({
             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
             Tirar foto
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => setWebSearchOpen(true)}
+            disabled={uploading || images.length >= maxImages}
+            title="Pesquisar imagens reais do produto online"
+          >
+            <Globe className="h-4 w-4" />
+            Pesquisar online
+          </Button>
         </div>
         <p className="text-[11px] text-muted-foreground mt-2 text-center">
           Até {maxImages} imagens • Compressão automática • A câmara abre nativamente em telemóveis
