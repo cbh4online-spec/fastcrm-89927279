@@ -174,8 +174,10 @@ export interface ComputedPartnerPrice {
 
 // Cart item for PartnerCartContext
 export interface PartnerCartItem {
-  /** ID do produto OU da variante (é sempre o ID do que vai ser facturado) */
+  /** ID do produto pai (sempre o id em `products`). FK válido em partner_order_items.product_id */
   product_id: string;
+  /** ID da variante real em `product_variants`, quando aplicável. */
+  variant_id?: string | null;
   product_name: string;
   sku: string | null;
   quantity: number;
@@ -185,12 +187,21 @@ export interface PartnerCartItem {
   pack_size: number;
   moq: number;
   image_url: string | null;
-  /** Quando é variante: id do pai para agrupar histórico */
+  /** Mantido por compat: quando é variante, repete o id do pai. */
   parent_product_id?: string | null;
   /** Quando é variante: rótulo legível (ex: "50ml") */
   variant_label?: string | null;
   /** Quando é variante: atributos snapshot (ex: { volume_ml: 50 }) */
   variant_attributes?: Record<string, string | number | boolean | null>;
+  /** Permite venda sem stock — propaga para o decremento atómico. */
+  allow_backorder?: boolean;
+  /** Indica se a variante tem controlo de stock activo. */
+  track_stock?: boolean;
+}
+
+/** Helper canónico para chave de deduplicação no carrinho. */
+export function partnerCartItemKey(item: Pick<PartnerCartItem, 'product_id' | 'variant_id'>): string {
+  return `${item.product_id}::${item.variant_id ?? ''}`;
 }
 
 // Order status config

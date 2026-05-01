@@ -47532,6 +47532,7 @@ export type Database = {
           unit_price_net: number
           unit_price_original: number | null
           variant_attributes: Json
+          variant_id: string | null
           variant_label: string | null
           workspace_id: string
         }
@@ -47556,6 +47557,7 @@ export type Database = {
           unit_price_net: number
           unit_price_original?: number | null
           variant_attributes?: Json
+          variant_id?: string | null
           variant_label?: string | null
           workspace_id: string
         }
@@ -47580,6 +47582,7 @@ export type Database = {
           unit_price_net?: number
           unit_price_original?: number | null
           variant_attributes?: Json
+          variant_id?: string | null
           variant_label?: string | null
           workspace_id?: string
         }
@@ -47631,6 +47634,13 @@ export type Database = {
             columns: ["partner_order_id"]
             isOneToOne: false
             referencedRelation: "partner_order_headers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
           {
@@ -76592,6 +76602,15 @@ export type Database = {
       }
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
+        Returns: Json
+      }
+      decrement_partner_variant_stock: {
+        Args: {
+          p_allow_backorder?: boolean
+          p_quantity: number
+          p_variant_id: string
+          p_workspace_id: string
+        }
         Returns: Json
       }
       decrement_viewer_count: {

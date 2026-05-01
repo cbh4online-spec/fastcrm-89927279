@@ -62,8 +62,9 @@ export default function PartnerCartPage() {
             {items.map((item) => {
               const line = totals.lines.find((l) => l.product_id === item.product_id);
               const hasDiscount = !!line && line.discount_pct > 0;
+              const itemKey = `${item.product_id}::${item.variant_id ?? ''}`;
               return (
-                <Card key={item.product_id}>
+                <Card key={itemKey}>
                   <CardContent className="p-4 flex items-center gap-4">
                     {item.image_url && (
                       <img src={item.image_url} alt={item.product_name} className="w-16 h-16 rounded object-cover bg-muted" />
@@ -71,6 +72,9 @@ export default function PartnerCartPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{item.product_name}</p>
                       {item.sku && <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>}
+                      {item.variant_label && (
+                        <p className="text-xs text-muted-foreground">Variante: {item.variant_label}</p>
+                      )}
                       <p className="text-sm font-semibold mt-1">{formatMoneyEur(item.unit_price_net)} / un</p>
                       {hasDiscount && (
                         <p className="text-xs text-emerald-700 mt-0.5">
@@ -79,11 +83,11 @@ export default function PartnerCartPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.product_id, item.quantity - item.pack_size)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.product_id, item.quantity - item.pack_size, item.variant_id ?? null)}>
                         <Minus className="h-3 w-3" />
                       </Button>
                       <span className="w-12 text-center font-medium">{item.quantity}</span>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.product_id, item.quantity + item.pack_size)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.product_id, item.quantity + item.pack_size, item.variant_id ?? null)}>
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
@@ -93,7 +97,7 @@ export default function PartnerCartPage() {
                         <p className="text-xs text-muted-foreground line-through">{formatMoneyEur(line!.line_total_original)}</p>
                       )}
                     </div>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeItem(item.product_id)}>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeItem(item.product_id, item.variant_id ?? null)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </CardContent>

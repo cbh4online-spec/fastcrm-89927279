@@ -83,9 +83,13 @@ export default function PartnerCheckoutPage() {
         <CardContent className="space-y-2">
           {items.map((item) => {
             const line = totals.lines.find((l) => l.product_id === item.product_id);
+            const itemKey = `${item.product_id}::${item.variant_id ?? ''}`;
             return (
-              <div key={item.product_id} className="flex justify-between text-sm py-1 border-b last:border-b-0">
-                <span>{item.product_name} × {item.quantity}</span>
+              <div key={itemKey} className="flex justify-between text-sm py-1 border-b last:border-b-0">
+                <span>
+                  {item.product_name} × {item.quantity}
+                  {item.variant_label && <span className="text-muted-foreground"> · {item.variant_label}</span>}
+                </span>
                 <div className="text-right">
                   <span className="font-medium">{formatMoneyEur(line?.line_total_net ?? item.unit_price_net * item.quantity)}</span>
                   {line && line.discount_pct > 0 && (
