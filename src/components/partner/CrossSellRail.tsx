@@ -42,9 +42,16 @@ export function CrossSellRail({ partnerAccountId, cartProductIds, limit = 4 }: P
       const productIds = (data as unknown as Array<{ product_id: string }>).map((r) => r.product_id);
       const { data: prods } = await supabase
         .from('products')
-        .select('id, name, sku, base_price, image_url')
+        .select('id, name, sku, base_price, images')
         .in('id', productIds);
-      setItems((prods as Recommendation[]) || []);
+      const mapped: Recommendation[] = (prods || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        base_price: p.base_price,
+        image_url: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : null,
+      }));
+      setItems(mapped);
     })();
   }, [partnerAccountId, cartProductIds.join(','), limit]);
 
