@@ -46,6 +46,10 @@ export interface PriceSuggestion {
   created_at: string;
 }
 
+type StoreProductRow = Omit<ProductStoreData, "variants_count"> & {
+  product_variants?: Array<{ count: number }>;
+};
+
 export function useStoreAdminProducts(search: string) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -71,14 +75,14 @@ export function useStoreAdminProducts(search: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map((item: any) => ({
+      return ((data || []) as StoreProductRow[]).map((item) => ({
         ...item,
         images: item.images?.length
           ? item.images
           : (item.product_images || [])
               .slice()
-              .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
-              .map((image: any) => image.url)
+              .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+              .map((image) => image.url)
               .filter(Boolean),
         variants_count: item.product_variants?.[0]?.count || 0,
         product_variants: undefined,
