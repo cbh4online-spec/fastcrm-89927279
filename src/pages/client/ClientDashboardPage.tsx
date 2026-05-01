@@ -305,9 +305,9 @@ export default function ClientDashboardPage() {
           {/* Monthly Evolution */}
           <Card className="lg:col-span-2 border-border/50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-primary/10">
-                  <BarChart3 className="h-4 w-4 text-primary" />
+              <CardTitle className="font-editorial text-2xl flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-[hsl(var(--editorial-champagne))]/60">
+                  <BarChart3 className="h-4 w-4 text-[hsl(var(--editorial-accent))]" />
                 </div>
                 Evolução Mensal
               </CardTitle>
