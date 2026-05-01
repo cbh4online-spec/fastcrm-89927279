@@ -86,7 +86,7 @@ export default function StockValuationPage() {
 
   const exportCsv = () => {
     const headers = [
-      "SKU", "Produto", "Categoria", "Stock",
+      "SKU", "Produto", "Categoria", "Stock", "Stock mínimo",
       "Custo unit.", "Custo operacional unit.", "Custo total unit.",
       "Valor stock a custo",
       "Base s/IVA actual", "Base s/IVA sugerido",
@@ -98,6 +98,7 @@ export default function StockValuationPage() {
       `"${(r.product_name || "").replace(/"/g, '""')}"`,
       r.category || "",
       r.current_stock,
+      r.low_stock_threshold ?? 0,
       r.fifo_avg_cost.toFixed(4),
       r.operational_cost_unit.toFixed(4),
       r.total_unit_cost.toFixed(4),
