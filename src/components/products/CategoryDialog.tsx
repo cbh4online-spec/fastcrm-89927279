@@ -209,6 +209,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
           color: data.color,
           image_url: data.image_url,
           is_active: data.is_active,
+          variant_display_mode: data.variant_display_mode,
           ...costDefaults,
         });
       }
