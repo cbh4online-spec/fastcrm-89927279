@@ -319,3 +319,76 @@ export default function B2BOrderApprovalsPage() {
     </DashboardLayout>
   );
 }
+
+function ApprovalHistoryPanel() {
+  const { history, isLoading } = usePartnerOrderApprovalHistory({ limit: 100 });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground text-sm">
+          <History className="h-10 w-10 mx-auto mb-2 opacity-40" />
+          Sem decisões registadas ainda.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const decisionMeta: Record<string, { label: string; icon: typeof CheckCircle2; className: string }> = {
+    approved: { label: "Aprovada", icon: CheckCircle2, className: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+    rejected: { label: "Rejeitada", icon: XCircle, className: "text-destructive bg-destructive/10 border-destructive/30" },
+    cancelled: { label: "Cancelada", icon: Ban, className: "text-muted-foreground bg-muted border-muted" },
+    reopened: { label: "Reaberta", icon: History, className: "text-blue-600 bg-blue-50 border-blue-200" },
+    auto: { label: "Automática", icon: History, className: "text-muted-foreground bg-muted border-muted" },
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-0 divide-y">
+        {history.map((entry) => {
+          const meta = decisionMeta[entry.decision] ?? decisionMeta.auto;
+          const Icon = meta.icon;
+          return (
+            <div key={entry.id} className="p-4 flex items-start gap-3">
+              <div className={`shrink-0 rounded-md border p-1.5 ${meta.className}`}>
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm">{entry.order_number}</span>
+                  <Badge variant="outline" className="text-[10px] h-5">
+                    {meta.label}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {entry.previous_status} → {entry.new_status}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {entry.partner_accounts?.trade_name || entry.partner_accounts?.legal_name || "—"} ·{" "}
+                  {formatMoneyEur(entry.total_gross)} ·{" "}
+                  {format(new Date(entry.created_at), "dd MMM yyyy HH:mm", { locale: pt })}
+                </p>
+                {entry.decision_reason && (
+                  <p className="text-xs italic text-muted-foreground border-l-2 border-muted pl-2 mt-1">
+                    "{entry.decision_reason}"
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
