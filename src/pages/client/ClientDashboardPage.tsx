@@ -214,29 +214,25 @@ export default function ClientDashboardPage() {
   return (
     <ClientLayout>
       <div className="space-y-8">
-        {/* Welcome Header — Editorial */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <h1 className="font-editorial text-4xl sm:text-5xl tracking-tight text-[hsl(var(--editorial-ink))]">
-              Olá, {clientUser?.name?.split(' ')[0]}
-            </h1>
-            <p className="text-muted-foreground mt-2 text-base">
-              Painel executivo do portal profissional
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link to="/client/assistant">
-              <Button variant="outline" className="rounded-full border-[hsl(var(--editorial-border))] hover:bg-[hsl(var(--editorial-champagne))]/40">
-                <Sparkles className="h-4 w-4 mr-2" /> Copilot IA
-              </Button>
-            </Link>
-            <Link to="/client/catalog">
-              <Button className="rounded-full bg-[hsl(var(--editorial-ink))] text-[hsl(var(--editorial-cream))] hover:bg-[hsl(var(--editorial-ink))]/90 px-6">
-                <Package className="h-4 w-4 mr-2" /> Nova Encomenda
-              </Button>
-            </Link>
-          </div>
-        </div>
+        <EditorialPageHeader
+          eyebrow="Portal Profissional · Dashboard"
+          title={`Olá, ${clientUser?.name?.split(' ')[0] ?? ''}`}
+          subtitle="Painel executivo do portal profissional"
+          actions={
+            <>
+              <Link to="/client/assistant">
+                <Button variant="outline" className="rounded-full border-[hsl(var(--editorial-border))] hover:bg-[hsl(var(--editorial-champagne))]/40">
+                  <Sparkles className="h-4 w-4 mr-2" /> Copilot IA
+                </Button>
+              </Link>
+              <Link to="/client/catalog">
+                <Button className="rounded-full bg-[hsl(var(--editorial-ink))] text-[hsl(var(--editorial-cream))] hover:bg-[hsl(var(--editorial-ink))]/90 px-6">
+                  <Package className="h-4 w-4 mr-2" /> Nova Encomenda
+                </Button>
+              </Link>
+            </>
+          }
+        />
 
         {/* Hero Editorial — Slides de campanhas, formações, lançamentos */}
         <PartnerHeroCarousel
