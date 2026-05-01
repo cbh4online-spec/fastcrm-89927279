@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, Package } from "lucide-react";
 import { PartnerProductCard } from "@/components/partner/PartnerProductCard";
+import { PartnerProductQuickView } from "@/components/partner/PartnerProductQuickView";
 
 export default function PartnerCatalogPage() {
   const { partnerUser } = usePartnerAuth();
@@ -23,6 +24,7 @@ export default function PartnerCatalogPage() {
   });
 
   const { addItem } = usePartnerCart();
+  const [quickView, setQuickView] = useState<{ product: PartnerCatalogProduct; variantId: string | null } | null>(null);
 
   /**
    * Adiciona o item correcto ao carrinho:
@@ -118,10 +120,18 @@ export default function PartnerCatalogPage() {
                 key={product.id}
                 product={product}
                 onAddToCart={handleAddToCart}
+                onOpenDetails={(p, variantId) => setQuickView({ product: p, variantId })}
               />
             ))}
           </div>
         )}
+
+        <PartnerProductQuickView
+          product={quickView?.product ?? null}
+          open={!!quickView}
+          onOpenChange={(open) => { if (!open) setQuickView(null); }}
+          onAddToCart={handleAddToCart}
+        />
     </div>
   );
 }
