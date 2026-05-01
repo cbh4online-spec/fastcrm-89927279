@@ -67,10 +67,10 @@ export function useInventoryValuation() {
     rows: rowsQuery.data || [],
     summary: summaryQuery.data,
     isLoading: rowsQuery.isLoading || summaryQuery.isLoading,
+    isFetching: rowsQuery.isFetching || summaryQuery.isFetching,
     error: rowsQuery.error || summaryQuery.error,
-    refetch: () => {
-      rowsQuery.refetch();
-      summaryQuery.refetch();
+    refetch: async () => {
+      await Promise.all([rowsQuery.refetch(), summaryQuery.refetch()]);
     },
   };
 }
