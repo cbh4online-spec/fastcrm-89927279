@@ -1,5 +1,6 @@
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { EditorialPageHeader } from "@/components/client-portal/EditorialPageHeader";
+import { EditorialHero } from "@/components/client-portal/EditorialHero";
 import { LookbookRenderer } from "@/components/client-portal/lookbook/LookbookRenderer";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { usePartnerCatalogPages } from "@/hooks/usePartnerCatalogPages";
@@ -57,6 +58,24 @@ export default function ClientCatalogLookbookPage() {
               )}
             </>
           }
+        />
+
+        <EditorialHero
+          eyebrow="Edição da estação"
+          title="Inspire-se. Encomende. Evolua."
+          description="Descubra as campanhas activas e formações certificadas pensadas para profissionais como você. Tudo num só lugar — curado pela nossa equipa."
+          primaryCta={{
+            label: "Ver campanhas activas",
+            to: "/client/campaigns",
+            icon: "sparkles",
+            variant: "primary",
+          }}
+          secondaryCta={{
+            label: "Explorar formações",
+            to: "/client/training",
+            icon: "graduation",
+            variant: "outline",
+          }}
         />
 
         {isLoading ? (
