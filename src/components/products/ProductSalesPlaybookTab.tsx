@@ -24,8 +24,8 @@ interface SalesPlaybook {
 }
 
 const objectionSchema = z.object({
-  objection: z.string().trim().max(500, "Máx 500 caracteres"),
-  response: z.string().trim().max(2000, "Máx 2000 caracteres"),
+  objection: z.string().trim().max(500, "Máx 500 caracteres").default(""),
+  response: z.string().trim().max(2000, "Máx 2000 caracteres").default(""),
 });
 const playbookSchema = z.object({
   script: z.string().trim().max(20000, "Máx 20.000 caracteres"),
