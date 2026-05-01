@@ -153,17 +153,28 @@ export function useProduct(id: string | undefined) {
 
       const { data, error } = await supabase
         .from("products")
-        .select("*, product_images(url, position)")
+        .select("*, product_images(url, position, is_cover, created_at)")
         .eq("id", id)
         .eq("workspace_id", currentWorkspace.id)
         .single();
 
       if (error) throw error;
-      const product = data as Product & { product_images?: Array<{ url: string; position: number | null }> };
+      const product = data as Product & {
+        product_images?: Array<{ url: string; position: number | null; is_cover?: boolean | null; created_at?: string | null }>;
+      };
       if ((!product.images || product.images.length === 0) && Array.isArray(product.product_images)) {
         product.images = product.product_images
           .slice()
-          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+          .sort((a, b) => {
+            // 1. capa primeiro
+            if ((b.is_cover ? 1 : 0) !== (a.is_cover ? 1 : 0)) return (b.is_cover ? 1 : 0) - (a.is_cover ? 1 : 0);
+            // 2. position
+            const pa = a.position ?? Number.MAX_SAFE_INTEGER;
+            const pb = b.position ?? Number.MAX_SAFE_INTEGER;
+            if (pa !== pb) return pa - pb;
+            // 3. created_at
+            return (a.created_at ?? "").localeCompare(b.created_at ?? "");
+          })
           .map((image) => image.url)
           .filter(Boolean);
       }

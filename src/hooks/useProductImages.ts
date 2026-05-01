@@ -32,7 +32,9 @@ export function useProductImages(productId: string | undefined) {
         .select("*")
         .eq("product_id", productId)
         .eq("workspace_id", currentWorkspace.id)
-        .order("position");
+        .order("is_cover", { ascending: false })
+        .order("position", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
       return data as ProductImage[];

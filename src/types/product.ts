@@ -405,6 +405,7 @@ export interface ProductImage {
   is_ai_generated: boolean;
   ai_prompt: string | null;
   position: number;
+  is_cover?: boolean;
   created_at: string;
 }
 

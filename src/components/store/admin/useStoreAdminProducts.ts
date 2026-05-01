@@ -31,7 +31,7 @@ export interface ProductStoreData {
   variants_count: number;
   price_on_request: boolean;
   weight: number | null;
-  product_images?: Array<{ url: string; position: number | null }>;
+  product_images?: Array<{ url: string; position: number | null; is_cover?: boolean | null; created_at?: string | null }>;
 }
 
 export interface PriceSuggestion {
@@ -63,7 +63,7 @@ export function useStoreAdminProducts(search: string) {
       if (!currentWorkspace?.id) return [];
       let query = supabase
         .from("products")
-        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications, direct_cost, operational_cost, short_description, product_condition, stock_status, stock_quantity, price_on_request, weight, product_variants(count), product_images(url, position)")
+        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications, direct_cost, operational_cost, short_description, product_condition, stock_status, stock_quantity, price_on_request, weight, product_variants(count), product_images(url, position, is_cover, created_at)")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active")
         .order("store_sort_order", { ascending: true, nullsFirst: false })
@@ -81,7 +81,13 @@ export function useStoreAdminProducts(search: string) {
           ? item.images
           : (item.product_images || [])
               .slice()
-              .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+              .sort((a, b) => {
+                if ((b.is_cover ? 1 : 0) !== (a.is_cover ? 1 : 0)) return (b.is_cover ? 1 : 0) - (a.is_cover ? 1 : 0);
+                const pa = a.position ?? Number.MAX_SAFE_INTEGER;
+                const pb = b.position ?? Number.MAX_SAFE_INTEGER;
+                if (pa !== pb) return pa - pb;
+                return (a.created_at ?? "").localeCompare(b.created_at ?? "");
+              })
               .map((image) => image.url)
               .filter(Boolean),
         variants_count: item.product_variants?.[0]?.count || 0,
