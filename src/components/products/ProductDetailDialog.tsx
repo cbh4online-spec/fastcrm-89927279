@@ -283,7 +283,13 @@ export function ProductDetailDialog({
                             idx === heroIdx ? "border-primary shadow-md" : "border-white/50 opacity-70 hover:opacity-100"
                           }`}
                         >
-                          <img src={img.url} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={img.url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={() => handleImageError(img.url)}
+                          />
                         </button>
                       ))}
                     </div>
