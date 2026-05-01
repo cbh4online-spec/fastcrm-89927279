@@ -23,8 +23,10 @@ import {
   ShoppingCart,
   Loader2,
   Filter,
-  X
+  X,
+  BookOpen,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 
