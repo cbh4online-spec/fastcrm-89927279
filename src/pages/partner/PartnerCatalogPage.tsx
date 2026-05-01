@@ -47,13 +47,16 @@ export default function PartnerCatalogPage() {
         product_id: variant.id,
         product_name: `${product.name}${labelSuffix}`,
         sku: variant.sku,
-        quantity: variant.min_order_quantity ?? 1,
+        quantity: variant.min_order_quantity ?? product.moq ?? 1,
         unit_price_net: pricing?.price_net ?? variant.base_price ?? 0,
         pvp_recommended: pricing?.pvp_recommended ?? null,
         margin_estimated: pricing?.gross_margin_pct ?? null,
-        pack_size: variant.pack_size ?? 1,
-        moq: variant.min_order_quantity ?? 1,
+        pack_size: variant.pack_size ?? product.pack_size ?? 1,
+        moq: variant.min_order_quantity ?? product.moq ?? 1,
         image_url: variantImage,
+        parent_product_id: product.id,
+        variant_label: variant.variant_label,
+        variant_attributes: variant.variant_attributes,
       });
       return;
     }
