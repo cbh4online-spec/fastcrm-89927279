@@ -128,9 +128,13 @@ export default function PartnerCatalogPage() {
 
         <PartnerProductQuickView
           product={quickView?.product ?? null}
+          initialVariantId={quickView?.variantId ?? null}
           open={!!quickView}
           onOpenChange={(open) => { if (!open) setQuickView(null); }}
-          onAddToCart={handleAddToCart}
+          onAddToCart={(args) => {
+            handleAddToCart(args);
+            setQuickView(null);
+          }}
         />
     </div>
   );
