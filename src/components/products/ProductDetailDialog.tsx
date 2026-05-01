@@ -83,6 +83,7 @@ import { ProductDeliverablesManager } from "./ProductDeliverablesManager";
 import { ProductDocumentsTab } from "./ProductDocumentsTab";
 import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductStockTab } from "./ProductStockTab";
+import { ProductVariantsTab } from "./ProductVariantsTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductLifecycleTab } from "./ProductLifecycleTab";
 import { ProductSalesPlaybookTab } from "./ProductSalesPlaybookTab";
@@ -421,7 +422,7 @@ export function ProductDetailDialog({
                     sheet: "content", images: "content", specs: "content",
                     "ai-content": "content", progressions: "content",
                     financial: "pricing", "price-history": "pricing", cycles: "pricing",
-                    stock: "stock",
+                    stock: "stock", variants: "stock",
                     analytics: "sales", usage: "sales", lifecycle: "sales", playbook: "sales",
                     publishing: "publishing", deliverables: "publishing",
                     relations: "relations", documents: "relations",
@@ -474,6 +475,10 @@ export function ProductDetailDialog({
                     relations: [
                       { value: "relations", label: "Relações" },
                       { value: "documents", label: "Documentos" },
+                    ],
+                    stock: [
+                      { value: "stock", label: "Stock" },
+                      { value: "variants", label: "Variantes" },
                     ],
                   };
                   const currentSubs = subTabs[group];
@@ -801,6 +806,15 @@ export function ProductDetailDialog({
 
                   <TabsContent value="stock" className="mt-4">
                     <ProductStockTab product={product as any} />
+                  </TabsContent>
+
+                  <TabsContent value="variants" className="mt-4">
+                    <ProductVariantsTab
+                      productId={product.id}
+                      workspaceId={product.workspace_id}
+                      basePrice={product.base_price}
+                      currency={product.currency}
+                    />
                   </TabsContent>
 
                   <TabsContent value="analytics" className="mt-4">
