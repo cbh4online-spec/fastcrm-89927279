@@ -5,6 +5,8 @@ import { CartProvider } from "@/contexts/CartContext";
 const ClientLoginPage = lazy(() => import("@/pages/client/ClientLoginPage"));
 const ClientDashboardPage = lazy(() => import("@/pages/client/ClientDashboardPage"));
 const ClientCatalogPage = lazy(() => import("@/pages/client/ClientCatalogPage"));
+const ClientCatalogLookbookPage = lazy(() => import("@/pages/client/ClientCatalogLookbookPage"));
+const ClientCatalogPagesAdminPage = lazy(() => import("@/pages/client/ClientCatalogPagesAdminPage"));
 const ClientCartPage = lazy(() => import("@/pages/client/ClientCartPage"));
 const ClientCheckoutPage = lazy(() => import("@/pages/client/ClientCheckoutPage"));
 const ClientOrdersPage = lazy(() => import("@/pages/client/ClientOrdersPage"));
