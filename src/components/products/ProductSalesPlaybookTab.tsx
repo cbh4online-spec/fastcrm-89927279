@@ -242,10 +242,26 @@ export function ProductSalesPlaybookTab({ product }: Props) {
     <div className="space-y-4">
       {/* Sticky save bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-1 px-1 border-b">
-        <div className="text-sm text-muted-foreground">
-          {data.updated_at
-            ? <>Última atualização: {new Date(data.updated_at).toLocaleString("pt-PT")}</>
-            : <>Sem alterações guardadas</>}
+        <div className="flex items-center gap-3">
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(v) => v && setViewMode(v as "edit" | "read")}
+            size="sm"
+            variant="outline"
+          >
+            <ToggleGroupItem value="edit" aria-label="Modo edição" className="h-8 px-2 text-xs">
+              <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+            </ToggleGroupItem>
+            <ToggleGroupItem value="read" aria-label="Modo leitura" className="h-8 px-2 text-xs">
+              <BookOpen className="h-3.5 w-3.5 mr-1" /> Leitura
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <div className="text-sm text-muted-foreground">
+            {data.updated_at
+              ? <>Última atualização: {new Date(data.updated_at).toLocaleString("pt-PT")}</>
+              : <>Sem alterações guardadas</>}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
