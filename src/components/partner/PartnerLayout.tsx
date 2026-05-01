@@ -113,22 +113,24 @@ export function PartnerLayout({ children }: PartnerLayoutProps) {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-20 items-center justify-between">
           <Link to="/partner/dashboard" className="flex items-center gap-3">
             {workspaceBranding?.logo_url ? (
               <img
                 src={workspaceBranding.logo_url}
                 alt={workspaceBranding?.name || "Workspace"}
-                className="h-9 w-auto max-w-[160px] object-contain flex-shrink-0"
+                className="h-14 w-auto max-w-[260px] object-contain flex-shrink-0"
               />
             ) : (
-              <WorkspaceLogo
-                workspaceName={workspaceBranding?.name}
-                size="md"
-                variant="portal"
-              />
+              <>
+                <WorkspaceLogo
+                  workspaceName={workspaceBranding?.name}
+                  size="xl"
+                  variant="portal"
+                />
+                <span className="font-semibold text-lg hidden sm:inline tracking-tight">{portalName}</span>
+              </>
             )}
-            <span className="font-semibold text-lg hidden sm:inline tracking-tight">{portalName}</span>
           </Link>
 
           {/* Desktop Nav */}
