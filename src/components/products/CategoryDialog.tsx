@@ -52,6 +52,7 @@ const categorySchema = z.object({
   color: z.string().optional(),
   image_url: z.string().optional(),
   is_active: z.boolean().default(true),
+  variant_display_mode: z.enum(["grouped", "separate"]).default("grouped"),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
