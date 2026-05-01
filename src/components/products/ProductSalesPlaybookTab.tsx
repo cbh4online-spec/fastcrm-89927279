@@ -264,14 +264,27 @@ export function ProductSalesPlaybookTab({ product }: Props) {
               Lista de objeções típicas e respostas validadas. Máximo 50.
             </CardDescription>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={addObjection}
-            disabled={totalObjs >= 50}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Adicionar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => generate.mutate("objections")}
+              disabled={generate.isPending}
+            >
+              {isGenerating("objections")
+                ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                : <Sparkles className="h-4 w-4 mr-1" />}
+              Gerar com IA
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={addObjection}
+              disabled={totalObjs >= 50}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Adicionar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {totalObjs === 0 ? (
