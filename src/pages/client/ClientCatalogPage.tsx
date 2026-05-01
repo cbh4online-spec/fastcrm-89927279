@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
+import { EditorialPageHeader } from "@/components/client-portal/EditorialPageHeader";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientProducts } from "@/hooks/client-portal/useClientProducts";
 import { useCart } from "@/contexts/CartContext";
@@ -80,16 +81,15 @@ export default function ClientCatalogPage() {
   return (
     <ClientLayout>
       <div className="space-y-8">
-        {/* Editorial Header — alinhado com Dashboard */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">
-              Portal Profissional · Catálogo
-            </p>
-            <h1 className="font-editorial text-4xl sm:text-5xl tracking-tight text-[hsl(var(--editorial-ink))]">
-              Catálogo de Produtos
-            </h1>
-            <p className="text-muted-foreground mt-2 text-base">
+        <EditorialPageHeader
+          breadcrumbs={[
+            { label: "Portal", to: "/client" },
+            { label: "Catálogo" },
+          ]}
+          eyebrow="Portal Profissional · Catálogo"
+          title="Catálogo de Produtos"
+          subtitle={
+            <>
               {products.length} produtos disponíveis
               {tier && (
                 <span className="ml-2 inline-flex items-center">
@@ -107,31 +107,33 @@ export default function ClientCatalogPage() {
                   </Badge>
                 </span>
               )}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="sm:hidden rounded-full border-[hsl(var(--editorial-border))]"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filtros
-            </Button>
-            {itemCount > 0 && (
+            </>
+          }
+          actions={
+            <>
               <Button
                 variant="outline"
-                className="rounded-full border-[hsl(var(--editorial-border))] hover:bg-[hsl(var(--editorial-champagne))]/40"
-                asChild
+                onClick={() => setShowFilters(!showFilters)}
+                className="sm:hidden rounded-full border-[hsl(var(--editorial-border))]"
               >
-                <a href="/client/cart">
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  {itemCount} no carrinho
-                </a>
+                <Filter className="h-4 w-4 mr-2" />
+                Filtros
               </Button>
-            )}
-          </div>
-        </div>
+              {itemCount > 0 && (
+                <Button
+                  variant="outline"
+                  className="rounded-full border-[hsl(var(--editorial-border))] hover:bg-[hsl(var(--editorial-champagne))]/40"
+                  asChild
+                >
+                  <a href="/client/cart">
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    {itemCount} no carrinho
+                  </a>
+                </Button>
+              )}
+            </>
+          }
+        />
 
         {/* Filters */}
         <Card className={`${showFilters ? "block" : "hidden sm:block"} border-[hsl(var(--editorial-border))]/60`}>
