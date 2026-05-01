@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
+import { EditorialPageHeader } from "@/components/client-portal/EditorialPageHeader";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientOrders } from "@/hooks/client-portal/useClientOrders";
 import { useClientTickets } from "@/hooks/client-portal/useClientTickets";
