@@ -29,7 +29,7 @@ export default function PartnerLoginPage() {
     resolve();
   }, [workspaceSlug]);
 
-  const { signIn, signOut, loading, error, isAuthenticated, user, hasAuthButNoPartner } = usePartnerAuth({ workspaceId });
+  const { signIn, signOut, loading, error, isAuthenticated, user, hasAuthButNoPartner } = usePartnerAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export default function PartnerLoginPage() {
     setLocalError(null);
     setIsSubmitting(true);
     if (!email || !password) { setLocalError("Preencha todos os campos"); setIsSubmitting(false); return; }
-    const { error: err } = await signIn(email, password);
+    const { error: err } = await signIn(email, password, workspaceId);
     if (err) setLocalError("Credenciais inválidas.");
     setIsSubmitting(false);
   };

@@ -1,85 +1,69 @@
+# Acelerar Portal B2B (Partner Center)
+
 ## Diagnóstico
 
-A ficha de produto tem **19 separadores em 2 linhas** (Detalhes, Componentes, Pacotes, Financeiro, Histórico, Imagens, Progressões, Ciclos, Ficha, Publicação, Relações, Documentos, Conteúdo IA, Specs, Stock, Analytics, Ciclo de Vida, Entregáveis, Preços, Auditoria). Vários sobrepõem-se semanticamente:
+O ecrã ficar a girar ~5-10s deve-se a uma duplicação grave do hook de autenticação:
 
-- **Histórico** vs **Auditoria** vs **Preços (price-history)** — três históricos distintos.
-- **Ciclos** vs **Ciclo de Vida** — nomes quase idênticos.
-- **Imagens** isolado, mas os media também aparecem em "Ficha".
-- **Conteúdo IA**, **Specs** e **Ficha** — todos descrevem o produto.
-- **Publicação** e **Entregáveis** — relacionados com saída/distribuição.
+- `usePartnerAuth` é instanciado **3× em paralelo** numa carga típica:
+  1. Em `PartnerLayout` (sempre presente).
+  2. Na página actual (`PartnerDashboardPage`, `PartnerCatalogPage`, etc.).
+  3. Indirectamente noutros componentes.
 
-## Decisão
+- Cada instância faz por sua conta:
+  - `supabase.auth.onAuthStateChange` (listener próprio).
+  - `supabase.auth.getSession()`.
+  - Query a `partner_users` (com timeout de 8s).
 
-Reduzir de **19 → 8 separadores** organizados por intenção (tarefa do utilizador), usando **sub-tabs internos** quando faz sentido. Zero perda de funcionalidade — todos os componentes existentes continuam a renderizar, só mudam de localização.
+- Resultado: 3 sessões pedidas, 3 queries `partner_users`, 3 listeners. O `loading` do Layout só vira `false` quando a sua própria query terminar — durante esse tempo só vês o spinner do screenshot.
+- Existe ainda um timeout de segurança que força `loading=false` aos 10s, o que dá a sensação de “demora sempre quase 10 segundos”.
+- Cada navegação entre páginas remonta tudo (estado em `useState`/`useEffect`, sem cache partilhada).
 
-## Nova estrutura (1 linha de tabs)
+## Solução
 
-```
-[Geral] [Conteúdo] [Preços] [Stock] [Vendas] [Publicação] [Relações] [Auditoria]
-```
+Centralizar tudo num **Provider único** dentro de `PartnerRoutes`, e tornar `usePartnerAuth` um simples consumidor desse contexto. O cart já vive num provider — fazemos o mesmo para auth.
 
-### 1. Geral  (`general`)
-- Conteúdo actual de **Detalhes** (KPIs, preço/custo, status)
-- Inclui chip condicional para **Componentes** (bundle) ou **Pacotes** (sessions) — aparecem como secções colapsáveis no topo quando aplicável, em vez de tabs separadas.
+## Alterações
 
-### 2. Conteúdo  (`content`) — sub-tabs internas
-- **Ficha** (default)
-- **Imagens**
-- **Specs**
-- **Conteúdo IA**
-- **Progressões**
+1. **Novo** `src/contexts/PartnerAuthContext.tsx`
+   - `PartnerAuthProvider` com a lógica que estava em `usePartnerAuth.ts` (1 listener, 1 fetch).
+   - Exporta `usePartnerAuth()` que apenas lê o contexto.
+   - Mantém o tempo limite de segurança mas reduzido para 6s (suficiente; só protege contra rede partida).
 
-### 3. Preços  (`pricing`) — sub-tabs internas
-- **Financeiro** (default — margens, custos)
-- **Histórico de preços** (`price-history`, condicional a `showCost`)
-- **Ciclos** (regras de preço cíclicas)
+2. **Editar** `src/routes/PartnerRoutes.tsx`
+   - Embrulhar tudo em `<PartnerAuthProvider>` por dentro do `PartnerCartProvider`.
+   - Adicionar `<Suspense fallback>` com um spinner partilhado (evita ecrã branco entre `lazy()`).
 
-### 4. Stock  (`stock`)
-- Mantém-se igual (já tem KPIs + movimentos + valorização FIFO + stock mínimo editável).
+3. **Apagar** o ficheiro `src/hooks/partner/usePartnerAuth.ts`
+   - Substituído pelo re-export a partir do contexto.
+   - Como assinatura pública é a mesma (`{ partnerUser, loading, signIn, signOut, ... }`), as páginas continuam a funcionar sem alterações.
+   - A única chamada que passa `workspaceId` é o `PartnerLoginPage`; alteramos `signIn(email, pass, workspaceId?)` para aceitar o parâmetro extra.
 
-### 5. Vendas  (`sales`) — sub-tabs internas
-- **Analytics** (default)
-- **Histórico de vendas** (actual `usage`)
-- **Ciclo de Vida** (`lifecycle`)
+4. **Editar** `src/components/partner/PartnerLayout.tsx`
+   - Remove o `usePartnerAuth({ workspaceId: savedWorkspaceId })` repetido — apenas consome o contexto.
+   - Move o `fetchBranding` para um hook `useQuery` (`partner-branding-{workspace_id}`) para ficar em cache entre páginas.
 
-### 6. Publicação  (`publishing`) — sub-tabs internas
-- **Publicação** (default — canais, loja)
-- **Entregáveis**
+5. **Editar** `src/pages/partner/PartnerLoginPage.tsx`
+   - Passa `workspaceId` directamente em `signIn()` em vez de no construtor do hook.
 
-### 7. Relações  (`relations`) — sub-tabs internas
-- **Relações** (default — produtos relacionados, cross-sell)
-- **Documentos**
+## Impacto esperado
 
-### 8. Auditoria  (`audit`)
-- Histórico de alterações (mantém-se).
-
-## Plano de implementação
-
-**1. `src/components/products/ProductDetailDialog.tsx`**
-- Substituir o bloco com 2× `TabsList` por **uma única `TabsList` de 8 itens**.
-- Mapear o estado `tab` actual: ao receber valores antigos (`details`, `usage`, `lifecycle`, etc.) traduzir para o novo grupo + sub-tab (compatibilidade com deep-links).
-- Para cada grupo com sub-tabs, criar um pequeno componente `<SubTabs>` no topo do `TabsContent` (Tabs aninhadas com visual mais leve — `bg-transparent` + `border-b`).
-- Manter exactamente os mesmos `TabsContent` actuais; só mudam de pai.
-
-**2. Persistência de sub-tab**
-- Estado local `useState<Record<group, string>>` para lembrar a sub-tab activa por grupo durante a sessão.
-
-**3. Ícones e ordem**
-- Ícones consistentes (Lucide):
-  - Geral: `Info` · Conteúdo: `FileText` · Preços: `DollarSign` · Stock: `Package` · Vendas: `TrendingUp` · Publicação: `Send` · Relações: `Link2` · Auditoria: `History`
-
-**4. Sem alterações de BD nem de outros componentes**
-- Os tabs filhos (`ProductSpecsTab`, `ProductStockTab`, etc.) ficam intactos.
+- Tempo até interactivo no portal B2B: **~5-10s → < 1s** após cache quente; primeira carga limitada apenas pela latência real do Supabase.
+- Navegação entre páginas: sem refetch de `partner_users`, sem novo `getSession`. Praticamente instantânea.
+- Menos pedidos paralelos ao backend → também alivia carga em workspaces com muitos parceiros.
 
 ## Critérios de aceitação
 
-- Ficha de produto mostra **uma única linha de 8 tabs**, sempre visíveis sem wrap em ecrãs ≥1280 px.
-- Todos os 19 conteúdos actuais continuam acessíveis em ≤2 cliques.
-- Bundles e sessões mostram bloco contextual em "Geral" (sem perder Componentes/Pacotes).
-- Nenhuma regressão funcional: edição, KPIs, stock, preços, publicação continuam a funcionar.
-- Mobile: tabs scrolláveis horizontalmente; sub-tabs por baixo da tab principal.
+- Abrir `/partner/dashboard` autenticado mostra o conteúdo em < 1.5s em rede normal.
+- Mudar de Dashboard → Catálogo → Carrinho → Conta não dispara novos pedidos a `partner_users`.
+- Logout limpa o estado e redirige para `/partner/login`.
+- Login com workspace específico continua a funcionar.
 
 ## Riscos
 
-- Deep-links externos a `tab=lifecycle` etc. — mitigado pelo mapa de tradução de estado.
-- Utilizadores habituados ao layout antigo: mudança visual significativa, mas funções inalteradas.
+- `usePartnerAuth` deixa de aceitar `{ workspaceId }` no construtor; só o `PartnerLoginPage` usava esse parâmetro — migra-se para o `signIn`.
+- Se alguma página partner for usada **fora** de `/partner/*`, o `usePartnerAuth` lança erro (não é o caso hoje).
+
+## Não está incluído (pode vir depois)
+
+- Pré-carregar dashboard data em background ao logar.
+- Cache offline / persistência do `partnerUser` em `localStorage` para “first paint” instantâneo entre sessões.

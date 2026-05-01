@@ -58,8 +58,7 @@ function hexToHsl(hex: string): string | null {
 }
 
 export function PartnerLayout({ children }: PartnerLayoutProps) {
-  const savedWorkspaceId = localStorage.getItem("partner_workspace_id") || undefined;
-  const { partnerUser, loading, signOut, isAuthenticated } = usePartnerAuth({ workspaceId: savedWorkspaceId });
+  const { partnerUser, loading, signOut, isAuthenticated } = usePartnerAuth();
   const { account } = usePartnerAccount(partnerUser?.partner_account_id);
   const { itemCount } = usePartnerCart();
   const location = useLocation();
