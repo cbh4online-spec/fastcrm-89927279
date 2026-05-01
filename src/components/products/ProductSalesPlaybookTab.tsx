@@ -73,6 +73,19 @@ interface Props {
   product: Product & { sales_playbook?: unknown };
 }
 
+// Stable per-render UI ids for drag-and-drop. Persisted shape stays unchanged
+// (the array order is the source of truth), but @dnd-kit needs identifiers
+// that don't shift when items are reordered or edited.
+const uiIdsCache = new WeakMap<ObjectionItem, string>();
+function getUiId(item: ObjectionItem): string {
+  let id = uiIdsCache.get(item);
+  if (!id) {
+    id = `obj-${Math.random().toString(36).slice(2, 10)}`;
+    uiIdsCache.set(item, id);
+  }
+  return id;
+}
+
 export function ProductSalesPlaybookTab({ product }: Props) {
   const queryClient = useQueryClient();
   const initial = useMemo(() => normalize((product as any).sales_playbook), [product.id]);
@@ -88,6 +101,26 @@ export function ProductSalesPlaybookTab({ product }: Props) {
     () => isEmptyOrTemplate((product as any).sales_playbook),
     [product.id, (product as any).sales_playbook],
   );
+
+  // Drag-and-drop sensors: pointer with a small distance threshold so clicks
+  // on inputs/buttons inside the row don't accidentally start a drag.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleObjectionsDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setData((prev) => {
+      const ids = prev.objections.map(getUiId);
+      const oldIndex = ids.indexOf(String(active.id));
+      const newIndex = ids.indexOf(String(over.id));
+      if (oldIndex < 0 || newIndex < 0) return prev;
+      return { ...prev, objections: arrayMove(prev.objections, oldIndex, newIndex) };
+    });
+    setDirty(true);
+  };
 
   const update = <K extends keyof SalesPlaybook>(key: K, value: SalesPlaybook[K]) => {
     setData((prev) => ({ ...prev, [key]: value }));
