@@ -147,35 +147,44 @@ export function PartnerCartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const itemKey = partnerCartItemKey(item);
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.product_id === item.product_id);
+      const existing = prev.find((i) => partnerCartItemKey(i) === itemKey);
       if (existing) {
         const newQty = existing.quantity + item.quantity;
         const v = validatePartnerQuantity(newQty, item.moq, item.pack_size);
         if (!v.valid) { toast.error(v.message); return prev; }
-        return prev.map((i) => i.product_id === item.product_id ? { ...i, quantity: newQty } : i);
+        return prev.map((i) => partnerCartItemKey(i) === itemKey ? { ...i, quantity: newQty } : i);
       }
       return [...prev, item];
     });
 
-    emitFunnelEvent('add_to_cart', { product_id: item.product_id, quantity: item.quantity, sku: item.sku });
+    emitFunnelEvent('add_to_cart', {
+      product_id: item.product_id,
+      variant_id: item.variant_id ?? null,
+      quantity: item.quantity,
+      sku: item.sku,
+    });
     toast.success(`${item.product_name} adicionado ao carrinho`);
   }, [emitFunnelEvent]);
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number, variantId: string | null = null) => {
+    const targetKey = partnerCartItemKey({ product_id: productId, variant_id: variantId });
     setItems((prev) => {
-      const item = prev.find((i) => i.product_id === productId);
+      const item = prev.find((i) => partnerCartItemKey(i) === targetKey);
       if (!item) return prev;
-      if (quantity <= 0) return prev.filter((i) => i.product_id !== productId);
+      if (quantity <= 0) return prev.filter((i) => partnerCartItemKey(i) !== targetKey);
       const v = validatePartnerQuantity(quantity, item.moq, item.pack_size);
       if (!v.valid) { toast.error(v.message); return prev; }
-      return prev.map((i) => i.product_id === productId ? { ...i, quantity } : i);
+      return prev.map((i) => partnerCartItemKey(i) === targetKey ? { ...i, quantity } : i);
     });
   }, []);
 
-  const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((i) => i.product_id !== productId));
-    emitFunnelEvent('remove_from_cart', { product_id: productId });
+  const removeItem = useCallback((productId: string, variantId: string | null = null) => {
+    const targetKey = partnerCartItemKey({ product_id: productId, variant_id: variantId });
+    setItems((prev) => prev.filter((i) => partnerCartItemKey(i) !== targetKey));
+    emitFunnelEvent('remove_from_cart', { product_id: productId, variant_id: variantId });
   }, [emitFunnelEvent]);
 
   const clearCart = useCallback(() => {
