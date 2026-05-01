@@ -27,6 +27,7 @@ import {
 } from "@/types/product";
 import { PRODUCT_COLUMNS } from "../hooks/useProductsListState";
 import { InlinePriceEditor } from "./InlinePriceEditor";
+import { InlineFieldEditor } from "./InlineFieldEditor";
 import { MarginStatusBadge } from "../pricing/MarginStatusBadge";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 import { calcMarginPct, calcMarkupPct, getNetPrice, getRecommendedNetPrice, getRecommendedDelta } from "@/utils/productPricing";
@@ -54,7 +55,7 @@ interface ProductsDataTableProps {
   getBillingTypeLabel: (code: string) => string;
   formatCurrency: (value: number, currency?: string) => string;
   toggleStorePublished: { mutate: (args: { id: string; published: boolean }) => void };
-  onInlinePriceUpdate?: (id: string, field: "base_price" | "direct_cost", value: number) => void;
+  onInlinePriceUpdate?: (id: string, field: string, value: string | number | null) => void;
   /** True when search/filters are active but returned 0 results */
   isFilteredEmpty?: boolean;
   onClearFilters?: () => void;
@@ -99,7 +100,15 @@ function RenderProductCell({
       );
     }
     case "sku":
-      return product.sku ? (
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.sku ?? ""}
+          type="text"
+          maxLength={64}
+          inputWidthClass="w-28"
+          onSave={(v) => onInlinePriceUpdate(product.id, "sku", v)}
+        />
+      ) : product.sku ? (
         <button type="button" onClick={() => onOpenDetail(product)} className="text-muted-foreground hover:text-primary hover:underline transition-colors">
           {product.sku}
         </button>
@@ -107,7 +116,15 @@ function RenderProductCell({
     case "product_type":
       return <Badge variant="outline">{getProductTypeLabel(product.product_type)}</Badge>;
     case "category":
-      return product.category ? (
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.category ?? ""}
+          type="text"
+          maxLength={64}
+          inputWidthClass="w-32"
+          onSave={(v) => onInlinePriceUpdate(product.id, "category", v)}
+        />
+      ) : product.category ? (
         <button type="button" onClick={() => onOpenDetail(product)} className="hover:text-primary hover:underline transition-colors">
           {product.category}
         </button>
@@ -136,7 +153,17 @@ function RenderProductCell({
         <span>{product.direct_cost ? formatCurrency(product.direct_cost, product.currency) : "-"}</span>
       );
     case "operational_cost":
-      return <span>{product.operational_cost ? formatCurrency(product.operational_cost, product.currency) : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.operational_cost ?? null}
+          type="currency"
+          currency={product.currency}
+          formatCurrency={formatCurrency}
+          onSave={(v) => onInlinePriceUpdate(product.id, "operational_cost", v)}
+        />
+      ) : (
+        <span>{product.operational_cost ? formatCurrency(product.operational_cost, product.currency) : "-"}</span>
+      );
     case "margin": {
       const margin = calcMarginPct(product);
       if (margin == null) return <span>-</span>;
@@ -227,15 +254,54 @@ function RenderProductCell({
         <Badge variant="outline" className="text-muted-foreground">Oculto</Badge>
       );
     case "total_units":
-      return <span>{product.total_units ?? "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.total_units ?? null}
+          type="integer"
+          min={0}
+          onSave={(v) => onInlinePriceUpdate(product.id, "total_units", v)}
+        />
+      ) : <span>{product.total_units ?? "-"}</span>;
     case "unit_duration":
-      return <span>{product.unit_duration ? `${product.unit_duration} min` : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.unit_duration ?? null}
+          type="integer"
+          min={0}
+          display={product.unit_duration ? `${product.unit_duration} min` : undefined}
+          onSave={(v) => onInlinePriceUpdate(product.id, "unit_duration", v)}
+        />
+      ) : <span>{product.unit_duration ? `${product.unit_duration} min` : "-"}</span>;
     case "validity_days":
-      return <span>{product.validity_days ? `${product.validity_days} dias` : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.validity_days ?? null}
+          type="integer"
+          min={0}
+          display={product.validity_days ? `${product.validity_days} dias` : undefined}
+          onSave={(v) => onInlinePriceUpdate(product.id, "validity_days", v)}
+        />
+      ) : <span>{product.validity_days ? `${product.validity_days} dias` : "-"}</span>;
     case "tax_rate_estimate_pct":
-      return <span>{product.tax_rate_estimate_pct ? `${product.tax_rate_estimate_pct}%` : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.tax_rate_estimate_pct ?? null}
+          type="percent"
+          min={0}
+          max={100}
+          onSave={(v) => onInlinePriceUpdate(product.id, "tax_rate_estimate_pct", v)}
+        />
+      ) : <span>{product.tax_rate_estimate_pct ? `${product.tax_rate_estimate_pct}%` : "-"}</span>;
     case "commission_default":
-      return <span>{product.commission_default ? `${product.commission_default}%` : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.commission_default ?? null}
+          type="percent"
+          min={0}
+          max={100}
+          onSave={(v) => onInlinePriceUpdate(product.id, "commission_default", v)}
+        />
+      ) : <span>{product.commission_default ? `${product.commission_default}%` : "-"}</span>;
     case "delivery_mode":
       return <span>{product.delivery_mode || "-"}</span>;
     case "created_at":
