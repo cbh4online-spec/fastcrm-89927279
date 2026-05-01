@@ -734,7 +734,9 @@ export function ProductDetailDialog({
                   <TabsContent value="audit" className="mt-4">
                     <ProductActivityLog productId={product.id} />
                   </TabsContent>
-                </Tabs>
+                    </Tabs>
+                  );
+                })()}
               </div>
             </div>
           </TooltipProvider>
