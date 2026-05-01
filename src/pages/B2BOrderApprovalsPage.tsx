@@ -71,6 +71,16 @@ export default function B2BOrderApprovalsPage() {
           </Badge>
         </header>
 
+        <Tabs defaultValue="pending" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="pending">Pendentes ({orders.length})</TabsTrigger>
+            <TabsTrigger value="history" className="gap-1.5">
+              <History className="h-3.5 w-3.5" /> Histórico
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pending" className="space-y-4 mt-0">
+
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
