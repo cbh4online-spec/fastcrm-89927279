@@ -44,7 +44,8 @@ export default function PartnerCatalogPage() {
       const variantImage = variant.images?.[0] ?? product.image_url;
       const labelSuffix = variant.variant_label ? ` — ${variant.variant_label}` : "";
       addItem({
-        product_id: variant.id,
+        product_id: product.id,
+        variant_id: variant.id,
         product_name: `${product.name}${labelSuffix}`,
         sku: variant.sku,
         quantity: variant.min_order_quantity ?? product.moq ?? 1,
@@ -57,6 +58,7 @@ export default function PartnerCatalogPage() {
         parent_product_id: product.id,
         variant_label: variant.variant_label,
         variant_attributes: variant.variant_attributes,
+        allow_backorder: product.allow_backorder,
       });
       return;
     }
