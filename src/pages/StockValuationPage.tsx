@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Package, TrendingUp, AlertTriangle, Coins, Download, RefreshCw, Search, Layers,
+  Package, TrendingUp, AlertTriangle, Coins, Download, RefreshCw, Search, Layers, ArrowLeft,
 } from "lucide-react";
 import { useInventoryValuation, type InventoryValuationRow } from "@/hooks/useInventoryValuation";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ const fmt = (n: number, currency = true) =>
 type SortKey = "name" | "stock" | "cost_value" | "sale_value" | "margin" | "margin_pct";
 
 export default function StockValuationPage() {
+  const navigate = useNavigate();
   const { rows, summary, isLoading, isFetching, refetch } = useInventoryValuation();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -36,6 +38,11 @@ export default function StockValuationPage() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/dashboard/products");
   };
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
@@ -128,6 +135,9 @@ export default function StockValuationPage() {
 
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
+          <Button variant="ghost" size="sm" onClick={handleBack} className="mb-3 -ml-2">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+          </Button>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Coins className="h-7 w-7 text-primary" />
             Stock Valorizado
