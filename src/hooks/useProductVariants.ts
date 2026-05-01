@@ -41,7 +41,7 @@ export function useProductVariants(productId: string | undefined) {
 export function useCreateVariant() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (variant: Omit<ProductVariant, "id" | "created_at" | "updated_at">) => {
+    mutationFn: async (variant: Omit<ProductVariant, "id" | "created_at" | "updated_at" | "stock_reserved">) => {
       const { data, error } = await supabase
         .from("product_variants")
         .insert(variant as any)
