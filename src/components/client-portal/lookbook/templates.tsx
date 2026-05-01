@@ -125,13 +125,13 @@ function ProductBlock({ item, size, onAdd, layout = "stacked", align = "left" }:
 function PageHeader({ page, align = "left" }: { page: PartnerCatalogPageWithItems; align?: "left" | "center" }) {
   const alignClass = align === "center" ? "items-center text-center" : "items-start text-left";
   return (
-    <div className={cn("flex flex-col gap-3 mb-8", alignClass)}>
-      <h1 className="font-editorial text-4xl sm:text-5xl lg:text-6xl tracking-tight text-[hsl(var(--lb-ink))] uppercase">
+    <div className={cn("flex flex-col gap-3 mb-6 md:mb-8", alignClass)}>
+      <h1 className="font-editorial text-3xl sm:text-4xl lg:text-5xl xl:text-6xl tracking-tight text-[hsl(var(--lb-ink))] uppercase leading-[1.05]">
         {page.title}
       </h1>
-      <div className="w-24 h-px bg-[hsl(var(--lb-divider))]" />
+      <div className="w-16 sm:w-24 h-px bg-[hsl(var(--lb-divider))]" />
       {(page.eyebrow || page.description) && (
-        <p className="text-xs uppercase tracking-[0.2em] text-[hsl(var(--lb-muted))] max-w-md leading-relaxed">
+        <p className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-[hsl(var(--lb-muted))] max-w-md leading-relaxed">
           {page.eyebrow || page.description}
         </p>
       )}
