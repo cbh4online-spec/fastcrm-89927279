@@ -52526,6 +52526,7 @@ export type Database = {
           applies_to: string
           category: string | null
           created_at: string
+          default_operational_cost_pct: number | null
           id: string
           is_active: boolean
           max_margin_pct: number | null
@@ -52539,6 +52540,7 @@ export type Database = {
           applies_to?: string
           category?: string | null
           created_at?: string
+          default_operational_cost_pct?: number | null
           id?: string
           is_active?: boolean
           max_margin_pct?: number | null
@@ -52552,6 +52554,7 @@ export type Database = {
           applies_to?: string
           category?: string | null
           created_at?: string
+          default_operational_cost_pct?: number | null
           id?: string
           is_active?: boolean
           max_margin_pct?: number | null
