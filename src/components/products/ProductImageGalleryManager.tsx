@@ -27,6 +27,8 @@ interface ProductImageGalleryManagerProps {
   skuImages?: string[];
   onSelectFromSku?: (images: string[]) => void;
   maxImages?: number;
+  /** Nome do produto — usado como query inicial na pesquisa de imagens online */
+  productName?: string;
 }
 
 export function ProductImageGalleryManager({
