@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Building2, AlertCircle } from "lucide-react";
+import { PartnerLoadingScreen } from "@/components/partner/PartnerLoadingScreen";
 
 export default function PartnerLoginPage() {
   const navigate = useNavigate();
