@@ -52368,6 +52368,97 @@ export type Database = {
           },
         ]
       }
+      product_content_sections: {
+        Row: {
+          attributes: Json
+          body_markdown: string | null
+          created_at: string
+          id: string
+          is_published: boolean
+          locale: string
+          product_id: string
+          section_key: string
+          sort_order: number
+          source: string
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          attributes?: Json
+          body_markdown?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          locale?: string
+          product_id: string
+          section_key: string
+          sort_order?: number
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          attributes?: Json
+          body_markdown?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          locale?: string
+          product_id?: string
+          section_key?: string
+          sort_order?: number
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_content_sections_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_content_sections_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_content_sections_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_content_sections_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_content_sections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "product_content_sections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_creation_idempotency: {
         Row: {
           created_at: string
@@ -76077,6 +76168,14 @@ export type Database = {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
         Returns: Json
       }
+      get_product_full_content: {
+        Args: { p_locale?: string; p_product_id: string }
+        Returns: Json
+      }
+      get_product_section: {
+        Args: { p_locale?: string; p_product_id: string; p_section_key: string }
+        Returns: Json
+      }
       get_public_table_count: { Args: never; Returns: number }
       get_published_builder_asset: {
         Args: {
@@ -76615,6 +76714,22 @@ export type Database = {
         }
         Returns: number
       }
+      search_product_sections: {
+        Args: {
+          p_limit?: number
+          p_query: string
+          p_section_key?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          attributes: Json
+          product_id: string
+          product_name: string
+          section_key: string
+          sku: string
+          snippet: string
+        }[]
+      }
       seed_communication_templates_for_workspace: {
         Args: { p_created_by: string; p_workspace_id: string }
         Returns: undefined
@@ -76740,6 +76855,16 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: undefined
+      }
+      upsert_product_section: {
+        Args: {
+          p_attributes?: Json
+          p_body_markdown?: string
+          p_locale?: string
+          p_product_id: string
+          p_section_key: string
+        }
+        Returns: string
       }
       validate_campaign_coupon: {
         Args: { p_code: string; p_contact_id?: string; p_workspace_id: string }
