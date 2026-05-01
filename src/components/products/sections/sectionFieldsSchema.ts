@@ -11,6 +11,28 @@ export interface SectionField {
 }
 
 /**
+ * Mapeamento canónico: chaves de atributo de secção que correspondem
+ * directamente a colunas existentes da tabela `products`. A coluna é
+ * sempre o SSoT — estas chaves não são editáveis no editor de secções
+ * para evitar duplicação de inputs.
+ *
+ * Usado por `resolveCanonicalAttributes()` para "hidratar" o Copilot B2B
+ * com a vista unificada (colunas + atributos jsonb).
+ */
+export const CANONICAL_COLUMN_MAP: Record<string, { section: ProductSectionKey; column: string; transform?: "weight_kg" | "validity_days" | "quantity_unit" }> = {
+  // how_to_use
+  frequencia: { section: "how_to_use", column: "recommended_frequency" },
+  dose: { section: "how_to_use", column: "included_quantity", transform: "quantity_unit" },
+  // specifications
+  peso: { section: "specifications", column: "weight", transform: "weight_kg" },
+  volume: { section: "specifications", column: "total_units", transform: "quantity_unit" },
+  validade: { section: "specifications", column: "validity_days", transform: "validity_days" },
+};
+
+/** Conjunto de chaves "espelhadas" — não devem aparecer no editor de secções. */
+export const MIRRORED_KEYS = new Set(Object.keys(CANONICAL_COLUMN_MAP));
+
+/**
  * Campos conhecidos por secção. São guardados dentro do jsonb `attributes`,
  * mas apresentados como inputs dedicados no UI para garantir consistência
  * e permitir ao Copilot B2B consultar cada atributo separadamente.
@@ -46,19 +68,7 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
       label: "Passos de uso",
       type: "list",
       placeholder: "Ex: Aplicar 2 gotas no rosto seco",
-      hint: "Um passo por linha, na ordem de aplicação.",
-    },
-    {
-      key: "dose",
-      label: "Dose",
-      type: "text",
-      placeholder: "Ex: 2 gotas / 1 cápsula / 5 ml",
-    },
-    {
-      key: "frequencia",
-      label: "Frequência",
-      type: "text",
-      placeholder: "Ex: 2x por dia, manhã e noite",
+      hint: "Um passo por linha, na ordem de aplicação. Dose e frequência são definidas nos campos do produto.",
     },
     {
       key: "advertencias",
@@ -83,23 +93,10 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
       hint: "Lista INCI completa, separada por vírgulas.",
     },
     {
-      key: "volume",
-      label: "Volume / Capacidade",
-      type: "text",
-      placeholder: "Ex: 30 ml, 100 g, 60 cápsulas",
-    },
-    {
       key: "ph",
       label: "pH",
       type: "text",
       placeholder: "Ex: 5.5",
-    },
-    {
-      key: "validade",
-      label: "Validade",
-      type: "text",
-      placeholder: "Ex: 24 meses (PAO 6M)",
-      hint: "Prazo de validade fechado e/ou após abertura (PAO).",
     },
     {
       key: "certificacoes",
@@ -108,16 +105,11 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
       placeholder: "Ex: Vegan, Cruelty-Free, ISO 22716, CE",
     },
     {
-      key: "peso",
-      label: "Peso",
-      type: "text",
-      placeholder: "Ex: 120 g (líquido) / 150 g (com embalagem)",
-    },
-    {
       key: "dimensoes",
       label: "Dimensões (CxLxA)",
       type: "text",
       placeholder: "Ex: 5 x 5 x 12 cm",
+      hint: "Volume, peso e validade são definidos nos campos do produto (SSoT).",
     },
   ],
   clinical: [
@@ -207,5 +199,50 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
 };
 
 export function getKnownKeys(section: ProductSectionKey): Set<string> {
-  return new Set(SECTION_FIELDS[section].map((f) => f.key));
+  const keys = new Set(SECTION_FIELDS[section].map((f) => f.key));
+  // Esconde também as chaves espelhadas — não são editadas no editor de secções.
+  Object.entries(CANONICAL_COLUMN_MAP).forEach(([k, v]) => {
+    if (v.section === section) keys.add(k);
+  });
+  return keys;
+}
+
+/**
+ * Resolve a vista canónica de atributos de uma secção, fundindo:
+ * 1. Atributos guardados em `attributes` (jsonb)
+ * 2. Colunas SSoT da `products` mapeadas via CANONICAL_COLUMN_MAP
+ *
+ * Usado pela API/Copilot para garantir respostas consistentes
+ * independentemente de onde o dado está guardado.
+ */
+export function resolveCanonicalAttributes(
+  section: ProductSectionKey,
+  rawAttributes: Record<string, any>,
+  productRow: Record<string, any>,
+): Record<string, any> {
+  const out: Record<string, any> = { ...rawAttributes };
+
+  Object.entries(CANONICAL_COLUMN_MAP).forEach(([attrKey, def]) => {
+    if (def.section !== section) return;
+    const colVal = productRow?.[def.column];
+    if (colVal === null || colVal === undefined || colVal === "") return;
+
+    switch (def.transform) {
+      case "weight_kg":
+        out[attrKey] = `${colVal} kg`;
+        break;
+      case "validity_days":
+        out[attrKey] = `${colVal} dias`;
+        break;
+      case "quantity_unit": {
+        const unit = productRow?.unit_name ? ` ${productRow.unit_name}` : "";
+        out[attrKey] = `${colVal}${unit}`;
+        break;
+      }
+      default:
+        out[attrKey] = colVal;
+    }
+  });
+
+  return out;
 }
