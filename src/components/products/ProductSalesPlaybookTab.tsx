@@ -314,6 +314,18 @@ export function ProductSalesPlaybookTab({ product }: Props) {
         </div>
       </div>
 
+      {viewMode === "read" ? (
+        <ProductSalesPlaybookReader
+          productName={product.name}
+          data={{
+            script: data.script,
+            objections: data.objections,
+            warranty: data.warranty,
+            updated_at: data.updated_at,
+          }}
+        />
+      ) : (
+        <>
       {isUsingTemplate && (
         <div className="flex items-start gap-2 rounded-md border border-dashed bg-muted/40 p-3 text-sm">
           <Info className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
