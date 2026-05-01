@@ -80,7 +80,13 @@ export function PartnerAuthProvider({ children }: { children: ReactNode }) {
     const loadingTimeout = setTimeout(() => {
       if (!isMounted) return;
       setAuthLoading(false);
-      setPartnerLoading(false);
+      setPartnerLoading((wasLoading) => {
+        if (wasLoading) {
+          // Falhou a obter perfil dentro do tempo razoável → erro explícito
+          setError("Não foi possível verificar a sessão. Verifique a sua ligação e tente novamente.");
+        }
+        return false;
+      });
       setPartnerChecked(true);
     }, 6000);
 
