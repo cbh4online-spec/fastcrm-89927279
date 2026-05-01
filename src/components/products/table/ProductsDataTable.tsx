@@ -145,7 +145,17 @@ function RenderProductCell({
         <span>{product.direct_cost ? formatCurrency(product.direct_cost, product.currency) : "-"}</span>
       );
     case "operational_cost":
-      return <span>{product.operational_cost ? formatCurrency(product.operational_cost, product.currency) : "-"}</span>;
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.operational_cost ?? null}
+          type="currency"
+          currency={product.currency}
+          formatCurrency={formatCurrency}
+          onSave={(v) => onInlinePriceUpdate(product.id, "operational_cost", v)}
+        />
+      ) : (
+        <span>{product.operational_cost ? formatCurrency(product.operational_cost, product.currency) : "-"}</span>
+      );
     case "margin": {
       const margin = calcMarginPct(product);
       if (margin == null) return <span>-</span>;
