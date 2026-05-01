@@ -55299,6 +55299,7 @@ export type Database = {
           id: string
           images: string[] | null
           included_quantity: number | null
+          indexed_for_copilot_at: string | null
           is_cross_sell: boolean | null
           is_cross_sell_validation_status: string | null
           is_impulse_product: boolean | null
@@ -55439,6 +55440,7 @@ export type Database = {
           id?: string
           images?: string[] | null
           included_quantity?: number | null
+          indexed_for_copilot_at?: string | null
           is_cross_sell?: boolean | null
           is_cross_sell_validation_status?: string | null
           is_impulse_product?: boolean | null
@@ -55579,6 +55581,7 @@ export type Database = {
           id?: string
           images?: string[] | null
           included_quantity?: number | null
+          indexed_for_copilot_at?: string | null
           is_cross_sell?: boolean | null
           is_cross_sell_validation_status?: string | null
           is_impulse_product?: boolean | null
@@ -75916,6 +75919,10 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      ensure_b2b_catalog_kb: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: string
       }
       format_response_for_channel: {
         Args: { p_channel: string; p_response: string; p_workspace_id: string }
