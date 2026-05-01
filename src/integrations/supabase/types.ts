@@ -47379,6 +47379,83 @@ export type Database = {
           },
         ]
       }
+      partner_order_approvals_log: {
+        Row: {
+          created_at: string
+          decided_by: string | null
+          decision: string
+          decision_reason: string | null
+          id: string
+          metadata: Json
+          new_status: string
+          order_number: string
+          partner_account_id: string
+          partner_order_id: string
+          previous_status: string
+          total_gross: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_by?: string | null
+          decision: string
+          decision_reason?: string | null
+          id?: string
+          metadata?: Json
+          new_status: string
+          order_number: string
+          partner_account_id: string
+          partner_order_id: string
+          previous_status: string
+          total_gross?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_by?: string | null
+          decision?: string
+          decision_reason?: string | null
+          id?: string
+          metadata?: Json
+          new_status?: string
+          order_number?: string
+          partner_account_id?: string
+          partner_order_id?: string
+          previous_status?: string
+          total_gross?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_order_approvals_log_partner_account_id_fkey"
+            columns: ["partner_account_id"]
+            isOneToOne: false
+            referencedRelation: "partner_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_order_approvals_log_partner_order_id_fkey"
+            columns: ["partner_order_id"]
+            isOneToOne: false
+            referencedRelation: "partner_order_headers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_order_approvals_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_order_approvals_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_order_headers: {
         Row: {
           approved_at: string | null
