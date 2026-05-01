@@ -140,7 +140,11 @@ export function ProductDetailDialog({
   const mainImage = displayImages[heroIdx];
 
   useEffect(() => {
-    if (displayImages.length > 0 && heroIdx >= displayImages.length) {
+    if (displayImages.length === 0) {
+      if (heroIdx !== 0) setHeroIdx(0);
+      return;
+    }
+    if (heroIdx >= displayImages.length || heroIdx < 0) {
       setHeroIdx(0);
     }
   }, [displayImages.length, heroIdx]);
@@ -148,6 +152,16 @@ export function ProductDetailDialog({
   useEffect(() => {
     setHeroIdx(0);
   }, [productId]);
+
+  const hasMultipleImages = displayImages.length > 1;
+  const canGoPrev = hasMultipleImages && heroIdx > 0;
+  const canGoNext = hasMultipleImages && heroIdx < displayImages.length - 1;
+  const goPrev = () => {
+    if (canGoPrev) setHeroIdx((i) => Math.max(0, i - 1));
+  };
+  const goNext = () => {
+    if (canGoNext) setHeroIdx((i) => Math.min(displayImages.length - 1, i + 1));
+  };
 
   const formatCurrency = (value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
