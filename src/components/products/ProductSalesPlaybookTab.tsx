@@ -119,6 +119,62 @@ export function ProductSalesPlaybookTab({ product }: Props) {
     },
   });
 
+  // ── AI generation ────────────────────────────────────────────────
+  const generate = useMutation({
+    mutationFn: async (section: "script" | "objections" | "warranty" | "all") => {
+      const { data: res, error } = await supabase.functions.invoke("ai-product-playbook", {
+        body: {
+          section,
+          product: {
+            name: product.name,
+            category: product.category ?? null,
+            description: (product as any).description ?? null,
+            short_description: (product as any).short_description ?? null,
+            base_price: product.base_price ?? null,
+            currency: product.currency ?? "EUR",
+            product_type: product.product_type ?? null,
+            sku: product.sku ?? null,
+          },
+          existing: {
+            script: data.script,
+            objections: data.objections,
+            warranty: data.warranty,
+          },
+        },
+      });
+      if (error) throw error;
+      if (res?.error && res.error !== "ok") {
+        throw new Error(res.message || "Falha ao gerar com IA");
+      }
+      return { section, result: res?.result ?? { script: "", objections: [], warranty: "" } };
+    },
+    onSuccess: ({ section, result }) => {
+      setData((prev) => {
+        const next: SalesPlaybook = { ...prev };
+        if (section === "all" || section === "script") {
+          if (result.script) next.script = result.script;
+        }
+        if (section === "all" || section === "objections") {
+          if (Array.isArray(result.objections) && result.objections.length > 0) {
+            next.objections = result.objections;
+          }
+        }
+        if (section === "all" || section === "warranty") {
+          if (result.warranty) next.warranty = result.warranty;
+        }
+        return next;
+      });
+      setDirty(true);
+      toast.success("Conteúdo gerado — revê e guarda");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message || "Erro ao gerar");
+    },
+  });
+
+  const isGenerating = (s: "script" | "objections" | "warranty" | "all") =>
+    generate.isPending && generate.variables === s;
+
   const totalObjs = data.objections.length;
 
   return (
