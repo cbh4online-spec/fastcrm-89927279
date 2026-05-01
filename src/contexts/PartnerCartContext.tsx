@@ -11,8 +11,8 @@ interface PartnerCartContextValue {
   subtotalNet: number;
   cartId: string | null;
   addItem: (item: PartnerCartItem) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number, variantId?: string | null) => void;
+  removeItem: (productId: string, variantId?: string | null) => void;
   clearCart: () => void;
   poNumber: string;
   setPoNumber: (v: string) => void;
