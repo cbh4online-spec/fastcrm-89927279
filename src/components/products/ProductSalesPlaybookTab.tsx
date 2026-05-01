@@ -95,9 +95,9 @@ export function ProductSalesPlaybookTab({ product }: Props) {
       const cleaned: SalesPlaybook = {
         script: parsed.data.script,
         warranty: parsed.data.warranty,
-        objections: parsed.data.objections.filter(
-          (o) => o.objection.length > 0 || o.response.length > 0,
-        ),
+        objections: parsed.data.objections
+          .map((o) => ({ objection: o.objection ?? "", response: o.response ?? "" }))
+          .filter((o) => o.objection.length > 0 || o.response.length > 0),
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
