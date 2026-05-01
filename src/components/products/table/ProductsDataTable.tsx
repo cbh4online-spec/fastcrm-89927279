@@ -116,7 +116,15 @@ function RenderProductCell({
     case "product_type":
       return <Badge variant="outline">{getProductTypeLabel(product.product_type)}</Badge>;
     case "category":
-      return product.category ? (
+      return onInlinePriceUpdate ? (
+        <InlineFieldEditor
+          value={product.category ?? ""}
+          type="text"
+          maxLength={64}
+          inputWidthClass="w-32"
+          onSave={(v) => onInlinePriceUpdate(product.id, "category", v)}
+        />
+      ) : product.category ? (
         <button type="button" onClick={() => onOpenDetail(product)} className="hover:text-primary hover:underline transition-colors">
           {product.category}
         </button>
