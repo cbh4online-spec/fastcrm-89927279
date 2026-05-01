@@ -482,6 +482,8 @@ export function ProductSalesPlaybookTab({ product }: Props) {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }
