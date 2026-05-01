@@ -364,6 +364,39 @@ export function PricingRulesSettings() {
               </div>
             </div>
 
+            {/* Custo operacional sugerido — análogo às margens */}
+            <div className="rounded-lg border p-3 bg-muted/20 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="flex items-center gap-1.5 text-sm">
+                  <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+                  Custo operacional sugerido (%)
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={handleRecalculate}
+                  title="Calcular média do custo operacional dos produtos existentes"
+                >
+                  <Wand2 className="h-3 w-3" />
+                  Recalcular
+                </Button>
+              </div>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="Ex.: 21"
+                value={form.default_operational_cost_pct}
+                onChange={(e) => setForm({ ...form, default_operational_cost_pct: e.target.value })}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Aplicado como pré-preenchimento ao criar produtos novos. Categoria prevalece sobre global.
+              </p>
+            </div>
+
             <div className="flex items-center gap-2">
               <Switch
                 checked={form.is_active}
