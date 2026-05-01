@@ -248,6 +248,31 @@ export function ProductSalesPlaybookTab({ product }: Props) {
           <Button
             size="sm"
             variant="outline"
+            onClick={() => {
+              try {
+                const pdf = generateSalesPlaybookPdf({
+                  productName: product.name,
+                  productSku: product.sku ?? null,
+                  productCategory: product.category ?? null,
+                  script: data.script,
+                  objections: data.objections,
+                  warranty: data.warranty,
+                  updatedAt: data.updated_at ?? null,
+                });
+                pdf.save(buildPlaybookFilename(product.name));
+                toast.success("PDF gerado");
+              } catch (e: any) {
+                toast.error(e?.message || "Erro ao gerar PDF");
+              }
+            }}
+            title={dirty ? "Exporta o conteúdo atualmente no editor (não guardado)" : "Exporta o procedimento em PDF para partilhar"}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            Exportar PDF
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => generate.mutate("all")}
             disabled={generate.isPending}
             title="Gera Script, Objeções e Garantia com base na ficha do produto"
