@@ -421,7 +421,7 @@ export function ProductDetailDialog({
                     sheet: "content", images: "content", specs: "content",
                     "ai-content": "content", progressions: "content",
                     financial: "pricing", "price-history": "pricing", cycles: "pricing",
-                    stock: "stock",
+                    stock: "stock", variants: "stock",
                     analytics: "sales", usage: "sales", lifecycle: "sales", playbook: "sales",
                     publishing: "publishing", deliverables: "publishing",
                     relations: "relations", documents: "relations",
