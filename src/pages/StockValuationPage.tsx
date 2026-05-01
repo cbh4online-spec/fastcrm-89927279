@@ -91,7 +91,7 @@ export default function StockValuationPage() {
       "Valor stock a custo",
       "Base s/IVA actual", "Base s/IVA sugerido",
       "PVP unit.", "Valor a PVP",
-      "Margem €", "Margem % s/PVP", "Markup % s/Custo",
+      "Margem €", "Markup % s/Custo",
     ];
     const lines = filtered.map((r) => [
       r.sku || "",
@@ -234,7 +234,7 @@ export default function StockValuationPage() {
                   <TableHead colSpan={3} className="text-center border-r bg-blue-50/50 dark:bg-blue-950/20">
                     Preços de venda
                   </TableHead>
-                  <TableHead colSpan={3} className="text-center bg-emerald-50/50 dark:bg-emerald-950/20">
+                  <TableHead colSpan={2} className="text-center bg-emerald-50/50 dark:bg-emerald-950/20">
                     Margem
                   </TableHead>
                 </TableRow>
@@ -255,10 +255,7 @@ export default function StockValuationPage() {
                     Valor a PVP
                   </TableHead>
                   <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin")} title="Stock × (PVP − Custo Total)">€ lucro</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin_pct")} title="(PVP − Custo Total) ÷ PVP — padrão contabilístico PT, sempre 0–100%">
-                    % s/PVP
-                  </TableHead>
-                  <TableHead className="text-right" title="(PVP − Custo Total) ÷ Custo Total — markup, pode ultrapassar 100%">
+                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin_pct")} title="(PVP − Custo Total) ÷ Custo Total — markup s/Custo">
                     % s/Custo
                   </TableHead>
                 </TableRow>
@@ -267,14 +264,14 @@ export default function StockValuationPage() {
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 13 }).map((_, j) => (
+                      {Array.from({ length: 12 }).map((_, j) => (
                         <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={12} className="text-center text-muted-foreground py-12">
                       Sem produtos para mostrar
                     </TableCell>
                   </TableRow>
@@ -319,12 +316,9 @@ export default function StockValuationPage() {
                           {fmt(r.latent_margin)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant={r.latent_margin_pct < 0 ? "destructive" : r.latent_margin_pct < 15 ? "secondary" : "default"}>
-                            {r.latent_margin_pct.toFixed(1)}%
+                          <Badge variant={r.markup_pct < 0 ? "destructive" : r.markup_pct < 15 ? "secondary" : "default"}>
+                            {r.markup_pct.toFixed(1)}%
                           </Badge>
-                        </TableCell>
-                        <TableCell className="text-right text-xs text-muted-foreground">
-                          {r.markup_pct.toFixed(0)}%
                         </TableCell>
                       </TableRow>
                     );
