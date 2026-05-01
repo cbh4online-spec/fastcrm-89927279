@@ -178,16 +178,22 @@ function RenderProductCell({
         <span>{product.direct_cost ? formatCurrency(product.direct_cost, product.currency) : "-"}</span>
       );
     case "operational_cost": {
-      const isPercent = (product as any).operational_cost_mode === "percent";
+      const currentMode = ((product as any).operational_cost_mode as "value" | "percent") || "value";
       const formatOp = (v: number) =>
-        isPercent ? `${Number(v).toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%` : formatCurrency(v, product.currency);
+        currentMode === "percent"
+          ? `${Number(v).toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`
+          : formatCurrency(v, product.currency);
       return onInlinePriceUpdate ? (
-        <InlineFieldEditor
+        <InlineOperationalCostEditor
           value={product.operational_cost ?? null}
-          type={isPercent ? "percent" : "currency"}
+          mode={currentMode}
           currency={product.currency}
           formatCurrency={formatCurrency}
-          onSave={(v) => onInlinePriceUpdate(product.id, "operational_cost", v)}
+          onSave={(v, mode) => {
+            // Atualiza modo primeiro (se mudou) e depois o valor
+            if (mode !== currentMode) onInlinePriceUpdate(product.id, "operational_cost_mode", mode);
+            onInlinePriceUpdate(product.id, "operational_cost", v);
+          }}
         />
       ) : (
         <span>{product.operational_cost != null ? formatOp(product.operational_cost) : "-"}</span>
