@@ -11,6 +11,7 @@ import { useCart } from "@/contexts/CartContext";
 import { QuickReorderWidget } from "@/components/client-portal/QuickReorderWidget";
 import { PartnerHeroCarousel } from "@/components/client-portal/PartnerHeroCarousel";
 import type { PartnerPortalSlide } from "@/hooks/usePartnerPortalSlides";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
