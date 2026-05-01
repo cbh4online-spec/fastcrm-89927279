@@ -4,15 +4,16 @@ import { usePartnerCart } from "@/contexts/PartnerCartContext";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { toast } from "sonner";
 import type { PartnerAccount, PartnerUser } from "@/types/partner";
+import type { PartnerCartTotals } from "./usePartnerCartTotals";
 
 export function usePartnerCheckout(
   partnerUser: PartnerUser | null,
   account: PartnerAccount | null | undefined
 ) {
-  const { items, subtotalNet, poNumber, orderNotes, clearCart } = usePartnerCart();
+  const { items, subtotalNet, poNumber, orderNotes, couponCode, cartId, clearCart, emitFunnelEvent } = usePartnerCart();
   const [submitting, setSubmitting] = useState(false);
 
-  const submitOrder = async () => {
+  const submitOrder = async (totals?: PartnerCartTotals) => {
     if (!partnerUser || !account || items.length === 0) return null;
     setSubmitting(true);
 
@@ -20,25 +21,32 @@ export function usePartnerCheckout(
       const workspaceId = partnerUser.workspace_id;
       const orderNumber = `PO-${Date.now().toString(36).toUpperCase()}`;
 
-      // Determine initial status
+      // Resolve totals (use server-computed totals if provided)
+      const subtotal = totals?.subtotal_net ?? subtotalNet;
+      const subtotalOriginal = totals?.subtotal_original ?? subtotalNet;
+      const discountAmount = totals?.total_savings ?? 0;
+      const shippingAmount = totals?.shipping_amount ?? 0;
+      const taxAmount = totals?.tax_amount ?? Math.round(subtotal * 0.23 * 100) / 100;
+      const totalGross = totals?.total_gross ?? (subtotal + shippingAmount + taxAmount);
+      const qbSavings = totals?.quantity_break_savings ?? 0;
+      const bundleSavings = totals?.bundle_savings ?? 0;
+      const couponSavings = totals?.coupon_savings ?? 0;
+      const validCoupon = totals?.coupon?.valid ? totals.coupon.code : null;
+
       const needsApproval = account.requires_order_approval &&
         account.approval_threshold != null &&
-        subtotalNet > account.approval_threshold;
-
+        totalGross > account.approval_threshold;
       const status = needsApproval ? 'awaiting_approval' : 'submitted';
 
       // Credit check
       if (account.credit_limit > 0) {
-        const newExposure = account.current_credit_exposure + subtotalNet;
+        const newExposure = account.current_credit_exposure + subtotal;
         if (newExposure > account.credit_limit) {
           toast.error("Limite de crédito ultrapassado. Contacte o gestor comercial.");
           setSubmitting(false);
           return null;
         }
       }
-
-      const taxRate = 23; // default PT VAT
-      const taxAmount = Math.round(subtotalNet * (taxRate / 100) * 100) / 100;
 
       const { data: order, error: orderError } = await supabase
         .from("partner_order_headers")
@@ -50,46 +58,81 @@ export function usePartnerCheckout(
           po_number: poNumber || null,
           buyer_user_id: partnerUser.auth_user_id,
           currency: account.currency || 'EUR',
-          subtotal_net: subtotalNet,
+          subtotal_net: subtotal,
+          discount_amount: discountAmount,
+          shipping_amount: shippingAmount,
           tax_amount: taxAmount,
-          total_net: subtotalNet,
-          total_gross: subtotalNet + taxAmount,
+          total_net: subtotal,
+          total_gross: totalGross,
           payment_terms_snapshot: account.payment_terms,
           notes: orderNotes || null,
           source: 'partner_center',
+          coupon_code: validCoupon,
+          quantity_break_savings: qbSavings,
+          bundle_savings: bundleSavings,
+          recovered_from_cart_id: cartId,
         })
         .select("id")
         .single();
 
       if (orderError) throw orderError;
 
-      // Insert items — grava SKU + snapshot completo da variante quando aplicável
-      const orderItems = items.map((item) => ({
-        workspace_id: workspaceId,
-        partner_order_id: order.id,
-        product_id: item.product_id,
-        sku: item.sku,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        unit_price_net: item.unit_price_net,
-        pvp_recommended: item.pvp_recommended,
-        margin_estimated: item.margin_estimated,
-        tax_rate: taxRate,
-        line_total_net: Math.round(item.unit_price_net * item.quantity * 100) / 100,
-        pack_size: item.pack_size,
-        moq_applied: item.moq,
-        parent_product_id: item.parent_product_id ?? null,
-        variant_label: item.variant_label ?? null,
-        variant_attributes: item.variant_attributes ?? {},
-      }));
+      // Map line discounts from server totals
+      const lineMap = new Map((totals?.lines || []).map((l) => [l.product_id, l]));
 
-      const { error: itemsError } = await supabase
-        .from("partner_order_items")
-        .insert(orderItems);
+      const orderItems = items.map((item) => {
+        const line = lineMap.get(item.product_id);
+        const lineTotalNet = line?.line_total_net ?? Math.round(item.unit_price_net * item.quantity * 100) / 100;
+        return {
+          workspace_id: workspaceId,
+          partner_order_id: order.id,
+          product_id: item.product_id,
+          sku: item.sku,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price_net: item.unit_price_net,
+          unit_price_original: item.unit_price_net,
+          pvp_recommended: item.pvp_recommended,
+          margin_estimated: item.margin_estimated,
+          tax_rate: 23,
+          line_total_net: lineTotalNet,
+          pack_size: item.pack_size,
+          moq_applied: item.moq,
+          parent_product_id: item.parent_product_id ?? null,
+          variant_label: item.variant_label ?? null,
+          variant_attributes: item.variant_attributes ?? {},
+          quantity_break_pct: line?.discount_source === 'quantity_break' ? line.discount_pct : 0,
+          bundle_id: line?.discount_source === 'bundle' ? line.bundle_id : null,
+        };
+      });
 
+      const { error: itemsError } = await supabase.from("partner_order_items").insert(orderItems);
       if (itemsError) throw itemsError;
 
-      // Kernel event
+      // Atomic coupon redemption
+      if (validCoupon && couponSavings > 0) {
+        await supabase.rpc('redeem_partner_coupon', {
+          p_workspace_id: workspaceId,
+          p_partner_account_id: account.id,
+          p_order_id: order.id,
+          p_code: validCoupon,
+          p_discount_amount: couponSavings,
+        });
+      }
+
+      // Mark cart as recovered (cleared)
+      if (cartId) {
+        await supabase.from('partner_carts').update({
+          items: [] as any,
+          applied_coupon_code: null,
+          po_number: null,
+          notes: null,
+          subtotal_net: 0,
+          recovery_stage: 'recovered',
+          recovered_at: new Date().toISOString(),
+        }).eq('id', cartId);
+      }
+
       emitKernelEvent({
         workspace_id: workspaceId,
         type: 'PARTNER.ORDER_SUBMITTED',
@@ -100,9 +143,19 @@ export function usePartnerCheckout(
         payload: {
           order_number: orderNumber,
           status,
-          total_net: subtotalNet,
+          subtotal_original: subtotalOriginal,
+          total_gross: totalGross,
+          total_savings: discountAmount,
+          coupon_code: validCoupon,
           items_count: items.length,
         },
+      });
+
+      emitFunnelEvent('complete_order', {
+        order_id: order.id,
+        total_gross: totalGross,
+        total_savings: discountAmount,
+        coupon_code: validCoupon,
       });
 
       clearCart();
