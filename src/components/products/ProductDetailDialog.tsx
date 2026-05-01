@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -136,6 +136,16 @@ export function ProductDetailDialog({
       : [];
   const displayImages = (productImages && productImages.length > 0) ? productImages : fallbackImages;
   const mainImage = displayImages[heroIdx];
+
+  useEffect(() => {
+    if (displayImages.length > 0 && heroIdx >= displayImages.length) {
+      setHeroIdx(0);
+    }
+  }, [displayImages.length, heroIdx]);
+
+  useEffect(() => {
+    setHeroIdx(0);
+  }, [productId]);
 
   const formatCurrency = (value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
