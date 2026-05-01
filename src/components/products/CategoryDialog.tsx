@@ -573,6 +573,32 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="variant_display_mode"
+                  render={({ field }) => (
+                    <FormItem className="rounded-lg border p-3 space-y-2">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Apresentação de variantes na loja</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Como produtos com variantes (ex.: 250ml/500ml) aparecem na vitrine B2B
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="grouped">1 cartão + seletor de variante</SelectItem>
+                            <SelectItem value="separate">1 cartão por variante (agrupados)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Right Column: Image */}
