@@ -83,6 +83,7 @@ import { ProductDeliverablesManager } from "./ProductDeliverablesManager";
 import { ProductDocumentsTab } from "./ProductDocumentsTab";
 import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductStockTab } from "./ProductStockTab";
+import { ProductVariantsTab } from "./ProductVariantsTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductLifecycleTab } from "./ProductLifecycleTab";
 import { ProductSalesPlaybookTab } from "./ProductSalesPlaybookTab";
