@@ -46748,6 +46748,84 @@ export type Database = {
           },
         ]
       }
+      partner_portal_slides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_url: string | null
+          description: string | null
+          display_order: number
+          ends_at: string | null
+          eyebrow: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          kind: Database["public"]["Enums"]["partner_slide_kind"]
+          starts_at: string | null
+          subtitle: string | null
+          theme: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          description?: string | null
+          display_order?: number
+          ends_at?: string | null
+          eyebrow?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["partner_slide_kind"]
+          starts_at?: string | null
+          subtitle?: string | null
+          theme?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          description?: string | null
+          display_order?: number
+          ends_at?: string | null
+          eyebrow?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["partner_slide_kind"]
+          starts_at?: string | null
+          subtitle?: string | null
+          theme?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_portal_slides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_portal_slides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_price_list_items: {
         Row: {
           created_at: string
@@ -74553,6 +74631,10 @@ export type Database = {
       is_super_admin:
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }
+      is_workspace_admin: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
       is_workspace_admin_or_owner: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
@@ -75301,6 +75383,7 @@ export type Database = {
         | "shipped"
         | "completed"
         | "cancelled"
+      partner_slide_kind: "campaign" | "training" | "launch" | "education"
       partner_user_role:
         | "partner_owner"
         | "partner_admin"
@@ -75887,6 +75970,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      partner_slide_kind: ["campaign", "training", "launch", "education"],
       partner_user_role: [
         "partner_owner",
         "partner_admin",

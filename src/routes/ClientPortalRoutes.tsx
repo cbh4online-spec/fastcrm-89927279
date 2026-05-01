@@ -28,6 +28,7 @@ const ClientProtocolDetailPage = lazy(() => import("@/pages/client/ClientProtoco
 const ClientConsumptionPage = lazy(() => import("@/pages/client/ClientConsumptionPage"));
 const ClientRankingsPage = lazy(() => import("@/pages/client/ClientRankingsPage"));
 const ClientSecurityPage = lazy(() => import("@/pages/client/ClientSecurityPage"));
+const ClientPortalSlidesAdminPage = lazy(() => import("@/pages/client/ClientPortalSlidesAdminPage"));
 
 export function ClientPortalRoutes() {
   return (
@@ -59,6 +60,7 @@ export function ClientPortalRoutes() {
         <Route path="insights/consumption" element={<ClientConsumptionPage />} />
         <Route path="insights/rankings" element={<ClientRankingsPage />} />
         <Route path="security" element={<ClientSecurityPage />} />
+        <Route path="admin/slides" element={<ClientPortalSlidesAdminPage />} />
         <Route path="*" element={<Navigate to="/client/login" replace />} />
       </Routes>
     </CartProvider>

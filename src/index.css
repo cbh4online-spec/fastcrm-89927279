@@ -433,3 +433,52 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+   Editorial Theme — Client/Partner Portal (Cosmética premium)
+   Paleta beige/champanhe + serifa display.
+   Aplicado dentro do scope `.editorial-portal` para não afetar
+   o resto da aplicação SaaS.
+   ============================================================ */
+@layer base {
+  :root {
+    --editorial-cream: 36 38% 96%;       /* #F8F2EA */
+    --editorial-champagne: 33 40% 88%;   /* #EBDDC8 */
+    --editorial-rose: 18 35% 86%;        /* #ECD3C5 */
+    --editorial-ink: 25 22% 16%;         /* #2E2620 */
+    --editorial-accent: 25 35% 38%;      /* #7C5A3F warm bronze */
+    --editorial-overlay: 36 38% 96%;     /* matching cream for scrim */
+    --editorial-shadow: 25 30% 20% / 0.18;
+    --editorial-border: 33 25% 80%;
+  }
+
+  .editorial-portal {
+    --background: var(--editorial-cream);
+    --foreground: var(--editorial-ink);
+    --card: 0 0% 100%;
+    --card-foreground: var(--editorial-ink);
+    --muted: 36 30% 92%;
+    --muted-foreground: 25 12% 38%;
+    --border: var(--editorial-border);
+    --input: var(--editorial-border);
+    --primary: var(--editorial-ink);
+    --primary-foreground: var(--editorial-cream);
+    --accent: 33 40% 88%;
+    --accent-foreground: var(--editorial-ink);
+    --ring: var(--editorial-accent);
+    --secondary: 36 30% 92%;
+    --secondary-foreground: var(--editorial-ink);
+
+    background:
+      radial-gradient(1200px 600px at 0% 0%, hsl(var(--editorial-champagne) / 0.55), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, hsl(var(--editorial-rose) / 0.4), transparent 60%),
+      hsl(var(--editorial-cream));
+  }
+
+  .font-editorial {
+    font-family: "Cormorant Garamond", "Times New Roman", Georgia, serif;
+    font-feature-settings: "lnum", "kern", "liga";
+    letter-spacing: -0.01em;
+  }
+}
+

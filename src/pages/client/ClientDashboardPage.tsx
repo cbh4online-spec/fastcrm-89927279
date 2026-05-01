@@ -9,6 +9,8 @@ import { useClientApprovals } from "@/hooks/client-portal/useClientApprovals";
 import { useClientPermissions } from "@/hooks/client-portal/useClientPermissions";
 import { useCart } from "@/contexts/CartContext";
 import { QuickReorderWidget } from "@/components/client-portal/QuickReorderWidget";
+import { PartnerHeroCarousel } from "@/components/client-portal/PartnerHeroCarousel";
+import type { PartnerPortalSlide } from "@/hooks/usePartnerPortalSlides";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -149,32 +151,97 @@ export default function ClientDashboardPage() {
     { title: "Rankings", desc: "Produtos mais comprados e re-encomenda", icon: Trophy, link: "/client/insights/rankings" },
   ];
 
+  const fallbackSlides: PartnerPortalSlide[] = useMemo(() => [
+    {
+      id: "fb-1",
+      workspace_id: clientUser?.workspace_id || "",
+      kind: "campaign",
+      eyebrow: "Campanha do mês",
+      title: "Linha Fitozon — 15% em packs profissionais",
+      subtitle: "Sinergias de óleos vegetais ozonizados para protocolos clínicos.",
+      description: "Aplicável até final do mês em encomendas a partir de 250€.",
+      image_url: "https://images.unsplash.com/photo-1556228852-80b6e5eeff06?auto=format&fit=crop&w=1600&q=80",
+      cta_label: "Ver catálogo",
+      cta_url: "/client/catalog",
+      starts_at: null, ends_at: null, display_order: 0, is_active: true, theme: "light",
+      created_at: "", updated_at: "",
+    },
+    {
+      id: "fb-2",
+      workspace_id: clientUser?.workspace_id || "",
+      kind: "training",
+      eyebrow: "Próxima formação · 14 maio",
+      title: "Masterclass: Protocolos de pele sensível",
+      subtitle: "90 minutos com a Dra. Inês Carvalho, em direto e gravado.",
+      description: "Inscrição gratuita para parceiros profissionais.",
+      image_url: "https://images.unsplash.com/photo-1559599101-f09722fb4948?auto=format&fit=crop&w=1600&q=80",
+      cta_label: "Inscrever-me",
+      cta_url: "/client/assistant",
+      starts_at: null, ends_at: null, display_order: 1, is_active: true, theme: "light",
+      created_at: "", updated_at: "",
+    },
+    {
+      id: "fb-3",
+      workspace_id: clientUser?.workspace_id || "",
+      kind: "launch",
+      eyebrow: "Novo lançamento",
+      title: "Acqua Soft — bruma corporal refrescante",
+      subtitle: "Água de coco e lavanda francesa. Pele macia, hidratada e luminosa.",
+      description: "Disponível agora em embalagem profissional 500ml.",
+      image_url: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=1600&q=80",
+      cta_label: "Descobrir produto",
+      cta_url: "/client/catalog",
+      starts_at: null, ends_at: null, display_order: 2, is_active: true, theme: "light",
+      created_at: "", updated_at: "",
+    },
+    {
+      id: "fb-4",
+      workspace_id: clientUser?.workspace_id || "",
+      kind: "education",
+      eyebrow: "Protocolo · Conteúdo educativo",
+      title: "Como construir um protocolo facial em 4 passos",
+      subtitle: "Guia técnico baseado nos casos clínicos da equipa Pharliss.",
+      description: "Material descarregável + checklist de aplicação.",
+      image_url: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1600&q=80",
+      cta_label: "Ler protocolo",
+      cta_url: "/client/diagnosis",
+      starts_at: null, ends_at: null, display_order: 3, is_active: true, theme: "light",
+      created_at: "", updated_at: "",
+    },
+  ], [clientUser?.workspace_id]);
+
   return (
     <ClientLayout>
       <div className="space-y-8">
-        {/* Welcome Header — Premium */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Welcome Header — Editorial */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Olá, {clientUser?.name?.split(' ')[0]} 👋
+            <h1 className="font-editorial text-4xl sm:text-5xl tracking-tight text-[hsl(var(--editorial-ink))]">
+              Olá, {clientUser?.name?.split(' ')[0]}
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground mt-2 text-base">
               Painel executivo do portal profissional
             </p>
           </div>
           <div className="flex gap-2">
             <Link to="/client/assistant">
-              <Button variant="outline" className="border-primary/20 hover:bg-primary/5">
-                <Sparkles className="h-4 w-4 mr-2 text-primary" /> Copilot IA
+              <Button variant="outline" className="rounded-full border-[hsl(var(--editorial-border))] hover:bg-[hsl(var(--editorial-champagne))]/40">
+                <Sparkles className="h-4 w-4 mr-2" /> Copilot IA
               </Button>
             </Link>
             <Link to="/client/catalog">
-              <Button className="shadow-lg shadow-primary/20">
-                <Package className="h-5 w-5 mr-2" /> Nova Encomenda
+              <Button className="rounded-full bg-[hsl(var(--editorial-ink))] text-[hsl(var(--editorial-cream))] hover:bg-[hsl(var(--editorial-ink))]/90 px-6">
+                <Package className="h-4 w-4 mr-2" /> Nova Encomenda
               </Button>
             </Link>
           </div>
         </div>
+
+        {/* Hero Editorial — Slides de campanhas, formações, lançamentos */}
+        <PartnerHeroCarousel
+          workspaceId={clientUser?.workspace_id}
+          fallback={fallbackSlides}
+        />
 
         {/* Alerts — Premium */}
         {alerts.length > 0 && (
@@ -238,9 +305,9 @@ export default function ClientDashboardPage() {
           {/* Monthly Evolution */}
           <Card className="lg:col-span-2 border-border/50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-primary/10">
-                  <BarChart3 className="h-4 w-4 text-primary" />
+              <CardTitle className="font-editorial text-2xl flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-[hsl(var(--editorial-champagne))]/60">
+                  <BarChart3 className="h-4 w-4 text-[hsl(var(--editorial-accent))]" />
                 </div>
                 Evolução Mensal
               </CardTitle>
@@ -288,11 +355,11 @@ export default function ClientDashboardPage() {
           <div className="space-y-4">
             <QuickReorderWidget />
 
-            <Card className="border-border/50">
+            <Card className="border-[hsl(var(--editorial-border))]/60">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <div className="p-1.5 rounded-lg bg-primary/10">
-                    <Package className="h-4 w-4 text-primary" />
+                <CardTitle className="font-editorial text-xl flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-[hsl(var(--editorial-champagne))]/60">
+                    <Package className="h-4 w-4 text-[hsl(var(--editorial-accent))]" />
                   </div>
                   Top Produtos
                 </CardTitle>
@@ -358,14 +425,14 @@ export default function ClientDashboardPage() {
         </div>
 
         {/* Recent Orders — Premium */}
-        <Card className="border-border/50">
+        <Card className="border-[hsl(var(--editorial-border))]/60">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Encomendas Recentes</CardTitle>
+              <CardTitle className="font-editorial text-2xl">Encomendas Recentes</CardTitle>
               <CardDescription>As suas últimas encomendas</CardDescription>
             </div>
             <Link to="/client/orders">
-              <Button variant="outline" size="sm" className="border-primary/20">Ver todas</Button>
+              <Button variant="outline" size="sm" className="rounded-full border-[hsl(var(--editorial-border))]">Ver todas</Button>
             </Link>
           </CardHeader>
           <CardContent>
