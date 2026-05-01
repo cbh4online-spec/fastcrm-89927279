@@ -79,26 +79,30 @@ export default function ClientCatalogPage() {
 
   return (
     <ClientLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-8">
+        {/* Editorial Header — alinhado com Dashboard */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="font-editorial text-4xl md:text-5xl font-light tracking-tight text-foreground">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">
+              Portal Profissional · Catálogo
+            </p>
+            <h1 className="font-editorial text-4xl sm:text-5xl tracking-tight text-[hsl(var(--editorial-ink))]">
               Catálogo de Produtos
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground mt-2 text-base">
               {products.length} produtos disponíveis
               {tier && (
-                <span className="ml-2">
-                  • <Badge 
-                      variant="secondary" 
-                      className="text-xs"
-                      style={{ 
-                        backgroundColor: `${tier.color}20`, 
-                        color: tier.color,
-                        borderColor: `${tier.color}40` 
-                      }}
-                    >
+                <span className="ml-2 inline-flex items-center">
+                  ·{" "}
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 text-xs"
+                    style={{
+                      backgroundColor: `${tier.color}20`,
+                      color: tier.color,
+                      borderColor: `${tier.color}40`,
+                    }}
+                  >
                     {tier.name} ({discountPercentage}% desc.)
                   </Badge>
                 </span>
@@ -109,22 +113,28 @@ export default function ClientCatalogPage() {
             <Button
               variant="outline"
               onClick={() => setShowFilters(!showFilters)}
-              className="sm:hidden"
+              className="sm:hidden rounded-full border-[hsl(var(--editorial-border))]"
             >
               <Filter className="h-4 w-4 mr-2" />
               Filtros
             </Button>
             {itemCount > 0 && (
-              <Badge variant="secondary" className="text-sm">
-                <ShoppingCart className="h-4 w-4 mr-1" />
-                {itemCount} no carrinho
-              </Badge>
+              <Button
+                variant="outline"
+                className="rounded-full border-[hsl(var(--editorial-border))] hover:bg-[hsl(var(--editorial-champagne))]/40"
+                asChild
+              >
+                <a href="/client/cart">
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {itemCount} no carrinho
+                </a>
+              </Button>
             )}
           </div>
         </div>
 
         {/* Filters */}
-        <Card className={showFilters ? "block" : "hidden sm:block"}>
+        <Card className={`${showFilters ? "block" : "hidden sm:block"} border-[hsl(var(--editorial-border))]/60`}>
           <CardContent className="pt-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
               {/* Search */}
