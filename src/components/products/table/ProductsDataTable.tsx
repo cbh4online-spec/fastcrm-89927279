@@ -354,7 +354,13 @@ function getCellTooltipText(
     case "category": return product.category || "";
     case "base_price": return product.base_price != null ? formatCurrency(product.base_price, product.currency) : "";
     case "direct_cost": return product.direct_cost != null ? formatCurrency(product.direct_cost, product.currency) : "";
-    case "operational_cost": return product.operational_cost != null ? formatCurrency(product.operational_cost, product.currency) : "";
+    case "operational_cost": {
+      if (product.operational_cost == null) return "";
+      const isPercent = (product as any).operational_cost_mode === "percent";
+      return isPercent
+        ? `${Number(product.operational_cost).toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`
+        : formatCurrency(product.operational_cost, product.currency);
+    }
     case "margin": {
       const m = calcMarginPct(product);
       return m == null ? "" : `${m.toFixed(2)}%`;
