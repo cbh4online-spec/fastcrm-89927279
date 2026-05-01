@@ -195,6 +195,14 @@ export function CreateProductDialog({
       setOperationalCost(String(cat.default_operational_cost));
       if (cat.default_operational_cost_mode) setOperationalCostMode(cat.default_operational_cost_mode);
       if (cat.default_operational_cost_base) setOperationalCostBase(cat.default_operational_cost_base);
+    } else if (!operationalCost) {
+      // Fallback: regra global/categoria das margens (custo operacional sugerido)
+      const suggested = resolveSuggestedOperationalCostPct(pricingRules, category);
+      if (suggested != null) {
+        setOperationalCost(String(suggested));
+        setOperationalCostMode("percent");
+        setOperationalCostBase("price");
+      }
     }
     if (!commissionDefault && cat.default_commission != null) {
       setCommissionDefault(String(cat.default_commission));
