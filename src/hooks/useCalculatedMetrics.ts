@@ -26,12 +26,24 @@ export function useCalculatedMetrics(metricId?: string) {
   return useQuery({
     queryKey: ["calculated-metrics", wid, metricId],
     queryFn: async (): Promise<CalculatedMetric[]> => {
-      const { data, error } = await supabase.functions.invoke("calculate-pipeline-metrics", {
-        body: { workspace_id: wid, metric_id: metricId },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data.results as CalculatedMetric[];
+      try {
+        const { data, error } = await supabase.functions.invoke("calculate-pipeline-metrics", {
+          body: { workspace_id: wid, metric_id: metricId },
+        });
+        if (error) {
+          console.warn("[useCalculatedMetrics] invoke error:", error.message);
+          return [];
+        }
+        if (!data) return [];
+        if (data.fallback) {
+          console.warn("[useCalculatedMetrics] fallback response:", data.internal_error || data.error);
+          return Array.isArray(data.results) ? data.results : [];
+        }
+        return Array.isArray(data.results) ? (data.results as CalculatedMetric[]) : [];
+      } catch (e) {
+        console.warn("[useCalculatedMetrics] unexpected error:", e);
+        return [];
+      }
     },
     enabled: !!wid,
     staleTime: 60_000,
