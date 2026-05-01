@@ -100,25 +100,38 @@ export function useProducts(filters?: {
       if (error) throw error;
       const products = (data ?? []) as Product[];
 
-      // Batch-fetch first image for each product from product_images table
-      if (products.length > 0) {
-        const ids = products.map(p => p.id);
-        const { data: imgData } = await supabase
+      // Hydrate `images` from the inline join first (saves a round-trip when
+      // the relation already came back).
+      for (const product of products) {
+        const inline = (product as any).product_images as Array<{ url: string }> | undefined;
+        if ((!product.images || product.images.length === 0) && Array.isArray(inline) && inline.length > 0) {
+          product.images = inline.map((i) => i.url).filter(Boolean);
+        }
+      }
+
+      // Fallback: explicit fetch ordered by position for products still missing
+      // images (e.g. when the embedded join was skipped or filtered by RLS).
+      const missingIds = products.filter((p) => !p.images || p.images.length === 0).map((p) => p.id);
+      if (missingIds.length > 0) {
+        const { data: imgData, error: imgErr } = await supabase
           .from("product_images")
-          .select("product_id, url")
-          .in("product_id", ids)
+          .select("product_id, url, position")
+          .in("product_id", missingIds)
           .order("position", { ascending: true });
 
-        if (imgData && imgData.length > 0) {
-          const firstImageByProduct = new Map<string, string>();
+        if (imgErr) {
+          console.warn("[useProducts] product_images fetch failed", imgErr);
+        } else if (imgData && imgData.length > 0) {
+          const byProduct = new Map<string, string[]>();
           for (const img of imgData) {
-            if (!firstImageByProduct.has(img.product_id)) {
-              firstImageByProduct.set(img.product_id, img.url);
-            }
+            const arr = byProduct.get(img.product_id) ?? [];
+            arr.push(img.url);
+            byProduct.set(img.product_id, arr);
           }
           for (const product of products) {
-            if ((!product.images || product.images.length === 0) && firstImageByProduct.has(product.id)) {
-              product.images = [firstImageByProduct.get(product.id)!];
+            const urls = byProduct.get(product.id);
+            if (urls && urls.length > 0 && (!product.images || product.images.length === 0)) {
+              product.images = urls;
             }
           }
         }
