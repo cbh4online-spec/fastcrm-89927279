@@ -90,16 +90,40 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
     const file = e.target.files?.[0];
     if (!file || !currentWorkspace?.id) return;
 
+    if (!file.type.startsWith("image/")) {
+      toast.error("Ficheiro tem de ser uma imagem");
+      return;
+    }
+
     setIsUploading(true);
     try {
-      const fileExt = file.name.split(".").pop() || "jpg";
+      // Redimensiona/comprime para max 1920px e ~1MB (jpeg)
+      let uploadFile: File = file;
+      try {
+        uploadFile = await compressImageFile(file, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          fileType: "image/jpeg",
+        });
+      } catch (compressErr) {
+        console.warn("[PRODUCTS] IMAGE_COMPRESS_FAILED, using original", compressErr);
+      }
+
+      const fileExt = "jpg";
       const nextPosition = images.length;
       const seoFilename = buildSeoFilename(product, nextPosition, fileExt);
-      const filePath = `${currentWorkspace.id}/products/${seoFilename}`;
+      // Sufixo único para evitar colisão "resource already exists"
+      const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const storedFilename = seoFilename.replace(/\.([^.]+)$/, `-${uniqueSuffix}.$1`);
+      const filePath = `${currentWorkspace.id}/products/${storedFilename}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
-        .upload(filePath, file);
+        .upload(filePath, uploadFile, {
+          contentType: "image/jpeg",
+          upsert: false,
+          cacheControl: "3600",
+        });
 
       if (uploadError) {
         if (uploadError.message.includes("Bucket not found")) {
@@ -124,7 +148,7 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
         caption: product.short_description || product.name,
       });
     } catch (error: any) {
-      toast.error("Erro ao carregar imagem: " + error.message);
+      toast.error("Erro ao carregar imagem: " + (error?.message || "desconhecido"));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
