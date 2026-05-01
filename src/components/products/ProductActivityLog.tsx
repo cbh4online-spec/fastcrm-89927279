@@ -119,7 +119,7 @@ export function ProductActivityLog({ productId }: ProductActivityLogProps) {
     enabled: userIds.length > 0,
   });
 
-  const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+  const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
 
   if (isLoading) {
     return (
