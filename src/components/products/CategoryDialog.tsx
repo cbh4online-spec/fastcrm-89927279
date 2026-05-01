@@ -162,6 +162,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
         color: "#3B82F6",
         image_url: "",
         is_active: true,
+        variant_display_mode: "grouped",
       });
       setPreviewImage(null);
       setTheme("");
