@@ -23,7 +23,20 @@ const fmt = (n: number, currency = true) =>
 type SortKey = "name" | "stock" | "cost_value" | "sale_value" | "margin" | "margin_pct";
 
 export default function StockValuationPage() {
-  const { rows, summary, isLoading, refetch } = useInventoryValuation();
+  const { rows, summary, isLoading, isFetching, refetch } = useInventoryValuation();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await refetch();
+      toast.success("Dados actualizados");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao actualizar");
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("cost_value");
