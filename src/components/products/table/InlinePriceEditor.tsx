@@ -29,15 +29,17 @@ export function InlinePriceEditor({ value, currency = "EUR", onSave, formatCurre
   };
 
   if (!editing) {
+    const startEdit = () => {
+      setInputValue(value.toString());
+      setEditing(true);
+    };
     return (
       <button
         type="button"
-        onDoubleClick={() => {
-          setInputValue(value.toString());
-          setEditing(true);
-        }}
-        className="cursor-text hover:bg-muted/50 px-1 -mx-1 rounded transition-colors"
-        title="Duplo-clique para editar"
+        onClick={startEdit}
+        onFocus={startEdit}
+        className="cursor-text hover:bg-muted hover:ring-1 hover:ring-border px-1 -mx-1 rounded transition-all"
+        title="Clique para editar"
       >
         {formatCurrency(value, currency)}
       </button>

@@ -98,15 +98,17 @@ export function InlineFieldEditor({
 
   if (!editing) {
     const isEmpty = value == null || value === "";
+    const startEdit = () => {
+      setInputValue(value == null ? "" : String(value));
+      setEditing(true);
+    };
     return (
       <button
         type="button"
-        onDoubleClick={() => {
-          setInputValue(value == null ? "" : String(value));
-          setEditing(true);
-        }}
-        className="cursor-text hover:bg-muted/50 px-1 -mx-1 rounded transition-colors text-left max-w-full truncate"
-        title="Duplo-clique para editar"
+        onClick={startEdit}
+        onFocus={startEdit}
+        className="cursor-text hover:bg-muted hover:ring-1 hover:ring-border px-1 -mx-1 rounded transition-all text-left max-w-full truncate w-full"
+        title="Clique para editar"
       >
         {isEmpty ? (
           <span className="text-muted-foreground">{emptyPlaceholder}</span>
