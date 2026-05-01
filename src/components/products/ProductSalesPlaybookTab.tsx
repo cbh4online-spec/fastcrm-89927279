@@ -362,46 +362,27 @@ export function ProductSalesPlaybookTab({ product }: Props) {
               Nenhuma objeção registada. Clica em "Adicionar" para criar a primeira.
             </div>
           ) : (
-            data.objections.map((o, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-1 md:grid-cols-[1fr_1.5fr_auto] gap-2 items-start p-3 rounded border bg-muted/30"
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleObjectionsDragEnd}
+            >
+              <SortableContext
+                items={data.objections.map(getUiId)}
+                strategy={verticalListSortingStrategy}
               >
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Objeção #{idx + 1}
-                  </label>
-                  <Input
-                    value={o.objection}
-                    onChange={(e) => updateObjection(idx, "objection", e.target.value)}
-                    placeholder="Ex. É demasiado caro"
-                    maxLength={500}
+                {data.objections.map((o, idx) => (
+                  <SortableObjectionRow
+                    key={getUiId(o)}
+                    id={getUiId(o)}
+                    item={o}
+                    index={idx}
+                    onChange={(field, value) => updateObjection(idx, field, value)}
+                    onRemove={() => removeObjection(idx)}
                   />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Resposta sugerida
-                  </label>
-                  <Textarea
-                    value={o.response}
-                    onChange={(e) => updateObjection(idx, "response", e.target.value)}
-                    placeholder="Ex. O investimento paga-se em X meses porque…"
-                    rows={3}
-                    maxLength={2000}
-                  />
-                </div>
-                <div className="pt-5">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => removeObjection(idx)}
-                    aria-label="Remover objeção"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            ))
+                ))}
+              </SortableContext>
+            </DndContext>
           )}
         </CardContent>
       </Card>
