@@ -21,6 +21,8 @@ export interface CategoryCostDefaults {
   default_target_margin_mode?: CostMode | null;
 }
 
+export type VariantDisplayMode = "grouped" | "separate";
+
 export interface ProductCategory extends CategoryCostDefaults {
   id: string;
   workspace_id: string;
@@ -33,6 +35,7 @@ export interface ProductCategory extends CategoryCostDefaults {
   is_active: boolean;
   slug: string | null;
   store_visible: boolean;
+  variant_display_mode: VariantDisplayMode;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +49,7 @@ export interface CreateProductCategoryInput extends CategoryCostDefaults {
   is_active?: boolean;
   store_visible?: boolean;
   slug?: string;
+  variant_display_mode?: VariantDisplayMode;
 }
 
 export interface UpdateProductCategoryInput extends Partial<CreateProductCategoryInput> {
