@@ -4,11 +4,19 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import type { ProductImage } from "@/types/product";
 
-const invalidateProductImageQueries = (queryClient: ReturnType<typeof useQueryClient>, productId: string) => {
-  queryClient.invalidateQueries({ queryKey: ["product-images", productId] });
-  queryClient.invalidateQueries({ queryKey: ["product", productId] });
+const invalidateProductImageQueries = async (
+  queryClient: ReturnType<typeof useQueryClient>,
+  productId: string,
+) => {
+  // Refetch active queries imediatamente para evitar mostrar placeholder
+  await Promise.all([
+    queryClient.refetchQueries({ queryKey: ["product-images", productId], type: "active" }),
+    queryClient.refetchQueries({ queryKey: ["product", productId], type: "active" }),
+  ]);
+  // Invalida listagens (refetch lazy quando montadas)
   queryClient.invalidateQueries({ queryKey: ["products"] });
   queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
+  queryClient.invalidateQueries({ queryKey: ["store-products"] });
 };
 
 export function useProductImages(productId: string | undefined) {
