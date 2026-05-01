@@ -107,7 +107,6 @@ export default function StockValuationPage() {
       r.unit_sale_price.toFixed(2),
       r.total_sale_value.toFixed(2),
       r.latent_margin.toFixed(2),
-      r.latent_margin_pct.toFixed(2),
       r.markup_pct.toFixed(2),
     ].join(";"));
     const csv = [headers.join(";"), ...lines].join("\n");
