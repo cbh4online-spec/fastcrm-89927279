@@ -66,6 +66,7 @@ export default function PartnerCatalogPage() {
     const pricing = product.pricing;
     addItem({
       product_id: product.id,
+      variant_id: null,
       product_name: product.name,
       sku: product.sku,
       quantity: product.moq || 1,
@@ -75,6 +76,7 @@ export default function PartnerCatalogPage() {
       pack_size: product.pack_size || 1,
       moq: product.moq || 1,
       image_url: product.image_url,
+      allow_backorder: product.allow_backorder,
     });
   };
 
