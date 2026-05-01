@@ -110,13 +110,18 @@ export function usePartnerCheckout(
       const { error: itemsError } = await supabase.from("partner_order_items").insert(orderItems);
       if (itemsError) throw itemsError;
 
-      // Decrement variant stock (atomic, server-side). Erros logados mas não bloqueiam a encomenda
-      // já submetida — qualquer "insufficient_stock" é capturado e devolvido como aviso.
+      // Stock handling:
+      // - Se encomenda fica em awaiting_approval -> apenas RESERVA o stock (release automático em rejeição)
+      // - Se encomenda é submetida diretamente -> COMMIT imediato (decrementa stock_quantity)
+      // O trigger do header trata da transição reserve -> commit quando a aprovação acontece.
+      const stockRpc = needsApproval
+        ? 'reserve_partner_variant_stock'
+        : 'decrement_partner_variant_stock';
       const stockWarnings: string[] = [];
       for (const item of items) {
         if (!item.variant_id) continue;
         const { data: stockResult, error: stockError } = await supabase.rpc(
-          'decrement_partner_variant_stock',
+          stockRpc,
           {
             p_workspace_id: workspaceId,
             p_variant_id: item.variant_id,
@@ -136,6 +141,15 @@ export function usePartnerCheckout(
       if (stockWarnings.length > 0) {
         toast.warning(`Encomenda registada com avisos de stock: ${stockWarnings.join('; ')}`);
       }
+
+      // Marca o header com o estado correcto de stock para o trigger lifecycle
+      await supabase
+        .from('partner_order_headers')
+        .update({
+          stock_reserved: needsApproval,
+          stock_committed: !needsApproval,
+        })
+        .eq('id', order.id);
 
       // Atomic coupon redemption
       if (validCoupon && couponSavings > 0) {

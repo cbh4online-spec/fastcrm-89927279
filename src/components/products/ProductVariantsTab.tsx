@@ -260,8 +260,15 @@ export function ProductVariantsTab({
                     )}
                     <span>·</span>
                     <span>
-                      {v.track_stock ? `${v.stock_quantity} em stock` : "stock não controlado"}
+                      {v.track_stock
+                        ? `${v.stock_quantity - (v.stock_reserved ?? 0)} disponíveis (${v.stock_quantity} total)`
+                        : "stock não controlado"}
                     </span>
+                    {v.track_stock && (v.stock_reserved ?? 0) > 0 && (
+                      <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700">
+                        {v.stock_reserved} reservados
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">

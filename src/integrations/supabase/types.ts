@@ -47406,6 +47406,8 @@ export type Database = {
           shipping_amount: number
           source: string
           status: Database["public"]["Enums"]["partner_order_status"]
+          stock_committed: boolean
+          stock_reserved: boolean
           subtotal_net: number
           tax_amount: number
           total_gross: number
@@ -47439,6 +47441,8 @@ export type Database = {
           shipping_amount?: number
           source?: string
           status?: Database["public"]["Enums"]["partner_order_status"]
+          stock_committed?: boolean
+          stock_reserved?: boolean
           subtotal_net?: number
           tax_amount?: number
           total_gross?: number
@@ -47472,6 +47476,8 @@ export type Database = {
           shipping_amount?: number
           source?: string
           status?: Database["public"]["Enums"]["partner_order_status"]
+          stock_committed?: boolean
+          stock_reserved?: boolean
           subtotal_net?: number
           tax_amount?: number
           total_gross?: number
@@ -55465,6 +55471,7 @@ export type Database = {
           sku: string | null
           sort_order: number
           stock_quantity: number
+          stock_reserved: number
           track_stock: boolean
           updated_at: string
           workspace_id: string
@@ -55480,6 +55487,7 @@ export type Database = {
           sku?: string | null
           sort_order?: number
           stock_quantity?: number
+          stock_reserved?: number
           track_stock?: boolean
           updated_at?: string
           workspace_id: string
@@ -55495,6 +55503,7 @@ export type Database = {
           sku?: string | null
           sort_order?: number
           stock_quantity?: number
+          stock_reserved?: number
           track_stock?: boolean
           updated_at?: string
           workspace_id?: string
@@ -76446,6 +76455,15 @@ export type Database = {
       cleanup_ghost_livestreams: { Args: never; Returns: number }
       cleanup_old_activity_logs: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: { p_max_age_ms?: number }; Returns: number }
+      commit_partner_variant_stock: {
+        Args: {
+          p_allow_backorder?: boolean
+          p_quantity: number
+          p_variant_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       complete_objective: {
         Args: {
           p_collected_value: string
@@ -77384,6 +77402,14 @@ export type Database = {
             }
             Returns: undefined
           }
+      release_partner_variant_stock: {
+        Args: {
+          p_quantity: number
+          p_variant_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       remove_workspace_member_admin: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: Json
@@ -77396,6 +77422,15 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: boolean
+      }
+      reserve_partner_variant_stock: {
+        Args: {
+          p_allow_backorder?: boolean
+          p_quantity: number
+          p_variant_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
       }
       reset_fastmatch_quotas: { Args: never; Returns: undefined }
       reset_monthly_ai_budgets: { Args: never; Returns: undefined }
