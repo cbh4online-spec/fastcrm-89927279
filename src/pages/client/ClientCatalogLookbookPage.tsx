@@ -107,14 +107,14 @@ function EmptyState() {
         O administrador do workspace ainda não publicou nenhuma página editorial.
         Entretanto, pode consultar o catálogo completo em vista grelha.
       </p>
-      <div className="flex justify-center gap-3">
-        <Button asChild className="rounded-full bg-[hsl(var(--editorial-ink))] text-[hsl(var(--editorial-cream))]">
+      <div className="flex flex-col sm:flex-row justify-center gap-3">
+        <Button asChild className="rounded-full bg-[hsl(var(--editorial-ink))] text-[hsl(var(--editorial-cream))] w-full sm:w-auto">
           <Link to="/client/catalog/grid">
             <LayoutGrid className="h-4 w-4 mr-2" />
             Ver catálogo em grelha
           </Link>
         </Button>
-        <Button asChild variant="outline" className="rounded-full">
+        <Button asChild variant="outline" className="rounded-full w-full sm:w-auto">
           <Link to="/client/admin/catalog-pages">Criar primeira página (admin)</Link>
         </Button>
       </div>
