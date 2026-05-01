@@ -51,6 +51,8 @@ import {
   ImageIcon,
   Send,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
@@ -138,7 +140,11 @@ export function ProductDetailDialog({
   const mainImage = displayImages[heroIdx];
 
   useEffect(() => {
-    if (displayImages.length > 0 && heroIdx >= displayImages.length) {
+    if (displayImages.length === 0) {
+      if (heroIdx !== 0) setHeroIdx(0);
+      return;
+    }
+    if (heroIdx >= displayImages.length || heroIdx < 0) {
       setHeroIdx(0);
     }
   }, [displayImages.length, heroIdx]);
@@ -146,6 +152,16 @@ export function ProductDetailDialog({
   useEffect(() => {
     setHeroIdx(0);
   }, [productId]);
+
+  const hasMultipleImages = displayImages.length > 1;
+  const canGoPrev = hasMultipleImages && heroIdx > 0;
+  const canGoNext = hasMultipleImages && heroIdx < displayImages.length - 1;
+  const goPrev = () => {
+    if (canGoPrev) setHeroIdx((i) => Math.max(0, i - 1));
+  };
+  const goNext = () => {
+    if (canGoNext) setHeroIdx((i) => Math.min(displayImages.length - 1, i + 1));
+  };
 
   const formatCurrency = (value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
@@ -210,8 +226,31 @@ export function ProductDetailDialog({
                       <ImageIcon className="h-14 w-14 text-muted-foreground/30" />
                     </div>
                   )}
+                  {/* Prev / Next navigation */}
+                  {hasMultipleImages && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        disabled={!canGoPrev}
+                        aria-label="Imagem anterior"
+                        className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 hover:bg-background border shadow flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        disabled={!canGoNext}
+                        aria-label="Próxima imagem"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 hover:bg-background border shadow flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
                   {/* Mini gallery thumbnails */}
-                  {displayImages.length > 1 && (
+                  {hasMultipleImages && (
                     <div className="absolute bottom-1.5 left-1.5 right-1.5 flex gap-1 overflow-x-auto">
                       {displayImages.slice(0, 5).map((img, idx) => (
                         <button
