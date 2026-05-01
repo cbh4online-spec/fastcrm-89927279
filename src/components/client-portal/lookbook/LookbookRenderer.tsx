@@ -63,18 +63,18 @@ export function LookbookRenderer({ pages, onAddToCart, gridFallbackUrl }: Lookbo
     >
       {/* Header minimal — paginador + acções */}
       <div
-        className="flex items-center justify-between px-6 py-4 border-b"
+        className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b"
         style={{ borderColor: `hsl(var(--lb-divider) / 0.3)` }}
       >
-        <span className="text-xs uppercase tracking-[0.25em] font-medium text-[hsl(var(--lb-ink))]">
+        <span className="text-[10px] sm:text-xs uppercase tracking-[0.2em] sm:tracking-[0.25em] font-medium text-[hsl(var(--lb-ink))]">
           {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
         </span>
         <div className="flex items-center gap-2">
           {gridFallbackUrl && (
-            <Button asChild variant="ghost" size="sm" className="text-[hsl(var(--lb-ink))] hover:bg-[hsl(var(--lb-ink))]/5">
+            <Button asChild variant="ghost" size="sm" className="text-[hsl(var(--lb-ink))] hover:bg-[hsl(var(--lb-ink))]/5 h-8 px-2 sm:px-3">
               <Link to={gridFallbackUrl}>
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                Vista grelha
+                <LayoutGrid className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Vista grelha</span>
               </Link>
             </Button>
           )}
