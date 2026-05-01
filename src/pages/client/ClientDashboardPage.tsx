@@ -9,7 +9,8 @@ import { useClientApprovals } from "@/hooks/client-portal/useClientApprovals";
 import { useClientPermissions } from "@/hooks/client-portal/useClientPermissions";
 import { useCart } from "@/contexts/CartContext";
 import { QuickReorderWidget } from "@/components/client-portal/QuickReorderWidget";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PartnerHeroCarousel } from "@/components/client-portal/PartnerHeroCarousel";
+import type { PartnerPortalSlide } from "@/hooks/usePartnerPortalSlides";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
