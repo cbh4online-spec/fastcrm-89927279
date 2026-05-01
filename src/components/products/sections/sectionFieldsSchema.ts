@@ -11,6 +11,28 @@ export interface SectionField {
 }
 
 /**
+ * Mapeamento canónico: chaves de atributo de secção que correspondem
+ * directamente a colunas existentes da tabela `products`. A coluna é
+ * sempre o SSoT — estas chaves não são editáveis no editor de secções
+ * para evitar duplicação de inputs.
+ *
+ * Usado por `resolveCanonicalAttributes()` para "hidratar" o Copilot B2B
+ * com a vista unificada (colunas + atributos jsonb).
+ */
+export const CANONICAL_COLUMN_MAP: Record<string, { section: ProductSectionKey; column: string; transform?: "weight_kg" | "validity_days" | "quantity_unit" }> = {
+  // how_to_use
+  frequencia: { section: "how_to_use", column: "recommended_frequency" },
+  dose: { section: "how_to_use", column: "included_quantity", transform: "quantity_unit" },
+  // specifications
+  peso: { section: "specifications", column: "weight", transform: "weight_kg" },
+  volume: { section: "specifications", column: "total_units", transform: "quantity_unit" },
+  validade: { section: "specifications", column: "validity_days", transform: "validity_days" },
+};
+
+/** Conjunto de chaves "espelhadas" — não devem aparecer no editor de secções. */
+export const MIRRORED_KEYS = new Set(Object.keys(CANONICAL_COLUMN_MAP));
+
+/**
  * Campos conhecidos por secção. São guardados dentro do jsonb `attributes`,
  * mas apresentados como inputs dedicados no UI para garantir consistência
  * e permitir ao Copilot B2B consultar cada atributo separadamente.
