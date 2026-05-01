@@ -83,6 +83,7 @@ import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductStockTab } from "./ProductStockTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductLifecycleTab } from "./ProductLifecycleTab";
+import { ProductSalesPlaybookTab } from "./ProductSalesPlaybookTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
 import { ProductOCRContentSection } from "./ProductOCRContentSection";
