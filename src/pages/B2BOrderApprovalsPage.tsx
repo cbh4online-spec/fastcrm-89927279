@@ -4,11 +4,13 @@ import {
   usePartnerOrderApprovals,
   type PendingPartnerOrder,
 } from "@/hooks/partner/usePartnerOrderApprovals";
+import { usePartnerOrderApprovalHistory } from "@/hooks/partner/usePartnerOrderApprovalHistory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -27,9 +29,11 @@ import {
   Inbox,
   ChevronDown,
   ChevronUp,
+  History,
+  Ban,
 } from "lucide-react";
 import { formatMoneyEur } from "@/lib/money";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { pt } from "date-fns/locale";
 
 type DecisionDialog = {
