@@ -130,6 +130,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
         color: category.color || "#3B82F6",
         image_url: category.image_url || "",
         is_active: category.is_active,
+        variant_display_mode: (category as any).variant_display_mode ?? "grouped",
       });
       setPreviewImage(category.image_url || null);
       setDirectCost({
