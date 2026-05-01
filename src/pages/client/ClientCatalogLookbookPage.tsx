@@ -1,5 +1,6 @@
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { EditorialPageHeader } from "@/components/client-portal/EditorialPageHeader";
+import { EditorialHero } from "@/components/client-portal/EditorialHero";
 import { LookbookRenderer } from "@/components/client-portal/lookbook/LookbookRenderer";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { usePartnerCatalogPages } from "@/hooks/usePartnerCatalogPages";
