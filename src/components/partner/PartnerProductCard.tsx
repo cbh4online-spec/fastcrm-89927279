@@ -10,6 +10,7 @@ import type {
   PartnerCatalogVariant,
 } from "@/hooks/partner/usePartnerCatalog";
 import { VariantPicker } from "./VariantPicker";
+import { ProductImageSearchPopover } from "./ProductImageSearchPopover";
 
 interface PartnerProductCardProps {
   product: PartnerCatalogProduct;
@@ -98,42 +99,48 @@ export function PartnerProductCard({
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-      <button
-        type="button"
-        onClick={() => onOpenDetails?.(product, selectedVariant?.id ?? null)}
-        className="aspect-square bg-muted relative overflow-hidden block w-full text-left"
-        aria-label={`Ver detalhes de ${product.name}`}
-      >
-        {effective.image ? (
-          <img
-            src={effective.image}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Package className="h-10 w-10 text-muted-foreground" />
-          </div>
-        )}
-        {hasVariants && (
-          <Badge
-            variant="secondary"
-            className="absolute top-2 right-2 gap-1 backdrop-blur bg-background/80"
-          >
-            <Layers className="h-3 w-3" />
-            {product.variants.length}
-          </Badge>
-        )}
-        {isOutOfStock && (
-          <Badge
-            variant="destructive"
-            className="absolute top-2 left-2 backdrop-blur"
-          >
-            Esgotado
-          </Badge>
-        )}
-      </button>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => onOpenDetails?.(product, selectedVariant?.id ?? null)}
+          className="aspect-square bg-muted relative overflow-hidden block w-full text-left"
+          aria-label={`Ver detalhes de ${product.name}`}
+        >
+          {effective.image ? (
+            <img
+              src={effective.image}
+              alt={product.name}
+              className="w-full h-full object-cover transition-transform hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Package className="h-10 w-10 text-muted-foreground" />
+            </div>
+          )}
+          {hasVariants && (
+            <Badge
+              variant="secondary"
+              className="absolute top-2 right-2 gap-1 backdrop-blur bg-background/80"
+            >
+              <Layers className="h-3 w-3" />
+              {product.variants.length}
+            </Badge>
+          )}
+          {isOutOfStock && (
+            <Badge
+              variant="destructive"
+              className="absolute bottom-2 left-2 backdrop-blur"
+            >
+              Esgotado
+            </Badge>
+          )}
+        </button>
+        {/* Pesquisa de imagens — sibling do <button> para evitar interactive aninhado */}
+        <div className="absolute top-2 left-2 z-10">
+          <ProductImageSearchPopover productName={product.name} />
+        </div>
+      </div>
 
       <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
         <div>
