@@ -53942,6 +53942,7 @@ export type Database = {
           reorder_qty: number | null
           reviewed_at: string | null
           reviewed_by: string | null
+          sales_playbook: Json
           search_keywords: string | null
           setup_fee: number | null
           sheet_published: boolean | null
@@ -54078,6 +54079,7 @@ export type Database = {
           reorder_qty?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          sales_playbook?: Json
           search_keywords?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null
@@ -54214,6 +54216,7 @@ export type Database = {
           reorder_qty?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          sales_playbook?: Json
           search_keywords?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null

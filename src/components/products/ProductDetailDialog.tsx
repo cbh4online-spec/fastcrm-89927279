@@ -83,6 +83,7 @@ import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductStockTab } from "./ProductStockTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductLifecycleTab } from "./ProductLifecycleTab";
+import { ProductSalesPlaybookTab } from "./ProductSalesPlaybookTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
 import { ProductOCRContentSection } from "./ProductOCRContentSection";
@@ -328,7 +329,7 @@ export function ProductDetailDialog({
                     "ai-content": "content", progressions: "content",
                     financial: "pricing", "price-history": "pricing", cycles: "pricing",
                     stock: "stock",
-                    analytics: "sales", usage: "sales", lifecycle: "sales",
+                    analytics: "sales", usage: "sales", lifecycle: "sales", playbook: "sales",
                     publishing: "publishing", deliverables: "publishing",
                     relations: "relations", documents: "relations",
                     audit: "audit",
@@ -371,6 +372,7 @@ export function ProductDetailDialog({
                       { value: "analytics", label: "Analytics" },
                       { value: "usage", label: "Histórico" },
                       { value: "lifecycle", label: "Ciclo de vida" },
+                      { value: "playbook", label: "Vendas & Pós-venda" },
                     ],
                     publishing: [
                       { value: "publishing", label: "Publicação" },
@@ -714,6 +716,10 @@ export function ProductDetailDialog({
 
                   <TabsContent value="lifecycle" className="mt-4">
                     <ProductLifecycleTab product={product as any} />
+                  </TabsContent>
+
+                  <TabsContent value="playbook" className="mt-4">
+                    <ProductSalesPlaybookTab product={product as any} />
                   </TabsContent>
 
                   <TabsContent value="deliverables" className="mt-4">
