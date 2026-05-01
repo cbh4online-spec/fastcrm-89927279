@@ -62,6 +62,7 @@ interface ProductsDataTableProps {
   isFilteredEmpty?: boolean;
   onClearFilters?: () => void;
   pricingRules?: import("@/hooks/useProductPricingIntelligence").PricingRule[];
+  productTypesConfig?: { code: string; label: string; is_active?: boolean }[];
 }
 
 function RenderProductCell({
