@@ -233,12 +233,20 @@ export function useProductsListState() {
     },
   });
 
-  // --- Optimistic inline price update ---
+  // --- Optimistic inline field update (price + other editable fields) ---
+  const EDITABLE_FIELDS = new Set([
+    "base_price", "direct_cost", "operational_cost",
+    "sku", "category",
+    "total_units", "unit_duration", "validity_days",
+    "tax_rate_estimate_pct", "commission_default",
+  ]);
+
   const updateProductPrice = useMutation({
-    mutationFn: async ({ id, field, value }: { id: string; field: "base_price" | "direct_cost"; value: number }) => {
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: string | number | null }) => {
+      if (!EDITABLE_FIELDS.has(field)) throw new Error(`Campo não editável: ${field}`);
       const { error } = await supabase
         .from("products")
-        .update({ [field]: value, updated_at: new Date().toISOString() })
+        .update({ [field]: value, updated_at: new Date().toISOString() } as any)
         .eq("id", id);
       if (error) throw error;
     },
@@ -247,7 +255,7 @@ export function useProductsListState() {
       const previousProducts = queryClient.getQueryData<Product[]>(productsQueryKey);
       if (previousProducts) {
         queryClient.setQueryData<Product[]>(productsQueryKey,
-          previousProducts.map(p => p.id === id ? { ...p, [field]: value } : p)
+          previousProducts.map(p => p.id === id ? { ...p, [field]: value } as Product : p)
         );
       }
       return { previousProducts };
@@ -256,13 +264,13 @@ export function useProductsListState() {
       if (context?.previousProducts) {
         queryClient.setQueryData(productsQueryKey, context.previousProducts);
       }
-      toast.error("Erro ao atualizar preço");
+      toast.error("Erro ao atualizar campo");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onSuccess: () => {
-      toast.success("Preço atualizado");
+      toast.success("Atualizado");
     },
   });
 
