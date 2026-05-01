@@ -177,16 +177,25 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     <div className="editorial-portal min-h-screen flex flex-col">
       {/* Header — Editorial premium */}
       <header className="sticky top-0 z-50 border-b border-[hsl(var(--editorial-border))]/70 bg-[hsl(var(--editorial-cream))]/85 backdrop-blur-xl">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-20 items-center justify-between">
           {/* Logo */}
-          <Link to="/client/dashboard" className="flex items-center gap-2.5">
-            <WorkspaceLogo
-              logoUrl={workspaceBranding?.logo_url}
-              workspaceName={workspaceBranding?.name}
-              size="md"
-              variant="portal"
-            />
-            <span className="font-semibold text-lg hidden sm:inline tracking-tight">{portalName}</span>
+          <Link to="/client/dashboard" className="flex items-center gap-3">
+            {workspaceBranding?.logo_url ? (
+              <img
+                src={workspaceBranding.logo_url}
+                alt={workspaceBranding.name || "Workspace"}
+                className="h-14 w-auto max-w-[260px] object-contain flex-shrink-0"
+              />
+            ) : (
+              <>
+                <WorkspaceLogo
+                  workspaceName={workspaceBranding?.name}
+                  size="xl"
+                  variant="portal"
+                />
+                <span className="font-editorial text-2xl tracking-tight text-[hsl(var(--editorial-ink))] hidden sm:inline">{portalName}</span>
+              </>
+            )}
           </Link>
 
           {/* Desktop Navigation */}
