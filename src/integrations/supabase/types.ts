@@ -75553,6 +75553,7 @@ export type Database = {
           id: string | null
           images: string[] | null
           included_quantity: number | null
+          indexed_for_copilot_at: string | null
           is_cross_sell: boolean | null
           is_cross_sell_validation_status: string | null
           is_impulse_product: boolean | null
@@ -75874,13 +75875,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_a"]
-            isOneToOne: false
-            referencedRelation: "partner_b2b_catalog_grouped"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "partner_b2b_catalog_grouped"
@@ -75890,8 +75884,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_b2b_content"
-            referencedColumns: ["product_id"]
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -75904,8 +75898,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_catalog"
-            referencedColumns: ["id"]
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -75918,8 +75912,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -75931,13 +75925,20 @@ export type Database = {
           {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_b"]
+            columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
