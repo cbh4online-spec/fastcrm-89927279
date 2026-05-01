@@ -28,6 +28,7 @@ const ClientProtocolDetailPage = lazy(() => import("@/pages/client/ClientProtoco
 const ClientConsumptionPage = lazy(() => import("@/pages/client/ClientConsumptionPage"));
 const ClientRankingsPage = lazy(() => import("@/pages/client/ClientRankingsPage"));
 const ClientSecurityPage = lazy(() => import("@/pages/client/ClientSecurityPage"));
+const ClientPortalSlidesAdminPage = lazy(() => import("@/pages/client/ClientPortalSlidesAdminPage"));
 
 export function ClientPortalRoutes() {
   return (
