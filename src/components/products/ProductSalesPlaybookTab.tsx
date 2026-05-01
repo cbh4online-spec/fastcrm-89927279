@@ -180,22 +180,36 @@ export function ProductSalesPlaybookTab({ product }: Props) {
   return (
     <div className="space-y-4">
       {/* Sticky save bar */}
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-1 px-1 border-b">
+      <div className="flex flex-wrap items-center justify-between gap-2 sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-1 px-1 border-b">
         <div className="text-sm text-muted-foreground">
           {data.updated_at
             ? <>Última atualização: {new Date(data.updated_at).toLocaleString("pt-PT")}</>
             : <>Sem alterações guardadas</>}
         </div>
-        <Button
-          size="sm"
-          onClick={() => save.mutate()}
-          disabled={!dirty || save.isPending}
-        >
-          {save.isPending
-            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            : <Save className="h-4 w-4 mr-2" />}
-          Guardar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => generate.mutate("all")}
+            disabled={generate.isPending}
+            title="Gera Script, Objeções e Garantia com base na ficha do produto"
+          >
+            {isGenerating("all")
+              ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              : <Sparkles className="h-4 w-4 mr-2" />}
+            Gerar tudo com IA
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => save.mutate()}
+            disabled={!dirty || save.isPending}
+          >
+            {save.isPending
+              ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              : <Save className="h-4 w-4 mr-2" />}
+            Guardar
+          </Button>
+        </div>
       </div>
 
       {/* Script de vendas */}
