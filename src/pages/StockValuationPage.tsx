@@ -283,12 +283,17 @@ export default function StockValuationPage() {
                       <TableRow key={r.product_id}>
                         <TableCell className="font-medium">{r.product_name}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">{r.sku || "—"}</TableCell>
-                        <TableCell className="text-right border-r">
+                        <TableCell className="text-right">
                           {r.current_stock <= 0 ? (
                             <Badge variant="destructive">0</Badge>
                           ) : (
-                            fmt(r.current_stock, false)
+                            <span className={r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold ? "text-amber-600 font-medium" : ""}>
+                              {fmt(r.current_stock, false)}
+                            </span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-right border-r text-muted-foreground text-sm">
+                          {r.low_stock_threshold > 0 ? fmt(r.low_stock_threshold, false) : "—"}
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">{fmt(r.fifo_avg_cost)}</TableCell>
                         <TableCell className="text-right text-muted-foreground">
