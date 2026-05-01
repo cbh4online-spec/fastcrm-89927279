@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { Product, CreateProductInput, UpdateProductInput } from "@/types/product";
+import { DEFAULT_SALES_PLAYBOOK } from "@/components/products/salesPlaybookTemplate";
 
 // Helper function to ensure category exists in product_categories table
 async function ensureCategoryExists(categoryName: string | undefined, workspaceId: string): Promise<void> {
