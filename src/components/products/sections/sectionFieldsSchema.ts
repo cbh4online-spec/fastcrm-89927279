@@ -68,19 +68,7 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
       label: "Passos de uso",
       type: "list",
       placeholder: "Ex: Aplicar 2 gotas no rosto seco",
-      hint: "Um passo por linha, na ordem de aplicação.",
-    },
-    {
-      key: "dose",
-      label: "Dose",
-      type: "text",
-      placeholder: "Ex: 2 gotas / 1 cápsula / 5 ml",
-    },
-    {
-      key: "frequencia",
-      label: "Frequência",
-      type: "text",
-      placeholder: "Ex: 2x por dia, manhã e noite",
+      hint: "Um passo por linha, na ordem de aplicação. Dose e frequência são definidas nos campos do produto.",
     },
     {
       key: "advertencias",
