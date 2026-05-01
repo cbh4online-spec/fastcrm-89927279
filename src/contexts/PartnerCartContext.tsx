@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
 import type { PartnerCartItem } from "@/types/partner";
-import { validatePartnerQuantity } from "@/types/partner";
+import { validatePartnerQuantity, partnerCartItemKey } from "@/types/partner";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePartnerAuth } from "@/contexts/PartnerAuthContext";
