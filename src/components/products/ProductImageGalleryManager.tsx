@@ -15,11 +15,13 @@ import {
   Camera,
   Upload,
   Loader2,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { ProductImageWebSearchDialog } from "./ProductImageWebSearchDialog";
 
 interface ProductImageGalleryManagerProps {
   images: string[];
