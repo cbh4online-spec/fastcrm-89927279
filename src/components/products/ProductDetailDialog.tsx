@@ -130,13 +130,21 @@ export function ProductDetailDialog({
   const showMargin = canSeeField("products", "gross_margin");
 
   const [heroIdx, setHeroIdx] = useState(0);
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+
+  // Reset URLs falhadas ao trocar de produto
+  useEffect(() => {
+    setFailedUrls(new Set());
+  }, [productId]);
 
   // Fallback: if product_images table is empty, use product.images array
   const fallbackImages: Array<{ id: string; url: string; alt_text: string | null }> =
     (!productImages || productImages.length === 0) && product?.images && Array.isArray(product.images)
       ? (product.images as string[]).map((url, i) => ({ id: `fallback-${i}`, url, alt_text: null }))
       : [];
-  const displayImages = (productImages && productImages.length > 0) ? productImages : fallbackImages;
+  const allImages = (productImages && productImages.length > 0) ? productImages : fallbackImages;
+  // Excluir imagens cujo URL falhou ao carregar (404/403)
+  const displayImages = allImages.filter((img) => !failedUrls.has(img.url));
   const mainImage = displayImages[heroIdx];
 
   useEffect(() => {
@@ -152,6 +160,18 @@ export function ProductDetailDialog({
   useEffect(() => {
     setHeroIdx(0);
   }, [productId]);
+
+  const handleImageError = (url: string) => {
+    console.warn('[PRODUCTS] IMAGE_LOAD_FAILED', url);
+    setFailedUrls((prev) => {
+      if (prev.has(url)) return prev;
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
+    // Avançar para a próxima válida (heroIdx mantém-se; o filtro recalcula)
+    setHeroIdx(0);
+  };
 
   const hasMultipleImages = displayImages.length > 1;
   const canGoPrev = hasMultipleImages && heroIdx > 0;
@@ -217,9 +237,12 @@ export function ProductDetailDialog({
                 <div className="relative w-full sm:w-[240px] h-[180px] sm:h-[180px] shrink-0 bg-muted/60 overflow-hidden">
                   {mainImage ? (
                     <img
+                      key={mainImage.url}
                       src={mainImage.url}
                       alt={mainImage.alt_text || product.name}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={() => handleImageError(mainImage.url)}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -260,7 +283,13 @@ export function ProductDetailDialog({
                             idx === heroIdx ? "border-primary shadow-md" : "border-white/50 opacity-70 hover:opacity-100"
                           }`}
                         >
-                          <img src={img.url} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={img.url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={() => handleImageError(img.url)}
+                          />
                         </button>
                       ))}
                     </div>
