@@ -51104,6 +51104,7 @@ export type Database = {
           slug: string | null
           store_visible: boolean
           updated_at: string
+          variant_display_mode: string
           workspace_id: string
         }
         Insert: {
@@ -51132,6 +51133,7 @@ export type Database = {
           slug?: string | null
           store_visible?: boolean
           updated_at?: string
+          variant_display_mode?: string
           workspace_id: string
         }
         Update: {
@@ -51160,6 +51162,7 @@ export type Database = {
           slug?: string | null
           store_visible?: boolean
           updated_at?: string
+          variant_display_mode?: string
           workspace_id?: string
         }
         Relationships: [

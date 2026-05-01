@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Sparkles, Wand2, ImageIcon, Check, RefreshCw, Upload } from "lucide-react";
 import {
   useCreateProductCategory,
@@ -52,6 +53,7 @@ const categorySchema = z.object({
   color: z.string().optional(),
   image_url: z.string().optional(),
   is_active: z.boolean().default(true),
+  variant_display_mode: z.enum(["grouped", "separate"]).default("grouped"),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -117,6 +119,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
       color: "#3B82F6",
       image_url: "",
       is_active: true,
+      variant_display_mode: "grouped",
     },
   });
 
@@ -128,6 +131,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
         color: category.color || "#3B82F6",
         image_url: category.image_url || "",
         is_active: category.is_active,
+        variant_display_mode: (category as any).variant_display_mode ?? "grouped",
       });
       setPreviewImage(category.image_url || null);
       setDirectCost({
@@ -159,6 +163,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
         color: "#3B82F6",
         image_url: "",
         is_active: true,
+        variant_display_mode: "grouped",
       });
       setPreviewImage(null);
       setTheme("");
@@ -205,6 +210,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
           color: data.color,
           image_url: data.image_url,
           is_active: data.is_active,
+          variant_display_mode: data.variant_display_mode,
           ...costDefaults,
         });
       }
@@ -563,6 +569,32 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="variant_display_mode"
+                  render={({ field }) => (
+                    <FormItem className="rounded-lg border p-3 space-y-2">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Apresentação de variantes na loja</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Como produtos com variantes (ex.: 250ml/500ml) aparecem na vitrine B2B
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="grouped">1 cartão + seletor de variante</SelectItem>
+                            <SelectItem value="separate">1 cartão por variante (agrupados)</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                     </FormItem>
                   )}
