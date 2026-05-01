@@ -372,6 +372,7 @@ export function ProductDetailDialog({
                       { value: "analytics", label: "Analytics" },
                       { value: "usage", label: "Histórico" },
                       { value: "lifecycle", label: "Ciclo de vida" },
+                      { value: "playbook", label: "Vendas & Pós-venda" },
                     ],
                     publishing: [
                       { value: "publishing", label: "Publicação" },
