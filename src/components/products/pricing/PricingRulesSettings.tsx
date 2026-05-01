@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { ShieldCheck, Plus, Edit, Trash2, Loader2, Target } from "lucide-react";
+import { ShieldCheck, Plus, Edit, Trash2, Loader2, Target, Calculator, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   usePricingRules,
@@ -36,6 +36,7 @@ interface RuleFormState {
   min_margin_pct: string;
   target_margin_pct: string;
   max_margin_pct: string;
+  default_operational_cost_pct: string;
   is_active: boolean;
 }
 
@@ -45,6 +46,7 @@ const emptyForm: RuleFormState = {
   min_margin_pct: "10",
   target_margin_pct: "25",
   max_margin_pct: "50",
+  default_operational_cost_pct: "",
   is_active: true,
 };
 
@@ -71,6 +73,9 @@ export function PricingRulesSettings() {
       min_margin_pct: String(rule.min_margin_pct),
       target_margin_pct: String(rule.target_margin_pct ?? ""),
       max_margin_pct: String(rule.max_margin_pct ?? ""),
+      default_operational_cost_pct: rule.default_operational_cost_pct != null
+        ? String(rule.default_operational_cost_pct)
+        : "",
       is_active: rule.is_active,
     });
     setDialogOpen(true);
@@ -82,6 +87,13 @@ export function PricingRulesSettings() {
       toast.error("Margem mínima inválida");
       return;
     }
+    const opCost = form.default_operational_cost_pct
+      ? parseFloat(form.default_operational_cost_pct)
+      : null;
+    if (opCost != null && (isNaN(opCost) || opCost < 0 || opCost > 100)) {
+      toast.error("Custo operacional sugerido inválido (0–100%)");
+      return;
+    }
 
     await upsert.mutateAsync({
       ...(form.id ? { id: form.id } : {}),
@@ -91,6 +103,7 @@ export function PricingRulesSettings() {
       min_margin_pct: min,
       target_margin_pct: form.target_margin_pct ? parseFloat(form.target_margin_pct) : null,
       max_margin_pct: form.max_margin_pct ? parseFloat(form.max_margin_pct) : null,
+      default_operational_cost_pct: opCost,
       is_active: form.is_active,
     });
     setDialogOpen(false);
@@ -121,6 +134,46 @@ export function PricingRulesSettings() {
 
   const globalRule = rules.find(r => r.applies_to === "all");
 
+  /**
+   * Recalcula o custo operacional sugerido com base na média
+   * dos produtos existentes do workspace (apenas os que têm op cost > 0).
+   * Para regra "global" usa todos os produtos; para regra de categoria filtra por categoria.
+   */
+  const handleRecalculate = async () => {
+    const wsId = currentWorkspace?.id;
+    if (!wsId) return;
+    const sb = supabase as any;
+    let query = sb
+      .from("products")
+      .select("operational_cost, base_price, category")
+      .eq("workspace_id", wsId)
+      .gt("operational_cost", 0)
+      .gt("base_price", 0);
+    if (form.applies_to === "category" && form.category) {
+      query = query.eq("category", form.category);
+    }
+    const { data, error } = await query.limit(2000);
+    if (error) {
+      toast.error("Erro a calcular: " + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      toast.info("Sem produtos com custo operacional para calcular");
+      return;
+    }
+    // Média ponderada simples: % do custo operacional sobre o preço base
+    const pcts = data
+      .map((p: any) => (Number(p.operational_cost) / Number(p.base_price)) * 100)
+      .filter((n: number) => isFinite(n) && n > 0 && n < 100);
+    if (pcts.length === 0) {
+      toast.info("Sem dados válidos para calcular");
+      return;
+    }
+    const avg = pcts.reduce((s: number, n: number) => s + n, 0) / pcts.length;
+    setForm({ ...form, default_operational_cost_pct: avg.toFixed(1) });
+    toast.success(`Sugerido: ${avg.toFixed(1)}% (média de ${pcts.length} produto${pcts.length > 1 ? "s" : ""})`);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -140,7 +193,10 @@ export function PricingRulesSettings() {
               <p className="text-sm font-medium">Margem mínima global (fallback)</p>
               <p className="text-xs text-muted-foreground">
                 {globalRule ? `${globalRule.min_margin_pct}%` : "10% (padrão)"}
-                {globalRule?.target_margin_pct && ` · Target: ${globalRule.target_margin_pct}%`}
+                {globalRule?.target_margin_pct ? ` · Target: ${globalRule.target_margin_pct}%` : ""}
+                {globalRule?.default_operational_cost_pct != null
+                  ? ` · Custo operacional sugerido: ${globalRule.default_operational_cost_pct}%`
+                  : " · Sem custo operacional sugerido"}
               </p>
             </div>
             <Button
@@ -190,6 +246,9 @@ export function PricingRulesSettings() {
                   <TableHead>Margem Mín.</TableHead>
                   <TableHead>Target</TableHead>
                   <TableHead>Máx.</TableHead>
+                  <TableHead title="Custo operacional sugerido (% do preço líquido) — pré-preenche em produtos novos">
+                    Op. Sug.
+                  </TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="w-[100px]">Ações</TableHead>
                 </TableRow>
@@ -207,6 +266,11 @@ export function PricingRulesSettings() {
                     <TableCell className="font-medium">{rule.min_margin_pct}%</TableCell>
                     <TableCell>{rule.target_margin_pct ? `${rule.target_margin_pct}%` : "—"}</TableCell>
                     <TableCell>{rule.max_margin_pct ? `${rule.max_margin_pct}%` : "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {rule.default_operational_cost_pct != null
+                        ? `${rule.default_operational_cost_pct}%`
+                        : "—"}
+                    </TableCell>
                     <TableCell>
                       <Switch checked={rule.is_active} onCheckedChange={() => handleToggle(rule)} />
                     </TableCell>
@@ -298,6 +362,39 @@ export function PricingRulesSettings() {
                   onChange={(e) => setForm({ ...form, max_margin_pct: e.target.value })}
                 />
               </div>
+            </div>
+
+            {/* Custo operacional sugerido — análogo às margens */}
+            <div className="rounded-lg border p-3 bg-muted/20 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="flex items-center gap-1.5 text-sm">
+                  <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+                  Custo operacional sugerido (%)
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={handleRecalculate}
+                  title="Calcular média do custo operacional dos produtos existentes"
+                >
+                  <Wand2 className="h-3 w-3" />
+                  Recalcular
+                </Button>
+              </div>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="Ex.: 21"
+                value={form.default_operational_cost_pct}
+                onChange={(e) => setForm({ ...form, default_operational_cost_pct: e.target.value })}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Aplicado como pré-preenchimento ao criar produtos novos. Categoria prevalece sobre global.
+              </p>
             </div>
 
             <div className="flex items-center gap-2">

@@ -63,6 +63,7 @@ import { PostCreationSuggestionsCard } from "./PostCreationSuggestionsCard";
 import { ProductImage360Viewer } from "./ProductImage360Viewer";
 import { ProductVariantsManager } from "./ProductVariantsManager";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
+import { usePricingRules, resolveSuggestedOperationalCostPct } from "@/hooks/useProductPricingIntelligence";
 import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
 import { ProductPublishingPanel } from "./ProductPublishingPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -173,6 +174,7 @@ export function CreateProductDialog({
   const updateProduct = useUpdateProduct();
   const { generateDescription } = useProductAIAssistant();
   const { data: existingCategories } = useProductCategoriesList();
+  const { data: pricingRules = [] } = usePricingRules();
   const { data: productTypesConfig } = useProductTypes();
   const { data: billingTypesConfig } = useBillingTypes();
 
@@ -193,6 +195,14 @@ export function CreateProductDialog({
       setOperationalCost(String(cat.default_operational_cost));
       if (cat.default_operational_cost_mode) setOperationalCostMode(cat.default_operational_cost_mode);
       if (cat.default_operational_cost_base) setOperationalCostBase(cat.default_operational_cost_base);
+    } else if (!operationalCost) {
+      // Fallback: regra global/categoria das margens (custo operacional sugerido)
+      const suggested = resolveSuggestedOperationalCostPct(pricingRules, category);
+      if (suggested != null) {
+        setOperationalCost(String(suggested));
+        setOperationalCostMode("percent");
+        setOperationalCostBase("price");
+      }
     }
     if (!commissionDefault && cat.default_commission != null) {
       setCommissionDefault(String(cat.default_commission));

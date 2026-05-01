@@ -14,7 +14,26 @@ export interface PricingRule {
   min_margin_pct: number;
   target_margin_pct: number | null;
   max_margin_pct: number | null;
+  /** Custo operacional sugerido (% do preço líquido) — usado como pré-preenchimento ao criar produtos */
+  default_operational_cost_pct: number | null;
   is_active: boolean;
+}
+
+/**
+ * Resolve o custo operacional sugerido a partir das regras (categoria > global).
+ * Devolve null se não houver nenhuma regra com valor definido.
+ */
+export function resolveSuggestedOperationalCostPct(
+  rules: PricingRule[],
+  category?: string | null
+): number | null {
+  const categoryRule = category
+    ? rules.find((r) => r.applies_to === "category" && r.category === category && r.is_active)
+    : null;
+  if (categoryRule?.default_operational_cost_pct != null) return categoryRule.default_operational_cost_pct;
+  const globalRule = rules.find((r) => r.applies_to === "all" && r.is_active);
+  if (globalRule?.default_operational_cost_pct != null) return globalRule.default_operational_cost_pct;
+  return null;
 }
 
 export interface MarketResearch {
