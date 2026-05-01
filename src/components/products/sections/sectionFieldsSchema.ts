@@ -93,23 +93,10 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
       hint: "Lista INCI completa, separada por vírgulas.",
     },
     {
-      key: "volume",
-      label: "Volume / Capacidade",
-      type: "text",
-      placeholder: "Ex: 30 ml, 100 g, 60 cápsulas",
-    },
-    {
       key: "ph",
       label: "pH",
       type: "text",
       placeholder: "Ex: 5.5",
-    },
-    {
-      key: "validade",
-      label: "Validade",
-      type: "text",
-      placeholder: "Ex: 24 meses (PAO 6M)",
-      hint: "Prazo de validade fechado e/ou após abertura (PAO).",
     },
     {
       key: "certificacoes",
@@ -118,16 +105,11 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
       placeholder: "Ex: Vegan, Cruelty-Free, ISO 22716, CE",
     },
     {
-      key: "peso",
-      label: "Peso",
-      type: "text",
-      placeholder: "Ex: 120 g (líquido) / 150 g (com embalagem)",
-    },
-    {
       key: "dimensoes",
       label: "Dimensões (CxLxA)",
       type: "text",
       placeholder: "Ex: 5 x 5 x 12 cm",
+      hint: "Volume, peso e validade são definidos nos campos do produto (SSoT).",
     },
   ],
   clinical: [
