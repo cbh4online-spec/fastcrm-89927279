@@ -475,6 +475,10 @@ export function ProductDetailDialog({
                       { value: "relations", label: "Relações" },
                       { value: "documents", label: "Documentos" },
                     ],
+                    stock: [
+                      { value: "stock", label: "Stock" },
+                      { value: "variants", label: "Variantes" },
+                    ],
                   };
                   const currentSubs = subTabs[group];
                   return (
