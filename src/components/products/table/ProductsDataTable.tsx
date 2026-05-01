@@ -27,6 +27,7 @@ import {
 } from "@/types/product";
 import { PRODUCT_COLUMNS } from "../hooks/useProductsListState";
 import { InlinePriceEditor } from "./InlinePriceEditor";
+import { InlineFieldEditor } from "./InlineFieldEditor";
 import { MarginStatusBadge } from "../pricing/MarginStatusBadge";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 import { calcMarginPct, calcMarkupPct, getNetPrice, getRecommendedNetPrice, getRecommendedDelta } from "@/utils/productPricing";
