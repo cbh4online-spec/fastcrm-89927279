@@ -42,7 +42,9 @@ export function ClientPortalRoutes() {
         <Route path="forgot-password" element={<ClientForgotPasswordPage />} />
         <Route path="reset-password" element={<ClientResetPasswordPage />} />
         <Route path="dashboard" element={<ClientDashboardPage />} />
-        <Route path="catalog" element={<ClientCatalogPage />} />
+        <Route path="catalog" element={<ClientCatalogLookbookPage />} />
+        <Route path="catalog/grid" element={<ClientCatalogPage />} />
+        <Route path="admin/catalog-pages" element={<ClientCatalogPagesAdminPage />} />
         <Route path="cart" element={<ClientCartPage />} />
         <Route path="checkout" element={<ClientCheckoutPage />} />
         <Route path="orders" element={<ClientOrdersPage />} />
