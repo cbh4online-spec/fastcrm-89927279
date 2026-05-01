@@ -119,7 +119,7 @@ export function ProductDetailDialog({
 
   const { data: product, isLoading } = useProduct(productId);
   const { data: stats } = useProductStats(productId);
-  const { data: productImages } = useProductImages(productId);
+  const { data: productImages, isLoading: imagesLoading, isFetching: imagesFetching } = useProductImages(productId);
   const { data: storeSettings } = useStoreSettings();
   const { currentWorkspace } = useWorkspace();
   const updateProduct = useUpdateProduct();
@@ -130,14 +130,25 @@ export function ProductDetailDialog({
   const showMargin = canSeeField("products", "gross_margin");
 
   const [heroIdx, setHeroIdx] = useState(0);
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+
+  // Reset URLs falhadas ao trocar de produto
+  useEffect(() => {
+    setFailedUrls(new Set());
+  }, [productId]);
 
   // Fallback: if product_images table is empty, use product.images array
   const fallbackImages: Array<{ id: string; url: string; alt_text: string | null }> =
     (!productImages || productImages.length === 0) && product?.images && Array.isArray(product.images)
       ? (product.images as string[]).map((url, i) => ({ id: `fallback-${i}`, url, alt_text: null }))
       : [];
-  const displayImages = (productImages && productImages.length > 0) ? productImages : fallbackImages;
+  const allImages = (productImages && productImages.length > 0) ? productImages : fallbackImages;
+  // Excluir imagens cujo URL falhou ao carregar (404/403)
+  const displayImages = allImages.filter((img) => !failedUrls.has(img.url));
   const mainImage = displayImages[heroIdx];
+  // Só renderizamos área de imagens quando produto carregou E a query de product_images resolveu
+  // (evita flash de placeholder enquanto a relação ainda está em fetch).
+  const imagesReady = !!product && !imagesLoading && (!imagesFetching || (productImages !== undefined));
 
   useEffect(() => {
     if (displayImages.length === 0) {
@@ -152,6 +163,18 @@ export function ProductDetailDialog({
   useEffect(() => {
     setHeroIdx(0);
   }, [productId]);
+
+  const handleImageError = (url: string) => {
+    console.warn('[PRODUCTS] IMAGE_LOAD_FAILED', url);
+    setFailedUrls((prev) => {
+      if (prev.has(url)) return prev;
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
+    // Avançar para a próxima válida (heroIdx mantém-se; o filtro recalcula)
+    setHeroIdx(0);
+  };
 
   const hasMultipleImages = displayImages.length > 1;
   const canGoPrev = hasMultipleImages && heroIdx > 0;
@@ -215,55 +238,76 @@ export function ProductDetailDialog({
               <div className="flex flex-col sm:flex-row gap-0">
                 {/* Image area — reduzido para 180px */}
                 <div className="relative w-full sm:w-[240px] h-[180px] sm:h-[180px] shrink-0 bg-muted/60 overflow-hidden">
-                  {mainImage ? (
-                    <img
-                      src={mainImage.url}
-                      alt={mainImage.alt_text || product.name}
-                      className="w-full h-full object-cover"
-                    />
+                  {!imagesReady ? (
+                    <div
+                      className="w-full h-full flex items-center justify-center bg-muted/40 animate-pulse"
+                      role="status"
+                      aria-label="A carregar imagens do produto"
+                    >
+                      <Loader2 className="h-6 w-6 text-muted-foreground/50 animate-spin" />
+                    </div>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="h-14 w-14 text-muted-foreground/30" />
-                    </div>
-                  )}
-                  {/* Prev / Next navigation */}
-                  {hasMultipleImages && (
                     <>
-                      <button
-                        type="button"
-                        onClick={goPrev}
-                        disabled={!canGoPrev}
-                        aria-label="Imagem anterior"
-                        className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 hover:bg-background border shadow flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={goNext}
-                        disabled={!canGoNext}
-                        aria-label="Próxima imagem"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 hover:bg-background border shadow flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
+                      {mainImage ? (
+                        <img
+                          key={mainImage.url}
+                          src={mainImage.url}
+                          alt={mainImage.alt_text || product.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={() => handleImageError(mainImage.url)}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="h-14 w-14 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      {/* Prev / Next navigation */}
+                      {hasMultipleImages && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={goPrev}
+                            disabled={!canGoPrev}
+                            aria-label="Imagem anterior"
+                            className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 hover:bg-background border shadow flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={goNext}
+                            disabled={!canGoNext}
+                            aria-label="Próxima imagem"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 hover:bg-background border shadow flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                      {/* Mini gallery thumbnails */}
+                      {hasMultipleImages && (
+                        <div className="absolute bottom-1.5 left-1.5 right-1.5 flex gap-1 overflow-x-auto">
+                          {displayImages.slice(0, 5).map((img, idx) => (
+                            <button
+                              key={img.id}
+                              onClick={() => setHeroIdx(idx)}
+                              className={`w-8 h-8 rounded overflow-hidden border-2 shrink-0 transition-all ${
+                                idx === heroIdx ? "border-primary shadow-md" : "border-white/50 opacity-70 hover:opacity-100"
+                              }`}
+                            >
+                              <img
+                                src={img.url}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                                onError={() => handleImageError(img.url)}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </>
-                  )}
-                  {/* Mini gallery thumbnails */}
-                  {hasMultipleImages && (
-                    <div className="absolute bottom-1.5 left-1.5 right-1.5 flex gap-1 overflow-x-auto">
-                      {displayImages.slice(0, 5).map((img, idx) => (
-                        <button
-                          key={img.id}
-                          onClick={() => setHeroIdx(idx)}
-                          className={`w-8 h-8 rounded overflow-hidden border-2 shrink-0 transition-all ${
-                            idx === heroIdx ? "border-primary shadow-md" : "border-white/50 opacity-70 hover:opacity-100"
-                          }`}
-                        >
-                          <img src={img.url} alt="" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
                   )}
                 </div>
 
