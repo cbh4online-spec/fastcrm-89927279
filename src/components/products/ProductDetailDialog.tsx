@@ -320,73 +320,114 @@ export function ProductDetailDialog({
                 {/* KPI Cards */}
                 <ProductKPICards productId={productId} currency={product.currency} />
 
-                <Tabs value={tab} onValueChange={setTab}>
-                  {/* ═══ TABS — duas linhas lógicas ═══ */}
-                  <div className="space-y-1">
-                    {/* Linha 1 — Core */}
-                    <TabsList className="h-auto flex-wrap gap-0.5 bg-muted/60 p-1">
-                      <TabsTrigger value="details" className="text-xs px-2.5 py-1 h-7">Detalhes</TabsTrigger>
-                      {isBundle && (
-                        <TabsTrigger value="components" className="text-xs px-2.5 py-1 h-7">
-                          <Layers className="h-3 w-3 mr-1" />Componentes
-                        </TabsTrigger>
-                      )}
-                      {isSessions && (
-                        <TabsTrigger value="sessions" className="text-xs px-2.5 py-1 h-7">
-                          <Clock className="h-3 w-3 mr-1" />Pacotes
-                        </TabsTrigger>
-                      )}
-                      <TabsTrigger value="financial" className="text-xs px-2.5 py-1 h-7">
-                        <DollarSign className="h-3 w-3 mr-1" />Financeiro
-                      </TabsTrigger>
-                      <TabsTrigger value="usage" className="text-xs px-2.5 py-1 h-7">
-                        <History className="h-3 w-3 mr-1" />Histórico
-                      </TabsTrigger>
-                      <TabsTrigger value="images" className="text-xs px-2.5 py-1 h-7">Imagens</TabsTrigger>
-                      <TabsTrigger value="progressions" className="text-xs px-2.5 py-1 h-7">Progressões</TabsTrigger>
-                      <TabsTrigger value="cycles" className="text-xs px-2.5 py-1 h-7">Ciclos</TabsTrigger>
-                      <TabsTrigger value="sheet" className="text-xs px-2.5 py-1 h-7">Ficha</TabsTrigger>
-                      <TabsTrigger value="publishing" className="text-xs px-2.5 py-1 h-7">
-                        <Send className="h-3 w-3 mr-1" />Publicação
-                      </TabsTrigger>
-                    </TabsList>
-
-                    {/* Linha 2 — Avançado */}
-                    <TabsList className="h-auto flex-wrap gap-0.5 bg-muted/40 p-1">
-                      <TabsTrigger value="relations" className="text-xs px-2.5 py-1 h-7">
-                        <Link2 className="h-3 w-3 mr-1" />Relações
-                      </TabsTrigger>
-                      <TabsTrigger value="documents" className="text-xs px-2.5 py-1 h-7">
-                        <FileText className="h-3 w-3 mr-1" />Documentos
-                      </TabsTrigger>
-                      <TabsTrigger value="ai-content" className="text-xs px-2.5 py-1 h-7">
-                        <Sparkles className="h-3 w-3 mr-1" />Conteúdo IA
-                      </TabsTrigger>
-                      <TabsTrigger value="specs" className="text-xs px-2.5 py-1 h-7">
-                        <ClipboardList className="h-3 w-3 mr-1" />Specs
-                      </TabsTrigger>
-                      <TabsTrigger value="stock" className="text-xs px-2.5 py-1 h-7">
-                        <Package className="h-3 w-3 mr-1" />Stock
-                      </TabsTrigger>
-                      <TabsTrigger value="analytics" className="text-xs px-2.5 py-1 h-7">
-                        <BarChart3 className="h-3 w-3 mr-1" />Analytics
-                      </TabsTrigger>
-                      <TabsTrigger value="lifecycle" className="text-xs px-2.5 py-1 h-7">
-                        <Clock className="h-3 w-3 mr-1" />Ciclo de Vida
-                      </TabsTrigger>
-                      <TabsTrigger value="deliverables" className="text-xs px-2.5 py-1 h-7">
-                        <Package className="h-3 w-3 mr-1" />Entregáveis
-                      </TabsTrigger>
-                      {showCost && (
-                        <TabsTrigger value="price-history" className="text-xs px-2.5 py-1 h-7">
-                          <TrendingUp className="h-3 w-3 mr-1" />Preços
-                        </TabsTrigger>
-                      )}
-                      <TabsTrigger value="audit" className="text-xs px-2.5 py-1 h-7">
-                        <History className="h-3 w-3 mr-1" />Auditoria
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
+                {(() => {
+                  // Mapeamento tab → grupo (1 linha de 8 grupos com sub-tabs)
+                  const tabToGroup: Record<string, string> = {
+                    details: "general", components: "general", sessions: "general",
+                    sheet: "content", images: "content", specs: "content",
+                    "ai-content": "content", progressions: "content",
+                    financial: "pricing", "price-history": "pricing", cycles: "pricing",
+                    stock: "stock",
+                    analytics: "sales", usage: "sales", lifecycle: "sales",
+                    publishing: "publishing", deliverables: "publishing",
+                    relations: "relations", documents: "relations",
+                    audit: "audit",
+                  };
+                  const group = tabToGroup[tab] ?? "general";
+                  const groupDefault: Record<string, string> = {
+                    general: "details", content: "sheet", pricing: "financial",
+                    stock: "stock", sales: "analytics", publishing: "publishing",
+                    relations: "relations", audit: "audit",
+                  };
+                  const groups: Array<{ value: string; label: string; icon: typeof Info }> = [
+                    { value: "general", label: "Geral", icon: Info },
+                    { value: "content", label: "Conteúdo", icon: FileText },
+                    { value: "pricing", label: "Preços", icon: DollarSign },
+                    { value: "stock", label: "Stock", icon: Package },
+                    { value: "sales", label: "Vendas", icon: TrendingUp },
+                    { value: "publishing", label: "Publicação", icon: Send },
+                    { value: "relations", label: "Relações", icon: Link2 },
+                    { value: "audit", label: "Auditoria", icon: History },
+                  ];
+                  const subTabs: Record<string, Array<{ value: string; label: string; show?: boolean }>> = {
+                    general: [
+                      { value: "details", label: "Detalhes" },
+                      ...(isBundle ? [{ value: "components", label: "Componentes" }] : []),
+                      ...(isSessions ? [{ value: "sessions", label: "Pacotes" }] : []),
+                    ],
+                    content: [
+                      { value: "sheet", label: "Ficha" },
+                      { value: "images", label: "Imagens" },
+                      { value: "specs", label: "Specs" },
+                      { value: "ai-content", label: "Conteúdo IA" },
+                      { value: "progressions", label: "Progressões" },
+                    ],
+                    pricing: [
+                      { value: "financial", label: "Financeiro" },
+                      ...(showCost ? [{ value: "price-history", label: "Histórico de preços" }] : []),
+                      { value: "cycles", label: "Ciclos" },
+                    ],
+                    sales: [
+                      { value: "analytics", label: "Analytics" },
+                      { value: "usage", label: "Histórico" },
+                      { value: "lifecycle", label: "Ciclo de vida" },
+                    ],
+                    publishing: [
+                      { value: "publishing", label: "Publicação" },
+                      { value: "deliverables", label: "Entregáveis" },
+                    ],
+                    relations: [
+                      { value: "relations", label: "Relações" },
+                      { value: "documents", label: "Documentos" },
+                    ],
+                  };
+                  const currentSubs = subTabs[group];
+                  return (
+                    <Tabs value={tab} onValueChange={setTab}>
+                      <div className="space-y-2">
+                        <TabsList className="h-auto flex flex-wrap gap-0.5 bg-muted/60 p-1 w-full justify-start">
+                          {groups.map((g) => {
+                            const Icon = g.icon;
+                            const active = group === g.value;
+                            return (
+                              <button
+                                key={g.value}
+                                type="button"
+                                onClick={() => setTab(groupDefault[g.value])}
+                                className={`inline-flex items-center text-xs px-3 py-1.5 h-8 rounded-md transition-colors ${
+                                  active
+                                    ? "bg-background text-foreground shadow-sm font-medium"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                <Icon className="h-3.5 w-3.5 mr-1.5" />
+                                {g.label}
+                              </button>
+                            );
+                          })}
+                        </TabsList>
+                        {currentSubs && currentSubs.length > 1 && (
+                          <div className="flex flex-wrap gap-1 border-b pb-1">
+                            {currentSubs.map((s) => {
+                              const active = tab === s.value;
+                              return (
+                                <button
+                                  key={s.value}
+                                  type="button"
+                                  onClick={() => setTab(s.value)}
+                                  className={`text-xs px-2.5 py-1 h-7 rounded-md transition-colors ${
+                                    active
+                                      ? "bg-primary/10 text-primary font-medium"
+                                      : "text-muted-foreground hover:bg-muted"
+                                  }`}
+                                >
+                                  {s.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
 
                   {/* ═══ TAB CONTENTS ═══ */}
                   <TabsContent value="details" className="mt-4 space-y-4">
