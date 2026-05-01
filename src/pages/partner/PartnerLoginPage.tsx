@@ -51,11 +51,7 @@ export default function PartnerLoginPage() {
   };
 
   if (loading || !workspaceResolved) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PartnerLoadingScreen message="A preparar o login…" />;
   }
 
   if (hasAuthButNoPartner) {
