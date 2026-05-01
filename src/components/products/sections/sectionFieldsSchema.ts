@@ -122,6 +122,52 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
   ],
   clinical: [
     {
+      key: "mecanismo_accao",
+      label: "Mecanismo de acção",
+      type: "textarea",
+      placeholder: "Ex: Inibe a tirosinase reduzindo a melanogénese…",
+      hint: "Como o produto actua biologicamente. Linguagem técnica para o Copilot B2B.",
+    },
+    {
+      key: "activos",
+      label: "Activos (com concentração)",
+      type: "list",
+      placeholder: "Ex: Niacinamida 5%, Retinol 0.3%",
+      hint: "Cada activo numa linha, idealmente com a concentração.",
+    },
+    {
+      key: "alvo_terapeutico",
+      label: "Alvo terapêutico / receptor",
+      type: "list",
+      placeholder: "Ex: Receptor de melatonina MT1, COX-2",
+    },
+    {
+      key: "evidencia",
+      label: "Evidência clínica",
+      type: "list",
+      placeholder: "Ex: RCT 2022, n=120, redução 32% manchas (p<0.05)",
+      hint: "Estudos, ensaios, in vitro, in vivo. Inclui amostra, resultado e p-value.",
+    },
+    {
+      key: "referencias",
+      label: "Referências bibliográficas",
+      type: "list",
+      placeholder: "Ex: Smith J. et al., JAAD 2022; doi:10.1234/abc",
+    },
+    {
+      key: "protocolos",
+      label: "Protocolos de aplicação",
+      type: "list",
+      placeholder: "Ex: 4 sessões, 1x/semana, manutenção mensal",
+      hint: "Protocolos clínicos ou esquemas terapêuticos recomendados.",
+    },
+    {
+      key: "indicacoes_clinicas",
+      label: "Indicações clínicas",
+      type: "list",
+      placeholder: "Ex: Hiperpigmentação pós-inflamatória, melasma",
+    },
+    {
       key: "contraindicacoes",
       label: "Contraindicações",
       type: "list",
@@ -144,6 +190,18 @@ export const SECTION_FIELDS: Record<ProductSectionKey, SectionField[]> = {
       label: "Interacções",
       type: "list",
       placeholder: "Ex: Anticoagulantes, retinóides",
+    },
+    {
+      key: "efeitos_adversos",
+      label: "Efeitos adversos",
+      type: "list",
+      placeholder: "Ex: Eritema ligeiro, descamação transitória",
+    },
+    {
+      key: "tempo_resultados",
+      label: "Tempo até resultados",
+      type: "text",
+      placeholder: "Ex: 4-6 semanas de uso contínuo",
     },
   ],
 };
