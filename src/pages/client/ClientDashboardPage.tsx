@@ -215,6 +215,7 @@ export default function ClientDashboardPage() {
     <ClientLayout>
       <div className="space-y-8">
         <EditorialPageHeader
+          breadcrumbs={[{ label: "Portal", to: "/client" }, { label: "Dashboard" }]}
           eyebrow="Portal Profissional · Dashboard"
           title={`Olá, ${clientUser?.name?.split(' ')[0] ?? ''}`}
           subtitle="Painel executivo do portal profissional"
