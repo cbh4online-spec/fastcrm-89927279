@@ -114,13 +114,20 @@ export function PartnerLayout({ children }: PartnerLayoutProps) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
-          <Link to="/partner/dashboard" className="flex items-center gap-2.5">
-            <WorkspaceLogo
-              logoUrl={workspaceBranding?.logo_url}
-              workspaceName={workspaceBranding?.name}
-              size="md"
-              variant="portal"
-            />
+          <Link to="/partner/dashboard" className="flex items-center gap-3">
+            {workspaceBranding?.logo_url ? (
+              <img
+                src={workspaceBranding.logo_url}
+                alt={workspaceBranding?.name || "Workspace"}
+                className="h-9 w-auto max-w-[160px] object-contain flex-shrink-0"
+              />
+            ) : (
+              <WorkspaceLogo
+                workspaceName={workspaceBranding?.name}
+                size="md"
+                variant="portal"
+              />
+            )}
             <span className="font-semibold text-lg hidden sm:inline tracking-tight">{portalName}</span>
           </Link>
 
