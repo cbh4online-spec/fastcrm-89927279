@@ -214,14 +214,27 @@ export function ProductSalesPlaybookTab({ product }: Props) {
 
       {/* Script de vendas */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ScriptIcon className="h-4 w-4 text-primary" />
-            Script de vendas
-          </CardTitle>
-          <CardDescription>
-            Abordagem recomendada, perguntas-chave, gatilhos e fecho. Usado em propostas, chat e treino.
-          </CardDescription>
+        <CardHeader className="pb-3 flex flex-row items-start justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ScriptIcon className="h-4 w-4 text-primary" />
+              Script de vendas
+            </CardTitle>
+            <CardDescription>
+              Abordagem recomendada, perguntas-chave, gatilhos e fecho. Usado em propostas, chat e treino.
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => generate.mutate("script")}
+            disabled={generate.isPending}
+          >
+            {isGenerating("script")
+              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              : <Sparkles className="h-4 w-4 mr-1" />}
+            Gerar com IA
+          </Button>
         </CardHeader>
         <CardContent>
           <Textarea
