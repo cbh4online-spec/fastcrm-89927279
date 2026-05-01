@@ -808,6 +808,15 @@ export function ProductDetailDialog({
                     <ProductStockTab product={product as any} />
                   </TabsContent>
 
+                  <TabsContent value="variants" className="mt-4">
+                    <ProductVariantsTab
+                      productId={product.id}
+                      workspaceId={product.workspace_id}
+                      basePrice={product.base_price}
+                      currency={product.currency}
+                    />
+                  </TabsContent>
+
                   <TabsContent value="analytics" className="mt-4">
                     <ProductAnalyticsTab />
                   </TabsContent>
