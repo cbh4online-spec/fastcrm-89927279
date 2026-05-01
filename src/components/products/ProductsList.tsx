@@ -429,6 +429,7 @@ export function ProductsList() {
               isFilteredEmpty={state.filtersActive && state.filteredProducts.length === 0 && !state.isLoading}
               onClearFilters={state.handleClearFilters}
               pricingRules={pricingRules}
+              productTypesConfig={state.productTypesConfig}
             />
           </>
         )}
