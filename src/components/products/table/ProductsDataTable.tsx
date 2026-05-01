@@ -399,9 +399,10 @@ export function ProductsDataTable({
   isFilteredEmpty,
   onClearFilters,
   pricingRules,
+  productTypesConfig,
 }: ProductsDataTableProps) {
   const visibleCols = columnOrder.filter((colId) => visibleColumns.has(colId));
-  const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate, pricingRules };
+  const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate, pricingRules, productTypesConfig };
 
   const parentRef = useRef<HTMLDivElement>(null);
 
