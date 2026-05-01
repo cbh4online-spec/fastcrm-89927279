@@ -208,16 +208,16 @@ const CategorySpreadTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) 
   const items = page.items.slice(0, 6);
 
   return (
-    <div className="p-8 md:p-12">
+    <div className="p-5 sm:p-8 md:p-12">
       <PageHeader page={page} />
 
       {/* Layout asimétrico inspirado na referência:
           col 1: produtos pequenos empilhados
           col 2: produto grande central
           col 3: produtos pequenos empilhados */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-8 items-start mt-6 md:mt-8">
         {/* Coluna esquerda */}
-        <div className="md:col-span-4 space-y-12">
+        <div className="md:col-span-4 space-y-8 md:space-y-12">
           {items[0] && (
             <ProductBlock item={items[0]} size="md" onAdd={() => onAddToCart(items[0])} />
           )}
@@ -236,7 +236,7 @@ const CategorySpreadTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) 
         </div>
 
         {/* Coluna direita */}
-        <div className="md:col-span-4 space-y-12">
+        <div className="md:col-span-4 space-y-8 md:space-y-12">
           {items[3] && (
             <div className="md:pl-4">
               <ProductBlock item={items[3]} size="md" onAdd={() => onAddToCart(items[3])} align="right" />
@@ -249,7 +249,7 @@ const CategorySpreadTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) 
 
         {/* Item extra no fundo se houver 6º */}
         {items[5] && (
-          <div className="md:col-span-12 flex justify-center mt-8">
+          <div className="md:col-span-12 flex justify-center mt-6 md:mt-8">
             <ProductBlock item={items[5]} size="md" onAdd={() => onAddToCart(items[5])} align="center" />
           </div>
         )}
