@@ -73,6 +73,9 @@ export function PricingRulesSettings() {
       min_margin_pct: String(rule.min_margin_pct),
       target_margin_pct: String(rule.target_margin_pct ?? ""),
       max_margin_pct: String(rule.max_margin_pct ?? ""),
+      default_operational_cost_pct: rule.default_operational_cost_pct != null
+        ? String(rule.default_operational_cost_pct)
+        : "",
       is_active: rule.is_active,
     });
     setDialogOpen(true);
@@ -84,6 +87,13 @@ export function PricingRulesSettings() {
       toast.error("Margem mínima inválida");
       return;
     }
+    const opCost = form.default_operational_cost_pct
+      ? parseFloat(form.default_operational_cost_pct)
+      : null;
+    if (opCost != null && (isNaN(opCost) || opCost < 0 || opCost > 100)) {
+      toast.error("Custo operacional sugerido inválido (0–100%)");
+      return;
+    }
 
     await upsert.mutateAsync({
       ...(form.id ? { id: form.id } : {}),
@@ -93,6 +103,7 @@ export function PricingRulesSettings() {
       min_margin_pct: min,
       target_margin_pct: form.target_margin_pct ? parseFloat(form.target_margin_pct) : null,
       max_margin_pct: form.max_margin_pct ? parseFloat(form.max_margin_pct) : null,
+      default_operational_cost_pct: opCost,
       is_active: form.is_active,
     });
     setDialogOpen(false);
