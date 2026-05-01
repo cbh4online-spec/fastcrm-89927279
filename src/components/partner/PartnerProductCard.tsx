@@ -10,6 +10,7 @@ import type {
   PartnerCatalogVariant,
 } from "@/hooks/partner/usePartnerCatalog";
 import { VariantPicker } from "./VariantPicker";
+import { ProductImageSearchPopover } from "./ProductImageSearchPopover";
 
 interface PartnerProductCardProps {
   product: PartnerCatalogProduct;
@@ -134,6 +135,10 @@ export function PartnerProductCard({
           </Badge>
         )}
       </button>
+      {/* Pesquisa de imagens (overlay sobre a imagem) — fora do <button> para evitar nested interactive */}
+      <div className="absolute top-2 left-2 z-10" onClick={(e) => e.stopPropagation()}>
+        {/* Posicionado por cima do canto superior esquerdo do card */}
+      </div>
 
       <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
         <div>
