@@ -174,6 +174,7 @@ export function CreateProductDialog({
   const updateProduct = useUpdateProduct();
   const { generateDescription } = useProductAIAssistant();
   const { data: existingCategories } = useProductCategoriesList();
+  const { data: pricingRules = [] } = usePricingRules();
   const { data: productTypesConfig } = useProductTypes();
   const { data: billingTypesConfig } = useBillingTypes();
 
