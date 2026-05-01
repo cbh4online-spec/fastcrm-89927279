@@ -1,0 +1,270 @@
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2 } from "@/components/products/_icons";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import type { Product } from "@/types/product";
+
+interface ObjectionItem {
+  objection: string;
+  response: string;
+}
+
+interface SalesPlaybook {
+  script: string;
+  objections: ObjectionItem[];
+  warranty: string;
+  updated_at?: string;
+}
+
+const objectionSchema = z.object({
+  objection: z.string().trim().max(500, "Máx 500 caracteres"),
+  response: z.string().trim().max(2000, "Máx 2000 caracteres"),
+});
+const playbookSchema = z.object({
+  script: z.string().trim().max(20000, "Máx 20.000 caracteres"),
+  objections: z.array(objectionSchema).max(50, "Máximo 50 objeções"),
+  warranty: z.string().trim().max(20000, "Máx 20.000 caracteres"),
+});
+
+function normalize(raw: unknown): SalesPlaybook {
+  const obj = (raw && typeof raw === "object") ? raw as any : {};
+  return {
+    script: typeof obj.script === "string" ? obj.script : "",
+    objections: Array.isArray(obj.objections)
+      ? obj.objections
+          .filter((o: any) => o && typeof o === "object")
+          .map((o: any) => ({
+            objection: typeof o.objection === "string" ? o.objection : "",
+            response: typeof o.response === "string" ? o.response : "",
+          }))
+      : [],
+    warranty: typeof obj.warranty === "string" ? obj.warranty : "",
+    updated_at: typeof obj.updated_at === "string" ? obj.updated_at : undefined,
+  };
+}
+
+interface Props {
+  product: Product & { sales_playbook?: unknown };
+}
+
+export function ProductSalesPlaybookTab({ product }: Props) {
+  const queryClient = useQueryClient();
+  const initial = useMemo(() => normalize((product as any).sales_playbook), [product.id]);
+  const [data, setData] = useState<SalesPlaybook>(initial);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    setData(initial);
+    setDirty(false);
+  }, [initial]);
+
+  const update = <K extends keyof SalesPlaybook>(key: K, value: SalesPlaybook[K]) => {
+    setData((prev) => ({ ...prev, [key]: value }));
+    setDirty(true);
+  };
+
+  const addObjection = () =>
+    update("objections", [...data.objections, { objection: "", response: "" }]);
+
+  const updateObjection = (idx: number, field: keyof ObjectionItem, value: string) => {
+    update(
+      "objections",
+      data.objections.map((o, i) => (i === idx ? { ...o, [field]: value } : o)),
+    );
+  };
+
+  const removeObjection = (idx: number) => {
+    update("objections", data.objections.filter((_, i) => i !== idx));
+  };
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const parsed = playbookSchema.safeParse(data);
+      if (!parsed.success) {
+        const msg = parsed.error.errors[0]?.message ?? "Dados inválidos";
+        throw new Error(msg);
+      }
+      // Drop empty objections to keep payload clean
+      const cleaned: SalesPlaybook = {
+        script: parsed.data.script,
+        warranty: parsed.data.warranty,
+        objections: parsed.data.objections.filter(
+          (o) => o.objection.length > 0 || o.response.length > 0,
+        ),
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await supabase
+        .from("products")
+        .update({ sales_playbook: cleaned as any, updated_at: new Date().toISOString() })
+        .eq("id", product.id);
+      if (error) throw error;
+      return cleaned;
+    },
+    onSuccess: (saved) => {
+      toast.success("Procedimento guardado");
+      setDirty(false);
+      setData(saved);
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+    },
+    onError: (e: any) => {
+      toast.error(e?.message || "Erro ao guardar");
+    },
+  });
+
+  const totalObjs = data.objections.length;
+
+  return (
+    <div className="space-y-4">
+      {/* Sticky save bar */}
+      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-1 px-1 border-b">
+        <div className="text-sm text-muted-foreground">
+          {data.updated_at
+            ? <>Última atualização: {new Date(data.updated_at).toLocaleString("pt-PT")}</>
+            : <>Sem alterações guardadas</>}
+        </div>
+        <Button
+          size="sm"
+          onClick={() => save.mutate()}
+          disabled={!dirty || save.isPending}
+        >
+          {save.isPending
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <Save className="h-4 w-4 mr-2" />}
+          Guardar
+        </Button>
+      </div>
+
+      {/* Script de vendas */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ScriptIcon className="h-4 w-4 text-primary" />
+            Script de vendas
+          </CardTitle>
+          <CardDescription>
+            Abordagem recomendada, perguntas-chave, gatilhos e fecho. Usado em propostas, chat e treino.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={data.script}
+            onChange={(e) => update("script", e.target.value)}
+            rows={10}
+            maxLength={20000}
+            placeholder={`Ex.\n1. Abertura — descobrir necessidade\n2. Argumentos diferenciadores\n3. Prova social / casos\n4. Apresentação do preço\n5. Fecho`}
+            className="font-mono text-sm"
+          />
+          <div className="text-xs text-muted-foreground text-right mt-1">
+            {data.script.length}/20.000
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Objeções */}
+      <Card>
+        <CardHeader className="pb-3 flex flex-row items-start justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageSquareWarning className="h-4 w-4 text-amber-600" />
+              Objeções &amp; respostas
+              {totalObjs > 0 && <Badge variant="secondary">{totalObjs}</Badge>}
+            </CardTitle>
+            <CardDescription>
+              Lista de objeções típicas e respostas validadas. Máximo 50.
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={addObjection}
+            disabled={totalObjs >= 50}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Adicionar
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {totalObjs === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded">
+              Nenhuma objeção registada. Clica em "Adicionar" para criar a primeira.
+            </div>
+          ) : (
+            data.objections.map((o, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-1 md:grid-cols-[1fr_1.5fr_auto] gap-2 items-start p-3 rounded border bg-muted/30"
+              >
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Objeção #{idx + 1}
+                  </label>
+                  <Input
+                    value={o.objection}
+                    onChange={(e) => updateObjection(idx, "objection", e.target.value)}
+                    placeholder="Ex. É demasiado caro"
+                    maxLength={500}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Resposta sugerida
+                  </label>
+                  <Textarea
+                    value={o.response}
+                    onChange={(e) => updateObjection(idx, "response", e.target.value)}
+                    placeholder="Ex. O investimento paga-se em X meses porque…"
+                    rows={3}
+                    maxLength={2000}
+                  />
+                </div>
+                <div className="pt-5">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeObjection(idx)}
+                    aria-label="Remover objeção"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Reclamação / Garantia */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+            Reclamação &amp; garantia
+          </CardTitle>
+          <CardDescription>
+            Procedimento pós-venda: política de garantia, prazos, fluxo de reclamação e responsáveis.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={data.warranty}
+            onChange={(e) => update("warranty", e.target.value)}
+            rows={10}
+            maxLength={20000}
+            placeholder={`Ex.\n• Garantia: 24 meses contra defeitos de fabrico\n• Prazo de resposta: 48h úteis\n• Canal: suporte@empresa.pt\n• Fluxo: receção → diagnóstico → resolução`}
+            className="font-mono text-sm"
+          />
+          <div className="text-xs text-muted-foreground text-right mt-1">
+            {data.warranty.length}/20.000
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
