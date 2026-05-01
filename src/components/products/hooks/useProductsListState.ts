@@ -235,7 +235,7 @@ export function useProductsListState() {
 
   // --- Optimistic inline field update (price + other editable fields) ---
   const EDITABLE_FIELDS = new Set([
-    "base_price", "direct_cost", "operational_cost",
+    "base_price", "direct_cost", "operational_cost", "operational_cost_mode", "operational_cost_base",
     "sku", "category", "product_type",
     "total_units", "unit_duration", "validity_days",
     "tax_rate_estimate_pct", "commission_default",
