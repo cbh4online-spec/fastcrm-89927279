@@ -195,9 +195,28 @@ export function ProductStockTab({ product }: ProductStockTabProps) {
             {available}
           </p>
         </Card>
-        <Card className="p-4 text-center">
-          <p className="text-xs text-muted-foreground mb-1">Alerta Mínimo</p>
-          <p className="text-2xl font-bold text-muted-foreground">{threshold}</p>
+        <Card className="p-4">
+          <p className="text-xs text-muted-foreground mb-2 text-center">Stock Mínimo</p>
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              min={0}
+              value={thresholdInput}
+              onChange={(e) => setThresholdInput(e.target.value)}
+              className="h-9 text-center text-lg font-bold"
+              aria-label="Stock mínimo"
+            />
+            {thresholdDirty && (
+              <Button
+                size="sm"
+                onClick={() => updateThreshold.mutate(parsedThreshold)}
+                disabled={updateThreshold.isPending}
+                aria-label="Guardar stock mínimo"
+              >
+                {updateThreshold.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "OK"}
+              </Button>
+            )}
+          </div>
         </Card>
       </div>
 
