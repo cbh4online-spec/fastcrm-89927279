@@ -23,8 +23,10 @@ import {
   ShoppingCart,
   Loader2,
   Filter,
-  X
+  X,
+  BookOpen,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -112,6 +114,16 @@ export default function ClientCatalogPage() {
           actions={
             <>
               <Button
+                asChild
+                variant="outline"
+                className="rounded-full border-[hsl(var(--editorial-border))] hover:bg-[hsl(var(--editorial-champagne))]/40"
+              >
+                <Link to="/client/catalog">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Vista lookbook
+                </Link>
+              </Button>
+              <Button
                 variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
                 className="sm:hidden rounded-full border-[hsl(var(--editorial-border))]"
@@ -121,14 +133,13 @@ export default function ClientCatalogPage() {
               </Button>
               {itemCount > 0 && (
                 <Button
-                  variant="outline"
-                  className="rounded-full border-[hsl(var(--editorial-border))] hover:bg-[hsl(var(--editorial-champagne))]/40"
+                  className="rounded-full bg-[hsl(var(--editorial-ink))] text-[hsl(var(--editorial-cream))] hover:bg-[hsl(var(--editorial-ink))]/90"
                   asChild
                 >
-                  <a href="/client/cart">
+                  <Link to="/client/cart">
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     {itemCount} no carrinho
-                  </a>
+                  </Link>
                 </Button>
               )}
             </>

@@ -62,7 +62,7 @@ export function EditorialHero({
       className={cn(
         "relative overflow-hidden rounded-3xl border border-[hsl(var(--editorial-border))]/40",
         "bg-gradient-to-br from-[hsl(var(--editorial-cream))] via-[hsl(var(--editorial-nude))]/40 to-[hsl(var(--editorial-cream))]",
-        "px-6 py-12 md:px-12 md:py-16 lg:py-20",
+        "px-5 py-10 sm:px-8 sm:py-12 md:px-12 md:py-16 lg:py-20",
         className
       )}
       aria-labelledby="editorial-hero-title"

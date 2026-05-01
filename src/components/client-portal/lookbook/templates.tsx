@@ -50,16 +50,16 @@ function ProductBlock({ item, size, onAdd, layout = "stacked", align = "left" }:
   const sku = item.product?.sku;
 
   const imgSize = {
-    xl: "w-full max-w-[420px] aspect-square",
-    lg: "w-full max-w-[280px] aspect-square",
-    md: "w-full max-w-[200px] aspect-square",
-    sm: "w-full max-w-[140px] aspect-square",
+    xl: "w-full max-w-[280px] sm:max-w-[360px] md:max-w-[420px] aspect-square",
+    lg: "w-full max-w-[220px] sm:max-w-[260px] md:max-w-[280px] aspect-square",
+    md: "w-full max-w-[160px] sm:max-w-[180px] md:max-w-[200px] aspect-square",
+    sm: "w-full max-w-[120px] sm:max-w-[140px] aspect-square",
   }[size];
 
   const titleSize = {
-    xl: "text-2xl sm:text-3xl",
-    lg: "text-xl sm:text-2xl",
-    md: "text-base sm:text-lg",
+    xl: "text-xl sm:text-2xl md:text-3xl",
+    lg: "text-lg sm:text-xl md:text-2xl",
+    md: "text-sm sm:text-base md:text-lg",
     sm: "text-sm",
   }[size];
 
@@ -125,13 +125,13 @@ function ProductBlock({ item, size, onAdd, layout = "stacked", align = "left" }:
 function PageHeader({ page, align = "left" }: { page: PartnerCatalogPageWithItems; align?: "left" | "center" }) {
   const alignClass = align === "center" ? "items-center text-center" : "items-start text-left";
   return (
-    <div className={cn("flex flex-col gap-3 mb-8", alignClass)}>
-      <h1 className="font-editorial text-4xl sm:text-5xl lg:text-6xl tracking-tight text-[hsl(var(--lb-ink))] uppercase">
+    <div className={cn("flex flex-col gap-3 mb-6 md:mb-8", alignClass)}>
+      <h1 className="font-editorial text-3xl sm:text-4xl lg:text-5xl xl:text-6xl tracking-tight text-[hsl(var(--lb-ink))] uppercase leading-[1.05]">
         {page.title}
       </h1>
-      <div className="w-24 h-px bg-[hsl(var(--lb-divider))]" />
+      <div className="w-16 sm:w-24 h-px bg-[hsl(var(--lb-divider))]" />
       {(page.eyebrow || page.description) && (
-        <p className="text-xs uppercase tracking-[0.2em] text-[hsl(var(--lb-muted))] max-w-md leading-relaxed">
+        <p className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-[hsl(var(--lb-muted))] max-w-md leading-relaxed">
           {page.eyebrow || page.description}
         </p>
       )}
@@ -143,11 +143,11 @@ function PageHeader({ page, align = "left" }: { page: PartnerCatalogPageWithItem
 const HeroSingleTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) => {
   const main = page.items[0];
   return (
-    <div className="min-h-[600px] grid lg:grid-cols-2 gap-12 items-center p-8 md:p-16">
+    <div className="min-h-[400px] md:min-h-[600px] grid lg:grid-cols-2 gap-8 md:gap-12 items-center p-5 sm:p-8 md:p-16">
       <div>
         <PageHeader page={page} />
         {page.description && (
-          <p className="text-base text-[hsl(var(--lb-muted))] max-w-md leading-relaxed mt-4">
+          <p className="text-sm md:text-base text-[hsl(var(--lb-muted))] max-w-md leading-relaxed mt-4">
             {page.description}
           </p>
         )}
@@ -165,9 +165,9 @@ const HeroSingleTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) => {
 const DuoAsymmetricTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) => {
   const [first, second] = page.items;
   return (
-    <div className="p-8 md:p-12">
+    <div className="p-5 sm:p-8 md:p-12">
       <PageHeader page={page} />
-      <div className="grid md:grid-cols-12 gap-8 items-end mt-8">
+      <div className="grid md:grid-cols-12 gap-6 md:gap-8 items-end mt-6 md:mt-8">
         {first && (
           <div className="md:col-span-7">
             <ProductBlock item={first} size="xl" onAdd={() => onAddToCart(first)} />
@@ -186,9 +186,9 @@ const DuoAsymmetricTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) =
 // ============= Template 3: quad-grid =============
 const QuadGridTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) => {
   return (
-    <div className="p-8 md:p-12">
+    <div className="p-5 sm:p-8 md:p-12">
       <PageHeader page={page} />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mt-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 mt-6 md:mt-8">
         {page.items.slice(0, 4).map((item) => (
           <ProductBlock
             key={item.id}
@@ -208,16 +208,16 @@ const CategorySpreadTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) 
   const items = page.items.slice(0, 6);
 
   return (
-    <div className="p-8 md:p-12">
+    <div className="p-5 sm:p-8 md:p-12">
       <PageHeader page={page} />
 
       {/* Layout asimétrico inspirado na referência:
           col 1: produtos pequenos empilhados
           col 2: produto grande central
           col 3: produtos pequenos empilhados */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-8 items-start mt-6 md:mt-8">
         {/* Coluna esquerda */}
-        <div className="md:col-span-4 space-y-12">
+        <div className="md:col-span-4 space-y-8 md:space-y-12">
           {items[0] && (
             <ProductBlock item={items[0]} size="md" onAdd={() => onAddToCart(items[0])} />
           )}
@@ -236,7 +236,7 @@ const CategorySpreadTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) 
         </div>
 
         {/* Coluna direita */}
-        <div className="md:col-span-4 space-y-12">
+        <div className="md:col-span-4 space-y-8 md:space-y-12">
           {items[3] && (
             <div className="md:pl-4">
               <ProductBlock item={items[3]} size="md" onAdd={() => onAddToCart(items[3])} align="right" />
@@ -249,7 +249,7 @@ const CategorySpreadTemplate: React.FC<TemplateProps> = ({ page, onAddToCart }) 
 
         {/* Item extra no fundo se houver 6º */}
         {items[5] && (
-          <div className="md:col-span-12 flex justify-center mt-8">
+          <div className="md:col-span-12 flex justify-center mt-6 md:mt-8">
             <ProductBlock item={items[5]} size="md" onAdd={() => onAddToCart(items[5])} align="center" />
           </div>
         )}
