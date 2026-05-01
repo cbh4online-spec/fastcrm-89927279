@@ -119,7 +119,7 @@ export function ProductDetailDialog({
 
   const { data: product, isLoading } = useProduct(productId);
   const { data: stats } = useProductStats(productId);
-  const { data: productImages } = useProductImages(productId);
+  const { data: productImages, isLoading: imagesLoading, isFetching: imagesFetching } = useProductImages(productId);
   const { data: storeSettings } = useStoreSettings();
   const { currentWorkspace } = useWorkspace();
   const updateProduct = useUpdateProduct();
