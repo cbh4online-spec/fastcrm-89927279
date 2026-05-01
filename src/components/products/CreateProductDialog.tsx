@@ -63,6 +63,7 @@ import { PostCreationSuggestionsCard } from "./PostCreationSuggestionsCard";
 import { ProductImage360Viewer } from "./ProductImage360Viewer";
 import { ProductVariantsManager } from "./ProductVariantsManager";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
+import { usePricingRules, resolveSuggestedOperationalCostPct } from "@/hooks/useProductPricingIntelligence";
 import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
 import { ProductPublishingPanel } from "./ProductPublishingPanel";
 import { supabase } from "@/integrations/supabase/client";
