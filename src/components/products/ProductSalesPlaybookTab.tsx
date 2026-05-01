@@ -428,3 +428,78 @@ export function ProductSalesPlaybookTab({ product }: Props) {
     </div>
   );
 }
+
+
+// ── Sortable row for objections ──────────────────────────────────────────────
+function SortableObjectionRow({
+  id,
+  item,
+  index,
+  onChange,
+  onRemove,
+}: {
+  id: string;
+  item: ObjectionItem;
+  index: number;
+  onChange: (field: keyof ObjectionItem, value: string) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid grid-cols-[auto_1fr_1.5fr_auto] gap-2 items-start p-3 rounded border bg-muted/30"
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="mt-5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground rounded p-1 -ml-1 touch-none"
+        aria-label={`Arrastar objeção ${index + 1}`}
+        title="Arrastar para reordenar"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">
+          Objeção #{index + 1}
+        </label>
+        <Input
+          value={item.objection}
+          onChange={(e) => onChange("objection", e.target.value)}
+          placeholder="Ex. É demasiado caro"
+          maxLength={500}
+        />
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">
+          Resposta sugerida
+        </label>
+        <Textarea
+          value={item.response}
+          onChange={(e) => onChange("response", e.target.value)}
+          placeholder="Ex. O investimento paga-se em X meses porque…"
+          rows={3}
+          maxLength={2000}
+        />
+      </div>
+      <div className="pt-5">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onRemove}
+          aria-label="Remover objeção"
+        >
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      </div>
+    </div>
+  );
+}
