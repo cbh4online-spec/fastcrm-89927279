@@ -28,8 +28,19 @@ serve(async (req: Request) => {
     }
     const userId = claimsData.claims.sub;
 
-    const { workspace_id, metric_id } = await req.json();
-    if (!workspace_id) throw new Error("workspace_id required");
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+    const { workspace_id, metric_id } = body;
+    if (!workspace_id) {
+      return new Response(JSON.stringify({ results: [], fallback: true, error: "workspace_id required" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Use service role for all DB queries (anon client is RLS-restricted)
     const serviceClient = createClient(
@@ -117,8 +128,10 @@ serve(async (req: Request) => {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    return new Response(JSON.stringify({ error: msg }), {
-      status: msg.includes("authenticated") || msg.includes("Access") ? 401 : 500,
+    console.error("calculate-pipeline-metrics error:", msg);
+    // Return 200 with fallback to prevent client crash / blank screen
+    return new Response(JSON.stringify({ results: [], fallback: true, internal_error: msg }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
