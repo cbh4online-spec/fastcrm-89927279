@@ -84,11 +84,20 @@ export function usePartnerOrderApprovals() {
     }) => {
       // Map decision to actual status: approved -> submitted (downstream lifecycle handles processing)
       const newStatus = decision === "approved" ? "submitted" : "rejected";
+      const nowIso = new Date().toISOString();
+      const { data: userRes } = await supabase.auth.getUser();
 
       const updates: Record<string, unknown> = {
         status: newStatus,
+        approver_user_id: userRes.user?.id ?? null,
       };
-      if (reason) updates.notes = reason;
+      if (decision === "approved") {
+        updates.approved_at = nowIso;
+        if (reason) updates.notes = reason;
+      } else {
+        updates.rejected_at = nowIso;
+        updates.rejection_reason = reason ?? null;
+      }
 
       const { error } = await supabase
         .from("partner_order_headers")
