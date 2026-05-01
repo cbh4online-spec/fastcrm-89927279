@@ -15,11 +15,13 @@ import {
   Camera,
   Upload,
   Loader2,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { ProductImageWebSearchDialog } from "./ProductImageWebSearchDialog";
 
 interface ProductImageGalleryManagerProps {
   images: string[];
@@ -27,6 +29,8 @@ interface ProductImageGalleryManagerProps {
   skuImages?: string[];
   onSelectFromSku?: (images: string[]) => void;
   maxImages?: number;
+  /** Nome do produto — usado como query inicial na pesquisa de imagens online */
+  productName?: string;
 }
 
 export function ProductImageGalleryManager({
@@ -34,8 +38,10 @@ export function ProductImageGalleryManager({
   onImagesChange,
   skuImages = [],
   maxImages = 10,
+  productName,
 }: ProductImageGalleryManagerProps) {
   const [selectedSkuImages, setSelectedSkuImages] = useState<Set<string>>(new Set());
+  const [webSearchOpen, setWebSearchOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -488,6 +494,17 @@ export function ProductImageGalleryManager({
             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
             Tirar foto
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => setWebSearchOpen(true)}
+            disabled={uploading || images.length >= maxImages}
+            title="Pesquisar imagens reais do produto online"
+          >
+            <Globe className="h-4 w-4" />
+            Pesquisar online
+          </Button>
         </div>
         <p className="text-[11px] text-muted-foreground mt-2 text-center">
           Até {maxImages} imagens • Compressão automática • A câmara abre nativamente em telemóveis
@@ -516,10 +533,18 @@ export function ProductImageGalleryManager({
           <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
           <p className="text-sm text-muted-foreground">Nenhuma imagem adicionada</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Carregue, tire foto, pesquise por SKU ou gere com IA
+            Carregue, tire foto, pesquise online ou gere com IA
           </p>
         </Card>
       )}
+
+      <ProductImageWebSearchDialog
+        open={webSearchOpen}
+        onOpenChange={setWebSearchOpen}
+        defaultQuery={productName || ""}
+        remainingSlots={Math.max(0, maxImages - images.length)}
+        onPicked={(urls) => onImagesChange([...images, ...urls].slice(0, maxImages))}
+      />
     </div>
   );
 }
