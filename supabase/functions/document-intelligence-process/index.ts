@@ -1,6 +1,7 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -70,20 +71,34 @@ const DEFAULT_EXTRACTION_SCHEMAS: Record<string, Record<string, { description: s
   },
 };
 
+// Generic schema usable in single-call vision when type isn't known yet
+const GENERIC_EXTRACTION_PROPERTIES: Record<string, { type: string; description: string }> = {};
+for (const schema of Object.values(DEFAULT_EXTRACTION_SCHEMAS)) {
+  for (const [key, field] of Object.entries(schema)) {
+    if (!GENERIC_EXTRACTION_PROPERTIES[key]) {
+      GENERIC_EXTRACTION_PROPERTIES[key] = {
+        type: field.type === "number" ? "number" : "string",
+        description: field.description,
+      };
+    }
+  }
+}
+
 async function callAI(
   apiKey: string,
+  workspaceId: string | null,
+  feature: string,
   messages: Array<{ role: string; content: unknown }>,
-  tools?: unknown[],
-  toolChoice?: unknown
-): Promise<string> {
+  options: { tools?: unknown[]; toolChoice?: unknown; maxTokens?: number; model?: string } = {}
+): Promise<{ text: string; toolArgs?: string }> {
   const body: Record<string, unknown> = {
-    model: "google/gemini-2.5-flash",
+    model: options.model || "google/gemini-2.5-flash",
     messages,
-    max_tokens: 16000,
+    max_tokens: options.maxTokens ?? 8000,
   };
-  if (tools) {
-    body.tools = tools;
-    body.tool_choice = toolChoice;
+  if (options.tools) {
+    body.tools = options.tools;
+    body.tool_choice = options.toolChoice;
   }
 
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -101,24 +116,23 @@ async function callAI(
   }
 
   const data = await resp.json();
-  // Log AI usage (fire-and-forget)
+
+  // Log AI usage (fire-and-forget) — uses workspaceId (camelCase) per Core memory
   try {
     logAIUsage({
-      workspace_id: workspace_id,
-      feature: "document-intelligence-process",
-      model: "google/gemini-2.5-flash",
+      workspaceId,
+      feature,
+      model: (body.model as string),
       tokens_input: data?.usage?.prompt_tokens ?? 0,
       tokens_output: data?.usage?.completion_tokens ?? 0,
-    });
+    } as any);
   } catch (_e) { /* logging never blocks */ }
 
-  
-  // Handle tool calls
-  if (data.choices?.[0]?.message?.tool_calls) {
-    return data.choices[0].message.tool_calls[0].function.arguments;
-  }
-  
-  return data.choices?.[0]?.message?.content || "";
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  return {
+    text: data.choices?.[0]?.message?.content || "",
+    toolArgs: toolCall?.function?.arguments,
+  };
 }
 
 async function updateJobStatus(
@@ -147,6 +161,207 @@ async function updateJobStatus(
     .from("document_processing_jobs")
     .update(updateData)
     .eq("id", jobId);
+}
+
+// ============================================================================
+// SINGLE-CALL VISION: OCR + classify + extract in one round-trip
+// ============================================================================
+async function singleCallVision(
+  apiKey: string,
+  workspaceId: string | null,
+  dataUrl: string
+): Promise<{
+  ocr_text: string;
+  document_type: string;
+  document_subtype: string | null;
+  classification_confidence: number;
+  classification_reasoning: string;
+  data: Record<string, unknown>;
+  entities: Array<{ type: string; value: string; confidence: number }>;
+} | null> {
+  const typesList = DOCUMENT_TYPES.map((dt) => dt.type).join(", ");
+
+  const tools = [
+    {
+      type: "function",
+      function: {
+        name: "process_document",
+        description: "Extract OCR text, classify document, and extract structured data in a single pass.",
+        parameters: {
+          type: "object",
+          properties: {
+            ocr_text: {
+              type: "string",
+              description: "Full text extracted from the document, preserving layout and structure.",
+            },
+            document_type: {
+              type: "string",
+              enum: DOCUMENT_TYPES.map((dt) => dt.type),
+              description: `Document type. One of: ${typesList}`,
+            },
+            document_subtype: {
+              type: "string",
+              description: "Specific subtype or empty string",
+            },
+            classification_confidence: { type: "number", description: "0.0 to 1.0" },
+            classification_reasoning: { type: "string", description: "Brief explanation" },
+            data: {
+              type: "object",
+              description: "Extracted structured fields relevant to the detected document type.",
+              properties: GENERIC_EXTRACTION_PROPERTIES,
+            },
+            entities: {
+              type: "array",
+              description: "Detected entities",
+              items: {
+                type: "object",
+                properties: {
+                  type: { type: "string", enum: ["PERSON", "ORGANIZATION", "DATE", "MONEY", "LOCATION", "PRODUCT", "OTHER"] },
+                  value: { type: "string" },
+                  confidence: { type: "number" },
+                },
+                required: ["type", "value", "confidence"],
+              },
+            },
+          },
+          required: ["ocr_text", "document_type", "classification_confidence", "classification_reasoning", "data", "entities"],
+          additionalProperties: false,
+        },
+      },
+    },
+  ];
+
+  const messages = [
+    {
+      role: "user",
+      content: [
+        { type: "image_url", image_url: { url: dataUrl } },
+        {
+          type: "text",
+          text: `Process this document in a single pass:
+1. Extract ALL visible text (ocr_text) preserving structure, tables (use | separators), headers, and numbers exactly as shown.
+2. Classify the document_type from: ${typesList}.
+3. Extract structured data: relevant fields for the detected type. Dates ISO8601. Numbers without currency symbols. Use null for missing fields.
+4. Detect named entities (people, organizations, dates, money, locations).
+
+Respond using the process_document tool.`,
+        },
+      ],
+    },
+  ];
+
+  try {
+    const result = await callAI(apiKey, workspaceId, "document-intelligence-singlecall", messages, {
+      tools,
+      toolChoice: { type: "function", function: { name: "process_document" } },
+      maxTokens: 8000,
+    });
+
+    if (!result.toolArgs) return null;
+    const parsed = JSON.parse(result.toolArgs);
+    if (!parsed.ocr_text || parsed.ocr_text.length < 50) return null;
+    return parsed;
+  } catch (e) {
+    console.warn("singleCallVision failed, falling back:", e);
+    return null;
+  }
+}
+
+// ============================================================================
+// FALLBACK PIPELINE: separate OCR + extract (used when single-call fails)
+// ============================================================================
+async function fallbackPipeline(
+  apiKey: string,
+  workspaceId: string | null,
+  dataUrl: string,
+  template: any | null,
+  supabase: ReturnType<typeof createClient>
+): Promise<{
+  ocr_text: string;
+  document_type: string;
+  document_subtype: string | null;
+  classification_confidence: number;
+  classification_reasoning: string;
+  data: Record<string, unknown>;
+  entities: Array<{ type: string; value: string; confidence: number }>;
+}> {
+  // OCR
+  const ocrResp = await callAI(apiKey, workspaceId, "document-intelligence-ocr", [
+    {
+      role: "user",
+      content: [
+        { type: "image_url", image_url: { url: dataUrl } },
+        {
+          type: "text",
+          text: `Extract ALL text from this document, preserving structure. Tables with | separators. Output text only.`,
+        },
+      ],
+    },
+  ], { maxTokens: 8000 });
+  const ocrText = ocrResp.text;
+
+  // Combined classify + extract on text
+  const tools = [
+    {
+      type: "function",
+      function: {
+        name: "classify_and_extract",
+        description: "Classify document and extract structured data + entities.",
+        parameters: {
+          type: "object",
+          properties: {
+            document_type: { type: "string", enum: DOCUMENT_TYPES.map((d) => d.type) },
+            document_subtype: { type: "string" },
+            classification_confidence: { type: "number" },
+            classification_reasoning: { type: "string" },
+            data: { type: "object", properties: GENERIC_EXTRACTION_PROPERTIES },
+            entities: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  type: { type: "string", enum: ["PERSON", "ORGANIZATION", "DATE", "MONEY", "LOCATION", "PRODUCT", "OTHER"] },
+                  value: { type: "string" },
+                  confidence: { type: "number" },
+                },
+                required: ["type", "value", "confidence"],
+              },
+            },
+          },
+          required: ["document_type", "classification_confidence", "classification_reasoning", "data", "entities"],
+          additionalProperties: false,
+        },
+      },
+    },
+  ];
+
+  const ceResp = await callAI(apiKey, workspaceId, "document-intelligence-classify-extract", [
+    {
+      role: "system",
+      content: `Classify the document then extract structured data. Dates ISO8601. Numbers without currency symbols. Use null for missing fields.`,
+    },
+    {
+      role: "user",
+      content: `Document text:\n---\n${ocrText.slice(0, 12000)}\n---`,
+    },
+  ], {
+    tools,
+    toolChoice: { type: "function", function: { name: "classify_and_extract" } },
+    maxTokens: 4000,
+  });
+
+  let parsed: any = {};
+  try { parsed = JSON.parse(ceResp.toolArgs || "{}"); } catch { /* ignore */ }
+
+  return {
+    ocr_text: ocrText,
+    document_type: parsed.document_type || "other",
+    document_subtype: parsed.document_subtype || null,
+    classification_confidence: parsed.classification_confidence ?? 0.5,
+    classification_reasoning: parsed.classification_reasoning || "",
+    data: parsed.data || {},
+    entities: parsed.entities || [],
+  };
 }
 
 // ============================================================================
@@ -196,7 +411,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Skip if already done
     if (job.status === "completed") {
       return new Response(
         JSON.stringify({ message: "Job already completed", status: "completed" }),
@@ -204,8 +418,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // AI Gate check
-    const workspaceId = job.workspace_id;
+    const workspaceId: string | null = job.workspace_id ?? null;
+
+    // AI Gate
     if (workspaceId) {
       const gate = await aiGate(workspaceId, 'heavy', 'document-intelligence-process');
       if (!gate.allowed) {
@@ -219,7 +434,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Get extraction template if specified
+    // Optional template
     let template: Record<string, unknown> | null = null;
     if (job.custom_fields?.extraction_template_id) {
       const { data: tmpl } = await supabase
@@ -230,17 +445,13 @@ Deno.serve(async (req) => {
       if (tmpl) template = tmpl;
     }
 
-    // =========================================================================
-    // PIPELINE
-    // =========================================================================
-
     try {
-      // 1. OCR — Extract text from document
+      // ---------------------------------------------------------------------
+      // 1. Download + base64 (FAST native encoder)
+      // ---------------------------------------------------------------------
       await updateJobStatus(supabase, job_id, "ocr", 10);
-
       const startOcr = Date.now();
 
-      // Download file from storage
       const { data: fileData, error: dlError } = await supabase.storage
         .from("document-intelligence")
         .download(job.file_path);
@@ -250,308 +461,129 @@ Deno.serve(async (req) => {
       }
 
       const fileBuffer = await fileData.arrayBuffer();
-      // base64 encode robusto: spread (...) com Uint8Array grande causa
-      // "Maximum call stack size exceeded" (limite ~65k argumentos no V8/Deno).
-      // Iteramos byte-a-byte em chunks pequenos para garantir compatibilidade
-      // com ficheiros até 20MB sem rebentar o stack.
-      const bytes = new Uint8Array(fileBuffer);
-      const CHUNK = 8192;
-      let binary = "";
-      for (let i = 0; i < bytes.length; i += CHUNK) {
-        const slice = bytes.subarray(i, Math.min(i + CHUNK, bytes.length));
-        let part = "";
-        for (let j = 0; j < slice.length; j++) {
-          part += String.fromCharCode(slice[j]);
-        }
-        binary += part;
-      }
-      const base64 = btoa(binary);
+      const base64 = encodeBase64(new Uint8Array(fileBuffer));
 
-      // Use vision model for OCR
-      const isImage = job.file_type.startsWith("image/");
+      const isImage = (job.file_type as string).startsWith("image/");
       const mediaType = isImage ? job.file_type : "application/pdf";
+      const dataUrl = `data:${mediaType};base64,${base64}`;
 
-      const ocrMessages = [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mediaType};base64,${base64}`,
-              },
-            },
-            {
-              type: "text",
-              text: `Extract ALL text from this document, preserving the original structure and layout.
-Instructions:
-1. Extract every piece of text visible
-2. Maintain paragraph breaks and sections
-3. For tables, use | separators
-4. Include headers, footers, marginal text
-5. For forms, include field labels and values
-6. Preserve numbering and bullet points
-7. Include dates, numbers, currency values exactly as shown
-Output the extracted text only, without commentary.`,
-            },
-          ],
-        },
-      ];
+      // ---------------------------------------------------------------------
+      // 2. Single-call vision (OCR + classify + extract in one round-trip)
+      // ---------------------------------------------------------------------
+      let result = await singleCallVision(LOVABLE_API_KEY, workspaceId, dataUrl);
 
-      const ocrText = await callAI(LOVABLE_API_KEY, ocrMessages);
+      // Fallback if single-call fails (very dense doc, model refusal, etc.)
+      if (!result) {
+        result = await fallbackPipeline(LOVABLE_API_KEY, workspaceId, dataUrl, template, supabase);
+      }
+
       const ocrDuration = Date.now() - startOcr;
-      const ocrConfidence = ocrText.length > 100 ? 0.95 : 0.7;
-
-      await updateJobStatus(supabase, job_id, "ocr", 30, {
-        ocr_text: ocrText,
-        ocr_confidence: ocrConfidence,
-        ocr_engine: "lovable-ai-vision",
-        ocr_pages: 1,
-        ocr_duration_ms: ocrDuration,
-      });
-
-      // 2. Classification
-      await updateJobStatus(supabase, job_id, "classifying", 40);
-
-      const typesList = DOCUMENT_TYPES.map(
-        (dt) => `- ${dt.type}${dt.subtypes.length ? ` (subtypes: ${dt.subtypes.join(", ")})` : ""}`
-      ).join("\n");
-
-      const classifyTools = [
-        {
-          type: "function",
-          function: {
-            name: "classify_document",
-            description: "Classify the document type",
-            parameters: {
-              type: "object",
-              properties: {
-                document_type: { type: "string", description: "Main document type" },
-                document_subtype: { type: "string", description: "Specific subtype or null" },
-                confidence: { type: "number", description: "0.0 to 1.0" },
-                reasoning: { type: "string", description: "Brief explanation" },
-              },
-              required: ["document_type", "confidence", "reasoning"],
-              additionalProperties: false,
-            },
-          },
-        },
-      ];
-
-      const classifyResult = await callAI(
-        LOVABLE_API_KEY,
-        [
-          {
-            role: "system",
-            content: `You classify documents. Available types:\n${typesList}\nRespond using the classify_document tool.`,
-          },
-          {
-            role: "user",
-            content: `Classify this document:\n---\n${ocrText.slice(0, 8000)}\n---`,
-          },
-        ],
-        classifyTools,
-        { type: "function", function: { name: "classify_document" } }
-      );
-
-      let classification;
-      try {
-        classification = JSON.parse(classifyResult);
-      } catch {
-        classification = { document_type: "other", confidence: 0.5, reasoning: "Failed to parse" };
-      }
-
-      await updateJobStatus(supabase, job_id, "classifying", 55, {
-        document_type: classification.document_type,
-        document_subtype: classification.document_subtype || null,
-        classification_confidence: classification.confidence,
-        classification_reasoning: classification.reasoning,
-      });
-
-      // Get default template if none specified
-      if (!template) {
-        const { data: defaultTemplate } = await supabase
-          .from("document_extraction_templates")
-          .select("*")
-          .eq("workspace_id", workspaceId)
-          .eq("document_type", classification.document_type)
-          .eq("is_default", true)
-          .maybeSingle();
-        if (defaultTemplate) template = defaultTemplate;
-      }
-
-      // 3. Extraction
-      await updateJobStatus(supabase, job_id, "extracting", 60);
-
-      const schema = (template as any)?.extraction_schema || DEFAULT_EXTRACTION_SCHEMAS[classification.document_type] || {};
-      const schemaDesc = Object.entries(schema)
-        .map(([key, field]: [string, any]) => {
-          let desc = `- ${key}: ${field.description}`;
-          if (field.required) desc += " (REQUIRED)";
-          return desc;
-        })
-        .join("\n");
-
-      // Build extraction tool from schema
-      const extractionProperties: Record<string, unknown> = {};
-      for (const [key, field] of Object.entries(schema) as [string, any][]) {
-        extractionProperties[key] = {
-          type: field.type === "number" ? "number" : "string",
-          description: field.description,
-        };
-      }
-
-      const extractTools = [
-        {
-          type: "function",
-          function: {
-            name: "extract_document_data",
-            description: "Extract structured data and entities from the document",
-            parameters: {
-              type: "object",
-              properties: {
-                data: {
-                  type: "object",
-                  description: "Extracted field values",
-                  properties: extractionProperties,
-                },
-                entities: {
-                  type: "array",
-                  description: "Detected entities",
-                  items: {
-                    type: "object",
-                    properties: {
-                      type: { type: "string", enum: ["PERSON", "ORGANIZATION", "DATE", "MONEY", "LOCATION", "PRODUCT", "OTHER"] },
-                      value: { type: "string" },
-                      confidence: { type: "number" },
-                    },
-                    required: ["type", "value", "confidence"],
-                  },
-                },
-              },
-              required: ["data", "entities"],
-              additionalProperties: false,
-            },
-          },
-        },
-      ];
-
-      const extractResult = await callAI(
-        LOVABLE_API_KEY,
-        [
-          {
-            role: "system",
-            content: `You extract structured data from documents. Document type: ${classification.document_type}.\nFields to extract:\n${schemaDesc}\n\nFor missing fields use null. Dates in ISO8601. Numbers without currency symbols.`,
-          },
-          {
-            role: "user",
-            content: `Extract data from:\n---\n${ocrText.slice(0, 12000)}\n---`,
-          },
-        ],
-        extractTools,
-        { type: "function", function: { name: "extract_document_data" } }
-      );
-
-      let extraction;
-      try {
-        extraction = JSON.parse(extractResult);
-      } catch {
-        extraction = { data: {}, entities: [] };
-      }
-
-      const avgConfidence = extraction.entities?.length
-        ? extraction.entities.reduce((s: number, e: any) => s + (e.confidence || 0), 0) / extraction.entities.length
+      const ocrConfidence = result.ocr_text.length > 100 ? 0.95 : 0.7;
+      const avgConfidence = result.entities?.length
+        ? result.entities.reduce((s, e) => s + (e.confidence || 0), 0) / result.entities.length
         : 0.8;
 
-      await updateJobStatus(supabase, job_id, "extracting", 75, {
-        extracted_data: extraction.data || {},
-        extracted_entities: extraction.entities || [],
+      // ---------------------------------------------------------------------
+      // 3. Mark COMPLETED immediately (embedding runs in background)
+      // ---------------------------------------------------------------------
+      await updateJobStatus(supabase, job_id, "completed", 100, {
+        ocr_text: result.ocr_text,
+        ocr_confidence: ocrConfidence,
+        ocr_engine: "lovable-ai-vision-singlecall",
+        ocr_pages: 1,
+        ocr_duration_ms: ocrDuration,
+        document_type: result.document_type,
+        document_subtype: result.document_subtype,
+        classification_confidence: result.classification_confidence,
+        classification_reasoning: result.classification_reasoning,
+        extracted_data: result.data,
+        extracted_entities: result.entities,
         extraction_schema: (template as any)?.id || "default",
         extraction_confidence: avgConfidence,
       });
 
-      // 4. Optional: Index in Knowledge Base
-      await updateJobStatus(supabase, job_id, "embedding", 85);
-
-      let knowledgeDocId = null;
-      try {
-        // Find or create "Processed Documents" knowledge base
-        let { data: kb } = await supabase
-          .from("knowledge_bases")
-          .select("id")
-          .eq("workspace_id", workspaceId)
-          .eq("slug", "processed-documents")
-          .maybeSingle();
-
-        if (!kb) {
-          const { data: newKb } = await supabase
+      // ---------------------------------------------------------------------
+      // 4. KB indexing — fire-and-forget background (does not block response)
+      // ---------------------------------------------------------------------
+      (async () => {
+        try {
+          let { data: kb } = await supabase
             .from("knowledge_bases")
-            .insert({
-              workspace_id: workspaceId,
-              name: "Documentos Processados",
-              slug: "processed-documents",
-              description: "Documentos indexados automaticamente pelo Document Intelligence",
-            })
             .select("id")
-            .single();
-          kb = newKb;
-        }
+            .eq("workspace_id", workspaceId)
+            .eq("slug", "processed-documents")
+            .maybeSingle();
 
-        if (kb) {
-          const { data: doc } = await supabase
-            .from("knowledge_documents")
-            .insert({
-              knowledge_base_id: kb.id,
-              workspace_id: workspaceId,
-              name: job.file_name,
-              file_path: job.file_path,
-              file_type: job.file_type,
-              file_size: job.file_size,
-              status: "pending",
-              created_by: job.created_by,
-            })
-            .select("id")
-            .single();
-
-          if (doc) {
-            knowledgeDocId = doc.id;
-            // Trigger embedding asynchronously
-            supabase.functions.invoke("knowledge-document-process", {
-              body: {
-                document_id: doc.id,
-                workspaceId,
-                knowledgeBaseId: kb.id,
-                filePath: job.file_path,
-                fileName: job.file_name,
-                mimeType: job.file_type,
-              },
-            }).catch(console.error);
+          if (!kb) {
+            const { data: newKb } = await supabase
+              .from("knowledge_bases")
+              .insert({
+                workspace_id: workspaceId,
+                name: "Documentos Processados",
+                slug: "processed-documents",
+                description: "Documentos indexados automaticamente pelo Document Intelligence",
+              })
+              .select("id")
+              .single();
+            kb = newKb;
           }
-        }
-      } catch (kbErr) {
-        console.warn("KB indexing skipped:", kbErr);
-      }
 
-      // 5. Complete
-      await updateJobStatus(supabase, job_id, "completed", 100, {
-        knowledge_document_id: knowledgeDocId,
-        indexed_at: knowledgeDocId ? new Date().toISOString() : null,
-      });
+          if (kb) {
+            const { data: doc } = await supabase
+              .from("knowledge_documents")
+              .insert({
+                knowledge_base_id: kb.id,
+                workspace_id: workspaceId,
+                name: job.file_name,
+                file_path: job.file_path,
+                file_type: job.file_type,
+                file_size: job.file_size,
+                status: "pending",
+                created_by: job.created_by,
+              })
+              .select("id")
+              .single();
+
+            if (doc) {
+              await supabase
+                .from("document_processing_jobs")
+                .update({
+                  knowledge_document_id: doc.id,
+                  indexed_at: new Date().toISOString(),
+                })
+                .eq("id", job_id);
+
+              supabase.functions.invoke("knowledge-document-process", {
+                body: {
+                  document_id: doc.id,
+                  workspaceId,
+                  knowledgeBaseId: kb.id,
+                  filePath: job.file_path,
+                  fileName: job.file_name,
+                  mimeType: job.file_type,
+                },
+              }).catch(console.error);
+            }
+          }
+        } catch (kbErr) {
+          console.warn("KB background indexing failed:", kbErr);
+        }
+      })();
 
       return new Response(
         JSON.stringify({
           success: true,
           job_id,
           status: "completed",
-          document_type: classification.document_type,
+          document_type: result.document_type,
+          ocr_duration_ms: ocrDuration,
           confidence: {
             ocr: ocrConfidence,
-            classification: classification.confidence,
+            classification: result.classification_confidence,
             extraction: avgConfidence,
           },
-          extracted_data: extraction.data,
-          entities_count: (extraction.entities || []).length,
-          knowledge_document_id: knowledgeDocId,
+          extracted_data: result.data,
+          entities_count: (result.entities || []).length,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -565,17 +597,18 @@ Output the extracted text only, without commentary.`,
         retry_count: (job.retry_count || 0) + 1,
       });
 
+      // Resilient: return 200 with error payload to avoid client crash (Core memory rule)
       return new Response(
-        JSON.stringify({ error: "Processing failed", details: errorMessage, job_id }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "internal_error", details: errorMessage, job_id, fallback: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
   } catch (error) {
     console.error("Handler error:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: "internal_error", fallback: true }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
