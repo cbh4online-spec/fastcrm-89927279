@@ -241,7 +241,8 @@ export default function StockValuationPage() {
                 <TableRow>
                   <TableHead className="cursor-pointer" onClick={() => toggleSort("name")}>Produto</TableHead>
                   <TableHead>SKU</TableHead>
-                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("stock")}>Un.</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("stock")}>Un.</TableHead>
+                  <TableHead className="text-right border-r" title="Nível mínimo de stock configurado para alerta (indicativo)">Mínimo</TableHead>
                   <TableHead className="text-right" title="Custo médio FIFO do produto">P.Custo</TableHead>
                   <TableHead className="text-right" title="Custo operacional unitário (logística, overhead, etc.)">Custo Op.</TableHead>
                   <TableHead className="text-right font-semibold" title="P.Custo + Custo Operacional">Custo Total</TableHead>
