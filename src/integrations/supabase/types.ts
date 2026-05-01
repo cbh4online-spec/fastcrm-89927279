@@ -51719,6 +51719,7 @@ export type Database = {
           created_at: string
           id: string
           is_ai_generated: boolean
+          is_cover: boolean
           position: number
           product_id: string
           seo_filename: string | null
@@ -51734,6 +51735,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_ai_generated?: boolean
+          is_cover?: boolean
           position?: number
           product_id: string
           seo_filename?: string | null
@@ -51749,6 +51751,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_ai_generated?: boolean
+          is_cover?: boolean
           position?: number
           product_id?: string
           seo_filename?: string | null
