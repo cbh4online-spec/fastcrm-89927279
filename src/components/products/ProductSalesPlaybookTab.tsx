@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2 } from "lucide-react";
+import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Product } from "@/types/product";
@@ -119,39 +119,122 @@ export function ProductSalesPlaybookTab({ product }: Props) {
     },
   });
 
+  // ── AI generation ────────────────────────────────────────────────
+  const generate = useMutation({
+    mutationFn: async (section: "script" | "objections" | "warranty" | "all") => {
+      const { data: res, error } = await supabase.functions.invoke("ai-product-playbook", {
+        body: {
+          section,
+          product: {
+            name: product.name,
+            category: product.category ?? null,
+            description: (product as any).description ?? null,
+            short_description: (product as any).short_description ?? null,
+            base_price: product.base_price ?? null,
+            currency: product.currency ?? "EUR",
+            product_type: product.product_type ?? null,
+            sku: product.sku ?? null,
+          },
+          existing: {
+            script: data.script,
+            objections: data.objections,
+            warranty: data.warranty,
+          },
+        },
+      });
+      if (error) throw error;
+      if (res?.error && res.error !== "ok") {
+        throw new Error(res.message || "Falha ao gerar com IA");
+      }
+      return { section, result: res?.result ?? { script: "", objections: [], warranty: "" } };
+    },
+    onSuccess: ({ section, result }) => {
+      setData((prev) => {
+        const next: SalesPlaybook = { ...prev };
+        if (section === "all" || section === "script") {
+          if (result.script) next.script = result.script;
+        }
+        if (section === "all" || section === "objections") {
+          if (Array.isArray(result.objections) && result.objections.length > 0) {
+            next.objections = result.objections;
+          }
+        }
+        if (section === "all" || section === "warranty") {
+          if (result.warranty) next.warranty = result.warranty;
+        }
+        return next;
+      });
+      setDirty(true);
+      toast.success("Conteúdo gerado — revê e guarda");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message || "Erro ao gerar");
+    },
+  });
+
+  const isGenerating = (s: "script" | "objections" | "warranty" | "all") =>
+    generate.isPending && generate.variables === s;
+
   const totalObjs = data.objections.length;
 
   return (
     <div className="space-y-4">
       {/* Sticky save bar */}
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-1 px-1 border-b">
+      <div className="flex flex-wrap items-center justify-between gap-2 sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-1 px-1 border-b">
         <div className="text-sm text-muted-foreground">
           {data.updated_at
             ? <>Última atualização: {new Date(data.updated_at).toLocaleString("pt-PT")}</>
             : <>Sem alterações guardadas</>}
         </div>
-        <Button
-          size="sm"
-          onClick={() => save.mutate()}
-          disabled={!dirty || save.isPending}
-        >
-          {save.isPending
-            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            : <Save className="h-4 w-4 mr-2" />}
-          Guardar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => generate.mutate("all")}
+            disabled={generate.isPending}
+            title="Gera Script, Objeções e Garantia com base na ficha do produto"
+          >
+            {isGenerating("all")
+              ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              : <Sparkles className="h-4 w-4 mr-2" />}
+            Gerar tudo com IA
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => save.mutate()}
+            disabled={!dirty || save.isPending}
+          >
+            {save.isPending
+              ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              : <Save className="h-4 w-4 mr-2" />}
+            Guardar
+          </Button>
+        </div>
       </div>
 
       {/* Script de vendas */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ScriptIcon className="h-4 w-4 text-primary" />
-            Script de vendas
-          </CardTitle>
-          <CardDescription>
-            Abordagem recomendada, perguntas-chave, gatilhos e fecho. Usado em propostas, chat e treino.
-          </CardDescription>
+        <CardHeader className="pb-3 flex flex-row items-start justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ScriptIcon className="h-4 w-4 text-primary" />
+              Script de vendas
+            </CardTitle>
+            <CardDescription>
+              Abordagem recomendada, perguntas-chave, gatilhos e fecho. Usado em propostas, chat e treino.
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => generate.mutate("script")}
+            disabled={generate.isPending}
+          >
+            {isGenerating("script")
+              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              : <Sparkles className="h-4 w-4 mr-1" />}
+            Gerar com IA
+          </Button>
         </CardHeader>
         <CardContent>
           <Textarea
@@ -181,14 +264,27 @@ export function ProductSalesPlaybookTab({ product }: Props) {
               Lista de objeções típicas e respostas validadas. Máximo 50.
             </CardDescription>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={addObjection}
-            disabled={totalObjs >= 50}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Adicionar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => generate.mutate("objections")}
+              disabled={generate.isPending}
+            >
+              {isGenerating("objections")
+                ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                : <Sparkles className="h-4 w-4 mr-1" />}
+              Gerar com IA
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={addObjection}
+              disabled={totalObjs >= 50}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Adicionar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {totalObjs === 0 ? (
@@ -242,14 +338,27 @@ export function ProductSalesPlaybookTab({ product }: Props) {
 
       {/* Reclamação / Garantia */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldCheck className="h-4 w-4 text-emerald-600" />
-            Reclamação &amp; garantia
-          </CardTitle>
-          <CardDescription>
-            Procedimento pós-venda: política de garantia, prazos, fluxo de reclamação e responsáveis.
-          </CardDescription>
+        <CardHeader className="pb-3 flex flex-row items-start justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              Reclamação &amp; garantia
+            </CardTitle>
+            <CardDescription>
+              Procedimento pós-venda: política de garantia, prazos, fluxo de reclamação e responsáveis.
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => generate.mutate("warranty")}
+            disabled={generate.isPending}
+          >
+            {isGenerating("warranty")
+              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              : <Sparkles className="h-4 w-4 mr-1" />}
+            Gerar com IA
+          </Button>
         </CardHeader>
         <CardContent>
           <Textarea
