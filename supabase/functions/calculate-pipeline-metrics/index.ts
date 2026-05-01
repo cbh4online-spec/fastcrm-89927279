@@ -56,11 +56,34 @@ serve(async (req: Request) => {
       .eq("user_id", userId)
       .maybeSingle();
 
-    // Check super admin via service client
-    const { data: userData } = await serviceClient.auth.admin.getUserById(userId);
-    const isSuperAdmin = userData?.user?.user_metadata?.is_super_admin || userData?.user?.app_metadata?.is_super_admin;
+    // Check super admin via user_roles + JWT metadata fallback
+    let isSuperAdmin = false;
+    try {
+      const { data: roleRow } = await serviceClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "super_admin")
+        .maybeSingle();
+      if (roleRow) isSuperAdmin = true;
+    } catch (_) {
+      // ignore — fallback to JWT metadata below
+    }
+    if (!isSuperAdmin) {
+      const { data: userData } = await serviceClient.auth.admin.getUserById(userId);
+      isSuperAdmin = !!(
+        userData?.user?.user_metadata?.is_super_admin ||
+        userData?.user?.app_metadata?.is_super_admin
+      );
+    }
+
     if (!member && !isSuperAdmin) {
-      return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // Soft fallback: don't 403 the client (causes blank screen). Return empty results.
+      console.warn(`Access denied for user ${userId} on workspace ${workspace_id} — returning empty results`);
+      return new Response(
+        JSON.stringify({ results: [], fallback: true, reason: "not_a_member" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Fetch metrics
