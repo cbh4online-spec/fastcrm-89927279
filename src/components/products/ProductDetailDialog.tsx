@@ -146,6 +146,9 @@ export function ProductDetailDialog({
   // Excluir imagens cujo URL falhou ao carregar (404/403)
   const displayImages = allImages.filter((img) => !failedUrls.has(img.url));
   const mainImage = displayImages[heroIdx];
+  // Só renderizamos área de imagens quando produto carregou E a query de product_images resolveu
+  // (evita flash de placeholder enquanto a relação ainda está em fetch).
+  const imagesReady = !!product && !imagesLoading && (!imagesFetching || (productImages !== undefined));
 
   useEffect(() => {
     if (displayImages.length === 0) {
