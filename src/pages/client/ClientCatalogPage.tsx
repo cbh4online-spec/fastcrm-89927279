@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
+import { EditorialPageHeader } from "@/components/client-portal/EditorialPageHeader";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientProducts } from "@/hooks/client-portal/useClientProducts";
 import { useCart } from "@/contexts/CartContext";
