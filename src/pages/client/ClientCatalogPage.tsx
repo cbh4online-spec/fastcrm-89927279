@@ -134,7 +134,7 @@ export default function ClientCatalogPage() {
         </div>
 
         {/* Filters */}
-        <Card className={showFilters ? "block" : "hidden sm:block"}>
+        <Card className={`${showFilters ? "block" : "hidden sm:block"} border-[hsl(var(--editorial-border))]/60`}>
           <CardContent className="pt-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
               {/* Search */}
