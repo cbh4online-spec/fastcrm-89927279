@@ -97,13 +97,40 @@ export function ProductStockTab({ product }: ProductStockTabProps) {
   const [notes, setNotes] = useState("");
   const [unitCost, setUnitCost] = useState<string>("");
 
+  const queryClient = useQueryClient();
+  const initialThreshold = product.low_stock_threshold ?? 5;
+  const [thresholdInput, setThresholdInput] = useState<string>(String(initialThreshold));
+
+  useEffect(() => {
+    setThresholdInput(String(product.low_stock_threshold ?? 5));
+  }, [product.low_stock_threshold]);
+
+  const updateThreshold = useMutation({
+    mutationFn: async (value: number) => {
+      const { error } = await supabase
+        .from("products")
+        .update({ low_stock_threshold: value })
+        .eq("id", product.id);
+      if (error) throw error;
+      return value;
+    },
+    onSuccess: (value) => {
+      toast.success(`Stock mínimo atualizado para ${value}`);
+      queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Erro ao atualizar stock mínimo"),
+  });
+
   const { data: movements = [], isLoading: loadingMovements } = useStockMovements(workspaceId, product.id);
   const adjustStock = useAdjustStock();
 
   const stockQty = product.stock_quantity ?? 0;
   const reserved = product.stock_reserved ?? 0;
   const available = stockQty - reserved;
-  const threshold = product.low_stock_threshold ?? 5;
+  const parsedThreshold = Math.max(0, parseInt(thresholdInput) || 0);
+  const threshold = parsedThreshold;
+  const thresholdDirty = parsedThreshold !== initialThreshold;
   const isLow = stockQty > 0 && available <= threshold;
   const isOut = stockQty <= 0;
 
