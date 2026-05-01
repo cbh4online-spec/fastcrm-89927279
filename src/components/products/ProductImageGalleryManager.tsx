@@ -533,10 +533,18 @@ export function ProductImageGalleryManager({
           <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
           <p className="text-sm text-muted-foreground">Nenhuma imagem adicionada</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Carregue, tire foto, pesquise por SKU ou gere com IA
+            Carregue, tire foto, pesquise online ou gere com IA
           </p>
         </Card>
       )}
+
+      <ProductImageWebSearchDialog
+        open={webSearchOpen}
+        onOpenChange={setWebSearchOpen}
+        defaultQuery={productName || ""}
+        remainingSlots={Math.max(0, maxImages - images.length)}
+        onPicked={(urls) => onImagesChange([...images, ...urls].slice(0, maxImages))}
+      />
     </div>
   );
 }
