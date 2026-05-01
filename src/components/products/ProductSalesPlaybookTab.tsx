@@ -228,6 +228,19 @@ export function ProductSalesPlaybookTab({ product }: Props) {
         </div>
       </div>
 
+      {isUsingTemplate && (
+        <div className="flex items-start gap-2 rounded-md border border-dashed bg-muted/40 p-3 text-sm">
+          <Info className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+          <div className="space-y-1">
+            <div className="font-medium">A usar o template padrão</div>
+            <div className="text-muted-foreground">
+              Este produto ainda não tem um procedimento personalizado. Edita as secções abaixo,
+              ou usa <span className="font-medium">Gerar com IA</span> para adaptar ao produto. Guarda quando estiveres satisfeito.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Script de vendas */}
       <Card>
         <CardHeader className="pb-3 flex flex-row items-start justify-between gap-2">
