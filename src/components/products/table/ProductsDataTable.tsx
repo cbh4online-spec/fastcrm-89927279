@@ -28,6 +28,7 @@ import {
 import { PRODUCT_COLUMNS } from "../hooks/useProductsListState";
 import { InlinePriceEditor } from "./InlinePriceEditor";
 import { InlineFieldEditor } from "./InlineFieldEditor";
+import { InlineOperationalCostEditor } from "./InlineOperationalCostEditor";
 import { InlineSelectEditor } from "./InlineSelectEditor";
 import { MarginStatusBadge } from "../pricing/MarginStatusBadge";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
