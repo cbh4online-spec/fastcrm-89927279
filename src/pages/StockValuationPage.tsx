@@ -226,7 +226,7 @@ export default function StockValuationPage() {
                 {/* Linha 1: grupos */}
                 <TableRow className="bg-muted/40">
                   <TableHead colSpan={2} className="border-r">Produto</TableHead>
-                  <TableHead className="text-right border-r">Stock</TableHead>
+                  <TableHead colSpan={2} className="text-center border-r">Stock</TableHead>
                   <TableHead colSpan={4} className="text-center border-r bg-amber-50/50 dark:bg-amber-950/20">
                     Custos (s/IVA)
                   </TableHead>
