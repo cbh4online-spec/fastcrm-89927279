@@ -1024,6 +1024,7 @@ export function CreateProductDialog({
                 onImagesChange={setProductImages}
                 skuImages={skuFoundImages}
                 maxImages={10}
+                productName={name}
               />
 
               {/* Technical Specifications Editor */}
