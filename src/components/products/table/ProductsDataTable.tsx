@@ -54,7 +54,7 @@ interface ProductsDataTableProps {
   getBillingTypeLabel: (code: string) => string;
   formatCurrency: (value: number, currency?: string) => string;
   toggleStorePublished: { mutate: (args: { id: string; published: boolean }) => void };
-  onInlinePriceUpdate?: (id: string, field: "base_price" | "direct_cost", value: number) => void;
+  onInlinePriceUpdate?: (id: string, field: string, value: string | number | null) => void;
   /** True when search/filters are active but returned 0 results */
   isFilteredEmpty?: boolean;
   onClearFilters?: () => void;
