@@ -5,6 +5,8 @@ import { CartProvider } from "@/contexts/CartContext";
 const ClientLoginPage = lazy(() => import("@/pages/client/ClientLoginPage"));
 const ClientDashboardPage = lazy(() => import("@/pages/client/ClientDashboardPage"));
 const ClientCatalogPage = lazy(() => import("@/pages/client/ClientCatalogPage"));
+const ClientCatalogLookbookPage = lazy(() => import("@/pages/client/ClientCatalogLookbookPage"));
+const ClientCatalogPagesAdminPage = lazy(() => import("@/pages/client/ClientCatalogPagesAdminPage"));
 const ClientCartPage = lazy(() => import("@/pages/client/ClientCartPage"));
 const ClientCheckoutPage = lazy(() => import("@/pages/client/ClientCheckoutPage"));
 const ClientOrdersPage = lazy(() => import("@/pages/client/ClientOrdersPage"));
@@ -40,7 +42,9 @@ export function ClientPortalRoutes() {
         <Route path="forgot-password" element={<ClientForgotPasswordPage />} />
         <Route path="reset-password" element={<ClientResetPasswordPage />} />
         <Route path="dashboard" element={<ClientDashboardPage />} />
-        <Route path="catalog" element={<ClientCatalogPage />} />
+        <Route path="catalog" element={<ClientCatalogLookbookPage />} />
+        <Route path="catalog/grid" element={<ClientCatalogPage />} />
+        <Route path="admin/catalog-pages" element={<ClientCatalogPagesAdminPage />} />
         <Route path="cart" element={<ClientCartPage />} />
         <Route path="checkout" element={<ClientCheckoutPage />} />
         <Route path="orders" element={<ClientOrdersPage />} />
