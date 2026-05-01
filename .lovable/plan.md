@@ -1,46 +1,85 @@
 ## Diagnóstico
 
-O campo "Stock Mínimo" já existe na BD (`products.low_stock_threshold`, integer NOT NULL DEFAULT 5) e está mesmo a ser apresentado no separador **Stock** da ficha de produto, no card "Alerta Mínimo" — mas só em modo leitura. O utilizador não consegue editá-lo a partir da ficha.
+A ficha de produto tem **19 separadores em 2 linhas** (Detalhes, Componentes, Pacotes, Financeiro, Histórico, Imagens, Progressões, Ciclos, Ficha, Publicação, Relações, Documentos, Conteúdo IA, Specs, Stock, Analytics, Ciclo de Vida, Entregáveis, Preços, Auditoria). Vários sobrepõem-se semanticamente:
 
-Também já é usado por:
-- Trigger de alerta de stock baixo (`stock_quantity <= low_stock_threshold`)
-- Analytics da loja
-- OCR de criação de produto
+- **Histórico** vs **Auditoria** vs **Preços (price-history)** — três históricos distintos.
+- **Ciclos** vs **Ciclo de Vida** — nomes quase idênticos.
+- **Imagens** isolado, mas os media também aparecem em "Ficha".
+- **Conteúdo IA**, **Specs** e **Ficha** — todos descrevem o produto.
+- **Publicação** e **Entregáveis** — relacionados com saída/distribuição.
 
 ## Decisão
 
-Tornar o campo "Alerta Mínimo" editável diretamente no card do separador **Stock**, com gravação imediata (inline save), sem abrir diálogo.
+Reduzir de **19 → 8 separadores** organizados por intenção (tarefa do utilizador), usando **sub-tabs internos** quando faz sentido. Zero perda de funcionalidade — todos os componentes existentes continuam a renderizar, só mudam de localização.
+
+## Nova estrutura (1 linha de tabs)
+
+```
+[Geral] [Conteúdo] [Preços] [Stock] [Vendas] [Publicação] [Relações] [Auditoria]
+```
+
+### 1. Geral  (`general`)
+- Conteúdo actual de **Detalhes** (KPIs, preço/custo, status)
+- Inclui chip condicional para **Componentes** (bundle) ou **Pacotes** (sessions) — aparecem como secções colapsáveis no topo quando aplicável, em vez de tabs separadas.
+
+### 2. Conteúdo  (`content`) — sub-tabs internas
+- **Ficha** (default)
+- **Imagens**
+- **Specs**
+- **Conteúdo IA**
+- **Progressões**
+
+### 3. Preços  (`pricing`) — sub-tabs internas
+- **Financeiro** (default — margens, custos)
+- **Histórico de preços** (`price-history`, condicional a `showCost`)
+- **Ciclos** (regras de preço cíclicas)
+
+### 4. Stock  (`stock`)
+- Mantém-se igual (já tem KPIs + movimentos + valorização FIFO + stock mínimo editável).
+
+### 5. Vendas  (`sales`) — sub-tabs internas
+- **Analytics** (default)
+- **Histórico de vendas** (actual `usage`)
+- **Ciclo de Vida** (`lifecycle`)
+
+### 6. Publicação  (`publishing`) — sub-tabs internas
+- **Publicação** (default — canais, loja)
+- **Entregáveis**
+
+### 7. Relações  (`relations`) — sub-tabs internas
+- **Relações** (default — produtos relacionados, cross-sell)
+- **Documentos**
+
+### 8. Auditoria  (`audit`)
+- Histórico de alterações (mantém-se).
 
 ## Plano de implementação
 
-**1. `src/components/products/ProductStockTab.tsx`**
+**1. `src/components/products/ProductDetailDialog.tsx`**
+- Substituir o bloco com 2× `TabsList` por **uma única `TabsList` de 8 itens**.
+- Mapear o estado `tab` actual: ao receber valores antigos (`details`, `usage`, `lifecycle`, etc.) traduzir para o novo grupo + sub-tab (compatibilidade com deep-links).
+- Para cada grupo com sub-tabs, criar um pequeno componente `<SubTabs>` no topo do `TabsContent` (Tabs aninhadas com visual mais leve — `bg-transparent` + `border-b`).
+- Manter exactamente os mesmos `TabsContent` actuais; só mudam de pai.
 
-- Substituir o card de leitura "Alerta Mínimo" por um pequeno editor inline:
-  - Input numérico (min=0) com valor inicial = `product.low_stock_threshold ?? 5`
-  - Botão "Guardar" aparece quando o valor é diferente do persistido
-  - Estado local + toast de sucesso/erro
-- Adicionar mutation com `useMutation` (TanStack Query):
-  - `UPDATE products SET low_stock_threshold = X WHERE id = product.id AND workspace_id = ws`
-  - Invalidar `["product", productId]` e `["products"]`
-- Manter a lógica `isLow` a usar o novo valor em tempo real.
+**2. Persistência de sub-tab**
+- Estado local `useState<Record<group, string>>` para lembrar a sub-tab activa por grupo durante a sessão.
 
-**2. Tipagem do prop**
+**3. Ícones e ordem**
+- Ícones consistentes (Lucide):
+  - Geral: `Info` · Conteúdo: `FileText` · Preços: `DollarSign` · Stock: `Package` · Vendas: `TrendingUp` · Publicação: `Send` · Relações: `Link2` · Auditoria: `History`
 
-- Já está em `ProductStockTabProps.low_stock_threshold`. Sem alterações.
-
-**3. Sem migrações**
-
-- Coluna já existe e tem default seguro. Sem alterações de BD.
+**4. Sem alterações de BD nem de outros componentes**
+- Os tabs filhos (`ProductSpecsTab`, `ProductStockTab`, etc.) ficam intactos.
 
 ## Critérios de aceitação
 
-- Na ficha de produto → Stock, o card "Alerta Mínimo" mostra um input editável com o valor atual.
-- Alterar e gravar persiste em `products.low_stock_threshold`.
-- O card "Disponível" e o banner de "Stock baixo" reagem ao novo valor sem reload.
-- Toast de confirmação ao gravar; toast de erro em caso de falha.
-- Validação: inteiro ≥ 0 (vazio = 0).
-- RLS já protege escrita por workspace — sem nova policy necessária.
+- Ficha de produto mostra **uma única linha de 8 tabs**, sempre visíveis sem wrap em ecrãs ≥1280 px.
+- Todos os 19 conteúdos actuais continuam acessíveis em ≤2 cliques.
+- Bundles e sessões mostram bloco contextual em "Geral" (sem perder Componentes/Pacotes).
+- Nenhuma regressão funcional: edição, KPIs, stock, preços, publicação continuam a funcionar.
+- Mobile: tabs scrolláveis horizontalmente; sub-tabs por baixo da tab principal.
 
 ## Riscos
 
-- Nenhum significativo. Mudança isolada no componente.
+- Deep-links externos a `tab=lifecycle` etc. — mitigado pelo mapa de tradução de estado.
+- Utilizadores habituados ao layout antigo: mudança visual significativa, mas funções inalteradas.
