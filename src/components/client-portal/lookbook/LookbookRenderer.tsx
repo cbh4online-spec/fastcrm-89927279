@@ -92,17 +92,17 @@ export function LookbookRenderer({ pages, onAddToCart, gridFallbackUrl }: Lookbo
               onClick={goPrev}
               disabled={index === 0}
               aria-label="Página anterior"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[hsl(var(--lb-cta))] text-[hsl(var(--lb-cta-fg))] flex items-center justify-center shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 transition"
+              className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[hsl(var(--lb-cta))] text-[hsl(var(--lb-cta-fg))] flex items-center justify-center shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 transition"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
             <button
               onClick={goNext}
               disabled={index === total - 1}
               aria-label="Página seguinte"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[hsl(var(--lb-cta))] text-[hsl(var(--lb-cta-fg))] flex items-center justify-center shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 transition"
+              className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[hsl(var(--lb-cta))] text-[hsl(var(--lb-cta-fg))] flex items-center justify-center shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 transition"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </>
         )}
