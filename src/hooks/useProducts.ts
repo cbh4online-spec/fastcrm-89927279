@@ -147,19 +147,27 @@ export function useProduct(id: string | undefined) {
   const { currentWorkspace } = useWorkspace();
 
   return useQuery({
-    queryKey: ["product", id],
+    queryKey: ["product", id, currentWorkspace?.id],
     queryFn: async () => {
       if (!id || !currentWorkspace?.id) return null;
 
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select("*, product_images(url, position)")
         .eq("id", id)
         .eq("workspace_id", currentWorkspace.id)
         .single();
 
       if (error) throw error;
-      return data as Product;
+      const product = data as Product & { product_images?: Array<{ url: string; position: number | null }> };
+      if ((!product.images || product.images.length === 0) && Array.isArray(product.product_images)) {
+        product.images = product.product_images
+          .slice()
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+          .map((image) => image.url)
+          .filter(Boolean);
+      }
+      return product as Product;
     },
     enabled: !!id && !!currentWorkspace?.id,
   });
