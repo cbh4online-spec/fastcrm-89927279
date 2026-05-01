@@ -31,7 +31,7 @@ export interface ProductStoreData {
   variants_count: number;
   price_on_request: boolean;
   weight: number | null;
-  product_images?: Array<{ url: string; position: number | null }>;
+  product_images?: Array<{ url: string; position: number | null; is_cover?: boolean | null; created_at?: string | null }>;
 }
 
 export interface PriceSuggestion {
