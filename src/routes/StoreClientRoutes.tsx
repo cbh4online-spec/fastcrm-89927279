@@ -64,6 +64,7 @@ const OrderNotesPage = lazy(() => import("@/pages/OrderNotesPage"));
 const CreateOrderNotePage = lazy(() => import("@/pages/CreateOrderNotePage"));
 const OrderNoteDetailPage = lazy(() => import("@/pages/OrderNoteDetailPage"));
 const OrderApprovalsPage = lazy(() => import("@/pages/OrderApprovalsPage"));
+const B2BOrderApprovalsPage = lazy(() => import("@/pages/B2BOrderApprovalsPage"));
 const ClientUsersPage = lazy(() => import("@/pages/ClientUsersPage"));
 const B2BPortalSettingsPage = lazy(() => import("@/pages/B2BPortalSettingsPage"));
 const B2BStockPage = lazy(() => import("@/pages/B2BStockPage"));
@@ -152,7 +153,7 @@ export function B2BAdminRoutes() {
       <Route path="/dashboard/order-notes/create" element={<CreateOrderNotePage />} />
       <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
       <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
-      <Route path="/dashboard/b2b/approvals" element={<OrderApprovalsPage />} />
+      <Route path="/dashboard/b2b/approvals" element={<B2BOrderApprovalsPage />} />
       <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
       <Route path="/dashboard/b2b-clients" element={<ClientUsersPage />} />
       <Route path="/dashboard/b2b/clients" element={<ClientUsersPage />} />
