@@ -1,4 +1,4 @@
-import { PartnerLayout } from "@/components/partner/PartnerLayout";
+
 import { usePartnerAuth } from "@/hooks/partner/usePartnerAuth";
 import { usePartnerAccount } from "@/hooks/partner/usePartnerAccount";
 import { usePartnerDashboard } from "@/hooks/partner/usePartnerDashboard";
@@ -17,8 +17,7 @@ export default function PartnerDashboardPage() {
   const { stats, isLoading } = usePartnerDashboard(partnerUser?.partner_account_id, partnerUser?.workspace_id);
 
   return (
-    <PartnerLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Welcome */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -127,7 +126,6 @@ export default function PartnerDashboardPage() {
             )}
           </>
         )}
-      </div>
-    </PartnerLayout>
+    </div>
   );
 }

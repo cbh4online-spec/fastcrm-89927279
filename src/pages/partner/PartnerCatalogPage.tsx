@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PartnerLayout } from "@/components/partner/PartnerLayout";
+
 import { usePartnerAuth } from "@/hooks/partner/usePartnerAuth";
 import { usePartnerCatalog } from "@/hooks/partner/usePartnerCatalog";
 import { usePartnerCart } from "@/contexts/PartnerCartContext";
@@ -44,8 +44,7 @@ export default function PartnerCatalogPage() {
   };
 
   return (
-    <PartnerLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Catálogo B2B</h1>
           <p className="text-muted-foreground">Produtos disponíveis para encomenda</p>
@@ -132,7 +131,6 @@ export default function PartnerCatalogPage() {
             })}
           </div>
         )}
-      </div>
-    </PartnerLayout>
+    </div>
   );
 }

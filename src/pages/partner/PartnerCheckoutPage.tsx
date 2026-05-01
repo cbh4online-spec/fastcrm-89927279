@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { PartnerLayout } from "@/components/partner/PartnerLayout";
+
 import { usePartnerAuth } from "@/hooks/partner/usePartnerAuth";
 import { usePartnerAccount } from "@/hooks/partner/usePartnerAccount";
 import { usePartnerCheckout } from "@/hooks/partner/usePartnerCheckout";
@@ -35,8 +35,7 @@ export default function PartnerCheckoutPage() {
   }
 
   return (
-    <PartnerLayout>
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold tracking-tight">Confirmar Encomenda</h1>
 
         {creditExceeded && (
@@ -101,7 +100,6 @@ export default function PartnerCheckoutPage() {
             <><CheckCircle className="h-4 w-4 mr-2" />{needsApproval ? 'Submeter para Aprovação' : 'Confirmar Encomenda'}</>
           )}
         </Button>
-      </div>
-    </PartnerLayout>
+    </div>
   );
 }

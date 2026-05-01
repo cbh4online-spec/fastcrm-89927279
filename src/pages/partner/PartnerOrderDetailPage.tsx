@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { PartnerLayout } from "@/components/partner/PartnerLayout";
+
 import { usePartnerOrderDetail } from "@/hooks/partner/usePartnerOrders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ export default function PartnerOrderDetailPage() {
   const { order, isLoading } = usePartnerOrderDetail(id);
 
   return (
-    <PartnerLayout>
+    <>
       {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       ) : !order ? (
@@ -69,6 +69,6 @@ export default function PartnerOrderDetailPage() {
           )}
         </div>
       )}
-    </PartnerLayout>
+    </>
   );
 }
