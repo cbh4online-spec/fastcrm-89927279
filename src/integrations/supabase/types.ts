@@ -75878,6 +75878,10 @@ export type Database = {
         }
         Returns: Json
       }
+      copilot_can_access_workspace: {
+        Args: { _workspace_id: string }
+        Returns: boolean
+      }
       create_fastmatch_pipeline_for_workspace: {
         Args: { p_workspace_id: string }
         Returns: undefined
@@ -76173,6 +76177,14 @@ export type Database = {
       get_plan_calls_included: { Args: { plan_name: string }; Returns: number }
       get_plan_limits: {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
+        Returns: Json
+      }
+      get_product_for_copilot: {
+        Args: {
+          p_locale?: string
+          p_product_id: string
+          p_workspace_id: string
+        }
         Returns: Json
       }
       get_product_full_content: {
@@ -76720,6 +76732,27 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: number
+      }
+      search_b2b_catalog: {
+        Args: {
+          p_category?: string
+          p_limit?: number
+          p_query: string
+          p_workspace_id: string
+        }
+        Returns: {
+          base_price: number
+          category: string
+          currency: string
+          matched_section: string
+          name: string
+          primary_image: string
+          product_id: string
+          rank: number
+          short_description: string
+          sku: string
+          snippet: string
+        }[]
       }
       search_product_sections: {
         Args: {
