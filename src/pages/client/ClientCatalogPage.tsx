@@ -83,8 +83,10 @@ export default function ClientCatalogPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Catálogo de Produtos</h1>
-            <p className="text-muted-foreground">
+            <h1 className="font-editorial text-4xl md:text-5xl font-light tracking-tight text-foreground">
+              Catálogo de Produtos
+            </h1>
+            <p className="text-muted-foreground mt-1">
               {products.length} produtos disponíveis
               {tier && (
                 <span className="ml-2">
