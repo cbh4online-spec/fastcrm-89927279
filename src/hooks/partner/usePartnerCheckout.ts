@@ -87,6 +87,7 @@ export function usePartnerCheckout(
           workspace_id: workspaceId,
           partner_order_id: order.id,
           product_id: item.product_id,
+          variant_id: item.variant_id ?? null,
           sku: item.sku,
           product_name: item.product_name,
           quantity: item.quantity,
@@ -98,7 +99,7 @@ export function usePartnerCheckout(
           line_total_net: lineTotalNet,
           pack_size: item.pack_size,
           moq_applied: item.moq,
-          parent_product_id: item.parent_product_id ?? null,
+          parent_product_id: item.parent_product_id ?? (item.variant_id ? item.product_id : null),
           variant_label: item.variant_label ?? null,
           variant_attributes: item.variant_attributes ?? {},
           quantity_break_pct: line?.discount_source === 'quantity_break' ? line.discount_pct : 0,
@@ -108,6 +109,33 @@ export function usePartnerCheckout(
 
       const { error: itemsError } = await supabase.from("partner_order_items").insert(orderItems);
       if (itemsError) throw itemsError;
+
+      // Decrement variant stock (atomic, server-side). Erros logados mas não bloqueiam a encomenda
+      // já submetida — qualquer "insufficient_stock" é capturado e devolvido como aviso.
+      const stockWarnings: string[] = [];
+      for (const item of items) {
+        if (!item.variant_id) continue;
+        const { data: stockResult, error: stockError } = await supabase.rpc(
+          'decrement_partner_variant_stock',
+          {
+            p_workspace_id: workspaceId,
+            p_variant_id: item.variant_id,
+            p_quantity: item.quantity,
+            p_allow_backorder: !!item.allow_backorder || !!account.allow_backorders,
+          },
+        );
+        if (stockError) {
+          console.warn('[partner-checkout] stock rpc error', item.variant_id, stockError.message);
+          continue;
+        }
+        const result = stockResult as { ok?: boolean; error?: string; available?: number } | null;
+        if (result && result.ok === false) {
+          stockWarnings.push(`${item.product_name}${item.variant_label ? ` (${item.variant_label})` : ''}: ${result.error === 'insufficient_stock' ? `apenas ${result.available} em stock` : result.error}`);
+        }
+      }
+      if (stockWarnings.length > 0) {
+        toast.warning(`Encomenda registada com avisos de stock: ${stockWarnings.join('; ')}`);
+      }
 
       // Atomic coupon redemption
       if (validCoupon && couponSavings > 0) {
