@@ -60,6 +60,24 @@ export default function ClientCatalogLookbookPage() {
           }
         />
 
+        <EditorialHero
+          eyebrow="Edição da estação"
+          title="Inspire-se. Encomende. Evolua."
+          description="Descubra as campanhas activas e formações certificadas pensadas para profissionais como você. Tudo num só lugar — curado pela nossa equipa."
+          primaryCta={{
+            label: "Ver campanhas activas",
+            to: "/client/campaigns",
+            icon: "sparkles",
+            variant: "primary",
+          }}
+          secondaryCta={{
+            label: "Explorar formações",
+            to: "/client/training",
+            icon: "graduation",
+            variant: "outline",
+          }}
+        />
+
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
