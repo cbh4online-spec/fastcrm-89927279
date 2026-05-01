@@ -110,10 +110,10 @@ export default function B2BFunnelPage() {
                     <div key={c.id} className="flex items-center justify-between py-3">
                       <div className="space-y-1">
                         <p className="font-medium">
-                          {c.partner_accounts?.business_name || "Parceiro"}
-                          {c.partner_accounts?.contact_email && (
+                          {c.partner_accounts?.trade_name || c.partner_accounts?.legal_name || "Parceiro"}
+                          {c.partner_accounts?.account_code && (
                             <span className="text-muted-foreground font-normal text-sm ml-2">
-                              · {c.partner_accounts.contact_email}
+                              · {c.partner_accounts.account_code}
                             </span>
                           )}
                         </p>

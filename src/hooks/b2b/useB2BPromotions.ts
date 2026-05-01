@@ -295,7 +295,7 @@ export function useAbandonedPartnerCarts() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("partner_carts")
-        .select("*, partner_accounts(business_name, contact_email)")
+        .select("*, partner_accounts(legal_name, trade_name, account_code)")
         .eq("workspace_id", wid)
         .neq("recovery_stage", "none")
         .order("last_activity_at", { ascending: false })
