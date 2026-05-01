@@ -237,9 +237,12 @@ export function ProductDetailDialog({
                 <div className="relative w-full sm:w-[240px] h-[180px] sm:h-[180px] shrink-0 bg-muted/60 overflow-hidden">
                   {mainImage ? (
                     <img
+                      key={mainImage.url}
                       src={mainImage.url}
                       alt={mainImage.alt_text || product.name}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={() => handleImageError(mainImage.url)}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
