@@ -405,7 +405,12 @@ export function useProductsListState() {
       const m = ((p.base_price - p.direct_cost) / p.base_price) * 100;
       return m > 0 && m < 15;
     }).length;
-    const noImage = products.filter(p => !p.images || p.images.length === 0).length;
+    const hasAnyImage = (p: Product) => {
+      if (p.images && p.images.length > 0) return true;
+      const rel = (p as any).product_images;
+      return Array.isArray(rel) && rel.length > 0;
+    };
+    const noImage = products.filter(p => !hasAnyImage(p)).length;
     return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage };
   }, [products]);
 
