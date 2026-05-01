@@ -46683,6 +46683,212 @@ export type Database = {
           },
         ]
       }
+      partner_bundle_items: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          id: string
+          product_id: string
+          required_qty: number
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          required_qty?: number
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          required_qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "partner_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "partner_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_bundles: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean
+          name: string
+          partner_tier_id: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value: number
+          id?: string
+          is_active?: boolean
+          name: string
+          partner_tier_id?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          partner_tier_id?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_bundles_partner_tier_id_fkey"
+            columns: ["partner_tier_id"]
+            isOneToOne: false
+            referencedRelation: "partner_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_bundles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_bundles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_carts: {
+        Row: {
+          abandoned_at: string | null
+          applied_coupon_code: string | null
+          created_at: string
+          id: string
+          items: Json
+          last_activity_at: string
+          notes: string | null
+          partner_account_id: string
+          partner_user_id: string
+          po_number: string | null
+          recovered_at: string | null
+          recovery_stage: string
+          recovery_token: string
+          subtotal_net: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          abandoned_at?: string | null
+          applied_coupon_code?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          last_activity_at?: string
+          notes?: string | null
+          partner_account_id: string
+          partner_user_id: string
+          po_number?: string | null
+          recovered_at?: string | null
+          recovery_stage?: string
+          recovery_token?: string
+          subtotal_net?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          abandoned_at?: string | null
+          applied_coupon_code?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          last_activity_at?: string
+          notes?: string | null
+          partner_account_id?: string
+          partner_user_id?: string
+          po_number?: string | null
+          recovered_at?: string | null
+          recovery_stage?: string
+          recovery_token?: string
+          subtotal_net?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_carts_partner_account_id_fkey"
+            columns: ["partner_account_id"]
+            isOneToOne: false
+            referencedRelation: "partner_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_carts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_carts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_catalog_page_items: {
         Row: {
           created_at: string
@@ -46827,12 +47033,220 @@ export type Database = {
           },
         ]
       }
+      partner_coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          discount_amount: number
+          id: string
+          partner_account_id: string
+          partner_order_id: string | null
+          redeemed_at: string
+          workspace_id: string
+        }
+        Insert: {
+          coupon_id: string
+          discount_amount: number
+          id?: string
+          partner_account_id: string
+          partner_order_id?: string | null
+          redeemed_at?: string
+          workspace_id: string
+        }
+        Update: {
+          coupon_id?: string
+          discount_amount?: number
+          id?: string
+          partner_account_id?: string
+          partner_order_id?: string | null
+          redeemed_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "partner_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_coupon_redemptions_partner_account_id_fkey"
+            columns: ["partner_account_id"]
+            isOneToOne: false
+            referencedRelation: "partner_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_coupon_redemptions_partner_order_id_fkey"
+            columns: ["partner_order_id"]
+            isOneToOne: false
+            referencedRelation: "partner_order_headers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_coupons: {
+        Row: {
+          applicable_partner_tier_id: string | null
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          first_order_only: boolean
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          min_subtotal: number
+          per_partner_limit: number | null
+          updated_at: string
+          uses_count: number
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          applicable_partner_tier_id?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type: string
+          discount_value?: number
+          first_order_only?: boolean
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_subtotal?: number
+          per_partner_limit?: number | null
+          updated_at?: string
+          uses_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          applicable_partner_tier_id?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          first_order_only?: boolean
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_subtotal?: number
+          per_partner_limit?: number | null
+          updated_at?: string
+          uses_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_coupons_applicable_partner_tier_id_fkey"
+            columns: ["applicable_partner_tier_id"]
+            isOneToOne: false
+            referencedRelation: "partner_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_coupons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_coupons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_funnel_events: {
+        Row: {
+          cart_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          order_id: string | null
+          partner_account_id: string | null
+          partner_user_id: string | null
+          payload: Json
+          workspace_id: string
+        }
+        Insert: {
+          cart_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          order_id?: string | null
+          partner_account_id?: string | null
+          partner_user_id?: string | null
+          payload?: Json
+          workspace_id: string
+        }
+        Update: {
+          cart_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          order_id?: string | null
+          partner_account_id?: string | null
+          partner_user_id?: string | null
+          payload?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_funnel_events_cart_id_fkey"
+            columns: ["cart_id"]
+            isOneToOne: false
+            referencedRelation: "partner_carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_funnel_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "partner_order_headers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_funnel_events_partner_account_id_fkey"
+            columns: ["partner_account_id"]
+            isOneToOne: false
+            referencedRelation: "partner_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_funnel_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_funnel_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_order_headers: {
         Row: {
           approved_at: string | null
           approver_user_id: string | null
           billing_address_snapshot: Json | null
+          bundle_savings: number
           buyer_user_id: string | null
+          coupon_code: string | null
           created_at: string
           currency: string
           discount_amount: number
@@ -46844,6 +47258,8 @@ export type Database = {
           payment_status: string | null
           payment_terms_snapshot: string | null
           po_number: string | null
+          quantity_break_savings: number
+          recovered_from_cart_id: string | null
           rejected_at: string | null
           rejection_reason: string | null
           shipping_address_snapshot: Json | null
@@ -46861,7 +47277,9 @@ export type Database = {
           approved_at?: string | null
           approver_user_id?: string | null
           billing_address_snapshot?: Json | null
+          bundle_savings?: number
           buyer_user_id?: string | null
+          coupon_code?: string | null
           created_at?: string
           currency?: string
           discount_amount?: number
@@ -46873,6 +47291,8 @@ export type Database = {
           payment_status?: string | null
           payment_terms_snapshot?: string | null
           po_number?: string | null
+          quantity_break_savings?: number
+          recovered_from_cart_id?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
           shipping_address_snapshot?: Json | null
@@ -46890,7 +47310,9 @@ export type Database = {
           approved_at?: string | null
           approver_user_id?: string | null
           billing_address_snapshot?: Json | null
+          bundle_savings?: number
           buyer_user_id?: string | null
+          coupon_code?: string | null
           created_at?: string
           currency?: string
           discount_amount?: number
@@ -46902,6 +47324,8 @@ export type Database = {
           payment_status?: string | null
           payment_terms_snapshot?: string | null
           po_number?: string | null
+          quantity_break_savings?: number
+          recovered_from_cart_id?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
           shipping_address_snapshot?: Json | null
@@ -46924,6 +47348,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "partner_order_headers_recovered_from_cart_id_fkey"
+            columns: ["recovered_from_cart_id"]
+            isOneToOne: false
+            referencedRelation: "partner_carts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "partner_order_headers_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -46941,6 +47372,7 @@ export type Database = {
       }
       partner_order_items: {
         Row: {
+          bundle_id: string | null
           created_at: string
           fulfillment_mode: string | null
           id: string
@@ -46954,14 +47386,17 @@ export type Database = {
           product_name: string
           pvp_recommended: number | null
           quantity: number
+          quantity_break_pct: number
           sku: string | null
           tax_rate: number | null
           unit_price_net: number
+          unit_price_original: number | null
           variant_attributes: Json
           variant_label: string | null
           workspace_id: string
         }
         Insert: {
+          bundle_id?: string | null
           created_at?: string
           fulfillment_mode?: string | null
           id?: string
@@ -46975,14 +47410,17 @@ export type Database = {
           product_name: string
           pvp_recommended?: number | null
           quantity?: number
+          quantity_break_pct?: number
           sku?: string | null
           tax_rate?: number | null
           unit_price_net: number
+          unit_price_original?: number | null
           variant_attributes?: Json
           variant_label?: string | null
           workspace_id: string
         }
         Update: {
+          bundle_id?: string | null
           created_at?: string
           fulfillment_mode?: string | null
           id?: string
@@ -46996,14 +47434,23 @@ export type Database = {
           product_name?: string
           pvp_recommended?: number | null
           quantity?: number
+          quantity_break_pct?: number
           sku?: string | null
           tax_rate?: number | null
           unit_price_net?: number
+          unit_price_original?: number | null
           variant_attributes?: Json
           variant_label?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "partner_order_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "partner_bundles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "partner_order_items_parent_product_id_fkey"
             columns: ["parent_product_id"]
@@ -47264,6 +47711,200 @@ export type Database = {
             foreignKeyName: "partner_price_lists_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_quantity_breaks: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          discount_pct: number
+          id: string
+          is_active: boolean
+          min_qty: number
+          partner_tier_id: string | null
+          product_id: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          discount_pct: number
+          id?: string
+          is_active?: boolean
+          min_qty: number
+          partner_tier_id?: string | null
+          product_id?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          discount_pct?: number
+          id?: string
+          is_active?: boolean
+          min_qty?: number
+          partner_tier_id?: string | null
+          product_id?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_quantity_breaks_partner_tier_id_fkey"
+            columns: ["partner_tier_id"]
+            isOneToOne: false
+            referencedRelation: "partner_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_quantity_breaks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_quantity_breaks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_quantity_breaks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "partner_quantity_breaks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_quantity_breaks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_quantity_breaks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_recovery_config: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          expire_after_days: number
+          first_delay_minutes: number
+          id: string
+          second_delay_minutes: number
+          third_delay_minutes: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          expire_after_days?: number
+          first_delay_minutes?: number
+          id?: string
+          second_delay_minutes?: number
+          third_delay_minutes?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          expire_after_days?: number
+          first_delay_minutes?: number
+          id?: string
+          second_delay_minutes?: number
+          third_delay_minutes?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_recovery_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_recovery_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_shipping_rules: {
+        Row: {
+          created_at: string
+          currency: string
+          flat_rate: number
+          free_shipping_threshold: number | null
+          id: string
+          is_active: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          flat_rate?: number
+          free_shipping_threshold?: number | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          flat_rate?: number
+          free_shipping_threshold?: number | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_shipping_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "partner_shipping_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -75028,6 +75669,15 @@ export type Database = {
         }
         Returns: Json
       }
+      compute_partner_cart_totals: {
+        Args: {
+          p_coupon_code?: string
+          p_items: Json
+          p_partner_account_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       compute_partner_price: {
         Args: {
           p_partner_account_id: string
@@ -75404,6 +76054,18 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_partner_recommendations: {
+        Args: {
+          p_current_product_ids: string[]
+          p_limit?: number
+          p_partner_account_id: string
+        }
+        Returns: {
+          product_id: string
+          reason: string
+          score: number
+        }[]
       }
       get_payment_gateway_workspace_id: { Args: never; Returns: string }
       get_persona_decision_config: {
@@ -75842,6 +76504,16 @@ export type Database = {
           read_ct: number
         }[]
       }
+      redeem_partner_coupon: {
+        Args: {
+          p_code: string
+          p_discount_amount: number
+          p_order_id: string
+          p_partner_account_id: string
+          p_workspace_id: string
+        }
+        Returns: boolean
+      }
       refresh_recommendation_views: { Args: never; Returns: undefined }
       refund_funnel_credits: {
         Args: {
@@ -75908,6 +76580,10 @@ export type Database = {
       }
       reset_fastmatch_quotas: { Args: never; Returns: undefined }
       reset_monthly_ai_budgets: { Args: never; Returns: undefined }
+      restore_partner_cart_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       retrieve_entity_memories: {
         Args: {
           p_entity_id: string
@@ -76083,6 +76759,15 @@ export type Database = {
           p_validated_by?: string
         }
         Returns: boolean
+      }
+      validate_partner_coupon: {
+        Args: {
+          p_code: string
+          p_partner_account_id: string
+          p_subtotal: number
+          p_workspace_id: string
+        }
+        Returns: Json
       }
       validate_response_compliance: {
         Args: {
