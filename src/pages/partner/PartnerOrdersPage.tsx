@@ -1,4 +1,4 @@
-import { PartnerLayout } from "@/components/partner/PartnerLayout";
+
 import { usePartnerAuth } from "@/hooks/partner/usePartnerAuth";
 import { usePartnerOrders } from "@/hooks/partner/usePartnerOrders";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,8 +13,7 @@ export default function PartnerOrdersPage() {
   const { orders, isLoading } = usePartnerOrders(partnerUser?.partner_account_id);
 
   return (
-    <PartnerLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Encomendas</h1>
           <p className="text-muted-foreground">Histórico de encomendas B2B</p>
@@ -53,7 +52,6 @@ export default function PartnerOrdersPage() {
             })}
           </div>
         )}
-      </div>
-    </PartnerLayout>
+    </div>
   );
 }

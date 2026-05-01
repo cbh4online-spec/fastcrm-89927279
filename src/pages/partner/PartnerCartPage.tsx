@@ -1,4 +1,4 @@
-import { PartnerLayout } from "@/components/partner/PartnerLayout";
+
 import { usePartnerCart } from "@/contexts/PartnerCartContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,7 @@ export default function PartnerCartPage() {
   const { items, itemCount, subtotalNet, updateQuantity, removeItem, clearCart, poNumber, setPoNumber, orderNotes, setOrderNotes } = usePartnerCart();
 
   return (
-    <PartnerLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Carrinho B2B</h1>
@@ -102,7 +101,6 @@ export default function PartnerCartPage() {
             </div>
           </div>
         )}
-      </div>
-    </PartnerLayout>
+    </div>
   );
 }

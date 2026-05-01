@@ -1,4 +1,4 @@
-import { PartnerLayout } from "@/components/partner/PartnerLayout";
+
 import { usePartnerAuth } from "@/hooks/partner/usePartnerAuth";
 import { usePartnerAccount } from "@/hooks/partner/usePartnerAccount";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,7 @@ export default function PartnerAccountPage() {
   if (!account) return null;
 
   return (
-    <PartnerLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <Building2 className="h-6 w-6 text-primary" />
           <div>
@@ -83,7 +82,6 @@ export default function PartnerAccountPage() {
             <div className="flex justify-between"><span className="text-muted-foreground">Role</span><span>{partnerUser?.role}</span></div>
           </CardContent>
         </Card>
-      </div>
-    </PartnerLayout>
+    </div>
   );
 }
