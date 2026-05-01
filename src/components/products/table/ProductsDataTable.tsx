@@ -116,8 +116,29 @@ function RenderProductCell({
           {product.sku}
         </button>
       ) : <span>-</span>;
-    case "product_type":
-      return <Badge variant="outline">{getProductTypeLabel(product.product_type)}</Badge>;
+    case "product_type": {
+      if (!onInlinePriceUpdate) {
+        return <Badge variant="outline">{getProductTypeLabel(product.product_type)}</Badge>;
+      }
+      const dynamic = (productTypesConfig ?? [])
+        .filter((t) => t.is_active !== false)
+        .map((t) => ({ value: t.code, label: t.label }));
+      const fallback = Object.entries(productTypeLabels).map(([value, label]) => ({ value, label }));
+      // Merge: dynamic config wins, fallback fills the gaps
+      const seen = new Set(dynamic.map((o) => o.value));
+      const options = [...dynamic, ...fallback.filter((o) => !seen.has(o.value))];
+      // Make sure the current value is selectable even if not in either source
+      if (product.product_type && !options.some((o) => o.value === product.product_type)) {
+        options.unshift({ value: product.product_type, label: getProductTypeLabel(product.product_type) });
+      }
+      return (
+        <InlineSelectEditor
+          value={product.product_type}
+          options={options}
+          onSave={(v) => onInlinePriceUpdate(product.id, "product_type", v)}
+        />
+      );
+    }
     case "category":
       return onInlinePriceUpdate ? (
         <InlineFieldEditor
