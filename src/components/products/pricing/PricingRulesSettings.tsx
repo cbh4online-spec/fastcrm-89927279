@@ -246,6 +246,9 @@ export function PricingRulesSettings() {
                   <TableHead>Margem Mín.</TableHead>
                   <TableHead>Target</TableHead>
                   <TableHead>Máx.</TableHead>
+                  <TableHead title="Custo operacional sugerido (% do preço líquido) — pré-preenche em produtos novos">
+                    Op. Sug.
+                  </TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="w-[100px]">Ações</TableHead>
                 </TableRow>
@@ -263,6 +266,11 @@ export function PricingRulesSettings() {
                     <TableCell className="font-medium">{rule.min_margin_pct}%</TableCell>
                     <TableCell>{rule.target_margin_pct ? `${rule.target_margin_pct}%` : "—"}</TableCell>
                     <TableCell>{rule.max_margin_pct ? `${rule.max_margin_pct}%` : "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {rule.default_operational_cost_pct != null
+                        ? `${rule.default_operational_cost_pct}%`
+                        : "—"}
+                    </TableCell>
                     <TableCell>
                       <Switch checked={rule.is_active} onCheckedChange={() => handleToggle(rule)} />
                     </TableCell>
