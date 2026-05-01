@@ -63,7 +63,7 @@ export function usePartnerCheckout(
 
       if (orderError) throw orderError;
 
-      // Insert items
+      // Insert items — grava SKU + snapshot completo da variante quando aplicável
       const orderItems = items.map((item) => ({
         workspace_id: workspaceId,
         partner_order_id: order.id,
@@ -75,9 +75,12 @@ export function usePartnerCheckout(
         pvp_recommended: item.pvp_recommended,
         margin_estimated: item.margin_estimated,
         tax_rate: taxRate,
-        line_total_net: item.unit_price_net * item.quantity,
+        line_total_net: Math.round(item.unit_price_net * item.quantity * 100) / 100,
         pack_size: item.pack_size,
         moq_applied: item.moq,
+        parent_product_id: item.parent_product_id ?? null,
+        variant_label: item.variant_label ?? null,
+        variant_attributes: item.variant_attributes ?? {},
       }));
 
       const { error: itemsError } = await supabase

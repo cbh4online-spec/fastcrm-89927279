@@ -46948,6 +46948,7 @@ export type Database = {
           margin_estimated: number | null
           moq_applied: number | null
           pack_size: number | null
+          parent_product_id: string | null
           partner_order_id: string
           product_id: string
           product_name: string
@@ -46956,6 +46957,8 @@ export type Database = {
           sku: string | null
           tax_rate: number | null
           unit_price_net: number
+          variant_attributes: Json
+          variant_label: string | null
           workspace_id: string
         }
         Insert: {
@@ -46966,6 +46969,7 @@ export type Database = {
           margin_estimated?: number | null
           moq_applied?: number | null
           pack_size?: number | null
+          parent_product_id?: string | null
           partner_order_id: string
           product_id: string
           product_name: string
@@ -46974,6 +46978,8 @@ export type Database = {
           sku?: string | null
           tax_rate?: number | null
           unit_price_net: number
+          variant_attributes?: Json
+          variant_label?: string | null
           workspace_id: string
         }
         Update: {
@@ -46984,6 +46990,7 @@ export type Database = {
           margin_estimated?: number | null
           moq_applied?: number | null
           pack_size?: number | null
+          parent_product_id?: string | null
           partner_order_id?: string
           product_id?: string
           product_name?: string
@@ -46992,9 +46999,39 @@ export type Database = {
           sku?: string | null
           tax_rate?: number | null
           unit_price_net?: number
+          variant_attributes?: Json
+          variant_label?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "partner_order_items_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_order_items_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_order_items_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "partner_order_items_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "partner_order_items_partner_order_id_fkey"
             columns: ["partner_order_id"]

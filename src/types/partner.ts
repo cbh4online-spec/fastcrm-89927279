@@ -154,6 +154,10 @@ export interface PartnerOrderItem {
   pack_size: number;
   moq_applied: number;
   fulfillment_mode: string;
+  /** Snapshot da variante (quando aplicável) */
+  parent_product_id: string | null;
+  variant_label: string | null;
+  variant_attributes: Record<string, string | number | boolean | null>;
   created_at: string;
 }
 
@@ -170,6 +174,7 @@ export interface ComputedPartnerPrice {
 
 // Cart item for PartnerCartContext
 export interface PartnerCartItem {
+  /** ID do produto OU da variante (é sempre o ID do que vai ser facturado) */
   product_id: string;
   product_name: string;
   sku: string | null;
@@ -180,6 +185,12 @@ export interface PartnerCartItem {
   pack_size: number;
   moq: number;
   image_url: string | null;
+  /** Quando é variante: id do pai para agrupar histórico */
+  parent_product_id?: string | null;
+  /** Quando é variante: rótulo legível (ex: "50ml") */
+  variant_label?: string | null;
+  /** Quando é variante: atributos snapshot (ex: { volume_ml: 50 }) */
+  variant_attributes?: Record<string, string | number | boolean | null>;
 }
 
 // Order status config
