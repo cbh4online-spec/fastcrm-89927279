@@ -50,16 +50,16 @@ function ProductBlock({ item, size, onAdd, layout = "stacked", align = "left" }:
   const sku = item.product?.sku;
 
   const imgSize = {
-    xl: "w-full max-w-[420px] aspect-square",
-    lg: "w-full max-w-[280px] aspect-square",
-    md: "w-full max-w-[200px] aspect-square",
-    sm: "w-full max-w-[140px] aspect-square",
+    xl: "w-full max-w-[280px] sm:max-w-[360px] md:max-w-[420px] aspect-square",
+    lg: "w-full max-w-[220px] sm:max-w-[260px] md:max-w-[280px] aspect-square",
+    md: "w-full max-w-[160px] sm:max-w-[180px] md:max-w-[200px] aspect-square",
+    sm: "w-full max-w-[120px] sm:max-w-[140px] aspect-square",
   }[size];
 
   const titleSize = {
-    xl: "text-2xl sm:text-3xl",
-    lg: "text-xl sm:text-2xl",
-    md: "text-base sm:text-lg",
+    xl: "text-xl sm:text-2xl md:text-3xl",
+    lg: "text-lg sm:text-xl md:text-2xl",
+    md: "text-sm sm:text-base md:text-lg",
     sm: "text-sm",
   }[size];
 
