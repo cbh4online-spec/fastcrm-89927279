@@ -4,6 +4,13 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import type { ProductImage } from "@/types/product";
 
+const invalidateProductImageQueries = (queryClient: ReturnType<typeof useQueryClient>, productId: string) => {
+  queryClient.invalidateQueries({ queryKey: ["product-images", productId] });
+  queryClient.invalidateQueries({ queryKey: ["product", productId] });
+  queryClient.invalidateQueries({ queryKey: ["products"] });
+  queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
+};
+
 export function useProductImages(productId: string | undefined) {
   const { currentWorkspace } = useWorkspace();
 
@@ -76,7 +83,7 @@ export function useAddProductImage() {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["product-images", variables.productId] });
+      invalidateProductImageQueries(queryClient, variables.productId);
       toast.success("Imagem adicionada!");
     },
     onError: (error) => {
@@ -112,7 +119,7 @@ export function useUpdateProductImage() {
       return { data, productId: input.productId };
     },
     onSuccess: ({ productId }) => {
-      queryClient.invalidateQueries({ queryKey: ["product-images", productId] });
+      invalidateProductImageQueries(queryClient, productId);
     },
     onError: (error) => {
       console.warn('[PRODUCTS] IMAGE_UPDATE_FAILED', error.message);
@@ -135,7 +142,7 @@ export function useDeleteProductImage() {
       return { productId };
     },
     onSuccess: ({ productId }) => {
-      queryClient.invalidateQueries({ queryKey: ["product-images", productId] });
+      invalidateProductImageQueries(queryClient, productId);
       toast.success("Imagem removida!");
     },
     onError: (error) => {
@@ -165,7 +172,7 @@ export function useReorderProductImages() {
       return { productId: input.productId };
     },
     onSuccess: ({ productId }) => {
-      queryClient.invalidateQueries({ queryKey: ["product-images", productId] });
+      invalidateProductImageQueries(queryClient, productId);
     },
     onError: (error) => {
       console.warn('[PRODUCTS] IMAGE_REORDER_FAILED', error.message);
