@@ -425,14 +425,14 @@ export default function ClientDashboardPage() {
         </div>
 
         {/* Recent Orders — Premium */}
-        <Card className="border-border/50">
+        <Card className="border-[hsl(var(--editorial-border))]/60">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Encomendas Recentes</CardTitle>
+              <CardTitle className="font-editorial text-2xl">Encomendas Recentes</CardTitle>
               <CardDescription>As suas últimas encomendas</CardDescription>
             </div>
             <Link to="/client/orders">
-              <Button variant="outline" size="sm" className="border-primary/20">Ver todas</Button>
+              <Button variant="outline" size="sm" className="rounded-full border-[hsl(var(--editorial-border))]">Ver todas</Button>
             </Link>
           </CardHeader>
           <CardContent>
