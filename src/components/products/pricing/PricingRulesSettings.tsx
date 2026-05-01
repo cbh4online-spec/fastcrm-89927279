@@ -134,6 +134,46 @@ export function PricingRulesSettings() {
 
   const globalRule = rules.find(r => r.applies_to === "all");
 
+  /**
+   * Recalcula o custo operacional sugerido com base na média
+   * dos produtos existentes do workspace (apenas os que têm op cost > 0).
+   * Para regra "global" usa todos os produtos; para regra de categoria filtra por categoria.
+   */
+  const handleRecalculate = async () => {
+    const wsId = currentWorkspace?.id;
+    if (!wsId) return;
+    const sb = supabase as any;
+    let query = sb
+      .from("products")
+      .select("operational_cost, base_price, category")
+      .eq("workspace_id", wsId)
+      .gt("operational_cost", 0)
+      .gt("base_price", 0);
+    if (form.applies_to === "category" && form.category) {
+      query = query.eq("category", form.category);
+    }
+    const { data, error } = await query.limit(2000);
+    if (error) {
+      toast.error("Erro a calcular: " + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      toast.info("Sem produtos com custo operacional para calcular");
+      return;
+    }
+    // Média ponderada simples: % do custo operacional sobre o preço base
+    const pcts = data
+      .map((p: any) => (Number(p.operational_cost) / Number(p.base_price)) * 100)
+      .filter((n: number) => isFinite(n) && n > 0 && n < 100);
+    if (pcts.length === 0) {
+      toast.info("Sem dados válidos para calcular");
+      return;
+    }
+    const avg = pcts.reduce((s: number, n: number) => s + n, 0) / pcts.length;
+    setForm({ ...form, default_operational_cost_pct: avg.toFixed(1) });
+    toast.success(`Sugerido: ${avg.toFixed(1)}% (média de ${pcts.length} produto${pcts.length > 1 ? "s" : ""})`);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
