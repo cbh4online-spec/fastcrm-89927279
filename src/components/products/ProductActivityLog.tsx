@@ -108,11 +108,11 @@ export function ProductActivityLog({ productId }: ProductActivityLogProps) {
   const { data: profiles } = useQuery({
     queryKey: ["product-activity-profiles", productId, userIds.join(",")],
     queryFn: async () => {
-      if (!userIds.length) return [] as Array<{ id: string; full_name: string | null; email: string | null; avatar_url: string | null }>;
+      if (!userIds.length) return [] as Array<{ user_id: string; full_name: string | null; email: string | null; avatar_url: string | null }>;
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, avatar_url")
-        .in("id", userIds);
+        .select("user_id, full_name, email, avatar_url")
+        .in("user_id", userIds);
       if (error) return [];
       return data || [];
     },
