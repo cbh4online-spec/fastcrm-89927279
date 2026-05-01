@@ -60,6 +60,7 @@ export function ClientPortalRoutes() {
         <Route path="insights/consumption" element={<ClientConsumptionPage />} />
         <Route path="insights/rankings" element={<ClientRankingsPage />} />
         <Route path="security" element={<ClientSecurityPage />} />
+        <Route path="admin/slides" element={<ClientPortalSlidesAdminPage />} />
         <Route path="*" element={<Navigate to="/client/login" replace />} />
       </Routes>
     </CartProvider>
