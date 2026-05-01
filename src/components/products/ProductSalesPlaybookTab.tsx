@@ -76,6 +76,11 @@ export function ProductSalesPlaybookTab({ product }: Props) {
     setDirty(false);
   }, [initial]);
 
+  const isUsingTemplate = useMemo(
+    () => isEmptyOrTemplate((product as any).sales_playbook),
+    [product.id, (product as any).sales_playbook],
+  );
+
   const update = <K extends keyof SalesPlaybook>(key: K, value: SalesPlaybook[K]) => {
     setData((prev) => ({ ...prev, [key]: value }));
     setDirty(true);
