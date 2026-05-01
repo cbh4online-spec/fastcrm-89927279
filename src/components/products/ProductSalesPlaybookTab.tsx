@@ -94,6 +94,7 @@ export function ProductSalesPlaybookTab({ product }: Props) {
   const initial = useMemo(() => normalize((product as any).sales_playbook), [product.id]);
   const [data, setData] = useState<SalesPlaybook>(initial);
   const [dirty, setDirty] = useState(false);
+  const [viewMode, setViewMode] = useState<"edit" | "read">("edit");
 
   useEffect(() => {
     setData(initial);
