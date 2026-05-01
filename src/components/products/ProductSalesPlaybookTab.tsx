@@ -35,6 +35,16 @@ const playbookSchema = z.object({
 });
 
 function normalize(raw: unknown): SalesPlaybook {
+  // For brand-new or legacy products without a playbook, seed the editor with
+  // the standard template so the team always has a starting point to refine.
+  if (isEmptyOrTemplate(raw)) {
+    return {
+      script: DEFAULT_SALES_PLAYBOOK.script,
+      objections: DEFAULT_SALES_PLAYBOOK.objections.map((o) => ({ ...o })),
+      warranty: DEFAULT_SALES_PLAYBOOK.warranty,
+      updated_at: undefined,
+    };
+  }
   const obj = (raw && typeof raw === "object") ? raw as any : {};
   return {
     script: typeof obj.script === "string" ? obj.script : "",
