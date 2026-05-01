@@ -192,13 +192,22 @@ export function useCreateProduct() {
       // Ensure category exists in product_categories table
       await ensureCategoryExists(input.category, currentWorkspace.id);
 
+      const inputAny = input as any;
+      const hasUserPlaybook =
+        inputAny.sales_playbook &&
+        typeof inputAny.sales_playbook === "object" &&
+        Object.keys(inputAny.sales_playbook).length > 0;
+
       const { data, error } = await supabase
         .from("products")
         .insert({
           ...input,
           workspace_id: currentWorkspace.id,
           created_by: user.id,
-        })
+          // Seed every new product with the standard playbook so the team has a
+          // ready-to-edit baseline. User-provided playbook always wins.
+          sales_playbook: hasUserPlaybook ? inputAny.sales_playbook : DEFAULT_SALES_PLAYBOOK,
+        } as any)
         .select()
         .single();
 
