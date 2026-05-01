@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2, Sparkles, Info, GripVertical, FileDown } from "lucide-react";
+import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2, Sparkles, Info, GripVertical, FileDown, Pencil, BookOpen } from "lucide-react";
 import { generateSalesPlaybookPdf, buildPlaybookFilename } from "./salesPlaybookPdf";
+import { ProductSalesPlaybookReader } from "./ProductSalesPlaybookReader";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Product } from "@/types/product";
@@ -92,6 +94,7 @@ export function ProductSalesPlaybookTab({ product }: Props) {
   const initial = useMemo(() => normalize((product as any).sales_playbook), [product.id]);
   const [data, setData] = useState<SalesPlaybook>(initial);
   const [dirty, setDirty] = useState(false);
+  const [viewMode, setViewMode] = useState<"edit" | "read">("edit");
 
   useEffect(() => {
     setData(initial);
@@ -239,10 +242,26 @@ export function ProductSalesPlaybookTab({ product }: Props) {
     <div className="space-y-4">
       {/* Sticky save bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-1 px-1 border-b">
-        <div className="text-sm text-muted-foreground">
-          {data.updated_at
-            ? <>Última atualização: {new Date(data.updated_at).toLocaleString("pt-PT")}</>
-            : <>Sem alterações guardadas</>}
+        <div className="flex items-center gap-3">
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(v) => v && setViewMode(v as "edit" | "read")}
+            size="sm"
+            variant="outline"
+          >
+            <ToggleGroupItem value="edit" aria-label="Modo edição" className="h-8 px-2 text-xs">
+              <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+            </ToggleGroupItem>
+            <ToggleGroupItem value="read" aria-label="Modo leitura" className="h-8 px-2 text-xs">
+              <BookOpen className="h-3.5 w-3.5 mr-1" /> Leitura
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <div className="text-sm text-muted-foreground">
+            {data.updated_at
+              ? <>Última atualização: {new Date(data.updated_at).toLocaleString("pt-PT")}</>
+              : <>Sem alterações guardadas</>}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -295,6 +314,18 @@ export function ProductSalesPlaybookTab({ product }: Props) {
         </div>
       </div>
 
+      {viewMode === "read" ? (
+        <ProductSalesPlaybookReader
+          productName={product.name}
+          data={{
+            script: data.script,
+            objections: data.objections,
+            warranty: data.warranty,
+            updated_at: data.updated_at,
+          }}
+        />
+      ) : (
+        <>
       {isUsingTemplate && (
         <div className="flex items-start gap-2 rounded-md border border-dashed bg-muted/40 p-3 text-sm">
           <Info className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
@@ -451,6 +482,8 @@ export function ProductSalesPlaybookTab({ product }: Props) {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }
