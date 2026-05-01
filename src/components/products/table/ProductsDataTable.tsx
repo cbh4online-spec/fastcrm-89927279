@@ -28,9 +28,11 @@ import {
 import { PRODUCT_COLUMNS } from "../hooks/useProductsListState";
 import { InlinePriceEditor } from "./InlinePriceEditor";
 import { InlineFieldEditor } from "./InlineFieldEditor";
+import { InlineSelectEditor } from "./InlineSelectEditor";
 import { MarginStatusBadge } from "../pricing/MarginStatusBadge";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 import { calcMarginPct, calcMarkupPct, getNetPrice, getRecommendedNetPrice, getRecommendedDelta } from "@/utils/productPricing";
+import { productTypeLabels } from "@/types/product";
 
 interface ProductsDataTableProps {
   products: Product[];
@@ -60,6 +62,7 @@ interface ProductsDataTableProps {
   isFilteredEmpty?: boolean;
   onClearFilters?: () => void;
   pricingRules?: import("@/hooks/useProductPricingIntelligence").PricingRule[];
+  productTypesConfig?: { code: string; label: string; is_active?: boolean }[];
 }
 
 function RenderProductCell({
@@ -69,9 +72,9 @@ function RenderProductCell({
 }: {
   product: Product;
   columnId: string;
-  helpers: Pick<ProductsDataTableProps, "onOpenDetail" | "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency" | "toggleStorePublished" | "onInlinePriceUpdate" | "pricingRules">;
+  helpers: Pick<ProductsDataTableProps, "onOpenDetail" | "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency" | "toggleStorePublished" | "onInlinePriceUpdate" | "pricingRules" | "productTypesConfig">;
 }) {
-  const { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate } = helpers;
+  const { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate, productTypesConfig } = helpers;
 
   switch (columnId) {
     case "name": {
@@ -113,8 +116,29 @@ function RenderProductCell({
           {product.sku}
         </button>
       ) : <span>-</span>;
-    case "product_type":
-      return <Badge variant="outline">{getProductTypeLabel(product.product_type)}</Badge>;
+    case "product_type": {
+      if (!onInlinePriceUpdate) {
+        return <Badge variant="outline">{getProductTypeLabel(product.product_type)}</Badge>;
+      }
+      const dynamic = (productTypesConfig ?? [])
+        .filter((t) => t.is_active !== false)
+        .map((t) => ({ value: t.code, label: t.label }));
+      const fallback = Object.entries(productTypeLabels).map(([value, label]) => ({ value, label }));
+      // Merge: dynamic config wins, fallback fills the gaps
+      const seen = new Set(dynamic.map((o) => o.value));
+      const options = [...dynamic, ...fallback.filter((o) => !seen.has(o.value))];
+      // Make sure the current value is selectable even if not in either source
+      if (product.product_type && !options.some((o) => o.value === product.product_type)) {
+        options.unshift({ value: product.product_type, label: getProductTypeLabel(product.product_type) });
+      }
+      return (
+        <InlineSelectEditor
+          value={product.product_type}
+          options={options}
+          onSave={(v) => onInlinePriceUpdate(product.id, "product_type", v)}
+        />
+      );
+    }
     case "category":
       return onInlinePriceUpdate ? (
         <InlineFieldEditor
@@ -375,9 +399,10 @@ export function ProductsDataTable({
   isFilteredEmpty,
   onClearFilters,
   pricingRules,
+  productTypesConfig,
 }: ProductsDataTableProps) {
   const visibleCols = columnOrder.filter((colId) => visibleColumns.has(colId));
-  const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate, pricingRules };
+  const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate, pricingRules, productTypesConfig };
 
   const parentRef = useRef<HTMLDivElement>(null);
 

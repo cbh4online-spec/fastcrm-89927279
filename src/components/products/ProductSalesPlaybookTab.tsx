@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2, Sparkles } from "lucide-react";
+import { ScrollText as ScriptIcon, MessageSquareWarning, ShieldCheck, Plus, Trash2, Save, Loader2, Sparkles, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Product } from "@/types/product";
+import { DEFAULT_SALES_PLAYBOOK, isEmptyOrTemplate } from "./salesPlaybookTemplate";
 
 interface ObjectionItem {
   objection: string;
@@ -34,6 +35,16 @@ const playbookSchema = z.object({
 });
 
 function normalize(raw: unknown): SalesPlaybook {
+  // For brand-new or legacy products without a playbook, seed the editor with
+  // the standard template so the team always has a starting point to refine.
+  if (isEmptyOrTemplate(raw)) {
+    return {
+      script: DEFAULT_SALES_PLAYBOOK.script,
+      objections: DEFAULT_SALES_PLAYBOOK.objections.map((o) => ({ ...o })),
+      warranty: DEFAULT_SALES_PLAYBOOK.warranty,
+      updated_at: undefined,
+    };
+  }
   const obj = (raw && typeof raw === "object") ? raw as any : {};
   return {
     script: typeof obj.script === "string" ? obj.script : "",
@@ -64,6 +75,11 @@ export function ProductSalesPlaybookTab({ product }: Props) {
     setData(initial);
     setDirty(false);
   }, [initial]);
+
+  const isUsingTemplate = useMemo(
+    () => isEmptyOrTemplate((product as any).sales_playbook),
+    [product.id, (product as any).sales_playbook],
+  );
 
   const update = <K extends keyof SalesPlaybook>(key: K, value: SalesPlaybook[K]) => {
     setData((prev) => ({ ...prev, [key]: value }));
@@ -211,6 +227,19 @@ export function ProductSalesPlaybookTab({ product }: Props) {
           </Button>
         </div>
       </div>
+
+      {isUsingTemplate && (
+        <div className="flex items-start gap-2 rounded-md border border-dashed bg-muted/40 p-3 text-sm">
+          <Info className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+          <div className="space-y-1">
+            <div className="font-medium">A usar o template padrão</div>
+            <div className="text-muted-foreground">
+              Este produto ainda não tem um procedimento personalizado. Edita as secções abaixo,
+              ou usa <span className="font-medium">Gerar com IA</span> para adaptar ao produto. Guarda quando estiveres satisfeito.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Script de vendas */}
       <Card>
