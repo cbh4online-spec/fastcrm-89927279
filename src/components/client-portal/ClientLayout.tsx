@@ -174,9 +174,9 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const portalName = workspaceBranding?.name ? `Portal ${workspaceBranding.name}` : "Portal Cliente";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header — Premium */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+    <div className="editorial-portal min-h-screen flex flex-col">
+      {/* Header — Editorial premium */}
+      <header className="sticky top-0 z-50 border-b border-[hsl(var(--editorial-border))]/70 bg-[hsl(var(--editorial-cream))]/85 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/client/dashboard" className="flex items-center gap-2.5">
