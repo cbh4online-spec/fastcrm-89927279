@@ -36,6 +36,7 @@ interface RuleFormState {
   min_margin_pct: string;
   target_margin_pct: string;
   max_margin_pct: string;
+  default_operational_cost_pct: string;
   is_active: boolean;
 }
 
@@ -45,6 +46,7 @@ const emptyForm: RuleFormState = {
   min_margin_pct: "10",
   target_margin_pct: "25",
   max_margin_pct: "50",
+  default_operational_cost_pct: "",
   is_active: true,
 };
 
