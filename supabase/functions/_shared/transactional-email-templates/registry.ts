@@ -21,6 +21,7 @@ import { template as cartRecovery } from './cart-recovery.tsx'
 import { template as orderConfirmation } from './order-confirmation.tsx'
 import { template as orderShipped } from './order-shipped.tsx'
 import { template as orderDelivered } from './order-delivered.tsx'
+import { template as partnerOrderDecision } from './partner-order-decision.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-invitation': eventInvitation,
