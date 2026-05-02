@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Search, X, Loader2, Package, Sparkles, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Search, X, Loader2, Package, Sparkles, AlertTriangle, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useProductSemanticSearch } from "@/hooks/client-portal/useProductSemanticSearch";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 6;
 
 interface SemanticSearchBarProps {
   workspaceId: string | undefined;
@@ -25,6 +27,7 @@ export function SemanticSearchBar({
 }: SemanticSearchBarProps) {
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [page, setPage] = useState(1);
   const debouncedQuery = useDebounce(inputValue, 350);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -36,11 +39,26 @@ export function SemanticSearchBar({
     if (q.length >= MIN_QUERY_LENGTH) {
       search(q);
       setIsOpen(true);
+      setPage(1);
     } else {
       clearResults();
       setIsOpen(false);
+      setPage(1);
     }
   }, [debouncedQuery, search, clearResults]);
+
+  // Ranked results (best matches first)
+  const rankedResults = useMemo(
+    () => [...results].sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0)),
+    [results],
+  );
+  const totalPages = Math.max(1, Math.ceil(rankedResults.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedResults = rankedResults.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const topId = rankedResults[0]?.id;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -121,23 +139,34 @@ export function SemanticSearchBar({
             </div>
           )}
 
-          {!loading && !error && results.length > 0 && (
+          {!loading && !error && rankedResults.length > 0 && (
             <div className="p-2">
-              <p className="text-xs text-muted-foreground px-2 pb-2 flex items-center gap-1.5">
-                <Search className="h-3 w-3" />
-                {results.length} resultado{results.length !== 1 ? "s" : ""}
-              </p>
-              {results.map((product) => {
+              <div className="flex items-center justify-between px-2 pb-2">
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Search className="h-3 w-3" />
+                  {rankedResults.length} resultado{rankedResults.length !== 1 ? "s" : ""} • ordenados por relevância
+                </p>
+                {totalPages > 1 && (
+                  <span className="text-xs text-muted-foreground">
+                    {currentPage}/{totalPages}
+                  </span>
+                )}
+              </div>
+              {pagedResults.map((product) => {
                 const imageUrl =
                   product.images?.[product.primary_image_index ?? 0] || null;
                 const relevance = Math.round((product.similarity ?? 0) * 100);
+                const isTop = product.id === topId;
 
                 return (
                   <button
                     key={product.id}
                     type="button"
                     onClick={() => handleProductClick(product.id)}
-                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left"
+                    className={cn(
+                      "w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left",
+                      isTop && "bg-primary/5 ring-1 ring-primary/20",
+                    )}
                   >
                     <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                       {imageUrl ? (
@@ -154,7 +183,12 @@ export function SemanticSearchBar({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{product.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        {isTop && (
+                          <Trophy className="h-3.5 w-3.5 text-primary shrink-0" />
+                        )}
+                        <p className="font-medium truncate">{product.name}</p>
+                      </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span className="font-semibold text-primary">
                           {Number(product.base_price || 0).toFixed(2)}€
@@ -182,10 +216,38 @@ export function SemanticSearchBar({
                   </button>
                 );
               })}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-2 pt-2 mt-1 border-t border-border">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Anterior
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    Seguinte <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
-          {!loading && !error && results.length === 0 && (
+          {!loading && !error && rankedResults.length === 0 && (
             <div className="p-4 text-center text-sm text-muted-foreground">
               Nenhum produto encontrado para “{inputValue.trim()}”.
             </div>

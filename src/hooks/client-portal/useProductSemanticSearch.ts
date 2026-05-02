@@ -44,8 +44,8 @@ export function useProductSemanticSearch(workspaceId: string | undefined): UsePr
         body: {
           query: searchQuery,
           workspaceId,
-          limit: 10,
-          threshold: 0.4,
+          limit: 50,
+          threshold: 0.35,
         },
       });
 
