@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Search, X, Loader2, Package, Sparkles, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Search, X, Loader2, Package, Sparkles, AlertTriangle, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useProductSemanticSearch } from "@/hooks/client-portal/useProductSemanticSearch";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 6;
 
 interface SemanticSearchBarProps {
   workspaceId: string | undefined;
