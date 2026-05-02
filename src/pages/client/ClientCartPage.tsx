@@ -67,6 +67,37 @@ export default function ClientCartPage() {
     [cart.items],
   );
 
+  // Fetch categories for the products currently in cart (for "related" rail)
+  const cartProductIdList = useMemo(() => Array.from(cartProductIds), [cartProductIds]);
+  const [cartCategories, setCartCategories] = useState<string[]>([]);
+  useEffect(() => {
+    if (cartProductIdList.length === 0) {
+      setCartCategories([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("category")
+        .in("id", cartProductIdList);
+      if (cancelled) return;
+      const cats = [
+        ...new Set((data || []).map((p: any) => p.category).filter(Boolean)),
+      ] as string[];
+      setCartCategories(cats);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cartProductIdList.join(",")]);
+
+  const { data: recs } = useCartRecommendations({
+    workspaceId: clientUser?.workspace_id,
+    cartProductIds: cartProductIdList,
+    cartCategories,
+  });
+
   // Sugestões = favoritos que ainda não estão no carrinho
   const suggestions = useMemo(() => {
     return favorites
