@@ -78,6 +78,7 @@ interface Product {
   brand_logo_url?: string | null;
   compare_at_price?: number | null;
   promo_label?: string | null;
+  pvp_recommended?: number | null;
 }
 
 interface ProductAttribute {
@@ -251,6 +252,30 @@ export function ProductDetailModal({
   const lineVat = calculateVAT(unitPriceNet * quantity, vatRate);
   const lineGross = calculateGross(unitPriceNet * quantity, vatRate);
 
+  // PVP recomendado para revenda ao cliente final (com IVA).
+  // Prioridade: compare_at_price (já c/IVA) → pvp_recommended (s/IVA, aplicar IVA)
+  // → fallback: custo do cabeleireiro c/IVA × markup 100% (preço base × 2)
+  const recommendedRetailGross: number | null = (() => {
+    if (product.compare_at_price && product.compare_at_price > 0) {
+      return product.compare_at_price;
+    }
+    if (product.pvp_recommended && product.pvp_recommended > 0) {
+      return calculateGross(product.pvp_recommended, vatRate);
+    }
+    if (unitPriceNet > 0) {
+      return calculateGross(unitPriceNet, vatRate) * 2;
+    }
+    return null;
+  })();
+
+  const unitGross = calculateGross(unitPriceNet, vatRate);
+  const retailMarginPct =
+    recommendedRetailGross && unitGross > 0
+      ? ((recommendedRetailGross - unitGross) / recommendedRetailGross) * 100
+      : null;
+  const retailProfit =
+    recommendedRetailGross && unitGross > 0 ? recommendedRetailGross - unitGross : null;
+
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity >= 1 && newQuantity <= 999) setQuantity(newQuantity);
   };
@@ -351,14 +376,26 @@ export function ProductDetailModal({
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-md border border-border bg-background/60 p-3">
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        PVP recomendado
+                        PVP sugerido (revenda)
                       </p>
-                      {product.compare_at_price != null && product.compare_at_price > 0 ? (
+                      {recommendedRetailGross != null ? (
                         <>
                           <p className="text-lg font-semibold text-foreground/80 leading-tight">
-                            {formatCurrency(product.compare_at_price)}
+                            {formatCurrency(recommendedRetailGross)}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">com IVA</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            ao cliente final · c/IVA
+                          </p>
+                          {retailMarginPct != null && retailProfit != null && retailProfit > 0 && (
+                            <p className="text-[11px] font-medium text-emerald-600 mt-1">
+                              Margem ~{retailMarginPct.toFixed(0)}% · +{formatCurrency(retailProfit)}/un
+                            </p>
+                          )}
+                          {!product.compare_at_price && !product.pvp_recommended && (
+                            <p className="text-[10px] text-muted-foreground/70 italic mt-0.5">
+                              estimativa (markup 100%)
+                            </p>
+                          )}
                         </>
                       ) : (
                         <p className="text-sm text-muted-foreground italic">—</p>
