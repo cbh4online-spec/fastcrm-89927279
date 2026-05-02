@@ -21,7 +21,6 @@ export interface PendingPartnerOrder {
   created_at: string;
   stock_reserved: boolean;
   stock_committed: boolean;
-  // joined
   partner_accounts?: { id: string; legal_name: string; trade_name: string | null; credit_limit: number; current_credit_exposure: number } | null;
   partner_order_items: Array<{
     id: string;
@@ -33,7 +32,6 @@ export interface PendingPartnerOrder {
     quantity: number;
     unit_price_net: number;
     line_total_net: number;
-    // Joined variant info to show stock impact
     product_variants?: {
       id: string;
       stock_quantity: number;
@@ -41,6 +39,59 @@ export interface PendingPartnerOrder {
       track_stock: boolean;
     } | null;
   }>;
+}
+
+type Decision = "approved" | "rejected" | "reopened";
+
+async function notifyPartnerByEmail(args: {
+  orderId: string;
+  partnerAccountId: string;
+  decision: Decision;
+  orderNumber: string;
+  totalGross: number;
+  reason?: string;
+}) {
+  try {
+    // Procurar utilizadores ativos da conta para obter emails
+    const { data: users, error } = await supabase
+      .from("partner_users")
+      .select("email, full_name, is_active")
+      .eq("partner_account_id", args.partnerAccountId)
+      .eq("is_active", true);
+
+    if (error || !users?.length) return;
+
+    const totalFmt = new Intl.NumberFormat("pt-PT", {
+      style: "currency",
+      currency: "EUR",
+    }).format(args.totalGross);
+
+    const orderUrl = `${window.location.origin}/dashboard/b2b/orders/${args.orderId}`;
+
+    await Promise.allSettled(
+      users
+        .filter((u) => !!u.email)
+        .map((u) =>
+          supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "partner-order-decision",
+              recipientEmail: u.email,
+              idempotencyKey: `partner-order-${args.orderId}-${args.decision}`,
+              templateData: {
+                partnerName: u.full_name || undefined,
+                orderNumber: args.orderNumber,
+                decision: args.decision,
+                reason: args.reason,
+                total: totalFmt,
+                orderUrl,
+              },
+            },
+          })
+        )
+    );
+  } catch (e) {
+    console.warn("[partner-order-approvals] email notify failed", e);
+  }
 }
 
 export function usePartnerOrderApprovals() {
@@ -77,12 +128,17 @@ export function usePartnerOrderApprovals() {
       orderId,
       decision,
       reason,
+      orderNumber,
+      partnerAccountId,
+      totalGross,
     }: {
       orderId: string;
       decision: "approved" | "rejected";
       reason?: string;
+      orderNumber: string;
+      partnerAccountId: string;
+      totalGross: number;
     }) => {
-      // Map decision to actual status: approved -> submitted (downstream lifecycle handles processing)
       const newStatus = decision === "approved" ? "submitted" : "rejected";
       const nowIso = new Date().toISOString();
       const { data: userRes } = await supabase.auth.getUser();
@@ -105,9 +161,20 @@ export function usePartnerOrderApprovals() {
         .eq("id", orderId);
 
       if (error) throw error;
+
+      // Notificação por email (best-effort)
+      await notifyPartnerByEmail({
+        orderId,
+        partnerAccountId,
+        decision,
+        orderNumber,
+        totalGross,
+        reason,
+      });
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["partner-order-approvals"] });
+      qc.invalidateQueries({ queryKey: ["partner-order-approval-history"] });
       qc.invalidateQueries({ queryKey: ["product-variants"] });
       toast.success(
         vars.decision === "approved"
@@ -118,11 +185,46 @@ export function usePartnerOrderApprovals() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const reopen = useMutation({
+    mutationFn: async (args: {
+      orderId: string;
+      orderNumber: string;
+      partnerAccountId: string;
+      totalGross: number;
+    }) => {
+      const { data, error } = await supabase.rpc("reopen_partner_order" as any, {
+        p_order_id: args.orderId,
+      });
+      if (error) throw error;
+      const result = data as { success: boolean; error?: string };
+      if (!result?.success) {
+        throw new Error(result?.error || "Não foi possível reabrir a encomenda");
+      }
+
+      await notifyPartnerByEmail({
+        orderId: args.orderId,
+        partnerAccountId: args.partnerAccountId,
+        decision: "reopened",
+        orderNumber: args.orderNumber,
+        totalGross: args.totalGross,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["partner-order-approvals"] });
+      qc.invalidateQueries({ queryKey: ["partner-order-approval-history"] });
+      qc.invalidateQueries({ queryKey: ["product-variants"] });
+      toast.success("Encomenda reaberta e stock re-reservado");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   return {
     orders: query.data || [],
     isLoading: query.isLoading,
     refetch: query.refetch,
     decide: decide.mutateAsync,
     isDeciding: decide.isPending,
+    reopen: reopen.mutateAsync,
+    isReopening: reopen.isPending,
   };
 }

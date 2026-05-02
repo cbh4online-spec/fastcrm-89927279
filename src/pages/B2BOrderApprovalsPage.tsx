@@ -49,7 +49,14 @@ export default function B2BOrderApprovalsPage() {
 
   const handleConfirm = async () => {
     if (!dialog) return;
-    await decide({ orderId: dialog.order.id, decision: dialog.decision, reason: reason.trim() || undefined });
+    await decide({
+      orderId: dialog.order.id,
+      decision: dialog.decision,
+      reason: reason.trim() || undefined,
+      orderNumber: dialog.order.order_number,
+      partnerAccountId: dialog.order.partner_account_id,
+      totalGross: Number(dialog.order.total_gross || 0),
+    });
     setDialog(null);
     setReason("");
   };
@@ -322,6 +329,7 @@ export default function B2BOrderApprovalsPage() {
 
 function ApprovalHistoryPanel() {
   const { history, isLoading } = usePartnerOrderApprovalHistory({ limit: 100 });
+  const { reopen, isReopening } = usePartnerOrderApprovals();
 
   if (isLoading) {
     return (
@@ -384,6 +392,24 @@ function ApprovalHistoryPanel() {
                   </p>
                 )}
               </div>
+              {entry.decision === "rejected" && entry.new_status === "rejected" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isReopening}
+                  onClick={() =>
+                    reopen({
+                      orderId: entry.partner_order_id,
+                      orderNumber: entry.order_number,
+                      partnerAccountId: entry.partner_account_id,
+                      totalGross: Number(entry.total_gross || 0),
+                    })
+                  }
+                >
+                  {isReopening ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <History className="h-3.5 w-3.5 mr-1.5" />}
+                  Reabrir
+                </Button>
+              )}
             </div>
           );
         })}

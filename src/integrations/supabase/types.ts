@@ -77500,6 +77500,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      reopen_partner_order: { Args: { p_order_id: string }; Returns: Json }
       reserve_partner_variant_stock: {
         Args: {
           p_allow_backorder?: boolean
