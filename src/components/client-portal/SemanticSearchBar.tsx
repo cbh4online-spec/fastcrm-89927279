@@ -39,11 +39,26 @@ export function SemanticSearchBar({
     if (q.length >= MIN_QUERY_LENGTH) {
       search(q);
       setIsOpen(true);
+      setPage(1);
     } else {
       clearResults();
       setIsOpen(false);
+      setPage(1);
     }
   }, [debouncedQuery, search, clearResults]);
+
+  // Ranked results (best matches first)
+  const rankedResults = useMemo(
+    () => [...results].sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0)),
+    [results],
+  );
+  const totalPages = Math.max(1, Math.ceil(rankedResults.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedResults = rankedResults.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const topId = rankedResults[0]?.id;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
