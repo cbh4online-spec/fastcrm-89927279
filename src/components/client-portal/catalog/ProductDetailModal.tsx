@@ -252,6 +252,30 @@ export function ProductDetailModal({
   const lineVat = calculateVAT(unitPriceNet * quantity, vatRate);
   const lineGross = calculateGross(unitPriceNet * quantity, vatRate);
 
+  // PVP recomendado para revenda ao cliente final (com IVA).
+  // Prioridade: compare_at_price (já c/IVA) → pvp_recommended (s/IVA, aplicar IVA)
+  // → fallback: custo do cabeleireiro c/IVA × markup 100% (preço base × 2)
+  const recommendedRetailGross: number | null = (() => {
+    if (product.compare_at_price && product.compare_at_price > 0) {
+      return product.compare_at_price;
+    }
+    if (product.pvp_recommended && product.pvp_recommended > 0) {
+      return calculateGross(product.pvp_recommended, vatRate);
+    }
+    if (unitPriceNet > 0) {
+      return calculateGross(unitPriceNet, vatRate) * 2;
+    }
+    return null;
+  })();
+
+  const unitGross = calculateGross(unitPriceNet, vatRate);
+  const retailMarginPct =
+    recommendedRetailGross && unitGross > 0
+      ? ((recommendedRetailGross - unitGross) / recommendedRetailGross) * 100
+      : null;
+  const retailProfit =
+    recommendedRetailGross && unitGross > 0 ? recommendedRetailGross - unitGross : null;
+
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity >= 1 && newQuantity <= 999) setQuantity(newQuantity);
   };
