@@ -151,14 +151,24 @@ export default function ClientCatalogPage() {
         <Card className={`${showFilters ? "block" : "hidden sm:block"} border-[hsl(var(--editorial-border))]/60`}>
           <CardContent className="pt-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-              {/* Search */}
-              <div className="relative lg:col-span-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Pesquisar produtos..."
-                  value={filters.search || ""}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="pl-9"
+              {/* Search — texto + IA semântica */}
+              <div className="relative lg:col-span-2 space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Pesquisar por nome ou SKU..."
+                    value={filters.search || ""}
+                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                    className="pl-9"
+                  />
+                </div>
+                <SemanticSearchBar
+                  workspaceId={clientUser?.workspace_id}
+                  placeholder="Pesquisa inteligente: sintomas, necessidades, objectivos..."
+                  onProductSelect={(productId) => {
+                    const found = products.find((p) => p.id === productId);
+                    if (found) setSelectedProduct(found);
+                  }}
                 />
               </div>
 
