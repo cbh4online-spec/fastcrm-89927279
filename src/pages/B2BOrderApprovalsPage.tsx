@@ -49,7 +49,14 @@ export default function B2BOrderApprovalsPage() {
 
   const handleConfirm = async () => {
     if (!dialog) return;
-    await decide({ orderId: dialog.order.id, decision: dialog.decision, reason: reason.trim() || undefined });
+    await decide({
+      orderId: dialog.order.id,
+      decision: dialog.decision,
+      reason: reason.trim() || undefined,
+      orderNumber: dialog.order.order_number,
+      partnerAccountId: dialog.order.partner_account_id,
+      totalGross: Number(dialog.order.total_gross || 0),
+    });
     setDialog(null);
     setReason("");
   };
