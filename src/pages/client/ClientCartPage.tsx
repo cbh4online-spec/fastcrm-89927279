@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { useCart } from "@/contexts/CartContext";
 import { useClientFavorites } from "@/hooks/client-portal/useClientFavorites";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientOrders } from "@/hooks/client-portal/useClientOrders";
+import { useCartRecommendations } from "@/hooks/client-portal/useCartRecommendations";
+import { CartProductRail } from "@/components/client-portal/CartProductRail";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +66,37 @@ export default function ClientCartPage() {
     () => new Set(cart.items.map((i) => i.product_id)),
     [cart.items],
   );
+
+  // Fetch categories for the products currently in cart (for "related" rail)
+  const cartProductIdList = useMemo(() => Array.from(cartProductIds), [cartProductIds]);
+  const [cartCategories, setCartCategories] = useState<string[]>([]);
+  useEffect(() => {
+    if (cartProductIdList.length === 0) {
+      setCartCategories([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("category")
+        .in("id", cartProductIdList);
+      if (cancelled) return;
+      const cats = [
+        ...new Set((data || []).map((p: any) => p.category).filter(Boolean)),
+      ] as string[];
+      setCartCategories(cats);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cartProductIdList.join(",")]);
+
+  const { data: recs } = useCartRecommendations({
+    workspaceId: clientUser?.workspace_id,
+    cartProductIds: cartProductIdList,
+    cartCategories,
+  });
 
   // Sugestões = favoritos que ainda não estão no carrinho
   const suggestions = useMemo(() => {
@@ -410,6 +444,30 @@ export default function ClientCartPage() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Promoções activas */}
+            {recs?.promotions && recs.promotions.length > 0 && (
+              <CartProductRail variant="promotions" products={recs.promotions} />
+            )}
+
+            {/* Mais vendidos no workspace */}
+            {recs?.bestSellers && recs.bestSellers.length > 0 && (
+              <CartProductRail variant="bestSellers" products={recs.bestSellers} />
+            )}
+
+            {/* Produtos relacionados pela categoria */}
+            {recs?.related && recs.related.length > 0 && (
+              <CartProductRail variant="related" products={recs.related} />
+            )}
+
+            {/* Kit poupança — sugestão composta a partir dos relacionados */}
+            {recs?.related && recs.related.length >= 3 && (
+              <CartProductRail
+                variant="kit"
+                products={recs.related.slice(0, 3)}
+                kitDiscountPct={5}
+              />
             )}
 
             {/* Reorder shortcut */}
