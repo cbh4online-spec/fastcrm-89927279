@@ -5,6 +5,7 @@ import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientProducts } from "@/hooks/client-portal/useClientProducts";
 import { useCart } from "@/contexts/CartContext";
 import { ProductDetailModal } from "@/components/client-portal/catalog/ProductDetailModal";
+import { SemanticSearchBar } from "@/components/client-portal/SemanticSearchBar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
