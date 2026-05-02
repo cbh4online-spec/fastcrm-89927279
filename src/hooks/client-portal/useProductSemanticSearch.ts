@@ -51,10 +51,14 @@ export function useProductSemanticSearch(workspaceId: string | undefined): UsePr
 
       if (fnError) throw fnError;
 
-      if (data?.success) {
+      // Caso o AI Gate devolva quota_exceeded com status 200
+      if (data?.error) {
+        setError(data.error);
+        setResults([]);
+      } else if (data?.success) {
         setResults(data.products || []);
       } else {
-        setError(data?.error || "Erro na pesquisa");
+        setError("Erro na pesquisa");
         setResults([]);
       }
     } catch (err) {
