@@ -446,6 +446,30 @@ export default function ClientCartPage() {
               </Card>
             )}
 
+            {/* Promoções activas */}
+            {recs?.promotions && recs.promotions.length > 0 && (
+              <CartProductRail variant="promotions" products={recs.promotions} />
+            )}
+
+            {/* Mais vendidos no workspace */}
+            {recs?.bestSellers && recs.bestSellers.length > 0 && (
+              <CartProductRail variant="bestSellers" products={recs.bestSellers} />
+            )}
+
+            {/* Produtos relacionados pela categoria */}
+            {recs?.related && recs.related.length > 0 && (
+              <CartProductRail variant="related" products={recs.related} />
+            )}
+
+            {/* Kit poupança — sugestão composta a partir dos relacionados */}
+            {recs?.related && recs.related.length >= 3 && (
+              <CartProductRail
+                variant="kit"
+                products={recs.related.slice(0, 3)}
+                kitDiscountPct={5}
+              />
+            )}
+
             {/* Reorder shortcut */}
             {lastOrder && lastOrder.items && lastOrder.items.length > 0 && (
               <Card className="bg-gradient-to-br from-primary/5 via-transparent to-primary/10 border-primary/20">
