@@ -376,14 +376,26 @@ export function ProductDetailModal({
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-md border border-border bg-background/60 p-3">
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        PVP recomendado
+                        PVP sugerido (revenda)
                       </p>
-                      {product.compare_at_price != null && product.compare_at_price > 0 ? (
+                      {recommendedRetailGross != null ? (
                         <>
                           <p className="text-lg font-semibold text-foreground/80 leading-tight">
-                            {formatCurrency(product.compare_at_price)}
+                            {formatCurrency(recommendedRetailGross)}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">com IVA</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            ao cliente final · c/IVA
+                          </p>
+                          {retailMarginPct != null && retailProfit != null && retailProfit > 0 && (
+                            <p className="text-[11px] font-medium text-emerald-600 mt-1">
+                              Margem ~{retailMarginPct.toFixed(0)}% · +{formatCurrency(retailProfit)}/un
+                            </p>
+                          )}
+                          {!product.compare_at_price && !product.pvp_recommended && (
+                            <p className="text-[10px] text-muted-foreground/70 italic mt-0.5">
+                              estimativa (markup 100%)
+                            </p>
+                          )}
                         </>
                       ) : (
                         <p className="text-sm text-muted-foreground italic">—</p>
