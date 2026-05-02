@@ -392,6 +392,24 @@ function ApprovalHistoryPanel() {
                   </p>
                 )}
               </div>
+              {entry.decision === "rejected" && entry.new_status === "rejected" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isReopening}
+                  onClick={() =>
+                    reopen({
+                      orderId: entry.partner_order_id,
+                      orderNumber: entry.order_number,
+                      partnerAccountId: entry.partner_account_id,
+                      totalGross: Number(entry.total_gross || 0),
+                    })
+                  }
+                >
+                  {isReopening ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <History className="h-3.5 w-3.5 mr-1.5" />}
+                  Reabrir
+                </Button>
+              )}
             </div>
           );
         })}
