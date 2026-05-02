@@ -78,6 +78,7 @@ interface Product {
   brand_logo_url?: string | null;
   compare_at_price?: number | null;
   promo_label?: string | null;
+  pvp_recommended?: number | null;
 }
 
 interface ProductAttribute {
