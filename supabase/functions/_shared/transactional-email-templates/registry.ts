@@ -36,4 +36,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'order-confirmation': orderConfirmation,
   'order-shipped': orderShipped,
   'order-delivered': orderDelivered,
+  'partner-order-decision': partnerOrderDecision,
 }
