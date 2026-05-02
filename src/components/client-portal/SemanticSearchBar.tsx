@@ -27,6 +27,7 @@ export function SemanticSearchBar({
 }: SemanticSearchBarProps) {
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [page, setPage] = useState(1);
   const debouncedQuery = useDebounce(inputValue, 350);
   const containerRef = useRef<HTMLDivElement>(null);
 
