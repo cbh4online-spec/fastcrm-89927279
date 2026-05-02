@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { useCart } from "@/contexts/CartContext";
 import { useClientFavorites } from "@/hooks/client-portal/useClientFavorites";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientOrders } from "@/hooks/client-portal/useClientOrders";
+import { useCartRecommendations } from "@/hooks/client-portal/useCartRecommendations";
+import { CartProductRail } from "@/components/client-portal/CartProductRail";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
