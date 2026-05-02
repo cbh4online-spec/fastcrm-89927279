@@ -329,6 +329,7 @@ export default function B2BOrderApprovalsPage() {
 
 function ApprovalHistoryPanel() {
   const { history, isLoading } = usePartnerOrderApprovalHistory({ limit: 100 });
+  const { reopen, isReopening } = usePartnerOrderApprovals();
 
   if (isLoading) {
     return (
