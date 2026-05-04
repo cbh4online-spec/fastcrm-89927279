@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { B2BEmailTemplatesManager } from "@/components/b2b-portal/B2BEmailTemplatesManager";
+import { B2BPortalBannersManager } from "@/components/b2b-portal/B2BPortalBannersManager";
 import { 
   Settings, 
   ExternalLink, 
