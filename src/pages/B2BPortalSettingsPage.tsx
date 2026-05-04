@@ -240,6 +240,10 @@ export default function B2BPortalSettingsPage() {
               <ShoppingBag className="h-4 w-4" />
               Catálogo
             </TabsTrigger>
+            <TabsTrigger value="banners" className="flex items-center gap-2">
+              <Image className="h-4 w-4" />
+              Banners
+            </TabsTrigger>
             <TabsTrigger value="emails" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
               Emails
