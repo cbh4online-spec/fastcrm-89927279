@@ -380,6 +380,10 @@ export default function B2BPortalSettingsPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="banners" className="space-y-4">
+            <B2BPortalBannersManager workspaceId={currentWorkspace?.id} />
+          </TabsContent>
+
           <TabsContent value="emails" className="space-y-4">
             {currentWorkspace?.id && (
               <B2BEmailTemplatesManager workspaceId={currentWorkspace.id} />
