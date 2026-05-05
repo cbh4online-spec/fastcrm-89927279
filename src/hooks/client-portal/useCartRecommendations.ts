@@ -87,25 +87,25 @@ export function useCartRecommendations({
       };
       if (!workspaceId) return empty;
 
-      // 0. Carregar settings + manual rules + manual kits em paralelo --------
-      const [settingsRes, manualRulesRes, manualKitsRes] = await Promise.all([
+      // 0. Settings + manual cross-sells + kits B2B em paralelo --------------
+      const [settingsRes, crossSellsRes, kitsRes] = await Promise.all([
         sb.from("b2b_checkout_settings").select("*").eq("workspace_id", workspaceId).maybeSingle(),
         cartProductIds.length > 0
           ? sb
-              .from("b2b_checkout_related_rules")
-              .select("source_product_id, related_product_ids")
+              .from("product_cross_sells")
+              .select("source_product_id, target_product_id, weight")
               .eq("workspace_id", workspaceId)
               .eq("is_active", true)
-              .is("deleted_at", null)
               .in("source_product_id", cartProductIds)
           : Promise.resolve({ data: [] }),
         sb
-          .from("b2b_checkout_kits")
-          .select("*")
+          .from("product_kits")
+          .select("id, name, description, discount_pct, status, visibility_b2b")
           .eq("workspace_id", workspaceId)
-          .eq("is_active", true)
-          .is("deleted_at", null)
-          .order("display_order", { ascending: true }),
+          .eq("visibility_b2b", true)
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(50),
       ]);
 
       const settings: Settings = settingsRes?.data
@@ -114,21 +114,19 @@ export function useCartRecommendations({
 
       const excludeIds = cartProductIds.length > 0 ? cartProductIds : ["00000000-0000-0000-0000-000000000000"];
 
-      // ---------------------------------------------------------------------
-      // 1. RELATED: manual_first → manual + fallback categoria
-      // ---------------------------------------------------------------------
+      // 1. RELATED — manuais (cross-sells) ordenados por weight desc
       let manualRelatedIds: string[] = [];
       if (settings.show_related && settings.related_mode !== "category") {
-        const ruleRows = (manualRulesRes?.data ?? []) as any[];
-        const set = new Set<string>();
-        for (const row of ruleRows) {
-          for (const id of row.related_product_ids ?? []) {
-            if (!cartProductIds.includes(id)) set.add(id);
+        const rows = ((crossSellsRes?.data ?? []) as any[])
+          .sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
+        const seen = new Set<string>();
+        for (const r of rows) {
+          if (!cartProductIds.includes(r.target_product_id) && !seen.has(r.target_product_id)) {
+            seen.add(r.target_product_id);
+            manualRelatedIds.push(r.target_product_id);
           }
         }
-        manualRelatedIds = [...set];
       }
-
       const useCategoryFallback =
         settings.show_related &&
         (settings.related_mode === "category" ||
@@ -166,20 +164,34 @@ export function useCartRecommendations({
           .map(([id]) => id);
       }
 
-      // 3. Manual kits products to fetch
-      const allKits = (manualKitsRes?.data ?? []) as any[];
-      const manualKits = allKits.filter((k) => {
-        if (settings.kit_mode === "auto") return false;
-        const trig = k.trigger_product_ids ?? [];
-        if (trig.length === 0) return true;
-        return trig.some((id: string) => cartProductIds.includes(id));
-      });
-      const kitProductIds = new Set<string>();
-      manualKits.forEach((k) => (k.product_ids ?? []).forEach((id: string) => kitProductIds.add(id)));
+      // 3. KITS — carregar items dos kits B2B activos e filtrar por intersecção com carrinho
+      const allKits = (kitsRes?.data ?? []) as any[];
+      const kitIds = allKits.map((k) => k.id);
+      let kitItemsByKit = new Map<string, { product_id: string; quantity: number }[]>();
+      if (kitIds.length > 0) {
+        const { data: items } = await sb
+          .from("product_kit_items")
+          .select("kit_id, product_id, quantity")
+          .in("kit_id", kitIds);
+        for (const it of (items ?? []) as any[]) {
+          if (!it.product_id) continue;
+          const arr = kitItemsByKit.get(it.kit_id) ?? [];
+          arr.push({ product_id: it.product_id, quantity: Number(it.quantity) || 1 });
+          kitItemsByKit.set(it.kit_id, arr);
+        }
+      }
+      // Filtro: se kit_mode === "auto", ignorar manuais; caso contrário considerar todos os kits visíveis B2B
+      const manualKits =
+        settings.kit_mode === "auto"
+          ? []
+          : allKits.filter((k) => (kitItemsByKit.get(k.id) ?? []).length >= 2);
 
-      // ---------------------------------------------------------------------
-      // 4. Fetch all product details em paralelo ----------------------------
-      // ---------------------------------------------------------------------
+      const kitProductIds = new Set<string>();
+      manualKits.forEach((k) =>
+        (kitItemsByKit.get(k.id) ?? []).forEach((it) => kitProductIds.add(it.product_id)),
+      );
+
+      // 4. Fetch product details
       const [bestSellersQ, relatedManualQ, relatedCategoryQ, promosQ, kitProductsQ] = await Promise.all([
         topSellerIds.length > 0
           ? sb.from("products").select(SELECT).eq("workspace_id", workspaceId).eq("status", "active").eq("b2b_published", true).in("id", topSellerIds)
@@ -220,14 +232,12 @@ export function useCartRecommendations({
           images: Array.isArray(p.images) ? p.images : null,
         }));
 
-      // Best sellers reorder by volume
       const sellersById = new Map<string, CartRecommendationProduct>();
       normalize(bestSellersQ.data || []).forEach((p) => sellersById.set(p.id, p));
       const bestSellers = topSellerIds
         .map((id) => sellersById.get(id))
         .filter(Boolean) as CartRecommendationProduct[];
 
-      // Promotions
       const promotions = normalize(promosQ.data || [])
         .filter((p) => {
           const hasPriceCut =
@@ -237,27 +247,40 @@ export function useCartRecommendations({
         })
         .slice(0, 6);
 
-      // Related: combinar manual + categoria (manual primeiro), dedupe
       const relatedManual = normalize(relatedManualQ.data || []);
       const relatedCategory = normalize(relatedCategoryQ.data || []);
       const seenRelated = new Set<string>();
       const related: CartRecommendationProduct[] = [];
-      for (const p of [...relatedManual, ...relatedCategory]) {
+      // manter ordem dos manualRelatedIds (já ordenados por weight)
+      const manualById = new Map(relatedManual.map((p) => [p.id, p]));
+      for (const id of manualRelatedIds) {
+        const p = manualById.get(id);
+        if (p && !seenRelated.has(p.id)) { seenRelated.add(p.id); related.push(p); }
+        if (related.length >= 6) break;
+      }
+      for (const p of relatedCategory) {
+        if (related.length >= 6) break;
         if (seenRelated.has(p.id) || cartProductIds.includes(p.id)) continue;
         seenRelated.add(p.id);
         related.push(p);
-        if (related.length >= 6) break;
       }
 
-      // Kits: manuais + (opcional) auto fallback a partir de related
+      // KITS — apenas mostrar se tem intersecção com o carrinho OU se carrinho vazio (showcase)
       const kitProductsById = new Map<string, CartRecommendationProduct>();
       normalize(kitProductsQ.data || []).forEach((p) => kitProductsById.set(p.id, p));
 
       const kits: CartKit[] = [];
       if (settings.show_kit) {
         for (const k of manualKits) {
-          const products = (k.product_ids ?? [])
-            .map((id: string) => kitProductsById.get(id))
+          const items = kitItemsByKit.get(k.id) ?? [];
+          // Mostrar se carrinho contém pelo menos 1 produto do kit, OU se carrinho vazio
+          const hasIntersection =
+            cartProductIds.length === 0 ||
+            items.some((it) => cartProductIds.includes(it.product_id));
+          if (!hasIntersection) continue;
+
+          const products = items
+            .map((it) => kitProductsById.get(it.product_id))
             .filter(Boolean) as CartRecommendationProduct[];
           if (products.length >= 2) {
             kits.push({
