@@ -51,6 +51,24 @@ function initials(name?: string | null, email?: string | null) {
     .toUpperCase();
 }
 
+function highlight(text: string, tokens: string[]) {
+  if (!text || tokens.length === 0) return text;
+  const pattern = new RegExp(
+    `(${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
+    "gi",
+  );
+  const parts = text.split(pattern);
+  return parts.map((p, i) =>
+    pattern.test(p) ? (
+      <mark key={i} className="bg-primary/20 text-foreground rounded px-0.5">
+        {p}
+      </mark>
+    ) : (
+      <span key={i}>{p}</span>
+    ),
+  );
+}
+
 export default function MessagesPage() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
@@ -410,15 +428,33 @@ function NewConversationButton({
 
           <TabsContent value="dm" className="mt-4">
             <Input
-              placeholder={isSuperAdmin ? "Pesquisar entre todos os utilizadores…" : "Pesquisar colega…"}
+              placeholder={
+                isSuperAdmin
+                  ? "Pesquisar por nome, email ou workspace…"
+                  : "Pesquisar colega…"
+              }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="mb-2"
+              autoFocus
             />
             {isSuperAdmin && (
-              <p className="text-[11px] text-muted-foreground mb-2">
-                🛡️ Modo super admin: pode iniciar conversa com qualquer utilizador da plataforma.
-              </p>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-[11px] text-muted-foreground">
+                  🛡️ Super admin · pesquisa entre <strong>{teammates.length}</strong> utilizadores
+                </p>
+                {(() => {
+                  const tokens = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+                  if (tokens.length === 0) return null;
+                  const count = teammates.filter((t: any) => {
+                    const hay = `${t.full_name ?? ""} ${t.email ?? ""} ${t.workspaces ?? ""}`.toLowerCase();
+                    return tokens.every((tk) => hay.includes(tk));
+                  }).length;
+                  return (
+                    <span className="text-[11px] text-muted-foreground">{count} resultados</span>
+                  );
+                })()}
+              </div>
             )}
             <ScrollArea className="max-h-72">
               {teammates.length === 0 ? (
@@ -426,42 +462,74 @@ function NewConversationButton({
                   {isSuperAdmin ? "Sem utilizadores." : "Sem outros membros no workspace."}
                 </p>
               ) : (
-                <ul className="space-y-1">
-                  {teammates
-                    .filter((t: any) => {
-                      if (!search.trim()) return true;
-                      const q = search.toLowerCase();
-                      return (
-                        (t.full_name ?? "").toLowerCase().includes(q) ||
-                        (t.email ?? "").toLowerCase().includes(q) ||
-                        (t.workspaces ?? "").toLowerCase().includes(q)
-                      );
-                    })
-                    .slice(0, 100)
-                    .map((t: any) => (
-                      <li key={t.user_id}>
-                        <button
-                          onClick={() => handleStartDM(t.user_id)}
-                          className="w-full flex items-center gap-3 p-2 rounded hover:bg-muted text-left"
-                        >
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={t.avatar_url ?? undefined} />
-                            <AvatarFallback>{initials(t.full_name, t.email)}</AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate">{t.full_name || t.email}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {t.full_name ? t.email : ""}
-                              {t.workspaces ? (t.full_name ? " · " : "") + t.workspaces : ""}
-                            </p>
-                          </div>
-                        </button>
-                      </li>
-                    ))}
-                </ul>
+                (() => {
+                  const tokens = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+                  const filtered = teammates.filter((t: any) => {
+                    if (tokens.length === 0) return true;
+                    const hay = `${t.full_name ?? ""} ${t.email ?? ""} ${t.workspaces ?? ""}`.toLowerCase();
+                    return tokens.every((tk) => hay.includes(tk));
+                  });
+                  if (filtered.length === 0) {
+                    return (
+                      <p className="text-sm text-muted-foreground p-4 text-center">
+                        Nenhum utilizador corresponde a "{search}".
+                      </p>
+                    );
+                  }
+                  return (
+                    <ul className="space-y-1">
+                      {filtered.slice(0, 100).map((t: any) => (
+                        <li key={t.user_id}>
+                          <button
+                            onClick={() => handleStartDM(t.user_id)}
+                            className="w-full flex items-start gap-3 p-2 rounded hover:bg-muted text-left"
+                          >
+                            <Avatar className="h-8 w-8 mt-0.5">
+                              <AvatarImage src={t.avatar_url ?? undefined} />
+                              <AvatarFallback>{initials(t.full_name, t.email)}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium truncate">
+                                {highlight(t.full_name || t.email || "—", tokens)}
+                              </p>
+                              {t.full_name && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {highlight(t.email ?? "", tokens)}
+                                </p>
+                              )}
+                              {t.workspaces && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {String(t.workspaces)
+                                    .split(",")
+                                    .map((w: string) => w.trim())
+                                    .filter(Boolean)
+                                    .map((w: string) => (
+                                      <Badge
+                                        key={w}
+                                        variant="outline"
+                                        className="h-4 px-1.5 text-[9px] font-normal"
+                                      >
+                                        {highlight(w, tokens)}
+                                      </Badge>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                      {filtered.length > 100 && (
+                        <li className="text-[11px] text-muted-foreground text-center py-2">
+                          A mostrar 100 de {filtered.length}. Refine a pesquisa.
+                        </li>
+                      )}
+                    </ul>
+                  );
+                })()
               )}
             </ScrollArea>
           </TabsContent>
+
 
           <TabsContent value="group" className="mt-4 space-y-3">
             <div className="space-y-1.5">
