@@ -72814,6 +72814,51 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_zapi_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          group_id: string
+          id: string
+          is_admin: boolean | null
+          last_synced_at: string
+          metadata_json: Json
+          name: string | null
+          participants_count: number | null
+          picture_url: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          group_id: string
+          id?: string
+          is_admin?: boolean | null
+          last_synced_at?: string
+          metadata_json?: Json
+          name?: string | null
+          participants_count?: number | null
+          picture_url?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          group_id?: string
+          id?: string
+          is_admin?: boolean | null
+          last_synced_at?: string
+          metadata_json?: Json
+          name?: string | null
+          participants_count?: number | null
+          picture_url?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       widget_configurations: {
         Row: {
           allowed_domains: string[] | null

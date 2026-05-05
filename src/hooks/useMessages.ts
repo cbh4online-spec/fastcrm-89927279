@@ -186,20 +186,30 @@ export function useSendMessage() {
         } as Message;
       }
 
-      // For WhatsApp via Evolution QR (not GHL)
+      // For WhatsApp (Z-API primary, supports DMs and groups)
       if (conversation.channel === "whatsapp" && !isGHLConversation) {
+        const isGroup = (channelMeta as any)?.is_group === true;
+        const groupId = (channelMeta as any)?.group_id as string | undefined;
         const recipientPhone =
           (channelMeta?.phone as string) ||
           (lead as any)?.phone ||
-          conversation.external_thread_id ||
+          (!isGroup ? conversation.external_thread_id : "") ||
           "";
 
-        if (!recipientPhone) {
+        if (!isGroup && !recipientPhone) {
           throw new Error("Número de telefone não encontrado para esta conversa");
         }
+        if (isGroup && !groupId) {
+          throw new Error("ID do grupo não encontrado para esta conversa");
+        }
 
-        const { data, error } = await mainClient.functions.invoke("whatsapp-evolution-send", {
-          body: { workspaceId: currentWorkspace.id, phone: recipientPhone, message: content },
+        const { data, error } = await mainClient.functions.invoke("whatsapp-zapi-send", {
+          body: {
+            workspaceId: currentWorkspace.id,
+            conversationId,
+            ...(isGroup ? { groupId } : { phone: recipientPhone }),
+            message: content,
+          },
         });
 
         if (error) {
@@ -221,38 +231,9 @@ export function useSendMessage() {
         }
         if (data?.error) throw new Error(data.error);
 
-        // Persist the outbound message locally
-        const { data: savedMsg, error: saveErr } = await workspaceClient
-          .from("messages")
-          .insert({
-            conversation_id: conversationId,
-            workspace_id: currentWorkspace.id,
-            direction: "outbound" as const,
-            content,
-            attachments: [] as unknown as Record<string, never>[],
-            sender_id: user.id,
-            sent_at: new Date().toISOString(),
-            delivered_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (saveErr) {
-          console.warn("[useSendMessage] WhatsApp msg sent but local save failed:", saveErr.message);
-        }
-
-        // Update conversation preview
-        await workspaceClient
-          .from("conversations")
-          .update({
-            last_message_at: new Date().toISOString(),
-            last_message_preview: content.substring(0, 100),
-            last_message_direction: "outbound",
-          })
-          .eq("id", conversationId);
-
+        // Z-API edge function already persisted the outbound message and updated conversation preview.
         return {
-          id: savedMsg?.id || crypto.randomUUID(),
+          id: data?.externalMessageId || crypto.randomUUID(),
           conversation_id: conversationId,
           workspace_id: currentWorkspace.id,
           direction: "outbound" as MessageDirection,
