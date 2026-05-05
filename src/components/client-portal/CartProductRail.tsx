@@ -13,6 +13,10 @@ interface Props {
   products: CartRecommendationProduct[];
   /** Apenas relevante para variant="kit": desconto agregado a sugerir. */
   kitDiscountPct?: number;
+  /** Apenas relevante para variant="kit": nome do kit (sobrepõe título genérico). */
+  kitName?: string;
+  /** Apenas relevante para variant="kit": descrição opcional. */
+  kitDescription?: string;
 }
 
 const META: Record<Variant, { title: string; icon: typeof Flame; tone: string }> = {
@@ -27,12 +31,13 @@ function imgOf(p: CartRecommendationProduct): string | null {
   return p.images[p.primary_image_index ?? 0] ?? p.images[0] ?? null;
 }
 
-export function CartProductRail({ variant, products, kitDiscountPct = 5 }: Props) {
+export function CartProductRail({ variant, products, kitDiscountPct = 5, kitName, kitDescription }: Props) {
   const { addItem } = useCart();
   if (!products || products.length === 0) return null;
 
   const meta = META[variant];
   const Icon = meta.icon;
+  const title = variant === "kit" && kitName ? kitName : meta.title;
 
   const handleAdd = (p: CartRecommendationProduct) => {
     addItem({
@@ -65,17 +70,22 @@ export function CartProductRail({ variant, products, kitDiscountPct = 5 }: Props
   return (
     <Card className={variant === "kit" ? "border-emerald-500/30 bg-emerald-500/5" : undefined}>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Icon className={`h-4 w-4 ${meta.tone}`} />
-          {meta.title}
-          {variant === "kit" && (
-            <Badge variant="secondary" className="ml-1 bg-emerald-500/15 text-emerald-700 border-0">
-              Sugestão -{kitDiscountPct}%
-            </Badge>
+        <div className="flex-1 min-w-0">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Icon className={`h-4 w-4 ${meta.tone}`} />
+            {title}
+            {variant === "kit" && (
+              <Badge variant="secondary" className="ml-1 bg-emerald-500/15 text-emerald-700 border-0">
+                Sugestão -{kitDiscountPct}%
+              </Badge>
+            )}
+          </CardTitle>
+          {variant === "kit" && kitDescription && (
+            <p className="text-xs text-muted-foreground mt-1 ml-6">{kitDescription}</p>
           )}
-        </CardTitle>
+        </div>
         {variant === "kit" && products.length > 1 && (
-          <Button size="sm" variant="default" className="h-8" onClick={handleAddAll}>
+          <Button size="sm" variant="default" className="h-8 shrink-0" onClick={handleAddAll}>
             <Plus className="h-3.5 w-3.5 mr-1" />
             Adicionar kit
           </Button>
