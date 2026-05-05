@@ -18,6 +18,7 @@ import {
   type AssignmentStrategy,
 } from "@/hooks/useConversationRoutingRules";
 import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
+import { WhatsAppAutomationRecipes } from "./WhatsAppAutomationRecipes";
 
 const INTENT_OPTIONS = ["sales", "support", "question", "follow_up", "complaint", "other"];
 const PRIORITY_OPTIONS = ["high", "medium", "low"];
@@ -170,6 +171,7 @@ export function RoutingRulesTab() {
 
   return (
     <div className="space-y-4">
+      <WhatsAppAutomationRecipes />
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
