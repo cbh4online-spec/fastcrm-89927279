@@ -64,6 +64,15 @@ export function useConversations() {
         .order("last_message_at", { ascending: false });
       if (cErr) throw cErr;
 
+      // Buscar nomes dos workspaces presentes nas conversas
+      const wsIds = Array.from(
+        new Set((convs ?? []).map((c: any) => c.workspace_id).filter(Boolean)),
+      );
+      const { data: wsRows } = wsIds.length
+        ? await supabase.from("workspaces").select("id, name").in("id", wsIds)
+        : { data: [] as { id: string; name: string }[] };
+      const wsMap = new Map((wsRows ?? []).map((w) => [w.id, w.name]));
+
       const { data: allMembers } = await supabase
         .from("dm_members")
         .select("conversation_id, user_id, member_role")
