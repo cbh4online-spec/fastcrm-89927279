@@ -389,6 +389,10 @@ export default function B2BPortalSettingsPage() {
             <B2BPortalBannersManager workspaceId={currentWorkspace?.id} />
           </TabsContent>
 
+          <TabsContent value="checkout" className="space-y-4">
+            <B2BCheckoutManager workspaceId={currentWorkspace?.id} />
+          </TabsContent>
+
           <TabsContent value="emails" className="space-y-4">
             {currentWorkspace?.id && (
               <B2BEmailTemplatesManager workspaceId={currentWorkspace.id} />
