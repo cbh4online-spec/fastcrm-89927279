@@ -10,7 +10,35 @@ import {
   useStatusWhatsAppZapi,
   type ZapiStatus,
 } from "@/hooks/useWhatsAppZapiConnection";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+
+// Z-API Instance ID: alphanumeric, geralmente 30+ chars (ex: 3D1A...)
+const byoSchema = z.object({
+  instanceId: z
+    .string()
+    .trim()
+    .min(1, { message: "Instance ID é obrigatório" })
+    .min(20, { message: "Instance ID parece curto demais (mín. 20 caracteres)" })
+    .max(64, { message: "Instance ID demasiado longo (máx. 64 caracteres)" })
+    .regex(/^[A-Za-z0-9]+$/, { message: "Apenas letras e números, sem espaços" }),
+  instanceToken: z
+    .string()
+    .trim()
+    .min(1, { message: "Instance Token é obrigatório" })
+    .min(20, { message: "Token parece curto demais (mín. 20 caracteres)" })
+    .max(128, { message: "Token demasiado longo (máx. 128 caracteres)" })
+    .regex(/^[A-Za-z0-9]+$/, { message: "Apenas letras e números, sem espaços" }),
+  clientToken: z
+    .string()
+    .trim()
+    .min(1, { message: "Client-Token é obrigatório" })
+    .min(20, { message: "Client-Token parece curto demais (mín. 20 caracteres)" })
+    .max(128, { message: "Client-Token demasiado longo (máx. 128 caracteres)" })
+    .regex(/^[A-Za-z0-9]+$/, { message: "Apenas letras e números, sem espaços" }),
+});
+
+type ByoErrors = Partial<Record<"instanceId" | "instanceToken" | "clientToken", string>>;
 
 interface Props {
   open: boolean;
@@ -26,6 +54,12 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
 
   const [byoMode, setByoMode] = useState(false);
   const [byo, setByo] = useState({ instanceId: "", instanceToken: "", clientToken: "" });
+  const [byoErrors, setByoErrors] = useState<ByoErrors>({});
+  const [byoTouched, setByoTouched] = useState<Record<keyof ByoErrors, boolean>>({
+    instanceId: false,
+    instanceToken: false,
+    clientToken: false,
+  });
   const [requiresByo, setRequiresByo] = useState(false);
 
   const status = (conn?.status as ZapiStatus) || "not_configured";
@@ -52,8 +86,40 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
 
   // Reset state when dialog closes
   useEffect(() => {
-    if (!open) setRequiresByo(false);
+    if (!open) {
+      setRequiresByo(false);
+      setByoErrors({});
+      setByoTouched({ instanceId: false, instanceToken: false, clientToken: false });
+    }
   }, [open]);
+
+  // Validate BYO form (only show errors for touched fields)
+  const validateByo = (values: typeof byo): ByoErrors => {
+    const result = byoSchema.safeParse(values);
+    if (result.success) return {};
+    const errs: ByoErrors = {};
+    for (const issue of result.error.issues) {
+      const key = issue.path[0] as keyof ByoErrors;
+      if (key && !errs[key]) errs[key] = issue.message;
+    }
+    return errs;
+  };
+
+  const allErrors = useMemo(() => validateByo(byo), [byo]);
+  const visibleErrors: ByoErrors = {
+    instanceId: byoTouched.instanceId ? allErrors.instanceId : undefined,
+    instanceToken: byoTouched.instanceToken ? allErrors.instanceToken : undefined,
+    clientToken: byoTouched.clientToken ? allErrors.clientToken : undefined,
+  };
+  const isByoValid = Object.keys(allErrors).length === 0;
+
+  const handleByoChange = (field: keyof typeof byo, value: string) => {
+    setByo((s) => ({ ...s, [field]: value }));
+  };
+
+  const handleByoBlur = (field: keyof ByoErrors) => {
+    setByoTouched((s) => ({ ...s, [field]: true }));
+  };
 
   const handleConnectMaster = () => {
     connect.mutate(undefined, {
@@ -65,8 +131,12 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
       },
     });
   };
+
   const handleConnectByo = () => {
-    if (!byo.instanceId || !byo.instanceToken || !byo.clientToken) return;
+    // Force-touch all fields so any pending errors become visible
+    setByoTouched({ instanceId: true, instanceToken: true, clientToken: true });
+    setByoErrors(allErrors);
+    if (!isByoValid) return;
     connect.mutate(byo);
   };
 
@@ -126,21 +196,60 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
                   <p>Crie uma instância em <a href="https://app.z-api.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">app.z-api.io <ExternalLink className="h-3 w-3" /></a> e copie estes 3 valores do painel da instância.</p>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="instanceId">Instance ID</Label>
-                <Input id="instanceId" value={byo.instanceId} onChange={(e) => setByo((s) => ({ ...s, instanceId: e.target.value }))} placeholder="3D..." />
+                <Input
+                  id="instanceId"
+                  value={byo.instanceId}
+                  onChange={(e) => handleByoChange("instanceId", e.target.value)}
+                  onBlur={() => handleByoBlur("instanceId")}
+                  placeholder="3D..."
+                  maxLength={64}
+                  aria-invalid={!!visibleErrors.instanceId}
+                  aria-describedby={visibleErrors.instanceId ? "instanceId-error" : undefined}
+                  className={visibleErrors.instanceId ? "border-destructive focus-visible:ring-destructive" : undefined}
+                />
+                {visibleErrors.instanceId && (
+                  <p id="instanceId-error" className="text-xs text-destructive">{visibleErrors.instanceId}</p>
+                )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="instanceToken">Instance Token</Label>
-                <Input id="instanceToken" type="password" value={byo.instanceToken} onChange={(e) => setByo((s) => ({ ...s, instanceToken: e.target.value }))} />
+                <Input
+                  id="instanceToken"
+                  type="password"
+                  value={byo.instanceToken}
+                  onChange={(e) => handleByoChange("instanceToken", e.target.value)}
+                  onBlur={() => handleByoBlur("instanceToken")}
+                  maxLength={128}
+                  aria-invalid={!!visibleErrors.instanceToken}
+                  aria-describedby={visibleErrors.instanceToken ? "instanceToken-error" : undefined}
+                  className={visibleErrors.instanceToken ? "border-destructive focus-visible:ring-destructive" : undefined}
+                />
+                {visibleErrors.instanceToken && (
+                  <p id="instanceToken-error" className="text-xs text-destructive">{visibleErrors.instanceToken}</p>
+                )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="clientToken">Client-Token (Account Security Token)</Label>
-                <Input id="clientToken" type="password" value={byo.clientToken} onChange={(e) => setByo((s) => ({ ...s, clientToken: e.target.value }))} />
+                <Input
+                  id="clientToken"
+                  type="password"
+                  value={byo.clientToken}
+                  onChange={(e) => handleByoChange("clientToken", e.target.value)}
+                  onBlur={() => handleByoBlur("clientToken")}
+                  maxLength={128}
+                  aria-invalid={!!visibleErrors.clientToken}
+                  aria-describedby={visibleErrors.clientToken ? "clientToken-error" : undefined}
+                  className={visibleErrors.clientToken ? "border-destructive focus-visible:ring-destructive" : undefined}
+                />
+                {visibleErrors.clientToken && (
+                  <p id="clientToken-error" className="text-xs text-destructive">{visibleErrors.clientToken}</p>
+                )}
               </div>
               <Button
                 onClick={handleConnectByo}
-                disabled={connect.isPending || !byo.instanceId || !byo.instanceToken || !byo.clientToken}
+                disabled={connect.isPending}
                 className="w-full"
               >
                 {connect.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <QrCode className="h-4 w-4 mr-2" />}
