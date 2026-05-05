@@ -54,6 +54,68 @@ const empty = (workspaceId: string, order = 0): Partial<PartnerPortalSlide> => (
   theme: "light",
 });
 
+// Templates rápidos para o painel "Construir com IA" (conteúdo do banner)
+const AI_CONTENT_TEMPLATES: { label: string; kind: PartnerSlideKind; prompt: string }[] = [
+  {
+    label: "Campanha promocional",
+    kind: "campaign",
+    prompt: 'Campanha de [X]% de desconto na linha [nome da linha], válida até [data]. Encomenda mínima de [valor]€. CTA para o catálogo.',
+  },
+  {
+    label: "Formação / Webinar",
+    kind: "training",
+    prompt: 'Masterclass online sobre [tema], com [orador], no dia [data] às [hora]. Duração [X] minutos, gratuito para parceiros. CTA para inscrição.',
+  },
+  {
+    label: "Lançamento de produto",
+    kind: "launch",
+    prompt: 'Lançamento do novo [nome do produto], [breve diferenciador]. Disponível a partir de [data], com condições especiais para parceiros nas primeiras 2 semanas.',
+  },
+  {
+    label: "Conteúdo educativo",
+    kind: "education",
+    prompt: 'Conteúdo educativo sobre [tema clínico/protocolo], explicando [benefício principal] e como integrar nos tratamentos. CTA para guia técnico.',
+  },
+  {
+    label: "Programa de incentivos",
+    kind: "campaign",
+    prompt: 'Programa de incentivos para parceiros: por cada [X]€ em encomendas no mês, [recompensa]. Ativo entre [data início] e [data fim].',
+  },
+  {
+    label: "Reposição de stock",
+    kind: "launch",
+    prompt: 'Reposição de stock do produto/linha [nome], esgotado nas últimas semanas. CTA para encomenda imediata enquanto há disponibilidade.',
+  },
+];
+
+// Templates rápidos para geração de imagem (Nano Banana)
+const AI_IMAGE_TEMPLATES: { label: string; prompt: string }[] = [
+  {
+    label: "Produto em mármore",
+    prompt: "Frascos de óleos vegetais ozonizados em mesa de mármore branco com folhas de eucalipto e pétalas, luz natural suave de janela, fotografia editorial limpa.",
+  },
+  {
+    label: "Cosmética premium",
+    prompt: "Composição premium de cosmética profissional, frascos de vidro âmbar e dourado sobre superfície de pedra natural, fundo desfocado em tons quentes, estilo magazine de luxo.",
+  },
+  {
+    label: "Cenário clínico",
+    prompt: "Ambiente clínico profissional moderno, mãos de esteticista a aplicar produto, iluminação suave e acolhedora, foco em cuidado e bem-estar, sem rostos visíveis.",
+  },
+  {
+    label: "Webinar / Formação",
+    prompt: "Cenário de masterclass online, secretária minimalista com portátil, caderno e chávena de chá, plantas em fundo desfocado, luz dourada, atmosfera profissional e acolhedora.",
+  },
+  {
+    label: "Botânico / natural",
+    prompt: "Composição botânica com folhas verdes frescas, flores delicadas e gotas de óleo essencial em fundo neutro claro, fotografia macro suave e orgânica.",
+  },
+  {
+    label: "Lançamento elegante",
+    prompt: "Embalagem premium de novo produto em destaque sobre pedestal escuro, iluminação cinematográfica direccional, fundo gradiente escuro elegante, estilo hero de campanha.",
+  },
+];
+
 const SAMPLE_BANNERS = (wid: string): Partial<PartnerPortalSlide>[] => [
   {
     workspace_id: wid, kind: "campaign", eyebrow: "Campanha do mês",
@@ -671,11 +733,28 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
                         {aiCost} crédito{aiCost === 1 ? "" : "s"}
                       </Badge>
                     </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {AI_CONTENT_TEMPLATES.map((tpl) => (
+                        <button
+                          key={tpl.label}
+                          type="button"
+                          disabled={aiBusy || isAdmin === false}
+                          onClick={() => {
+                            setAiPrompt(tpl.prompt);
+                            setEditing((prev) => ({ ...prev, kind: tpl.kind }));
+                          }}
+                          className="text-[11px] px-2 py-0.5 rounded-full border border-border bg-background hover:bg-accent hover:border-primary/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={tpl.prompt}
+                        >
+                          {tpl.label}
+                        </button>
+                      ))}
+                    </div>
                     <Textarea
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
                       placeholder='Ex.: "Campanha de 20% para a linha de óleos ozonizados, válida até 31 de maio, encomenda mínima 200€"'
-                      rows={2}
+                      rows={3}
                       maxLength={1500}
                       disabled={aiBusy || isAdmin === false}
                       className="resize-none text-sm"
@@ -799,11 +878,25 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
                         {aiImageCost} crédito{aiImageCost === 1 ? "" : "s"}
                       </Badge>
                     </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {AI_IMAGE_TEMPLATES.map((tpl) => (
+                        <button
+                          key={tpl.label}
+                          type="button"
+                          disabled={aiImageBusy || isAdmin === false}
+                          onClick={() => setAiImagePrompt(tpl.prompt)}
+                          className="text-[11px] px-2 py-0.5 rounded-full border border-border bg-background hover:bg-accent hover:border-primary/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={tpl.prompt}
+                        >
+                          {tpl.label}
+                        </button>
+                      ))}
+                    </div>
                     <Textarea
                       value={aiImagePrompt}
                       onChange={(e) => setAiImagePrompt(e.target.value)}
                       placeholder='Ex.: "Frascos de óleos vegetais ozonizados em mesa de mármore com folhas de eucalipto, luz natural suave"'
-                      rows={2}
+                      rows={3}
                       maxLength={1000}
                       disabled={aiImageBusy || isAdmin === false}
                       className="resize-none text-sm"
