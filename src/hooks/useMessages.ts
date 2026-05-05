@@ -82,6 +82,19 @@ export function useMessages(conversationId: string | undefined) {
           queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace.id] });
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          // delivery / read receipts (✓/✓✓)
+          queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+        }
+      )
       .subscribe();
 
     return () => {
