@@ -186,20 +186,30 @@ export function useSendMessage() {
         } as Message;
       }
 
-      // For WhatsApp via Evolution QR (not GHL)
+      // For WhatsApp (Z-API primary, supports DMs and groups)
       if (conversation.channel === "whatsapp" && !isGHLConversation) {
+        const isGroup = (channelMeta as any)?.is_group === true;
+        const groupId = (channelMeta as any)?.group_id as string | undefined;
         const recipientPhone =
           (channelMeta?.phone as string) ||
           (lead as any)?.phone ||
-          conversation.external_thread_id ||
+          (!isGroup ? conversation.external_thread_id : "") ||
           "";
 
-        if (!recipientPhone) {
+        if (!isGroup && !recipientPhone) {
           throw new Error("Número de telefone não encontrado para esta conversa");
         }
+        if (isGroup && !groupId) {
+          throw new Error("ID do grupo não encontrado para esta conversa");
+        }
 
-        const { data, error } = await mainClient.functions.invoke("whatsapp-evolution-send", {
-          body: { workspaceId: currentWorkspace.id, phone: recipientPhone, message: content },
+        const { data, error } = await mainClient.functions.invoke("whatsapp-zapi-send", {
+          body: {
+            workspaceId: currentWorkspace.id,
+            conversationId,
+            ...(isGroup ? { groupId } : { phone: recipientPhone }),
+            message: content,
+          },
         });
 
         if (error) {
