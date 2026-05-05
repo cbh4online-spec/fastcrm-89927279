@@ -218,7 +218,7 @@ function ConversationRow({
   );
 }
 
-function ConversationThread({ conv }: { conv: ConversationListItem }) {
+function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBack?: () => void }) {
   const { user } = useAuth();
   const { data: messages = [], isLoading } = useMessages(conv.id);
   const sendMsg = useSendMessage();
