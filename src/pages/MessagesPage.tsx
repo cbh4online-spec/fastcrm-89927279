@@ -225,8 +225,15 @@ function ConversationThread({ conv }: { conv: ConversationListItem }) {
   return (
     <>
       <header className="h-14 border-b px-4 flex items-center gap-3 shrink-0">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold truncate">{conv.display_title}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold truncate">{conv.display_title}</p>
+            {conv.workspace_name && (
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal shrink-0">
+                {conv.workspace_name}
+              </Badge>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground truncate">
             {conv.conv_type === "dm" && "Mensagem direta"}
             {conv.conv_type === "group" && `${conv.members.length} membros`}
