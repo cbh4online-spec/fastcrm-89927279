@@ -75,12 +75,26 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     const aiUsedInReply = useRef(false);
     const templateUsedInReply = useRef(false);
 
-    // Canned responses slash-command
+    const { user } = useAuth();
+    const agentName =
+      (user?.user_metadata as any)?.full_name ||
+      (user?.user_metadata as any)?.name ||
+      user?.email?.split("@")[0] ||
+      "";
+
+    // Canned responses / snippets via slash-command
     const { isOpen: cannedOpen, filtered: cannedFiltered, selectedIndex: cannedIndex, handleSelect: handleCannedSelect, handleKeyDown: handleCannedKeyDown } = useCannedShortcut({
       workspaceId: currentWorkspace?.id,
       inputValue: message,
-      onSelect: (content) => {
-        setMessage(content);
+      variableContext: {
+        contactName: leadData?.name,
+        contactEmail: leadData?.email,
+        contactPhone: leadData?.phone,
+        contactCompany: (leadData as any)?.company ?? null,
+        agentName,
+      },
+      onSelect: (expandedContent) => {
+        setMessage(expandedContent);
         textareaRef.current?.focus();
       },
     });
