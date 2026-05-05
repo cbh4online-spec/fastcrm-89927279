@@ -196,21 +196,60 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
                   <p>Crie uma instância em <a href="https://app.z-api.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">app.z-api.io <ExternalLink className="h-3 w-3" /></a> e copie estes 3 valores do painel da instância.</p>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="instanceId">Instance ID</Label>
-                <Input id="instanceId" value={byo.instanceId} onChange={(e) => setByo((s) => ({ ...s, instanceId: e.target.value }))} placeholder="3D..." />
+                <Input
+                  id="instanceId"
+                  value={byo.instanceId}
+                  onChange={(e) => handleByoChange("instanceId", e.target.value)}
+                  onBlur={() => handleByoBlur("instanceId")}
+                  placeholder="3D..."
+                  maxLength={64}
+                  aria-invalid={!!visibleErrors.instanceId}
+                  aria-describedby={visibleErrors.instanceId ? "instanceId-error" : undefined}
+                  className={visibleErrors.instanceId ? "border-destructive focus-visible:ring-destructive" : undefined}
+                />
+                {visibleErrors.instanceId && (
+                  <p id="instanceId-error" className="text-xs text-destructive">{visibleErrors.instanceId}</p>
+                )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="instanceToken">Instance Token</Label>
-                <Input id="instanceToken" type="password" value={byo.instanceToken} onChange={(e) => setByo((s) => ({ ...s, instanceToken: e.target.value }))} />
+                <Input
+                  id="instanceToken"
+                  type="password"
+                  value={byo.instanceToken}
+                  onChange={(e) => handleByoChange("instanceToken", e.target.value)}
+                  onBlur={() => handleByoBlur("instanceToken")}
+                  maxLength={128}
+                  aria-invalid={!!visibleErrors.instanceToken}
+                  aria-describedby={visibleErrors.instanceToken ? "instanceToken-error" : undefined}
+                  className={visibleErrors.instanceToken ? "border-destructive focus-visible:ring-destructive" : undefined}
+                />
+                {visibleErrors.instanceToken && (
+                  <p id="instanceToken-error" className="text-xs text-destructive">{visibleErrors.instanceToken}</p>
+                )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="clientToken">Client-Token (Account Security Token)</Label>
-                <Input id="clientToken" type="password" value={byo.clientToken} onChange={(e) => setByo((s) => ({ ...s, clientToken: e.target.value }))} />
+                <Input
+                  id="clientToken"
+                  type="password"
+                  value={byo.clientToken}
+                  onChange={(e) => handleByoChange("clientToken", e.target.value)}
+                  onBlur={() => handleByoBlur("clientToken")}
+                  maxLength={128}
+                  aria-invalid={!!visibleErrors.clientToken}
+                  aria-describedby={visibleErrors.clientToken ? "clientToken-error" : undefined}
+                  className={visibleErrors.clientToken ? "border-destructive focus-visible:ring-destructive" : undefined}
+                />
+                {visibleErrors.clientToken && (
+                  <p id="clientToken-error" className="text-xs text-destructive">{visibleErrors.clientToken}</p>
+                )}
               </div>
               <Button
                 onClick={handleConnectByo}
-                disabled={connect.isPending || !byo.instanceId || !byo.instanceToken || !byo.clientToken}
+                disabled={connect.isPending}
                 className="w-full"
               >
                 {connect.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <QrCode className="h-4 w-4 mr-2" />}
