@@ -30,7 +30,9 @@ import {
   Clock,
   UserPlus,
   ArrowLeft,
+  MousePointerClick,
 } from "lucide-react";
+import { WhatsAppInteractiveButtonsDialog } from "./WhatsAppInteractiveButtonsDialog";
 import { useCreateLead } from "@/hooks/useLeads";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -78,6 +80,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [showProposalDialog, setShowProposalDialog] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [igWindowExpired, setIgWindowExpired] = useState(false);
+  const [showButtonsDialog, setShowButtonsDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<AIMessageComposerRef>(null);
   const trackedConvId = useRef<string | null>(null);
@@ -290,6 +293,18 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
         </div>
 
         <div className="flex items-center gap-1">
+          {conversation.channel === "whatsapp" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setShowButtonsDialog(true)}
+              title="Enviar mensagem com botões interativos"
+            >
+              <MousePointerClick className="w-4 h-4" />
+              <span className="hidden sm:inline">Botões</span>
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -456,6 +471,14 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
             if (!open) setSelectedOpportunityId(null);
           }}
           opportunityId={selectedOpportunityId}
+        />
+      )}
+
+      {conversation.channel === "whatsapp" && (
+        <WhatsAppInteractiveButtonsDialog
+          open={showButtonsDialog}
+          onOpenChange={setShowButtonsDialog}
+          conversationId={conversationId}
         />
       )}
     </div>
