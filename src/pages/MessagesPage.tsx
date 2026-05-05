@@ -563,9 +563,22 @@ function NewConversationButton({
                       </li>
                     );
                   })}
-                  {dmFiltered.length > 100 && (
+                  {dmFiltered.length > visibleCount && (
+                    <li className="py-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => setVisibleCount((n) => n + 100)}
+                      >
+                        Carregar mais ({Math.min(100, dmFiltered.length - visibleCount)} de {dmFiltered.length - visibleCount} restantes)
+                      </Button>
+                    </li>
+                  )}
+                  {visibleCount > 100 && dmFiltered.length <= visibleCount && (
                     <li className="text-[11px] text-muted-foreground text-center py-2">
-                      A mostrar 100 de {dmFiltered.length}. Refine a pesquisa.
+                      Fim da lista · {dmFiltered.length} utilizadores
                     </li>
                   )}
                 </ul>
