@@ -1,98 +1,176 @@
+# Integração ifthenpay — Workspace Pharliss
+
 ## Diagnóstico
 
-O checkout B2B atual está funcional mas "magro": calcula subtotal + IVA, valida crédito/MOQ e submete encomenda. Falta toda a camada de **otimização de receita** (aumentar ticket médio) e **retenção transacional** (recuperar carrinhos abandonados). O carrinho vive apenas em memória (`useState`) — fecha o browser e perde tudo.
+A ifthenpay é um agregador de pagamentos PT que oferece Multibanco (referência), MB WAY, Payshop, Cartão de Crédito e Pix. A integração assenta em 3 pilares:
 
-## Decisões de produto
+1. **Geração de pedido de pagamento** (server-to-server, com chaves específicas por método).
+2. **Callback anti-phishing** (GET enviado pela ifthenpay quando o pagamento é confirmado).
+3. **Configuração por workspace** (cada workspace pode ter as suas próprias chaves — neste caso, Pharliss).
 
-Implementar 8 técnicas, agrupadas em 3 frentes:
+Ainda não existe nada no FastCRM relacionado com ifthenpay (verifiquei `supabase/functions/` e `src/`). Vamos construir multi-tenant desde o início, para reaproveitar noutros workspaces no futuro.
 
-**A. Aumentar ticket médio (no checkout/carrinho)**
-1. **Quantity breaks (escalonamento)** — descontos por quantidade por SKU/categoria, mostrados inline com "Adiciona +12 unidades e poupas X€".
-2. **Free-shipping bar** — barra de progresso "Faltam 35€ para frete grátis".
-3. **Cross-sell "Compre frequentemente junto"** — sugestões baseadas no histórico de encomendas do parceiro e em produtos da mesma categoria.
-4. **Upsell de variante superior** — quando o cliente escolheu uma variante (ex: 50ml), sugerir 100ml com preço/ml melhor.
-5. **Bundles e kits B2B** — packs definidos por gestor (ex: "Kit lançamento") com desconto automático.
-6. **Cupões/promoções B2B** — códigos por parceiro/tier/campanha com regras (mín. valor, validade, primeira encomenda, etc.).
+## Decisões de produto/UX
 
-**B. Recuperação de carrinhos abandonados**
-7. **Persistência do carrinho no servidor** — `partner_carts` com snapshot por utilizador; sobrevive a sessões, sincroniza entre dispositivos.
-8. **Sequência de recuperação por email** — após X horas de inatividade com itens, enviar 1º lembrete (24h) → 2º com cupão (72h) → 3º "última oportunidade" (7d). Click no email → carrinho restaurado.
-
-**C. Telemetria**
-- Eventos de funnel (`view_catalog`, `add_to_cart`, `view_cart`, `start_checkout`, `complete_order`, `cart_abandoned`, `cart_recovered`) para o gestor B2B medir conversão.
+- **Multi-tenant**: configuração por `workspace_id`, não global. Pharliss será apenas o primeiro a configurar.
+- **Métodos suportados na v1**: Multibanco, MB WAY e Cartão de Crédito (Gateway). Payshop e Pix ficam no schema mas desativados por defeito.
+- **URL de callback**: enviar à ifthenpay um URL no domínio `fastcrm.metodopare.ai` (mais profissional do que o subdomínio Supabase) com `workspace=pharliss` e `key=<anti_phishing_key>` como query params.
+- **Reconciliação**: o callback atualiza diretamente o estado da fatura/encomenda associada via `order_id` (passado como parâmetro `id` no pedido de pagamento).
+- **Auditoria**: cada callback (válido ou rejeitado) é registado em `ifthenpay_callback_logs` para auditoria e debug.
+- **Fallback**: se o callback chegar para uma referência desconhecida, devolve 200 OK na mesma (a ifthenpay reenvia indefinidamente em caso de erro) e regista em log.
 
 ## Estrutura técnica
 
-### Base de dados (migração)
+### Tabelas novas (Supabase, com RLS)
 
-- `partner_quantity_breaks` — `product_id|category_id`, `min_qty`, `discount_pct`, `partner_tier_id?`, `valid_from/until`.
-- `partner_bundles` — `name`, `discount_pct|fixed_amount`, `is_active`, `valid_until` + `partner_bundle_items` (`bundle_id`, `product_id`, `qty`).
-- `partner_coupons` — `code` (UNIQUE), `discount_type` (pct|fixed|free_shipping), `value`, `min_subtotal`, `max_uses`, `uses_count`, `per_partner_limit`, `valid_from/until`, `applicable_partner_tier_id?`, `first_order_only`, `is_active` + `partner_coupon_redemptions` (audit).
-- `partner_shipping_rules` — por workspace: `free_shipping_threshold`, `flat_rate`, `currency`.
-- `partner_carts` — `partner_user_id` (UNIQUE), `partner_account_id`, `items_jsonb`, `applied_coupon_code?`, `last_activity_at`, `recovery_stage` (none|first|second|final|recovered|expired), `recovery_token` (UUID).
-- `partner_order_headers`: adicionar `discount_code`, `discount_amount` (já existe), `shipping_amount` (já existe), `recovered_from_cart_id?`.
-- `partner_order_items`: adicionar `quantity_break_applied_pct`, `bundle_id?`.
-- RPC `compute_partner_cart_totals(cart_jsonb, partner_account_id, coupon_code?)` → devolve `{subtotal, quantity_break_savings, bundle_savings, coupon_savings, shipping, tax, total, applied_rules[]}` para ser SSoT entre carrinho/checkout/encomenda.
-- RPC `get_partner_recommendations(partner_account_id, current_cart_ids[], limit)` → cross-sell baseado em co-ocorrência em encomendas históricas + fallback por categoria.
-- Trigger em `partner_carts` que atualiza `last_activity_at` em qualquer alteração.
+**`ifthenpay_settings`** — uma linha por workspace
+- `id` uuid PK
+- `workspace_id` uuid UNIQUE (FK workspaces)
+- `is_active` boolean default false
+- `mb_entidade` text, `mb_subentidade` text (Multibanco)
+- `mbway_key` text (MB WAY)
+- `cc_key` text (Cartão Crédito Gateway)
+- `payshop_key` text, `pix_key` text (futuros)
+- `anti_phishing_key` text NOT NULL (gerada por nós, mostrada uma vez)
+- `enabled_methods` text[] default `{multibanco,mbway}`
+- `expiry_days` int default 3 (validade da referência MB)
+- `test_mode` boolean default true
+- `created_at`, `updated_at`
 
-### Edge Functions
+RLS: SELECT/INSERT/UPDATE apenas para membros do workspace com role admin. Chaves só visíveis a admins; mascaradas (`****1234`) na UI para outros papéis.
 
-- `partner-cart-recovery` — cron a cada 30 min: encontra carrinhos com itens cujo `last_activity_at` cruzou os limites (24h/72h/7d) e `recovery_stage` é o anterior; usa o sistema de email transacional já configurado, gera URL `/partner/cart?recover={token}`, avança `recovery_stage`. 200 OK + fallback se algo falhar.
-- `partner-coupon-validate` — valida código no carrinho/checkout (regras + limites de uso) e devolve impacto. Validação client + server.
+**`ifthenpay_payments`** — pedido de pagamento criado
+- `id` uuid PK
+- `workspace_id` uuid
+- `order_id` uuid (FK opcional para `orders` ou `invoices`)
+- `reference_type` text (`order` | `invoice` | `subscription`)
+- `reference_id` uuid
+- `method` text (`multibanco` | `mbway` | `cc`)
+- `amount` numeric
+- `currency` text default `EUR`
+- `status` text (`pending` | `paid` | `expired` | `cancelled` | `failed`)
+- `mb_entidade`, `mb_referencia`, `mb_expiry_date` (apenas se Multibanco)
+- `mbway_request_id`, `mbway_phone` (apenas se MB WAY)
+- `cc_request_id`, `cc_payment_url` (apenas se Cartão)
+- `paid_at` timestamptz
+- `metadata` jsonb
+- `created_at`
 
-### Frontend
+RLS: membros do workspace podem ler; INSERT/UPDATE apenas via service_role (edge functions).
 
-- `PartnerCartContext` refatorado: lê/escreve em `partner_carts` via debounce (1s) + estado local optimista; carrega carrinho ao montar; rota `/partner/cart?recover=token` chama RPC para restaurar.
-- Componentes novos:
-  - `FreeShippingBar` (no carrinho e cabeçalho).
-  - `QuantityBreakHint` (inline no card e no item do carrinho).
-  - `CrossSellRail` (carrossel "Compre também" no carrinho e checkout).
-  - `BundleSuggestion` (banner quando o carrinho está perto de completar um bundle).
-  - `CouponInput` (no carrinho com validação live).
-  - `OrderSummaryBreakdown` (subtotal → poupanças → frete → IVA → total, igual no carrinho e checkout).
-- Página `PartnerCheckoutPage`: passa a usar `compute_partner_cart_totals` (mesma fonte do carrinho); mostra todas as poupanças aplicadas; bloqueio se cupão entretanto inválido.
-- Admin (rotas internas, não no portal partner):
-  - `/admin/partner-center/promotions` — gestão de cupões, brackets, bundles, regras de envio.
-  - `/admin/partner-center/abandoned-carts` — lista filtrável, botão "enviar lembrete agora", taxa de recuperação.
+**`ifthenpay_callback_logs`** — auditoria de callbacks
+- `id` uuid PK
+- `workspace_id` uuid (resolvido após validação)
+- `received_at` timestamptz
+- `query_params` jsonb (raw)
+- `headers` jsonb
+- `outcome` text (`accepted` | `rejected_key` | `rejected_unknown_payment` | `error`)
+- `payment_id` uuid (FK ifthenpay_payments, nullable)
+- `error_message` text
 
-### Telemetria
+RLS: SELECT para admins do workspace, INSERT só service_role.
 
-- Tabela `partner_funnel_events` (`workspace_id`, `partner_account_id`, `partner_user_id`, `event_type`, `payload jsonb`, `cart_id?`, `order_id?`).
-- Hook `usePartnerFunnel()` — emite eventos via `INSERT` direto (RLS limita a próprio workspace).
-- Dashboard B2B existente ganha card "Funnel: catálogo → carrinho → checkout → encomenda" e "Carrinhos recuperados / abandonados".
+### Edge Functions novas
+
+**`ifthenpay-create-payment`** (verify_jwt true)
+- Input: `{ workspace_id, reference_type, reference_id, method, amount, customer? }`
+- Valida JWT + pertença ao workspace + método ativo nas settings.
+- Conforme método:
+  - **Multibanco**: chama `https://ifthenpay.com/api/multibanco/reference/init` (JSON com `mbKey`, `orderId`, `amount`, `expiryDays`).
+  - **MB WAY**: chama `https://ifthenpay.com/api/spg/payment/mbway` com `MbWayKey`, `orderId`, `amount`, `mobileNumber`.
+  - **Cartão**: chama `https://ifthenpay.com/api/creditcard/init/{ccKey}` para obter `paymentUrl` e `requestId`.
+- Cria registo em `ifthenpay_payments` com status `pending`.
+- Devolve dados ao frontend (referência+entidade, ou URL de pagamento).
+- Erros: padrão 200 OK + `{ fallback: true, error }` (regra do projeto).
+
+**`ifthenpay-callback`** (verify_jwt false — validação manual via anti-phishing key)
+- URL final: `https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/ifthenpay-callback`
+- A ifthenpay chama com query string: `?key=...&orderId=...&amount=...&requestId=...&payment_datetime=...&workspace=pharliss`
+- Valida `workspace` → carrega `ifthenpay_settings.anti_phishing_key` → compara com `key` recebido.
+- Se key inválida → log `rejected_key` + 200 OK (não revelar detalhes).
+- Se válida → procura `ifthenpay_payments` por `orderId` (que coincide com `payments.id`).
+- Marca como `paid`, atualiza `paid_at`.
+- Atualiza fatura/encomenda associada (`orders.payment_status = 'paid'` ou equivalente em `invoices`).
+- Regista em `activity_logs` (`payment_received` via ifthenpay).
+- Dispara realtime update para a UI.
+- Devolve sempre 200 OK (mesmo em erro interno → log `error` + fallback).
+
+**`ifthenpay-rotate-key`** (verify_jwt true, admin only)
+- Gera nova `anti_phishing_key` e devolve novo URL de callback completo para o admin enviar à ifthenpay.
+
+### UI nova
+
+**`/dashboard/settings/integrations/ifthenpay`** (ou tab dentro de Integrations)
+- Componente `IfthenpaySettingsPage.tsx`
+- Secções:
+  1. **Estado** — Ativo/Inativo, modo Teste/Produção
+  2. **Chaves por método** — campos password, com botão "Mostrar/Copiar" (apenas admin); cada um com link para a doc da ifthenpay sobre onde obter
+  3. **Callback URL** — read-only, com botão "Copiar" e botão "Rodar anti-phishing key"
+  4. **Métodos ativos** — checkboxes (MB, MB WAY, Cartão, Payshop, Pix)
+  5. **Histórico de callbacks** — tabela `ifthenpay_callback_logs` com filtro/ordenação
+  6. **Teste de integração** — botão que cria um pagamento de 0,01€ Multibanco para validar config
+
+**Componente `IfthenpayPaymentSelector.tsx`** (a usar no checkout)
+- Mostra os métodos ativos como cards
+- Ao escolher, chama `ifthenpay-create-payment` e mostra resultado (referência MB, ou redireciona para Cartão, ou envia pedido MB WAY ao telemóvel)
+- Polling opcional ao status (a cada 5s) ou via realtime subscription a `ifthenpay_payments`
+
+### Hooks
+
+- `useIfthenpaySettings(workspaceId)` — get/update via RLS direto.
+- `useIfthenpayPayment(paymentId)` — subscribe realtime ao status.
+- `useCreateIfthenpayPayment()` — mutation para invocar a edge function.
 
 ## Plano de implementação
 
-1. **Migração + RLS** — criar tabelas (`partner_quantity_breaks`, `partner_bundles`, `partner_bundle_items`, `partner_coupons`, `partner_coupon_redemptions`, `partner_shipping_rules`, `partner_carts`, `partner_funnel_events`), adicionar colunas a `partner_order_*`, RLS por `workspace_id` + helper `is_partner_member()`, índices em `last_activity_at` e `recovery_stage`.
-2. **RPCs** — `compute_partner_cart_totals`, `get_partner_recommendations`, `validate_partner_coupon`, `restore_partner_cart_by_token`, `apply_partner_quantity_breaks`. Todas `SECURITY DEFINER` + `search_path=public`.
-3. **Persistência do carrinho** — refator `PartnerCartContext` com sync server-side debounced; restauro por token.
-4. **UI carrinho** — `FreeShippingBar`, `QuantityBreakHint`, `CouponInput`, `OrderSummaryBreakdown`, `CrossSellRail`, `BundleSuggestion`.
-5. **UI checkout** — substituir cálculo manual de subtotal/IVA pela RPC SSoT; mostrar breakdown completo; voltar ao carrinho se cupão inválido.
-6. **Edge function de recuperação** + cron pg_cron a cada 30 min; templates de email (3 fases) usando o sistema transacional já configurado.
-7. **Admin** — páginas de promoções e abandoned carts.
-8. **Telemetria** — emitir eventos em pontos-chave; cards no dashboard B2B.
+### Fase 1 — Infra base (para teres o URL para enviar à ifthenpay)
+1. Migration: criar `ifthenpay_settings`, `ifthenpay_payments`, `ifthenpay_callback_logs` + RLS.
+2. Edge function `ifthenpay-callback` (esqueleto que valida key, faz log, devolve 200 OK).
+3. Página `IfthenpaySettingsPage.tsx` (mínima): permitir ao admin gerar a anti-phishing key e ver o URL de callback completo.
+4. **Resultado**: já tens o URL e key para enviar à ifthenpay → eles começam a configurar a tua conta.
+
+### Fase 2 — Geração de pagamentos
+5. Edge function `ifthenpay-create-payment` (Multibanco + MB WAY).
+6. Componente `IfthenpayPaymentSelector` integrado no checkout existente do Pharliss.
+7. Realtime subscription para atualizar UI quando o callback marcar como pago.
+
+### Fase 3 — Reconciliação completa
+8. Atualizar `orders` / `invoices` automaticamente quando o callback chega.
+9. Disparar email/notificação de pagamento recebido.
+10. Histórico de callbacks na UI + botão de teste 0,01€.
+
+### Fase 4 — Cartão de Crédito + extras
+11. Adicionar método Cartão (redirect flow).
+12. Suporte a reembolsos (API `/refund` da ifthenpay).
+13. Webhook reverso para subscrições recorrentes (se aplicável).
 
 ## Critérios de aceitação
 
-- Adicionar item recalcula em <300 ms o resumo (poupanças, frete, total) com a mesma RPC usada no checkout.
-- Cupão inválido não permite submeter; cupão válido aparece destacado com economia em €.
-- Atingir o threshold de frete grátis remove a linha de envio em tempo real.
-- Quantity break: ao aproximar-se de um patamar, o card mostra "+N un = -X%".
-- Carrinho persiste após F5/troca de browser/login posterior.
-- Email de recuperação chega às 24h/72h/7d se sem atividade; clicar restaura carrinho exato.
-- Admin vê lista de carrinhos abandonados com valor total e tempo desde abandono.
-- Dashboard B2B mostra taxa de conversão por etapa do funnel e taxa de recuperação.
-- RLS impede ver carrinhos/cupões de outros workspaces.
-- Submeter encomenda regista poupanças por linha e cupão aplicado em `partner_order_*`.
+- Admin do Pharliss consegue configurar todas as chaves e gerar/rotar a anti-phishing key.
+- URL de callback funciona: testes simulados com `key` correta → 200 OK + payment marcado pago; com `key` errada → 200 OK + log `rejected_key`, sem alterações.
+- Cliente final no checkout vê os métodos ativos, escolhe Multibanco → recebe Entidade+Referência+Valor; escolhe MB WAY → recebe pedido no telemóvel; escolhe Cartão → redireciona para gateway.
+- Após pagamento real (modo teste ifthenpay), a fatura passa a "Paga" automaticamente em <10s.
+- Todos os callbacks ficam em `ifthenpay_callback_logs` (mesmo os rejeitados).
+- RLS impede que admin de outro workspace veja chaves do Pharliss.
+- Nenhum segredo aparece em `console.log`.
 
 ## Riscos e pontos por validar
 
-- **Empilhamento de descontos**: cupão + quantity break + tier — definir ordem (proposta: tier → quantity break → bundle → cupão sobre o restante). Confirmar regra de negócio.
-- **Limites de cupão por parceiro/global**: race conditions em `uses_count` — usar `UPDATE ... RETURNING` atómico.
-- **Frequência de recuperação**: 24h/72h/7d são razoáveis para B2B (ciclo mais lento que B2C), mas confirmar com o gestor; deixar configurável em `partner_shipping_rules` ou nova `partner_recovery_config`.
-- **Conteúdo dos emails**: precisamos do tom (formal/casual) e se o 2º email deve incluir cupão automático ou só após pedido humano.
-- **Cross-sell**: começar só com co-ocorrência (encomendas do próprio parceiro) — escalar para ML/embeddings só se houver volume.
-- **GDPR**: tokens de recuperação são URLs auth-bypass — TTL curto (7 dias) e invalidação após uso.
+- **Doc oficial ifthenpay** — confirmar URLs exatos das APIs (variam ligeiramente por método). Pode ser preciso afinar payloads na Fase 2.
+- **Order ID format** — a ifthenpay aceita até 15 chars no `orderId` para Multibanco. Vamos usar um short-hash do UUID, não o UUID completo.
+- **Modelo de fatura/encomenda no Pharliss** — preciso confirmar se ligamos a `orders`, `invoices` ou ambos. Atualmente o plano usa `reference_type` polimórfico para suportar os dois.
+- **Domínio do callback** — recomendo `https://fastcrm.metodopare.ai/functions/v1/ifthenpay-callback` mas requer rewrite/proxy no frontend host. Alternativa imediata: usar o URL Supabase nativo (`eumnfkccyvlyoyjchiwe.supabase.co`).
+- **Idempotência** — a ifthenpay pode reenviar callbacks; o handler tem de ser idempotente (já previsto: se `status='paid'`, ignora silenciosamente mas regista log).
+- **Modo de teste** — a ifthenpay disponibiliza chaves de sandbox. Convém arrancarmos em `test_mode=true` até validares end-to-end.
 
-Confirmas o plano (em particular a ordem de descontos e os intervalos 24h/72h/7d) para eu avançar?
+## URL final a enviar à ifthenpay (após Fase 1)
+
+```
+https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/ifthenpay-callback?workspace=pharliss&key=<ANTI_PHISHING_KEY_GERADA>
+```
+
+(Ou na variante com domínio próprio, se ativarmos rewrite em `fastcrm.metodopare.ai`.)
+
+---
+
+Aprovas para arrancar pela **Fase 1** (para conseguires enviar já o URL à ifthenpay enquanto eles configuram do lado deles)?

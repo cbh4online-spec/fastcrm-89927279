@@ -34270,6 +34270,179 @@ export type Database = {
           },
         ]
       }
+      ifthenpay_callback_logs: {
+        Row: {
+          error_message: string | null
+          id: string
+          outcome: string
+          payment_id: string | null
+          query_params: Json
+          received_at: string
+          request_ip: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          outcome: string
+          payment_id?: string | null
+          query_params?: Json
+          received_at?: string
+          request_ip?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          outcome?: string
+          payment_id?: string | null
+          query_params?: Json
+          received_at?: string
+          request_ip?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ifthenpay_callback_logs_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "ifthenpay_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ifthenpay_payments: {
+        Row: {
+          amount: number
+          cc_payment_url: string | null
+          cc_request_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          ifthenpay_order_id: string
+          mb_entidade: string | null
+          mb_expiry_date: string | null
+          mb_referencia: string | null
+          mbway_phone: string | null
+          mbway_request_id: string | null
+          metadata: Json
+          method: string
+          paid_amount: number | null
+          paid_at: string | null
+          payshop_reference: string | null
+          reference_id: string | null
+          reference_type: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          cc_payment_url?: string | null
+          cc_request_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          ifthenpay_order_id: string
+          mb_entidade?: string | null
+          mb_expiry_date?: string | null
+          mb_referencia?: string | null
+          mbway_phone?: string | null
+          mbway_request_id?: string | null
+          metadata?: Json
+          method: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          payshop_reference?: string | null
+          reference_id?: string | null
+          reference_type: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          cc_payment_url?: string | null
+          cc_request_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          ifthenpay_order_id?: string
+          mb_entidade?: string | null
+          mb_expiry_date?: string | null
+          mb_referencia?: string | null
+          mbway_phone?: string | null
+          mbway_request_id?: string | null
+          metadata?: Json
+          method?: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          payshop_reference?: string | null
+          reference_id?: string | null
+          reference_type?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      ifthenpay_settings: {
+        Row: {
+          anti_phishing_key: string
+          cc_key: string | null
+          created_at: string
+          enabled_methods: string[]
+          expiry_days: number
+          id: string
+          is_active: boolean
+          mb_entidade: string | null
+          mb_key: string | null
+          mb_subentidade: string | null
+          mbway_key: string | null
+          payshop_key: string | null
+          pix_key: string | null
+          test_mode: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          anti_phishing_key?: string
+          cc_key?: string | null
+          created_at?: string
+          enabled_methods?: string[]
+          expiry_days?: number
+          id?: string
+          is_active?: boolean
+          mb_entidade?: string | null
+          mb_key?: string | null
+          mb_subentidade?: string | null
+          mbway_key?: string | null
+          payshop_key?: string | null
+          pix_key?: string | null
+          test_mode?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          anti_phishing_key?: string
+          cc_key?: string | null
+          created_at?: string
+          enabled_methods?: string[]
+          expiry_days?: number
+          id?: string
+          is_active?: boolean
+          mb_entidade?: string | null
+          mb_key?: string | null
+          mb_subentidade?: string | null
+          mbway_key?: string | null
+          payshop_key?: string | null
+          pix_key?: string | null
+          test_mode?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       ig_ai_media_insights: {
         Row: {
           analyzed_at: string | null
@@ -77172,6 +77345,10 @@ export type Database = {
             Args: { _roles: string[]; _user_id: string; _workspace_id: string }
             Returns: boolean
           }
+      ifthenpay_resolve_workspace_by_slug: {
+        Args: { p_slug: string }
+        Returns: string
+      }
       increment_agent_completion: {
         Args: { p_agent_id: string }
         Returns: undefined
