@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { SendProductByWhatsAppButton } from "@/components/whatsapp-pro/SendProductByWhatsAppButton";
+import { WhatsAppProductSharesSection } from "@/components/whatsapp-pro/WhatsAppProductSharesSection";
 import {
   Dialog,
   DialogContent,
@@ -773,8 +774,9 @@ export function ProductDetailDialog({
                     <ProductFinancialSection product={product} />
                   </TabsContent>
 
-                  <TabsContent value="usage" className="mt-4">
+                  <TabsContent value="usage" className="mt-4 space-y-4">
                     <ProductUsageHistory productId={productId} currency={product.currency} />
+                    <WhatsAppProductSharesSection productId={product.id} />
                   </TabsContent>
 
                   <TabsContent value="images" className="mt-4">

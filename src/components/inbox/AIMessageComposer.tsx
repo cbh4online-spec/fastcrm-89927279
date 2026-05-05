@@ -38,6 +38,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Settings2 } from "lucide-react";
 import { VoiceNoteRecorder } from "./VoiceNoteRecorder";
+import { ConversationSendProductButton } from "./ConversationSendProductButton";
 
 interface AIMessageComposerProps {
   conversationId: string;
@@ -542,6 +543,11 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
           )}
           <div className="flex flex-col gap-1 items-stretch">
             <div className="flex items-center gap-1">
+              <ConversationSendProductButton
+                conversationId={conversationId}
+                channel={channel}
+                disabled={disabled || isSending}
+              />
               <VoiceNoteRecorder
                 conversationId={conversationId}
                 channel={channel}
