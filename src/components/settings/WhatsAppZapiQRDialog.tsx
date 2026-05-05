@@ -98,6 +98,7 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
       setRequiresByo(false);
       setByoErrors({});
       setByoTouched({ instanceId: false, instanceToken: false, clientToken: false });
+      setByoSubmitted(false);
     }
   }, [open]);
 
