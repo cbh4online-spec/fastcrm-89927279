@@ -34,10 +34,10 @@ import { useContacts } from "@/hooks/useContacts";
 import { useLeads } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { QuickGHLChannelDialog, GHLChannel } from "./QuickGHLChannelDialog";
-import { QuickEvolutionWhatsAppDialog } from "./QuickEvolutionWhatsAppDialog";
+import { QuickWhatsAppZapiDialog } from "./QuickWhatsAppZapiDialog";
 import { QuickInstagramDialog } from "./QuickInstagramDialog";
 import { QuickTwilioSMSDialog } from "./QuickTwilioSMSDialog";
-import { useWhatsAppQRConnection } from "@/hooks/useWhatsAppQRConnection";
+import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
 
 interface RecipientSuggestion {
   id: string;
