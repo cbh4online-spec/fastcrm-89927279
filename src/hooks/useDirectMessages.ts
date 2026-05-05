@@ -38,6 +38,7 @@ export interface ConversationListItem extends DMConversation {
   last_message: DMMessage | null;
   unread_count: number;
   display_title: string;
+  workspace_name: string | null;
 }
 
 /* List my conversations with members + last message + unread count */
@@ -62,6 +63,15 @@ export function useConversations() {
         .in("id", convIds)
         .order("last_message_at", { ascending: false });
       if (cErr) throw cErr;
+
+      // Buscar nomes dos workspaces presentes nas conversas
+      const wsIds = Array.from(
+        new Set((convs ?? []).map((c: any) => c.workspace_id).filter(Boolean)),
+      );
+      const { data: wsRows } = wsIds.length
+        ? await supabase.from("workspaces").select("id, name").in("id", wsIds)
+        : { data: [] as { id: string; name: string }[] };
+      const wsMap = new Map((wsRows ?? []).map((w) => [w.id, w.name]));
 
       const { data: allMembers } = await supabase
         .from("dm_members")
@@ -122,7 +132,14 @@ export function useConversations() {
           display_title = "Grupo sem nome";
         }
 
-        return { ...c, members, last_message: last, unread_count: unread, display_title };
+        return {
+          ...c,
+          members,
+          last_message: last,
+          unread_count: unread,
+          display_title,
+          workspace_name: wsMap.get(c.workspace_id) ?? null,
+        };
       });
     },
   });
