@@ -170,6 +170,11 @@ function ConversationRow({
               </span>
             )}
           </div>
+          {conv.workspace_name && (
+            <Badge variant="outline" className="mt-0.5 h-4 px-1.5 text-[9px] font-normal text-muted-foreground border-muted-foreground/20">
+              {conv.workspace_name}
+            </Badge>
+          )}
           <div className="flex items-center justify-between gap-2 mt-0.5">
             <p className="text-xs text-muted-foreground truncate">
               {conv.last_message?.body || "Sem mensagens"}
