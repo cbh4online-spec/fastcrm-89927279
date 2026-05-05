@@ -34,7 +34,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Plus, Send, Megaphone, Users, MessageCircle, Loader2 } from "lucide-react";
+import { Plus, Send, Megaphone, Users, MessageCircle, Loader2, ArrowLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
@@ -90,9 +90,15 @@ export default function MessagesPage() {
         <title>Mensagens · FastCRM</title>
         <meta name="description" content="Mensagens diretas entre membros do workspace." />
       </Helmet>
-      <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden border-t">
-        {/* Sidebar */}
-        <aside className="w-72 border-r bg-muted/20 flex flex-col">
+      <div className="flex h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-8rem)] min-h-0 overflow-hidden border-t">
+        {/* Sidebar — full width em mobile quando não há conversa seleccionada */}
+        <aside
+          className={cn(
+            "border-r bg-muted/20 flex-col",
+            "w-full md:w-72",
+            selected ? "hidden md:flex" : "flex",
+          )}
+        >
           <div className="p-3 border-b flex items-center justify-between">
             <h2 className="text-sm font-semibold">Mensagens</h2>
             <NewConversationButton workspaceId={currentWorkspace?.id ?? null} isSuperAdmin={isSuperAdmin} />
@@ -122,10 +128,15 @@ export default function MessagesPage() {
           </ScrollArea>
         </aside>
 
-        {/* Thread */}
-        <section className="flex-1 flex flex-col bg-background min-w-0">
+        {/* Thread — full width em mobile quando há conversa seleccionada */}
+        <section
+          className={cn(
+            "flex-1 flex-col bg-background min-w-0 min-h-0",
+            selected ? "flex" : "hidden md:flex",
+          )}
+        >
           {selected ? (
-            <ConversationThread conv={selected} />
+            <ConversationThread conv={selected} onBack={() => setSelected(null)} />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-muted-foreground">
               <MessageCircle className="h-12 w-12 mb-3 opacity-40" />
@@ -207,7 +218,7 @@ function ConversationRow({
   );
 }
 
-function ConversationThread({ conv }: { conv: ConversationListItem }) {
+function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBack?: () => void }) {
   const { user } = useAuth();
   const { data: messages = [], isLoading } = useMessages(conv.id);
   const sendMsg = useSendMessage();
@@ -242,7 +253,18 @@ function ConversationThread({ conv }: { conv: ConversationListItem }) {
 
   return (
     <>
-      <header className="h-14 border-b px-4 flex items-center gap-3 shrink-0">
+      <header className="h-14 border-b px-2 md:px-4 flex items-center gap-2 shrink-0">
+        {onBack && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-8 w-8 shrink-0"
+            onClick={onBack}
+            aria-label="Voltar"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold truncate">{conv.display_title}</p>
@@ -307,7 +329,7 @@ function ConversationThread({ conv }: { conv: ConversationListItem }) {
         </div>
       </ScrollArea>
 
-      <div className="border-t p-3 shrink-0">
+      <div className="border-t p-3 shrink-0 bg-background pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {canSend ? (
           <div className="flex items-end gap-2">
             <Textarea
