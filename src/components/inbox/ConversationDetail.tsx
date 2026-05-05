@@ -293,6 +293,18 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
         </div>
 
         <div className="flex items-center gap-1">
+          {conversation.channel === "whatsapp" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setShowButtonsDialog(true)}
+              title="Enviar mensagem com botões interativos"
+            >
+              <MousePointerClick className="w-4 h-4" />
+              <span className="hidden sm:inline">Botões</span>
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
