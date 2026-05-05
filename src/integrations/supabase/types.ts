@@ -7138,12 +7138,18 @@ export type Database = {
           accept_files: boolean
           accept_images: boolean
           accept_voice: boolean
+          after_hours_only: boolean
           auto_reactivate: boolean
           channel: string | null
           config_scope: string
           cooldown_after_limit: number | null
           created_at: string
           created_by: string | null
+          handoff_assign_to_user_id: string | null
+          handoff_intent_threshold: number
+          handoff_intents: string[]
+          handoff_notification_message: string | null
+          handoff_on_buying_intent: boolean
           id: string
           image_analysis_enabled: boolean | null
           is_active: boolean
@@ -7172,12 +7178,18 @@ export type Database = {
           accept_files?: boolean
           accept_images?: boolean
           accept_voice?: boolean
+          after_hours_only?: boolean
           auto_reactivate?: boolean
           channel?: string | null
           config_scope?: string
           cooldown_after_limit?: number | null
           created_at?: string
           created_by?: string | null
+          handoff_assign_to_user_id?: string | null
+          handoff_intent_threshold?: number
+          handoff_intents?: string[]
+          handoff_notification_message?: string | null
+          handoff_on_buying_intent?: boolean
           id?: string
           image_analysis_enabled?: boolean | null
           is_active?: boolean
@@ -7206,12 +7218,18 @@ export type Database = {
           accept_files?: boolean
           accept_images?: boolean
           accept_voice?: boolean
+          after_hours_only?: boolean
           auto_reactivate?: boolean
           channel?: string | null
           config_scope?: string
           cooldown_after_limit?: number | null
           created_at?: string
           created_by?: string | null
+          handoff_assign_to_user_id?: string | null
+          handoff_intent_threshold?: number
+          handoff_intents?: string[]
+          handoff_notification_message?: string | null
+          handoff_on_buying_intent?: boolean
           id?: string
           image_analysis_enabled?: boolean | null
           is_active?: boolean
@@ -22524,12 +22542,15 @@ export type Database = {
           conversation_status_simplified: string | null
           created_at: string
           external_thread_id: string | null
+          handoff_at: string | null
+          handoff_reason: string | null
           id: string
           last_message_at: string | null
           last_message_direction: string | null
           last_message_preview: string | null
           lead_id: string | null
           potential_value_estimate: number | null
+          requires_human: boolean
           sla_deadline: string | null
           status: string
           tags_assigned_at: string | null
@@ -22559,12 +22580,15 @@ export type Database = {
           conversation_status_simplified?: string | null
           created_at?: string
           external_thread_id?: string | null
+          handoff_at?: string | null
+          handoff_reason?: string | null
           id?: string
           last_message_at?: string | null
           last_message_direction?: string | null
           last_message_preview?: string | null
           lead_id?: string | null
           potential_value_estimate?: number | null
+          requires_human?: boolean
           sla_deadline?: string | null
           status?: string
           tags_assigned_at?: string | null
@@ -22594,12 +22618,15 @@ export type Database = {
           conversation_status_simplified?: string | null
           created_at?: string
           external_thread_id?: string | null
+          handoff_at?: string | null
+          handoff_reason?: string | null
           id?: string
           last_message_at?: string | null
           last_message_direction?: string | null
           last_message_preview?: string | null
           lead_id?: string | null
           potential_value_estimate?: number | null
+          requires_human?: boolean
           sla_deadline?: string | null
           status?: string
           tags_assigned_at?: string | null
@@ -77578,12 +77605,18 @@ export type Database = {
           accept_files: boolean
           accept_images: boolean
           accept_voice: boolean
+          after_hours_only: boolean
           auto_reactivate: boolean
           channel: string | null
           config_scope: string
           cooldown_after_limit: number | null
           created_at: string
           created_by: string | null
+          handoff_assign_to_user_id: string | null
+          handoff_intent_threshold: number
+          handoff_intents: string[]
+          handoff_notification_message: string | null
+          handoff_on_buying_intent: boolean
           id: string
           image_analysis_enabled: boolean | null
           is_active: boolean
