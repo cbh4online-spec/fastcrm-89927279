@@ -86,8 +86,40 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
 
   // Reset state when dialog closes
   useEffect(() => {
-    if (!open) setRequiresByo(false);
+    if (!open) {
+      setRequiresByo(false);
+      setByoErrors({});
+      setByoTouched({ instanceId: false, instanceToken: false, clientToken: false });
+    }
   }, [open]);
+
+  // Validate BYO form (only show errors for touched fields)
+  const validateByo = (values: typeof byo): ByoErrors => {
+    const result = byoSchema.safeParse(values);
+    if (result.success) return {};
+    const errs: ByoErrors = {};
+    for (const issue of result.error.issues) {
+      const key = issue.path[0] as keyof ByoErrors;
+      if (key && !errs[key]) errs[key] = issue.message;
+    }
+    return errs;
+  };
+
+  const allErrors = useMemo(() => validateByo(byo), [byo]);
+  const visibleErrors: ByoErrors = {
+    instanceId: byoTouched.instanceId ? allErrors.instanceId : undefined,
+    instanceToken: byoTouched.instanceToken ? allErrors.instanceToken : undefined,
+    clientToken: byoTouched.clientToken ? allErrors.clientToken : undefined,
+  };
+  const isByoValid = Object.keys(allErrors).length === 0;
+
+  const handleByoChange = (field: keyof typeof byo, value: string) => {
+    setByo((s) => ({ ...s, [field]: value }));
+  };
+
+  const handleByoBlur = (field: keyof ByoErrors) => {
+    setByoTouched((s) => ({ ...s, [field]: true }));
+  };
 
   const handleConnectMaster = () => {
     connect.mutate(undefined, {
@@ -99,8 +131,12 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
       },
     });
   };
+
   const handleConnectByo = () => {
-    if (!byo.instanceId || !byo.instanceToken || !byo.clientToken) return;
+    // Force-touch all fields so any pending errors become visible
+    setByoTouched({ instanceId: true, instanceToken: true, clientToken: true });
+    setByoErrors(allErrors);
+    if (!isByoValid) return;
     connect.mutate(byo);
   };
 
