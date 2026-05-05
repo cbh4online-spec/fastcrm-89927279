@@ -24762,6 +24762,156 @@ export type Database = {
           },
         ]
       }
+      dm_conversations: {
+        Row: {
+          conv_type: Database["public"]["Enums"]["dm_conversation_type"]
+          created_at: string
+          created_by: string
+          id: string
+          last_message_at: string
+          title: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          conv_type?: Database["public"]["Enums"]["dm_conversation_type"]
+          created_at?: string
+          created_by: string
+          id?: string
+          last_message_at?: string
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          conv_type?: Database["public"]["Enums"]["dm_conversation_type"]
+          created_at?: string
+          created_by?: string
+          id?: string
+          last_message_at?: string
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "dm_conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_members: {
+        Row: {
+          conversation_id: string
+          id: string
+          joined_at: string
+          last_read_at: string
+          member_role: string
+          muted: boolean
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string
+          member_role?: string
+          muted?: boolean
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string
+          member_role?: string
+          muted?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "dm_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "dm_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_receipts: {
+        Row: {
+          message_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          message_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          message_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_receipts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_extraction_templates: {
         Row: {
           avg_confidence: number | null
@@ -70970,6 +71120,27 @@ export type Database = {
           },
         ]
       }
+      user_presence: {
+        Row: {
+          last_seen_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_seen_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_seen_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_progression: {
         Row: {
           badges_earned: number
@@ -77196,6 +77367,26 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dm_add_member: {
+        Args: { _conv_id: string; _user_id: string }
+        Returns: undefined
+      }
+      dm_create_broadcast: {
+        Args: { _body: string; _title: string }
+        Returns: string
+      }
+      dm_create_group: {
+        Args: { _member_ids: string[]; _title: string; _workspace_id: string }
+        Returns: string
+      }
+      dm_is_member: {
+        Args: { _conv_id: string; _user_id: string }
+        Returns: boolean
+      }
+      dm_leave: { Args: { _conv_id: string }; Returns: undefined }
+      dm_mark_read: { Args: { _conv_id: string }; Returns: undefined }
+      dm_start: { Args: { _other_user: string }; Returns: string }
+      dm_unread_count: { Args: never; Returns: number }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -78460,6 +78651,7 @@ export type Database = {
       coupon_type: "public" | "private" | "single_use" | "multi_use" | "auto"
       crm_entity_type: "contacts" | "opportunities"
       crm_view_mode: "table" | "board"
+      dm_conversation_type: "dm" | "group" | "broadcast"
       execution_status: "pending" | "running" | "completed" | "failed"
       feed_type: "workspace" | "team" | "user" | "client"
       flow_condition_operator:
@@ -79039,6 +79231,7 @@ export const Constants = {
       coupon_type: ["public", "private", "single_use", "multi_use", "auto"],
       crm_entity_type: ["contacts", "opportunities"],
       crm_view_mode: ["table", "board"],
+      dm_conversation_type: ["dm", "group", "broadcast"],
       execution_status: ["pending", "running", "completed", "failed"],
       feed_type: ["workspace", "team", "user", "client"],
       flow_condition_operator: [
