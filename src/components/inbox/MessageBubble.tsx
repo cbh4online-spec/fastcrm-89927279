@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { MessageDeliveryStatus, getDeliveryStatus } from "./MessageDeliveryStatus";
 import { ResponseInfoSheet } from "./ResponseInfoSheet";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
+import { WhatsAppProductMessageCard } from "@/components/whatsapp-pro/WhatsAppProductMessageCard";
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -18,6 +19,9 @@ interface MessageBubbleProps {
     sent_at?: string | null;
     status?: string;
     channel_metadata?: Record<string, any>;
+    message_type?: string | null;
+    product_id?: string | null;
+    metadata?: Record<string, any> | null;
   };
   senderName?: string;
   senderAvatar?: string;
@@ -120,8 +124,16 @@ export function MessageBubble({
             "bg-card border rounded-2xl rounded-tr-sm p-3",
             isFailed ? "border-destructive/50 bg-destructive/5" : "border-border"
           )}>
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
-            
+            {message.message_type === "product" && message.product_id ? (
+              <WhatsAppProductMessageCard
+                productId={message.product_id}
+                caption={message.content}
+                metadata={message.metadata ?? undefined}
+              />
+            ) : (
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
+            )}
+
             {/* Attachments */}
             {attachments && attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border">
@@ -184,8 +196,16 @@ export function MessageBubble({
         
         {/* Bubble */}
         <div className="bg-muted rounded-2xl rounded-tl-sm p-3 max-w-[85%]">
-          <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
-          
+          {message.message_type === "product" && message.product_id ? (
+            <WhatsAppProductMessageCard
+              productId={message.product_id}
+              caption={message.content}
+              metadata={message.metadata ?? undefined}
+            />
+          ) : (
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
+          )}
+
           {/* Attachments */}
           {attachments && attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/50">
