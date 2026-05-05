@@ -59,6 +59,13 @@ export async function triggerWhatsAppAutopilot(
       timezone: agent.timezone || "Europe/Lisbon",
       out_of_hours_message: agent.out_of_hours_message || null,
       typing_indicator: agent.typing_indicator ?? true,
+      // Novos campos (defaults seguros — ai_agents ainda não os tem)
+      after_hours_only: false,
+      handoff_on_buying_intent: false,
+      handoff_intent_threshold: 0.75,
+      handoff_intents: ["sales"],
+      handoff_notification_message: null,
+      handoff_assign_to_user_id: null,
       config_scope: "channel",
       source: "ai_agent"
     };
