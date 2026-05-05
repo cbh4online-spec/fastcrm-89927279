@@ -511,10 +511,7 @@ function NewConversationButton({
               )}
             </ScrollArea>
           </TabsContent>
-                </ul>
-              )}
-            </ScrollArea>
-          </TabsContent>
+
 
           <TabsContent value="group" className="mt-4 space-y-3">
             <div className="space-y-1.5">
