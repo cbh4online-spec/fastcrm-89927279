@@ -35946,6 +35946,51 @@ export type Database = {
           },
         ]
       }
+      inbox_snippets: {
+        Row: {
+          content: string
+          created_at: string
+          description: string | null
+          id: string
+          is_personal: boolean
+          last_used_at: string | null
+          shortcut: string
+          title: string
+          updated_at: string
+          usage_count: number
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_personal?: boolean
+          last_used_at?: string | null
+          shortcut: string
+          title: string
+          updated_at?: string
+          usage_count?: number
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_personal?: boolean
+          last_used_at?: string | null
+          shortcut?: string
+          title?: string
+          updated_at?: string
+          usage_count?: number
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       instagram_connections: {
         Row: {
           access_token: string

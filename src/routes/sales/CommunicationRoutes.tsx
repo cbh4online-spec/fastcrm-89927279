@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { Route, Navigate } from "react-router-dom";
 
 const Inbox = lazy(() => import("@/pages/Inbox"));
+const InboxSnippets = lazy(() => import("@/pages/InboxSnippets"));
 const Groups = lazy(() => import("@/pages/Groups"));
 const TelegramPage = lazy(() => import("@/pages/TelegramPage"));
 const CommunicationTemplates = lazy(() => import("@/pages/CommunicationTemplates"));
@@ -13,6 +14,7 @@ export function CommunicationRoutes() {
   return (
     <>
       <Route path="/dashboard/inbox" element={<Inbox />} />
+      <Route path="/dashboard/inbox/snippets" element={<InboxSnippets />} />
       <Route path="/dashboard/whatsapp" element={<Navigate to="/dashboard/inbox?channel=whatsapp" replace />} />
       <Route path="/dashboard/groups" element={<Groups />} />
       <Route path="/dashboard/telegram" element={<TelegramPage />} />

@@ -34,6 +34,9 @@ import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTem
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useCannedShortcut } from "@/hooks/useCannedShortcut";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
+import { Settings2 } from "lucide-react";
 
 interface AIMessageComposerProps {
   conversationId: string;
@@ -72,12 +75,26 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     const aiUsedInReply = useRef(false);
     const templateUsedInReply = useRef(false);
 
-    // Canned responses slash-command
+    const { user } = useAuth();
+    const agentName =
+      (user?.user_metadata as any)?.full_name ||
+      (user?.user_metadata as any)?.name ||
+      user?.email?.split("@")[0] ||
+      "";
+
+    // Canned responses / snippets via slash-command
     const { isOpen: cannedOpen, filtered: cannedFiltered, selectedIndex: cannedIndex, handleSelect: handleCannedSelect, handleKeyDown: handleCannedKeyDown } = useCannedShortcut({
       workspaceId: currentWorkspace?.id,
       inputValue: message,
-      onSelect: (content) => {
-        setMessage(content);
+      variableContext: {
+        contactName: leadData?.name,
+        contactEmail: leadData?.email,
+        contactPhone: leadData?.phone,
+        contactCompany: (leadData as any)?.company ?? null,
+        agentName,
+      },
+      onSelect: (expandedContent) => {
+        setMessage(expandedContent);
         textareaRef.current?.focus();
       },
     });
@@ -472,28 +489,53 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
             disabled={disabled}
           />
 
-          {/* Canned responses dropdown */}
-          {cannedOpen && cannedFiltered.length > 0 && (
-            <div className="absolute bottom-full left-0 right-12 mb-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50">
-              {cannedFiltered.map((r, i) => (
-                <button
-                  key={r.id}
-                  className={cn(
-                    "w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted/50 transition-colors",
-                    i === cannedIndex && "bg-muted/50"
-                  )}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleCannedSelect(r);
-                  }}
+          {/* Snippets / canned responses dropdown */}
+          {cannedOpen && (
+            <div className="absolute bottom-full left-0 right-12 mb-1 bg-popover border rounded-lg shadow-lg max-h-64 overflow-y-auto z-50">
+              {cannedFiltered.length > 0 ? (
+                cannedFiltered.map((r, i) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm flex items-start gap-2 hover:bg-muted/50 transition-colors",
+                      i === cannedIndex && "bg-muted/50"
+                    )}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleCannedSelect(r);
+                    }}
+                  >
+                    <Badge variant="outline" className="font-mono text-[9px] shrink-0 mt-0.5">/{r.shortcut}</Badge>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate font-medium">{r.title}</span>
+                        {r.is_personal && (
+                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">pessoal</Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {r.content.replace(/<[^>]+>/g, "").slice(0, 80)}
+                      </p>
+                    </div>
+                    <Zap className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                  Nenhum snippet encontrado para "/{message.slice(1)}"
+                </div>
+              )}
+              <div className="px-3 py-1.5 border-t text-[10px] text-muted-foreground flex items-center justify-between">
+                <span>↑↓ navegar • Enter inserir • Esc fechar</span>
+                <Link
+                  to="/dashboard/inbox/snippets"
+                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  onMouseDown={(e) => e.preventDefault()}
                 >
-                  <Badge variant="outline" className="font-mono text-[9px] shrink-0">{r.shortcut}</Badge>
-                  <span className="truncate flex-1">{r.title}</span>
-                  <Zap className="h-3 w-3 text-muted-foreground shrink-0" />
-                </button>
-              ))}
-              <div className="px-3 py-1 border-t text-[10px] text-muted-foreground">
-                ↑↓ navegar • Enter inserir • Esc fechar
+                  <Settings2 className="h-3 w-3" />
+                  Gerir
+                </Link>
               </div>
             </div>
           )}
