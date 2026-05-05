@@ -10,7 +10,35 @@ import {
   useStatusWhatsAppZapi,
   type ZapiStatus,
 } from "@/hooks/useWhatsAppZapiConnection";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+
+// Z-API Instance ID: alphanumeric, geralmente 30+ chars (ex: 3D1A...)
+const byoSchema = z.object({
+  instanceId: z
+    .string()
+    .trim()
+    .min(1, { message: "Instance ID é obrigatório" })
+    .min(20, { message: "Instance ID parece curto demais (mín. 20 caracteres)" })
+    .max(64, { message: "Instance ID demasiado longo (máx. 64 caracteres)" })
+    .regex(/^[A-Za-z0-9]+$/, { message: "Apenas letras e números, sem espaços" }),
+  instanceToken: z
+    .string()
+    .trim()
+    .min(1, { message: "Instance Token é obrigatório" })
+    .min(20, { message: "Token parece curto demais (mín. 20 caracteres)" })
+    .max(128, { message: "Token demasiado longo (máx. 128 caracteres)" })
+    .regex(/^[A-Za-z0-9]+$/, { message: "Apenas letras e números, sem espaços" }),
+  clientToken: z
+    .string()
+    .trim()
+    .min(1, { message: "Client-Token é obrigatório" })
+    .min(20, { message: "Client-Token parece curto demais (mín. 20 caracteres)" })
+    .max(128, { message: "Client-Token demasiado longo (máx. 128 caracteres)" })
+    .regex(/^[A-Za-z0-9]+$/, { message: "Apenas letras e números, sem espaços" }),
+});
+
+type ByoErrors = Partial<Record<"instanceId" | "instanceToken" | "clientToken", string>>;
 
 interface Props {
   open: boolean;
