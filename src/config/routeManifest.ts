@@ -40,7 +40,7 @@ import {
   ArrowUpDown, Headphones, Clock, Timer,
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
   Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
-  Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes,
+  Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -170,6 +170,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("prospecting",     "Prospecção",      "/dashboard/prospecting",    UserPlus,      "comercial", { moduleSlug: "prospecting-pro" }),
   e("lead-enricher",   "Enriquecimento de Leads", "/dashboard/lead-enricher",  Search,        "comercial", { moduleSlug: "lead-enricher", isPro: true }),
   e("fastmatch",       "FastMatch",       "/dashboard/fastmatch",      Zap,           "comercial"),
+  e("leadchef",        "LeadChef",        "/dashboard/leadchef/today", ChefHat,       "comercial", { isBeta: true }),
   // Search-only CRM routes
   e("crm-hub",         "CRM",             "/dashboard/crm",            Users,         "comercial", { visibleInSidebar: false }),
   e("google-local",    "Google Local",    "/dashboard/prospecting/google-local", MapPin, "comercial", { visibleInSidebar: false, moduleSlug: "google-local-services" }),
