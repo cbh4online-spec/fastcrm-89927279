@@ -878,11 +878,25 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
                         {aiImageCost} crédito{aiImageCost === 1 ? "" : "s"}
                       </Badge>
                     </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {AI_IMAGE_TEMPLATES.map((tpl) => (
+                        <button
+                          key={tpl.label}
+                          type="button"
+                          disabled={aiImageBusy || isAdmin === false}
+                          onClick={() => setAiImagePrompt(tpl.prompt)}
+                          className="text-[11px] px-2 py-0.5 rounded-full border border-border bg-background hover:bg-accent hover:border-primary/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={tpl.prompt}
+                        >
+                          {tpl.label}
+                        </button>
+                      ))}
+                    </div>
                     <Textarea
                       value={aiImagePrompt}
                       onChange={(e) => setAiImagePrompt(e.target.value)}
                       placeholder='Ex.: "Frascos de óleos vegetais ozonizados em mesa de mármore com folhas de eucalipto, luz natural suave"'
-                      rows={2}
+                      rows={3}
                       maxLength={1000}
                       disabled={aiImageBusy || isAdmin === false}
                       className="resize-none text-sm"
