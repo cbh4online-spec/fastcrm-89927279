@@ -145,7 +145,18 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
     // Force-touch all fields so any pending errors become visible
     setByoTouched({ instanceId: true, instanceToken: true, clientToken: true });
     setByoErrors(allErrors);
-    if (!isByoValid) return;
+    setByoSubmitted(true);
+    if (!isByoValid) {
+      // Focus first invalid field
+      const firstInvalid = FIELD_ORDER.find((f) => allErrors[f]);
+      if (firstInvalid) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(firstInvalid) as HTMLInputElement | null;
+          el?.focus();
+        });
+      }
+      return;
+    }
     connect.mutate(byo);
   };
 
