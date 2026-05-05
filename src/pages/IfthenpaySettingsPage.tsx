@@ -31,7 +31,8 @@ export default function IfthenpaySettingsPage() {
   const [showKeys, setShowKeys] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
 
-  const isAdminLikely = currentWorkspace?.role === "owner" || currentWorkspace?.role === "admin";
+  const { isSuperAdmin } = useUserRole();
+  const isAdminLikely = isSuperAdmin || currentWorkspace?.role === "owner" || currentWorkspace?.role === "admin";
 
   function copy(value: string, label = "Copiado") {
     navigator.clipboard.writeText(value);
