@@ -80,6 +80,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [showProposalDialog, setShowProposalDialog] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [igWindowExpired, setIgWindowExpired] = useState(false);
+  const [showButtonsDialog, setShowButtonsDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<AIMessageComposerRef>(null);
   const trackedConvId = useRef<string | null>(null);
