@@ -41,7 +41,6 @@ const ChangelogPage = lazy(() => import("@/pages/ChangelogPage"));
 const GDPRBackofficePage = lazy(() => import("@/modules/growth-seo/pages/GDPRBackofficePage"));
 const BlogDashboard = lazy(() => import("@/pages/dashboard/blog/index"));
 const CreditHistoryPage = lazy(() => import("@/pages/CreditHistoryPage"));
-const MessagesPage = lazy(() => import("@/pages/MessagesPage"));
 
 export function DashboardCoreRoutes() {
   return (
@@ -64,7 +63,6 @@ export function DashboardCoreRoutes() {
       <Route path="/dashboards" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboards/*" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<WeeklyDashboard />} />
-      <Route path="/messages" element={<MessagesPage />} />
       <Route path="/dashboard/command-center" element={<CommandCenter />} />
       <Route path="/dashboard/objects" element={<Navigate to="/objects" replace />} />
 
