@@ -57,7 +57,7 @@ export function useActivationDetector() {
       await check("first_deal", () => countGte("deals", 1));
       await check("connect_whatsapp", async () => {
         const { count } = await supabase
-          .from("whatsapp_qr_connections" as any)
+          .from("whatsapp_zapi_connections" as any)
           .select("id", { count: "exact", head: true })
           .eq("workspace_id", wsId)
           .eq("status", "connected");
