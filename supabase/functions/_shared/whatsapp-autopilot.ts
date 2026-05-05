@@ -121,15 +121,29 @@ export async function triggerWhatsAppAutopilot(
   }
 
   // 3. Working hours check
-  if (autopilotConfig.respect_working_hours) {
+  if (autopilotConfig.respect_working_hours || autopilotConfig.after_hours_only) {
     const isWithinHours = checkWorkingHours(
       autopilotConfig.working_hours_start,
       autopilotConfig.working_hours_end,
       autopilotConfig.working_days,
       autopilotConfig.timezone
     );
-    
-    if (!isWithinHours) {
+
+    // Modo "after_hours_only": só age FORA do horário humano.
+    // Se estamos dentro do horário, o autopilot não responde — deixa para a equipa.
+    if (autopilotConfig.after_hours_only && isWithinHours) {
+      console.log("[WA-AUTOPILOT] after_hours_only=true and within working hours — skipping (humans handle)");
+      await supabase.from("autopilot_events").insert({
+        workspace_id: workspaceId,
+        conversation_id: conversationId,
+        event_type: "skipped",
+        event_data: { reason: "within_working_hours_after_hours_only_mode" }
+      });
+      return;
+    }
+
+    // Modo clássico "respect_working_hours": só responde DENTRO do horário.
+    if (autopilotConfig.respect_working_hours && !isWithinHours) {
       console.log("[WA-AUTOPILOT] Outside working hours");
       if (autopilotConfig.out_of_hours_message) {
         await sendWhatsAppAutopilotMessage(
