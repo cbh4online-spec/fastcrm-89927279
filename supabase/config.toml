@@ -3,18 +3,6 @@ project_id = "eumnfkccyvlyoyjchiwe"
 [functions.fastmatch-score]
 verify_jwt = false
 
-[functions.whatsapp-evolution-webhook]
-verify_jwt = false
-
-[functions.whatsapp-evolution-send]
-verify_jwt = false
-
-[functions.whatsapp-qr-sync]
-verify_jwt = false
-
-[functions.whatsapp-qr-reconnect]
-verify_jwt = false
-
 [functions.whatsapp-zapi-webhook]
 verify_jwt = false
 

@@ -16,7 +16,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/comp
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useGHLConversationSync } from "@/hooks/useGHLConversationSync";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
-import { useWhatsAppQRConnection } from "@/hooks/useWhatsAppQRConnection";
+import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
 import { useSyncEmail, useActiveEmailConnection } from "@/hooks/useEmailConnection";
 import { useStaleConversationDetector } from "@/hooks/useStaleConversationDetector";
 import { useInboxHotkeys } from "@/hooks/useInboxHotkeys";
@@ -30,7 +30,7 @@ type ViewMode = "list" | "columns";
 
 export function InboxView() {
   const isMobile = useIsMobile();
-  const { data: whatsappConnection } = useWhatsAppQRConnection();
+  const { data: whatsappConnection } = useWhatsAppZapiConnection();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [showContextPanel, setShowContextPanel] = useState(false);

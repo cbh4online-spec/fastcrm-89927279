@@ -165,19 +165,19 @@ async function sendRecoverySMS(sb: any, cart: any) {
   const message = `Olá ${cart.customer_name || ""}! 🛒 O seu carrinho de ${Number(cart.cart_value || 0).toFixed(2)}€ está à sua espera. Recupere aqui: ${cart.recovery_url}`;
 
   try {
-    // Try WhatsApp first
+    // Try WhatsApp via Z-API first
     const { data: whatsappConn } = await sb
-      .from("whatsapp_qr_connections")
-      .select("instance_name, is_connected")
+      .from("whatsapp_zapi_connections")
+      .select("id, status")
       .eq("workspace_id", cart.workspace_id)
-      .eq("is_connected", true)
+      .eq("status", "connected")
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (whatsappConn) {
-      await sb.functions.invoke("whatsapp-evolution-send", {
+      await sb.functions.invoke("whatsapp-zapi-send", {
         body: {
-          workspace_id: cart.workspace_id,
+          workspaceId: cart.workspace_id,
           phone: cart.customer_phone,
           message,
         },
