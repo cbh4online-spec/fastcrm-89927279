@@ -278,17 +278,17 @@ Deno.serve(async (req: Request) => {
     // Tentar logar erro
     try {
       if (workspaceId) {
-        await logAIUsage({
-          workspaceId,
-          userId: userId ?? undefined,
+        logAIUsage({
+          workspace_id: workspaceId,
+          user_id: userId ?? undefined,
           feature: "ai-generate-b2b-banner",
           model,
           provider: "lovable-ai",
-          tokensInput: 0,
-          tokensOutput: 0,
-          latencyMs: Date.now() - t0,
-          wasError: true,
-          errorType: (err as Error).message?.slice(0, 100),
+          tokens_input: 0,
+          tokens_output: 0,
+          latency_ms: Date.now() - t0,
+          was_error: true,
+          error_type: (err as Error).message?.slice(0, 100),
         });
       }
     } catch { /* ignore */ }
