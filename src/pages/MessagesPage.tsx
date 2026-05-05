@@ -103,7 +103,7 @@ export default function MessagesPage() {
             <h2 className="text-sm font-semibold">Mensagens</h2>
             <NewConversationButton workspaceId={currentWorkspace?.id ?? null} isSuperAdmin={isSuperAdmin} />
           </div>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             {isLoading && (
               <div className="p-4 text-sm text-muted-foreground flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" /> A carregar…
