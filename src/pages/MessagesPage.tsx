@@ -353,8 +353,28 @@ function NewConversationButton({
   const [groupTitle, setGroupTitle] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastBody, setBroadcastBody] = useState("");
+
+  // Lista filtrada (usada também pelo handler de teclado)
+  const dmTokens = useMemo(
+    () => search.toLowerCase().trim().split(/\s+/).filter(Boolean),
+    [search],
+  );
+  const dmFiltered = useMemo(() => {
+    return (teammates as any[]).filter((t) => {
+      if (dmTokens.length === 0) return true;
+      const hay = `${t.full_name ?? ""} ${t.email ?? ""} ${t.workspaces ?? ""}`.toLowerCase();
+      return dmTokens.every((tk) => hay.includes(tk));
+    });
+  }, [teammates, dmTokens]);
+  const dmVisible = useMemo(() => dmFiltered.slice(0, 100), [dmFiltered]);
+
+  // Reset selecção sempre que muda a pesquisa ou a lista
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [search, dmVisible.length]);
 
   const close = () => {
     setOpen(false);
