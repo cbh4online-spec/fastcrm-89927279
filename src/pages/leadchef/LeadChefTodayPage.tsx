@@ -1,4 +1,5 @@
 import { Activity, CalendarDays, Sparkles, Target, Phone, FileText, AlertCircle, TrendingUp, ChevronRight, Loader2, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { LeadChefMobileShell } from "@/components/leadchef/LeadChefMobileShell";
 import { LeadChefTodayCard } from "@/components/leadchef/LeadChefTodayCard";
 import { LeadChefLeadStageBadge } from "@/components/leadchef/LeadChefLeadStageBadge";
