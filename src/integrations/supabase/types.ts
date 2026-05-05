@@ -78659,6 +78659,15 @@ export type Database = {
         Args: { _domain_id: string; _resolved_token: string }
         Returns: boolean
       }
+      whatsapp_ops_dashboard: {
+        Args: {
+          p_from?: string
+          p_sla_minutes?: number
+          p_to?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       account_brief_commercial_status:
