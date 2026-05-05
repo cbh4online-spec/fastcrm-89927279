@@ -9,7 +9,7 @@ import { describe, it, expect } from "vitest";
 // Classification registry — single source of truth
 export const EDGE_FUNCTION_CLASSIFICATIONS = {
   // Public webhooks — no JWT, but require signature/payload validation
-  "whatsapp-evolution-webhook": "public-webhook",
+  "whatsapp-zapi-webhook": "public-webhook",
   "google-calendar-webhook": "public-webhook",
   "handle-email-suppression": "public-webhook",
   "stripe-renewal-webhook": "public-webhook",
@@ -25,9 +25,8 @@ export const EDGE_FUNCTION_CLASSIFICATIONS = {
 
   // Private authenticated — should validate JWT in code
   "fastmatch-score": "private-authenticated",
-  "whatsapp-evolution-send": "private-authenticated",
-  "whatsapp-qr-sync": "private-authenticated",
-  "whatsapp-qr-reconnect": "private-authenticated",
+  "whatsapp-zapi-send": "private-authenticated",
+  "whatsapp-zapi-sync-groups": "private-authenticated",
   "google-calendar-sync": "private-authenticated",
   "csv-url-fetch": "private-authenticated",
   "send-transactional-email": "private-authenticated",
