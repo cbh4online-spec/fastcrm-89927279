@@ -146,11 +146,39 @@ Deno.serve(async (req) => {
       return jsonRes({ ok: true, processed: 'disconnected' });
     }
 
-    if (eventType === 'MessageStatusCallback') {
-      // delivery / read receipts — could update message status; minimal impl now
-      console.log(`[zapi-webhook] status update id=${payload?.ids || payload?.id} status=${payload?.status}`);
+    if (eventType === 'MessageStatusCallback' || eventType === 'MessageStatus') {
+      // Z-API status: SENT | RECEIVED | READ | PLAYED | DELIVERED
+      const rawStatus = String(payload?.status ?? '').toUpperCase();
+      const ids: string[] = Array.isArray(payload?.ids)
+        ? payload.ids.map((x: unknown) => String(x))
+        : payload?.id || payload?.messageId
+          ? [String(payload.id ?? payload.messageId)]
+          : [];
+
+      console.log(`[zapi-webhook] status=${rawStatus} ids=${ids.join(',')}`);
+
+      if (ids.length > 0) {
+        const msgUpdate: Record<string, unknown> = {};
+        if (rawStatus === 'DELIVERED' || rawStatus === 'RECEIVED') {
+          msgUpdate.delivered_at = now;
+        } else if (rawStatus === 'READ' || rawStatus === 'PLAYED') {
+          msgUpdate.read_at = now;
+          msgUpdate.delivered_at = now; // read implies delivered
+        }
+        if (Object.keys(msgUpdate).length > 0) {
+          const { error: upErr } = await admin
+            .from('messages')
+            .update(msgUpdate)
+            .eq('workspace_id', workspaceId)
+            .in('external_message_id', ids);
+          if (upErr) {
+            console.warn(`[zapi-webhook] status update failed: ${upErr.message}`);
+          }
+        }
+      }
+
       await admin.from('whatsapp_zapi_connections').update(updates).eq('workspace_id', workspaceId);
-      return jsonRes({ ok: true, processed: 'status' });
+      return jsonRes({ ok: true, processed: 'status', applied: ids.length });
     }
 
     // ---- Inbound / outbound messages ----
