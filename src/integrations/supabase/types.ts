@@ -17630,6 +17630,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "communication_template_variants_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "communication_template_variants_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -22663,6 +22670,7 @@ export type Database = {
           contact_id: string | null
           conversation_priority_score: number | null
           conversation_status_simplified: string | null
+          country_code: string | null
           created_at: string
           external_thread_id: string | null
           handoff_at: string | null
@@ -22673,9 +22681,11 @@ export type Database = {
           last_message_preview: string | null
           lead_id: string | null
           potential_value_estimate: number | null
+          provider_instance_id: string | null
           requires_human: boolean
           sla_deadline: string | null
           status: string
+          tags: string[]
           tags_assigned_at: string | null
           tags_auto_assigned: boolean | null
           unread_count: number
@@ -22704,6 +22714,7 @@ export type Database = {
           contact_id?: string | null
           conversation_priority_score?: number | null
           conversation_status_simplified?: string | null
+          country_code?: string | null
           created_at?: string
           external_thread_id?: string | null
           handoff_at?: string | null
@@ -22714,9 +22725,11 @@ export type Database = {
           last_message_preview?: string | null
           lead_id?: string | null
           potential_value_estimate?: number | null
+          provider_instance_id?: string | null
           requires_human?: boolean
           sla_deadline?: string | null
           status?: string
+          tags?: string[]
           tags_assigned_at?: string | null
           tags_auto_assigned?: boolean | null
           unread_count?: number
@@ -22745,6 +22758,7 @@ export type Database = {
           contact_id?: string | null
           conversation_priority_score?: number | null
           conversation_status_simplified?: string | null
+          country_code?: string | null
           created_at?: string
           external_thread_id?: string | null
           handoff_at?: string | null
@@ -22755,9 +22769,11 @@ export type Database = {
           last_message_preview?: string | null
           lead_id?: string | null
           potential_value_estimate?: number | null
+          provider_instance_id?: string | null
           requires_human?: boolean
           sla_deadline?: string | null
           status?: string
+          tags?: string[]
           tags_assigned_at?: string | null
           tags_auto_assigned?: boolean | null
           unread_count?: number
@@ -22787,6 +22803,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_provider_instance_id_fkey"
+            columns: ["provider_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_provider_instances"
             referencedColumns: ["id"]
           },
           {
@@ -26624,6 +26647,13 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequence_steps_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates_view"
             referencedColumns: ["id"]
           },
         ]
@@ -43750,9 +43780,16 @@ export type Database = {
           external_message_id: string | null
           ghl_message_id: string | null
           id: string
+          media_mime_type: string | null
+          media_url: string | null
+          message_type: string
+          metadata: Json
+          product_id: string | null
+          provider_status: string | null
           read_at: string | null
           sender_id: string | null
           sent_at: string
+          template_id: string | null
           updated_at: string | null
           workspace_id: string
         }
@@ -43770,9 +43807,16 @@ export type Database = {
           external_message_id?: string | null
           ghl_message_id?: string | null
           id?: string
+          media_mime_type?: string | null
+          media_url?: string | null
+          message_type?: string
+          metadata?: Json
+          product_id?: string | null
+          provider_status?: string | null
           read_at?: string | null
           sender_id?: string | null
           sent_at?: string
+          template_id?: string | null
           updated_at?: string | null
           workspace_id: string
         }
@@ -43790,9 +43834,16 @@ export type Database = {
           external_message_id?: string | null
           ghl_message_id?: string | null
           id?: string
+          media_mime_type?: string | null
+          media_url?: string | null
+          message_type?: string
+          metadata?: Json
+          product_id?: string | null
+          provider_status?: string | null
           read_at?: string | null
           sender_id?: string | null
           sent_at?: string
+          template_id?: string | null
           updated_at?: string | null
           workspace_id?: string
         }
@@ -43802,6 +43853,55 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates_view"
             referencedColumns: ["id"]
           },
           {
@@ -70251,6 +70351,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "template_favorites_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "template_favorites_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -70388,6 +70495,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "template_usage_events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "template_usage_events_variant_id_fkey"
             columns: ["variant_id"]
             isOneToOne: false
@@ -70463,6 +70577,13 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_usage_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates_view"
             referencedColumns: ["id"]
           },
           {
@@ -72709,6 +72830,74 @@ export type Database = {
           },
         ]
       }
+      whatsapp_communication_events: {
+        Row: {
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          id: string
+          payload: Json
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_communication_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_communication_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_communication_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_communication_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_connections: {
         Row: {
           access_token: string | null
@@ -72778,6 +72967,198 @@ export type Database = {
           },
         ]
       }
+      whatsapp_product_shares: {
+        Row: {
+          agent_id: string | null
+          clicked_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          message_id: string | null
+          metadata: Json
+          product_id: string
+          provider_message_id: string | null
+          sent_at: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          clicked_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          metadata?: Json
+          product_id: string
+          provider_message_id?: string | null
+          sent_at?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          clicked_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          metadata?: Json
+          product_id?: string
+          provider_message_id?: string | null
+          sent_at?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_product_shares_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_provider_instances: {
+        Row: {
+          active: boolean
+          api_token_secret_name: string | null
+          base_url: string | null
+          created_at: string
+          default_country: string
+          default_country_code: string
+          display_name: string | null
+          external_instance_id: string | null
+          id: string
+          metadata: Json
+          provider_name: string
+          updated_at: string
+          workspace_id: string
+          zapi_connection_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          api_token_secret_name?: string | null
+          base_url?: string | null
+          created_at?: string
+          default_country?: string
+          default_country_code?: string
+          display_name?: string | null
+          external_instance_id?: string | null
+          id?: string
+          metadata?: Json
+          provider_name?: string
+          updated_at?: string
+          workspace_id: string
+          zapi_connection_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          api_token_secret_name?: string | null
+          base_url?: string | null
+          created_at?: string
+          default_country?: string
+          default_country_code?: string
+          display_name?: string | null
+          external_instance_id?: string | null
+          id?: string
+          metadata?: Json
+          provider_name?: string
+          updated_at?: string
+          workspace_id?: string
+          zapi_connection_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_provider_instances_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_provider_instances_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_provider_instances_zapi_connection_id_fkey"
+            columns: ["zapi_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_zapi_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_settings: {
         Row: {
           ai_persona: string | null
@@ -72830,6 +73211,68 @@ export type Database = {
             foreignKeyName: "whatsapp_settings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_templates_meta: {
+        Row: {
+          category: string
+          country: string
+          created_at: string
+          preview_image_url: string | null
+          suggested_variables: Json
+          template_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string
+          country?: string
+          created_at?: string
+          preview_image_url?: string | null
+          suggested_variables?: Json
+          template_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string
+          country?: string
+          created_at?: string
+          preview_image_url?: string | null
+          suggested_variables?: Json
+          template_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_meta_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: true
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_templates_meta_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_templates_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_templates_meta_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_templates_meta_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -75824,6 +76267,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workspace_template_stats_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workspace_template_stats_variant_id_fkey"
             columns: ["variant_id"]
             isOneToOne: false
@@ -76900,13 +77350,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_b"]
-            isOneToOne: false
-            referencedRelation: "partner_b2b_catalog_grouped"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "partner_b2b_catalog_grouped"
@@ -76916,8 +77359,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_b2b_content"
-            referencedColumns: ["product_id"]
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -76930,8 +77373,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_catalog"
-            referencedColumns: ["id"]
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -76944,8 +77387,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -76957,13 +77400,20 @@ export type Database = {
           {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_a"]
+            columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
@@ -77190,6 +77640,40 @@ export type Database = {
           },
           {
             foreignKeyName: "sj_cohorts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_templates_view: {
+        Row: {
+          active: boolean | null
+          category: string | null
+          content: string | null
+          country: string | null
+          created_at: string | null
+          id: string | null
+          language: string | null
+          name: string | null
+          preview_image_url: string | null
+          suggested_variables: Json | null
+          updated_at: string | null
+          usage_count: number | null
+          variables: Json | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "communication_templates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -77675,12 +78159,28 @@ export type Database = {
       dm_mark_read: { Args: { _conv_id: string }; Returns: undefined }
       dm_start: { Args: { _other_user: string }; Returns: string }
       dm_unread_count: { Args: never; Returns: number }
+      emit_whatsapp_event: {
+        Args: {
+          p_contact_id?: string
+          p_conversation_id?: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_event_type: string
+          p_payload?: Json
+          p_workspace_id: string
+        }
+        Returns: string
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
       ensure_b2b_catalog_kb: {
         Args: { p_user_id: string; p_workspace_id: string }
+        Returns: string
+      }
+      ensure_whatsapp_provider_instance: {
+        Args: { p_workspace_id: string }
         Returns: string
       }
       format_response_for_channel: {
