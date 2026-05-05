@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, QrCode, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
+import { Loader2, QrCode, RefreshCw, CheckCircle, AlertTriangle, ExternalLink, Info } from "lucide-react";
 import {
   useWhatsAppZapiConnection,
   useConnectWhatsAppZapi,
@@ -26,6 +26,7 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
 
   const [byoMode, setByoMode] = useState(false);
   const [byo, setByo] = useState({ instanceId: "", instanceToken: "", clientToken: "" });
+  const [requiresByo, setRequiresByo] = useState(false);
 
   const status = (conn?.status as ZapiStatus) || "not_configured";
   const qr = conn?.qr_code;
@@ -49,7 +50,21 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
     }
   }, [open, isConnected, onOpenChange]);
 
-  const handleConnectMaster = () => connect.mutate(undefined);
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) setRequiresByo(false);
+  }, [open]);
+
+  const handleConnectMaster = () => {
+    connect.mutate(undefined, {
+      onError: (err: Error & { requires_byo?: boolean }) => {
+        if (err.requires_byo) {
+          setRequiresByo(true);
+          setByoMode(true);
+        }
+      },
+    });
+  };
   const handleConnectByo = () => {
     if (!byo.instanceId || !byo.instanceToken || !byo.clientToken) return;
     connect.mutate(byo);
