@@ -506,6 +506,7 @@ export function ContactDetail() {
                     entityName={contact?.name || "contacto"}
                     maxHeight="600px"
                   />
+                  {id && <WhatsAppProductSharesSection contactId={id} />}
                 </TabsContent>
 
                 {/* Details Tab */}
