@@ -672,6 +672,66 @@ Deno.serve(async (req) => {
 
 // --- Shared channel governance helpers ---
 
+/**
+ * Extract candidate account/page identifiers from a GHL message payload.
+ * For social channels, ghl_account_id in DB has the format:
+ *   <conversationProviderId>_<locationId>_<pageId|igUserId|phoneNumber>
+ * The pageId (last segment) is what uniquely identifies the channel within a location.
+ *
+ * Returns ALL plausible candidates so the caller can match against ghl_account_id
+ * via exact equality, suffix (`_<id>`) or substring.
+ */
+function extractGHLAccountIds(body: any): string[] {
+  const out = new Set<string>();
+  const push = (v: unknown) => {
+    if (v === null || v === undefined) return;
+    const s = String(v).trim();
+    if (s) out.add(s);
+  };
+
+  // Direct conversation provider id (often equals ghl_account_id for social channels)
+  push(body?.conversationProviderId);
+  push(body?.conversation_provider_id);
+  push(body?.message?.conversationProviderId);
+  push(body?.message?.conversation_provider_id);
+
+  // Instagram / Facebook page IDs
+  push(body?.message?.meta?.facebookPageId);
+  push(body?.message?.meta?.pageId);
+  push(body?.message?.meta?.igUserId);
+  push(body?.message?.meta?.instagramUserId);
+  push(body?.meta?.facebookPageId);
+  push(body?.meta?.pageId);
+  push(body?.meta?.igUserId);
+  push(body?.facebookPageId);
+  push(body?.pageId);
+  push(body?.igUserId);
+
+  // GHL provider data nested
+  const provider = body?.message?.providerData || body?.providerData;
+  if (provider && typeof provider === "object") {
+    push((provider as any).pageId);
+    push((provider as any).igUserId);
+    push((provider as any).instagramUserId);
+    push((provider as any).accountId);
+    push((provider as any).recipient?.id);
+    push((provider as any).sender?.id);
+  }
+
+  // WhatsApp: the phone number can identify the account
+  push(body?.message?.meta?.fromNumber);
+  push(body?.message?.meta?.toNumber);
+  push(body?.toNumber);
+  push(body?.fromNumber);
+
+  // Generic account/source fields
+  push(body?.accountId);
+  push(body?.account_id);
+  push(body?.sourceAccountId);
+
+  return Array.from(out);
+}
+
 function mapToSocialChannelType(channel: string): string | null {
   const map: Record<string, string> = {
     instagram: "instagram",
