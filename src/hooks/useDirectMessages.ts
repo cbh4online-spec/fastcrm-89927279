@@ -132,7 +132,14 @@ export function useConversations() {
           display_title = "Grupo sem nome";
         }
 
-        return { ...c, members, last_message: last, unread_count: unread, display_title };
+        return {
+          ...c,
+          members,
+          last_message: last,
+          unread_count: unread,
+          display_title,
+          workspace_name: wsMap.get(c.workspace_id) ?? null,
+        };
       });
     },
   });
