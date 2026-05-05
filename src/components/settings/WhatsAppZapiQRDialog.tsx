@@ -54,6 +54,12 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
 
   const [byoMode, setByoMode] = useState(false);
   const [byo, setByo] = useState({ instanceId: "", instanceToken: "", clientToken: "" });
+  const [byoErrors, setByoErrors] = useState<ByoErrors>({});
+  const [byoTouched, setByoTouched] = useState<Record<keyof ByoErrors, boolean>>({
+    instanceId: false,
+    instanceToken: false,
+    clientToken: false,
+  });
   const [requiresByo, setRequiresByo] = useState(false);
 
   const status = (conn?.status as ZapiStatus) || "not_configured";
