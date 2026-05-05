@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
 
     if (convId) {
       const attachments = media
-        ? [{ type: media.type, url: media.url, name: media.fileName, caption: media.caption }]
+        ? [{ type: media.type, url: media.url, name: media.fileName, caption: media.caption, ptt: media.ptt || false }]
         : [];
 
       await admin.from('messages').insert({
