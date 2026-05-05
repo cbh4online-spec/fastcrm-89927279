@@ -602,6 +602,57 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
                 </TabsList>
 
                 <TabsContent value="content" className="space-y-4 mt-4">
+                  {/* ── Construir com IA (estilo Lovable) ── */}
+                  <div className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Wand2 className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium leading-tight">Construir com IA</p>
+                          <p className="text-[11px] text-muted-foreground leading-tight">
+                            Descreve o banner em linguagem natural — a IA preenche os campos.
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="gap-1 text-[11px] font-normal">
+                        <Coins className="h-3 w-3" />
+                        {aiCost} crédito{aiCost === 1 ? "" : "s"}
+                      </Badge>
+                    </div>
+                    <Textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder='Ex.: "Campanha de 20% para a linha de óleos ozonizados, válida até 31 de maio, encomenda mínima 200€"'
+                      rows={2}
+                      maxLength={1500}
+                      disabled={aiBusy || isAdmin === false}
+                      className="resize-none text-sm"
+                    />
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-[11px] text-muted-foreground">
+                        {aiPrompt.length}/1500 · saldo: <strong className="text-foreground">{balance}</strong> créditos
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={generateWithAI}
+                        disabled={aiBusy || isAdmin === false || aiPrompt.trim().length < 8}
+                      >
+                        {aiBusy ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> A gerar…</>
+                        ) : (
+                          <><Sparkles className="h-4 w-4 mr-2" /> Gerar com IA</>
+                        )}
+                      </Button>
+                    </div>
+                    {!canAffordAI && aiCost > 0 && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        Saldo insuficiente. São necessários {aiCost} créditos.
+                      </p>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label>Tipo</Label>
