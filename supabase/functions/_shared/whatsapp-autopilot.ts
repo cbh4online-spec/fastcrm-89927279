@@ -299,6 +299,20 @@ export async function triggerWhatsAppAutopilot(
   }
 
 
+  // 11.4. Auto-routing por regras configuradas (best-effort, não bloqueia o fluxo)
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/auto-route-conversation`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${supabaseServiceKey}`,
+      },
+      body: JSON.stringify({ conversation_id: conversationId, workspace_id: workspaceId }),
+    });
+  } catch (err) {
+    console.warn("[WA-AUTOPILOT] auto-route failed", err);
+  }
+
   // 11.5. Handoff automático em intenção de compra
   if (
     autopilotConfig.handoff_on_buying_intent &&
