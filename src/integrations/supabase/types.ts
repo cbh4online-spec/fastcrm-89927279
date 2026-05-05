@@ -72739,6 +72739,81 @@ export type Database = {
           },
         ]
       }
+      whatsapp_zapi_connections: {
+        Row: {
+          account_mode: string
+          client_token: string | null
+          connected_at: string | null
+          connected_by: string | null
+          created_at: string
+          disconnected_at: string | null
+          id: string
+          instance_id: string | null
+          instance_token: string | null
+          last_error: string | null
+          last_inbound_message_at: string | null
+          last_outbound_message_at: string | null
+          last_seen_at: string | null
+          last_sync_at: string | null
+          metadata_json: Json
+          phone_number: string | null
+          qr_code: string | null
+          qr_updated_at: string | null
+          status: string
+          updated_at: string
+          webhook_secret: string
+          workspace_id: string
+        }
+        Insert: {
+          account_mode?: string
+          client_token?: string | null
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          instance_id?: string | null
+          instance_token?: string | null
+          last_error?: string | null
+          last_inbound_message_at?: string | null
+          last_outbound_message_at?: string | null
+          last_seen_at?: string | null
+          last_sync_at?: string | null
+          metadata_json?: Json
+          phone_number?: string | null
+          qr_code?: string | null
+          qr_updated_at?: string | null
+          status?: string
+          updated_at?: string
+          webhook_secret?: string
+          workspace_id: string
+        }
+        Update: {
+          account_mode?: string
+          client_token?: string | null
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          instance_id?: string | null
+          instance_token?: string | null
+          last_error?: string | null
+          last_inbound_message_at?: string | null
+          last_outbound_message_at?: string | null
+          last_seen_at?: string | null
+          last_sync_at?: string | null
+          metadata_json?: Json
+          phone_number?: string | null
+          qr_code?: string | null
+          qr_updated_at?: string | null
+          status?: string
+          updated_at?: string
+          webhook_secret?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       widget_configurations: {
         Row: {
           allowed_domains: string[] | null
