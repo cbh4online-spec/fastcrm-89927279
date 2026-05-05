@@ -563,9 +563,7 @@ function NewConversationButton({
                       A mostrar 100 de {dmFiltered.length}. Refine a pesquisa.
                     </li>
                   )}
-                    </ul>
-                  );
-                })()
+                </ul>
               )}
             </ScrollArea>
           </TabsContent>
