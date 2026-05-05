@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { HelpSupportDropdown } from "./HelpSupportDropdown";
 import { ContextScoreIndicator } from "./ContextScoreIndicator";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { MessagesTopBarButton } from "./MessagesTopBarButton";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
 import { TopBarCreditsBadge } from "./TopBarCreditsBadge";
 import { OnlineUsersIndicator } from "./OnlineUsersIndicator";
@@ -130,6 +131,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         <div className="hidden lg:block"><ContextScoreIndicator /></div>
         <div className="hidden sm:block"><HelpSupportDropdown /></div>
 
+        <MessagesTopBarButton />
         <NotificationBell />
 
         <DropdownMenu>
