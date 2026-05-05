@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SettingsNavigation, SettingsCategory } from "@/components/settings/SettingsNavigation";
