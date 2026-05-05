@@ -16,13 +16,15 @@ import {
   MessageSquare,
   Zap,
   Target,
-  FlaskConical
+  FlaskConical,
+  Route
 } from "lucide-react";
 import { VibeProfilesTab } from "./VibeProfilesTab";
 import { ConversationRulesTab } from "./ConversationRulesTab";
 import { AutopilotConfigTab } from "./AutopilotConfigTab";
 import { ConversationObjectivesTab } from "./ConversationObjectivesTab";
 import { SimulatorTab } from "./SimulatorTab";
+import { RoutingRulesTab } from "./RoutingRulesTab";
 import { useVibeProfiles } from "@/hooks/useVibeProfiles";
 import { useConversationRules } from "@/hooks/useConversationRules";
 import { useAutopilotConfig } from "@/hooks/useAutopilotConfig";
@@ -91,31 +93,30 @@ export function ConversationalEngineModule() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
           <TabsTrigger value="vibe" className="gap-2">
             <Palette className="h-4 w-4" />
-            <span className="hidden sm:inline">Perfis de Vibe</span>
-            <span className="sm:hidden">Vibe</span>
+            <span className="hidden sm:inline">Vibe</span>
           </TabsTrigger>
           <TabsTrigger value="rules" className="gap-2">
             <Shield className="h-4 w-4" />
-            <span className="hidden sm:inline">Regras de Conversa</span>
-            <span className="sm:hidden">Regras</span>
+            <span className="hidden sm:inline">Regras</span>
+          </TabsTrigger>
+          <TabsTrigger value="routing" className="gap-2">
+            <Route className="h-4 w-4" />
+            <span className="hidden sm:inline">Roteamento</span>
           </TabsTrigger>
           <TabsTrigger value="objectives" className="gap-2">
             <Target className="h-4 w-4" />
             <span className="hidden sm:inline">Objetivos</span>
-            <span className="sm:hidden">Obj.</span>
           </TabsTrigger>
           <TabsTrigger value="autopilot" className="gap-2">
             <Bot className="h-4 w-4" />
             <span className="hidden sm:inline">Autopilot</span>
-            <span className="sm:hidden">Auto</span>
           </TabsTrigger>
           <TabsTrigger value="simulator" className="gap-2">
             <FlaskConical className="h-4 w-4" />
             <span className="hidden sm:inline">Simulador</span>
-            <span className="sm:hidden">Sim.</span>
           </TabsTrigger>
         </TabsList>
 
@@ -125,6 +126,10 @@ export function ConversationalEngineModule() {
 
         <TabsContent value="rules" className="mt-6">
           <ConversationRulesTab />
+        </TabsContent>
+
+        <TabsContent value="routing" className="mt-6">
+          <RoutingRulesTab />
         </TabsContent>
 
         <TabsContent value="objectives" className="mt-6">

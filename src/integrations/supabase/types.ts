@@ -21978,6 +21978,126 @@ export type Database = {
           },
         ]
       }
+      conversation_routing_log: {
+        Row: {
+          added_tags: string[] | null
+          assigned_to: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          matched_conditions: Json | null
+          previous_assigned_to: string | null
+          reason: string | null
+          rule_id: string | null
+          rule_name: string | null
+          strategy: string | null
+          workspace_id: string
+        }
+        Insert: {
+          added_tags?: string[] | null
+          assigned_to?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          matched_conditions?: Json | null
+          previous_assigned_to?: string | null
+          reason?: string | null
+          rule_id?: string | null
+          rule_name?: string | null
+          strategy?: string | null
+          workspace_id: string
+        }
+        Update: {
+          added_tags?: string[] | null
+          assigned_to?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          matched_conditions?: Json | null
+          previous_assigned_to?: string | null
+          reason?: string | null
+          rule_id?: string | null
+          rule_name?: string | null
+          strategy?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      conversation_routing_rules: {
+        Row: {
+          add_tags: string[] | null
+          assign_to_profile: string | null
+          assign_to_user_id: string | null
+          assign_to_user_ids: string[] | null
+          assignment_strategy: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          match_channels: string[] | null
+          match_intents: string[] | null
+          match_priorities: string[] | null
+          match_sentiments: string[] | null
+          match_tags: string[] | null
+          min_value: number | null
+          name: string
+          notify_user: boolean
+          priority: number
+          set_priority: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          add_tags?: string[] | null
+          assign_to_profile?: string | null
+          assign_to_user_id?: string | null
+          assign_to_user_ids?: string[] | null
+          assignment_strategy?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          match_channels?: string[] | null
+          match_intents?: string[] | null
+          match_priorities?: string[] | null
+          match_sentiments?: string[] | null
+          match_tags?: string[] | null
+          min_value?: number | null
+          name: string
+          notify_user?: boolean
+          priority?: number
+          set_priority?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          add_tags?: string[] | null
+          assign_to_profile?: string | null
+          assign_to_user_id?: string | null
+          assign_to_user_ids?: string[] | null
+          assignment_strategy?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          match_channels?: string[] | null
+          match_intents?: string[] | null
+          match_priorities?: string[] | null
+          match_sentiments?: string[] | null
+          match_tags?: string[] | null
+          min_value?: number | null
+          name?: string
+          notify_user?: boolean
+          priority?: number
+          set_priority?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       conversation_rule_executions: {
         Row: {
           action_taken: string | null
