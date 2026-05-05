@@ -780,6 +780,57 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
                 </TabsContent>
 
                 <TabsContent value="media" className="space-y-4 mt-4">
+                  {/* ── Gerar imagem com IA (Nano Banana) ── */}
+                  <div className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <ImageIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium leading-tight">Gerar imagem com IA</p>
+                          <p className="text-[11px] text-muted-foreground leading-tight">
+                            Descreve a imagem hero (16:9). A IA gera e faz upload automático.
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="gap-1 text-[11px] font-normal">
+                        <Coins className="h-3 w-3" />
+                        {aiImageCost} crédito{aiImageCost === 1 ? "" : "s"}
+                      </Badge>
+                    </div>
+                    <Textarea
+                      value={aiImagePrompt}
+                      onChange={(e) => setAiImagePrompt(e.target.value)}
+                      placeholder='Ex.: "Frascos de óleos vegetais ozonizados em mesa de mármore com folhas de eucalipto, luz natural suave"'
+                      rows={2}
+                      maxLength={1000}
+                      disabled={aiImageBusy || isAdmin === false}
+                      className="resize-none text-sm"
+                    />
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-[11px] text-muted-foreground">
+                        {aiImagePrompt.length}/1000 · saldo: <strong className="text-foreground">{balance}</strong> créditos
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={generateImageWithAI}
+                        disabled={aiImageBusy || isAdmin === false || aiImagePrompt.trim().length < 8}
+                      >
+                        {aiImageBusy ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> A gerar imagem…</>
+                        ) : (
+                          <><Sparkles className="h-4 w-4 mr-2" /> Gerar imagem</>
+                        )}
+                      </Button>
+                    </div>
+                    {!canAffordAIImage && aiImageCost > 0 && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        Saldo insuficiente. São necessários {aiImageCost} créditos.
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <Label>Imagem (1600×900 recomendado)</Label>
                     <div
