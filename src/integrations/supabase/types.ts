@@ -22645,6 +22645,9 @@ export type Database = {
       }
       conversations: {
         Row: {
+          ai_analysis_at: string | null
+          ai_analysis_json: Json | null
+          ai_analysis_message_count: number | null
           ai_classification_at: string | null
           ai_intent: string | null
           ai_priority: string | null
@@ -22683,6 +22686,9 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          ai_analysis_at?: string | null
+          ai_analysis_json?: Json | null
+          ai_analysis_message_count?: number | null
           ai_classification_at?: string | null
           ai_intent?: string | null
           ai_priority?: string | null
@@ -22721,6 +22727,9 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          ai_analysis_at?: string | null
+          ai_analysis_json?: Json | null
+          ai_analysis_message_count?: number | null
           ai_classification_at?: string | null
           ai_intent?: string | null
           ai_priority?: string | null
@@ -72826,9 +72835,57 @@ export type Database = {
           },
         ]
       }
+      whatsapp_webhook_logs: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          error_message: string | null
+          event_type: string | null
+          id: string
+          instance_id: string | null
+          payload: Json
+          processed: boolean
+          processing_ms: number | null
+          workspace_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          instance_id?: string | null
+          payload?: Json
+          processed?: boolean
+          processing_ms?: number | null
+          workspace_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          instance_id?: string | null
+          payload?: Json
+          processed?: boolean
+          processing_ms?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_webhook_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_zapi_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_zapi_connections: {
         Row: {
           account_mode: string
+          ai_auto_analyze: boolean
           client_token: string | null
           connected_at: string | null
           connected_by: string | null
@@ -72836,6 +72893,7 @@ export type Database = {
           disconnected_at: string | null
           id: string
           instance_id: string | null
+          instance_name: string | null
           instance_token: string | null
           last_error: string | null
           last_inbound_message_at: string | null
@@ -72848,11 +72906,15 @@ export type Database = {
           qr_updated_at: string | null
           status: string
           updated_at: string
+          webhook_configured: boolean
+          webhook_last_error: string | null
+          webhook_last_received_at: string | null
           webhook_secret: string
           workspace_id: string
         }
         Insert: {
           account_mode?: string
+          ai_auto_analyze?: boolean
           client_token?: string | null
           connected_at?: string | null
           connected_by?: string | null
@@ -72860,6 +72922,7 @@ export type Database = {
           disconnected_at?: string | null
           id?: string
           instance_id?: string | null
+          instance_name?: string | null
           instance_token?: string | null
           last_error?: string | null
           last_inbound_message_at?: string | null
@@ -72872,11 +72935,15 @@ export type Database = {
           qr_updated_at?: string | null
           status?: string
           updated_at?: string
+          webhook_configured?: boolean
+          webhook_last_error?: string | null
+          webhook_last_received_at?: string | null
           webhook_secret?: string
           workspace_id: string
         }
         Update: {
           account_mode?: string
+          ai_auto_analyze?: boolean
           client_token?: string | null
           connected_at?: string | null
           connected_by?: string | null
@@ -72884,6 +72951,7 @@ export type Database = {
           disconnected_at?: string | null
           id?: string
           instance_id?: string | null
+          instance_name?: string | null
           instance_token?: string | null
           last_error?: string | null
           last_inbound_message_at?: string | null
@@ -72896,6 +72964,9 @@ export type Database = {
           qr_updated_at?: string | null
           status?: string
           updated_at?: string
+          webhook_configured?: boolean
+          webhook_last_error?: string | null
+          webhook_last_received_at?: string | null
           webhook_secret?: string
           workspace_id?: string
         }
@@ -78137,6 +78208,19 @@ export type Database = {
           p_execution_id: string
           p_memory_id: string
           p_relevance_score?: number
+        }
+        Returns: string
+      }
+      log_whatsapp_webhook: {
+        Args: {
+          p_connection_id: string
+          p_error: string
+          p_event_type: string
+          p_instance_id: string
+          p_payload: Json
+          p_processed: boolean
+          p_processing_ms: number
+          p_workspace_id: string
         }
         Returns: string
       }

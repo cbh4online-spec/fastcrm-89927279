@@ -22,6 +22,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConversationIntelligencePanel } from "./ConversationIntelligencePanel";
+import { ConversationAIAnalysisPanel } from "./ConversationAIAnalysisPanel";
 import { useConversationSummary } from "@/hooks/useConversationSummary";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
 import { ScheduleFollowupDialog } from "./ScheduleFollowupDialog";
@@ -231,6 +232,15 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
         <TabsContent value="ai" className="flex-1 m-0 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-3">
+              {/* Análise IA estruturada (10 campos, cache + auto a cada inbound) */}
+              {conversation?.channel === "whatsapp" && (
+                <ConversationAIAnalysisPanel
+                  conversationId={conversationId}
+                  onInsertReply={onInsertReply}
+                  onCreateOpportunity={() => setShowCreateOpp(true)}
+                  onScheduleFollowup={() => setShowFollowup(true)}
+                />
+              )}
               {messages && messages.length > 0 ? (
                 <ConversationIntelligencePanel
                   messages={messages}

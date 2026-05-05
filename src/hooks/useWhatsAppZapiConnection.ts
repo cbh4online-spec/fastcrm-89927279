@@ -21,6 +21,7 @@ export interface WhatsAppZapiConnection {
   id: string;
   workspace_id: string;
   instance_id: string | null;
+  instance_name: string | null;
   account_mode: ZapiAccountMode;
   status: ZapiStatus;
   phone_number: string | null;
@@ -31,6 +32,10 @@ export interface WhatsAppZapiConnection {
   last_seen_at: string | null;
   last_sync_at: string | null;
   last_error: string | null;
+  webhook_configured: boolean;
+  webhook_last_received_at: string | null;
+  webhook_last_error: string | null;
+  ai_auto_analyze: boolean;
   metadata_json: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -54,7 +59,7 @@ export function useWhatsAppZapiConnection() {
       const { data, error } = await supabase
         .from("whatsapp_zapi_connections" as any)
         .select(
-          "id, workspace_id, instance_id, account_mode, status, phone_number, qr_code, qr_updated_at, connected_at, disconnected_at, last_seen_at, last_sync_at, last_error, metadata_json, created_at, updated_at"
+          "id, workspace_id, instance_id, instance_name, account_mode, status, phone_number, qr_code, qr_updated_at, connected_at, disconnected_at, last_seen_at, last_sync_at, last_error, webhook_configured, webhook_last_received_at, webhook_last_error, ai_auto_analyze, metadata_json, created_at, updated_at"
         )
         .eq("workspace_id", currentWorkspace.id)
         .maybeSingle();

@@ -365,6 +365,48 @@ Deno.serve(async (req) => {
 
     console.log(`[zapi-webhook] MSG_INSERTED conv=${conversationId} dir=${direction} type=${extracted.messageType} group=${isGroup}`);
 
+    // Log estruturado do webhook
+    try {
+      await admin.rpc('log_whatsapp_webhook', {
+        p_workspace_id: workspaceId,
+        p_connection_id: conn.id,
+        p_instance_id: conn.instance_id,
+        p_event_type: eventType || 'ReceivedCallback',
+        p_payload: { direction, message_type: extracted.messageType, conversation_id: conversationId, is_group: isGroup },
+        p_processed: true,
+        p_error: null,
+        p_processing_ms: null,
+      });
+    } catch (logErr) {
+      console.warn('[zapi-webhook] log failed', (logErr as Error).message);
+    }
+
+    // Disparar análise IA (fire-and-forget) apenas para inbound em DM, se a connection tiver auto-analyze ativo
+    if (direction === 'inbound' && !isGroup) {
+      try {
+        const { data: connFlags } = await admin
+          .from('whatsapp_zapi_connections')
+          .select('ai_auto_analyze')
+          .eq('id', conn.id)
+          .maybeSingle();
+        if (connFlags?.ai_auto_analyze !== false) {
+          const baseFnUrl = Deno.env.get('SUPABASE_URL')!.replace('.supabase.co', '.functions.supabase.co');
+          // Não esperamos pela resposta — fire & forget
+          fetch(`${baseFnUrl}/whatsapp-conversation-ai-analyze`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-call': '1',
+              Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!}`,
+            },
+            body: JSON.stringify({ conversationId }),
+          }).catch((e) => console.warn('[zapi-webhook] ai-analyze fire-and-forget failed', e?.message));
+        }
+      } catch (aiErr) {
+        console.warn('[zapi-webhook] ai-analyze trigger failed', (aiErr as Error).message);
+      }
+    }
+
     return jsonRes({ ok: true, processed: 'message', conversationId, direction });
   } catch (err) {
     console.error('[zapi-webhook] Internal error:', err);
