@@ -236,13 +236,29 @@ export function useMarkRead() {
   });
 }
 
-/** Workspace teammates (everyone in the same workspace, excluding self). */
-export function useWorkspaceTeammates(workspaceId: string | null | undefined) {
+/** Workspace teammates. Super admin recebe TODOS os utilizadores da plataforma. */
+export function useWorkspaceTeammates(
+  workspaceId: string | null | undefined,
+  isSuperAdmin: boolean = false,
+) {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["dm", "teammates", workspaceId, user?.id],
-    enabled: !!workspaceId && !!user?.id,
+    queryKey: ["dm", "teammates", workspaceId, user?.id, isSuperAdmin],
+    enabled: !!user?.id && (isSuperAdmin || !!workspaceId),
     queryFn: async () => {
+      // Super admin: lista global via RPC
+      if (isSuperAdmin) {
+        const { data, error } = await (supabase.rpc as any)("dm_list_all_users");
+        if (error) throw error;
+        return (data ?? []) as Array<{
+          user_id: string;
+          full_name: string | null;
+          email: string | null;
+          avatar_url: string | null;
+          workspaces: string | null;
+        }>;
+      }
+      // Utilizador normal: apenas membros do workspace atual
       const { data: members, error } = await supabase
         .from("workspace_members")
         .select("user_id")
@@ -254,7 +270,7 @@ export function useWorkspaceTeammates(workspaceId: string | null | undefined) {
         .from("profiles")
         .select("user_id, full_name, email, avatar_url")
         .in("user_id", ids);
-      return profiles ?? [];
+      return (profiles ?? []).map((p) => ({ ...p, workspaces: null }));
     },
   });
 }

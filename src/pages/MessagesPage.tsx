@@ -315,13 +315,14 @@ function NewConversationButton({
   isSuperAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const { data: teammates = [] } = useWorkspaceTeammates(workspaceId);
+  const { data: teammates = [] } = useWorkspaceTeammates(workspaceId, isSuperAdmin);
   const startDM = useStartDM();
   const createGroup = useCreateGroup();
   const createBroadcast = useCreateBroadcast();
   const [, setSearchParams] = useSearchParams();
   const [groupTitle, setGroupTitle] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastBody, setBroadcastBody] = useState("");
 
@@ -396,28 +397,55 @@ function NewConversationButton({
           </TabsList>
 
           <TabsContent value="dm" className="mt-4">
+            <Input
+              placeholder={isSuperAdmin ? "Pesquisar entre todos os utilizadores…" : "Pesquisar colega…"}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mb-2"
+            />
+            {isSuperAdmin && (
+              <p className="text-[11px] text-muted-foreground mb-2">
+                🛡️ Modo super admin: pode iniciar conversa com qualquer utilizador da plataforma.
+              </p>
+            )}
             <ScrollArea className="max-h-72">
               {teammates.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-4 text-center">Sem outros membros no workspace.</p>
+                <p className="text-sm text-muted-foreground p-4 text-center">
+                  {isSuperAdmin ? "Sem utilizadores." : "Sem outros membros no workspace."}
+                </p>
               ) : (
                 <ul className="space-y-1">
-                  {teammates.map((t: any) => (
-                    <li key={t.user_id}>
-                      <button
-                        onClick={() => handleStartDM(t.user_id)}
-                        className="w-full flex items-center gap-3 p-2 rounded hover:bg-muted text-left"
-                      >
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={t.avatar_url ?? undefined} />
-                          <AvatarFallback>{initials(t.full_name, t.email)}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{t.full_name || t.email}</p>
-                          {t.full_name && <p className="text-xs text-muted-foreground truncate">{t.email}</p>}
-                        </div>
-                      </button>
-                    </li>
-                  ))}
+                  {teammates
+                    .filter((t: any) => {
+                      if (!search.trim()) return true;
+                      const q = search.toLowerCase();
+                      return (
+                        (t.full_name ?? "").toLowerCase().includes(q) ||
+                        (t.email ?? "").toLowerCase().includes(q) ||
+                        (t.workspaces ?? "").toLowerCase().includes(q)
+                      );
+                    })
+                    .slice(0, 100)
+                    .map((t: any) => (
+                      <li key={t.user_id}>
+                        <button
+                          onClick={() => handleStartDM(t.user_id)}
+                          className="w-full flex items-center gap-3 p-2 rounded hover:bg-muted text-left"
+                        >
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={t.avatar_url ?? undefined} />
+                            <AvatarFallback>{initials(t.full_name, t.email)}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{t.full_name || t.email}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {t.full_name ? t.email : ""}
+                              {t.workspaces ? (t.full_name ? " · " : "") + t.workspaces : ""}
+                            </p>
+                          </div>
+                        </button>
+                      </li>
+                    ))}
                 </ul>
               )}
             </ScrollArea>
