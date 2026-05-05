@@ -1,4 +1,5 @@
 import { Activity, CalendarDays, Sparkles, Target, Phone, FileText, AlertCircle, TrendingUp, ChevronRight, Loader2, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { LeadChefMobileShell } from "@/components/leadchef/LeadChefMobileShell";
 import { LeadChefTodayCard } from "@/components/leadchef/LeadChefTodayCard";
 import { LeadChefLeadStageBadge } from "@/components/leadchef/LeadChefLeadStageBadge";
@@ -14,13 +15,13 @@ const TYPE_ICON = {
   follow_up: FileText,
 } as const;
 
-function ActionRow({ action }: { action: LeadChefTodayAction }) {
+function ActionRow({ action, onClick }: { action: LeadChefTodayAction; onClick: () => void }) {
   const Icon = (action.type && TYPE_ICON[action.type as keyof typeof TYPE_ICON]) || FileText;
   const time = action.scheduledAt
     ? new Date(action.scheduledAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })
     : null;
   return (
-    <button className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left">
+    <button onClick={onClick} className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left">
       <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
         <Icon className="h-4 w-4" />
       </div>
@@ -44,7 +45,9 @@ function EmptyMini({ message }: { message: string }) {
 }
 
 export default function LeadChefTodayPage() {
+  const navigate = useNavigate();
   const { data, isLoading, isError } = useLeadChefToday();
+  const goToLead = (leadId: string) => navigate(`/dashboard/leadchef/leads/${leadId}`);
 
   if (isLoading) {
     return (
@@ -118,7 +121,7 @@ export default function LeadChefTodayPage() {
         ) : (
           <ul className="divide-y divide-slate-100">
             {[...data.overdueActions, ...data.todayActions].map((a) => (
-              <li key={a.id}><ActionRow action={a} /></li>
+              <li key={a.id}><ActionRow action={a} onClick={() => goToLead(a.leadId)} /></li>
             ))}
           </ul>
         )}
@@ -135,7 +138,11 @@ export default function LeadChefTodayPage() {
         ) : (
           <ul className="divide-y divide-slate-100">
             {data.newLeadsWithoutContact.slice(0, 6).map((l) => (
-              <li key={l.id} className="px-4 py-3 flex items-center justify-between">
+              <li
+                key={l.id}
+                onClick={() => goToLead(l.leadId)}
+                className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 active:bg-slate-100"
+              >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900 truncate">{l.leadName}</p>
                   <p className="text-xs text-slate-500 mt-0.5">Aguarda primeiro contacto</p>
