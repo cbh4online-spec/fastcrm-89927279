@@ -133,6 +133,56 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
 
+  // ── IA: gerar imagem do banner (Nano Banana)
+  const aiImageCost = getCost("b2b_banner_ai_image");
+  const canAffordAIImage = canAfford("b2b_banner_ai_image");
+  const [aiImagePrompt, setAiImagePrompt] = useState("");
+  const [aiImageBusy, setAiImageBusy] = useState(false);
+
+  const generateImageWithAI = async () => {
+    if (!editing || !workspaceId) return;
+    const prompt = aiImagePrompt.trim();
+    if (prompt.length < 8) {
+      toast.error("Descreve a imagem que queres (mínimo 8 caracteres)");
+      return;
+    }
+    if (!canAffordAIImage) {
+      triggerNoCreditsDialog({ actionLabel: "Gerar imagem com IA", creditsNeeded: aiImageCost });
+      return;
+    }
+    setAiImageBusy(true);
+    try {
+      if (aiImageCost > 0) {
+        await consumeCredits.mutateAsync({
+          actionKey: "b2b_banner_ai_image",
+          referenceType: "b2b_banner",
+          referenceId: editing.id || `draft-${Date.now()}`,
+          metadata: { prompt_preview: prompt.slice(0, 120), kind: editing.kind },
+        });
+      }
+      const { data, error } = await supabase.functions.invoke("ai-generate-b2b-banner-image", {
+        body: {
+          workspace_id: workspaceId,
+          prompt,
+          kind: editing.kind,
+          theme: editing.theme,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.url) throw new Error("Resposta da IA sem imagem");
+
+      setEditing((prev) => (prev ? { ...prev, image_url: data.url } : prev));
+      toast.success("Imagem gerada com IA");
+      setAiImagePrompt("");
+    } catch (e) {
+      const msg = (e as Error).message || "Erro ao gerar imagem";
+      toast.error(msg);
+    } finally {
+      setAiImageBusy(false);
+    }
+  };
+
   const generateWithAI = async () => {
     if (!editing || !workspaceId) return;
     const prompt = aiPrompt.trim();
