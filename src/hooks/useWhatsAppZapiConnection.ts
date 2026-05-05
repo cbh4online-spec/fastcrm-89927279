@@ -82,6 +82,7 @@ export function useConnectWhatsAppZapi() {
         body: { workspaceId: currentWorkspace.id, byo },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
@@ -89,7 +90,7 @@ export function useConnectWhatsAppZapi() {
       toast.success("Instância Z-API criada — escaneie o QR code");
     },
     onError: (err: Error) => {
-      toast.error("Erro a conectar: " + err.message);
+      toast.error(err.message, { duration: 8000 });
     },
   });
 }
