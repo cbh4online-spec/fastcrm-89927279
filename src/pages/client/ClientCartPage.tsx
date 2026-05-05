@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const FREE_SHIPPING_THRESHOLD = 150; // €  s/ IVA (alvo motivacional)
+const DEFAULT_FREE_SHIPPING_THRESHOLD = 150; // €  s/ IVA — sobreposto pelas definições do workspace
 
 export default function ClientCartPage() {
   const navigate = useNavigate();
@@ -105,13 +105,15 @@ export default function ClientCartPage() {
       .slice(0, 4);
   }, [favorites, cartProductIds]);
 
+  const freeShippingThreshold =
+    recs?.settings?.free_shipping_threshold ?? DEFAULT_FREE_SHIPPING_THRESHOLD;
   const remainingForFreeShipping = Math.max(
     0,
-    FREE_SHIPPING_THRESHOLD - cart.total_net,
+    freeShippingThreshold - cart.total_net,
   );
   const freeShippingProgress = Math.min(
     100,
-    (cart.total_net / FREE_SHIPPING_THRESHOLD) * 100,
+    (cart.total_net / freeShippingThreshold) * 100,
   );
   const hasFreeShipping = remainingForFreeShipping === 0 && cart.total_net > 0;
 
