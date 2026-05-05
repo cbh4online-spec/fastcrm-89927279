@@ -21,7 +21,7 @@ import { Activity } from "lucide-react";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
 import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
 import { WorkspaceVideoSettings } from "./WorkspaceVideoSettings";
-import { WhatsAppConfigPanel } from "@/components/settings/WhatsAppConfigPanel";
+import { WhatsAppZapiConnectionCard } from "@/components/integrations/WhatsAppZapiConnectionCard";
 import { useWorkspaceStripeConfig } from "@/hooks/useWorkspaceStripeConfig";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useWorkspaceVideoConfig } from "@/hooks/useWorkspaceVideoConfig";
@@ -96,7 +96,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
           description="Conecte a API do WhatsApp Business para receber e enviar mensagens"
           icon={<Phone className="h-5 w-5 text-green-600" />}
         >
-          <WhatsAppConfigPanel />
+          <WhatsAppZapiConnectionCard />
         </SettingsSection>
       )}
 
