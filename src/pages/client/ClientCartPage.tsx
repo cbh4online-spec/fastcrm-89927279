@@ -449,28 +449,31 @@ export default function ClientCartPage() {
             )}
 
             {/* Promoções activas */}
-            {recs?.promotions && recs.promotions.length > 0 && (
+            {recs?.settings?.show_promotions && recs.promotions && recs.promotions.length > 0 && (
               <CartProductRail variant="promotions" products={recs.promotions} />
             )}
 
             {/* Mais vendidos no workspace */}
-            {recs?.bestSellers && recs.bestSellers.length > 0 && (
+            {recs?.settings?.show_best_sellers && recs.bestSellers && recs.bestSellers.length > 0 && (
               <CartProductRail variant="bestSellers" products={recs.bestSellers} />
             )}
 
-            {/* Produtos relacionados pela categoria */}
-            {recs?.related && recs.related.length > 0 && (
+            {/* Produtos relacionados (manuais + categoria) */}
+            {recs?.settings?.show_related && recs.related && recs.related.length > 0 && (
               <CartProductRail variant="related" products={recs.related} />
             )}
 
-            {/* Kit poupança — sugestão composta a partir dos relacionados */}
-            {recs?.related && recs.related.length >= 3 && (
+            {/* Kits Poupança (manuais e/ou auto) */}
+            {recs?.settings?.show_kit && recs.kits?.map((kit) => (
               <CartProductRail
+                key={kit.id}
                 variant="kit"
-                products={recs.related.slice(0, 3)}
-                kitDiscountPct={5}
+                products={kit.products}
+                kitDiscountPct={kit.discount_pct}
+                kitName={kit.name}
+                kitDescription={kit.description ?? undefined}
               />
-            )}
+            ))}
 
             {/* Reorder shortcut */}
             {lastOrder && lastOrder.items && lastOrder.items.length > 0 && (
