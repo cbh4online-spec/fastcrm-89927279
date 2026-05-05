@@ -355,7 +355,7 @@ function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBa
           </p>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
