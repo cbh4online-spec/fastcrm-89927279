@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const FREE_SHIPPING_THRESHOLD = 150; // €  s/ IVA (alvo motivacional)
+const DEFAULT_FREE_SHIPPING_THRESHOLD = 150; // €  s/ IVA — sobreposto pelas definições do workspace
 
 export default function ClientCartPage() {
   const navigate = useNavigate();
@@ -105,13 +105,15 @@ export default function ClientCartPage() {
       .slice(0, 4);
   }, [favorites, cartProductIds]);
 
+  const freeShippingThreshold =
+    recs?.settings?.free_shipping_threshold ?? DEFAULT_FREE_SHIPPING_THRESHOLD;
   const remainingForFreeShipping = Math.max(
     0,
-    FREE_SHIPPING_THRESHOLD - cart.total_net,
+    freeShippingThreshold - cart.total_net,
   );
   const freeShippingProgress = Math.min(
     100,
-    (cart.total_net / FREE_SHIPPING_THRESHOLD) * 100,
+    (cart.total_net / freeShippingThreshold) * 100,
   );
   const hasFreeShipping = remainingForFreeShipping === 0 && cart.total_net > 0;
 
@@ -260,7 +262,7 @@ export default function ClientCartPage() {
                     <span className="font-semibold text-foreground">
                       {remainingForFreeShipping.toFixed(2)}€
                     </span>{" "}
-                    para portes grátis (acima de {FREE_SHIPPING_THRESHOLD}€ s/ IVA).
+                    para portes grátis (acima de {freeShippingThreshold}€ s/ IVA).
                   </p>
                 )}
               </div>
@@ -447,28 +449,31 @@ export default function ClientCartPage() {
             )}
 
             {/* Promoções activas */}
-            {recs?.promotions && recs.promotions.length > 0 && (
+            {recs?.settings?.show_promotions && recs.promotions && recs.promotions.length > 0 && (
               <CartProductRail variant="promotions" products={recs.promotions} />
             )}
 
             {/* Mais vendidos no workspace */}
-            {recs?.bestSellers && recs.bestSellers.length > 0 && (
+            {recs?.settings?.show_best_sellers && recs.bestSellers && recs.bestSellers.length > 0 && (
               <CartProductRail variant="bestSellers" products={recs.bestSellers} />
             )}
 
-            {/* Produtos relacionados pela categoria */}
-            {recs?.related && recs.related.length > 0 && (
+            {/* Produtos relacionados (manuais + categoria) */}
+            {recs?.settings?.show_related && recs.related && recs.related.length > 0 && (
               <CartProductRail variant="related" products={recs.related} />
             )}
 
-            {/* Kit poupança — sugestão composta a partir dos relacionados */}
-            {recs?.related && recs.related.length >= 3 && (
+            {/* Kits Poupança (manuais e/ou auto) */}
+            {recs?.settings?.show_kit && recs.kits?.map((kit) => (
               <CartProductRail
+                key={kit.id}
                 variant="kit"
-                products={recs.related.slice(0, 3)}
-                kitDiscountPct={5}
+                products={kit.products}
+                kitDiscountPct={kit.discount_pct}
+                kitName={kit.name}
+                kitDescription={kit.description ?? undefined}
               />
-            )}
+            ))}
 
             {/* Reorder shortcut */}
             {lastOrder && lastOrder.items && lastOrder.items.length > 0 && (

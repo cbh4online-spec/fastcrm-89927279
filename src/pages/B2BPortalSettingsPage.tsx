@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { B2BEmailTemplatesManager } from "@/components/b2b-portal/B2BEmailTemplatesManager";
 import { B2BPortalBannersManager } from "@/components/b2b-portal/B2BPortalBannersManager";
+import { B2BCheckoutManager } from "@/components/b2b-portal/B2BCheckoutManager";
 import { 
   Settings, 
   ExternalLink, 
@@ -244,6 +245,10 @@ export default function B2BPortalSettingsPage() {
               <Image className="h-4 w-4" />
               Banners
             </TabsTrigger>
+            <TabsTrigger value="checkout" className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              Checkout
+            </TabsTrigger>
             <TabsTrigger value="emails" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
               Emails
@@ -382,6 +387,10 @@ export default function B2BPortalSettingsPage() {
 
           <TabsContent value="banners" className="space-y-4">
             <B2BPortalBannersManager workspaceId={currentWorkspace?.id} />
+          </TabsContent>
+
+          <TabsContent value="checkout" className="space-y-4">
+            <B2BCheckoutManager workspaceId={currentWorkspace?.id} />
           </TabsContent>
 
           <TabsContent value="emails" className="space-y-4">
