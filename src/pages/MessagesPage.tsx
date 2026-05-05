@@ -90,7 +90,7 @@ export default function MessagesPage() {
         <title>Mensagens · FastCRM</title>
         <meta name="description" content="Mensagens diretas entre membros do workspace." />
       </Helmet>
-      <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden border-t">
+      <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden border-t">
         {/* Sidebar */}
         <aside className="w-72 border-r bg-muted/20 flex flex-col">
           <div className="p-3 border-b flex items-center justify-between">
