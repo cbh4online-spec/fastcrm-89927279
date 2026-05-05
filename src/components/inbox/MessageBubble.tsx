@@ -40,10 +40,51 @@ export function MessageBubble({
   
   // Parse attachments from metadata
   const attachments = message.channel_metadata?.attachments as Array<{
-    name: string;
+    name?: string;
     url: string;
     type: string;
+    ptt?: boolean;
+    caption?: string;
   }> | undefined;
+
+  const renderAttachment = (att: { name?: string; url: string; type: string; ptt?: boolean }, idx: number) => {
+    if (att.type === "audio") {
+      return (
+        <div key={idx} className="flex items-center gap-2 w-full">
+          <audio
+            controls
+            preload="metadata"
+            src={att.url}
+            className="w-full max-w-[260px] h-9"
+          >
+            <track kind="captions" />
+          </audio>
+          {att.ptt && (
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">PTT</span>
+          )}
+        </div>
+      );
+    }
+    return (
+      <Button
+        key={idx}
+        variant="outline"
+        size="sm"
+        className="h-8 text-xs gap-1.5"
+        asChild
+      >
+        <a href={att.url} target="_blank" rel="noopener noreferrer">
+          {att.type?.includes("pdf") ? (
+            <FileText className="w-3.5 h-3.5" />
+          ) : (
+            <Paperclip className="w-3.5 h-3.5" />
+          )}
+          <span className="truncate max-w-[120px]">{att.name || "Ficheiro"}</span>
+          <Download className="w-3 h-3" />
+        </a>
+      </Button>
+    );
+  };
 
   const formattedTime = format(new Date(message.created_at), "HH:mm", { locale: pt });
   const formattedDate = format(new Date(message.created_at), "d MMM, HH:mm", { locale: pt });
