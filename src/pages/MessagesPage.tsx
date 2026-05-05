@@ -315,13 +315,14 @@ function NewConversationButton({
   isSuperAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const { data: teammates = [] } = useWorkspaceTeammates(workspaceId);
+  const { data: teammates = [] } = useWorkspaceTeammates(workspaceId, isSuperAdmin);
   const startDM = useStartDM();
   const createGroup = useCreateGroup();
   const createBroadcast = useCreateBroadcast();
   const [, setSearchParams] = useSearchParams();
   const [groupTitle, setGroupTitle] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastBody, setBroadcastBody] = useState("");
 
