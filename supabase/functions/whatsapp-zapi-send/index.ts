@@ -24,6 +24,7 @@ interface SendBody {
     url: string;
     caption?: string;
     fileName?: string;
+    ptt?: boolean; // Push-to-talk (audio only)
   };
   // Optional buttons (interactive)
   buttons?: ButtonOption[];
@@ -158,8 +159,15 @@ Deno.serve(async (req) => {
           break;
         case 'audio':
           zapiPath = '/send-audio';
-          zapiBody = { ...destPayload, audio: media.url };
-          messagePreview = '[Áudio]';
+          zapiBody = {
+            ...destPayload,
+            audio: media.url,
+            // PTT: viewOnce=false, waveform=true, async=true → Z-API entrega como nota de voz
+            ...(media.ptt
+              ? { viewOnce: false, waveform: true, async: true }
+              : {}),
+          };
+          messagePreview = media.ptt ? '[Nota de voz]' : '[Áudio]';
           break;
         case 'video':
           zapiPath = '/send-video';
