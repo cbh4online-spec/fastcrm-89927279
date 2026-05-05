@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.whatsapp-qr-reconnect]
 verify_jwt = false
 
+[functions.whatsapp-zapi-webhook]
+verify_jwt = false
+
 [functions.google-calendar-sync]
 verify_jwt = false
 
