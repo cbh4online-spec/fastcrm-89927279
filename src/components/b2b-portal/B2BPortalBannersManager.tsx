@@ -126,6 +126,80 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
   const [filterKind, setFilterKind] = useState<PartnerSlideKind | "all">("all");
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
+  // ── IA: construir banner com prompt em linguagem natural
+  const { getCost, canAfford, consumeCredits, balance } = useCreditWallet();
+  const aiCost = getCost("b2b_banner_ai_generate");
+  const canAffordAI = canAfford("b2b_banner_ai_generate");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+
+  const generateWithAI = async () => {
+    if (!editing || !workspaceId) return;
+    const prompt = aiPrompt.trim();
+    if (prompt.length < 8) {
+      toast.error("Descreve o banner que queres (mínimo 8 caracteres)");
+      return;
+    }
+    if (!canAffordAI) {
+      triggerNoCreditsDialog({ actionLabel: "Gerar banner com IA", creditsNeeded: aiCost });
+      return;
+    }
+    setAiBusy(true);
+    try {
+      // 1) Consumir créditos primeiro
+      if (aiCost > 0) {
+        await consumeCredits.mutateAsync({
+          actionKey: "b2b_banner_ai_generate",
+          referenceType: "b2b_banner",
+          referenceId: editing.id || `draft-${Date.now()}`,
+          metadata: { prompt_preview: prompt.slice(0, 120) },
+        });
+      }
+
+      // 2) Chamar edge function
+      const { data, error } = await supabase.functions.invoke("ai-generate-b2b-banner", {
+        body: {
+          workspace_id: workspaceId,
+          prompt,
+          hint_kind: editing.kind,
+          current: {
+            title: editing.title,
+            subtitle: editing.subtitle,
+            kind: editing.kind,
+          },
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.banner) throw new Error("Resposta da IA inválida");
+
+      const b = data.banner;
+      setEditing((prev) =>
+        prev
+          ? {
+              ...prev,
+              kind: (b.kind as PartnerSlideKind) || prev.kind,
+              eyebrow: b.eyebrow ?? prev.eyebrow,
+              title: b.title ?? prev.title,
+              subtitle: b.subtitle ?? prev.subtitle,
+              description: b.description ?? prev.description,
+              cta_label: b.cta_label ?? prev.cta_label,
+              cta_url: b.cta_url ?? prev.cta_url,
+              theme: b.theme ?? prev.theme,
+            }
+          : prev,
+      );
+      toast.success("Banner gerado com IA — revê e guarda");
+      setAiPrompt("");
+    } catch (e) {
+      const msg = (e as Error).message || "Erro ao gerar com IA";
+      toast.error(msg);
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+
   // Verificar se é admin do workspace OU super admin (UX clara)
   useEffect(() => {
     let cancelled = false;
