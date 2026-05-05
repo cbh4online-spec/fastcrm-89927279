@@ -9,6 +9,8 @@ import {
   type PartnerSlideKind,
 } from "@/hooks/usePartnerPortalSlides";
 import { supabase } from "@/integrations/supabase/client";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +32,7 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Loader2, Image as ImageIcon, Upload, ArrowUp, ArrowDown,
   Sparkles, Eye, EyeOff, Calendar, ExternalLink, Download, Copy, AlertCircle,
-  ShieldAlert, Search, X,
+  ShieldAlert, Search, X, Wand2, Coins,
 } from "lucide-react";
 
 interface Props {
@@ -124,6 +126,80 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
   const [filterKind, setFilterKind] = useState<PartnerSlideKind | "all">("all");
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
+  // ── IA: construir banner com prompt em linguagem natural
+  const { getCost, canAfford, consumeCredits, balance } = useCreditWallet();
+  const aiCost = getCost("b2b_banner_ai_generate");
+  const canAffordAI = canAfford("b2b_banner_ai_generate");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+
+  const generateWithAI = async () => {
+    if (!editing || !workspaceId) return;
+    const prompt = aiPrompt.trim();
+    if (prompt.length < 8) {
+      toast.error("Descreve o banner que queres (mínimo 8 caracteres)");
+      return;
+    }
+    if (!canAffordAI) {
+      triggerNoCreditsDialog({ actionLabel: "Gerar banner com IA", creditsNeeded: aiCost });
+      return;
+    }
+    setAiBusy(true);
+    try {
+      // 1) Consumir créditos primeiro
+      if (aiCost > 0) {
+        await consumeCredits.mutateAsync({
+          actionKey: "b2b_banner_ai_generate",
+          referenceType: "b2b_banner",
+          referenceId: editing.id || `draft-${Date.now()}`,
+          metadata: { prompt_preview: prompt.slice(0, 120) },
+        });
+      }
+
+      // 2) Chamar edge function
+      const { data, error } = await supabase.functions.invoke("ai-generate-b2b-banner", {
+        body: {
+          workspace_id: workspaceId,
+          prompt,
+          hint_kind: editing.kind,
+          current: {
+            title: editing.title,
+            subtitle: editing.subtitle,
+            kind: editing.kind,
+          },
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.banner) throw new Error("Resposta da IA inválida");
+
+      const b = data.banner;
+      setEditing((prev) =>
+        prev
+          ? {
+              ...prev,
+              kind: (b.kind as PartnerSlideKind) || prev.kind,
+              eyebrow: b.eyebrow ?? prev.eyebrow,
+              title: b.title ?? prev.title,
+              subtitle: b.subtitle ?? prev.subtitle,
+              description: b.description ?? prev.description,
+              cta_label: b.cta_label ?? prev.cta_label,
+              cta_url: b.cta_url ?? prev.cta_url,
+              theme: b.theme ?? prev.theme,
+            }
+          : prev,
+      );
+      toast.success("Banner gerado com IA — revê e guarda");
+      setAiPrompt("");
+    } catch (e) {
+      const msg = (e as Error).message || "Erro ao gerar com IA";
+      toast.error(msg);
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+
   // Verificar se é admin do workspace OU super admin (UX clara)
   useEffect(() => {
     let cancelled = false;
@@ -174,9 +250,10 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
   const openNew = () => {
     if (!workspaceId) return;
     const nextOrder = (sortedSlides[sortedSlides.length - 1]?.display_order ?? -1) + 1;
+    setAiPrompt("");
     setEditing(empty(workspaceId, nextOrder));
   };
-  const openEdit = (s: PartnerPortalSlide) => setEditing({ ...s });
+  const openEdit = (s: PartnerPortalSlide) => { setAiPrompt(""); setEditing({ ...s }); };
 
   const duplicate = async (s: PartnerPortalSlide) => {
     if (!workspaceId) return;
@@ -525,6 +602,57 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
                 </TabsList>
 
                 <TabsContent value="content" className="space-y-4 mt-4">
+                  {/* ── Construir com IA (estilo Lovable) ── */}
+                  <div className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Wand2 className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium leading-tight">Construir com IA</p>
+                          <p className="text-[11px] text-muted-foreground leading-tight">
+                            Descreve o banner em linguagem natural — a IA preenche os campos.
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="gap-1 text-[11px] font-normal">
+                        <Coins className="h-3 w-3" />
+                        {aiCost} crédito{aiCost === 1 ? "" : "s"}
+                      </Badge>
+                    </div>
+                    <Textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder='Ex.: "Campanha de 20% para a linha de óleos ozonizados, válida até 31 de maio, encomenda mínima 200€"'
+                      rows={2}
+                      maxLength={1500}
+                      disabled={aiBusy || isAdmin === false}
+                      className="resize-none text-sm"
+                    />
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-[11px] text-muted-foreground">
+                        {aiPrompt.length}/1500 · saldo: <strong className="text-foreground">{balance}</strong> créditos
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={generateWithAI}
+                        disabled={aiBusy || isAdmin === false || aiPrompt.trim().length < 8}
+                      >
+                        {aiBusy ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> A gerar…</>
+                        ) : (
+                          <><Sparkles className="h-4 w-4 mr-2" /> Gerar com IA</>
+                        )}
+                      </Button>
+                    </div>
+                    {!canAffordAI && aiCost > 0 && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        Saldo insuficiente. São necessários {aiCost} créditos.
+                      </p>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label>Tipo</Label>
