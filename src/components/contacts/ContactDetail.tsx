@@ -77,6 +77,7 @@ import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@
 import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
 import { cn } from "@/lib/utils";
 import { ComposeEmailDialog } from "@/components/email";
+import { WhatsAppProductSharesSection } from "@/components/whatsapp-pro/WhatsAppProductSharesSection";
 
 // Reusable row component for label-value display
 interface DetailRowProps {
