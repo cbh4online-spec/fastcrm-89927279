@@ -103,7 +103,7 @@ export default function MessagesPage() {
             <h2 className="text-sm font-semibold">Mensagens</h2>
             <NewConversationButton workspaceId={currentWorkspace?.id ?? null} isSuperAdmin={isSuperAdmin} />
           </div>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             {isLoading && (
               <div className="p-4 text-sm text-muted-foreground flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" /> A carregar…
@@ -252,7 +252,7 @@ function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBa
   };
 
   return (
-    <>
+    <div className="flex flex-col h-full min-h-0 flex-1">
       <header className="h-14 border-b px-2 md:px-4 flex items-center gap-2 shrink-0">
         {onBack && (
           <Button
@@ -282,7 +282,7 @@ function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBa
         </div>
       </header>
 
-      <ScrollArea className="flex-1" ref={scrollRef as any}>
+      <ScrollArea className="flex-1 min-h-0" ref={scrollRef as any}>
         <div className="p-4 space-y-3">
           {isLoading && (
             <div className="text-sm text-muted-foreground text-center py-8">A carregar…</div>
@@ -329,7 +329,7 @@ function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBa
         </div>
       </ScrollArea>
 
-      <div className="border-t p-3 shrink-0 bg-background pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="sticky bottom-0 z-10 border-t p-3 shrink-0 bg-background pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {canSend ? (
           <div className="flex items-end gap-2">
             <Textarea
@@ -355,7 +355,7 @@ function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBa
           </p>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
