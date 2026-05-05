@@ -231,38 +231,9 @@ export function useSendMessage() {
         }
         if (data?.error) throw new Error(data.error);
 
-        // Persist the outbound message locally
-        const { data: savedMsg, error: saveErr } = await workspaceClient
-          .from("messages")
-          .insert({
-            conversation_id: conversationId,
-            workspace_id: currentWorkspace.id,
-            direction: "outbound" as const,
-            content,
-            attachments: [] as unknown as Record<string, never>[],
-            sender_id: user.id,
-            sent_at: new Date().toISOString(),
-            delivered_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (saveErr) {
-          console.warn("[useSendMessage] WhatsApp msg sent but local save failed:", saveErr.message);
-        }
-
-        // Update conversation preview
-        await workspaceClient
-          .from("conversations")
-          .update({
-            last_message_at: new Date().toISOString(),
-            last_message_preview: content.substring(0, 100),
-            last_message_direction: "outbound",
-          })
-          .eq("id", conversationId);
-
+        // Z-API edge function already persisted the outbound message and updated conversation preview.
         return {
-          id: savedMsg?.id || crypto.randomUUID(),
+          id: data?.externalMessageId || crypto.randomUUID(),
           conversation_id: conversationId,
           workspace_id: currentWorkspace.id,
           direction: "outbound" as MessageDirection,
