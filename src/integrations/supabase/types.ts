@@ -7420,6 +7420,132 @@ export type Database = {
           },
         ]
       }
+      b2b_checkout_kits: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          discount_pct: number
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          product_ids: string[]
+          trigger_product_ids: string[]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          discount_pct?: number
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          product_ids?: string[]
+          trigger_product_ids?: string[]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          discount_pct?: number
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          product_ids?: string[]
+          trigger_product_ids?: string[]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      b2b_checkout_related_rules: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          related_product_ids: string[]
+          source_product_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          related_product_ids?: string[]
+          source_product_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          related_product_ids?: string[]
+          source_product_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      b2b_checkout_settings: {
+        Row: {
+          auto_kit_discount_pct: number
+          created_at: string
+          free_shipping_threshold: number
+          id: string
+          kit_mode: string
+          related_mode: string
+          show_best_sellers: boolean
+          show_kit: boolean
+          show_promotions: boolean
+          show_related: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_kit_discount_pct?: number
+          created_at?: string
+          free_shipping_threshold?: number
+          id?: string
+          kit_mode?: string
+          related_mode?: string
+          show_best_sellers?: boolean
+          show_kit?: boolean
+          show_promotions?: boolean
+          show_related?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_kit_discount_pct?: number
+          created_at?: string
+          free_shipping_threshold?: number
+          id?: string
+          kit_mode?: string
+          related_mode?: string
+          show_best_sellers?: boolean
+          show_kit?: boolean
+          show_promotions?: boolean
+          show_related?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       b2b_subscription_plan_items: {
         Row: {
           created_at: string
