@@ -77384,6 +77384,16 @@ export type Database = {
         Returns: boolean
       }
       dm_leave: { Args: { _conv_id: string }; Returns: undefined }
+      dm_list_all_users: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          email: string
+          full_name: string
+          user_id: string
+          workspaces: string
+        }[]
+      }
       dm_mark_read: { Args: { _conv_id: string }; Returns: undefined }
       dm_start: { Args: { _other_user: string }; Returns: string }
       dm_unread_count: { Args: never; Returns: number }
