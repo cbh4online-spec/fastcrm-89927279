@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SendProductByWhatsAppButton } from "@/components/whatsapp-pro/SendProductByWhatsAppButton";
 import {
   Dialog,
   DialogContent,
@@ -331,6 +332,14 @@ export function ProductDetailDialog({
                     <DialogHeader className="text-left">
                       <DialogTitle className="text-lg leading-tight">{product.name}</DialogTitle>
                     </DialogHeader>
+                    <div className="mt-2">
+                      <SendProductByWhatsAppButton
+                        productId={product.id}
+                        productName={product.name}
+                        productPrice={product.base_price}
+                        productImageUrl={mainImage?.url ?? null}
+                      />
+                    </div>
 
                     {/* Badges + Price + SKU — tudo numa zona compacta */}
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
