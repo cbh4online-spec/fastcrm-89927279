@@ -8,6 +8,7 @@ const Auth = lazy(() => import("@/pages/Auth"));
 const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const OnboardingHubPage = lazy(() => import("@/pages/OnboardingHubPage"));
+const LeadChefOnboardingWizard = lazy(() => import("@/pages/onboarding/LeadChefOnboardingWizard"));
 const ActivationAdminPage = lazy(() => import("@/pages/ActivationAdminPage"));
 const WeeklyDashboard = lazy(() => import("@/pages/WeeklyDashboard"));
 const CommandCenter = lazy(() => import("@/pages/CommandCenter"));
@@ -56,6 +57,7 @@ export function DashboardCoreRoutes() {
       <Route path="/auth" element={<Auth />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/onboarding/leadchef" element={<LeadChefOnboardingWizard />} />
       <Route path="/dashboard/onboarding" element={<OnboardingHubPage />} />
       <Route path="/dashboard/admin/activation" element={<ActivationAdminPage />} />
       <Route path="/dashboards" element={<Navigate to="/dashboard" replace />} />

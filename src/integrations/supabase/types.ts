@@ -75030,6 +75030,7 @@ export type Database = {
           id: string
           ip_restrictions_enabled: boolean
           plan_id: string | null
+          primary_module: string | null
           updated_at: string
           workspace_id: string
         }
@@ -75040,6 +75041,7 @@ export type Database = {
           id?: string
           ip_restrictions_enabled?: boolean
           plan_id?: string | null
+          primary_module?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -75050,6 +75052,7 @@ export type Database = {
           id?: string
           ip_restrictions_enabled?: boolean
           plan_id?: string | null
+          primary_module?: string | null
           updated_at?: string
           workspace_id?: string
         }
