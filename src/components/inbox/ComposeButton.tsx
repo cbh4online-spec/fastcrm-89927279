@@ -34,10 +34,10 @@ import { useContacts } from "@/hooks/useContacts";
 import { useLeads } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { QuickGHLChannelDialog, GHLChannel } from "./QuickGHLChannelDialog";
-import { QuickEvolutionWhatsAppDialog } from "./QuickEvolutionWhatsAppDialog";
+import { QuickWhatsAppZapiDialog } from "./QuickWhatsAppZapiDialog";
 import { QuickInstagramDialog } from "./QuickInstagramDialog";
 import { QuickTwilioSMSDialog } from "./QuickTwilioSMSDialog";
-import { useWhatsAppQRConnection } from "@/hooks/useWhatsAppQRConnection";
+import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
 
 interface RecipientSuggestion {
   id: string;
@@ -471,13 +471,13 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
   const { data: emailConnections } = useEmailConnections();
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const { data: instagramConnection } = useInstagramConnection();
-  const { data: whatsappQRConnection } = useWhatsAppQRConnection();
+  const { data: whatsappZapiConnection } = useWhatsAppZapiConnection();
   const { data: twilioConnection } = useTwilioConnection();
 
   const hasEmailConnection = emailConnections?.some(c => c.is_active);
   const hasInstagramConnection = instagramConnection?.is_active;
   const hasTwilioSMS = twilioConnection?.is_active;
-  const hasWhatsAppQR = whatsappQRConnection?.status === "connected";
+  const hasWhatsAppZapi = whatsappZapiConnection?.status === "connected";
 
   const channels = [
     { 
@@ -494,7 +494,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
       icon: Phone, 
       color: "text-green-500 bg-green-500/10", 
       available: true,
-      configured: hasWhatsAppQR,
+      configured: hasWhatsAppZapi,
     },
     { 
       id: "instagram", 
@@ -612,7 +612,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
           onOpenChange={setShowGHLDialog}
           channel={selectedGHLChannel}
         />
-        <QuickEvolutionWhatsAppDialog
+        <QuickWhatsAppZapiDialog
           open={showEvolutionWhatsApp}
           onOpenChange={setShowEvolutionWhatsApp}
         />
@@ -660,7 +660,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
         onOpenChange={setShowGHLDialog}
         channel={selectedGHLChannel}
       />
-      <QuickEvolutionWhatsAppDialog
+      <QuickWhatsAppZapiDialog
         open={showEvolutionWhatsApp}
         onOpenChange={setShowEvolutionWhatsApp}
       />
