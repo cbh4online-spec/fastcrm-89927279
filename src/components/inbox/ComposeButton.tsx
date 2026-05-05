@@ -471,13 +471,13 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
   const { data: emailConnections } = useEmailConnections();
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const { data: instagramConnection } = useInstagramConnection();
-  const { data: whatsappQRConnection } = useWhatsAppQRConnection();
+  const { data: whatsappZapiConnection } = useWhatsAppZapiConnection();
   const { data: twilioConnection } = useTwilioConnection();
 
   const hasEmailConnection = emailConnections?.some(c => c.is_active);
   const hasInstagramConnection = instagramConnection?.is_active;
   const hasTwilioSMS = twilioConnection?.is_active;
-  const hasWhatsAppQR = whatsappQRConnection?.status === "connected";
+  const hasWhatsAppZapi = whatsappZapiConnection?.status === "connected";
 
   const channels = [
     { 
