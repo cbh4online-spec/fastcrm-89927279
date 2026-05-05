@@ -37,6 +37,7 @@ import { useCannedShortcut } from "@/hooks/useCannedShortcut";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Settings2 } from "lucide-react";
+import { VoiceNoteRecorder } from "./VoiceNoteRecorder";
 
 interface AIMessageComposerProps {
   conversationId: string;
@@ -539,18 +540,25 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
               </div>
             </div>
           )}
-          <div className="flex flex-col gap-1">
-            <Button
-              onClick={handleSend}
-              disabled={!message.trim() || isSending || disabled}
-              className="h-auto px-4 flex-1"
-            >
-              {isSending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </Button>
+          <div className="flex flex-col gap-1 items-stretch">
+            <div className="flex items-center gap-1">
+              <VoiceNoteRecorder
+                conversationId={conversationId}
+                channel={channel}
+                disabled={disabled || isSending}
+              />
+              <Button
+                onClick={handleSend}
+                disabled={!message.trim() || isSending || disabled}
+                className="h-9 px-4"
+              >
+                {isSending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
             {onSendAndResolve && (
               <Tooltip>
                 <TooltipTrigger asChild>
