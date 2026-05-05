@@ -51,6 +51,24 @@ function initials(name?: string | null, email?: string | null) {
     .toUpperCase();
 }
 
+function highlight(text: string, tokens: string[]) {
+  if (!text || tokens.length === 0) return text;
+  const pattern = new RegExp(
+    `(${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
+    "gi",
+  );
+  const parts = text.split(pattern);
+  return parts.map((p, i) =>
+    pattern.test(p) ? (
+      <mark key={i} className="bg-primary/20 text-foreground rounded px-0.5">
+        {p}
+      </mark>
+    ) : (
+      <span key={i}>{p}</span>
+    ),
+  );
+}
+
 export default function MessagesPage() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
