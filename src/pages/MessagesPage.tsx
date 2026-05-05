@@ -282,7 +282,7 @@ function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBa
         </div>
       </header>
 
-      <ScrollArea className="flex-1" ref={scrollRef as any}>
+      <ScrollArea className="flex-1 min-h-0" ref={scrollRef as any}>
         <div className="p-4 space-y-3">
           {isLoading && (
             <div className="text-sm text-muted-foreground text-center py-8">A carregar…</div>
