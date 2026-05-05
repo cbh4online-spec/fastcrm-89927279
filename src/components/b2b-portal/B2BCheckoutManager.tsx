@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,16 +35,33 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2, Plus, Trash2, X, Save, Layers, Sparkles, Settings as SettingsIcon, Search } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  X,
+  Save,
+  Layers,
+  Sparkles,
+  Settings as SettingsIcon,
+  Search,
+  ExternalLink,
+  Wand2,
+  PackagePlus,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import {
   useB2BCheckoutSettings,
-  useB2BCheckoutKits,
-  useB2BRelatedRules,
-  type B2BCheckoutKit,
-  type B2BRelatedRule,
+  useB2BKits,
+  useB2BCrossSells,
+  type B2BKit,
+  type B2BKitItem,
 } from "@/hooks/b2b-portal/useB2BCheckoutManagement";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
 
 const sb = supabase as any;
+const AI_ACTION_KEY = "b2b_checkout_ai_suggestion";
 
 interface Props {
   workspaceId: string | undefined;
@@ -54,10 +71,11 @@ interface ProductOption {
   id: string;
   name: string;
   sku: string | null;
+  category: string | null;
 }
 
-// Lookup de produtos do workspace para selectores ----------------------------
-function useWorkspaceProducts(workspaceId: string | undefined) {
+// Lookup B2B-published only — alinhado com o que o cliente vê no portal
+function useB2BProducts(workspaceId: string | undefined) {
   return useQuery({
     queryKey: ["b2b-checkout-products-lookup", workspaceId],
     enabled: !!workspaceId,
@@ -65,9 +83,10 @@ function useWorkspaceProducts(workspaceId: string | undefined) {
     queryFn: async (): Promise<ProductOption[]> => {
       const { data, error } = await sb
         .from("products")
-        .select("id, name, sku")
+        .select("id, name, sku, category")
         .eq("workspace_id", workspaceId)
         .eq("status", "active")
+        .eq("b2b_published", true)
         .order("name", { ascending: true })
         .limit(2000);
       if (error) throw error;
@@ -145,7 +164,8 @@ function SettingsPanel({ workspaceId }: { workspaceId: string }) {
         <CardTitle className="text-base">Definições do Checkout B2B</CardTitle>
         <CardDescription>
           Controla o que aparece no carrinho dos clientes B2B e os modos de
-          recomendação.
+          recomendação. Os Kits e Relacionados são geridos no módulo Produtos
+          (e visíveis aqui em baixo nas tabs).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -166,13 +186,13 @@ function SettingsPanel({ workspaceId }: { workspaceId: string }) {
           />
           <ToggleRow
             label="Produtos relacionados"
-            description="Sugestões baseadas no carrinho actual."
+            description="Cross-sells geridos abaixo (manuais ou por categoria)."
             checked={value.show_related}
             onChange={(v) => update({ show_related: v })}
           />
           <ToggleRow
             label="Kit poupança"
-            description="Pacotes sugeridos com desconto agregado."
+            description="Kits do catálogo marcados como visíveis no Portal B2B."
             checked={value.show_kit}
             onChange={(v) => update({ show_kit: v })}
           />
@@ -180,7 +200,6 @@ function SettingsPanel({ workspaceId }: { workspaceId: string }) {
 
         <Separator />
 
-        {/* Portes grátis */}
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">Portes grátis</h3>
           <div className="grid gap-2 max-w-sm">
@@ -204,7 +223,6 @@ function SettingsPanel({ workspaceId }: { workspaceId: string }) {
 
         <Separator />
 
-        {/* Modos */}
         <section className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label className="text-xs">Modo dos Produtos Relacionados</Label>
@@ -290,42 +308,106 @@ function ToggleRow({
 }
 
 // =========================================================================
-// KITS PANEL
+// KITS PANEL — usa product_kits (visibility_b2b)
 // =========================================================================
 function KitsPanel({ workspaceId }: { workspaceId: string }) {
-  const { data: kits = [], isLoading, upsert, remove } = useB2BCheckoutKits(workspaceId);
-  const { data: products = [] } = useWorkspaceProducts(workspaceId);
-  const [editing, setEditing] = useState<Partial<B2BCheckoutKit> | null>(null);
+  const { data: kits = [], isLoading, upsert, setVisibility, setStatus, remove } = useB2BKits(workspaceId);
+  const { data: products = [] } = useB2BProducts(workspaceId);
+  const [editing, setEditing] = useState<(Partial<B2BKit> & { items: B2BKitItem[] }) | null>(null);
+  const wallet = useCreditWallet();
+
+  const aiCost = wallet.getCost(AI_ACTION_KEY);
+  const canAffordAI = wallet.canAfford(AI_ACTION_KEY);
+
+  const newKit = (): Partial<B2BKit> & { items: B2BKitItem[] } => ({
+    name: "",
+    description: "",
+    discount_pct: 5,
+    status: "active",
+    visibility_b2b: true,
+    items: [],
+  });
+
+  const handleAISuggest = async (currentKit: Partial<B2BKit> & { items: B2BKitItem[] }) => {
+    if (!canAffordAI) {
+      toast.error(`Saldo insuficiente. São necessários ${aiCost} créditos.`);
+      return;
+    }
+    try {
+      await wallet.consumeCredits.mutateAsync({
+        actionKey: AI_ACTION_KEY,
+        metadata: { mode: "kit", workspace_id: workspaceId },
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha a consumir créditos");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-suggest-b2b-checkout", {
+        body: {
+          workspace_id: workspaceId,
+          mode: "kit",
+          prompt: currentKit.description ?? currentKit.name ?? "",
+          category_hint: currentKit.category ?? undefined,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) {
+        toast.error(data?.error ?? "A IA não devolveu sugestão.");
+        return;
+      }
+      const s = data.suggestion;
+      setEditing({
+        ...currentKit,
+        name: currentKit.name?.trim() ? currentKit.name : s.name,
+        description: currentKit.description?.trim() ? currentKit.description : s.description,
+        discount_pct: s.discount_pct,
+        items: s.product_ids.map((pid: string) => ({ product_id: pid, quantity: 1 })),
+      });
+      toast.success("Sugestão aplicada — revê e guarda.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro a chamar a IA");
+    }
+  };
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle className="text-base">Kits Poupança</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            Kits Poupança
+            <Badge variant="outline" className="text-[10px]">Catálogo · Produtos</Badge>
+          </CardTitle>
           <CardDescription>
-            Conjuntos de produtos com desconto sugerido. Aparecem no carrinho
-            quando o cliente tem (opcionalmente) um produto-gatilho.
+            Gere os kits do módulo <Link to="/dashboard/products/kits" className="underline underline-offset-2 hover:text-foreground">Produtos</Link> que estão visíveis no Portal B2B. Cria ou edita aqui — fica disponível em ambos os sítios.
           </CardDescription>
         </div>
-        <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditing({ name: "", product_ids: [], trigger_product_ids: [], discount_pct: 5, is_active: true, display_order: kits.length })}>
-              <Plus className="h-4 w-4 mr-2" /> Novo kit
-            </Button>
-          </DialogTrigger>
-          {editing && (
-            <KitDialog
-              kit={editing}
-              products={products}
-              onChange={setEditing}
-              onSave={async () => {
-                await upsert.mutateAsync(editing);
-                setEditing(null);
-              }}
-              saving={upsert.isPending}
-            />
-          )}
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditing(newKit())}>
+                <Plus className="h-4 w-4 mr-2" /> Novo kit
+              </Button>
+            </DialogTrigger>
+            {editing && (
+              <KitDialog
+                kit={editing}
+                products={products}
+                onChange={setEditing}
+                onSave={async () => {
+                  await upsert.mutateAsync(editing);
+                  setEditing(null);
+                }}
+                saving={upsert.isPending}
+                onAISuggest={() => handleAISuggest(editing)}
+                aiCost={aiCost}
+                canAffordAI={canAffordAI}
+                aiBusy={wallet.consumeCredits.isPending}
+              />
+            )}
+          </Dialog>
+        </div>
       </CardHeader>
 
       <CardContent>
@@ -333,7 +415,7 @@ function KitsPanel({ workspaceId }: { workspaceId: string }) {
           <div className="py-10 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
         ) : kits.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground border rounded-lg border-dashed">
-            Ainda não existem kits. Crie o primeiro para sugerir conjuntos com desconto.
+            Ainda não existem kits no catálogo. Crie o primeiro acima.
           </div>
         ) : (
           <div className="space-y-2">
@@ -343,8 +425,15 @@ function KitsPanel({ workspaceId }: { workspaceId: string }) {
                 kit={k}
                 products={products}
                 onEdit={() => setEditing(k)}
-                onRemove={() => remove.mutate(k.id)}
-                onToggle={(active) => upsert.mutate({ ...k, is_active: active })}
+                onRemove={() => {
+                  if (confirm(`Arquivar o kit "${k.name}"? Deixa de aparecer no portal e no catálogo.`)) {
+                    remove.mutate(k.id);
+                  }
+                }}
+                onToggleB2B={(v) => setVisibility.mutate({ id: k.id, visibility_b2b: v })}
+                onToggleStatus={(active) =>
+                  setStatus.mutate({ id: k.id, status: active ? "active" : "paused" })
+                }
               />
             ))}
           </div>
@@ -359,44 +448,60 @@ function KitRow({
   products,
   onEdit,
   onRemove,
-  onToggle,
+  onToggleB2B,
+  onToggleStatus,
 }: {
-  kit: B2BCheckoutKit;
+  kit: B2BKit;
   products: ProductOption[];
   onEdit: () => void;
   onRemove: () => void;
-  onToggle: (v: boolean) => void;
+  onToggleB2B: (v: boolean) => void;
+  onToggleStatus: (active: boolean) => void;
 }) {
-  const productNames = kit.product_ids
-    .map((id) => products.find((p) => p.id === id)?.name)
-    .filter(Boolean)
-    .slice(0, 3);
+  const productNames = useMemo(
+    () =>
+      kit.items
+        .map((it) => products.find((p) => p.id === it.product_id)?.name)
+        .filter(Boolean)
+        .slice(0, 3) as string[],
+    [kit.items, products],
+  );
+  const isActive = kit.status === "active";
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 mb-0.5">
+        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
           <p className="font-medium text-sm truncate">{kit.name}</p>
-          <Badge variant={kit.is_active ? "default" : "secondary"} className="text-[10px]">
-            {kit.is_active ? "Activo" : "Inactivo"}
+          <Badge variant={isActive ? "default" : "secondary"} className="text-[10px]">
+            {isActive ? "Activo" : kit.status === "paused" ? "Pausado" : kit.status}
           </Badge>
           <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
             -{kit.discount_pct}%
           </Badge>
+          {kit.visibility_b2b ? (
+            <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-700 border-blue-500/30">
+              Visível B2B
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px]">Oculto B2B</Badge>
+          )}
         </div>
         <p className="text-xs text-muted-foreground truncate">
-          {kit.product_ids.length} produtos
+          {kit.items.length} produtos
           {productNames.length > 0 && ` · ${productNames.join(", ")}`}
-          {kit.product_ids.length > productNames.length && "…"}
+          {kit.items.length > productNames.length && "…"}
         </p>
-        {kit.trigger_product_ids.length > 0 && (
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Aparece se carrinho tiver {kit.trigger_product_ids.length} produto(s)-gatilho
-          </p>
-        )}
       </div>
       <div className="flex items-center gap-1.5">
-        <Switch checked={kit.is_active} onCheckedChange={onToggle} />
+        <div className="flex items-center gap-1.5 mr-1">
+          <Switch checked={kit.visibility_b2b} onCheckedChange={onToggleB2B} aria-label="Visível no Portal B2B" />
+          <span className="text-[10px] text-muted-foreground hidden sm:inline">B2B</span>
+        </div>
+        <div className="flex items-center gap-1.5 mr-1">
+          <Switch checked={isActive} onCheckedChange={onToggleStatus} aria-label="Activo" />
+          <span className="text-[10px] text-muted-foreground hidden sm:inline">Activo</span>
+        </div>
         <Button size="sm" variant="ghost" onClick={onEdit}>Editar</Button>
         <Button size="sm" variant="ghost" className="text-destructive" onClick={onRemove}>
           <Trash2 className="h-4 w-4" />
@@ -412,26 +517,78 @@ function KitDialog({
   onChange,
   onSave,
   saving,
+  onAISuggest,
+  aiCost,
+  canAffordAI,
+  aiBusy,
 }: {
-  kit: Partial<B2BCheckoutKit>;
+  kit: Partial<B2BKit> & { items: B2BKitItem[] };
   products: ProductOption[];
-  onChange: (k: Partial<B2BCheckoutKit>) => void;
+  onChange: (k: Partial<B2BKit> & { items: B2BKitItem[] }) => void;
   onSave: () => void;
   saving: boolean;
+  onAISuggest: () => void;
+  aiCost: number;
+  canAffordAI: boolean;
+  aiBusy: boolean;
 }) {
-  const canSave = !!kit.name && (kit.product_ids?.length ?? 0) >= 2;
+  const canSave = !!kit.name?.trim() && (kit.items?.length ?? 0) >= 2;
+
+  const setItems = (productIds: string[]) => {
+    const existing = new Map(kit.items.map((i) => [i.product_id, i]));
+    const items = productIds.map((id) => existing.get(id) ?? { product_id: id, quantity: 1 });
+    onChange({ ...kit, items });
+  };
+
+  const updateQty = (product_id: string, quantity: number) => {
+    onChange({
+      ...kit,
+      items: kit.items.map((i) => (i.product_id === product_id ? { ...i, quantity: Math.max(1, quantity) } : i)),
+    });
+  };
 
   return (
     <DialogContent className="max-w-2xl">
       <DialogHeader>
         <DialogTitle>{kit.id ? "Editar Kit" : "Novo Kit Poupança"}</DialogTitle>
         <DialogDescription>
-          Defina os produtos do pacote, o desconto sugerido e (opcional) os
-          produtos-gatilho que activam a sugestão no carrinho.
+          Define os produtos do kit, o desconto sugerido e a visibilidade no Portal B2B. Podes pedir uma sugestão à IA com base no catálogo activo.
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4">
+        {/* Bloco IA */}
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Wand2 className="h-4 w-4 text-primary" /> Construir com IA
+            </div>
+            <Badge variant="outline" className="text-[10px]">{aiCost} créditos</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            A IA propõe nome, descrição, desconto e produtos do catálogo activo. Podes editar tudo antes de guardar.
+          </p>
+          <Textarea
+            value={kit.description ?? ""}
+            onChange={(e) => onChange({ ...kit, description: e.target.value })}
+            rows={2}
+            placeholder="Descreve o objectivo do kit (ex: rotina anti-queda capilar profissional)"
+            className="text-sm"
+          />
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={onAISuggest}
+              disabled={aiBusy || !canAffordAI}
+            >
+              {aiBusy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              {canAffordAI ? "Sugerir kit com IA" : "Saldo IA insuficiente"}
+            </Button>
+          </div>
+        </div>
+
         <div className="grid gap-2">
           <Label className="text-xs">Nome</Label>
           <Input
@@ -441,45 +598,59 @@ function KitDialog({
           />
         </div>
 
-        <div className="grid gap-2">
-          <Label className="text-xs">Descrição (opcional)</Label>
-          <Textarea
-            value={kit.description ?? ""}
-            onChange={(e) => onChange({ ...kit, description: e.target.value })}
-            rows={2}
-          />
-        </div>
-
-        <div className="grid gap-2 max-w-[200px]">
-          <Label className="text-xs">% desconto sugerido</Label>
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            step={0.5}
-            value={kit.discount_pct ?? 5}
-            onChange={(e) => onChange({ ...kit, discount_pct: Number(e.target.value) || 0 })}
-          />
+        <div className="grid gap-2 grid-cols-2">
+          <div>
+            <Label className="text-xs">% desconto sugerido</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={0.5}
+              value={kit.discount_pct ?? 5}
+              onChange={(e) => onChange({ ...kit, discount_pct: Number(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="flex items-end justify-between gap-3 rounded-lg border px-3">
+            <div>
+              <p className="text-xs">Visível no Portal B2B</p>
+              <p className="text-[10px] text-muted-foreground">Aparece no checkout</p>
+            </div>
+            <Switch
+              checked={kit.visibility_b2b ?? true}
+              onCheckedChange={(v) => onChange({ ...kit, visibility_b2b: v })}
+            />
+          </div>
         </div>
 
         <div className="grid gap-2">
           <Label className="text-xs">Produtos do kit (mínimo 2)</Label>
           <ProductMultiSelect
             products={products}
-            selected={kit.product_ids ?? []}
-            onChange={(ids) => onChange({ ...kit, product_ids: ids })}
+            selected={kit.items.map((i) => i.product_id)}
+            onChange={setItems}
           />
-        </div>
-
-        <div className="grid gap-2">
-          <Label className="text-xs">
-            Produtos-gatilho <span className="text-muted-foreground">(opcional — vazio = aparece sempre)</span>
-          </Label>
-          <ProductMultiSelect
-            products={products}
-            selected={kit.trigger_product_ids ?? []}
-            onChange={(ids) => onChange({ ...kit, trigger_product_ids: ids })}
-          />
+          {kit.items.length > 0 && (
+            <div className="rounded-lg border divide-y">
+              {kit.items.map((it) => {
+                const p = products.find((x) => x.id === it.product_id);
+                return (
+                  <div key={it.product_id} className="flex items-center gap-2 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm truncate">{p?.name ?? "(produto removido)"}</p>
+                      {p?.sku && <p className="text-[10px] text-muted-foreground">SKU {p.sku}</p>}
+                    </div>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={it.quantity}
+                      onChange={(e) => updateQty(it.product_id, Number(e.target.value) || 1)}
+                      className="h-8 w-16 text-sm"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -494,84 +665,96 @@ function KitDialog({
 }
 
 // =========================================================================
-// RELATED RULES PANEL
+// RELATED PANEL — usa product_cross_sells
 // =========================================================================
 function RelatedPanel({ workspaceId }: { workspaceId: string }) {
-  const { data: rules = [], isLoading, upsert, remove } = useB2BRelatedRules(workspaceId);
-  const { data: products = [] } = useWorkspaceProducts(workspaceId);
-  const [editing, setEditing] = useState<Partial<B2BRelatedRule> | null>(null);
+  const { data: products = [] } = useB2BProducts(workspaceId);
+  const { data: rows = [], isLoading, upsertMany, toggle, remove } = useB2BCrossSells(workspaceId);
+  const wallet = useCreditWallet();
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const aiCost = wallet.getCost(AI_ACTION_KEY);
+  const canAffordAI = wallet.canAfford(AI_ACTION_KEY);
+
+  // agrupar por produto-âncora
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof rows>();
+    for (const r of rows) {
+      const arr = map.get(r.source_product_id) ?? [];
+      arr.push(r);
+      map.set(r.source_product_id, arr);
+    }
+    return [...map.entries()].map(([source_product_id, items]) => ({
+      source_product_id,
+      items: items.sort((a, b) => b.weight - a.weight),
+    }));
+  }, [rows]);
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle className="text-base">Regras de Produtos Relacionados</CardTitle>
+          <CardTitle className="text-base">Produtos Relacionados (cross-sells)</CardTitle>
           <CardDescription>
-            Para cada produto-fonte, defina os produtos a sugerir quando estiver
-            no carrinho. Substituem (ou complementam) a sugestão automática por
-            categoria, conforme o modo configurado.
+            Para cada produto-âncora, define produtos complementares que aparecem no carrinho B2B. Usa a fonte única do módulo Produtos.
           </CardDescription>
         </div>
-        <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditing({ source_product_id: "", related_product_ids: [], is_active: true, display_order: rules.length })}>
-              <Plus className="h-4 w-4 mr-2" /> Nova regra
-            </Button>
-          </DialogTrigger>
-          {editing && (
-            <RuleDialog
-              rule={editing}
-              products={products}
-              onChange={setEditing}
-              onSave={async () => {
-                await upsert.mutateAsync(editing);
-                setEditing(null);
-              }}
-              saving={upsert.isPending}
-            />
-          )}
-        </Dialog>
+        <Button onClick={() => { setEditingSourceId(null); setOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" /> Nova regra
+        </Button>
       </CardHeader>
 
       <CardContent>
         {isLoading ? (
           <div className="py-10 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
-        ) : rules.length === 0 ? (
+        ) : grouped.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground border rounded-lg border-dashed">
-            Sem regras configuradas. As sugestões usam categoria automática (se permitido).
+            Ainda não existem cross-sells. Crie a primeira regra.
           </div>
         ) : (
           <div className="space-y-2">
-            {rules.map((r) => {
-              const source = products.find((p) => p.id === r.source_product_id);
-              const related = r.related_product_ids
-                .map((id) => products.find((p) => p.id === id)?.name)
-                .filter(Boolean);
+            {grouped.map((g) => {
+              const src = products.find((p) => p.id === g.source_product_id);
               return (
-                <div key={r.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-medium text-sm truncate">
-                        {source?.name ?? "Produto removido"}
+                <div key={g.source_product_id} className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {src?.name ?? "(produto removido)"}
                       </p>
-                      <Badge variant={r.is_active ? "default" : "secondary"} className="text-[10px]">
-                        {r.is_active ? "Activa" : "Inactiva"}
-                      </Badge>
+                      <p className="text-[11px] text-muted-foreground">
+                        {g.items.length} relacionados
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      Sugere {r.related_product_ids.length}: {related.slice(0, 3).join(", ")}
-                      {related.length > 3 && "…"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Switch
-                      checked={r.is_active}
-                      onCheckedChange={(v) => upsert.mutate({ ...r, is_active: v })}
-                    />
-                    <Button size="sm" variant="ghost" onClick={() => setEditing(r)}>Editar</Button>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove.mutate(r.id)}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button size="sm" variant="ghost" onClick={() => { setEditingSourceId(g.source_product_id); setOpen(true); }}>
+                      Editar / adicionar
                     </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {g.items.map((it) => {
+                      const tgt = products.find((p) => p.id === it.target_product_id);
+                      return (
+                        <div key={it.id} className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs ${it.is_active ? "" : "opacity-50"}`}>
+                          <span className="truncate max-w-[200px]">{tgt?.name ?? "(produto removido)"}</span>
+                          {it.reason && <span className="text-[10px] text-muted-foreground">· {it.reason}</span>}
+                          <button
+                            onClick={() => toggle.mutate({ id: it.id, is_active: !it.is_active })}
+                            className="text-muted-foreground hover:text-foreground"
+                            title={it.is_active ? "Desactivar" : "Activar"}
+                          >
+                            <Switch checked={it.is_active} className="scale-75" />
+                          </button>
+                          <button
+                            onClick={() => remove.mutate(it.id)}
+                            className="text-muted-foreground hover:text-destructive"
+                            title="Remover"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -579,161 +762,334 @@ function RelatedPanel({ workspaceId }: { workspaceId: string }) {
           </div>
         )}
       </CardContent>
+
+      <RelatedDialog
+        open={open}
+        onOpenChange={setOpen}
+        workspaceId={workspaceId}
+        products={products}
+        initialSourceId={editingSourceId}
+        existingTargets={editingSourceId ? rows.filter((r) => r.source_product_id === editingSourceId).map((r) => r.target_product_id) : []}
+        onSave={async (sourceId, items) => {
+          await upsertMany.mutateAsync(
+            items.map((i) => ({
+              source_product_id: sourceId,
+              target_product_id: i.target_product_id,
+              weight: i.weight,
+              reason: i.reason ?? null,
+            })),
+          );
+          setOpen(false);
+        }}
+        saving={upsertMany.isPending}
+        aiCost={aiCost}
+        canAffordAI={canAffordAI}
+        wallet={wallet}
+      />
     </Card>
   );
 }
 
-function RuleDialog({
-  rule,
+function RelatedDialog({
+  open,
+  onOpenChange,
+  workspaceId,
   products,
-  onChange,
+  initialSourceId,
+  existingTargets,
   onSave,
   saving,
+  aiCost,
+  canAffordAI,
+  wallet,
 }: {
-  rule: Partial<B2BRelatedRule>;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  workspaceId: string;
   products: ProductOption[];
-  onChange: (r: Partial<B2BRelatedRule>) => void;
-  onSave: () => void;
+  initialSourceId: string | null;
+  existingTargets: string[];
+  onSave: (sourceId: string, items: { target_product_id: string; weight: number; reason?: string }[]) => Promise<void>;
   saving: boolean;
+  aiCost: number;
+  canAffordAI: boolean;
+  wallet: ReturnType<typeof useCreditWallet>;
 }) {
-  const canSave = !!rule.source_product_id && (rule.related_product_ids?.length ?? 0) >= 1;
-  const sourceLabel = products.find((p) => p.id === rule.source_product_id)?.name;
+  const [sourceId, setSourceId] = useState<string | null>(initialSourceId);
+  const [targets, setTargets] = useState<{ target_product_id: string; weight: number; reason?: string }[]>([]);
+
+  // sync quando o dialog abre
+  useMemo(() => {
+    if (open) {
+      setSourceId(initialSourceId);
+      setTargets(existingTargets.map((id) => ({ target_product_id: id, weight: 5 })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialSourceId]);
+
+  const handleAI = async () => {
+    if (!sourceId) {
+      toast.error("Escolhe primeiro o produto-âncora.");
+      return;
+    }
+    if (!canAffordAI) {
+      toast.error(`Saldo insuficiente. São necessários ${aiCost} créditos.`);
+      return;
+    }
+    try {
+      await wallet.consumeCredits.mutateAsync({
+        actionKey: AI_ACTION_KEY,
+        metadata: { mode: "related", workspace_id: workspaceId, source_product_id: sourceId },
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha a consumir créditos");
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-suggest-b2b-checkout", {
+        body: { workspace_id: workspaceId, mode: "related", source_product_id: sourceId },
+      });
+      if (error) throw error;
+      if (!data?.success) {
+        toast.error(data?.error ?? "A IA não devolveu sugestões.");
+        return;
+      }
+      const items = (data.suggestion?.items ?? []) as { product_id: string; reason: string; weight: number }[];
+      // merge sem duplicar, IA primeiro
+      const seen = new Set(targets.map((t) => t.target_product_id));
+      const merged = [...targets];
+      for (const it of items) {
+        if (it.product_id === sourceId || seen.has(it.product_id)) continue;
+        merged.push({ target_product_id: it.product_id, weight: it.weight, reason: it.reason });
+        seen.add(it.product_id);
+      }
+      setTargets(merged);
+      toast.success(`${items.length} sugestões adicionadas.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro a chamar a IA");
+    }
+  };
+
+  const sourceProduct = products.find((p) => p.id === sourceId);
 
   return (
-    <DialogContent className="max-w-2xl">
-      <DialogHeader>
-        <DialogTitle>{rule.id ? "Editar regra" : "Nova regra de relacionados"}</DialogTitle>
-        <DialogDescription>
-          Quando o cliente tiver o produto-fonte no carrinho, mostramos os
-          produtos relacionados que escolher.
-        </DialogDescription>
-      </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Produtos relacionados</DialogTitle>
+          <DialogDescription>
+            Escolhe o produto-âncora e os produtos sugeridos quando o cliente o tiver no carrinho.
+          </DialogDescription>
+        </DialogHeader>
 
-      <div className="space-y-4">
-        <div className="grid gap-2">
-          <Label className="text-xs">Produto-fonte</Label>
-          <ProductMultiSelect
-            products={products}
-            selected={rule.source_product_id ? [rule.source_product_id] : []}
-            onChange={(ids) => onChange({ ...rule, source_product_id: ids[0] ?? "" })}
-            singleSelect
-            placeholder={sourceLabel ?? "Escolher produto"}
-          />
+        <div className="space-y-4">
+          <div className="grid gap-2">
+            <Label className="text-xs">Produto-âncora</Label>
+            <ProductSingleSelect
+              products={products}
+              selected={sourceId}
+              onChange={setSourceId}
+              disabled={!!initialSourceId}
+            />
+          </div>
+
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Wand2 className="h-4 w-4 text-primary" /> Sugerir com IA
+              </div>
+              <Badge variant="outline" className="text-[10px]">{aiCost} créditos</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A IA escolhe 3-6 produtos complementares do catálogo activo. Adicionados à lista — podes editar.
+            </p>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={handleAI}
+                disabled={wallet.consumeCredits.isPending || !canAffordAI || !sourceId}
+              >
+                {wallet.consumeCredits.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                Sugerir relacionados
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label className="text-xs">Produtos relacionados</Label>
+            <ProductMultiSelect
+              products={products.filter((p) => p.id !== sourceId)}
+              selected={targets.map((t) => t.target_product_id)}
+              onChange={(ids) => {
+                const existing = new Map(targets.map((t) => [t.target_product_id, t]));
+                setTargets(ids.map((id) => existing.get(id) ?? { target_product_id: id, weight: 5 }));
+              }}
+            />
+            {targets.length > 0 && (
+              <div className="rounded-lg border divide-y max-h-64 overflow-auto">
+                {targets.map((t) => {
+                  const p = products.find((x) => x.id === t.target_product_id);
+                  return (
+                    <div key={t.target_product_id} className="flex items-center gap-2 px-3 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm truncate">{p?.name ?? "(produto removido)"}</p>
+                        {t.reason && <p className="text-[10px] text-muted-foreground truncate">{t.reason}</p>}
+                      </div>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={t.weight}
+                        onChange={(e) => {
+                          const w = Math.max(1, Math.min(10, Number(e.target.value) || 5));
+                          setTargets(targets.map((x) => x.target_product_id === t.target_product_id ? { ...x, weight: w } : x));
+                        }}
+                        className="h-8 w-14 text-sm"
+                        title="Peso 1-10"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="grid gap-2">
-          <Label className="text-xs">Produtos a sugerir (mínimo 1)</Label>
-          <ProductMultiSelect
-            products={products}
-            selected={rule.related_product_ids ?? []}
-            onChange={(ids) => onChange({ ...rule, related_product_ids: ids })}
-            excludeIds={rule.source_product_id ? [rule.source_product_id] : []}
-          />
-        </div>
-      </div>
-
-      <DialogFooter>
-        <Button onClick={onSave} disabled={!canSave || saving}>
-          {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Guardar regra
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+        <DialogFooter>
+          <Button
+            onClick={() => sourceId && onSave(sourceId, targets)}
+            disabled={!sourceId || targets.length === 0 || saving}
+          >
+            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 // =========================================================================
-// PRODUCT MULTISELECT
+// SHARED: ProductMultiSelect / ProductSingleSelect
 // =========================================================================
 function ProductMultiSelect({
   products,
   selected,
   onChange,
-  singleSelect = false,
-  excludeIds = [],
-  placeholder = "Procurar produto...",
 }: {
   products: ProductOption[];
   selected: string[];
   onChange: (ids: string[]) => void;
-  singleSelect?: boolean;
-  excludeIds?: string[];
-  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const filteredProducts = useMemo(
-    () => products.filter((p) => !excludeIds.includes(p.id)),
-    [products, excludeIds.join(",")],
-  );
-  const selectedProducts = useMemo(
-    () => selected.map((id) => products.find((p) => p.id === id)).filter(Boolean) as ProductOption[],
-    [selected, products],
-  );
-
-  const toggle = (id: string) => {
-    if (singleSelect) {
-      onChange([id]);
-      setOpen(false);
-      return;
-    }
-    if (selected.includes(id)) {
-      onChange(selected.filter((s) => s !== id));
-    } else {
-      onChange([...selected, id]);
-    }
-  };
+  const selectedSet = new Set(selected);
+  const selectedProducts = products.filter((p) => selectedSet.has(p.id));
 
   return (
     <div className="space-y-2">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="w-full justify-start">
-            <Search className="h-4 w-4 mr-2 text-muted-foreground" /> {placeholder}
+          <Button variant="outline" type="button" className="w-full justify-between font-normal">
+            <span className="text-muted-foreground">
+              {selected.length === 0 ? "Adicionar produtos…" : `${selected.length} seleccionado(s)`}
+            </span>
+            <Search className="h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[420px] p-0" align="start">
+        <PopoverContent className="w-[480px] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Pesquisar produto..." />
-            <CommandList>
-              <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+            <CommandInput placeholder="Pesquisar produto…" />
+            <CommandList className="max-h-72">
+              <CommandEmpty>Sem resultados.</CommandEmpty>
               <CommandGroup>
-                {filteredProducts.slice(0, 200).map((p) => (
-                  <CommandItem
-                    key={p.id}
-                    value={`${p.name} ${p.sku ?? ""}`}
-                    onSelect={() => toggle(p.id)}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{p.name}</p>
-                      {p.sku && <p className="text-[11px] text-muted-foreground">SKU: {p.sku}</p>}
-                    </div>
-                    {selected.includes(p.id) && (
-                      <Badge variant="secondary" className="ml-2">Selecionado</Badge>
-                    )}
-                  </CommandItem>
-                ))}
+                {products.map((p) => {
+                  const isSel = selectedSet.has(p.id);
+                  return (
+                    <CommandItem
+                      key={p.id}
+                      value={`${p.name} ${p.sku ?? ""}`}
+                      onSelect={() => {
+                        if (isSel) onChange(selected.filter((id) => id !== p.id));
+                        else onChange([...selected, p.id]);
+                      }}
+                    >
+                      <div className={`mr-2 h-4 w-4 rounded border flex items-center justify-center ${isSel ? "bg-primary border-primary" : ""}`}>
+                        {isSel && <span className="text-[10px] text-primary-foreground">✓</span>}
+                      </div>
+                      <span className="truncate">{p.name}</span>
+                      {p.sku && <span className="ml-auto text-[10px] text-muted-foreground">{p.sku}</span>}
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
-
       {selectedProducts.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {selectedProducts.map((p) => (
-            <Badge key={p.id} variant="secondary" className="gap-1 pr-1">
-              <span className="truncate max-w-[180px]">{p.name}</span>
-              <button
-                onClick={() => toggle(p.id)}
-                className="hover:text-destructive"
-                aria-label="Remover"
-              >
+            <span key={p.id} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs">
+              {p.name}
+              <button onClick={() => onChange(selected.filter((id) => id !== p.id))}>
                 <X className="h-3 w-3" />
               </button>
-            </Badge>
+            </span>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function ProductSingleSelect({
+  products,
+  selected,
+  onChange,
+  disabled,
+}: {
+  products: ProductOption[];
+  selected: string | null;
+  onChange: (id: string | null) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const sel = products.find((p) => p.id === selected);
+  return (
+    <Popover open={open} onOpenChange={(v) => !disabled && setOpen(v)}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" type="button" disabled={disabled} className="w-full justify-between font-normal">
+          <span className={sel ? "" : "text-muted-foreground"}>
+            {sel ? sel.name : "Escolher produto…"}
+          </span>
+          <Search className="h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[480px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Pesquisar produto…" />
+          <CommandList className="max-h-72">
+            <CommandEmpty>Sem resultados.</CommandEmpty>
+            <CommandGroup>
+              {products.map((p) => (
+                <CommandItem
+                  key={p.id}
+                  value={`${p.name} ${p.sku ?? ""}`}
+                  onSelect={() => {
+                    onChange(p.id);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="truncate">{p.name}</span>
+                  {p.sku && <span className="ml-auto text-[10px] text-muted-foreground">{p.sku}</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
