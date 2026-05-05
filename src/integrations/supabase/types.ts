@@ -39018,6 +39018,265 @@ export type Database = {
           },
         ]
       }
+      leadchef_customer_experiences: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          current_device_model: string | null
+          has_recipe_platform: boolean | null
+          household_size: number | null
+          id: string
+          interests: Json
+          lead_id: string | null
+          next_experience_type: string | null
+          notes: string | null
+          objections: Json
+          perceived_benefits: Json
+          preferred_purchase_option: string | null
+          preferred_schedule: string | null
+          profession: string | null
+          recipe_platform_active: boolean | null
+          updated_at: string
+          usage_frequency: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_device_model?: string | null
+          has_recipe_platform?: boolean | null
+          household_size?: number | null
+          id?: string
+          interests?: Json
+          lead_id?: string | null
+          next_experience_type?: string | null
+          notes?: string | null
+          objections?: Json
+          perceived_benefits?: Json
+          preferred_purchase_option?: string | null
+          preferred_schedule?: string | null
+          profession?: string | null
+          recipe_platform_active?: boolean | null
+          updated_at?: string
+          usage_frequency?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_device_model?: string | null
+          has_recipe_platform?: boolean | null
+          household_size?: number | null
+          id?: string
+          interests?: Json
+          lead_id?: string | null
+          next_experience_type?: string | null
+          notes?: string | null
+          objections?: Json
+          perceived_benefits?: Json
+          preferred_purchase_option?: string | null
+          preferred_schedule?: string | null
+          profession?: string | null
+          recipe_platform_active?: boolean | null
+          updated_at?: string
+          usage_frequency?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_customer_experiences_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leadchef_goals: {
+        Row: {
+          contacts_goal: number
+          created_at: string
+          demos_goal: number
+          id: string
+          income_goal: number
+          leads_goal: number
+          notes: string | null
+          period_month: string
+          recruitment_goal: number
+          referrals_goal: number
+          sales_goal: number
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          contacts_goal?: number
+          created_at?: string
+          demos_goal?: number
+          id?: string
+          income_goal?: number
+          leads_goal?: number
+          notes?: string | null
+          period_month: string
+          recruitment_goal?: number
+          referrals_goal?: number
+          sales_goal?: number
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          contacts_goal?: number
+          created_at?: string
+          demos_goal?: number
+          id?: string
+          income_goal?: number
+          leads_goal?: number
+          notes?: string | null
+          period_month?: string
+          recruitment_goal?: number
+          referrals_goal?: number
+          sales_goal?: number
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      leadchef_lead_profiles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_experience: Json
+          cycle: Json
+          id: string
+          interest: string | null
+          lead_id: string
+          next_action_at: string | null
+          next_action_note: string | null
+          next_action_type: string | null
+          origin: string | null
+          recruitment_potential: boolean
+          stage: string
+          temperature: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_experience?: Json
+          cycle?: Json
+          id?: string
+          interest?: string | null
+          lead_id: string
+          next_action_at?: string | null
+          next_action_note?: string | null
+          next_action_type?: string | null
+          origin?: string | null
+          recruitment_potential?: boolean
+          stage?: string
+          temperature?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_experience?: Json
+          cycle?: Json
+          id?: string
+          interest?: string | null
+          lead_id?: string
+          next_action_at?: string | null
+          next_action_note?: string | null
+          next_action_type?: string | null
+          origin?: string | null
+          recruitment_potential?: boolean
+          stage?: string
+          temperature?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_lead_profiles_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leadchef_referrals: {
+        Row: {
+          authorization_status: string
+          converted_lead_id: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          referred_by_contact_id: string | null
+          referred_by_lead_id: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          authorization_status?: string
+          converted_lead_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          referred_by_contact_id?: string | null
+          referred_by_lead_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          authorization_status?: string
+          converted_lead_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          referred_by_contact_id?: string | null
+          referred_by_lead_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_referrals_converted_lead_id_fkey"
+            columns: ["converted_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadchef_referrals_referred_by_lead_id_fkey"
+            columns: ["referred_by_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           about: string | null
