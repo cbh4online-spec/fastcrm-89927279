@@ -16,13 +16,15 @@ import {
   MessageSquare,
   Zap,
   Target,
-  FlaskConical
+  FlaskConical,
+  Route
 } from "lucide-react";
 import { VibeProfilesTab } from "./VibeProfilesTab";
 import { ConversationRulesTab } from "./ConversationRulesTab";
 import { AutopilotConfigTab } from "./AutopilotConfigTab";
 import { ConversationObjectivesTab } from "./ConversationObjectivesTab";
 import { SimulatorTab } from "./SimulatorTab";
+import { RoutingRulesTab } from "./RoutingRulesTab";
 import { useVibeProfiles } from "@/hooks/useVibeProfiles";
 import { useConversationRules } from "@/hooks/useConversationRules";
 import { useAutopilotConfig } from "@/hooks/useAutopilotConfig";
