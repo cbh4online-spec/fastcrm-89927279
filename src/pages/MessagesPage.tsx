@@ -252,7 +252,7 @@ function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBa
   };
 
   return (
-    <>
+    <div className="flex flex-col h-full min-h-0 flex-1">
       <header className="h-14 border-b px-2 md:px-4 flex items-center gap-2 shrink-0">
         {onBack && (
           <Button
