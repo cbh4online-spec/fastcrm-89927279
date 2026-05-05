@@ -354,6 +354,7 @@ function NewConversationButton({
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(100);
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastBody, setBroadcastBody] = useState("");
 
@@ -369,12 +370,16 @@ function NewConversationButton({
       return dmTokens.every((tk) => hay.includes(tk));
     });
   }, [teammates, dmTokens]);
-  const dmVisible = useMemo(() => dmFiltered.slice(0, 100), [dmFiltered]);
+  const dmVisible = useMemo(
+    () => dmFiltered.slice(0, visibleCount),
+    [dmFiltered, visibleCount],
+  );
 
-  // Reset selecção sempre que muda a pesquisa ou a lista
+  // Reset selecção e paginação sempre que muda a pesquisa
   useEffect(() => {
     setActiveIndex(0);
-  }, [search, dmVisible.length]);
+    setVisibleCount(100);
+  }, [search]);
 
   const close = () => {
     setOpen(false);
