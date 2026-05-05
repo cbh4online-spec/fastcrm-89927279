@@ -97,19 +97,35 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
             </TabsList>
 
             <TabsContent value="master" className="space-y-4 pt-4">
-              {!conn?.instance_id && (
+              {requiresByo && (
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900 flex items-start gap-2 dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-200">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-medium">Modo automático indisponível</p>
+                    <p className="text-xs">A conta master não pode criar novas instâncias agora. Use o separador <strong>Credenciais próprias</strong> com uma instância criada no painel Z-API.</p>
+                  </div>
+                </div>
+              )}
+
+              {!conn?.instance_id && !requiresByo && (
                 <Button onClick={handleConnectMaster} disabled={connect.isPending} className="w-full">
                   {connect.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <QrCode className="h-4 w-4 mr-2" />}
                   Criar instância e gerar QR
                 </Button>
               )}
 
-              {conn?.instance_id && (
+              {conn?.instance_id && conn?.account_mode === "master" && (
                 <QrPanel qr={qr} status={status} onRefresh={() => refreshStatus.mutate()} refreshing={refreshStatus.isPending} />
               )}
             </TabsContent>
 
             <TabsContent value="byo" className="space-y-3 pt-4">
+              <div className="p-3 rounded-lg bg-muted/50 border text-xs text-muted-foreground flex items-start gap-2">
+                <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p>Crie uma instância em <a href="https://app.z-api.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">app.z-api.io <ExternalLink className="h-3 w-3" /></a> e copie estes 3 valores do painel da instância.</p>
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="instanceId">Instance ID</Label>
                 <Input id="instanceId" value={byo.instanceId} onChange={(e) => setByo((s) => ({ ...s, instanceId: e.target.value }))} placeholder="3D..." />
