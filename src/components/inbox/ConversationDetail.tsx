@@ -430,6 +430,9 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                         read_at: message.read_at,
                         delivered_at: message.delivered_at,
                         sent_at: message.sent_at,
+                        message_type: (message as { message_type?: string | null }).message_type ?? null,
+                        product_id: (message as { product_id?: string | null }).product_id ?? null,
+                        metadata: (message as { metadata?: Record<string, unknown> | null }).metadata ?? null,
                       }}
                       senderName={
                         message.direction === "inbound"
