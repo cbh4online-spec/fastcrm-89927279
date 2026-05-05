@@ -132,26 +132,59 @@ export default function Settings() {
 
   const meta = categoryMeta[activeCategory];
 
+  const [mobileView, setMobileView] = useState<"nav" | "content">(
+    section ? "content" : "nav"
+  );
+
+  const handleCategoryChangeMobile = (category: SettingsCategory) => {
+    handleCategoryChange(category);
+    setMobileView("content");
+  };
+
   return (
     <DashboardLayout>
-      <div className="h-full flex -m-6">
-        <SettingsNavigation
-          activeCategory={activeCategory}
-          onCategoryChange={handleCategoryChange}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          matchedCategories={searchResults.matchedCategories}
-          matchCount={searchResults.matchedItems.length}
-        />
+      <div className="h-full flex flex-col md:flex-row -m-6">
+        {/* Sidebar — hidden on mobile when viewing content */}
+        <div
+          className={cn(
+            "md:flex md:w-64 md:flex-shrink-0",
+            mobileView === "nav" ? "flex flex-1" : "hidden"
+          )}
+        >
+          <SettingsNavigation
+            activeCategory={activeCategory}
+            onCategoryChange={handleCategoryChangeMobile}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            matchedCategories={searchResults.matchedCategories}
+            matchCount={searchResults.matchedItems.length}
+          />
+        </div>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="border-b border-border bg-background px-8 py-6">
-            <h1 className="text-2xl font-bold text-foreground">{t(meta.titleKey)}</h1>
-            <p className="text-muted-foreground mt-1">{t(meta.descKey)}</p>
+        {/* Content — hidden on mobile when viewing nav */}
+        <div
+          className={cn(
+            "flex-1 md:flex md:flex-col overflow-hidden",
+            mobileView === "content" ? "flex flex-col" : "hidden"
+          )}
+        >
+          <div className="border-b border-border bg-background px-4 md:px-8 py-4 md:py-6 flex items-start gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileView("nav")}
+              className="md:hidden mt-1 p-1.5 -ml-1.5 rounded-md hover:bg-muted text-foreground"
+              aria-label="Voltar"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">{t(meta.titleKey)}</h1>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{t(meta.descKey)}</p>
+            </div>
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="p-8 max-w-4xl">
+            <div className="p-4 md:p-8 max-w-4xl">
               {renderContent()}
             </div>
           </ScrollArea>
