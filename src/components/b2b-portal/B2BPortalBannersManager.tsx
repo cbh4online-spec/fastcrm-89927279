@@ -124,17 +124,18 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
   const [filterKind, setFilterKind] = useState<PartnerSlideKind | "all">("all");
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
-  // Verificar se é admin do workspace (UX clara)
+  // Verificar se é admin do workspace OU super admin (UX clara)
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!workspaceId) return;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { if (!cancelled) setIsAdmin(false); return; }
-      const { data } = await (supabase as any).rpc("is_workspace_admin", {
-        _user_id: user.id, _workspace_id: workspaceId,
-      });
-      if (!cancelled) setIsAdmin(!!data);
+      const [adminRes, superRes] = await Promise.all([
+        (supabase as any).rpc("is_workspace_admin", { _user_id: user.id, _workspace_id: workspaceId }),
+        (supabase as any).rpc("is_super_admin", { _user_id: user.id }),
+      ]);
+      if (!cancelled) setIsAdmin(!!adminRes.data || !!superRes.data);
     })();
     return () => { cancelled = true; };
   }, [workspaceId]);
