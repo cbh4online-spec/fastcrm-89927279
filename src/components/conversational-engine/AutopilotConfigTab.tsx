@@ -279,8 +279,21 @@ export function AutopilotConfigTab() {
               </p>
             </div>
             <Switch
-              checked={formData.respect_working_hours ?? false}
-              onCheckedChange={(v) => updateField("respect_working_hours", v)}
+              checked={(formData as any).respect_working_hours ?? false}
+              onCheckedChange={(v) => updateField("respect_working_hours" as any, v)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Apenas Fora de Horário</Label>
+              <p className="text-xs text-muted-foreground">
+                Auto-Pilot só responde <strong>fora</strong> do horário humano (handoff aos agentes durante o expediente)
+              </p>
+            </div>
+            <Switch
+              checked={(formData as any).after_hours_only ?? false}
+              onCheckedChange={(v) => updateField("after_hours_only" as any, v)}
             />
           </div>
 
