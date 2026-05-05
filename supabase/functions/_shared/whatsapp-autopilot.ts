@@ -298,6 +298,93 @@ export async function triggerWhatsAppAutopilot(
     } catch { /* silent */ }
   }
 
+
+  // 11.5. Handoff automático em intenção de compra
+  if (
+    autopilotConfig.handoff_on_buying_intent &&
+    detectedIntent &&
+    Array.isArray(autopilotConfig.handoff_intents) &&
+    autopilotConfig.handoff_intents.includes(detectedIntent.intent) &&
+    typeof detectedIntent.confidence === "number" &&
+    detectedIntent.confidence >= (autopilotConfig.handoff_intent_threshold ?? 0.75)
+  ) {
+    console.log("[WA-AUTOPILOT] Handoff triggered", {
+      intent: detectedIntent.intent,
+      confidence: detectedIntent.confidence,
+    });
+
+    // Atualizar conversa: marcar como precisar humano + atribuir (se configurado)
+    const conversationUpdate: Record<string, unknown> = {
+      requires_human: true,
+      handoff_reason: `buying_intent:${detectedIntent.intent} (${detectedIntent.confidence.toFixed(2)})`,
+      handoff_at: new Date().toISOString(),
+    };
+    if (autopilotConfig.handoff_assign_to_user_id) {
+      conversationUpdate.assigned_to = autopilotConfig.handoff_assign_to_user_id;
+    }
+    await supabase.from("conversations").update(conversationUpdate).eq("id", conversationId);
+
+    // Enviar mensagem de transição ao cliente, se configurada
+    if (autopilotConfig.handoff_notification_message) {
+      try {
+        await sendWhatsAppAutopilotMessage(
+          supabaseUrl, supabaseServiceKey, workspaceId,
+          conversationId, autopilotConfig.handoff_notification_message
+        );
+      } catch (err) {
+        console.warn("[WA-AUTOPILOT] Handoff message failed", err);
+      }
+    }
+
+    // Notificar agentes do workspace (best-effort)
+    try {
+      const { data: members } = await supabase
+        .from("workspace_members")
+        .select("user_id")
+        .eq("workspace_id", workspaceId);
+
+      const recipients = autopilotConfig.handoff_assign_to_user_id
+        ? [{ user_id: autopilotConfig.handoff_assign_to_user_id }]
+        : (members || []);
+
+      if (recipients.length > 0) {
+        await supabase.from("notifications").insert(
+          recipients.map((m: any) => ({
+            workspace_id: workspaceId,
+            user_id: m.user_id,
+            type: "autopilot_handoff",
+            title: "Conversa precisa de atenção humana",
+            message: `Auto-Pilot detetou intenção de compra (${detectedIntent!.intent}) e transferiu a conversa.`,
+            metadata: {
+              conversation_id: conversationId,
+              lead_id: leadId,
+              intent: detectedIntent!.intent,
+              confidence: detectedIntent!.confidence,
+            },
+          }))
+        );
+      }
+    } catch (err) {
+      console.warn("[WA-AUTOPILOT] Notification insert failed (non-critical)", err);
+    }
+
+    // Log + audit
+    await supabase.from("autopilot_events").insert({
+      workspace_id: workspaceId,
+      conversation_id: conversationId,
+      event_type: "handoff",
+      event_data: {
+        intent: detectedIntent.intent,
+        confidence: detectedIntent.confidence,
+        threshold: autopilotConfig.handoff_intent_threshold,
+        assigned_to: autopilotConfig.handoff_assign_to_user_id || null,
+        channel,
+      },
+    });
+
+    return; // não gera resposta automática
+  }
+
   // Get workspace name
   const { data: ws } = await supabase
     .from("workspaces")
