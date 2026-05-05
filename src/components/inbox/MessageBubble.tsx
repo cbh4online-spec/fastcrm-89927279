@@ -125,25 +125,7 @@ export function MessageBubble({
             {/* Attachments */}
             {attachments && attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border">
-                {attachments.map((att, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs gap-1.5"
-                    asChild
-                  >
-                    <a href={att.url} target="_blank" rel="noopener noreferrer">
-                      {att.type?.includes("pdf") ? (
-                        <FileText className="w-3.5 h-3.5" />
-                      ) : (
-                        <Paperclip className="w-3.5 h-3.5" />
-                      )}
-                      <span className="truncate max-w-[120px]">{att.name}</span>
-                      <Download className="w-3 h-3" />
-                    </a>
-                  </Button>
-                ))}
+                {attachments.map((att, idx) => renderAttachment(att, idx))}
               </div>
             )}
           </div>
@@ -207,24 +189,7 @@ export function MessageBubble({
           {/* Attachments */}
           {attachments && attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/50">
-              {attachments.map((att, idx) => (
-                <Button
-                  key={idx}
-                  variant="secondary"
-                  size="sm"
-                  className="h-8 text-xs gap-1.5"
-                  asChild
-                >
-                  <a href={att.url} target="_blank" rel="noopener noreferrer">
-                    {att.type?.includes("pdf") ? (
-                      <FileText className="w-3.5 h-3.5" />
-                    ) : (
-                      <Paperclip className="w-3.5 h-3.5" />
-                    )}
-                    <span className="truncate max-w-[120px]">{att.name}</span>
-                  </a>
-                </Button>
-              ))}
+              {attachments.map((att, idx) => renderAttachment(att, idx))}
             </div>
           )}
         </div>
