@@ -248,18 +248,18 @@ Deno.serve(async (req: Request) => {
     const tokensIn = Number(usage.prompt_tokens ?? 0);
     const tokensOut = Number(usage.completion_tokens ?? 0);
 
-    // ── Logging de uso (best effort)
+    // ── Logging de uso (best effort, fire-and-forget)
     try {
-      await logAIUsage({
-        workspaceId,
-        userId,
+      logAIUsage({
+        workspace_id: workspaceId,
+        user_id: userId ?? undefined,
         feature: "ai-generate-b2b-banner",
         model,
         provider: "lovable-ai",
-        tokensInput: tokensIn,
-        tokensOutput: tokensOut,
-        latencyMs: Date.now() - t0,
-        wasError: false,
+        tokens_input: tokensIn,
+        tokens_output: tokensOut,
+        latency_ms: Date.now() - t0,
+        was_error: false,
       });
     } catch (logErr) {
       console.warn("[ai-generate-b2b-banner] logAIUsage failed:", (logErr as Error).message);
