@@ -8,7 +8,6 @@ import { getMasterCredentials, zapiCall, zapiMasterCall, safeJson } from '../_sh
 
 interface ConnectBody {
   workspaceId: string;
-  // Optional BYO mode credentials
   byo?: {
     instanceId: string;
     instanceToken: string;
@@ -22,7 +21,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -61,7 +59,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify workspace membership
     const { data: membership } = await admin
       .from('workspace_members')
       .select('role')
@@ -76,7 +73,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get or create connection row
     const { data: existing } = await admin
       .from('whatsapp_zapi_connections')
       .select('*')
@@ -86,47 +82,65 @@ Deno.serve(async (req) => {
     let instanceId: string | null = existing?.instance_id ?? null;
     let instanceToken: string | null = existing?.instance_token ?? null;
     let clientToken: string | null = existing?.client_token ?? null;
-    let accountMode: 'master' | 'byo' = body.byo ? 'byo' : (existing?.account_mode ?? 'master');
+    const accountMode: 'master' | 'byo' = body.byo ? 'byo' : (existing?.account_mode ?? 'master');
 
-    // BYO mode: use provided credentials
     if (body.byo) {
       instanceId = body.byo.instanceId;
       instanceToken = body.byo.instanceToken;
       clientToken = body.byo.clientToken;
     } else if (!instanceId || !instanceToken || !clientToken) {
-      // Master mode: create instance via master account
+      // Master mode — try to create instance via Z-API master account.
+      // Z-API has used multiple paths over time; try the documented variants.
       const master = getMasterCredentials();
-      const createRes = await zapiMasterCall(master, '/instances', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: `ws-${body.workspaceId.slice(0, 8)}`,
-        }),
-      });
+      let created: any = null;
+      let lastErr = '';
 
-      if (!createRes.ok) {
-        const errText = await createRes.text();
-        console.error('[zapi-connect] Failed to create instance:', createRes.status, errText);
+      const candidatePaths = ['/create', '/instances', '/instance/create'];
+      for (const p of candidatePaths) {
+        const res = await zapiMasterCall(master, p, {
+          method: 'POST',
+          body: JSON.stringify({ name: 'ws-' + body.workspaceId.slice(0, 8) }),
+        });
+        const json = await safeJson(res);
+        if (res.ok && json && !json.error) {
+          created = json;
+          console.log('[zapi-connect] Instance created via', p);
+          break;
+        }
+        lastErr = (json && JSON.stringify(json)) || ('HTTP ' + res.status);
+        console.warn('[zapi-connect] Create attempt failed', p, lastErr);
+      }
+
+      if (!created) {
+        console.error('[zapi-connect] All create attempts failed:', lastErr);
         return new Response(
-          JSON.stringify({ error: 'Failed to create Z-API instance', detail: errText, fallback: true }),
+          JSON.stringify({
+            error: 'A conta master Z-API não consegue criar instâncias automaticamente. Use o separador "Credenciais próprias" com uma instância criada no painel Z-API.',
+            detail: lastErr,
+            requires_byo: true,
+            fallback: true,
+          }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const created = await safeJson(createRes);
       instanceId = created?.id ?? created?.instanceId ?? created?.instance?.id;
       instanceToken = created?.token ?? created?.instance?.token;
-      clientToken = master.adminToken; // master mode reuses admin token as client-token
+      clientToken = master.adminToken;
 
       if (!instanceId || !instanceToken) {
         console.error('[zapi-connect] Missing instance fields in response:', created);
         return new Response(
-          JSON.stringify({ error: 'Z-API returned invalid instance data', fallback: true }),
+          JSON.stringify({
+            error: 'Z-API devolveu dados inválidos. Use "Credenciais próprias".',
+            requires_byo: true,
+            fallback: true,
+          }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    // Upsert connection
     const upsertPayload = {
       workspace_id: body.workspaceId,
       instance_id: instanceId,
@@ -150,24 +164,13 @@ Deno.serve(async (req) => {
         .insert(upsertPayload);
     }
 
-    // Configure webhook on this instance
-    const webhookUrl = `${supabaseUrl}/functions/v1/whatsapp-zapi-webhook?ws=${body.workspaceId}`;
+    // Configure webhooks (best-effort)
+    const webhookUrl = supabaseUrl + '/functions/v1/whatsapp-zapi-webhook?ws=' + body.workspaceId;
     try {
-      await zapiCall(
-        { instanceId: instanceId!, instanceToken: instanceToken!, clientToken: clientToken! },
-        '/update-webhook-received',
-        { method: 'PUT', body: JSON.stringify({ value: webhookUrl }) }
-      );
-      await zapiCall(
-        { instanceId: instanceId!, instanceToken: instanceToken!, clientToken: clientToken! },
-        '/update-webhook-connected',
-        { method: 'PUT', body: JSON.stringify({ value: webhookUrl }) }
-      );
-      await zapiCall(
-        { instanceId: instanceId!, instanceToken: instanceToken!, clientToken: clientToken! },
-        '/update-webhook-disconnected',
-        { method: 'PUT', body: JSON.stringify({ value: webhookUrl }) }
-      );
+      const creds = { instanceId: instanceId!, instanceToken: instanceToken!, clientToken: clientToken! };
+      await zapiCall(creds, '/update-webhook-received', { method: 'PUT', body: JSON.stringify({ value: webhookUrl }) });
+      await zapiCall(creds, '/update-webhook-connected', { method: 'PUT', body: JSON.stringify({ value: webhookUrl }) });
+      await zapiCall(creds, '/update-webhook-disconnected', { method: 'PUT', body: JSON.stringify({ value: webhookUrl }) });
     } catch (whErr) {
       console.warn('[zapi-connect] Webhook config warning:', whErr);
     }
@@ -178,7 +181,7 @@ Deno.serve(async (req) => {
       '/qr-code/image'
     );
     const qrJson = await safeJson(qrRes);
-    const qrCode = qrJson?.value ?? null; // base64 image data:image/png;base64,...
+    const qrCode = qrJson?.value ?? null;
     const connected = qrJson?.connected === true;
 
     await admin
