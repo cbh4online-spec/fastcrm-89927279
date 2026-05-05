@@ -112,7 +112,7 @@ export function SettingsNavigation({
   const hasSearch = searchQuery.trim().length > 0;
 
   return (
-    <div className="w-64 border-r border-border bg-muted/20 flex flex-col">
+    <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-border bg-muted/20 flex flex-col">
       {/* Search */}
       <div className="p-4 border-b border-border">
         <div className="relative">
