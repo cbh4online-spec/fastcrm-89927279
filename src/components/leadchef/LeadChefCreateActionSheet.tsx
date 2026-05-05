@@ -39,22 +39,11 @@ const TYPES: LeadChefActivityType[] = [
 ];
 
 const schema = z.object({
-  type: z.enum([
-    "phone_call",
-    "whatsapp",
-    "follow_up",
-    "demo",
-    "proposal",
-    "post_sale_visit",
-    "cooking_class",
-    "custom_visit",
-    "referral",
-    "note",
-  ]),
+  type: z.string().min(1),
   title: z.string().min(1, "Título obrigatório.").max(200),
   scheduled_at: z.string().optional(),
   note: z.string().max(2000).optional(),
-  setAsNextAction: z.boolean().default(true).optional(),
+  setAsNextAction: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
