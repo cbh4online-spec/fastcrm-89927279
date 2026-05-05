@@ -49,12 +49,9 @@ export function WhatsAppZapiConnectionCard() {
   const isTransitional = ["creating_instance", "qr_pending", "waiting_for_scan", "authenticating", "reconnecting"].includes(status);
   const cfg = STATUS_CONFIG[status];
 
-  // @ts-expect-error - colunas adicionadas por migration recente, ainda não nos types gerados
-  const webhookConfigured: boolean = !!conn?.webhook_configured;
-  // @ts-expect-error - igual
-  const webhookLastReceived: string | null = conn?.webhook_last_received_at ?? null;
-  // @ts-expect-error
-  const webhookLastError: string | null = conn?.webhook_last_error ?? null;
+  const webhookConfigured = !!conn?.webhook_configured;
+  const webhookLastReceived = conn?.webhook_last_received_at ?? null;
+  const webhookLastError = conn?.webhook_last_error ?? null;
 
   if (isLoading) {
     return (
