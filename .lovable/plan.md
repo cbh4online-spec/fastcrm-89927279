@@ -1,176 +1,105 @@
-# Integração ifthenpay — Workspace Pharliss
+## Diagnóstico (provado)
 
-## Diagnóstico
+A tua arquitetura está correta: **uma única ligação GHL** que recolhe todos os canais, e cada workspace **ativa apenas o seu canal**.
 
-A ifthenpay é um agregador de pagamentos PT que oferece Multibanco (referência), MB WAY, Payshop, Cartão de Crédito e Pix. A integração assenta em 3 pilares:
+A BD confirma isto — não há canais duplicados entre workspaces. Cada `ghl_account_id` pertence a 1 workspace:
 
-1. **Geração de pedido de pagamento** (server-to-server, com chaves específicas por método).
-2. **Callback anti-phishing** (GET enviado pela ifthenpay quando o pagamento é confirmado).
-3. **Configuração por workspace** (cada workspace pode ter as suas próprias chaves — neste caso, Pharliss).
+```text
+Instagram ensiformacao         → PHARLISS    (active)
+Instagram metodopare.ai        → METODOPARE  (active)
+Instagram fastcrm              → METODOPARE  (active)
+Instagram blecksen_management  → Blecksen    (active)
+Facebook  ENSI                 → PHARLISS    (active)
+Facebook  Jorge Cardoso        → METODOPARE  (active)
+Facebook  Blecksen             → Blecksen    (active)
+WhatsApp  +351925990747        → METODOPARE  (active)
+```
 
-Ainda não existe nada no FastCRM relacionado com ifthenpay (verifiquei `supabase/functions/` e `src/`). Vamos construir multi-tenant desde o início, para reaproveitar noutros workspaces no futuro.
+**Problema real** (em `ghl-webhook-message/index.ts` linhas 259–298):
 
-## Decisões de produto/UX
+A função identifica o **canal_type** da mensagem (ex: "instagram"), procura workspaces com esse **tipo de canal** ativo, e:
+- Se encontrar 1 → OK
+- Se encontrar **vários** → escolhe o "primary" ou o primeiro (linha 285-291)
+- Se não encontrar → fallback para "primary" ou primeiro config (linha 295-298)
 
-- **Multi-tenant**: configuração por `workspace_id`, não global. Pharliss será apenas o primeiro a configurar.
-- **Métodos suportados na v1**: Multibanco, MB WAY e Cartão de Crédito (Gateway). Payshop e Pix ficam no schema mas desativados por defeito.
-- **URL de callback**: enviar à ifthenpay um URL no domínio `fastcrm.metodopare.ai` (mais profissional do que o subdomínio Supabase) com `workspace=pharliss` e `key=<anti_phishing_key>` como query params.
-- **Reconciliação**: o callback atualiza diretamente o estado da fatura/encomenda associada via `order_id` (passado como parâmetro `id` no pedido de pagamento).
-- **Auditoria**: cada callback (válido ou rejeitado) é registado em `ifthenpay_callback_logs` para auditoria e debug.
-- **Fallback**: se o callback chegar para uma referência desconhecida, devolve 200 OK na mesma (a ifthenpay reenvia indefinidamente em caso de erro) e regista em log.
+Como tens **3 workspaces com Instagram ativo** (PHARLISS, METODOPARE, Blecksen) que partilham o mesmo `ghl_location_id`, qualquer DM de Instagram que chegue pelo Pharliss cai no ramo "vários owners" e é roteada para o **primary** (METODOPARE) — daí responder com a persona "Conceição".
 
-## Estrutura técnica
+**A função nunca usa o `ghl_account_id` da mensagem recebida**, que é o único campo que identifica univocamente o canal/workspace correto. Esse é o bug.
 
-### Tabelas novas (Supabase, com RLS)
+## O que fazer
 
-**`ifthenpay_settings`** — uma linha por workspace
-- `id` uuid PK
-- `workspace_id` uuid UNIQUE (FK workspaces)
-- `is_active` boolean default false
-- `mb_entidade` text, `mb_subentidade` text (Multibanco)
-- `mbway_key` text (MB WAY)
-- `cc_key` text (Cartão Crédito Gateway)
-- `payshop_key` text, `pix_key` text (futuros)
-- `anti_phishing_key` text NOT NULL (gerada por nós, mostrada uma vez)
-- `enabled_methods` text[] default `{multibanco,mbway}`
-- `expiry_days` int default 3 (validade da referência MB)
-- `test_mode` boolean default true
-- `created_at`, `updated_at`
+### 1. Resolver workspace pelo `ghl_account_id` da mensagem (fix central)
 
-RLS: SELECT/INSERT/UPDATE apenas para membros do workspace com role admin. Chaves só visíveis a admins; mascaradas (`****1234`) na UI para outros papéis.
+No webhook, extrair o `account_id` (Instagram page ID, Facebook page ID, WhatsApp number) do payload GHL e procurar **diretamente** em `workspace_ghl_social_channels`:
 
-**`ifthenpay_payments`** — pedido de pagamento criado
-- `id` uuid PK
-- `workspace_id` uuid
-- `order_id` uuid (FK opcional para `orders` ou `invoices`)
-- `reference_type` text (`order` | `invoice` | `subscription`)
-- `reference_id` uuid
-- `method` text (`multibanco` | `mbway` | `cc`)
-- `amount` numeric
-- `currency` text default `EUR`
-- `status` text (`pending` | `paid` | `expired` | `cancelled` | `failed`)
-- `mb_entidade`, `mb_referencia`, `mb_expiry_date` (apenas se Multibanco)
-- `mbway_request_id`, `mbway_phone` (apenas se MB WAY)
-- `cc_request_id`, `cc_payment_url` (apenas se Cartão)
-- `paid_at` timestamptz
-- `metadata` jsonb
-- `created_at`
+```text
+account_id da mensagem  →  workspace_ghl_social_channels (is_active=true)  →  workspace_id
+```
 
-RLS: membros do workspace podem ler; INSERT/UPDATE apenas via service_role (edge functions).
+Lookup determinístico, 1 resultado. Sem fallbacks, sem "primary".
 
-**`ifthenpay_callback_logs`** — auditoria de callbacks
-- `id` uuid PK
-- `workspace_id` uuid (resolvido após validação)
-- `received_at` timestamptz
-- `query_params` jsonb (raw)
-- `headers` jsonb
-- `outcome` text (`accepted` | `rejected_key` | `rejected_unknown_payment` | `error`)
-- `payment_id` uuid (FK ifthenpay_payments, nullable)
-- `error_message` text
+### 2. Fail-closed quando não houver match
 
-RLS: SELECT para admins do workspace, INSERT só service_role.
+Se `account_id` não mapear para nenhum workspace ativo → **rejeitar a mensagem** com log de erro `UNROUTABLE_MESSAGE` em vez de cair em fallback silencioso. Resposta 200 OK com `{ outcome: "unrouted" }` para o GHL não fazer retry infinito.
 
-### Edge Functions novas
+### 3. Manter compatibilidade para canais sem account_id
 
-**`ifthenpay-create-payment`** (verify_jwt true)
-- Input: `{ workspace_id, reference_type, reference_id, method, amount, customer? }`
-- Valida JWT + pertença ao workspace + método ativo nas settings.
-- Conforme método:
-  - **Multibanco**: chama `https://ifthenpay.com/api/multibanco/reference/init` (JSON com `mbKey`, `orderId`, `amount`, `expiryDays`).
-  - **MB WAY**: chama `https://ifthenpay.com/api/spg/payment/mbway` com `MbWayKey`, `orderId`, `amount`, `mobileNumber`.
-  - **Cartão**: chama `https://ifthenpay.com/api/creditcard/init/{ccKey}` para obter `paymentUrl` e `requestId`.
-- Cria registo em `ifthenpay_payments` com status `pending`.
-- Devolve dados ao frontend (referência+entidade, ou URL de pagamento).
-- Erros: padrão 200 OK + `{ fallback: true, error }` (regra do projeto).
+SMS/email/voz que não têm `account_id` social mantêm a lógica atual (single config ou primary), mas marcados explicitamente como "non-social fallback" nos logs.
 
-**`ifthenpay-callback`** (verify_jwt false — validação manual via anti-phishing key)
-- URL final: `https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/ifthenpay-callback`
-- A ifthenpay chama com query string: `?key=...&orderId=...&amount=...&requestId=...&payment_datetime=...&workspace=pharliss`
-- Valida `workspace` → carrega `ifthenpay_settings.anti_phishing_key` → compara com `key` recebido.
-- Se key inválida → log `rejected_key` + 200 OK (não revelar detalhes).
-- Se válida → procura `ifthenpay_payments` por `orderId` (que coincide com `payments.id`).
-- Marca como `paid`, atualiza `paid_at`.
-- Atualiza fatura/encomenda associada (`orders.payment_status = 'paid'` ou equivalente em `invoices`).
-- Regista em `activity_logs` (`payment_received` via ifthenpay).
-- Dispara realtime update para a UI.
-- Devolve sempre 200 OK (mesmo em erro interno → log `error` + fallback).
+### 4. Guard-rail na BD
 
-**`ifthenpay-rotate-key`** (verify_jwt true, admin only)
-- Gera nova `anti_phishing_key` e devolve novo URL de callback completo para o admin enviar à ifthenpay.
+Adicionar `UNIQUE(ghl_account_id, channel_type) WHERE is_active=true` em `workspace_ghl_social_channels` — impede que dois workspaces ativem o mesmo canal por engano no futuro.
 
-### UI nova
+### 5. Validação Nível 2 (testes obrigatórios após fix)
 
-**`/dashboard/settings/integrations/ifthenpay`** (ou tab dentro de Integrations)
-- Componente `IfthenpaySettingsPage.tsx`
-- Secções:
-  1. **Estado** — Ativo/Inativo, modo Teste/Produção
-  2. **Chaves por método** — campos password, com botão "Mostrar/Copiar" (apenas admin); cada um com link para a doc da ifthenpay sobre onde obter
-  3. **Callback URL** — read-only, com botão "Copiar" e botão "Rodar anti-phishing key"
-  4. **Métodos ativos** — checkboxes (MB, MB WAY, Cartão, Payshop, Pix)
-  5. **Histórico de callbacks** — tabela `ifthenpay_callback_logs` com filtro/ordenação
-  6. **Teste de integração** — botão que cria um pagamento de 0,01€ Multibanco para validar config
+| Teste | Como | Esperado |
+|---|---|---|
+| A. Webhook IG Pharliss | curl edge function com `account_id=17841462675469795` | workspace=PHARLISS, persona ≠ Conceição |
+| B. Webhook IG METODOPARE | curl com `account_id=17841465250555520` | workspace=METODOPARE, persona=Conceição |
+| C. Webhook IG Blecksen | curl com `account_id=17841444347607539` | workspace=Blecksen |
+| D. account_id desconhecido | curl com `account_id=fake` | outcome=unrouted, sem mensagem criada |
+| E. Logs `ai_usage_logs` | query filtrada pelos testes | `workspace_id` correto em cada linha |
 
-**Componente `IfthenpayPaymentSelector.tsx`** (a usar no checkout)
-- Mostra os métodos ativos como cards
-- Ao escolher, chama `ifthenpay-create-payment` e mostra resultado (referência MB, ou redireciona para Cartão, ou envia pedido MB WAY ao telemóvel)
-- Polling opcional ao status (a cada 5s) ou via realtime subscription a `ifthenpay_payments`
+### 6. Hardening preventivo
 
-### Hooks
+- Log estruturado: `[GHL-ROUTE] account_id=X → workspace=Y` em cada mensagem
+- Métrica em `system_health_diagnostics`: contador de `unrouted_messages` por hora
+- Alerta se > 5 mensagens/hora ficarem unrouted
 
-- `useIfthenpaySettings(workspaceId)` — get/update via RLS direto.
-- `useIfthenpayPayment(paymentId)` — subscribe realtime ao status.
-- `useCreateIfthenpayPayment()` — mutation para invocar a edge function.
+## Detalhes técnicos
 
-## Plano de implementação
+**Ficheiro principal:** `supabase/functions/ghl-webhook-message/index.ts` (lógica linhas 259–298)
 
-### Fase 1 — Infra base (para teres o URL para enviar à ifthenpay)
-1. Migration: criar `ifthenpay_settings`, `ifthenpay_payments`, `ifthenpay_callback_logs` + RLS.
-2. Edge function `ifthenpay-callback` (esqueleto que valida key, faz log, devolve 200 OK).
-3. Página `IfthenpaySettingsPage.tsx` (mínima): permitir ao admin gerar a anti-phishing key e ver o URL de callback completo.
-4. **Resultado**: já tens o URL e key para enviar à ifthenpay → eles começam a configurar a tua conta.
+**Outros pontos a auditar (mesmo padrão de bug pode existir):**
+- `supabase/functions/ai-inbox-reply/index.ts` — confirmar que usa o `workspace_id` da mensagem, não re-resolve
+- `supabase/functions/_shared/whatsapp-autopilot.ts` — verificar resolução de workspace para WhatsApp
+- `src/lib/persona.ts` — `resolvePersonaForContext` recebe `workspaceId` como parâmetro, ok desde que o caller passe o correto
 
-### Fase 2 — Geração de pagamentos
-5. Edge function `ifthenpay-create-payment` (Multibanco + MB WAY).
-6. Componente `IfthenpayPaymentSelector` integrado no checkout existente do Pharliss.
-7. Realtime subscription para atualizar UI quando o callback marcar como pago.
+**Payload GHL — onde está o account_id:**
+- Instagram/Facebook DM: `body.message.meta.facebookPageId` ou `body.conversationProviderId`
+- WhatsApp via GHL: `body.message.meta.phone` ou similar
+- Vou inspecionar payloads reais nos logs das últimas 24h para confirmar o caminho exato antes de codificar
 
-### Fase 3 — Reconciliação completa
-8. Atualizar `orders` / `invoices` automaticamente quando o callback chega.
-9. Disparar email/notificação de pagamento recebido.
-10. Histórico de callbacks na UI + botão de teste 0,01€.
-
-### Fase 4 — Cartão de Crédito + extras
-11. Adicionar método Cartão (redirect flow).
-12. Suporte a reembolsos (API `/refund` da ifthenpay).
-13. Webhook reverso para subscrições recorrentes (se aplicável).
+**Migração SQL:**
+```sql
+CREATE UNIQUE INDEX idx_ghl_social_active_unique
+ON workspace_ghl_social_channels (ghl_account_id, channel_type)
+WHERE is_active = true;
+```
 
 ## Critérios de aceitação
 
-- Admin do Pharliss consegue configurar todas as chaves e gerar/rotar a anti-phishing key.
-- URL de callback funciona: testes simulados com `key` correta → 200 OK + payment marcado pago; com `key` errada → 200 OK + log `rejected_key`, sem alterações.
-- Cliente final no checkout vê os métodos ativos, escolhe Multibanco → recebe Entidade+Referência+Valor; escolhe MB WAY → recebe pedido no telemóvel; escolhe Cartão → redireciona para gateway.
-- Após pagamento real (modo teste ifthenpay), a fatura passa a "Paga" automaticamente em <10s.
-- Todos os callbacks ficam em `ifthenpay_callback_logs` (mesmo os rejeitados).
-- RLS impede que admin de outro workspace veja chaves do Pharliss.
-- Nenhum segredo aparece em `console.log`.
+- [ ] Mensagem de IG do Pharliss responde com persona/contexto Pharliss
+- [ ] Mensagem de IG do METODOPARE continua a responder com Conceição
+- [ ] Logs mostram `account_id → workspace` determinístico
+- [ ] Testes A–E passam todos
+- [ ] Constraint UNIQUE ativa
+- [ ] Memória `mem://integrations/gohighlevel/multi-workspace-isolation` atualizada com a regra "account_id é a chave de routing, nunca primary"
 
-## Riscos e pontos por validar
+## Riscos
 
-- **Doc oficial ifthenpay** — confirmar URLs exatos das APIs (variam ligeiramente por método). Pode ser preciso afinar payloads na Fase 2.
-- **Order ID format** — a ifthenpay aceita até 15 chars no `orderId` para Multibanco. Vamos usar um short-hash do UUID, não o UUID completo.
-- **Modelo de fatura/encomenda no Pharliss** — preciso confirmar se ligamos a `orders`, `invoices` ou ambos. Atualmente o plano usa `reference_type` polimórfico para suportar os dois.
-- **Domínio do callback** — recomendo `https://fastcrm.metodopare.ai/functions/v1/ifthenpay-callback` mas requer rewrite/proxy no frontend host. Alternativa imediata: usar o URL Supabase nativo (`eumnfkccyvlyoyjchiwe.supabase.co`).
-- **Idempotência** — a ifthenpay pode reenviar callbacks; o handler tem de ser idempotente (já previsto: se `status='paid'`, ignora silenciosamente mas regista log).
-- **Modo de teste** — a ifthenpay disponibiliza chaves de sandbox. Convém arrancarmos em `test_mode=true` até validares end-to-end.
+- **Payloads GHL inconsistentes**: o campo onde o `account_id` aparece pode variar por tipo de canal. Vou ler logs reais antes de fixar o caminho.
+- **Mensagens em backlog**: mensagens já mal-roteadas em conversas existentes não são re-classificadas — o fix só protege novas mensagens.
+- **Canais inativos**: se o utilizador desativar um canal, mensagens desse canal passam a `unrouted`. Comportamento correto, mas precisa de visibilidade no UI.
 
-## URL final a enviar à ifthenpay (após Fase 1)
-
-```
-https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/ifthenpay-callback?workspace=pharliss&key=<ANTI_PHISHING_KEY_GERADA>
-```
-
-(Ou na variante com domínio próprio, se ativarmos rewrite em `fastcrm.metodopare.ai`.)
-
----
-
-Aprovas para arrancar pela **Fase 1** (para conseguires enviar já o URL à ifthenpay enquanto eles configuram do lado deles)?
+Aprovas para avançar para implementação?
