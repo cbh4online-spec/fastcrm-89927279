@@ -24,7 +24,18 @@ export function useWhatsAppProviderInstance() {
         .limit(1)
         .maybeSingle();
       if (error && (error as { code?: string }).code !== "PGRST116") throw error;
-      return data;
+      return (data ?? null) as {
+        id: string;
+        workspace_id: string;
+        provider_name: string;
+        display_name: string | null;
+        default_country: string;
+        default_country_code: string;
+        active: boolean;
+        metadata: Record<string, unknown>;
+        created_at: string;
+        updated_at: string;
+      } | null;
     },
     enabled: !!currentWorkspace,
   });
