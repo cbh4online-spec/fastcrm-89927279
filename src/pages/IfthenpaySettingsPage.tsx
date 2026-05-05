@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Copy, RotateCw, ExternalLink, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useIfthenpaySettings, IFTHENPAY_METHODS, type IfthenpayMethod } from "@/hooks/integrations/useIfthenpaySettings";
 
 export default function IfthenpaySettingsPage() {
@@ -30,7 +31,8 @@ export default function IfthenpaySettingsPage() {
   const [showKeys, setShowKeys] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
 
-  const isAdminLikely = currentWorkspace?.role === "owner" || currentWorkspace?.role === "admin";
+  const { isSuperAdmin } = useUserRole();
+  const isAdminLikely = isSuperAdmin || currentWorkspace?.role === "owner" || currentWorkspace?.role === "admin";
 
   function copy(value: string, label = "Copiado") {
     navigator.clipboard.writeText(value);
