@@ -250,9 +250,10 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
   const openNew = () => {
     if (!workspaceId) return;
     const nextOrder = (sortedSlides[sortedSlides.length - 1]?.display_order ?? -1) + 1;
+    setAiPrompt("");
     setEditing(empty(workspaceId, nextOrder));
   };
-  const openEdit = (s: PartnerPortalSlide) => setEditing({ ...s });
+  const openEdit = (s: PartnerPortalSlide) => { setAiPrompt(""); setEditing({ ...s }); };
 
   const duplicate = async (s: PartnerPortalSlide) => {
     if (!workspaceId) return;
