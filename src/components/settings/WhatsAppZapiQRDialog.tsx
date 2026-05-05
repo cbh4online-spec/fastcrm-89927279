@@ -60,7 +60,15 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
     instanceToken: false,
     clientToken: false,
   });
+  const [byoSubmitted, setByoSubmitted] = useState(false);
   const [requiresByo, setRequiresByo] = useState(false);
+
+  const FIELD_ORDER: (keyof ByoErrors)[] = ["instanceId", "instanceToken", "clientToken"];
+  const FIELD_LABELS: Record<keyof ByoErrors, string> = {
+    instanceId: "Instance ID",
+    instanceToken: "Instance Token",
+    clientToken: "Client-Token",
+  };
 
   const status = (conn?.status as ZapiStatus) || "not_configured";
   const qr = conn?.qr_code;
