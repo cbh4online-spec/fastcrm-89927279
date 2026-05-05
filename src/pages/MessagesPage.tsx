@@ -353,8 +353,28 @@ function NewConversationButton({
   const [groupTitle, setGroupTitle] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastBody, setBroadcastBody] = useState("");
+
+  // Lista filtrada (usada também pelo handler de teclado)
+  const dmTokens = useMemo(
+    () => search.toLowerCase().trim().split(/\s+/).filter(Boolean),
+    [search],
+  );
+  const dmFiltered = useMemo(() => {
+    return (teammates as any[]).filter((t) => {
+      if (dmTokens.length === 0) return true;
+      const hay = `${t.full_name ?? ""} ${t.email ?? ""} ${t.workspaces ?? ""}`.toLowerCase();
+      return dmTokens.every((tk) => hay.includes(tk));
+    });
+  }, [teammates, dmTokens]);
+  const dmVisible = useMemo(() => dmFiltered.slice(0, 100), [dmFiltered]);
+
+  // Reset selecção sempre que muda a pesquisa ou a lista
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [search, dmVisible.length]);
 
   const close = () => {
     setOpen(false);
@@ -435,25 +455,43 @@ function NewConversationButton({
               }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (dmVisible.length === 0) return;
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setActiveIndex((i) => (i + 1) % dmVisible.length);
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setActiveIndex((i) => (i - 1 + dmVisible.length) % dmVisible.length);
+                } else if (e.key === "Home") {
+                  e.preventDefault();
+                  setActiveIndex(0);
+                } else if (e.key === "End") {
+                  e.preventDefault();
+                  setActiveIndex(dmVisible.length - 1);
+                } else if (e.key === "Enter") {
+                  e.preventDefault();
+                  const target = dmVisible[activeIndex];
+                  if (target) handleStartDM(target.user_id);
+                }
+              }}
               className="mb-2"
               autoFocus
+              role="combobox"
+              aria-expanded
+              aria-controls="dm-results"
+              aria-activedescendant={dmVisible[activeIndex] ? `dm-opt-${dmVisible[activeIndex].user_id}` : undefined}
             />
             {isSuperAdmin && (
               <div className="flex items-center justify-between gap-2 mb-2">
                 <p className="text-[11px] text-muted-foreground">
                   🛡️ Super admin · pesquisa entre <strong>{teammates.length}</strong> utilizadores
                 </p>
-                {(() => {
-                  const tokens = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
-                  if (tokens.length === 0) return null;
-                  const count = teammates.filter((t: any) => {
-                    const hay = `${t.full_name ?? ""} ${t.email ?? ""} ${t.workspaces ?? ""}`.toLowerCase();
-                    return tokens.every((tk) => hay.includes(tk));
-                  }).length;
-                  return (
-                    <span className="text-[11px] text-muted-foreground">{count} resultados</span>
-                  );
-                })()}
+                {dmTokens.length > 0 && (
+                  <span className="text-[11px] text-muted-foreground">
+                    {dmFiltered.length} resultados · ↑↓ Enter
+                  </span>
+                )}
               </div>
             )}
             <ScrollArea className="max-h-72">
@@ -461,71 +499,71 @@ function NewConversationButton({
                 <p className="text-sm text-muted-foreground p-4 text-center">
                   {isSuperAdmin ? "Sem utilizadores." : "Sem outros membros no workspace."}
                 </p>
+              ) : dmFiltered.length === 0 ? (
+                <p className="text-sm text-muted-foreground p-4 text-center">
+                  Nenhum utilizador corresponde a "{search}".
+                </p>
               ) : (
-                (() => {
-                  const tokens = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
-                  const filtered = teammates.filter((t: any) => {
-                    if (tokens.length === 0) return true;
-                    const hay = `${t.full_name ?? ""} ${t.email ?? ""} ${t.workspaces ?? ""}`.toLowerCase();
-                    return tokens.every((tk) => hay.includes(tk));
-                  });
-                  if (filtered.length === 0) {
+                <ul className="space-y-1" id="dm-results" role="listbox">
+                  {dmVisible.map((t: any, idx: number) => {
+                    const active = idx === activeIndex;
                     return (
-                      <p className="text-sm text-muted-foreground p-4 text-center">
-                        Nenhum utilizador corresponde a "{search}".
-                      </p>
-                    );
-                  }
-                  return (
-                    <ul className="space-y-1">
-                      {filtered.slice(0, 100).map((t: any) => (
-                        <li key={t.user_id}>
-                          <button
-                            onClick={() => handleStartDM(t.user_id)}
-                            className="w-full flex items-start gap-3 p-2 rounded hover:bg-muted text-left"
-                          >
-                            <Avatar className="h-8 w-8 mt-0.5">
-                              <AvatarImage src={t.avatar_url ?? undefined} />
-                              <AvatarFallback>{initials(t.full_name, t.email)}</AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium truncate">
-                                {highlight(t.full_name || t.email || "—", tokens)}
+                      <li key={t.user_id}>
+                        <button
+                          id={`dm-opt-${t.user_id}`}
+                          role="option"
+                          aria-selected={active}
+                          onMouseEnter={() => setActiveIndex(idx)}
+                          onClick={() => handleStartDM(t.user_id)}
+                          ref={(el) => {
+                            if (active && el) el.scrollIntoView({ block: "nearest" });
+                          }}
+                          className={cn(
+                            "w-full flex items-start gap-3 p-2 rounded text-left transition-colors",
+                            active ? "bg-accent" : "hover:bg-muted",
+                          )}
+                        >
+                          <Avatar className="h-8 w-8 mt-0.5">
+                            <AvatarImage src={t.avatar_url ?? undefined} />
+                            <AvatarFallback>{initials(t.full_name, t.email)}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">
+                              {highlight(t.full_name || t.email || "—", dmTokens)}
+                            </p>
+                            {t.full_name && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {highlight(t.email ?? "", dmTokens)}
                               </p>
-                              {t.full_name && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {highlight(t.email ?? "", tokens)}
-                                </p>
-                              )}
-                              {t.workspaces && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {String(t.workspaces)
-                                    .split(",")
-                                    .map((w: string) => w.trim())
-                                    .filter(Boolean)
-                                    .map((w: string) => (
-                                      <Badge
-                                        key={w}
-                                        variant="outline"
-                                        className="h-4 px-1.5 text-[9px] font-normal"
-                                      >
-                                        {highlight(w, tokens)}
-                                      </Badge>
-                                    ))}
-                                </div>
-                              )}
-                            </div>
-                          </button>
-                        </li>
-                      ))}
-                      {filtered.length > 100 && (
-                        <li className="text-[11px] text-muted-foreground text-center py-2">
-                          A mostrar 100 de {filtered.length}. Refine a pesquisa.
-                        </li>
-                      )}
-                    </ul>
-                  );
-                })()
+                            )}
+                            {t.workspaces && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {String(t.workspaces)
+                                  .split(",")
+                                  .map((w: string) => w.trim())
+                                  .filter(Boolean)
+                                  .map((w: string) => (
+                                    <Badge
+                                      key={w}
+                                      variant="outline"
+                                      className="h-4 px-1.5 text-[9px] font-normal"
+                                    >
+                                      {highlight(w, dmTokens)}
+                                    </Badge>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {dmFiltered.length > 100 && (
+                    <li className="text-[11px] text-muted-foreground text-center py-2">
+                      A mostrar 100 de {dmFiltered.length}. Refine a pesquisa.
+                    </li>
+                  )}
+                </ul>
               )}
             </ScrollArea>
           </TabsContent>
