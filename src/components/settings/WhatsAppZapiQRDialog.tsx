@@ -60,7 +60,15 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
     instanceToken: false,
     clientToken: false,
   });
+  const [byoSubmitted, setByoSubmitted] = useState(false);
   const [requiresByo, setRequiresByo] = useState(false);
+
+  const FIELD_ORDER: (keyof ByoErrors)[] = ["instanceId", "instanceToken", "clientToken"];
+  const FIELD_LABELS: Record<keyof ByoErrors, string> = {
+    instanceId: "Instance ID",
+    instanceToken: "Instance Token",
+    clientToken: "Client-Token",
+  };
 
   const status = (conn?.status as ZapiStatus) || "not_configured";
   const qr = conn?.qr_code;
@@ -90,6 +98,7 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
       setRequiresByo(false);
       setByoErrors({});
       setByoTouched({ instanceId: false, instanceToken: false, clientToken: false });
+      setByoSubmitted(false);
     }
   }, [open]);
 
@@ -136,7 +145,18 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
     // Force-touch all fields so any pending errors become visible
     setByoTouched({ instanceId: true, instanceToken: true, clientToken: true });
     setByoErrors(allErrors);
-    if (!isByoValid) return;
+    setByoSubmitted(true);
+    if (!isByoValid) {
+      // Focus first invalid field
+      const firstInvalid = FIELD_ORDER.find((f) => allErrors[f]);
+      if (firstInvalid) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(firstInvalid) as HTMLInputElement | null;
+          el?.focus();
+        });
+      }
+      return;
+    }
     connect.mutate(byo);
   };
 
@@ -196,6 +216,35 @@ export function WhatsAppZapiQRDialog({ open, onOpenChange }: Props) {
                   <p>Crie uma instância em <a href="https://app.z-api.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">app.z-api.io <ExternalLink className="h-3 w-3" /></a> e copie estes 3 valores do painel da instância.</p>
                 </div>
               </div>
+
+              {byoSubmitted && !isByoValid && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-sm text-destructive space-y-1.5"
+                >
+                  <div className="flex items-center gap-2 font-medium">
+                    <AlertTriangle className="h-4 w-4" />
+                    Corrija {Object.keys(allErrors).length === 1 ? "o seguinte campo" : `os ${Object.keys(allErrors).length} campos seguintes`}:
+                  </div>
+                  <ul className="list-disc list-inside space-y-0.5 text-xs ml-1">
+                    {FIELD_ORDER.filter((f) => allErrors[f]).map((f) => (
+                      <li key={f}>
+                        <button
+                          type="button"
+                          className="underline hover:no-underline focus:outline-none"
+                          onClick={() => {
+                            const el = document.getElementById(f) as HTMLInputElement | null;
+                            el?.focus();
+                          }}
+                        >
+                          <strong>{FIELD_LABELS[f]}:</strong> {allErrors[f]}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="instanceId">Instance ID</Label>
                 <Input
