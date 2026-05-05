@@ -329,7 +329,7 @@ function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBa
         </div>
       </ScrollArea>
 
-      <div className="sticky bottom-0 z-10 border-t p-3 shrink-0 bg-background pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="border-t p-3 shrink-0 bg-background pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {canSend ? (
           <div className="flex items-end gap-2">
             <Textarea
