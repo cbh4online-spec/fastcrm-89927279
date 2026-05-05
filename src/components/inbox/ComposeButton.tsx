@@ -494,7 +494,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
       icon: Phone, 
       color: "text-green-500 bg-green-500/10", 
       available: true,
-      configured: hasWhatsAppQR,
+      configured: hasWhatsAppZapi,
     },
     { 
       id: "instagram", 
@@ -612,7 +612,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
           onOpenChange={setShowGHLDialog}
           channel={selectedGHLChannel}
         />
-        <QuickEvolutionWhatsAppDialog
+        <QuickWhatsAppZapiDialog
           open={showEvolutionWhatsApp}
           onOpenChange={setShowEvolutionWhatsApp}
         />
@@ -660,7 +660,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
         onOpenChange={setShowGHLDialog}
         channel={selectedGHLChannel}
       />
-      <QuickEvolutionWhatsAppDialog
+      <QuickWhatsAppZapiDialog
         open={showEvolutionWhatsApp}
         onOpenChange={setShowEvolutionWhatsApp}
       />
