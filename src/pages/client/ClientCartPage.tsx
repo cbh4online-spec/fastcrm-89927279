@@ -262,7 +262,7 @@ export default function ClientCartPage() {
                     <span className="font-semibold text-foreground">
                       {remainingForFreeShipping.toFixed(2)}€
                     </span>{" "}
-                    para portes grátis (acima de {FREE_SHIPPING_THRESHOLD}€ s/ IVA).
+                    para portes grátis (acima de {freeShippingThreshold}€ s/ IVA).
                   </p>
                 )}
               </div>
