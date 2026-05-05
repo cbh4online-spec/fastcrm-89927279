@@ -733,11 +733,28 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
                         {aiCost} crédito{aiCost === 1 ? "" : "s"}
                       </Badge>
                     </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {AI_CONTENT_TEMPLATES.map((tpl) => (
+                        <button
+                          key={tpl.label}
+                          type="button"
+                          disabled={aiBusy || isAdmin === false}
+                          onClick={() => {
+                            setAiPrompt(tpl.prompt);
+                            setEditing((prev) => ({ ...prev, kind: tpl.kind }));
+                          }}
+                          className="text-[11px] px-2 py-0.5 rounded-full border border-border bg-background hover:bg-accent hover:border-primary/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={tpl.prompt}
+                        >
+                          {tpl.label}
+                        </button>
+                      ))}
+                    </div>
                     <Textarea
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
                       placeholder='Ex.: "Campanha de 20% para a linha de óleos ozonizados, válida até 31 de maio, encomenda mínima 200€"'
-                      rows={2}
+                      rows={3}
                       maxLength={1500}
                       disabled={aiBusy || isAdmin === false}
                       className="resize-none text-sm"
