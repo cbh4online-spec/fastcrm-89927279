@@ -30,7 +30,9 @@ import {
   Clock,
   UserPlus,
   ArrowLeft,
+  MousePointerClick,
 } from "lucide-react";
+import { WhatsAppInteractiveButtonsDialog } from "./WhatsAppInteractiveButtonsDialog";
 import { useCreateLead } from "@/hooks/useLeads";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
