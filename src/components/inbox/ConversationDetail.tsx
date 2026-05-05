@@ -472,6 +472,12 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           }}
           opportunityId={selectedOpportunityId}
         />
+      {conversation.channel === "whatsapp" && (
+        <WhatsAppInteractiveButtonsDialog
+          open={showButtonsDialog}
+          onOpenChange={setShowButtonsDialog}
+          conversationId={conversationId}
+        />
       )}
     </div>
   );
