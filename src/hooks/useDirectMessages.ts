@@ -38,6 +38,7 @@ export interface ConversationListItem extends DMConversation {
   last_message: DMMessage | null;
   unread_count: number;
   display_title: string;
+  workspace_name: string | null;
 }
 
 /* List my conversations with members + last message + unread count */
