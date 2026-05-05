@@ -374,6 +374,101 @@ export function AutopilotConfigTab() {
         </CardContent>
       </Card>
 
+      {/* Handoff Automático */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Handoff Automático para Humano
+          </CardTitle>
+          <CardDescription>
+            Transfere a conversa para um agente quando deteta intenção de compra
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Ativar handoff por intenção</Label>
+              <p className="text-xs text-muted-foreground">
+                Quando o Auto-Pilot detetar intenção de compra acima do limiar, pausa-se e marca a conversa como "precisa humano"
+              </p>
+            </div>
+            <Switch
+              checked={(formData as any).handoff_on_buying_intent ?? false}
+              onCheckedChange={(v) => updateField("handoff_on_buying_intent" as any, v)}
+            />
+          </div>
+
+          {(formData as any).handoff_on_buying_intent && (
+            <div className="space-y-4 pl-4 border-l-2 border-muted">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Confiança mínima da deteção</Label>
+                  <Badge variant="outline" className="font-mono">
+                    {Math.round(((formData as any).handoff_intent_threshold ?? 0.75) * 100)}%
+                  </Badge>
+                </div>
+                <Slider
+                  min={0.5}
+                  max={1}
+                  step={0.05}
+                  value={[(formData as any).handoff_intent_threshold ?? 0.75]}
+                  onValueChange={([v]) => updateField("handoff_intent_threshold" as any, v)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Limiar mais alto = menos handoffs, mais precisos. Recomendado: 75%.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Intenções que disparam handoff</Label>
+                <div className="flex flex-wrap gap-2">
+                  {["sales", "complaint", "support", "question"].map((intent) => {
+                    const list: string[] = (formData as any).handoff_intents ?? ["sales"];
+                    const checked = list.includes(intent);
+                    return (
+                      <div
+                        key={intent}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-colors ${
+                          checked ? "border-primary bg-primary/10" : "border-muted hover:bg-muted"
+                        }`}
+                        onClick={() => {
+                          const next = checked
+                            ? list.filter((i) => i !== intent)
+                            : [...list, intent];
+                          updateField("handoff_intents" as any, next);
+                        }}
+                      >
+                        <Checkbox checked={checked} />
+                        <span className="text-sm capitalize">{intent}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="handoff_notification_message">
+                  Mensagem ao cliente no handoff (opcional)
+                </Label>
+                <Textarea
+                  id="handoff_notification_message"
+                  value={(formData as any).handoff_notification_message || ""}
+                  onChange={(e) =>
+                    updateField("handoff_notification_message" as any, e.target.value)
+                  }
+                  placeholder="Obrigado pelo seu interesse! Vou passar a conversa a um especialista que o vai contactar de seguida."
+                  rows={2}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se vazio, o handoff é silencioso (apenas notifica a equipa internamente).
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Media Handling */}
       <Card>
         <CardHeader>
