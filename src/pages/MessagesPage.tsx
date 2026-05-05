@@ -253,7 +253,18 @@ function ConversationThread({ conv, onBack }: { conv: ConversationListItem; onBa
 
   return (
     <>
-      <header className="h-14 border-b px-4 flex items-center gap-3 shrink-0">
+      <header className="h-14 border-b px-2 md:px-4 flex items-center gap-2 shrink-0">
+        {onBack && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-8 w-8 shrink-0"
+            onClick={onBack}
+            aria-label="Voltar"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold truncate">{conv.display_title}</p>
