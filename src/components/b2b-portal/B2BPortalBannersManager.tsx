@@ -32,7 +32,7 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Loader2, Image as ImageIcon, Upload, ArrowUp, ArrowDown,
   Sparkles, Eye, EyeOff, Calendar, ExternalLink, Download, Copy, AlertCircle,
-  ShieldAlert, Search, X,
+  ShieldAlert, Search, X, Wand2, Coins,
 } from "lucide-react";
 
 interface Props {
