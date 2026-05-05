@@ -34,6 +34,9 @@ import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTem
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useCannedShortcut } from "@/hooks/useCannedShortcut";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
+import { Settings2 } from "lucide-react";
 
 interface AIMessageComposerProps {
   conversationId: string;
