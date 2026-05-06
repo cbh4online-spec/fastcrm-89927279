@@ -23944,6 +23944,394 @@ export type Database = {
           },
         ]
       }
+      cost_guard_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          current_value: number | null
+          description: string | null
+          id: string
+          limit_id: string | null
+          metadata: Json
+          resolved_at: string | null
+          severity: string
+          source_module: string | null
+          status: string
+          threshold_value: number | null
+          title: string
+          usage_type: string | null
+          workspace_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          limit_id?: string | null
+          metadata?: Json
+          resolved_at?: string | null
+          severity?: string
+          source_module?: string | null
+          status?: string
+          threshold_value?: number | null
+          title: string
+          usage_type?: string | null
+          workspace_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          limit_id?: string | null
+          metadata?: Json
+          resolved_at?: string | null
+          severity?: string
+          source_module?: string | null
+          status?: string
+          threshold_value?: number | null
+          title?: string
+          usage_type?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_guard_alerts_limit_id_fkey"
+            columns: ["limit_id"]
+            isOneToOne: false
+            referencedRelation: "cost_guard_limits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_guard_daily: {
+        Row: {
+          billable_total_amount: number
+          cost_total_amount: number
+          created_at: string
+          currency: string
+          date: string
+          id: string
+          margin_total_amount: number
+          quantity_total: number
+          source_module: string
+          updated_at: string
+          usage_type: string
+          workspace_id: string
+        }
+        Insert: {
+          billable_total_amount?: number
+          cost_total_amount?: number
+          created_at?: string
+          currency?: string
+          date: string
+          id?: string
+          margin_total_amount?: number
+          quantity_total?: number
+          source_module: string
+          updated_at?: string
+          usage_type: string
+          workspace_id: string
+        }
+        Update: {
+          billable_total_amount?: number
+          cost_total_amount?: number
+          created_at?: string
+          currency?: string
+          date?: string
+          id?: string
+          margin_total_amount?: number
+          quantity_total?: number
+          source_module?: string
+          updated_at?: string
+          usage_type?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      cost_guard_events: {
+        Row: {
+          billable_total_amount: number | null
+          billable_unit_amount: number | null
+          cost_total_amount: number | null
+          cost_unit_amount: number | null
+          country: string | null
+          created_at: string
+          currency: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          margin_amount: number | null
+          margin_percentage: number | null
+          metadata: Json
+          occurred_at: string
+          provider_instance_id: string | null
+          provider_name: string | null
+          quantity: number
+          source_module: string
+          unit: string
+          usage_type: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          billable_total_amount?: number | null
+          billable_unit_amount?: number | null
+          cost_total_amount?: number | null
+          cost_unit_amount?: number | null
+          country?: string | null
+          created_at?: string
+          currency?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          margin_amount?: number | null
+          margin_percentage?: number | null
+          metadata?: Json
+          occurred_at?: string
+          provider_instance_id?: string | null
+          provider_name?: string | null
+          quantity?: number
+          source_module: string
+          unit?: string
+          usage_type: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          billable_total_amount?: number | null
+          billable_unit_amount?: number | null
+          cost_total_amount?: number | null
+          cost_unit_amount?: number | null
+          country?: string | null
+          created_at?: string
+          currency?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          margin_amount?: number | null
+          margin_percentage?: number | null
+          metadata?: Json
+          occurred_at?: string
+          provider_instance_id?: string | null
+          provider_name?: string | null
+          quantity?: number
+          source_module?: string
+          unit?: string
+          usage_type?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      cost_guard_limits: {
+        Row: {
+          active: boolean
+          block_when_exceeded: boolean
+          created_at: string
+          hard_limit_quantity: number | null
+          id: string
+          included_quantity: number | null
+          limit_period: string
+          notify_when_hard_limit: boolean
+          notify_when_soft_limit: boolean
+          plan_id: string | null
+          soft_limit_percentage: number
+          source_module: string
+          updated_at: string
+          usage_type: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          block_when_exceeded?: boolean
+          created_at?: string
+          hard_limit_quantity?: number | null
+          id?: string
+          included_quantity?: number | null
+          limit_period?: string
+          notify_when_hard_limit?: boolean
+          notify_when_soft_limit?: boolean
+          plan_id?: string | null
+          soft_limit_percentage?: number
+          source_module: string
+          updated_at?: string
+          usage_type: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          block_when_exceeded?: boolean
+          created_at?: string
+          hard_limit_quantity?: number | null
+          id?: string
+          included_quantity?: number | null
+          limit_period?: string
+          notify_when_hard_limit?: boolean
+          notify_when_soft_limit?: boolean
+          plan_id?: string | null
+          soft_limit_percentage?: number
+          source_module?: string
+          updated_at?: string
+          usage_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_guard_limits_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "cost_guard_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_guard_monthly: {
+        Row: {
+          billable_total_amount: number
+          cost_total_amount: number
+          created_at: string
+          currency: string
+          id: string
+          margin_total_amount: number
+          month: string
+          quantity_total: number
+          source_module: string
+          updated_at: string
+          usage_type: string
+          workspace_id: string
+        }
+        Insert: {
+          billable_total_amount?: number
+          cost_total_amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          margin_total_amount?: number
+          month: string
+          quantity_total?: number
+          source_module: string
+          updated_at?: string
+          usage_type: string
+          workspace_id: string
+        }
+        Update: {
+          billable_total_amount?: number
+          cost_total_amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          margin_total_amount?: number
+          month?: string
+          quantity_total?: number
+          source_module?: string
+          updated_at?: string
+          usage_type?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      cost_guard_plans: {
+        Row: {
+          active: boolean
+          billing_currency: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          metadata: Json
+          monthly_base_price: number
+          plan_name: string
+          started_at: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          billing_currency?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          metadata?: Json
+          monthly_base_price?: number
+          plan_name: string
+          started_at?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          billing_currency?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          metadata?: Json
+          monthly_base_price?: number
+          plan_name?: string
+          started_at?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      cost_guard_rates: {
+        Row: {
+          active: boolean
+          billable_unit_amount: number | null
+          cost_unit_amount: number
+          country: string | null
+          created_at: string
+          currency: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          metadata: Json
+          provider_name: string
+          source_module: string
+          unit: string
+          updated_at: string
+          usage_type: string
+          workspace_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          billable_unit_amount?: number | null
+          cost_unit_amount?: number
+          country?: string | null
+          created_at?: string
+          currency?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          metadata?: Json
+          provider_name: string
+          source_module: string
+          unit?: string
+          updated_at?: string
+          usage_type: string
+          workspace_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          billable_unit_amount?: number | null
+          cost_unit_amount?: number
+          country?: string | null
+          created_at?: string
+          currency?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          metadata?: Json
+          provider_name?: string
+          source_module?: string
+          unit?: string
+          updated_at?: string
+          usage_type?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       credit_consumption_logs: {
         Row: {
           action_description: string | null
@@ -79672,6 +80060,31 @@ export type Database = {
       copilot_can_access_workspace: {
         Args: { _workspace_id: string }
         Returns: boolean
+      }
+      cost_guard_check_limit: {
+        Args: {
+          p_quantity?: number
+          p_usage_type: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      cost_guard_record_event: {
+        Args: {
+          p_country?: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_metadata?: Json
+          p_provider_instance_id?: string
+          p_provider_name?: string
+          p_quantity?: number
+          p_source_module: string
+          p_unit?: string
+          p_usage_type: string
+          p_user_id?: string
+          p_workspace_id: string
+        }
+        Returns: string
       }
       create_fastmatch_pipeline_for_workspace: {
         Args: { p_workspace_id: string }
