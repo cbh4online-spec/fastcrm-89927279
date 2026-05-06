@@ -43,6 +43,8 @@ import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
 import { InstagramWindowAlert } from "./InstagramWindowAlert";
 import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 import { ScheduleAppointmentDialog } from "@/components/whatsapp-pro/ScheduleAppointmentDialog";
+import { CreateTicketFromConversationDialog } from "@/components/whatsapp-pro/CreateTicketFromConversationDialog";
+import { LifeBuoy } from "lucide-react";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { PriorityScoreBadge } from "./PriorityScoreBadge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -84,6 +86,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [igWindowExpired, setIgWindowExpired] = useState(false);
   const [showButtonsDialog, setShowButtonsDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [showTicketDialog, setShowTicketDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<AIMessageComposerRef>(null);
   const trackedConvId = useRef<string | null>(null);
@@ -313,6 +316,18 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
               variant="ghost"
               size="sm"
               className="h-8 gap-1.5 text-xs"
+              onClick={() => setShowTicketDialog(true)}
+              title="Criar ticket de suporte a partir desta conversa"
+            >
+              <LifeBuoy className="w-4 h-4" />
+              <span className="hidden sm:inline">Ticket</span>
+            </Button>
+          )}
+          {conversation.channel === "whatsapp" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
               onClick={() => setShowButtonsDialog(true)}
               title="Enviar mensagem com botões interativos"
             >
@@ -529,6 +544,24 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           null
         }
         leadId={conversation.lead_id ?? null}
+      />
+
+      <CreateTicketFromConversationDialog
+        open={showTicketDialog}
+        onOpenChange={setShowTicketDialog}
+        conversationId={conversation.id}
+        contactId={(conversation as any).contact_id ?? null}
+        leadId={conversation.lead_id ?? null}
+        contactName={
+          (conversation as any).contact?.name ??
+          (conversation as any).lead?.name ??
+          null
+        }
+        contactPhone={
+          (conversation as any).contact?.phone ??
+          (conversation as any).lead?.phone ??
+          null
+        }
       />
     </div>
   );

@@ -27,6 +27,7 @@ import { useConversationSummary } from "@/hooks/useConversationSummary";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
 import { ScheduleFollowupDialog } from "./ScheduleFollowupDialog";
 import { CreateOpportunityFromInboxDialog } from "./CreateOpportunityFromInboxDialog";
+import { CreateTicketFromConversationDialog } from "@/components/whatsapp-pro/CreateTicketFromConversationDialog";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -131,6 +132,12 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
 
   const [showFollowup, setShowFollowup] = useState(false);
   const [showCreateOpp, setShowCreateOpp] = useState(false);
+  const [showCreateTicket, setShowCreateTicket] = useState(false);
+  const [ticketPrefill, setTicketPrefill] = useState<{
+    title: string;
+    description: string;
+    priority: "low" | "medium" | "high" | "critical";
+  } | null>(null);
   const [showNote, setShowNote] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -249,13 +256,13 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
                     window.open(`/dashboard/tasks/new?${params.toString()}`, "_blank");
                   }}
                   onCreateTicket={(prefill) => {
-                    const params = new URLSearchParams({
-                      title: prefill.title,
-                      description: prefill.description,
-                      priority: prefill.priority,
-                      conversation_id: conversationId || "",
+                    const p = prefill?.priority as "low" | "medium" | "high" | "critical" | undefined;
+                    setTicketPrefill({
+                      title: prefill?.title ?? "Pedido de suporte",
+                      description: prefill?.description ?? "",
+                      priority: p && ["low","medium","high","critical"].includes(p) ? p : "medium",
                     });
-                    window.open(`/dashboard/tickets/new?${params.toString()}`, "_blank");
+                    setShowCreateTicket(true);
                   }}
                   onSendProduct={(productName) => {
                     const params = new URLSearchParams({
@@ -529,6 +536,18 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
           conversationId={conversationId}
           leadId={lead.id}
           leadName={lead.name}
+        />
+      )}
+      {conversationId && (
+        <CreateTicketFromConversationDialog
+          open={showCreateTicket}
+          onOpenChange={setShowCreateTicket}
+          conversationId={conversationId}
+          contactId={(conversation as any)?.contact_id ?? null}
+          leadId={lead?.id ?? null}
+          contactName={lead?.name ?? null}
+          contactPhone={lead?.phone ?? null}
+          prefill={ticketPrefill ?? undefined}
         />
       )}
     </div>

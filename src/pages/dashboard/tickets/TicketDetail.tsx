@@ -7,6 +7,7 @@ import { useUpdateClientTicket } from "@/hooks/tickets/useUpdateClientTicket";
 import { useTicketCannedResponses } from "@/hooks/tickets/useTicketCannedResponses";
 import { TicketConversation } from "@/components/tickets/TicketConversation";
 import { TicketDetailSidebar } from "@/components/tickets/TicketDetailSidebar";
+import { TicketWhatsAppPanel } from "@/components/tickets/TicketWhatsAppPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,10 +136,18 @@ export default function TicketDetail() {
         </div>
 
         {/* Right: Sidebar */}
-        <TicketDetailSidebar
-          ticket={ticket as any}
-          onUpdate={handleUpdateTicket}
-        />
+        <div className="overflow-y-auto p-3 space-y-3">
+          <TicketWhatsAppPanel
+            ticketId={(ticket as any).id}
+            conversationId={(ticket as any).conversation_id ?? null}
+            aiSummary={(ticket as any).ai_summary ?? null}
+            aiRecommendation={(ticket as any).ai_recommendation ?? null}
+          />
+          <TicketDetailSidebar
+            ticket={ticket as any}
+            onUpdate={handleUpdateTicket}
+          />
+        </div>
       </div>
     </motion.div>
   );

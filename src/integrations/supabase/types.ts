@@ -17116,15 +17116,32 @@ export type Database = {
       }
       client_tickets: {
         Row: {
+          ai_draft: boolean
+          ai_intent: string | null
+          ai_recommendation: Json | null
+          ai_summary: string | null
+          ai_urgency: string | null
           assigned_to: string | null
+          category: string | null
+          category_id: string | null
           client_user_id: string
           closed_at: string | null
           company_id: string | null
+          contact_id: string | null
+          conversation_id: string | null
           created_at: string
+          deal_id: string | null
           description: string | null
+          escalated_at: string | null
+          escalation_level: number
           first_response_at: string | null
           id: string
+          lead_id: string | null
+          metadata: Json
+          order_id: string | null
           priority: Database["public"]["Enums"]["ticket_priority"]
+          product_id: string | null
+          resolution_due_at: string | null
           resolved_at: string | null
           satisfaction_comment: string | null
           satisfaction_rating: number | null
@@ -17132,23 +17149,43 @@ export type Database = {
           sla_deadline: string | null
           source: string | null
           status: Database["public"]["Enums"]["ticket_status"]
+          subcategory: string | null
           subject: string
           tags: string[] | null
+          team_id: string | null
           ticket_number: string | null
           type: Database["public"]["Enums"]["ticket_type"]
           updated_at: string
+          whatsapp_message_id: string | null
           workspace_id: string
         }
         Insert: {
+          ai_draft?: boolean
+          ai_intent?: string | null
+          ai_recommendation?: Json | null
+          ai_summary?: string | null
+          ai_urgency?: string | null
           assigned_to?: string | null
+          category?: string | null
+          category_id?: string | null
           client_user_id: string
           closed_at?: string | null
           company_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
           created_at?: string
+          deal_id?: string | null
           description?: string | null
+          escalated_at?: string | null
+          escalation_level?: number
           first_response_at?: string | null
           id?: string
+          lead_id?: string | null
+          metadata?: Json
+          order_id?: string | null
           priority?: Database["public"]["Enums"]["ticket_priority"]
+          product_id?: string | null
+          resolution_due_at?: string | null
           resolved_at?: string | null
           satisfaction_comment?: string | null
           satisfaction_rating?: number | null
@@ -17156,23 +17193,43 @@ export type Database = {
           sla_deadline?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
+          subcategory?: string | null
           subject: string
           tags?: string[] | null
+          team_id?: string | null
           ticket_number?: string | null
           type?: Database["public"]["Enums"]["ticket_type"]
           updated_at?: string
+          whatsapp_message_id?: string | null
           workspace_id: string
         }
         Update: {
+          ai_draft?: boolean
+          ai_intent?: string | null
+          ai_recommendation?: Json | null
+          ai_summary?: string | null
+          ai_urgency?: string | null
           assigned_to?: string | null
+          category?: string | null
+          category_id?: string | null
           client_user_id?: string
           closed_at?: string | null
           company_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
           created_at?: string
+          deal_id?: string | null
           description?: string | null
+          escalated_at?: string | null
+          escalation_level?: number
           first_response_at?: string | null
           id?: string
+          lead_id?: string | null
+          metadata?: Json
+          order_id?: string | null
           priority?: Database["public"]["Enums"]["ticket_priority"]
+          product_id?: string | null
+          resolution_due_at?: string | null
           resolved_at?: string | null
           satisfaction_comment?: string | null
           satisfaction_rating?: number | null
@@ -17180,11 +17237,14 @@ export type Database = {
           sla_deadline?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
+          subcategory?: string | null
           subject?: string
           tags?: string[] | null
+          team_id?: string | null
           ticket_number?: string | null
           type?: Database["public"]["Enums"]["ticket_type"]
           updated_at?: string
+          whatsapp_message_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -17200,6 +17260,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tickets_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
           {
@@ -69513,6 +69580,125 @@ export type Database = {
           },
           {
             foreignKeyName: "support_canned_responses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_priority: string | null
+          default_sla_policy_id: string | null
+          default_team_id: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_priority?: string | null
+          default_sla_policy_id?: string | null
+          default_team_id?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_priority?: string | null
+          default_sla_policy_id?: string | null
+          default_team_id?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "support_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "support_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_type: string
+          id: string
+          payload: Json
+          ticket_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          ticket_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          ticket_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "client_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "support_ticket_events_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
