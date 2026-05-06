@@ -11,6 +11,7 @@ const CommunicationTemplates = lazy(() => import("@/pages/CommunicationTemplates
 const Sequences = lazy(() => import("@/pages/Sequences"));
 const EmailCampaignsPage = lazy(() => import("@/pages/EmailCampaignsPage"));
 const SuppressionsPage = lazy(() => import("@/pages/SuppressionsPage"));
+const SmartWorkflowsPage = lazy(() => import("@/pages/SmartWorkflowsPage"));
 
 export function CommunicationRoutes() {
   return (
