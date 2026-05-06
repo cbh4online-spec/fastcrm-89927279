@@ -24462,7 +24462,9 @@ export type Database = {
           notify_when_soft_limit: boolean
           plan_id: string | null
           soft_limit_percentage: number
+          source: string
           source_module: string
+          source_plan_id: string | null
           updated_at: string
           usage_type: string
           workspace_id: string
@@ -24479,7 +24481,9 @@ export type Database = {
           notify_when_soft_limit?: boolean
           plan_id?: string | null
           soft_limit_percentage?: number
+          source?: string
           source_module: string
+          source_plan_id?: string | null
           updated_at?: string
           usage_type: string
           workspace_id: string
@@ -24496,7 +24500,9 @@ export type Database = {
           notify_when_soft_limit?: boolean
           plan_id?: string | null
           soft_limit_percentage?: number
+          source?: string
           source_module?: string
+          source_plan_id?: string | null
           updated_at?: string
           usage_type?: string
           workspace_id?: string
@@ -81605,6 +81611,10 @@ export type Database = {
           p_old_memory_id: string
         }
         Returns: string
+      }
+      sync_cost_guard_from_plan: {
+        Args: { p_plan_id: string; p_workspace_id: string }
+        Returns: undefined
       }
       sync_plan_limits_to_workspace: {
         Args: { p_plan_id: string; p_workspace_id: string }
