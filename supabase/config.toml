@@ -93,3 +93,6 @@ verify_jwt = false
 [functions.billing-stripe-webhook]
 verify_jwt = false
 
+[functions.track-product-share]
+verify_jwt = false
+
