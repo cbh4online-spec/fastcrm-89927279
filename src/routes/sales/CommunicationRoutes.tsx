@@ -13,6 +13,9 @@ const EmailCampaignsPage = lazy(() => import("@/pages/EmailCampaignsPage"));
 const SuppressionsPage = lazy(() => import("@/pages/SuppressionsPage"));
 const SmartWorkflowsPage = lazy(() => import("@/pages/SmartWorkflowsPage"));
 const CostGuardPage = lazy(() => import("@/pages/CostGuardPage"));
+const MyPlanPage = lazy(() => import("@/pages/MyPlanPage"));
+const PlansComparisonPage = lazy(() => import("@/pages/PlansComparisonPage"));
+const BillingPlansAdminPage = lazy(() => import("@/pages/admin/BillingPlansAdminPage"));
 
 export function CommunicationRoutes() {
   return (
