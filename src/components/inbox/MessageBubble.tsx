@@ -43,10 +43,13 @@ export function MessageBubble({
   companyName = "Empresa",
   showTimestamp = true,
   onRetry,
+  onUseSuggestedReply,
+  onCreateTaskFromAudio,
 }: MessageBubbleProps) {
   const isOutbound = message.direction === "outbound";
   const deliveryStatus = getDeliveryStatus(message);
   const isFailed = deliveryStatus === "failed";
+  const isAudio = message.message_type === "audio";
   
   // Parse attachments from metadata
   const attachments = message.channel_metadata?.attachments as Array<{
