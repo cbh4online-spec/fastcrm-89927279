@@ -538,6 +538,18 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
           leadName={lead.name}
         />
       )}
+      {conversationId && (
+        <CreateTicketFromConversationDialog
+          open={showCreateTicket}
+          onOpenChange={setShowCreateTicket}
+          conversationId={conversationId}
+          contactId={(conversation as any)?.contact_id ?? null}
+          leadId={lead?.id ?? null}
+          contactName={lead?.name ?? null}
+          contactPhone={lead?.phone ?? null}
+          prefill={ticketPrefill ?? undefined}
+        />
+      )}
     </div>
   );
 }
