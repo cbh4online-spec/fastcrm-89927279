@@ -1,4 +1,4 @@
-import type { CommunicationChannelType } from "./types";
+import type { CommunicationChannelType } from "../channels/types";
 
 /**
  * Etiquetas humanas em PT-PT para cada canal.
