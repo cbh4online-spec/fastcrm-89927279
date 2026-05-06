@@ -293,7 +293,8 @@ export const TRIGGER_CATALOG = [
   { value: 'conversation.quality.low_score_detected', label: 'Score de qualidade baixo', category: 'quality' },
 ] as const;
 
-export const ACTION_CATALOG = [
+type ActionMeta = { value: string; label: string; config: readonly string[]; sensitive?: boolean };
+export const ACTION_CATALOG: readonly ActionMeta[] = [
   { value: 'add_conversation_tag', label: 'Adicionar tag à conversa', config: ['tag'] },
   { value: 'create_operational_alert', label: 'Criar alerta operacional', config: ['severity','title','message'] },
   { value: 'notify_user', label: 'Notificar utilizador', config: ['title','message'] },
