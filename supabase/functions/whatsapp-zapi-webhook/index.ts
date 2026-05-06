@@ -399,7 +399,7 @@ Deno.serve(async (req) => {
               'x-internal-call': '1',
               Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!}`,
             },
-            body: JSON.stringify({ conversationId }),
+            body: JSON.stringify({ conversationId, trigger_type: 'new_message' }),
           }).catch((e) => console.warn('[zapi-webhook] ai-analyze fire-and-forget failed', e?.message));
         }
       } catch (aiErr) {

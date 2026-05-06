@@ -73237,6 +73237,132 @@ export type Database = {
           },
         ]
       }
+      whatsapp_conversation_insight_runs: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          id: string
+          input_message_count: number | null
+          output: Json | null
+          success: boolean
+          trigger_type: string
+          triggered_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input_message_count?: number | null
+          output?: Json | null
+          success?: boolean
+          trigger_type?: string
+          triggered_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input_message_count?: number | null
+          output?: Json | null
+          success?: boolean
+          trigger_type?: string
+          triggered_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_conversation_insights: {
+        Row: {
+          analyzed_at: string | null
+          analyzed_message_count: number | null
+          confidence: number | null
+          contact_id: string | null
+          conversation_id: string
+          conversation_stage: string | null
+          created_at: string
+          id: string
+          intent: string | null
+          last_message_id: string | null
+          lead_id: string | null
+          objections: Json
+          raw_ai_response: Json | null
+          sentiment: string | null
+          suggested_deal: Json | null
+          suggested_next_action: string | null
+          suggested_products: Json
+          suggested_reply: string | null
+          suggested_tags: Json
+          suggested_task: Json | null
+          suggested_ticket: Json | null
+          summary: string | null
+          updated_at: string
+          urgency: string | null
+          workspace_id: string
+        }
+        Insert: {
+          analyzed_at?: string | null
+          analyzed_message_count?: number | null
+          confidence?: number | null
+          contact_id?: string | null
+          conversation_id: string
+          conversation_stage?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          last_message_id?: string | null
+          lead_id?: string | null
+          objections?: Json
+          raw_ai_response?: Json | null
+          sentiment?: string | null
+          suggested_deal?: Json | null
+          suggested_next_action?: string | null
+          suggested_products?: Json
+          suggested_reply?: string | null
+          suggested_tags?: Json
+          suggested_task?: Json | null
+          suggested_ticket?: Json | null
+          summary?: string | null
+          updated_at?: string
+          urgency?: string | null
+          workspace_id: string
+        }
+        Update: {
+          analyzed_at?: string | null
+          analyzed_message_count?: number | null
+          confidence?: number | null
+          contact_id?: string | null
+          conversation_id?: string
+          conversation_stage?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          last_message_id?: string | null
+          lead_id?: string | null
+          objections?: Json
+          raw_ai_response?: Json | null
+          sentiment?: string | null
+          suggested_deal?: Json | null
+          suggested_next_action?: string | null
+          suggested_products?: Json
+          suggested_reply?: string | null
+          suggested_tags?: Json
+          suggested_task?: Json | null
+          suggested_ticket?: Json | null
+          summary?: string | null
+          updated_at?: string
+          urgency?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_product_shares: {
         Row: {
           agent_id: string | null
@@ -76231,6 +76357,7 @@ export type Database = {
           plan_id: string | null
           primary_module: string | null
           updated_at: string
+          whatsapp_pro_auto_analyze_inbound: boolean
           workspace_id: string
         }
         Insert: {
@@ -76242,6 +76369,7 @@ export type Database = {
           plan_id?: string | null
           primary_module?: string | null
           updated_at?: string
+          whatsapp_pro_auto_analyze_inbound?: boolean
           workspace_id: string
         }
         Update: {
@@ -76253,6 +76381,7 @@ export type Database = {
           plan_id?: string | null
           primary_module?: string | null
           updated_at?: string
+          whatsapp_pro_auto_analyze_inbound?: boolean
           workspace_id?: string
         }
         Relationships: [
