@@ -31,6 +31,7 @@ import {
   UserPlus,
   ArrowLeft,
   MousePointerClick,
+  CalendarClock,
 } from "lucide-react";
 import { WhatsAppInteractiveButtonsDialog } from "./WhatsAppInteractiveButtonsDialog";
 import { useCreateLead } from "@/hooks/useLeads";
@@ -41,6 +42,7 @@ import { EmailMessageBubble } from "./EmailMessageBubble";
 import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
 import { InstagramWindowAlert } from "./InstagramWindowAlert";
 import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
+import { ScheduleAppointmentDialog } from "@/components/whatsapp-pro/ScheduleAppointmentDialog";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { PriorityScoreBadge } from "./PriorityScoreBadge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -81,6 +83,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [igWindowExpired, setIgWindowExpired] = useState(false);
   const [showButtonsDialog, setShowButtonsDialog] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<AIMessageComposerRef>(null);
   const trackedConvId = useRef<string | null>(null);
@@ -298,6 +301,18 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
               variant="ghost"
               size="sm"
               className="h-8 gap-1.5 text-xs"
+              onClick={() => setShowScheduleDialog(true)}
+              title="Agendar interação com este contacto"
+            >
+              <CalendarClock className="w-4 h-4" />
+              <span className="hidden sm:inline">Agendar</span>
+            </Button>
+          )}
+          {conversation.channel === "whatsapp" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
               onClick={() => setShowButtonsDialog(true)}
               title="Enviar mensagem com botões interativos"
             >
@@ -497,6 +512,24 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           conversationId={conversationId}
         />
       )}
+
+      <ScheduleAppointmentDialog
+        open={showScheduleDialog}
+        onOpenChange={setShowScheduleDialog}
+        conversationId={conversation.id}
+        contactId={(conversation as any).contact_id ?? null}
+        contactName={
+          (conversation as any).contact?.name ??
+          (conversation as any).lead?.name ??
+          null
+        }
+        contactPhone={
+          (conversation as any).contact?.phone ??
+          (conversation as any).lead?.phone ??
+          null
+        }
+        leadId={conversation.lead_id ?? null}
+      />
     </div>
   );
 }

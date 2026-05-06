@@ -17,6 +17,8 @@ import {
   ShieldCheck,
   ScrollText,
   Beaker,
+  CalendarClock,
+  ListTodo,
 } from "lucide-react";
 import {
   useWhatsAppProviderInstance,
@@ -29,6 +31,8 @@ import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
 import { WhatsAppProviderConfigCard } from "@/components/whatsapp-pro/WhatsAppProviderConfigCard";
 import { WhatsAppWebhookLogsTable } from "@/components/whatsapp-pro/WhatsAppWebhookLogsTable";
 import { WhatsAppSimulateInboundCard } from "@/components/whatsapp-pro/WhatsAppSimulateInboundCard";
+import { WhatsAppAppointmentsSection } from "@/components/whatsapp-pro/WhatsAppAppointmentsSection";
+import { WhatsAppFollowupsSection } from "@/components/whatsapp-pro/WhatsAppFollowupsSection";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -128,6 +132,12 @@ export default function WhatsAppPro() {
             <TabsTrigger value="templates">
               <FileText className="h-4 w-4 mr-1.5" /> Templates
             </TabsTrigger>
+            <TabsTrigger value="appointments">
+              <CalendarClock className="h-4 w-4 mr-1.5" /> Agendamentos
+            </TabsTrigger>
+            <TabsTrigger value="followups">
+              <ListTodo className="h-4 w-4 mr-1.5" /> Follow-ups
+            </TabsTrigger>
             <TabsTrigger value="logs">
               <ScrollText className="h-4 w-4 mr-1.5" /> Logs / Webhooks
             </TabsTrigger>
@@ -214,6 +224,30 @@ export default function WhatsAppPro() {
                   ))}
                 </div>
               )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="appointments" className="space-y-4">
+            <Card className="p-4 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Agendamentos e próximas interações</h3>
+                <p className="text-xs text-muted-foreground">
+                  Transforme conversas em chamadas, reuniões e demonstrações com lembrete WhatsApp automático.
+                </p>
+              </div>
+              <WhatsAppAppointmentsSection />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="followups" className="space-y-4">
+            <Card className="p-4 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Follow-ups</h3>
+                <p className="text-xs text-muted-foreground">
+                  Próximas ações sugeridas pela IA, follow-ups manuais e tarefas pós-reunião.
+                </p>
+              </div>
+              <WhatsAppFollowupsSection />
             </Card>
           </TabsContent>
 

@@ -13063,75 +13063,108 @@ export type Database = {
       calendar_events: {
         Row: {
           all_day: boolean | null
+          appointment_type: string | null
+          assigned_to: string | null
           attendees: Json | null
           calendar_id: string
           company_id: string | null
+          completed_at: string | null
+          confirmation_sent_at: string | null
           contact_id: string | null
+          conversation_id: string | null
           created_at: string
           created_by: string
           description: string | null
+          duration_minutes: number | null
           end_time: string
           id: string
+          internal_notes: string | null
           lead_id: string | null
           location: string | null
           meeting_url: string | null
           metadata: Json | null
           opportunity_id: string | null
+          outcome: string | null
           recurrence_id: string | null
           recurrence_rule: string | null
+          reminder_settings: Json | null
           reminders: Json | null
+          source: string | null
           start_time: string
           status: string | null
+          timezone: string | null
           title: string
           updated_at: string
           workspace_id: string
         }
         Insert: {
           all_day?: boolean | null
+          appointment_type?: string | null
+          assigned_to?: string | null
           attendees?: Json | null
           calendar_id: string
           company_id?: string | null
+          completed_at?: string | null
+          confirmation_sent_at?: string | null
           contact_id?: string | null
+          conversation_id?: string | null
           created_at?: string
           created_by: string
           description?: string | null
+          duration_minutes?: number | null
           end_time: string
           id?: string
+          internal_notes?: string | null
           lead_id?: string | null
           location?: string | null
           meeting_url?: string | null
           metadata?: Json | null
           opportunity_id?: string | null
+          outcome?: string | null
           recurrence_id?: string | null
           recurrence_rule?: string | null
+          reminder_settings?: Json | null
           reminders?: Json | null
+          source?: string | null
           start_time: string
           status?: string | null
+          timezone?: string | null
           title: string
           updated_at?: string
           workspace_id: string
         }
         Update: {
           all_day?: boolean | null
+          appointment_type?: string | null
+          assigned_to?: string | null
           attendees?: Json | null
           calendar_id?: string
           company_id?: string | null
+          completed_at?: string | null
+          confirmation_sent_at?: string | null
           contact_id?: string | null
+          conversation_id?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
+          duration_minutes?: number | null
           end_time?: string
           id?: string
+          internal_notes?: string | null
           lead_id?: string | null
           location?: string | null
           meeting_url?: string | null
           metadata?: Json | null
           opportunity_id?: string | null
+          outcome?: string | null
           recurrence_id?: string | null
           recurrence_rule?: string | null
+          reminder_settings?: Json | null
           reminders?: Json | null
+          source?: string | null
           start_time?: string
           status?: string | null
+          timezone?: string | null
           title?: string
           updated_at?: string
           workspace_id?: string
@@ -13156,6 +13189,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
           {
@@ -21605,57 +21645,100 @@ export type Database = {
       }
       conversation_followups: {
         Row: {
+          appointment_id: string | null
           approved_at: string | null
           approved_by: string | null
-          conversation_id: string
+          assigned_to: string | null
+          completed_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
           created_at: string
-          hours_since_last_reply: number
+          created_by: string | null
+          deal_id: string | null
+          description: string | null
+          due_at: string | null
+          hours_since_last_reply: number | null
           id: string
           lead_id: string | null
           prepared_message: string | null
+          priority: string | null
           sent_at: string | null
           snooze_until: string | null
+          source: string | null
           status: string
           suggested_at: string
+          suggested_by_ai: boolean | null
           template_id: string | null
+          title: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          appointment_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
-          conversation_id: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
           created_at?: string
-          hours_since_last_reply: number
+          created_by?: string | null
+          deal_id?: string | null
+          description?: string | null
+          due_at?: string | null
+          hours_since_last_reply?: number | null
           id?: string
           lead_id?: string | null
           prepared_message?: string | null
+          priority?: string | null
           sent_at?: string | null
           snooze_until?: string | null
+          source?: string | null
           status?: string
           suggested_at?: string
+          suggested_by_ai?: boolean | null
           template_id?: string | null
+          title?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          appointment_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
-          conversation_id?: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
           created_at?: string
-          hours_since_last_reply?: number
+          created_by?: string | null
+          deal_id?: string | null
+          description?: string | null
+          due_at?: string | null
+          hours_since_last_reply?: number | null
           id?: string
           lead_id?: string | null
           prepared_message?: string | null
+          priority?: string | null
           sent_at?: string | null
           snooze_until?: string | null
+          source?: string | null
           status?: string
           suggested_at?: string
+          suggested_by_ai?: boolean | null
           template_id?: string | null
+          title?: string | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversation_followups_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversation_followups_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -73567,6 +73650,104 @@ export type Database = {
           },
         ]
       }
+      whatsapp_scheduled_reminders: {
+        Row: {
+          appointment_id: string | null
+          attempts: number
+          channel: string
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          due_at: string
+          id: string
+          last_error: string | null
+          message_content: string
+          metadata: Json
+          provider_message_id: string | null
+          reminder_type: string
+          sent_at: string | null
+          status: string
+          template_id: string | null
+          to_phone: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          attempts?: number
+          channel?: string
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at: string
+          id?: string
+          last_error?: string | null
+          message_content: string
+          metadata?: Json
+          provider_message_id?: string | null
+          reminder_type: string
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+          to_phone?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          attempts?: number
+          channel?: string
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string
+          id?: string
+          last_error?: string | null
+          message_content?: string
+          metadata?: Json
+          provider_message_id?: string | null
+          reminder_type?: string
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+          to_phone?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_scheduled_reminders_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_scheduled_reminders_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_scheduled_reminders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_scheduled_reminders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_settings: {
         Row: {
           ai_persona: string | null
@@ -76358,6 +76539,12 @@ export type Database = {
           primary_module: string | null
           updated_at: string
           whatsapp_pro_auto_analyze_inbound: boolean
+          whatsapp_pro_auto_create_followup: boolean | null
+          whatsapp_pro_auto_send_confirmation: boolean | null
+          whatsapp_pro_default_duration_minutes: number | null
+          whatsapp_pro_default_reminder_channel: string | null
+          whatsapp_pro_default_reminders: Json | null
+          whatsapp_pro_default_timezone: string | null
           workspace_id: string
         }
         Insert: {
@@ -76370,6 +76557,12 @@ export type Database = {
           primary_module?: string | null
           updated_at?: string
           whatsapp_pro_auto_analyze_inbound?: boolean
+          whatsapp_pro_auto_create_followup?: boolean | null
+          whatsapp_pro_auto_send_confirmation?: boolean | null
+          whatsapp_pro_default_duration_minutes?: number | null
+          whatsapp_pro_default_reminder_channel?: string | null
+          whatsapp_pro_default_reminders?: Json | null
+          whatsapp_pro_default_timezone?: string | null
           workspace_id: string
         }
         Update: {
@@ -76382,6 +76575,12 @@ export type Database = {
           primary_module?: string | null
           updated_at?: string
           whatsapp_pro_auto_analyze_inbound?: boolean
+          whatsapp_pro_auto_create_followup?: boolean | null
+          whatsapp_pro_auto_send_confirmation?: boolean | null
+          whatsapp_pro_default_duration_minutes?: number | null
+          whatsapp_pro_default_reminder_channel?: string | null
+          whatsapp_pro_default_reminders?: Json | null
+          whatsapp_pro_default_timezone?: string | null
           workspace_id?: string
         }
         Relationships: [
