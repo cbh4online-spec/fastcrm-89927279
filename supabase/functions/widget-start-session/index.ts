@@ -111,8 +111,9 @@ Deno.serve(async (req) => {
           workspace_id: widget.workspace_id,
           channel: "website_chat",
           status: "open",
-          subject: "Chat do Site",
-          metadata: { widget_id: widget.id, visitor_id, page_url, referrer, utm },
+          tags: [],
+          requires_human: false,
+          channel_metadata: { widget_id: widget.id, visitor_id, page_url, referrer, utm },
         })
         .select("id")
         .single();
