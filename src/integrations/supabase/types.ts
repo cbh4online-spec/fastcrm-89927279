@@ -41145,6 +41145,59 @@ export type Database = {
           },
         ]
       }
+      lead_qualification_rules: {
+        Row: {
+          actions: Json
+          active: boolean
+          conditions: Json
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          resulting_status: string | null
+          score_points: number
+          updated_at: string
+          widget_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          actions?: Json
+          active?: boolean
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          resulting_status?: string | null
+          score_points?: number
+          updated_at?: string
+          widget_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          actions?: Json
+          active?: boolean
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          resulting_status?: string | null
+          score_points?: number
+          updated_at?: string
+          widget_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_qualification_rules_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "website_chat_widgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_routing_rules: {
         Row: {
           action_config: Json
@@ -75019,6 +75072,385 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      website_chat_messages: {
+        Row: {
+          attachments: Json
+          communication_message_id: string | null
+          content: string | null
+          created_at: string
+          direction: string
+          id: string
+          message_type: string
+          metadata: Json
+          sent_by: string | null
+          session_id: string
+          workspace_id: string
+        }
+        Insert: {
+          attachments?: Json
+          communication_message_id?: string | null
+          content?: string | null
+          created_at?: string
+          direction: string
+          id?: string
+          message_type?: string
+          metadata?: Json
+          sent_by?: string | null
+          session_id: string
+          workspace_id: string
+        }
+        Update: {
+          attachments?: Json
+          communication_message_id?: string | null
+          content?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          message_type?: string
+          metadata?: Json
+          sent_by?: string | null
+          session_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "website_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_chat_sessions: {
+        Row: {
+          browser: string | null
+          city: string | null
+          communication_conversation_id: string | null
+          contact_id: string | null
+          country: string | null
+          created_at: string
+          current_page_url: string | null
+          device_type: string | null
+          ended_at: string | null
+          id: string
+          ip_hash: string | null
+          landing_page_url: string | null
+          last_activity_at: string
+          lead_id: string | null
+          metadata: Json
+          referrer: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visitor_company: string | null
+          visitor_email: string | null
+          visitor_id: string
+          visitor_name: string | null
+          visitor_phone: string | null
+          widget_id: string
+          workspace_id: string
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          communication_conversation_id?: string | null
+          contact_id?: string | null
+          country?: string | null
+          created_at?: string
+          current_page_url?: string | null
+          device_type?: string | null
+          ended_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          landing_page_url?: string | null
+          last_activity_at?: string
+          lead_id?: string | null
+          metadata?: Json
+          referrer?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_company?: string | null
+          visitor_email?: string | null
+          visitor_id: string
+          visitor_name?: string | null
+          visitor_phone?: string | null
+          widget_id: string
+          workspace_id: string
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          communication_conversation_id?: string | null
+          contact_id?: string | null
+          country?: string | null
+          created_at?: string
+          current_page_url?: string | null
+          device_type?: string | null
+          ended_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          landing_page_url?: string | null
+          last_activity_at?: string
+          lead_id?: string | null
+          metadata?: Json
+          referrer?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_company?: string | null
+          visitor_email?: string | null
+          visitor_id?: string
+          visitor_name?: string | null
+          visitor_phone?: string | null
+          widget_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_chat_sessions_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "website_chat_widgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_chat_widgets: {
+        Row: {
+          appearance: Json
+          assigned_team_id: string | null
+          assigned_user_id: string | null
+          behavior_settings: Json
+          collect_company: boolean
+          collect_email: boolean
+          collect_intent: boolean
+          collect_name: boolean
+          collect_phone: boolean
+          created_at: string
+          created_by: string | null
+          default_language: string
+          domain_allowlist: string[]
+          handoff_channel: string
+          id: string
+          lead_capture_required: boolean
+          lead_capture_timing: string
+          name: string
+          offline_message: string | null
+          public_key: string
+          qualification_settings: Json
+          status: string
+          timezone: string
+          updated_at: string
+          welcome_message: string | null
+          whatsapp_number: string | null
+          workspace_id: string
+        }
+        Insert: {
+          appearance?: Json
+          assigned_team_id?: string | null
+          assigned_user_id?: string | null
+          behavior_settings?: Json
+          collect_company?: boolean
+          collect_email?: boolean
+          collect_intent?: boolean
+          collect_name?: boolean
+          collect_phone?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_language?: string
+          domain_allowlist?: string[]
+          handoff_channel?: string
+          id?: string
+          lead_capture_required?: boolean
+          lead_capture_timing?: string
+          name: string
+          offline_message?: string | null
+          public_key?: string
+          qualification_settings?: Json
+          status?: string
+          timezone?: string
+          updated_at?: string
+          welcome_message?: string | null
+          whatsapp_number?: string | null
+          workspace_id: string
+        }
+        Update: {
+          appearance?: Json
+          assigned_team_id?: string | null
+          assigned_user_id?: string | null
+          behavior_settings?: Json
+          collect_company?: boolean
+          collect_email?: boolean
+          collect_intent?: boolean
+          collect_name?: boolean
+          collect_phone?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_language?: string
+          domain_allowlist?: string[]
+          handoff_channel?: string
+          id?: string
+          lead_capture_required?: boolean
+          lead_capture_timing?: string
+          name?: string
+          offline_message?: string | null
+          public_key?: string
+          qualification_settings?: Json
+          status?: string
+          timezone?: string
+          updated_at?: string
+          welcome_message?: string | null
+          whatsapp_number?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      website_lead_captures: {
+        Row: {
+          ai_recommendation: string | null
+          ai_summary: string | null
+          company: string | null
+          contact_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          intent: string | null
+          lead_id: string | null
+          name: string | null
+          phone: string | null
+          qualification_score: number | null
+          qualification_status: string
+          raw_answers: Json
+          session_id: string
+          source_page: string | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          widget_id: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_recommendation?: string | null
+          ai_summary?: string | null
+          company?: string | null
+          contact_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          intent?: string | null
+          lead_id?: string | null
+          name?: string | null
+          phone?: string | null
+          qualification_score?: number | null
+          qualification_status?: string
+          raw_answers?: Json
+          session_id: string
+          source_page?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          widget_id: string
+          workspace_id: string
+        }
+        Update: {
+          ai_recommendation?: string | null
+          ai_summary?: string | null
+          company?: string | null
+          contact_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          intent?: string | null
+          lead_id?: string | null
+          name?: string | null
+          phone?: string | null
+          qualification_score?: number | null
+          qualification_status?: string
+          raw_answers?: Json
+          session_id?: string
+          source_page?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          widget_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_lead_captures_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "website_chat_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_lead_captures_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "website_chat_widgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_widget_security_logs: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_hash: string | null
+          payload: Json
+          severity: string
+          user_agent: string | null
+          widget_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_hash?: string | null
+          payload?: Json
+          severity?: string
+          user_agent?: string | null
+          widget_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_hash?: string | null
+          payload?: Json
+          severity?: string
+          user_agent?: string | null
+          widget_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
       }
       weekly_briefs: {
         Row: {
