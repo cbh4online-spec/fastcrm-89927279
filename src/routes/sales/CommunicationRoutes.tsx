@@ -11,6 +11,7 @@ const CommunicationTemplates = lazy(() => import("@/pages/CommunicationTemplates
 const Sequences = lazy(() => import("@/pages/Sequences"));
 const EmailCampaignsPage = lazy(() => import("@/pages/EmailCampaignsPage"));
 const SuppressionsPage = lazy(() => import("@/pages/SuppressionsPage"));
+const SmartWorkflowsPage = lazy(() => import("@/pages/SmartWorkflowsPage"));
 
 export function CommunicationRoutes() {
   return (
@@ -27,6 +28,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/sequences" element={<Sequences />} />
       <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
       <Route path="/dashboard/email-campaigns/suppressions" element={<SuppressionsPage />} />
+      <Route path="/dashboard/communication/automations" element={<SmartWorkflowsPage />} />
+      <Route path="/dashboard/smart-workflows" element={<SmartWorkflowsPage />} />
     </>
   );
 }

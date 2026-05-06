@@ -6960,6 +6960,98 @@ export type Database = {
           },
         ]
       }
+      automation_action_approvals: {
+        Row: {
+          action_type: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          execution_result: Json | null
+          expires_at: string | null
+          id: string
+          proposed_payload: Json
+          rejected_at: string | null
+          rejection_reason: string | null
+          requested_by: string | null
+          rule_id: string | null
+          rule_run_id: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          execution_result?: Json | null
+          expires_at?: string | null
+          id?: string
+          proposed_payload?: Json
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          requested_by?: string | null
+          rule_id?: string | null
+          rule_run_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          execution_result?: Json | null
+          expires_at?: string | null
+          id?: string
+          proposed_payload?: Json
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          requested_by?: string | null
+          rule_id?: string | null
+          rule_run_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_action_approvals_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "journey_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_action_approvals_rule_run_id_fkey"
+            columns: ["rule_run_id"]
+            isOneToOne: false
+            referencedRelation: "journey_automation_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_action_approvals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "automation_action_approvals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_actions: {
         Row: {
           action_type: Database["public"]["Enums"]["automation_action_type"]
@@ -7339,6 +7431,72 @@ export type Database = {
           },
           {
             foreignKeyName: "automation_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_templates: {
+        Row: {
+          actions: Json | null
+          category: string | null
+          conditions: Json | null
+          conditions_logic: string | null
+          created_at: string
+          description: string | null
+          enabled_by_default: boolean | null
+          icon: string | null
+          id: string
+          name: string
+          system_template: boolean | null
+          trigger_event: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          actions?: Json | null
+          category?: string | null
+          conditions?: Json | null
+          conditions_logic?: string | null
+          created_at?: string
+          description?: string | null
+          enabled_by_default?: boolean | null
+          icon?: string | null
+          id?: string
+          name: string
+          system_template?: boolean | null
+          trigger_event: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          actions?: Json | null
+          category?: string | null
+          conditions?: Json | null
+          conditions_logic?: string | null
+          created_at?: string
+          description?: string | null
+          enabled_by_default?: boolean | null
+          icon?: string | null
+          id?: string
+          name?: string
+          system_template?: boolean | null
+          trigger_event?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "automation_templates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -37720,47 +37878,74 @@ export type Database = {
       journey_automation_logs: {
         Row: {
           actions_executed: Json | null
+          automation_context_id: string | null
           automation_id: string
-          automation_name: string
+          automation_name: string | null
+          completed_at: string | null
+          conditions_result: Json | null
+          depth: number | null
+          dry_run: boolean | null
+          duration_ms: number | null
           entity_id: string
-          entity_name: string
+          entity_name: string | null
           entity_type: string
           error_message: string | null
           executed_at: string | null
           id: string
+          rule_id: string | null
+          started_at: string | null
           status: string
           trigger_data: Json | null
           trigger_type: string
+          triggered_by_rule_id: string | null
           workspace_id: string
         }
         Insert: {
           actions_executed?: Json | null
+          automation_context_id?: string | null
           automation_id: string
-          automation_name: string
+          automation_name?: string | null
+          completed_at?: string | null
+          conditions_result?: Json | null
+          depth?: number | null
+          dry_run?: boolean | null
+          duration_ms?: number | null
           entity_id: string
-          entity_name: string
+          entity_name?: string | null
           entity_type: string
           error_message?: string | null
           executed_at?: string | null
           id?: string
+          rule_id?: string | null
+          started_at?: string | null
           status?: string
           trigger_data?: Json | null
           trigger_type: string
+          triggered_by_rule_id?: string | null
           workspace_id: string
         }
         Update: {
           actions_executed?: Json | null
+          automation_context_id?: string | null
           automation_id?: string
-          automation_name?: string
+          automation_name?: string | null
+          completed_at?: string | null
+          conditions_result?: Json | null
+          depth?: number | null
+          dry_run?: boolean | null
+          duration_ms?: number | null
           entity_id?: string
-          entity_name?: string
+          entity_name?: string | null
           entity_type?: string
           error_message?: string | null
           executed_at?: string | null
           id?: string
+          rule_id?: string | null
+          started_at?: string | null
           status?: string
           trigger_data?: Json | null
           trigger_type?: string
+          triggered_by_rule_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -37791,46 +37976,79 @@ export type Database = {
         Row: {
           actions: Json | null
           affected_clients_count: number | null
+          category: string | null
           conditions: Json | null
+          conditions_logic: string | null
+          cooldown_minutes: number | null
           created_at: string | null
           created_by: string
           description: string | null
           id: string
           is_active: boolean | null
+          last_run_at: string | null
+          max_runs_per_day: number | null
+          max_runs_per_entity_per_day: number | null
+          metadata: Json | null
           name: string
+          require_human_approval: boolean | null
+          run_count: number | null
           trigger_config: Json | null
+          trigger_event: string | null
           trigger_type: string
           updated_at: string | null
+          updated_by: string | null
           workspace_id: string
         }
         Insert: {
           actions?: Json | null
           affected_clients_count?: number | null
+          category?: string | null
           conditions?: Json | null
+          conditions_logic?: string | null
+          cooldown_minutes?: number | null
           created_at?: string | null
           created_by: string
           description?: string | null
           id?: string
           is_active?: boolean | null
+          last_run_at?: string | null
+          max_runs_per_day?: number | null
+          max_runs_per_entity_per_day?: number | null
+          metadata?: Json | null
           name: string
+          require_human_approval?: boolean | null
+          run_count?: number | null
           trigger_config?: Json | null
+          trigger_event?: string | null
           trigger_type: string
           updated_at?: string | null
+          updated_by?: string | null
           workspace_id: string
         }
         Update: {
           actions?: Json | null
           affected_clients_count?: number | null
+          category?: string | null
           conditions?: Json | null
+          conditions_logic?: string | null
+          cooldown_minutes?: number | null
           created_at?: string | null
           created_by?: string
           description?: string | null
           id?: string
           is_active?: boolean | null
+          last_run_at?: string | null
+          max_runs_per_day?: number | null
+          max_runs_per_entity_per_day?: number | null
+          metadata?: Json | null
           name?: string
+          require_human_approval?: boolean | null
+          run_count?: number | null
           trigger_config?: Json | null
+          trigger_event?: string | null
           trigger_type?: string
           updated_at?: string | null
+          updated_by?: string | null
           workspace_id?: string
         }
         Relationships: [
