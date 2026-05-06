@@ -8,6 +8,7 @@ import { MessageDeliveryStatus, getDeliveryStatus } from "./MessageDeliveryStatu
 import { ResponseInfoSheet } from "./ResponseInfoSheet";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
 import { WhatsAppProductMessageCard } from "@/components/whatsapp-pro/WhatsAppProductMessageCard";
+import { WhatsAppAudioMessageCard } from "@/components/whatsapp-pro/WhatsAppAudioMessageCard";
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -21,6 +22,9 @@ interface MessageBubbleProps {
     channel_metadata?: Record<string, any>;
     message_type?: string | null;
     product_id?: string | null;
+    media_url?: string | null;
+    media_mime_type?: string | null;
+    conversation_id?: string;
     metadata?: Record<string, any> | null;
   };
   senderName?: string;
@@ -28,6 +32,8 @@ interface MessageBubbleProps {
   companyName?: string;
   showTimestamp?: boolean;
   onRetry?: (messageContent: string) => void;
+  onUseSuggestedReply?: (text: string) => void;
+  onCreateTaskFromAudio?: (title: string, description: string, priority: string | null) => void;
 }
 
 export function MessageBubble({
