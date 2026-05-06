@@ -227,6 +227,30 @@ export default function WhatsAppPro() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="appointments" className="space-y-4">
+            <Card className="p-4 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Agendamentos e próximas interações</h3>
+                <p className="text-xs text-muted-foreground">
+                  Transforme conversas em chamadas, reuniões e demonstrações com lembrete WhatsApp automático.
+                </p>
+              </div>
+              <WhatsAppAppointmentsSection />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="followups" className="space-y-4">
+            <Card className="p-4 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Follow-ups</h3>
+                <p className="text-xs text-muted-foreground">
+                  Próximas ações sugeridas pela IA, follow-ups manuais e tarefas pós-reunião.
+                </p>
+              </div>
+              <WhatsAppFollowupsSection />
+            </Card>
+          </TabsContent>
+
           <TabsContent value="logs" className="space-y-4">
             <WhatsAppWebhookLogsTable />
           </TabsContent>
