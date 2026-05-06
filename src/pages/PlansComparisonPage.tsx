@@ -11,6 +11,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useStartCheckout } from "@/hooks/useBillingStripe";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Loader2 } from "lucide-react";
 
 const COMPARISON_KEYS: { key: string; label: string }[] = [
   { key: "agents_seats", label: "Agentes incluídos" },
