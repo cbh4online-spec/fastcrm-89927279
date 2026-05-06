@@ -202,11 +202,11 @@ export function useUpsertAutomation() {
         updated_by: u.user?.id,
       };
       if (rule.id) {
-        const { error } = await supabase.from('journey_automations').update(payload).eq('id', rule.id);
+        const { error } = await supabase.from('journey_automations').update(payload as never).eq('id', rule.id);
         if (error) throw error;
         return rule.id;
       } else {
-        const { data, error } = await supabase.from('journey_automations').insert(payload).select('id').maybeSingle();
+        const { data, error } = await supabase.from('journey_automations').insert(payload as never).select('id').maybeSingle();
         if (error) throw error;
         return data?.id;
       }
