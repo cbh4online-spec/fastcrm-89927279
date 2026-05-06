@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Crown, Sparkles, ArrowUpRight, Plus, AlertTriangle, Building2 } from "lucide-react";
+import { Crown, Sparkles, ArrowUpRight, Plus, AlertTriangle, Building2, CreditCard, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
@@ -17,6 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useStartCheckout, useOpenCustomerPortal } from "@/hooks/useBillingStripe";
 
 export default function MyPlanPage() {
   const { data: sub } = useWorkspaceSubscription();
@@ -82,6 +83,10 @@ export default function MyPlanPage() {
           </div>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2 pt-2">
+          {currentPlan && !currentPlan.enterprise && (
+            <SubscribeButton plan={currentPlan as any} sub={sub} />
+          )}
+          {sub?.stripe_subscription_id && <ManageSubscriptionButton />}
           {currentPlan && !currentPlan.enterprise && (
             <UpgradeDialog currentPlanId={currentPlan.id} plans={plans} />
           )}
