@@ -15,6 +15,8 @@ import {
   ArrowUpRight,
   Sparkles,
   ShieldCheck,
+  ScrollText,
+  Beaker,
 } from "lucide-react";
 import {
   useWhatsAppProviderInstance,
@@ -24,6 +26,9 @@ import {
   useWhatsAppProTemplates,
 } from "@/hooks/useWhatsAppPro";
 import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
+import { WhatsAppProviderConfigCard } from "@/components/whatsapp-pro/WhatsAppProviderConfigCard";
+import { WhatsAppWebhookLogsTable } from "@/components/whatsapp-pro/WhatsAppWebhookLogsTable";
+import { WhatsAppSimulateInboundCard } from "@/components/whatsapp-pro/WhatsAppSimulateInboundCard";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -113,7 +118,7 @@ export default function WhatsAppPro() {
 
         {/* Tabs principais */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="overview">
               <ListChecks className="h-4 w-4 mr-1.5" /> Visão geral
             </TabsTrigger>
@@ -122,6 +127,12 @@ export default function WhatsAppPro() {
             </TabsTrigger>
             <TabsTrigger value="templates">
               <FileText className="h-4 w-4 mr-1.5" /> Templates
+            </TabsTrigger>
+            <TabsTrigger value="logs">
+              <ScrollText className="h-4 w-4 mr-1.5" /> Logs / Webhooks
+            </TabsTrigger>
+            <TabsTrigger value="qa">
+              <Beaker className="h-4 w-4 mr-1.5" /> Testes / QA
             </TabsTrigger>
             <TabsTrigger value="config">
               <Settings className="h-4 w-4 mr-1.5" /> Configurações
@@ -206,7 +217,16 @@ export default function WhatsAppPro() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="config">
+          <TabsContent value="logs" className="space-y-4">
+            <WhatsAppWebhookLogsTable />
+          </TabsContent>
+
+          <TabsContent value="qa" className="space-y-4">
+            <WhatsAppSimulateInboundCard />
+          </TabsContent>
+
+          <TabsContent value="config" className="space-y-4">
+            <WhatsAppProviderConfigCard />
             <Card className="p-4 space-y-3">
               <h3 className="text-sm font-semibold">Estado do canal</h3>
               <div className="text-sm space-y-2">
@@ -217,7 +237,7 @@ export default function WhatsAppPro() {
               </div>
               <div className="pt-2 flex gap-2">
                 <Button variant="outline" onClick={() => navigate("/dashboard/settings/integrations")}>
-                  Abrir configurações
+                  Abrir integrações
                 </Button>
                 {!instance && (
                   <Button onClick={() => ensure.mutate()} disabled={ensure.isPending}>

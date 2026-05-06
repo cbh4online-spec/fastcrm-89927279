@@ -16,7 +16,7 @@ export function useWhatsAppProviderInstance() {
       const { data, error } = await supabase
         .from("whatsapp_provider_instances" as never)
         .select(
-          "id, workspace_id, provider_name, display_name, default_country, default_country_code, active, metadata, created_at, updated_at",
+          "id, workspace_id, provider_name, display_name, default_country, default_country_code, active, metadata, webhook_token, environment, webhook_last_received_at, webhook_last_error, created_at, updated_at",
         )
         .eq("workspace_id", currentWorkspace.id)
         .eq("active", true)
@@ -33,6 +33,10 @@ export function useWhatsAppProviderInstance() {
         default_country_code: string;
         active: boolean;
         metadata: Record<string, unknown>;
+        webhook_token: string | null;
+        environment: string;
+        webhook_last_received_at: string | null;
+        webhook_last_error: string | null;
         created_at: string;
         updated_at: string;
       } | null;
