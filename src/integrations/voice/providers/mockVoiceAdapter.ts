@@ -5,32 +5,25 @@ import type {
   ClickToCallResult,
   NormalizedCallEvent,
   CallStatus,
+  ProviderRuntimeConfig,
+  CostEstimateInput,
+  CostEstimateResult,
 } from "./types";
 import { normalizePhone } from "../utils/phone";
+import { getDefaultCapabilities } from "../utils/providerCapabilities";
+import { estimateCallCost } from "../utils/costEstimator";
+import { normalizeGenericStatus } from "../normalize/normalizeCallStatus";
 
-/**
- * Mock voice provider — simula chamadas para testar UI sem fornecedor real.
- * UI deve indicar claramente "modo demonstração — chamada simulada".
- */
 class MockVoiceAdapter implements VoiceProviderAdapter {
   readonly name = "mock" as const;
-  readonly capabilities: VoiceCapabilities = {
-    can_click_to_call: true,
-    can_receive_calls: true,
-    can_record: false,
-    can_transcribe: false,
-    can_webhook_status: true,
-    can_manage_numbers: false,
-    can_transfer: false,
-  };
+  readonly capabilities: VoiceCapabilities = getDefaultCapabilities("mock");
 
   async testConnection() {
-    return { ok: true, message: "Mock provider sempre disponível.", latencyMs: 1 };
+    return { ok: true, message: "Mock provider sempre disponível.", latencyMs: 1, detectedCapabilities: this.capabilities };
   }
 
-  async clickToCall(input: ClickToCallInput): Promise<ClickToCallResult> {
+  async clickToCall(input: ClickToCallInput, _config: ProviderRuntimeConfig): Promise<ClickToCallResult> {
     const startedAt = new Date();
-    // duração aleatória 30–180s (resposta da pergunta clarificadora)
     const duration = 30 + Math.floor(Math.random() * 151);
     const endedAt = new Date(startedAt.getTime() + duration * 1000);
     return {
@@ -54,13 +47,14 @@ class MockVoiceAdapter implements VoiceProviderAdapter {
     return { status: "completed", raw: { providerCallId, mock: true } };
   }
 
-  parseIncomingCallWebhook(payload: unknown): NormalizedCallEvent | null {
+  parseIncomingWebhook(payload: unknown): NormalizedCallEvent | null {
     if (!payload || typeof payload !== "object") return null;
     const p = payload as Record<string, unknown>;
     return {
       providerCallId: String(p.call_id ?? `mock_${Date.now()}`),
+      eventType: "call.initiated",
       direction: "inbound",
-      status: (p.status as CallStatus) ?? "ringing",
+      status: normalizeGenericStatus((p.status as string) ?? "ringing"),
       fromNumber: p.from as string | undefined,
       toNumber: p.to as string | undefined,
       startedAt: (p.started_at as string) ?? new Date().toISOString(),
@@ -68,14 +62,31 @@ class MockVoiceAdapter implements VoiceProviderAdapter {
     };
   }
 
-  parseCallStatusWebhook(payload: unknown): NormalizedCallEvent | null {
+  parseStatusWebhook(payload: unknown): NormalizedCallEvent | null {
+    if (!payload || typeof payload !== "object") return null;
+    const p = payload as Record<string, unknown>;
+    const status = normalizeGenericStatus(p.status as string);
+    return {
+      providerCallId: String(p.call_id ?? "unknown"),
+      eventType: status === "completed" ? "call.completed" : "call.ringing",
+      direction: (p.direction as NormalizedCallEvent["direction"]) ?? "outbound",
+      status,
+      durationSeconds: typeof p.duration === "number" ? p.duration : undefined,
+      raw: payload,
+    };
+  }
+
+  parseRecordingWebhook(payload: unknown): NormalizedCallEvent | null {
     if (!payload || typeof payload !== "object") return null;
     const p = payload as Record<string, unknown>;
     return {
       providerCallId: String(p.call_id ?? "unknown"),
-      direction: (p.direction as NormalizedCallEvent["direction"]) ?? "outbound",
-      status: (p.status as CallStatus) ?? "completed",
-      durationSeconds: typeof p.duration === "number" ? p.duration : undefined,
+      eventType: "recording.available",
+      direction: "outbound",
+      status: "recorded",
+      recordingUrl: p.recording_url as string | undefined,
+      recordingProviderId: p.recording_id as string | undefined,
+      recordingDurationSeconds: typeof p.recording_duration === "number" ? p.recording_duration : undefined,
       raw: payload,
     };
   }
@@ -84,11 +95,15 @@ class MockVoiceAdapter implements VoiceProviderAdapter {
     return { status: "not_available" };
   }
 
+  estimateCost(input: CostEstimateInput): CostEstimateResult {
+    return estimateCallCost({ ...input, costPerMinute: input.costPerMinute ?? 0.02, currency: input.currency ?? "EUR" });
+  }
+
   getCapabilities() {
     return this.capabilities;
   }
 
-  normalizeNumber(number: string, country: string = "PT") {
+  normalizePhoneNumber(number: string, country: string = "PT") {
     return normalizePhone(number, country);
   }
 }
