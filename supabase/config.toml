@@ -102,3 +102,6 @@ verify_jwt = false
 
 [functions.widget-send-message]
 verify_jwt = false
+
+[functions.voice-provider-webhook]
+verify_jwt = false
