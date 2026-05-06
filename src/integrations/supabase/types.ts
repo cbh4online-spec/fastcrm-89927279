@@ -47623,6 +47623,8 @@ export type Database = {
           improved_response: string | null
           is_template: boolean
           objection_type: string
+          product_id: string | null
+          product_share_id: string | null
           real_example: string | null
           source_conversation_id: string | null
           source_ticket_id: string | null
@@ -47643,6 +47645,8 @@ export type Database = {
           improved_response?: string | null
           is_template?: boolean
           objection_type: string
+          product_id?: string | null
+          product_share_id?: string | null
           real_example?: string | null
           source_conversation_id?: string | null
           source_ticket_id?: string | null
@@ -47663,6 +47667,8 @@ export type Database = {
           improved_response?: string | null
           is_template?: boolean
           objection_type?: string
+          product_id?: string | null
+          product_share_id?: string | null
           real_example?: string | null
           source_conversation_id?: string | null
           source_ticket_id?: string | null
@@ -48201,6 +48207,9 @@ export type Database = {
           probability: number | null
           renewal_date: string | null
           source: string | null
+          source_conversation_id: string | null
+          source_product_id: string | null
+          source_product_share_id: string | null
           stage_id: string
           start_date: string | null
           status: string
@@ -48249,6 +48258,9 @@ export type Database = {
           probability?: number | null
           renewal_date?: string | null
           source?: string | null
+          source_conversation_id?: string | null
+          source_product_id?: string | null
+          source_product_share_id?: string | null
           stage_id: string
           start_date?: string | null
           status?: string
@@ -48297,6 +48309,9 @@ export type Database = {
           probability?: number | null
           renewal_date?: string | null
           source?: string | null
+          source_conversation_id?: string | null
+          source_product_id?: string | null
+          source_product_share_id?: string | null
           stage_id?: string
           start_date?: string | null
           status?: string
@@ -55350,6 +55365,45 @@ export type Database = {
           },
         ]
       }
+      product_conversation_faqs: {
+        Row: {
+          active: boolean
+          created_at: string
+          frequency_count: number
+          id: string
+          product_id: string
+          question: string
+          source_conversation_id: string | null
+          suggested_answer: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          frequency_count?: number
+          id?: string
+          product_id: string
+          question: string
+          source_conversation_id?: string | null
+          suggested_answer?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          frequency_count?: number
+          id?: string
+          product_id?: string
+          question?: string
+          source_conversation_id?: string | null
+          suggested_answer?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       product_creation_idempotency: {
         Row: {
           created_at: string
@@ -57011,6 +57065,7 @@ export type Database = {
           company_id: string | null
           confidence: string | null
           contact_id: string | null
+          conversation_id: string | null
           converted_value: number | null
           created_at: string | null
           dismissed_reason: string | null
@@ -57020,8 +57075,10 @@ export type Database = {
           id: string
           lead_id: string | null
           product_id: string
+          product_share_id: string | null
           reason: string | null
           reason_tags: string[] | null
+          recommendation_type: string | null
           score: number
           shown_at: string | null
           status: string | null
@@ -57038,6 +57095,7 @@ export type Database = {
           company_id?: string | null
           confidence?: string | null
           contact_id?: string | null
+          conversation_id?: string | null
           converted_value?: number | null
           created_at?: string | null
           dismissed_reason?: string | null
@@ -57047,8 +57105,10 @@ export type Database = {
           id?: string
           lead_id?: string | null
           product_id: string
+          product_share_id?: string | null
           reason?: string | null
           reason_tags?: string[] | null
+          recommendation_type?: string | null
           score?: number
           shown_at?: string | null
           status?: string | null
@@ -57065,6 +57125,7 @@ export type Database = {
           company_id?: string | null
           confidence?: string | null
           contact_id?: string | null
+          conversation_id?: string | null
           converted_value?: number | null
           created_at?: string | null
           dismissed_reason?: string | null
@@ -57074,8 +57135,10 @@ export type Database = {
           id?: string
           lead_id?: string | null
           product_id?: string
+          product_share_id?: string | null
           reason?: string | null
           reason_tags?: string[] | null
+          recommendation_type?: string | null
           score?: number
           shown_at?: string | null
           status?: string | null
@@ -57417,6 +57480,56 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: true
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_share_clicks: {
+        Row: {
+          clicked_at: string
+          contact_id: string | null
+          conversation_id: string | null
+          id: string
+          ip_hash: string | null
+          metadata: Json
+          product_id: string
+          product_share_id: string
+          referrer: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          clicked_at?: string
+          contact_id?: string | null
+          conversation_id?: string | null
+          id?: string
+          ip_hash?: string | null
+          metadata?: Json
+          product_id: string
+          product_share_id: string
+          referrer?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          clicked_at?: string
+          contact_id?: string | null
+          conversation_id?: string | null
+          id?: string
+          ip_hash?: string | null
+          metadata?: Json
+          product_id?: string
+          product_share_id?: string
+          referrer?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_share_clicks_product_share_id_fkey"
+            columns: ["product_share_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_product_shares"
             referencedColumns: ["id"]
           },
         ]
@@ -62047,6 +62160,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      revenue_leaks: {
+        Row: {
+          agent_id: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          estimated_value: number | null
+          id: string
+          leak_type: string
+          metadata: Json
+          product_id: string | null
+          product_share_id: string | null
+          recommended_action: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          estimated_value?: number | null
+          id?: string
+          leak_type: string
+          metadata?: Json
+          product_id?: string | null
+          product_share_id?: string | null
+          recommended_action?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          estimated_value?: number | null
+          id?: string
+          leak_type?: string
+          metadata?: Json
+          product_id?: string | null
+          product_share_id?: string | null
+          recommended_action?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       revenue_model_config: {
         Row: {
@@ -75040,20 +75219,91 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_product_share_responses: {
+        Row: {
+          ai_summary: string | null
+          classification: string | null
+          confidence: number | null
+          contact_id: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          intent: string | null
+          message_id: string
+          metadata: Json
+          product_share_id: string
+          sentiment: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          classification?: string | null
+          confidence?: number | null
+          contact_id?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          intent?: string | null
+          message_id: string
+          metadata?: Json
+          product_share_id: string
+          sentiment?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          classification?: string | null
+          confidence?: number | null
+          contact_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          intent?: string | null
+          message_id?: string
+          metadata?: Json
+          product_share_id?: string
+          sentiment?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_product_share_responses_product_share_id_fkey"
+            columns: ["product_share_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_product_shares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_product_shares: {
         Row: {
           agent_id: string | null
           clicked_at: string | null
           contact_id: string | null
           conversation_id: string | null
+          converted_at: string | null
           created_at: string
+          currency: string | null
+          deal_id: string | null
+          delivered_at: string | null
+          first_reply_at: string | null
+          first_reply_message_id: string | null
           id: string
+          lead_id: string | null
+          margin_amount: number | null
           message_id: string | null
           metadata: Json
           product_id: string
           provider_message_id: string | null
+          read_at: string | null
+          reply_classification: string | null
+          reply_intent: string | null
+          reply_sentiment: string | null
+          revenue_amount: number | null
           sent_at: string
+          source: string | null
           status: string
+          updated_at: string
           workspace_id: string
         }
         Insert: {
@@ -75061,14 +75311,29 @@ export type Database = {
           clicked_at?: string | null
           contact_id?: string | null
           conversation_id?: string | null
+          converted_at?: string | null
           created_at?: string
+          currency?: string | null
+          deal_id?: string | null
+          delivered_at?: string | null
+          first_reply_at?: string | null
+          first_reply_message_id?: string | null
           id?: string
+          lead_id?: string | null
+          margin_amount?: number | null
           message_id?: string | null
           metadata?: Json
           product_id: string
           provider_message_id?: string | null
+          read_at?: string | null
+          reply_classification?: string | null
+          reply_intent?: string | null
+          reply_sentiment?: string | null
+          revenue_amount?: number | null
           sent_at?: string
+          source?: string | null
           status?: string
+          updated_at?: string
           workspace_id: string
         }
         Update: {
@@ -75076,14 +75341,29 @@ export type Database = {
           clicked_at?: string | null
           contact_id?: string | null
           conversation_id?: string | null
+          converted_at?: string | null
           created_at?: string
+          currency?: string | null
+          deal_id?: string | null
+          delivered_at?: string | null
+          first_reply_at?: string | null
+          first_reply_message_id?: string | null
           id?: string
+          lead_id?: string | null
+          margin_amount?: number | null
           message_id?: string | null
           metadata?: Json
           product_id?: string
           provider_message_id?: string | null
+          read_at?: string | null
+          reply_classification?: string | null
+          reply_intent?: string | null
+          reply_sentiment?: string | null
+          revenue_amount?: number | null
           sent_at?: string
+          source?: string | null
           status?: string
+          updated_at?: string
           workspace_id?: string
         }
         Relationships: [
@@ -81189,6 +81469,18 @@ export type Database = {
       mark_activation_goal: {
         Args: { _goal_key: string; _source?: string; _workspace_id: string }
         Returns: undefined
+      }
+      mark_product_share_converted: {
+        Args: {
+          p_create_opportunity?: boolean
+          p_currency?: string
+          p_margin?: number
+          p_note?: string
+          p_opportunity_title?: string
+          p_revenue: number
+          p_share_id: string
+        }
+        Returns: Json
       }
       match_historical_outcomes: {
         Args: {
