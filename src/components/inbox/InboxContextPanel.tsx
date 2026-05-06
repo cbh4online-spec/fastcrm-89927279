@@ -22,7 +22,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConversationIntelligencePanel } from "./ConversationIntelligencePanel";
-import { ConversationAIAnalysisPanel } from "./ConversationAIAnalysisPanel";
+import { WhatsAppInboxIntelligencePanel } from "./WhatsAppInboxIntelligencePanel";
 import { useConversationSummary } from "@/hooks/useConversationSummary";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
 import { ScheduleFollowupDialog } from "./ScheduleFollowupDialog";
