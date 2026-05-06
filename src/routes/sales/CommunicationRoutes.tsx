@@ -36,6 +36,9 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/smart-workflows" element={<SmartWorkflowsPage />} />
       <Route path="/dashboard/cost-guard" element={<CostGuardPage />} />
       <Route path="/dashboard/communication/cost-guard" element={<CostGuardPage />} />
+      <Route path="/dashboard/settings/plan" element={<MyPlanPage />} />
+      <Route path="/dashboard/plans" element={<PlansComparisonPage />} />
+      <Route path="/admin/billing-plans" element={<BillingPlansAdminPage />} />
     </>
   );
 }
