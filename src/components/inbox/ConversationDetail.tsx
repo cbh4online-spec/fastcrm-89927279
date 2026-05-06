@@ -432,6 +432,9 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                         sent_at: message.sent_at,
                         message_type: (message as { message_type?: string | null }).message_type ?? null,
                         product_id: (message as { product_id?: string | null }).product_id ?? null,
+                        media_url: (message as { media_url?: string | null }).media_url ?? null,
+                        media_mime_type: (message as { media_mime_type?: string | null }).media_mime_type ?? null,
+                        conversation_id: conversationId,
                         metadata: (message as { metadata?: Record<string, unknown> | null }).metadata ?? null,
                       }}
                       senderName={
@@ -441,6 +444,16 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       }
                       companyName="Você"
                       showTimestamp={true}
+                      onUseSuggestedReply={(text) => composerRef.current?.setMessage(text)}
+                      onCreateTaskFromAudio={(title, description, priority) => {
+                        const params = new URLSearchParams({
+                          title,
+                          description,
+                          ...(priority ? { priority } : {}),
+                          ...(conversation.lead?.id ? { lead_id: String(conversation.lead.id) } : {}),
+                        });
+                        window.open(`/dashboard/tasks/new?${params.toString()}`, "_blank");
+                      }}
                     />
                   </div>
                 );

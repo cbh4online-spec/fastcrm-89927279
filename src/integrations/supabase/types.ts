@@ -6152,6 +6152,66 @@ export type Database = {
           },
         ]
       }
+      ai_processing_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          id: string
+          operation: string
+          provider: string | null
+          request_payload: Json | null
+          response_payload: Json | null
+          source_id: string | null
+          source_type: string
+          success: boolean
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          operation: string
+          provider?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          source_id?: string | null
+          source_type: string
+          success?: boolean
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          operation?: string
+          provider?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          source_id?: string | null
+          source_type?: string
+          success?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_processing_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "ai_processing_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_response_audits: {
         Row: {
           ai_response: string
@@ -72893,6 +72953,146 @@ export type Database = {
           },
           {
             foreignKeyName: "weekly_briefs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_audio_insights: {
+        Row: {
+          ai_analysis_completed_at: string | null
+          ai_analysis_cost_estimate: number | null
+          completed_at: string | null
+          confidence: number | null
+          contact_id: string | null
+          conversation_id: string
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          intent: string | null
+          language: string
+          media_url: string
+          message_id: string
+          next_action: string | null
+          processing_seconds: number | null
+          provider_model: string | null
+          raw_ai_response: Json | null
+          sentiment: string | null
+          suggested_deal_action: string | null
+          suggested_reply: string | null
+          suggested_task_description: string | null
+          suggested_task_title: string | null
+          suggested_ticket_priority: string | null
+          suggested_ticket_title: string | null
+          summary: string | null
+          transcription_completed_at: string | null
+          transcription_cost_estimate: number | null
+          transcription_error: string | null
+          transcription_provider: string | null
+          transcription_status: string
+          transcription_text: string | null
+          updated_at: string
+          urgency: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_analysis_completed_at?: string | null
+          ai_analysis_cost_estimate?: number | null
+          completed_at?: string | null
+          confidence?: number | null
+          contact_id?: string | null
+          conversation_id: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          intent?: string | null
+          language?: string
+          media_url: string
+          message_id: string
+          next_action?: string | null
+          processing_seconds?: number | null
+          provider_model?: string | null
+          raw_ai_response?: Json | null
+          sentiment?: string | null
+          suggested_deal_action?: string | null
+          suggested_reply?: string | null
+          suggested_task_description?: string | null
+          suggested_task_title?: string | null
+          suggested_ticket_priority?: string | null
+          suggested_ticket_title?: string | null
+          summary?: string | null
+          transcription_completed_at?: string | null
+          transcription_cost_estimate?: number | null
+          transcription_error?: string | null
+          transcription_provider?: string | null
+          transcription_status?: string
+          transcription_text?: string | null
+          updated_at?: string
+          urgency?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ai_analysis_completed_at?: string | null
+          ai_analysis_cost_estimate?: number | null
+          completed_at?: string | null
+          confidence?: number | null
+          contact_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          intent?: string | null
+          language?: string
+          media_url?: string
+          message_id?: string
+          next_action?: string | null
+          processing_seconds?: number | null
+          provider_model?: string | null
+          raw_ai_response?: Json | null
+          sentiment?: string | null
+          suggested_deal_action?: string | null
+          suggested_reply?: string | null
+          suggested_task_description?: string | null
+          suggested_task_title?: string | null
+          suggested_ticket_priority?: string | null
+          suggested_ticket_title?: string | null
+          summary?: string | null
+          transcription_completed_at?: string | null
+          transcription_cost_estimate?: number | null
+          transcription_error?: string | null
+          transcription_provider?: string | null
+          transcription_status?: string
+          transcription_text?: string | null
+          updated_at?: string
+          urgency?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_audio_insights_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_audio_insights_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_audio_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_audio_insights_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

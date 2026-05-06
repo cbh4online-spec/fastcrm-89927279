@@ -8,6 +8,7 @@ import { MessageDeliveryStatus, getDeliveryStatus } from "./MessageDeliveryStatu
 import { ResponseInfoSheet } from "./ResponseInfoSheet";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
 import { WhatsAppProductMessageCard } from "@/components/whatsapp-pro/WhatsAppProductMessageCard";
+import { WhatsAppAudioMessageCard } from "@/components/whatsapp-pro/WhatsAppAudioMessageCard";
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -21,6 +22,9 @@ interface MessageBubbleProps {
     channel_metadata?: Record<string, any>;
     message_type?: string | null;
     product_id?: string | null;
+    media_url?: string | null;
+    media_mime_type?: string | null;
+    conversation_id?: string;
     metadata?: Record<string, any> | null;
   };
   senderName?: string;
@@ -28,6 +32,8 @@ interface MessageBubbleProps {
   companyName?: string;
   showTimestamp?: boolean;
   onRetry?: (messageContent: string) => void;
+  onUseSuggestedReply?: (text: string) => void;
+  onCreateTaskFromAudio?: (title: string, description: string, priority: string | null) => void;
 }
 
 export function MessageBubble({
@@ -37,10 +43,13 @@ export function MessageBubble({
   companyName = "Empresa",
   showTimestamp = true,
   onRetry,
+  onUseSuggestedReply,
+  onCreateTaskFromAudio,
 }: MessageBubbleProps) {
   const isOutbound = message.direction === "outbound";
   const deliveryStatus = getDeliveryStatus(message);
   const isFailed = deliveryStatus === "failed";
+  const isAudio = message.message_type === "audio";
   
   // Parse attachments from metadata
   const attachments = message.channel_metadata?.attachments as Array<{
@@ -124,7 +133,14 @@ export function MessageBubble({
             "bg-card border rounded-2xl rounded-tr-sm p-3",
             isFailed ? "border-destructive/50 bg-destructive/5" : "border-border"
           )}>
-            {message.message_type === "product" && message.product_id ? (
+            {isAudio ? (
+              <WhatsAppAudioMessageCard
+                messageId={message.id}
+                conversationId={message.conversation_id ?? ""}
+                mediaUrl={message.media_url ?? message.channel_metadata?.attachments?.find((a: any) => a.type?.includes("audio"))?.url}
+                isOutbound
+              />
+            ) : message.message_type === "product" && message.product_id ? (
               <WhatsAppProductMessageCard
                 productId={message.product_id}
                 caption={message.content}
@@ -196,7 +212,15 @@ export function MessageBubble({
         
         {/* Bubble */}
         <div className="bg-muted rounded-2xl rounded-tl-sm p-3 max-w-[85%]">
-          {message.message_type === "product" && message.product_id ? (
+          {isAudio ? (
+            <WhatsAppAudioMessageCard
+              messageId={message.id}
+              conversationId={message.conversation_id ?? ""}
+              mediaUrl={message.media_url ?? message.channel_metadata?.attachments?.find((a: any) => a.type?.includes("audio"))?.url}
+              onUseSuggestedReply={onUseSuggestedReply}
+              onCreateTask={onCreateTaskFromAudio}
+            />
+          ) : message.message_type === "product" && message.product_id ? (
             <WhatsAppProductMessageCard
               productId={message.product_id}
               caption={message.content}
