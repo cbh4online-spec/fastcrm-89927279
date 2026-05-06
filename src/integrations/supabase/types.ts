@@ -4075,38 +4075,62 @@ export type Database = {
       }
       agent_ops_settings: {
         Row: {
+          auto_distribution_method: string | null
           auto_handoff_enabled: boolean
           auto_routing_enabled: boolean
+          coaching_ai_enabled: boolean | null
           created_at: string
           human_fallback_enabled: boolean
           id: string
+          include_followups_in_workload: boolean | null
+          include_tickets_in_workload: boolean | null
+          individual_metrics_managers_only: boolean | null
           is_enabled: boolean
           max_open_items_per_agent: number
+          quality_score_enabled: boolean | null
+          show_ranking: boolean | null
           supervisor_enabled: boolean
+          unanswered_alert_minutes: number | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          auto_distribution_method?: string | null
           auto_handoff_enabled?: boolean
           auto_routing_enabled?: boolean
+          coaching_ai_enabled?: boolean | null
           created_at?: string
           human_fallback_enabled?: boolean
           id?: string
+          include_followups_in_workload?: boolean | null
+          include_tickets_in_workload?: boolean | null
+          individual_metrics_managers_only?: boolean | null
           is_enabled?: boolean
           max_open_items_per_agent?: number
+          quality_score_enabled?: boolean | null
+          show_ranking?: boolean | null
           supervisor_enabled?: boolean
+          unanswered_alert_minutes?: number | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          auto_distribution_method?: string | null
           auto_handoff_enabled?: boolean
           auto_routing_enabled?: boolean
+          coaching_ai_enabled?: boolean | null
           created_at?: string
           human_fallback_enabled?: boolean
           id?: string
+          include_followups_in_workload?: boolean | null
+          include_tickets_in_workload?: boolean | null
+          individual_metrics_managers_only?: boolean | null
           is_enabled?: boolean
           max_open_items_per_agent?: number
+          quality_score_enabled?: boolean | null
+          show_ranking?: boolean | null
           supervisor_enabled?: boolean
+          unanswered_alert_minutes?: number | null
           updated_at?: string
           workspace_id?: string
         }
@@ -4126,6 +4150,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agent_profiles: {
+        Row: {
+          active: boolean
+          auto_assignment_enabled: boolean
+          channels: string[]
+          created_at: string
+          display_name: string | null
+          id: string
+          languages: string[]
+          max_open_conversations: number
+          max_open_tickets: number
+          role_type: string
+          skills: string[]
+          status: string
+          updated_at: string
+          user_id: string
+          working_hours: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          auto_assignment_enabled?: boolean
+          channels?: string[]
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          languages?: string[]
+          max_open_conversations?: number
+          max_open_tickets?: number
+          role_type?: string
+          skills?: string[]
+          status?: string
+          updated_at?: string
+          user_id: string
+          working_hours?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          auto_assignment_enabled?: boolean
+          channels?: string[]
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          languages?: string[]
+          max_open_conversations?: number
+          max_open_tickets?: number
+          role_type?: string
+          skills?: string[]
+          status?: string
+          updated_at?: string
+          user_id?: string
+          working_hours?: Json | null
+          workspace_id?: string
+        }
+        Relationships: []
       }
       agent_teams: {
         Row: {
@@ -22883,6 +22964,7 @@ export type Database = {
           country_code: string | null
           created_at: string
           external_thread_id: string | null
+          first_response_at: string | null
           handoff_at: string | null
           handoff_reason: string | null
           id: string
@@ -22892,7 +22974,11 @@ export type Database = {
           lead_id: string | null
           potential_value_estimate: number | null
           provider_instance_id: string | null
+          quality_analysis: Json | null
+          quality_analyzed_at: string | null
+          quality_score: number | null
           requires_human: boolean
+          resolved_at: string | null
           sla_deadline: string | null
           status: string
           tags: string[]
@@ -22927,6 +23013,7 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           external_thread_id?: string | null
+          first_response_at?: string | null
           handoff_at?: string | null
           handoff_reason?: string | null
           id?: string
@@ -22936,7 +23023,11 @@ export type Database = {
           lead_id?: string | null
           potential_value_estimate?: number | null
           provider_instance_id?: string | null
+          quality_analysis?: Json | null
+          quality_analyzed_at?: string | null
+          quality_score?: number | null
           requires_human?: boolean
+          resolved_at?: string | null
           sla_deadline?: string | null
           status?: string
           tags?: string[]
@@ -22971,6 +23062,7 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           external_thread_id?: string | null
+          first_response_at?: string | null
           handoff_at?: string | null
           handoff_reason?: string | null
           id?: string
@@ -22980,7 +23072,11 @@ export type Database = {
           lead_id?: string | null
           potential_value_estimate?: number | null
           provider_instance_id?: string | null
+          quality_analysis?: Json | null
+          quality_analyzed_at?: string | null
+          quality_score?: number | null
           requires_human?: boolean
+          resolved_at?: string | null
           sla_deadline?: string | null
           status?: string
           tags?: string[]
@@ -77471,6 +77567,50 @@ export type Database = {
       }
     }
     Views: {
+      agent_performance_realtime: {
+        Row: {
+          agent_status: string | null
+          avatar_url: string | null
+          avg_first_response_seconds_7d: number | null
+          avg_resolution_seconds_7d: number | null
+          completed_followups_7d: number | null
+          conversations_resolved_7d: number | null
+          email: string | null
+          full_name: string | null
+          max_open_conversations: number | null
+          max_open_tickets: number | null
+          open_conversations: number | null
+          open_tickets: number | null
+          overdue_followups: number | null
+          overdue_tickets: number | null
+          pending_followups: number | null
+          products_shared_7d: number | null
+          quality_score_avg: number | null
+          role_type: string | null
+          tickets_resolved_7d: number | null
+          urgent_open: number | null
+          user_id: string | null
+          workload_pct: number | null
+          workload_status: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_sellers_public: {
         Row: {
           avatar_url: string | null
@@ -78468,6 +78608,33 @@ export type Database = {
           },
         ]
       }
+      team_inbox_summary: {
+        Row: {
+          avg_first_response_seconds_today: number | null
+          open_conversations: number | null
+          resolved_today: number | null
+          stale_inbound: number | null
+          unassigned_conversations: number | null
+          urgent_conversations: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_templates_view: {
         Row: {
           active: boolean | null
@@ -78607,6 +78774,14 @@ export type Database = {
           p_category_id: string
           p_fields?: string[]
           p_include_subcategories?: boolean
+        }
+        Returns: Json
+      }
+      assign_conversation: {
+        Args: {
+          p_assignee_user_id: string
+          p_conversation_id: string
+          p_workspace_id: string
         }
         Returns: Json
       }
@@ -79512,6 +79687,21 @@ export type Database = {
       is_workspace_member_procurement: {
         Args: { ws_id: string }
         Returns: boolean
+      }
+      list_assignable_agents: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          agent_status: string
+          avatar_url: string
+          email: string
+          full_name: string
+          open_conversations: number
+          open_tickets: number
+          role_type: string
+          user_id: string
+          workload_pct: number
+          workload_status: string
+        }[]
       }
       log_admin_action: {
         Args: {
