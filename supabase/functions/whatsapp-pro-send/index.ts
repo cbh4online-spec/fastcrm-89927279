@@ -137,6 +137,33 @@ Deno.serve(async (req) => {
       result = { success: false, error: `Provider ${provider} ainda não implementado server-side` };
     }
 
+    // Log outbound (técnico) — não bloqueia
+    const tEnd = Date.now();
+    try {
+      await adminClient.from("provider_request_logs").insert({
+        workspace_id: body.workspaceId,
+        provider_instance_id: instance.id,
+        provider_name: provider,
+        direction: "outbound",
+        endpoint: `whatsapp:${body.messageType}`,
+        request_payload: {
+          phone: body.phone,
+          message_type: body.messageType,
+          has_media: !!body.mediaUrl,
+          product_id: body.productId ?? null,
+          template_id: body.templateId ?? null,
+        },
+        response_payload: {
+          provider_message_id: result.providerMessageId ?? null,
+          error: result.error ?? null,
+        },
+        status_code: result.success ? 200 : 500,
+        success: result.success,
+        error: result.success ? null : result.error,
+        duration_ms: tEnd - (req.headers.get("x-request-start") ? Number(req.headers.get("x-request-start")) : tEnd),
+      });
+    } catch (_) { /* noop */ }
+
     if (!result.success) {
       return json({ error: result.error ?? "Falha ao enviar", fallback: true }, 200);
     }
