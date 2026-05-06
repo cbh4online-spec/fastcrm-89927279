@@ -96,3 +96,9 @@ verify_jwt = false
 [functions.track-product-share]
 verify_jwt = false
 
+
+[functions.widget-start-session]
+verify_jwt = false
+
+[functions.widget-send-message]
+verify_jwt = false
