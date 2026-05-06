@@ -136,10 +136,18 @@ export default function TicketDetail() {
         </div>
 
         {/* Right: Sidebar */}
-        <TicketDetailSidebar
-          ticket={ticket as any}
-          onUpdate={handleUpdateTicket}
-        />
+        <div className="overflow-y-auto p-3 space-y-3">
+          <TicketWhatsAppPanel
+            ticketId={(ticket as any).id}
+            conversationId={(ticket as any).conversation_id ?? null}
+            aiSummary={(ticket as any).ai_summary ?? null}
+            aiRecommendation={(ticket as any).ai_recommendation ?? null}
+          />
+          <TicketDetailSidebar
+            ticket={ticket as any}
+            onUpdate={handleUpdateTicket}
+          />
+        </div>
       </div>
     </motion.div>
   );
