@@ -133,7 +133,14 @@ export function MessageBubble({
             "bg-card border rounded-2xl rounded-tr-sm p-3",
             isFailed ? "border-destructive/50 bg-destructive/5" : "border-border"
           )}>
-            {message.message_type === "product" && message.product_id ? (
+            {isAudio ? (
+              <WhatsAppAudioMessageCard
+                messageId={message.id}
+                conversationId={message.conversation_id ?? ""}
+                mediaUrl={message.media_url ?? message.channel_metadata?.attachments?.find((a: any) => a.type?.includes("audio"))?.url}
+                isOutbound
+              />
+            ) : message.message_type === "product" && message.product_id ? (
               <WhatsAppProductMessageCard
                 productId={message.product_id}
                 caption={message.content}
@@ -205,7 +212,15 @@ export function MessageBubble({
         
         {/* Bubble */}
         <div className="bg-muted rounded-2xl rounded-tl-sm p-3 max-w-[85%]">
-          {message.message_type === "product" && message.product_id ? (
+          {isAudio ? (
+            <WhatsAppAudioMessageCard
+              messageId={message.id}
+              conversationId={message.conversation_id ?? ""}
+              mediaUrl={message.media_url ?? message.channel_metadata?.attachments?.find((a: any) => a.type?.includes("audio"))?.url}
+              onUseSuggestedReply={onUseSuggestedReply}
+              onCreateTask={onCreateTaskFromAudio}
+            />
+          ) : message.message_type === "product" && message.product_id ? (
             <WhatsAppProductMessageCard
               productId={message.product_id}
               caption={message.content}
