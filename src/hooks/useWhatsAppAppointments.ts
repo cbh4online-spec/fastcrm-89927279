@@ -177,7 +177,7 @@ export function useUpdateAppointmentStatus() {
 
       const { data, error } = await supabase
         .from("calendar_events" as never)
-        .update(patch)
+        .update(patch as never)
         .eq("id", input.id)
         .select(APPOINTMENT_FIELDS)
         .single();
