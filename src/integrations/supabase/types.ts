@@ -9484,6 +9484,13 @@ export type Database = {
             foreignKeyName: "bot_conversation_assignments_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_conversation_assignments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
@@ -13829,6 +13836,13 @@ export type Database = {
             foreignKeyName: "calendar_events_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
@@ -17900,6 +17914,13 @@ export type Database = {
             foreignKeyName: "client_tickets_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tickets_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
@@ -18434,6 +18455,198 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      communication_channel_accounts: {
+        Row: {
+          account_identifier: string | null
+          account_name: string | null
+          active: boolean
+          channel_id: string
+          channel_type: string
+          created_at: string
+          credentials_secret_name: string | null
+          id: string
+          metadata: Json
+          provider_name: string | null
+          updated_at: string
+          webhook_token: string | null
+          webhook_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_identifier?: string | null
+          account_name?: string | null
+          active?: boolean
+          channel_id: string
+          channel_type: string
+          created_at?: string
+          credentials_secret_name?: string | null
+          id?: string
+          metadata?: Json
+          provider_name?: string | null
+          updated_at?: string
+          webhook_token?: string | null
+          webhook_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_identifier?: string | null
+          account_name?: string | null
+          active?: boolean
+          channel_id?: string
+          channel_type?: string
+          created_at?: string
+          credentials_secret_name?: string | null
+          id?: string
+          metadata?: Json
+          provider_name?: string | null
+          updated_at?: string
+          webhook_token?: string | null
+          webhook_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_channel_accounts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "communication_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_channel_accounts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["channel_id"]
+          },
+        ]
+      }
+      communication_channel_logs: {
+        Row: {
+          channel_id: string | null
+          channel_type: string
+          conversation_id: string | null
+          correlation_id: string | null
+          created_at: string
+          direction: string
+          error: string | null
+          event_type: string
+          id: string
+          message_id: string | null
+          normalized_payload: Json | null
+          payload: Json
+          processed: boolean
+          provider_name: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          channel_type: string
+          conversation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          direction: string
+          error?: string | null
+          event_type: string
+          id?: string
+          message_id?: string | null
+          normalized_payload?: Json | null
+          payload?: Json
+          processed?: boolean
+          provider_name?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          channel_type?: string
+          conversation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          direction?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          message_id?: string | null
+          normalized_payload?: Json | null
+          payload?: Json
+          processed?: boolean
+          provider_name?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_channel_logs_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "communication_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_channel_logs_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["channel_id"]
+          },
+        ]
+      }
+      communication_channels: {
+        Row: {
+          assigned_team_id: string | null
+          channel_type: string
+          created_at: string
+          created_by: string | null
+          default_country: string | null
+          default_language: string | null
+          display_name: string
+          id: string
+          metadata: Json
+          provider_instance_id: string | null
+          provider_name: string | null
+          routing_rules: Json
+          settings: Json
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_team_id?: string | null
+          channel_type: string
+          created_at?: string
+          created_by?: string | null
+          default_country?: string | null
+          default_language?: string | null
+          display_name: string
+          id?: string
+          metadata?: Json
+          provider_instance_id?: string | null
+          provider_name?: string | null
+          routing_rules?: Json
+          settings?: Json
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_team_id?: string | null
+          channel_type?: string
+          created_at?: string
+          created_by?: string | null
+          default_country?: string | null
+          default_language?: string | null
+          display_name?: string
+          id?: string
+          metadata?: Json
+          provider_instance_id?: string | null
+          provider_name?: string | null
+          routing_rules?: Json
+          settings?: Json
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       communication_template_variants: {
         Row: {
@@ -22312,6 +22525,13 @@ export type Database = {
             foreignKeyName: "conversation_analytics_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: true
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_analytics_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
@@ -22497,6 +22717,13 @@ export type Database = {
             columns: ["appointment_id"]
             isOneToOne: false
             referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_followups_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
             referencedColumns: ["id"]
           },
           {
@@ -25211,6 +25438,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
             referencedColumns: ["id"]
           },
           {
@@ -37486,6 +37720,13 @@ export type Database = {
             foreignKeyName: "inbox_action_logs_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_action_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
@@ -37583,6 +37824,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inbox_smart_alerts_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inbox_smart_alerts_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -45403,6 +45651,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -74930,6 +75185,13 @@ export type Database = {
             foreignKeyName: "whatsapp_audio_insights_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_audio_insights_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
@@ -74999,6 +75261,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_communication_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
             referencedColumns: ["id"]
           },
           {
@@ -75378,6 +75647,13 @@ export type Database = {
             foreignKeyName: "whatsapp_product_shares_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_product_shares_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
@@ -75597,6 +75873,13 @@ export type Database = {
             columns: ["appointment_id"]
             isOneToOne: false
             referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_scheduled_reminders_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
             referencedColumns: ["id"]
           },
           {
@@ -79441,6 +79724,78 @@ export type Database = {
           },
         ]
       }
+      communication_conversations_unified: {
+        Row: {
+          ai_intent: string | null
+          ai_priority: string | null
+          ai_sentiment: string | null
+          ai_tags: string[] | null
+          assigned_to: string | null
+          channel_display_name: string | null
+          channel_id: string | null
+          channel_provider_name: string | null
+          channel_type: string | null
+          company_id: string | null
+          contact_id: string | null
+          conversation_priority_score: number | null
+          created_at: string | null
+          external_thread_id: string | null
+          first_response_at: string | null
+          id: string | null
+          last_message_at: string | null
+          last_message_direction: string | null
+          last_message_preview: string | null
+          lead_id: string | null
+          potential_value_estimate: number | null
+          requires_human: boolean | null
+          resolved_at: string | null
+          sla_deadline: string | null
+          status: string | null
+          tags: string[] | null
+          unread_count: number | null
+          updated_at: string | null
+          user_priority: string | null
+          user_tags: string[] | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_purchase_history: {
         Row: {
           avg_reorder_days: number | null
@@ -80013,13 +80368,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_a"]
-            isOneToOne: false
-            referencedRelation: "partner_b2b_catalog_grouped"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "partner_b2b_catalog_grouped"
@@ -80029,8 +80377,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_b2b_content"
-            referencedColumns: ["product_id"]
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -80043,8 +80391,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_catalog"
-            referencedColumns: ["id"]
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -80057,8 +80405,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -80070,13 +80418,20 @@ export type Database = {
           {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_b"]
+            columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
