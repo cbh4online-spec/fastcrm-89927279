@@ -108,11 +108,17 @@ Deno.serve(async (req) => {
       await supabase.from("messages").insert({
         workspace_id: session.workspace_id,
         conversation_id: session.communication_conversation_id,
-        channel: "website_chat",
         direction: "inbound",
-        body: message,
+        content: message,
+        message_type: "text",
+        sent_at: new Date().toISOString(),
         metadata: { website_chat_message_id: msg.id, visitor_id },
       });
+      await supabase.from("conversations").update({
+        last_message_at: new Date().toISOString(),
+        last_message_preview: message.slice(0, 200),
+        last_message_direction: "inbound",
+      }).eq("id", session.communication_conversation_id);
     }
 
     // Update session last activity
