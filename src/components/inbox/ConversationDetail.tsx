@@ -45,6 +45,7 @@ import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialo
 import { ScheduleAppointmentDialog } from "@/components/whatsapp-pro/ScheduleAppointmentDialog";
 import { CreateTicketFromConversationDialog } from "@/components/whatsapp-pro/CreateTicketFromConversationDialog";
 import { LifeBuoy } from "lucide-react";
+import { AssignConversationButton } from "@/components/team-inbox/AssignConversationButton";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { PriorityScoreBadge } from "./PriorityScoreBadge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -299,6 +300,11 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
         </div>
 
         <div className="flex items-center gap-1">
+          <AssignConversationButton
+            conversationId={conversation.id}
+            currentAssigneeId={conversation.assigned_to}
+            variant="icon"
+          />
           {conversation.channel === "whatsapp" && (
             <Button
               variant="ghost"
