@@ -11,6 +11,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useStartCheckout } from "@/hooks/useBillingStripe";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Loader2 } from "lucide-react";
 
 const COMPARISON_KEYS: { key: string; label: string }[] = [
   { key: "agents_seats", label: "Agentes incluídos" },
@@ -118,6 +121,18 @@ export default function PlansComparisonPage() {
 }
 
 function PlanCard({ plan, isCurrent }: { plan: BillingPlan; isCurrent: boolean }) {
+  const [interval, setInterval] = useState<"month" | "year">("month");
+  const hasStripe = !!(plan as any).stripe_price_id_monthly || !!(plan as any).stripe_price_id_annual;
+  const showIntervalToggle = !plan.enterprise && hasStripe && !!(plan as any).stripe_price_id_annual && !!(plan as any).stripe_price_id_monthly;
+
+  const displayPrice = plan.enterprise
+    ? "Sob consulta"
+    : interval === "year" && (plan as any).annual_price != null
+    ? `${(plan as any).annual_price}€`
+    : plan.monthly_price != null
+    ? `${plan.monthly_price}€`
+    : "—";
+
   return (
     <Card className={`relative flex flex-col ${plan.recommended ? "border-primary shadow-lg" : ""}`}>
       {plan.recommended && (
@@ -131,13 +146,23 @@ function PlanCard({ plan, isCurrent }: { plan: BillingPlan; isCurrent: boolean }
           {plan.name}
         </CardTitle>
         <div className="flex items-baseline gap-1 pt-2">
-          <span className="text-3xl font-bold">
-            {plan.enterprise ? "Sob consulta" : plan.monthly_price != null ? `${plan.monthly_price}€` : "—"}
-          </span>
+          <span className="text-3xl font-bold">{displayPrice}</span>
           {!plan.enterprise && plan.monthly_price != null && (
-            <span className="text-sm text-muted-foreground">/mês</span>
+            <span className="text-sm text-muted-foreground">/{interval === "year" ? "ano" : "mês"}</span>
           )}
         </div>
+        {showIntervalToggle && (
+          <ToggleGroup
+            type="single"
+            value={interval}
+            onValueChange={(v) => v && setInterval(v as "month" | "year")}
+            size="sm"
+            className="mt-2"
+          >
+            <ToggleGroupItem value="month" className="text-xs">Mensal</ToggleGroupItem>
+            <ToggleGroupItem value="year" className="text-xs">Anual</ToggleGroupItem>
+          </ToggleGroup>
+        )}
         {plan.public_description && (
           <p className="text-xs text-muted-foreground mt-2 min-h-[3rem]">{plan.public_description}</p>
         )}
@@ -147,11 +172,35 @@ function PlanCard({ plan, isCurrent }: { plan: BillingPlan; isCurrent: boolean }
           <Button disabled className="w-full" variant="secondary">Plano atual</Button>
         ) : plan.enterprise ? (
           <EnterpriseQuickRequest />
+        ) : hasStripe ? (
+          <StripeCheckoutButton planId={plan.id} planName={plan.name} interval={interval} />
         ) : (
           <UpgradeQuickRequest planId={plan.id} planName={plan.name} />
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function StripeCheckoutButton({
+  planId, planName, interval,
+}: { planId: string; planName: string; interval: "month" | "year" }) {
+  const startCheckout = useStartCheckout();
+  return (
+    <Button
+      className="w-full"
+      disabled={startCheckout.isPending}
+      onClick={() =>
+        startCheckout.mutate({
+          billing_plan_id: planId,
+          interval,
+          successUrl: `${window.location.origin}/my-plan?checkout=success`,
+          cancelUrl: `${window.location.origin}/plans?checkout=cancelled`,
+        })
+      }
+    >
+      {startCheckout.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : `Subscrever ${planName}`}
+    </Button>
   );
 }
 
