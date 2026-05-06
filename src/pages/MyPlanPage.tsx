@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Crown, Sparkles, ArrowUpRight, Plus, AlertTriangle, Building2 } from "lucide-react";
+import { Crown, Sparkles, ArrowUpRight, Plus, AlertTriangle, Building2, CreditCard, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
@@ -17,6 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useStartCheckout, useOpenCustomerPortal } from "@/hooks/useBillingStripe";
 
 export default function MyPlanPage() {
   const { data: sub } = useWorkspaceSubscription();
@@ -82,6 +83,10 @@ export default function MyPlanPage() {
           </div>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2 pt-2">
+          {currentPlan && !currentPlan.enterprise && (
+            <SubscribeButton plan={currentPlan as any} sub={sub} />
+          )}
+          {sub?.stripe_subscription_id && <ManageSubscriptionButton />}
           {currentPlan && !currentPlan.enterprise && (
             <UpgradeDialog currentPlanId={currentPlan.id} plans={plans} />
           )}
@@ -203,6 +208,43 @@ export default function MyPlanPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+function SubscribeButton({ plan, sub }: { plan: BillingPlan; sub: any }) {
+  const [interval, setInterval] = useState<"month" | "year">("month");
+  const checkout = useStartCheckout();
+  const isActive = sub?.status === "active" && sub?.billing_plan_id === plan.id;
+  if (isActive) return null;
+  return (
+    <div className="flex items-center gap-2">
+      <select
+        className="border rounded-md p-2 text-sm bg-background"
+        value={interval}
+        onChange={(e) => setInterval(e.target.value as "month" | "year")}
+      >
+        <option value="month">Mensal</option>
+        <option value="year">Anual</option>
+      </select>
+      <Button
+        className="gap-2"
+        disabled={checkout.isPending}
+        onClick={() => checkout.mutate({ billing_plan_id: plan.id, interval })}
+      >
+        <CreditCard className="w-4 h-4" />
+        {sub?.stripe_subscription_id ? "Mudar plano" : "Subscrever"}
+      </Button>
+    </div>
+  );
+}
+
+function ManageSubscriptionButton() {
+  const portal = useOpenCustomerPortal();
+  return (
+    <Button variant="outline" className="gap-2" disabled={portal.isPending} onClick={() => portal.mutate()}>
+      <ExternalLink className="w-4 h-4" />
+      Gerir subscrição
+    </Button>
   );
 }
 

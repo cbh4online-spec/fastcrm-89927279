@@ -8489,6 +8489,13 @@ export type Database = {
           public_description: string | null
           recommended: boolean
           sort_order: number
+          stripe_mode: string
+          stripe_price_id_annual: string | null
+          stripe_price_id_monthly: string | null
+          stripe_product_id: string | null
+          stripe_sync_error: string | null
+          stripe_synced_at: string | null
+          trial_period_days: number
           updated_at: string
         }
         Insert: {
@@ -8510,6 +8517,13 @@ export type Database = {
           public_description?: string | null
           recommended?: boolean
           sort_order?: number
+          stripe_mode?: string
+          stripe_price_id_annual?: string | null
+          stripe_price_id_monthly?: string | null
+          stripe_product_id?: string | null
+          stripe_sync_error?: string | null
+          stripe_synced_at?: string | null
+          trial_period_days?: number
           updated_at?: string
         }
         Update: {
@@ -8531,7 +8545,59 @@ export type Database = {
           public_description?: string | null
           recommended?: boolean
           sort_order?: number
+          stripe_mode?: string
+          stripe_price_id_annual?: string | null
+          stripe_price_id_monthly?: string | null
+          stripe_product_id?: string | null
+          stripe_sync_error?: string | null
+          stripe_synced_at?: string | null
+          trial_period_days?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_stripe_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_event_id: string
+          stripe_invoice_id: string | null
+          stripe_subscription_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_event_id: string
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_event_id?: string
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          workspace_id?: string | null
         }
         Relationships: []
       }
@@ -78322,11 +78388,18 @@ export type Database = {
           custom_limits: Json | null
           custom_price: number | null
           id: string
+          last_payment_amount: number | null
+          last_payment_at: string | null
+          last_payment_failure_at: string | null
+          last_payment_failure_reason: string | null
           plan: Database["public"]["Enums"]["subscription_plan"]
           seats_included: number | null
           seats_used: number | null
           status: string
           stripe_customer_id: string | null
+          stripe_latest_invoice_id: string | null
+          stripe_mode: string | null
+          stripe_payment_status: string | null
           stripe_price_id: string | null
           stripe_subscription_id: string | null
           trial_ends_at: string | null
@@ -78345,11 +78418,18 @@ export type Database = {
           custom_limits?: Json | null
           custom_price?: number | null
           id?: string
+          last_payment_amount?: number | null
+          last_payment_at?: string | null
+          last_payment_failure_at?: string | null
+          last_payment_failure_reason?: string | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
           seats_included?: number | null
           seats_used?: number | null
           status?: string
           stripe_customer_id?: string | null
+          stripe_latest_invoice_id?: string | null
+          stripe_mode?: string | null
+          stripe_payment_status?: string | null
           stripe_price_id?: string | null
           stripe_subscription_id?: string | null
           trial_ends_at?: string | null
@@ -78368,11 +78448,18 @@ export type Database = {
           custom_limits?: Json | null
           custom_price?: number | null
           id?: string
+          last_payment_amount?: number | null
+          last_payment_at?: string | null
+          last_payment_failure_at?: string | null
+          last_payment_failure_reason?: string | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
           seats_included?: number | null
           seats_used?: number | null
           status?: string
           stripe_customer_id?: string | null
+          stripe_latest_invoice_id?: string | null
+          stripe_mode?: string | null
+          stripe_payment_status?: string | null
           stripe_price_id?: string | null
           stripe_subscription_id?: string | null
           trial_ends_at?: string | null

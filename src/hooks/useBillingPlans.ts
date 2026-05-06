@@ -142,6 +142,15 @@ export interface WorkspaceSubscription {
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
   trial_ends_at: string | null;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  stripe_price_id?: string | null;
+  stripe_latest_invoice_id?: string | null;
+  stripe_payment_status?: string | null;
+  last_payment_at?: string | null;
+  last_payment_amount?: number | null;
+  last_payment_failure_at?: string | null;
+  last_payment_failure_reason?: string | null;
 }
 
 export function useWorkspaceSubscription() {
