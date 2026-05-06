@@ -512,6 +512,24 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           conversationId={conversationId}
         />
       )}
+
+      <ScheduleAppointmentDialog
+        open={showScheduleDialog}
+        onOpenChange={setShowScheduleDialog}
+        conversationId={conversation.id}
+        contactId={(conversation as any).contact_id ?? null}
+        contactName={
+          (conversation as any).contact?.name ??
+          (conversation as any).lead?.name ??
+          null
+        }
+        contactPhone={
+          (conversation as any).contact?.phone ??
+          (conversation as any).lead?.phone ??
+          null
+        }
+        leadId={conversation.lead_id ?? null}
+      />
     </div>
   );
 }
