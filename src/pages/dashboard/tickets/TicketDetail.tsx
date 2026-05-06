@@ -7,6 +7,7 @@ import { useUpdateClientTicket } from "@/hooks/tickets/useUpdateClientTicket";
 import { useTicketCannedResponses } from "@/hooks/tickets/useTicketCannedResponses";
 import { TicketConversation } from "@/components/tickets/TicketConversation";
 import { TicketDetailSidebar } from "@/components/tickets/TicketDetailSidebar";
+import { TicketWhatsAppPanel } from "@/components/tickets/TicketWhatsAppPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
