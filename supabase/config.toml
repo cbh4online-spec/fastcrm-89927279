@@ -89,3 +89,7 @@ verify_jwt = false
 
 [functions.stripe-credits-webhook]
 verify_jwt = false
+
+[functions.billing-stripe-webhook]
+verify_jwt = false
+
