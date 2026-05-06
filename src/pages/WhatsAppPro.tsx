@@ -17,6 +17,8 @@ import {
   ShieldCheck,
   ScrollText,
   Beaker,
+  CalendarClock,
+  ListTodo,
 } from "lucide-react";
 import {
   useWhatsAppProviderInstance,
@@ -29,6 +31,8 @@ import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
 import { WhatsAppProviderConfigCard } from "@/components/whatsapp-pro/WhatsAppProviderConfigCard";
 import { WhatsAppWebhookLogsTable } from "@/components/whatsapp-pro/WhatsAppWebhookLogsTable";
 import { WhatsAppSimulateInboundCard } from "@/components/whatsapp-pro/WhatsAppSimulateInboundCard";
+import { WhatsAppAppointmentsSection } from "@/components/whatsapp-pro/WhatsAppAppointmentsSection";
+import { WhatsAppFollowupsSection } from "@/components/whatsapp-pro/WhatsAppFollowupsSection";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -127,6 +131,12 @@ export default function WhatsAppPro() {
             </TabsTrigger>
             <TabsTrigger value="templates">
               <FileText className="h-4 w-4 mr-1.5" /> Templates
+            </TabsTrigger>
+            <TabsTrigger value="appointments">
+              <CalendarClock className="h-4 w-4 mr-1.5" /> Agendamentos
+            </TabsTrigger>
+            <TabsTrigger value="followups">
+              <ListTodo className="h-4 w-4 mr-1.5" /> Follow-ups
             </TabsTrigger>
             <TabsTrigger value="logs">
               <ScrollText className="h-4 w-4 mr-1.5" /> Logs / Webhooks
