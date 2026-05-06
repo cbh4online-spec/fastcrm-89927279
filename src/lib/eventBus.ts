@@ -20,7 +20,22 @@ export type ContextEventType =
   | 'alert.created'
   | 'alert.read'
   | 'brief.generated'
-  | 'command.executed';
+  | 'command.executed'
+  // ── Omnichannel Command Center (Fase 1L) ──
+  | 'communication.channel.created'
+  | 'communication.channel.connected'
+  | 'communication.channel.error'
+  | 'communication.message.received'
+  | 'communication.message.sent'
+  | 'communication.conversation.created'
+  | 'communication.conversation.updated'
+  | 'communication.conversation.assigned'
+  | 'communication.conversation.resolved'
+  | 'communication.form.submitted'
+  | 'communication.chat.message_received'
+  | 'communication.email.received'
+  | 'communication.phone.call_logged'
+  | 'communication.omnichannel.timeline_updated';
 
 export interface EventPayload {
   workspace_id: string;
