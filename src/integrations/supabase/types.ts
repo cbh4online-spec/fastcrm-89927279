@@ -58493,6 +58493,76 @@ export type Database = {
           },
         ]
       }
+      provider_request_logs: {
+        Row: {
+          created_at: string
+          direction: string
+          duration_ms: number | null
+          endpoint: string | null
+          error: string | null
+          id: string
+          provider_instance_id: string | null
+          provider_name: string
+          request_payload: Json | null
+          response_payload: Json | null
+          status_code: number | null
+          success: boolean
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          direction?: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          error?: string | null
+          id?: string
+          provider_instance_id?: string | null
+          provider_name: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status_code?: number | null
+          success?: boolean
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          error?: string | null
+          id?: string
+          provider_instance_id?: string | null
+          provider_name?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status_code?: number | null
+          success?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_request_logs_provider_instance_id_fkey"
+            columns: ["provider_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_provider_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_request_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "provider_request_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_order_items: {
         Row: {
           description: string
@@ -73095,11 +73165,15 @@ export type Database = {
           default_country: string
           default_country_code: string
           display_name: string | null
+          environment: string
           external_instance_id: string | null
           id: string
           metadata: Json
           provider_name: string
           updated_at: string
+          webhook_last_error: string | null
+          webhook_last_received_at: string | null
+          webhook_token: string | null
           workspace_id: string
           zapi_connection_id: string | null
         }
@@ -73111,11 +73185,15 @@ export type Database = {
           default_country?: string
           default_country_code?: string
           display_name?: string | null
+          environment?: string
           external_instance_id?: string | null
           id?: string
           metadata?: Json
           provider_name?: string
           updated_at?: string
+          webhook_last_error?: string | null
+          webhook_last_received_at?: string | null
+          webhook_token?: string | null
           workspace_id: string
           zapi_connection_id?: string | null
         }
@@ -73127,11 +73205,15 @@ export type Database = {
           default_country?: string
           default_country_code?: string
           display_name?: string | null
+          environment?: string
           external_instance_id?: string | null
           id?: string
           metadata?: Json
           provider_name?: string
           updated_at?: string
+          webhook_last_error?: string | null
+          webhook_last_received_at?: string | null
+          webhook_token?: string | null
           workspace_id?: string
           zapi_connection_id?: string | null
         }
@@ -73282,37 +73364,55 @@ export type Database = {
         Row: {
           connection_id: string | null
           created_at: string
+          direction: string
           error_message: string | null
           event_type: string | null
+          headers: Json | null
           id: string
           instance_id: string | null
+          normalized_payload: Json | null
           payload: Json
+          phone: string | null
           processed: boolean
           processing_ms: number | null
+          provider_instance_id: string | null
+          provider_name: string | null
           workspace_id: string
         }
         Insert: {
           connection_id?: string | null
           created_at?: string
+          direction?: string
           error_message?: string | null
           event_type?: string | null
+          headers?: Json | null
           id?: string
           instance_id?: string | null
+          normalized_payload?: Json | null
           payload?: Json
+          phone?: string | null
           processed?: boolean
           processing_ms?: number | null
+          provider_instance_id?: string | null
+          provider_name?: string | null
           workspace_id: string
         }
         Update: {
           connection_id?: string | null
           created_at?: string
+          direction?: string
           error_message?: string | null
           event_type?: string | null
+          headers?: Json | null
           id?: string
           instance_id?: string | null
+          normalized_payload?: Json | null
           payload?: Json
+          phone?: string | null
           processed?: boolean
           processing_ms?: number | null
+          provider_instance_id?: string | null
+          provider_name?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -73321,6 +73421,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_zapi_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_webhook_logs_provider_instance_id_fkey"
+            columns: ["provider_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_provider_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -78928,6 +79035,10 @@ export type Database = {
           message: string
           success: boolean
         }[]
+      }
+      regenerate_provider_webhook_token: {
+        Args: { p_instance_id: string }
+        Returns: string
       }
       register_invoice_payment: {
         Args: {
