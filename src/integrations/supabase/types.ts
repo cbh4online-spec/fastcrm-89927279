@@ -3996,6 +3996,78 @@ export type Database = {
           },
         ]
       }
+      agent_coaching_insights: {
+        Row: {
+          agent_id: string
+          avg_clarity_score: number | null
+          avg_commercial_score: number | null
+          avg_empathy_score: number | null
+          avg_followup_score: number | null
+          avg_quality_score: number | null
+          avg_resolution_score: number | null
+          coaching_recommendations: Json
+          conversations_analyzed: number
+          created_at: string
+          example_good_replies: Json
+          example_improved_replies: Json
+          generated_at: string
+          id: string
+          period_end: string
+          period_start: string
+          recurring_improvement_areas: Json
+          recurring_strengths: Json
+          suggested_training_topics: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id: string
+          avg_clarity_score?: number | null
+          avg_commercial_score?: number | null
+          avg_empathy_score?: number | null
+          avg_followup_score?: number | null
+          avg_quality_score?: number | null
+          avg_resolution_score?: number | null
+          coaching_recommendations?: Json
+          conversations_analyzed?: number
+          created_at?: string
+          example_good_replies?: Json
+          example_improved_replies?: Json
+          generated_at?: string
+          id?: string
+          period_end: string
+          period_start: string
+          recurring_improvement_areas?: Json
+          recurring_strengths?: Json
+          suggested_training_topics?: Json
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string
+          avg_clarity_score?: number | null
+          avg_commercial_score?: number | null
+          avg_empathy_score?: number | null
+          avg_followup_score?: number | null
+          avg_quality_score?: number | null
+          avg_resolution_score?: number | null
+          coaching_recommendations?: Json
+          conversations_analyzed?: number
+          created_at?: string
+          example_good_replies?: Json
+          example_improved_replies?: Json
+          generated_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          recurring_improvement_areas?: Json
+          recurring_strengths?: Json
+          suggested_training_topics?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       agent_handoffs: {
         Row: {
           completed_at: string | null
@@ -17529,6 +17601,65 @@ export type Database = {
           },
         ]
       }
+      coaching_tasks: {
+        Row: {
+          agent_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          priority: string
+          source_review_id: string | null
+          status: string
+          title: string
+          training_topic: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          priority?: string
+          source_review_id?: string | null
+          status?: string
+          title: string
+          training_topic?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          priority?: string
+          source_review_id?: string | null
+          status?: string
+          title?: string
+          training_topic?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_tasks_source_review_id_fkey"
+            columns: ["source_review_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_quality_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       command_actions: {
         Row: {
           action_config: Json | null
@@ -22193,6 +22324,189 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conversation_playbooks: {
+        Row: {
+          active: boolean
+          category: string
+          closing_cta: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          do_list: Json
+          dont_list: Json
+          example_opening: string | null
+          example_questions: Json
+          example_responses: Json
+          id: string
+          is_template: boolean
+          name: string
+          recommended_structure: Json
+          trigger_intents: string[]
+          trigger_objections: string[]
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          category?: string
+          closing_cta?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          do_list?: Json
+          dont_list?: Json
+          example_opening?: string | null
+          example_questions?: Json
+          example_responses?: Json
+          id?: string
+          is_template?: boolean
+          name: string
+          recommended_structure?: Json
+          trigger_intents?: string[]
+          trigger_objections?: string[]
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          closing_cta?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          do_list?: Json
+          dont_list?: Json
+          example_opening?: string | null
+          example_questions?: Json
+          example_responses?: Json
+          id?: string
+          is_template?: boolean
+          name?: string
+          recommended_structure?: Json
+          trigger_intents?: string[]
+          trigger_objections?: string[]
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      conversation_quality_reviews: {
+        Row: {
+          agent_id: string | null
+          analyzed_message_count: number | null
+          clarity_score: number | null
+          coaching_note: string | null
+          commercial_score: number | null
+          completed_at: string | null
+          compliance_risk_score: number | null
+          confidence: number | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          empathy_score: number | null
+          followup_score: number | null
+          id: string
+          improved_reply_example: string | null
+          improvement_points: Json
+          missed_opportunities: Json
+          model_name: string | null
+          model_provider: string | null
+          objection_handling_score: number | null
+          objections_detected: Json
+          overall_score: number | null
+          professionalism_score: number | null
+          raw_ai_response: Json | null
+          recommended_next_action: string | null
+          resolution_score: number | null
+          review_type: string
+          reviewed_by: string | null
+          risk_flags: Json
+          source: string
+          speed_context_score: number | null
+          status: string
+          strengths: Json
+          ticket_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          analyzed_message_count?: number | null
+          clarity_score?: number | null
+          coaching_note?: string | null
+          commercial_score?: number | null
+          completed_at?: string | null
+          compliance_risk_score?: number | null
+          confidence?: number | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          empathy_score?: number | null
+          followup_score?: number | null
+          id?: string
+          improved_reply_example?: string | null
+          improvement_points?: Json
+          missed_opportunities?: Json
+          model_name?: string | null
+          model_provider?: string | null
+          objection_handling_score?: number | null
+          objections_detected?: Json
+          overall_score?: number | null
+          professionalism_score?: number | null
+          raw_ai_response?: Json | null
+          recommended_next_action?: string | null
+          resolution_score?: number | null
+          review_type?: string
+          reviewed_by?: string | null
+          risk_flags?: Json
+          source?: string
+          speed_context_score?: number | null
+          status?: string
+          strengths?: Json
+          ticket_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          analyzed_message_count?: number | null
+          clarity_score?: number | null
+          coaching_note?: string | null
+          commercial_score?: number | null
+          completed_at?: string | null
+          compliance_risk_score?: number | null
+          confidence?: number | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          empathy_score?: number | null
+          followup_score?: number | null
+          id?: string
+          improved_reply_example?: string | null
+          improvement_points?: Json
+          missed_opportunities?: Json
+          model_name?: string | null
+          model_provider?: string | null
+          objection_handling_score?: number | null
+          objections_detected?: Json
+          overall_score?: number | null
+          professionalism_score?: number | null
+          raw_ai_response?: Json | null
+          recommended_next_action?: string | null
+          resolution_score?: number | null
+          review_type?: string
+          reviewed_by?: string | null
+          risk_flags?: Json
+          source?: string
+          speed_context_score?: number | null
+          status?: string
+          strengths?: Json
+          ticket_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       conversation_replays: {
         Row: {
@@ -46361,6 +46675,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      objection_library: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effectiveness_notes: string | null
+          frequency_count: number
+          id: string
+          improved_response: string | null
+          is_template: boolean
+          objection_type: string
+          real_example: string | null
+          source_conversation_id: string | null
+          source_ticket_id: string | null
+          suggested_response: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effectiveness_notes?: string | null
+          frequency_count?: number
+          id?: string
+          improved_response?: string | null
+          is_template?: boolean
+          objection_type: string
+          real_example?: string | null
+          source_conversation_id?: string | null
+          source_ticket_id?: string | null
+          suggested_response?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effectiveness_notes?: string | null
+          frequency_count?: number
+          id?: string
+          improved_response?: string | null
+          is_template?: boolean
+          objection_type?: string
+          real_example?: string | null
+          source_conversation_id?: string | null
+          source_ticket_id?: string | null
+          suggested_response?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
       }
       objective_action_links: {
         Row: {
@@ -79677,6 +80054,10 @@ export type Database = {
         Returns: boolean
       }
       is_workspace_admin_or_owner: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      is_workspace_manager_or_admin: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
