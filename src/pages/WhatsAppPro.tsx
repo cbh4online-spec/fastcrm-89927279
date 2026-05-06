@@ -33,6 +33,9 @@ import { WhatsAppWebhookLogsTable } from "@/components/whatsapp-pro/WhatsAppWebh
 import { WhatsAppSimulateInboundCard } from "@/components/whatsapp-pro/WhatsAppSimulateInboundCard";
 import { WhatsAppAppointmentsSection } from "@/components/whatsapp-pro/WhatsAppAppointmentsSection";
 import { WhatsAppFollowupsSection } from "@/components/whatsapp-pro/WhatsAppFollowupsSection";
+import { TeamPerformanceDashboard } from "@/components/team-inbox/TeamPerformanceDashboard";
+import { TeamOpsSettingsCard } from "@/components/team-inbox/TeamOpsSettingsCard";
+import { Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -137,6 +140,9 @@ export default function WhatsAppPro() {
             </TabsTrigger>
             <TabsTrigger value="followups">
               <ListTodo className="h-4 w-4 mr-1.5" /> Follow-ups
+            </TabsTrigger>
+            <TabsTrigger value="team">
+              <Users className="h-4 w-4 mr-1.5" /> Performance da Equipa
             </TabsTrigger>
             <TabsTrigger value="logs">
               <ScrollText className="h-4 w-4 mr-1.5" /> Logs / Webhooks
@@ -249,6 +255,11 @@ export default function WhatsAppPro() {
               </div>
               <WhatsAppFollowupsSection />
             </Card>
+          </TabsContent>
+
+          <TabsContent value="team" className="space-y-4">
+            <TeamPerformanceDashboard />
+            <TeamOpsSettingsCard />
           </TabsContent>
 
           <TabsContent value="logs" className="space-y-4">
