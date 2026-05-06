@@ -234,11 +234,36 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
             <div className="p-3">
               {/* Análise IA estruturada (10 campos, cache + auto a cada inbound) */}
               {conversation?.channel === "whatsapp" && (
-                <ConversationAIAnalysisPanel
+                <WhatsAppInboxIntelligencePanel
                   conversationId={conversationId}
+                  workspaceId={conversation?.workspace_id}
                   onInsertReply={onInsertReply}
                   onCreateOpportunity={() => setShowCreateOpp(true)}
-                  onScheduleFollowup={() => setShowFollowup(true)}
+                  onCreateTask={(prefill) => {
+                    const params = new URLSearchParams({
+                      title: prefill.title,
+                      description: prefill.description,
+                      priority: prefill.priority,
+                      conversation_id: conversationId || "",
+                    });
+                    window.open(`/dashboard/tasks/new?${params.toString()}`, "_blank");
+                  }}
+                  onCreateTicket={(prefill) => {
+                    const params = new URLSearchParams({
+                      title: prefill.title,
+                      description: prefill.description,
+                      priority: prefill.priority,
+                      conversation_id: conversationId || "",
+                    });
+                    window.open(`/dashboard/tickets/new?${params.toString()}`, "_blank");
+                  }}
+                  onSendProduct={(productName) => {
+                    const params = new URLSearchParams({
+                      q: productName,
+                      conversation_id: conversationId || "",
+                    });
+                    window.open(`/dashboard/products?${params.toString()}`, "_blank");
+                  }}
                 />
               )}
               {messages && messages.length > 0 ? (
