@@ -40,7 +40,7 @@ export function useSupportCategories() {
         .eq("active", true)
         .order("sort_order");
       if (error) throw error;
-      return (data ?? []) as Array<{
+      return (data ?? []) as unknown as Array<{
         id: string;
         name: string;
         parent_id: string | null;
@@ -156,7 +156,7 @@ export function useSupportTicketEvents(ticketId: string | undefined) {
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data ?? []) as Array<{
+      return (data ?? []) as unknown as Array<{
         id: string;
         event_type: string;
         description: string | null;
