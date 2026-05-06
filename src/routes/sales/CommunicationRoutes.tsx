@@ -28,6 +28,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/sequences" element={<Sequences />} />
       <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
       <Route path="/dashboard/email-campaigns/suppressions" element={<SuppressionsPage />} />
+      <Route path="/dashboard/communication/automations" element={<SmartWorkflowsPage />} />
+      <Route path="/dashboard/smart-workflows" element={<SmartWorkflowsPage />} />
     </>
   );
 }
