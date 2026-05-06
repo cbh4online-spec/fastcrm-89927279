@@ -8164,6 +8164,138 @@ export type Database = {
           },
         ]
       }
+      billing_addons: {
+        Row: {
+          category: string | null
+          code: string
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          is_active: boolean
+          metadata: Json
+          name: string
+          price_per_unit: number | null
+          unit_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name: string
+          price_per_unit?: number | null
+          unit_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name?: string
+          price_per_unit?: number | null
+          unit_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_change_requests: {
+        Row: {
+          admin_notes: string | null
+          completed_at: string | null
+          contact_info: Json | null
+          created_at: string
+          current_plan_id: string | null
+          id: string
+          notes: string | null
+          request_type: string
+          requested_addon_id: string | null
+          requested_by: string | null
+          requested_plan_id: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          contact_info?: Json | null
+          created_at?: string
+          current_plan_id?: string | null
+          id?: string
+          notes?: string | null
+          request_type: string
+          requested_addon_id?: string | null
+          requested_by?: string | null
+          requested_plan_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          contact_info?: Json | null
+          created_at?: string
+          current_plan_id?: string | null
+          id?: string
+          notes?: string | null
+          request_type?: string
+          requested_addon_id?: string | null
+          requested_by?: string | null
+          requested_plan_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_change_requests_current_plan_id_fkey"
+            columns: ["current_plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_change_requests_requested_addon_id_fkey"
+            columns: ["requested_addon_id"]
+            isOneToOne: false
+            referencedRelation: "billing_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_change_requests_requested_plan_id_fkey"
+            columns: ["requested_plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_change_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "billing_change_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_events: {
         Row: {
           created_at: string
@@ -8277,6 +8409,131 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      billing_plan_features: {
+        Row: {
+          category: string | null
+          created_at: string
+          display_value: string | null
+          feature_description: string | null
+          feature_key: string
+          feature_name: string
+          id: string
+          included: boolean
+          limit_unit: string | null
+          limit_value: number | null
+          metadata: Json
+          plan_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          display_value?: string | null
+          feature_description?: string | null
+          feature_key: string
+          feature_name: string
+          id?: string
+          included?: boolean
+          limit_unit?: string | null
+          limit_value?: number | null
+          metadata?: Json
+          plan_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          display_value?: string | null
+          feature_description?: string | null
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          included?: boolean
+          limit_unit?: string | null
+          limit_value?: number | null
+          metadata?: Json
+          plan_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_plan_features_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_plans: {
+        Row: {
+          annual_price: number | null
+          audience: string | null
+          billing_interval: string
+          code: string
+          created_at: string
+          currency: string
+          description: string | null
+          enterprise: boolean
+          id: string
+          is_active: boolean
+          is_public: boolean
+          metadata: Json
+          monthly_price: number | null
+          name: string
+          promise: string | null
+          public_description: string | null
+          recommended: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          annual_price?: number | null
+          audience?: string | null
+          billing_interval?: string
+          code: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          enterprise?: boolean
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          metadata?: Json
+          monthly_price?: number | null
+          name: string
+          promise?: string | null
+          public_description?: string | null
+          recommended?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          annual_price?: number | null
+          audience?: string | null
+          billing_interval?: string
+          code?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          enterprise?: boolean
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          metadata?: Json
+          monthly_price?: number | null
+          name?: string
+          promise?: string | null
+          public_description?: string | null
+          recommended?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       billing_types: {
         Row: {
@@ -76140,6 +76397,67 @@ export type Database = {
           },
         ]
       }
+      workspace_addons: {
+        Row: {
+          addon_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          metadata: Json
+          quantity: number
+          started_at: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          addon_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          metadata?: Json
+          quantity?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          addon_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          metadata?: Json
+          quantity?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "billing_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_addons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_addons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_alerts: {
         Row: {
           alert_type: string
@@ -77994,12 +78312,19 @@ export type Database = {
       }
       workspace_subscriptions: {
         Row: {
+          billing_interval: string | null
+          billing_plan_id: string | null
           cancel_at_period_end: boolean | null
           created_at: string
+          currency: string | null
           current_period_end: string | null
           current_period_start: string | null
+          custom_limits: Json | null
+          custom_price: number | null
           id: string
           plan: Database["public"]["Enums"]["subscription_plan"]
+          seats_included: number | null
+          seats_used: number | null
           status: string
           stripe_customer_id: string | null
           stripe_price_id: string | null
@@ -78010,12 +78335,19 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          billing_interval?: string | null
+          billing_plan_id?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string
+          currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
+          custom_limits?: Json | null
+          custom_price?: number | null
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          seats_included?: number | null
+          seats_used?: number | null
           status?: string
           stripe_customer_id?: string | null
           stripe_price_id?: string | null
@@ -78026,12 +78358,19 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          billing_interval?: string | null
+          billing_plan_id?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string
+          currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
+          custom_limits?: Json | null
+          custom_price?: number | null
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          seats_included?: number | null
+          seats_used?: number | null
           status?: string
           stripe_customer_id?: string | null
           stripe_price_id?: string | null
@@ -78042,6 +78381,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workspace_subscriptions_billing_plan_id_fkey"
+            columns: ["billing_plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workspace_subscriptions_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -81172,6 +81518,10 @@ export type Database = {
           p_old_memory_id: string
         }
         Returns: string
+      }
+      sync_plan_limits_to_workspace: {
+        Args: { p_plan_id: string; p_workspace_id: string }
+        Returns: undefined
       }
       track_builder_event: {
         Args: {
