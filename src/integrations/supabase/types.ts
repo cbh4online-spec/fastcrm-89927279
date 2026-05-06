@@ -75212,8 +75212,10 @@ export type Database = {
           answered_at: string | null
           appointment_id: string | null
           assigned_to: string | null
+          billing_status: string
           call_direction: string
           call_type: string
+          callback_events: Json
           communication_conversation_id: string | null
           contact_id: string | null
           cost_amount: number | null
@@ -75227,7 +75229,9 @@ export type Database = {
           ended_at: string | null
           from_number: string | null
           id: string
+          last_status_at: string | null
           lead_id: string | null
+          margin_amount: number | null
           metadata: Json
           normalized_from_number: string | null
           normalized_to_number: string | null
@@ -75235,8 +75239,13 @@ export type Database = {
           outcome: string | null
           product_id: string | null
           provider_call_id: string | null
+          provider_cost_amount: number | null
           provider_instance_id: string | null
+          provider_parent_call_id: string | null
+          provider_raw_status: string | null
           provider_status: string | null
+          recording_duration_seconds: number | null
+          recording_provider_id: string | null
           recording_status: string
           recording_url: string | null
           ring_duration_seconds: number | null
@@ -75249,6 +75258,7 @@ export type Database = {
           transcription_text: string | null
           updated_at: string
           voice_number_id: string | null
+          webhook_received_at: string | null
           workspace_id: string
         }
         Insert: {
@@ -75259,8 +75269,10 @@ export type Database = {
           answered_at?: string | null
           appointment_id?: string | null
           assigned_to?: string | null
+          billing_status?: string
           call_direction: string
           call_type?: string
+          callback_events?: Json
           communication_conversation_id?: string | null
           contact_id?: string | null
           cost_amount?: number | null
@@ -75274,7 +75286,9 @@ export type Database = {
           ended_at?: string | null
           from_number?: string | null
           id?: string
+          last_status_at?: string | null
           lead_id?: string | null
+          margin_amount?: number | null
           metadata?: Json
           normalized_from_number?: string | null
           normalized_to_number?: string | null
@@ -75282,8 +75296,13 @@ export type Database = {
           outcome?: string | null
           product_id?: string | null
           provider_call_id?: string | null
+          provider_cost_amount?: number | null
           provider_instance_id?: string | null
+          provider_parent_call_id?: string | null
+          provider_raw_status?: string | null
           provider_status?: string | null
+          recording_duration_seconds?: number | null
+          recording_provider_id?: string | null
           recording_status?: string
           recording_url?: string | null
           ring_duration_seconds?: number | null
@@ -75296,6 +75315,7 @@ export type Database = {
           transcription_text?: string | null
           updated_at?: string
           voice_number_id?: string | null
+          webhook_received_at?: string | null
           workspace_id: string
         }
         Update: {
@@ -75306,8 +75326,10 @@ export type Database = {
           answered_at?: string | null
           appointment_id?: string | null
           assigned_to?: string | null
+          billing_status?: string
           call_direction?: string
           call_type?: string
+          callback_events?: Json
           communication_conversation_id?: string | null
           contact_id?: string | null
           cost_amount?: number | null
@@ -75321,7 +75343,9 @@ export type Database = {
           ended_at?: string | null
           from_number?: string | null
           id?: string
+          last_status_at?: string | null
           lead_id?: string | null
+          margin_amount?: number | null
           metadata?: Json
           normalized_from_number?: string | null
           normalized_to_number?: string | null
@@ -75329,8 +75353,13 @@ export type Database = {
           outcome?: string | null
           product_id?: string | null
           provider_call_id?: string | null
+          provider_cost_amount?: number | null
           provider_instance_id?: string | null
+          provider_parent_call_id?: string | null
+          provider_raw_status?: string | null
           provider_status?: string | null
+          recording_duration_seconds?: number | null
+          recording_provider_id?: string | null
           recording_status?: string
           recording_url?: string | null
           ring_duration_seconds?: number | null
@@ -75343,6 +75372,7 @@ export type Database = {
           transcription_text?: string | null
           updated_at?: string
           voice_number_id?: string | null
+          webhook_received_at?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -75595,6 +75625,7 @@ export type Database = {
           account_id: string | null
           api_key_secret_name: string | null
           api_token_secret_name: string | null
+          auth_type: string | null
           base_url: string | null
           capabilities: Json
           created_at: string
@@ -75605,18 +75636,23 @@ export type Database = {
           display_name: string | null
           environment: string
           id: string
+          last_error: string | null
+          last_test_status: string | null
+          last_tested_at: string | null
           metadata: Json
           provider_name: string
           settings: Json
           status: string
           updated_at: string
           webhook_token: string | null
+          webhook_url: string | null
           workspace_id: string
         }
         Insert: {
           account_id?: string | null
           api_key_secret_name?: string | null
           api_token_secret_name?: string | null
+          auth_type?: string | null
           base_url?: string | null
           capabilities?: Json
           created_at?: string
@@ -75627,18 +75663,23 @@ export type Database = {
           display_name?: string | null
           environment?: string
           id?: string
+          last_error?: string | null
+          last_test_status?: string | null
+          last_tested_at?: string | null
           metadata?: Json
           provider_name: string
           settings?: Json
           status?: string
           updated_at?: string
           webhook_token?: string | null
+          webhook_url?: string | null
           workspace_id: string
         }
         Update: {
           account_id?: string | null
           api_key_secret_name?: string | null
           api_token_secret_name?: string | null
+          auth_type?: string | null
           base_url?: string | null
           capabilities?: Json
           created_at?: string
@@ -75649,12 +75690,16 @@ export type Database = {
           display_name?: string | null
           environment?: string
           id?: string
+          last_error?: string | null
+          last_test_status?: string | null
+          last_tested_at?: string | null
           metadata?: Json
           provider_name?: string
           settings?: Json
           status?: string
           updated_at?: string
           webhook_token?: string | null
+          webhook_url?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -75678,8 +75723,11 @@ export type Database = {
         Row: {
           created_at: string
           direction: string | null
+          duration_ms: number | null
+          endpoint: string | null
           error: string | null
           event_type: string | null
+          headers: Json | null
           id: string
           normalized_payload: Json | null
           payload: Json
@@ -75687,13 +75735,18 @@ export type Database = {
           provider_call_id: string | null
           provider_instance_id: string | null
           provider_name: string | null
+          status_code: number | null
+          success: boolean
           workspace_id: string | null
         }
         Insert: {
           created_at?: string
           direction?: string | null
+          duration_ms?: number | null
+          endpoint?: string | null
           error?: string | null
           event_type?: string | null
+          headers?: Json | null
           id?: string
           normalized_payload?: Json | null
           payload?: Json
@@ -75701,13 +75754,18 @@ export type Database = {
           provider_call_id?: string | null
           provider_instance_id?: string | null
           provider_name?: string | null
+          status_code?: number | null
+          success?: boolean
           workspace_id?: string | null
         }
         Update: {
           created_at?: string
           direction?: string | null
+          duration_ms?: number | null
+          endpoint?: string | null
           error?: string | null
           event_type?: string | null
+          headers?: Json | null
           id?: string
           normalized_payload?: Json | null
           payload?: Json
@@ -75715,6 +75773,8 @@ export type Database = {
           provider_call_id?: string | null
           provider_instance_id?: string | null
           provider_name?: string | null
+          status_code?: number | null
+          success?: boolean
           workspace_id?: string | null
         }
         Relationships: [
@@ -75734,6 +75794,78 @@ export type Database = {
           },
           {
             foreignKeyName: "voice_provider_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_provider_rates: {
+        Row: {
+          active: boolean
+          billing_increment_seconds: number
+          connection_fee: number | null
+          cost_per_minute: number | null
+          country: string
+          created_at: string
+          currency: string
+          destination_type: string
+          direction: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          metadata: Json
+          provider_name: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          billing_increment_seconds?: number
+          connection_fee?: number | null
+          cost_per_minute?: number | null
+          country: string
+          created_at?: string
+          currency?: string
+          destination_type?: string
+          direction?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          metadata?: Json
+          provider_name: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          billing_increment_seconds?: number
+          connection_fee?: number | null
+          cost_per_minute?: number | null
+          country?: string
+          created_at?: string
+          currency?: string
+          destination_type?: string
+          direction?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          metadata?: Json
+          provider_name?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_provider_rates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "voice_provider_rates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
