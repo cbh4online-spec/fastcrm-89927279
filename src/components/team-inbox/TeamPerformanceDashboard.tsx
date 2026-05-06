@@ -220,7 +220,12 @@ export function TeamPerformanceDashboard() {
                     <TableCell className="text-right tabular-nums">{a.products_shared_7d}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Progress value={Math.min(100, a.workload_pct)} className="h-2" indicatorClassName={progressColor(a.workload_pct)} />
+                        <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+                          <div
+                            className={`h-full transition-all ${progressColor(a.workload_pct)}`}
+                            style={{ width: `${Math.min(100, a.workload_pct)}%` }}
+                          />
+                        </div>
                         <span className="text-[11px] tabular-nums w-9 text-right">{a.workload_pct}%</span>
                       </div>
                     </TableCell>
