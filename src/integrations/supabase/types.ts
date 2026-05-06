@@ -20709,6 +20709,57 @@ export type Database = {
           },
         ]
       }
+      concierge_answer_feedback: {
+        Row: {
+          conversation_id: string | null
+          corrected_answer: string | null
+          created_at: string
+          created_by: string | null
+          feedback: string
+          id: string
+          message_id: string | null
+          session_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          corrected_answer?: string | null
+          created_at?: string
+          created_by?: string | null
+          feedback: string
+          id?: string
+          message_id?: string | null
+          session_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          corrected_answer?: string | null
+          created_at?: string
+          created_by?: string | null
+          feedback?: string
+          id?: string
+          message_id?: string | null
+          session_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concierge_answer_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "concierge_answer_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumption_logs: {
         Row: {
           acquired_product_id: string
@@ -40329,6 +40380,154 @@ export type Database = {
           },
           {
             foreignKeyName: "knowledge_faq_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_faqs: {
+        Row: {
+          answer: string
+          approved: boolean
+          approved_at: string | null
+          approved_by: string | null
+          category: string | null
+          created_at: string
+          created_by: string | null
+          frequency_count: number
+          id: string
+          knowledge_base_id: string | null
+          language: string
+          question: string
+          source: string
+          status: string
+          tags: string[]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          answer: string
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          frequency_count?: number
+          id?: string
+          knowledge_base_id?: string | null
+          language?: string
+          question: string
+          source?: string
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          answer?: string
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          frequency_count?: number
+          id?: string
+          knowledge_base_id?: string | null
+          language?: string
+          question?: string
+          source?: string
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_faqs_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_faqs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "knowledge_faqs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_gaps: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          frequency_count: number
+          id: string
+          metadata: Json
+          question: string
+          resolved_at: string | null
+          resolved_by: string | null
+          session_id: string | null
+          status: string
+          suggested_topic: string | null
+          updated_at: string
+          widget_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          frequency_count?: number
+          id?: string
+          metadata?: Json
+          question: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_id?: string | null
+          status?: string
+          suggested_topic?: string | null
+          updated_at?: string
+          widget_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          frequency_count?: number
+          id?: string
+          metadata?: Json
+          question?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_id?: string | null
+          status?: string
+          suggested_topic?: string | null
+          updated_at?: string
+          widget_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_gaps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "knowledge_gaps_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -75247,12 +75446,16 @@ export type Database = {
           collect_intent: boolean
           collect_name: boolean
           collect_phone: boolean
+          concierge_config: Json
+          concierge_enabled: boolean
+          concierge_mode: string
           created_at: string
           created_by: string | null
           default_language: string
           domain_allowlist: string[]
           handoff_channel: string
           id: string
+          knowledge_base_id: string | null
           lead_capture_required: boolean
           lead_capture_timing: string
           name: string
@@ -75276,12 +75479,16 @@ export type Database = {
           collect_intent?: boolean
           collect_name?: boolean
           collect_phone?: boolean
+          concierge_config?: Json
+          concierge_enabled?: boolean
+          concierge_mode?: string
           created_at?: string
           created_by?: string | null
           default_language?: string
           domain_allowlist?: string[]
           handoff_channel?: string
           id?: string
+          knowledge_base_id?: string | null
           lead_capture_required?: boolean
           lead_capture_timing?: string
           name: string
@@ -75305,12 +75512,16 @@ export type Database = {
           collect_intent?: boolean
           collect_name?: boolean
           collect_phone?: boolean
+          concierge_config?: Json
+          concierge_enabled?: boolean
+          concierge_mode?: string
           created_at?: string
           created_by?: string | null
           default_language?: string
           domain_allowlist?: string[]
           handoff_channel?: string
           id?: string
+          knowledge_base_id?: string | null
           lead_capture_required?: boolean
           lead_capture_timing?: string
           name?: string
@@ -75324,7 +75535,15 @@ export type Database = {
           whatsapp_number?: string | null
           workspace_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "website_chat_widgets_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       website_lead_captures: {
         Row: {
