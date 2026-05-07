@@ -406,6 +406,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("diagnostics",           "Diagnósticos",    "/dashboard/diagnostics",      Stethoscope,  "administracao", { status: "hidden", visibleInSidebar: false, visibleInSearch: false }),
   e("system-health",         "Saúde do Sistema","/dashboard/system/health",    HeartPulse,   "administracao"),
   e("super-admin",           "Super Admin",     "/super-admin",                Shield,       "administracao"),
+  e("kernel-admin",          "FastCRM Kernel",  "/admin/kernel",               Cpu,          "administracao"),
   // Search-only admin routes
   e("settings-main",  "Definições",    "/settings",                Settings,       "administracao", { visibleInSidebar: false, menuKey: "settings" }),
   e("profile",        "Perfil",        "/dashboard/profile",       UserCheck,      "administracao", { visibleInSidebar: false }),
