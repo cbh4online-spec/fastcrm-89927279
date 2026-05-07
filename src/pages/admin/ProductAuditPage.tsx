@@ -414,8 +414,13 @@ export default function ProductAuditPage() {
             <TabsTrigger value="proposal">Proposta</TabsTrigger>
             <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
             <TabsTrigger value="flows">Fluxos demo</TabsTrigger>
+            <TabsTrigger value="sprint1">Sprint 1</TabsTrigger>
             <TabsTrigger value="report">Relatório</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="sprint1" className="space-y-4">
+            <Sprint1Tab />
+          </TabsContent>
 
           {/* MÓDULOS */}
           <TabsContent value="modules" className="space-y-4">
