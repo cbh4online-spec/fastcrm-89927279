@@ -58,6 +58,8 @@ const PitchPublicView = lazy(() => import("@/pages/dashboard/PitchPublicView"));
 const PublicEbookPage = lazy(() => import("@/pages/PublicEbookPage"));
 const PublicEbookShortLink = lazy(() => import("@/pages/PublicEbookShortLink"));
 const PublicTicketPortalPage = lazy(() => import("@/pages/PublicTicketPortalPage"));
+const PublicProposalPortalPage = lazy(() => import("@/pages/PublicProposalPortalPage"));
+const PublicOnboardingPortalPage = lazy(() => import("@/pages/PublicOnboardingPortalPage"));
 const CareersPage = lazy(() => import("@/pages/public/CareersPage"));
 const JobDetailPublicPage = lazy(() => import("@/pages/public/JobDetailPublicPage"));
 const PortalRegisterPage = lazy(() => import("@/pages/public/PortalRegisterPage"));
