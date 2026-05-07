@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Sprint1Tab } from "@/components/admin/Sprint1Tab";
 
 type Status =
   | "Functional" | "Partial" | "Mock/Demo" | "Structure Only" | "Broken" | "Not Implemented";
