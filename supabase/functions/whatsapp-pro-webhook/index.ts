@@ -6,6 +6,7 @@
 // - Atualiza estado da instância (last_received / last_error)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { validateWebhook, logSecurityEvent, getRemoteIp } from "../_shared/hmac.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
