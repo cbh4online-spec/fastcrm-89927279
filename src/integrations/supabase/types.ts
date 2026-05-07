@@ -38298,6 +38298,833 @@ export type Database = {
           },
         ]
       }
+      implementation_blockers: {
+        Row: {
+          blocker_type: string | null
+          created_at: string
+          created_by: string | null
+          customer_visible: boolean
+          description: string | null
+          id: string
+          owner_id: string | null
+          phase_id: string | null
+          project_id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          blocker_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_visible?: boolean
+          description?: string | null
+          id?: string
+          owner_id?: string | null
+          phase_id?: string | null
+          project_id: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          task_id?: string | null
+          title: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          blocker_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_visible?: boolean
+          description?: string | null
+          id?: string
+          owner_id?: string | null
+          phase_id?: string | null
+          project_id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_blockers_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_project_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "implementation_blockers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "implementation_blockers_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_golive_checklists: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          project_id: string
+          status: string
+          target_go_live_date: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          status?: string
+          target_go_live_date?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          status?: string
+          target_go_live_date?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_golive_checklists_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_golive_items: {
+        Row: {
+          category: string | null
+          checked_at: string | null
+          checked_by: string | null
+          checklist_id: string
+          created_at: string
+          description: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          required: boolean
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          checked_at?: string | null
+          checked_by?: string | null
+          checklist_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          required?: boolean
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          checked_at?: string | null
+          checked_by?: string | null
+          checklist_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          required?: boolean
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_golive_items_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_golive_checklists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "implementation_golive_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_handover_items: {
+        Row: {
+          category: string | null
+          content: string | null
+          created_at: string
+          description: string | null
+          handover_id: string
+          id: string
+          metadata: Json
+          project_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          handover_id: string
+          id?: string
+          metadata?: Json
+          project_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          handover_id?: string
+          id?: string
+          metadata?: Json
+          project_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_handover_items_handover_id_fkey"
+            columns: ["handover_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_handovers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "implementation_handover_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_handovers: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          customer_success_owner_id: string | null
+          handover_to_team_id: string | null
+          handover_to_user_id: string | null
+          id: string
+          project_id: string
+          status: string
+          summary: string | null
+          support_owner_id: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          customer_success_owner_id?: string | null
+          handover_to_team_id?: string | null
+          handover_to_user_id?: string | null
+          id?: string
+          project_id: string
+          status?: string
+          summary?: string | null
+          support_owner_id?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          customer_success_owner_id?: string | null
+          handover_to_team_id?: string | null
+          handover_to_user_id?: string | null
+          id?: string
+          project_id?: string
+          status?: string
+          summary?: string | null
+          support_owner_id?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_handovers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_project_events: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          description: string | null
+          event_type: string
+          id: string
+          payload: Json
+          project_id: string
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          project_id: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          project_id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_project_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_project_phases: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          metadata: Json
+          name: string
+          owner_id: string | null
+          phase_type: string | null
+          progress_percentage: number
+          project_id: string
+          sort_order: number
+          start_date: string | null
+          status: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          owner_id?: string | null
+          phase_type?: string | null
+          progress_percentage?: number
+          project_id: string
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          owner_id?: string | null
+          phase_type?: string | null
+          progress_percentage?: number
+          project_id?: string
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_project_phases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_project_tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          completion_notes: string | null
+          created_at: string
+          created_by: string | null
+          customer_assigned: boolean
+          depends_on_task_ids: string[]
+          description: string | null
+          due_at: string | null
+          estimated_hours: number | null
+          id: string
+          metadata: Json
+          phase_id: string | null
+          priority: string
+          project_id: string
+          rejection_reason: string | null
+          required: boolean
+          sort_order: number
+          started_at: string | null
+          status: string
+          task_type: string
+          title: string
+          updated_at: string
+          used_hours: number
+          visible_to_customer: boolean
+          workspace_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_assigned?: boolean
+          depends_on_task_ids?: string[]
+          description?: string | null
+          due_at?: string | null
+          estimated_hours?: number | null
+          id?: string
+          metadata?: Json
+          phase_id?: string | null
+          priority?: string
+          project_id: string
+          rejection_reason?: string | null
+          required?: boolean
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          task_type?: string
+          title: string
+          updated_at?: string
+          used_hours?: number
+          visible_to_customer?: boolean
+          workspace_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_assigned?: boolean
+          depends_on_task_ids?: string[]
+          description?: string | null
+          due_at?: string | null
+          estimated_hours?: number | null
+          id?: string
+          metadata?: Json
+          phase_id?: string | null
+          priority?: string
+          project_id?: string
+          rejection_reason?: string | null
+          required?: boolean
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+          used_hours?: number
+          visible_to_customer?: boolean
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_project_tasks_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_project_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "implementation_project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_project_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_golive_items: Json
+          default_handover_items: Json
+          default_phases: Json
+          default_tasks: Json
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          name: string
+          package_id: string | null
+          plan_id: string | null
+          project_type: string
+          slug: string
+          updated_at: string
+          vertical: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_golive_items?: Json
+          default_handover_items?: Json
+          default_phases?: Json
+          default_tasks?: Json
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          name: string
+          package_id?: string | null
+          plan_id?: string | null
+          project_type?: string
+          slug: string
+          updated_at?: string
+          vertical?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_golive_items?: Json
+          default_handover_items?: Json
+          default_phases?: Json
+          default_tasks?: Json
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          name?: string
+          package_id?: string | null
+          plan_id?: string | null
+          project_type?: string
+          slug?: string
+          updated_at?: string
+          vertical?: string | null
+        }
+        Relationships: []
+      }
+      implementation_projects: {
+        Row: {
+          actual_go_live_date: string | null
+          budget_hours: number | null
+          company_id: string | null
+          completed_at: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_owner_email: string | null
+          customer_owner_name: string | null
+          customer_workspace_id: string | null
+          delivery_owner_id: string | null
+          dependencies: Json
+          description: string | null
+          estimated_hours: number | null
+          health_status: string
+          id: string
+          internal_workspace_id: string | null
+          metadata: Json
+          onboarding_project_id: string | null
+          opportunity_id: string | null
+          package_id: string | null
+          plan_id: string | null
+          priority: string
+          progress_percentage: number
+          project_manager_id: string | null
+          project_number: string | null
+          project_type: string
+          proposal_id: string | null
+          risks: Json
+          sales_request_id: string | null
+          scope_summary: string | null
+          start_date: string | null
+          status: string
+          success_criteria: string | null
+          target_go_live_date: string | null
+          technical_owner_id: string | null
+          title: string
+          updated_at: string
+          used_hours: number
+          workspace_id: string | null
+        }
+        Insert: {
+          actual_go_live_date?: string | null
+          budget_hours?: number | null
+          company_id?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_owner_email?: string | null
+          customer_owner_name?: string | null
+          customer_workspace_id?: string | null
+          delivery_owner_id?: string | null
+          dependencies?: Json
+          description?: string | null
+          estimated_hours?: number | null
+          health_status?: string
+          id?: string
+          internal_workspace_id?: string | null
+          metadata?: Json
+          onboarding_project_id?: string | null
+          opportunity_id?: string | null
+          package_id?: string | null
+          plan_id?: string | null
+          priority?: string
+          progress_percentage?: number
+          project_manager_id?: string | null
+          project_number?: string | null
+          project_type?: string
+          proposal_id?: string | null
+          risks?: Json
+          sales_request_id?: string | null
+          scope_summary?: string | null
+          start_date?: string | null
+          status?: string
+          success_criteria?: string | null
+          target_go_live_date?: string | null
+          technical_owner_id?: string | null
+          title: string
+          updated_at?: string
+          used_hours?: number
+          workspace_id?: string | null
+        }
+        Update: {
+          actual_go_live_date?: string | null
+          budget_hours?: number | null
+          company_id?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_owner_email?: string | null
+          customer_owner_name?: string | null
+          customer_workspace_id?: string | null
+          delivery_owner_id?: string | null
+          dependencies?: Json
+          description?: string | null
+          estimated_hours?: number | null
+          health_status?: string
+          id?: string
+          internal_workspace_id?: string | null
+          metadata?: Json
+          onboarding_project_id?: string | null
+          opportunity_id?: string | null
+          package_id?: string | null
+          plan_id?: string | null
+          priority?: string
+          progress_percentage?: number
+          project_manager_id?: string | null
+          project_number?: string | null
+          project_type?: string
+          proposal_id?: string | null
+          risks?: Json
+          sales_request_id?: string | null
+          scope_summary?: string | null
+          start_date?: string | null
+          status?: string
+          success_criteria?: string | null
+          target_go_live_date?: string | null
+          technical_owner_id?: string | null
+          title?: string
+          updated_at?: string
+          used_hours?: number
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      implementation_scope_changes: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          id: string
+          impact_cost: number | null
+          impact_hours: number | null
+          project_id: string
+          reason: string | null
+          requested_by: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_cost?: number | null
+          impact_hours?: number | null
+          project_id: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_cost?: number | null
+          impact_hours?: number | null
+          project_id?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_scope_changes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      implementation_time_entries: {
+        Row: {
+          activity_type: string | null
+          approved: boolean
+          approved_at: string | null
+          approved_by: string | null
+          billable: boolean
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          entry_date: string
+          id: string
+          project_id: string
+          task_id: string | null
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          activity_type?: string | null
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          billable?: boolean
+          created_at?: string
+          description?: string | null
+          duration_minutes: number
+          entry_date: string
+          id?: string
+          project_id: string
+          task_id?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          activity_type?: string | null
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          billable?: boolean
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          entry_date?: string
+          id?: string
+          project_id?: string
+          task_id?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "implementation_time_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_history: {
         Row: {
           column_mapping: Json | null
