@@ -623,12 +623,14 @@ export default function ProductAuditPage() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Correções aplicadas no Sprint 0</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Correções aplicadas no Sprint 0 + Sprint 1</CardTitle></CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm">
                   <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5" /> Criada página /admin/product-audit com persistência (tabela product_audit_validations + RLS super-admin).</li>
                   <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5" /> Inventariadas 31 módulos, 23 rotas, 8 edge functions Voice e 8 WhatsApp ZAPI.</li>
-                  <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5" /> Não foram introduzidas novas features (sprint 100% de auditoria).</li>
+                  <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5" /> Sprint 1: módulo <code>_shared/hmac.ts</code> com validação timing-safe (HMAC + shared secret + token) aplicado a whatsapp-webhook (Meta), whatsapp-pro-webhook e whatsapp-zapi-webhook.</li>
+                  <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5" /> Sprint 1: tabela webhook_security_events com auditoria centralizada de validação.</li>
+                  <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5" /> Sprint 1: edge functions voicehub-smoke-test e portals-smoke-test + tabela sprint_smoke_runs com persistência.</li>
                 </ul>
               </CardContent>
             </Card>
