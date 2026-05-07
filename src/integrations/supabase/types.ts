@@ -29275,6 +29275,71 @@ export type Database = {
           },
         ]
       }
+      executive_action_items: {
+        Row: {
+          action_type: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          owner_id: string | null
+          priority: string
+          recommendation_id: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          owner_id?: string | null
+          priority?: string
+          recommendation_id?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          owner_id?: string | null
+          priority?: string
+          recommendation_id?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executive_action_items_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "executive_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       executive_decision_packs: {
         Row: {
           confidence: number | null
@@ -29338,6 +29403,39 @@ export type Database = {
           },
         ]
       }
+      executive_metric_snapshots: {
+        Row: {
+          created_at: string
+          generated_by: string
+          id: string
+          metric_group: string
+          metrics: Json
+          period_end: string
+          period_start: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          generated_by?: string
+          id?: string
+          metric_group: string
+          metrics: Json
+          period_end: string
+          period_start: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          generated_by?: string
+          id?: string
+          metric_group?: string
+          metrics?: Json
+          period_end?: string
+          period_start?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       executive_mode_settings: {
         Row: {
           created_at: string
@@ -29388,6 +29486,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      executive_recommendations: {
+        Row: {
+          action_payload: Json
+          assigned_to: string | null
+          completed_at: string | null
+          confidence: number | null
+          created_at: string
+          currency: string
+          description: string | null
+          due_at: string | null
+          estimated_revenue_impact: number | null
+          expected_impact: string | null
+          id: string
+          priority: string
+          recommendation_type: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_payload?: Json
+          assigned_to?: string | null
+          completed_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_at?: string | null
+          estimated_revenue_impact?: number | null
+          expected_impact?: string | null
+          id?: string
+          priority?: string
+          recommendation_type?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_payload?: Json
+          assigned_to?: string | null
+          completed_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_at?: string | null
+          estimated_revenue_impact?: number | null
+          expected_impact?: string | null
+          id?: string
+          priority?: string
+          recommendation_type?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       executive_snapshots: {
         Row: {
@@ -62500,6 +62667,93 @@ export type Database = {
           },
         ]
       }
+      revenue_attribution_events: {
+        Row: {
+          agent_id: string | null
+          attributed_margin: number | null
+          attributed_revenue: number
+          attribution_model: string
+          attribution_type: string
+          campaign_id: string | null
+          channel_type: string | null
+          confidence: number | null
+          contact_id: string | null
+          created_at: string
+          currency: string
+          deal_id: string | null
+          id: string
+          lead_id: string | null
+          metadata: Json
+          occurred_at: string
+          product_id: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          team_id: string | null
+          ticket_id: string | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          attributed_margin?: number | null
+          attributed_revenue?: number
+          attribution_model?: string
+          attribution_type: string
+          campaign_id?: string | null
+          channel_type?: string | null
+          confidence?: number | null
+          contact_id?: string | null
+          created_at?: string
+          currency?: string
+          deal_id?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          occurred_at?: string
+          product_id?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          team_id?: string | null
+          ticket_id?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          attributed_margin?: number | null
+          attributed_revenue?: number
+          attribution_model?: string
+          attribution_type?: string
+          campaign_id?: string | null
+          channel_type?: string | null
+          confidence?: number | null
+          contact_id?: string | null
+          created_at?: string
+          currency?: string
+          deal_id?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          occurred_at?: string
+          product_id?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          team_id?: string | null
+          ticket_id?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       revenue_forecast_snapshots: {
         Row: {
           best_case_revenue: number
@@ -83808,6 +84062,10 @@ export type Database = {
       dm_mark_read: { Args: { _conv_id: string }; Returns: undefined }
       dm_start: { Args: { _other_user: string }; Returns: string }
       dm_unread_count: { Args: never; Returns: number }
+      emit_executive_workflow_event: {
+        Args: { p_event_name: string; p_payload: Json; p_workspace_id: string }
+        Returns: undefined
+      }
       emit_voice_workflow_event: {
         Args: {
           p_call_log_id: string
@@ -83840,6 +84098,32 @@ export type Database = {
       ensure_whatsapp_provider_instance: {
         Args: { p_workspace_id: string }
         Returns: string
+      }
+      executive_overview: {
+        Args: {
+          p_from: string
+          p_model?: string
+          p_to: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      executive_revenue_by_channel: {
+        Args: {
+          p_from: string
+          p_model?: string
+          p_to: string
+          p_workspace_id: string
+        }
+        Returns: {
+          channel_type: string
+          conversions: number
+          events: number
+          leads: number
+          margin: number
+          opportunities: number
+          revenue: number
+        }[]
       }
       format_response_for_channel: {
         Args: { p_channel: string; p_response: string; p_workspace_id: string }
