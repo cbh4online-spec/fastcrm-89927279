@@ -1,5 +1,12 @@
 // Version 1.2 - GHL Conversation Sync (fixed message parsing + auto-lead creation + autopilot trigger)
 import { createClient } from "@supabase/supabase-js";
+import {
+  toSocialType,
+  matchAccountId,
+  extractAccountIdsFromConversation,
+  fetchGHLConversationDetail,
+  logRoutingDecision,
+} from "../_shared/ghlRouting.ts";
 
 // Helper: Trigger autopilot for synced inbound messages
 async function triggerAutopilotForSyncedMessage(
