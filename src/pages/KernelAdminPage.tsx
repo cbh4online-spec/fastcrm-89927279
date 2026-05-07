@@ -14,9 +14,11 @@ import {
 } from 'lucide-react';
 import {
   useKernelOverview, useEventRegistryFull, useEventStream,
-  useDecisionRules, useDecisionsList, useChangeImpacts,
+  useDecisionsList, useChangeImpacts,
   useContextGraph, useAuditLogs, useKernelDiagnostics,
 } from '@/hooks/useKernel';
+import { DecisionRulesEditor } from '@/components/kernel/DecisionRulesEditor';
+import { ActionRunsPanel } from '@/components/kernel/ActionRunsPanel';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
@@ -55,6 +57,7 @@ export default function KernelAdminPage() {
           <TabsTrigger value="registry">Registo</TabsTrigger>
           <TabsTrigger value="decisions">Decisões</TabsTrigger>
           <TabsTrigger value="rules">Regras</TabsTrigger>
+          <TabsTrigger value="actions">Execuções</TabsTrigger>
           <TabsTrigger value="context">Grafo</TabsTrigger>
           <TabsTrigger value="impact">Impacto</TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
@@ -64,7 +67,8 @@ export default function KernelAdminPage() {
         <TabsContent value="stream"><EventStreamPanel /></TabsContent>
         <TabsContent value="registry"><RegistryPanel /></TabsContent>
         <TabsContent value="decisions"><DecisionsPanel /></TabsContent>
-        <TabsContent value="rules"><RulesPanel /></TabsContent>
+        <TabsContent value="rules"><DecisionRulesEditor /></TabsContent>
+        <TabsContent value="actions"><ActionRunsPanel /></TabsContent>
         <TabsContent value="context"><ContextGraphPanel /></TabsContent>
         <TabsContent value="impact"><ChangeImpactPanel /></TabsContent>
         <TabsContent value="audit"><AuditPanel /></TabsContent>
@@ -258,43 +262,7 @@ function DecisionsPanel() {
   );
 }
 
-// ───────── Rules ─────────
-function RulesPanel() {
-  const { data = [], isLoading } = useDecisionRules();
-  return (
-    <Card>
-      <CardHeader><CardTitle>Regras de Decisão</CardTitle></CardHeader>
-      <CardContent>
-        {isLoading ? <p className="text-sm text-muted-foreground">A carregar…</p> : data.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">Sem regras configuradas.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Trigger</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Prioridade</TableHead>
-                <TableHead>Activa</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((r: any) => (
-                <TableRow key={r.id}>
-                  <TableCell className="text-xs">{r.name}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.trigger_event_type}</TableCell>
-                  <TableCell className="text-xs">{r.decision_type}</TableCell>
-                  <TableCell className="text-xs">{r.priority}</TableCell>
-                  <TableCell><Badge variant={r.active ? 'default' : 'secondary'}>{r.active ? 'Sim' : 'Não'}</Badge></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+// Rules panel agora vive em src/components/kernel/DecisionRulesEditor.tsx
 
 // ───────── Context Graph ─────────
 function ContextGraphPanel() {

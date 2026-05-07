@@ -42139,15 +42139,21 @@ export type Database = {
         Row: {
           actions: Json
           active: boolean
+          auto_execute: boolean
           conditions: Json
           created_at: string
           created_by: string | null
           decision_type: string
           description: string | null
+          execution_count: number
+          execution_mode: string
+          failure_count: number
           id: string
+          last_executed_at: string | null
           name: string
           priority: number
           safeguards: Json
+          success_count: number
           trigger_event_type: string
           updated_at: string
           workspace_id: string | null
@@ -42155,15 +42161,21 @@ export type Database = {
         Insert: {
           actions?: Json
           active?: boolean
+          auto_execute?: boolean
           conditions?: Json
           created_at?: string
           created_by?: string | null
           decision_type: string
           description?: string | null
+          execution_count?: number
+          execution_mode?: string
+          failure_count?: number
           id?: string
+          last_executed_at?: string | null
           name: string
           priority?: number
           safeguards?: Json
+          success_count?: number
           trigger_event_type: string
           updated_at?: string
           workspace_id?: string | null
@@ -42171,15 +42183,21 @@ export type Database = {
         Update: {
           actions?: Json
           active?: boolean
+          auto_execute?: boolean
           conditions?: Json
           created_at?: string
           created_by?: string | null
           decision_type?: string
           description?: string | null
+          execution_count?: number
+          execution_mode?: string
+          failure_count?: number
           id?: string
+          last_executed_at?: string | null
           name?: string
           priority?: number
           safeguards?: Json
+          success_count?: number
           trigger_event_type?: string
           updated_at?: string
           workspace_id?: string | null
@@ -88152,6 +88170,17 @@ export type Database = {
           p_source_id?: string
           p_source_module?: string
           p_source_table?: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
+      kernel_emit_event_sql: {
+        Args: {
+          p_entity_id: string
+          p_entity_kind: string
+          p_event_type: string
+          p_payload?: Json
+          p_source_module?: string
           p_workspace_id: string
         }
         Returns: string

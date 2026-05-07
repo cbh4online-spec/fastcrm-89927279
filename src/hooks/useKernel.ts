@@ -82,15 +82,75 @@ export function useEventStream(filters?: { eventType?: string; status?: string; 
 }
 
 export function useDecisionRules() {
-  return useQuery({
-    queryKey: ['kernel-decision-rules'],
+  const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+
+  const list = useQuery({
+    queryKey: ['kernel-decision-rules', workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase.from('kernel_decision_rules' as any).select('*').order('priority', { ascending: false });
       if (error) throw error;
       return data as any[];
     },
   });
+
+  const upsert = useMutation({
+    mutationFn: async (rule: any) => {
+      const payload = { ...rule, workspace_id: rule.workspace_id ?? workspaceId };
+      const { data, error } = await supabase.from('kernel_decision_rules' as any).upsert(payload).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['kernel-decision-rules'] });
+      toast.success('Regra guardada');
+    },
+    onError: (e: any) => toast.error(`Erro: ${e.message}`),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('kernel_decision_rules' as any).delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['kernel-decision-rules'] });
+      toast.success('Regra eliminada');
+    },
+  });
+
+  const toggleActive = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from('kernel_decision_rules' as any).update({ active }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kernel-decision-rules'] }),
+  });
+
+  return { ...list, upsert, remove, toggleActive };
 }
+
+export function useActionRuns(limit = 50) {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+
+  return useQuery({
+    queryKey: ['kernel-action-runs', workspaceId, limit],
+    enabled: !!workspaceId,
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('kernel_action_runs' as any)
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+}
+
 
 export function useChangeImpacts() {
   const { currentWorkspace } = useWorkspace();
