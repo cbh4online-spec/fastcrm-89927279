@@ -262,43 +262,7 @@ function DecisionsPanel() {
   );
 }
 
-// ───────── Rules ─────────
-function RulesPanel() {
-  const { data = [], isLoading } = useDecisionRules();
-  return (
-    <Card>
-      <CardHeader><CardTitle>Regras de Decisão</CardTitle></CardHeader>
-      <CardContent>
-        {isLoading ? <p className="text-sm text-muted-foreground">A carregar…</p> : data.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">Sem regras configuradas.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Trigger</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Prioridade</TableHead>
-                <TableHead>Activa</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((r: any) => (
-                <TableRow key={r.id}>
-                  <TableCell className="text-xs">{r.name}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.trigger_event_type}</TableCell>
-                  <TableCell className="text-xs">{r.decision_type}</TableCell>
-                  <TableCell className="text-xs">{r.priority}</TableCell>
-                  <TableCell><Badge variant={r.active ? 'default' : 'secondary'}>{r.active ? 'Sim' : 'Não'}</Badge></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+// Rules panel agora vive em src/components/kernel/DecisionRulesEditor.tsx
 
 // ───────── Context Graph ─────────
 function ContextGraphPanel() {
