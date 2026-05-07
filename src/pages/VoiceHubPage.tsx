@@ -91,11 +91,12 @@ export default function VoiceHubPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Total chamadas</p><p className="text-2xl font-semibold">{totalCalls}</p></CardContent></Card>
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Entrada</p><p className="text-2xl font-semibold text-emerald-600">{inbound}</p></CardContent></Card>
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Saída</p><p className="text-2xl font-semibold text-blue-600">{outbound}</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Perdidas / Sem resposta</p><p className="text-2xl font-semibold text-red-600">{missed}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles className="h-3 w-3" />Qualidade média</p><p className="text-2xl font-semibold">{avgQuality != null ? `${avgQuality}/100` : "—"}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground flex items-center gap-1"><ShieldAlert className="h-3 w-3" />Revisão pendente</p><p className={`text-2xl font-semibold ${reviewPending > 0 ? "text-red-600" : ""}`}>{reviewPending}</p></CardContent></Card>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
