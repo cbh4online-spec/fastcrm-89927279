@@ -26077,6 +26077,333 @@ export type Database = {
           },
         ]
       }
+      customer_onboarding_checklist_items: {
+        Row: {
+          assigned_to_customer: boolean | null
+          assigned_to_internal: string | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          due_at: string | null
+          field_type: string | null
+          id: string
+          onboarding_project_id: string
+          rejection_reason: string | null
+          required: boolean | null
+          response_json: Json | null
+          response_value: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sort_order: number | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          visible_to_customer: boolean | null
+          workspace_id: string | null
+        }
+        Insert: {
+          assigned_to_customer?: boolean | null
+          assigned_to_internal?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          field_type?: string | null
+          id?: string
+          onboarding_project_id: string
+          rejection_reason?: string | null
+          required?: boolean | null
+          response_json?: Json | null
+          response_value?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_order?: number | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          visible_to_customer?: boolean | null
+          workspace_id?: string | null
+        }
+        Update: {
+          assigned_to_customer?: boolean | null
+          assigned_to_internal?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          field_type?: string | null
+          id?: string
+          onboarding_project_id?: string
+          rejection_reason?: string | null
+          required?: boolean | null
+          response_json?: Json | null
+          response_value?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_order?: number | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          visible_to_customer?: boolean | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      customer_onboarding_documents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          document_type: string | null
+          file_name: string | null
+          file_size_bytes: number | null
+          file_url: string | null
+          id: string
+          internal_only: boolean | null
+          metadata: Json | null
+          mime_type: string | null
+          onboarding_project_id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          storage_path: string | null
+          title: string
+          updated_at: string | null
+          uploaded_by_contact_id: string | null
+          uploaded_by_user_id: string | null
+          visible_to_customer: boolean | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          document_type?: string | null
+          file_name?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          id?: string
+          internal_only?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          onboarding_project_id: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          storage_path?: string | null
+          title: string
+          updated_at?: string | null
+          uploaded_by_contact_id?: string | null
+          uploaded_by_user_id?: string | null
+          visible_to_customer?: boolean | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          document_type?: string | null
+          file_name?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          id?: string
+          internal_only?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          onboarding_project_id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          storage_path?: string | null
+          title?: string
+          updated_at?: string | null
+          uploaded_by_contact_id?: string | null
+          uploaded_by_user_id?: string | null
+          visible_to_customer?: boolean | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      customer_onboarding_events: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          description: string | null
+          event_type: string
+          id: string
+          onboarding_project_id: string
+          payload: Json | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_type: string
+          id?: string
+          onboarding_project_id: string
+          payload?: Json | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_type?: string
+          id?: string
+          onboarding_project_id?: string
+          payload?: Json | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      customer_onboarding_projects: {
+        Row: {
+          acceptance_id: string | null
+          assigned_project_manager: string | null
+          company_id: string | null
+          completed_at: string | null
+          contact_id: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_company_name: string | null
+          customer_contact_email: string | null
+          customer_contact_name: string | null
+          customer_contact_phone: string | null
+          id: string
+          implementation_scope: Json | null
+          internal_notes: string | null
+          internal_workspace_id: string | null
+          kickoff_date: string | null
+          metadata: Json | null
+          onboarding_summary: string | null
+          onboarding_token: string | null
+          opportunity_id: string | null
+          package_id: string | null
+          plan_id: string | null
+          priority: string | null
+          progress_pct: number | null
+          proposal_id: string | null
+          sales_request_id: string | null
+          selected_modules: Json | null
+          status: string | null
+          target_go_live_date: string | null
+          title: string
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          acceptance_id?: string | null
+          assigned_project_manager?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_company_name?: string | null
+          customer_contact_email?: string | null
+          customer_contact_name?: string | null
+          customer_contact_phone?: string | null
+          id?: string
+          implementation_scope?: Json | null
+          internal_notes?: string | null
+          internal_workspace_id?: string | null
+          kickoff_date?: string | null
+          metadata?: Json | null
+          onboarding_summary?: string | null
+          onboarding_token?: string | null
+          opportunity_id?: string | null
+          package_id?: string | null
+          plan_id?: string | null
+          priority?: string | null
+          progress_pct?: number | null
+          proposal_id?: string | null
+          sales_request_id?: string | null
+          selected_modules?: Json | null
+          status?: string | null
+          target_go_live_date?: string | null
+          title: string
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          acceptance_id?: string | null
+          assigned_project_manager?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_company_name?: string | null
+          customer_contact_email?: string | null
+          customer_contact_name?: string | null
+          customer_contact_phone?: string | null
+          id?: string
+          implementation_scope?: Json | null
+          internal_notes?: string | null
+          internal_workspace_id?: string | null
+          kickoff_date?: string | null
+          metadata?: Json | null
+          onboarding_summary?: string | null
+          onboarding_token?: string | null
+          opportunity_id?: string | null
+          package_id?: string | null
+          plan_id?: string | null
+          priority?: string | null
+          progress_pct?: number | null
+          proposal_id?: string | null
+          sales_request_id?: string | null
+          selected_modules?: Json | null
+          status?: string | null
+          target_go_live_date?: string | null
+          title?: string
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      customer_portal_sessions: {
+        Row: {
+          contact_email: string | null
+          created_at: string | null
+          event_type: string | null
+          id: string
+          ip_hash: string | null
+          metadata: Json | null
+          onboarding_project_id: string | null
+          proposal_id: string | null
+          token: string
+          user_agent: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          ip_hash?: string | null
+          metadata?: Json | null
+          onboarding_project_id?: string | null
+          proposal_id?: string | null
+          token: string
+          user_agent?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          ip_hash?: string | null
+          metadata?: Json | null
+          onboarding_project_id?: string | null
+          proposal_id?: string | null
+          token?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       daily_briefs: {
         Row: {
           action_suggestions: string[] | null
@@ -48937,6 +49264,132 @@ export type Database = {
           },
         ]
       }
+      onboarding_blockers: {
+        Row: {
+          assigned_to: string | null
+          blocker_type: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          onboarding_project_id: string
+          resolved_at: string | null
+          status: string | null
+          title: string
+          workspace_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          blocker_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          onboarding_project_id: string
+          resolved_at?: string | null
+          status?: string | null
+          title: string
+          workspace_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          blocker_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          onboarding_project_id?: string
+          resolved_at?: string | null
+          status?: string | null
+          title?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      onboarding_checklist_templates: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          description: string | null
+          id: string
+          items: Json | null
+          name: string
+          package_id: string | null
+          plan_id: string | null
+          slug: string
+          updated_at: string | null
+          vertical: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          items?: Json | null
+          name: string
+          package_id?: string | null
+          plan_id?: string | null
+          slug: string
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          items?: Json | null
+          name?: string
+          package_id?: string | null
+          plan_id?: string | null
+          slug?: string
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Relationships: []
+      }
+      onboarding_internal_tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          onboarding_project_id: string
+          priority: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          onboarding_project_id: string
+          priority?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          onboarding_project_id?: string
+          priority?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       operating_ledger_chains: {
         Row: {
           chain_type: string
@@ -60690,6 +61143,8 @@ export type Database = {
       }
       proposals: {
         Row: {
+          acceptance_count: number | null
+          acceptance_metadata: Json | null
           accepted_at: string | null
           assigned_to: string | null
           billing_address: string | null
@@ -60704,12 +61159,14 @@ export type Database = {
           currency: string | null
           expires_at: string | null
           id: string
+          last_viewed_at: string | null
           notes: string | null
           opportunity_id: string
           payment_conditions: string | null
           payment_idempotency_key: string | null
           payment_status: string | null
           price: number | null
+          public_token: string | null
           published_at: string | null
           references_data: Json | null
           scope_data: Json | null
@@ -60729,6 +61186,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          acceptance_count?: number | null
+          acceptance_metadata?: Json | null
           accepted_at?: string | null
           assigned_to?: string | null
           billing_address?: string | null
@@ -60743,12 +61202,14 @@ export type Database = {
           currency?: string | null
           expires_at?: string | null
           id?: string
+          last_viewed_at?: string | null
           notes?: string | null
           opportunity_id: string
           payment_conditions?: string | null
           payment_idempotency_key?: string | null
           payment_status?: string | null
           price?: number | null
+          public_token?: string | null
           published_at?: string | null
           references_data?: Json | null
           scope_data?: Json | null
@@ -60768,6 +61229,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          acceptance_count?: number | null
+          acceptance_metadata?: Json | null
           accepted_at?: string | null
           assigned_to?: string | null
           billing_address?: string | null
@@ -60782,12 +61245,14 @@ export type Database = {
           currency?: string | null
           expires_at?: string | null
           id?: string
+          last_viewed_at?: string | null
           notes?: string | null
           opportunity_id?: string
           payment_conditions?: string | null
           payment_idempotency_key?: string | null
           payment_status?: string | null
           price?: number | null
+          public_token?: string | null
           published_at?: string | null
           references_data?: Json | null
           scope_data?: Json | null
@@ -64592,6 +65057,108 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sales_proposal_acceptances: {
+        Row: {
+          acceptance_notes: string | null
+          acceptance_token: string
+          accepted_by_email: string | null
+          accepted_by_name: string | null
+          accepted_by_phone: string | null
+          accepted_by_role: string | null
+          accepted_privacy: boolean | null
+          accepted_terms: boolean | null
+          change_type: string | null
+          company_address: string | null
+          company_id: string | null
+          company_name: string | null
+          company_tax_id: string | null
+          contact_id: string | null
+          created_at: string | null
+          id: string
+          ip_hash: string | null
+          metadata: Json | null
+          opportunity_id: string | null
+          proposal_id: string
+          rejection_category: string | null
+          rejection_reason: string | null
+          requested_changes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sales_request_id: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string | null
+          user_agent: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          acceptance_notes?: string | null
+          acceptance_token?: string
+          accepted_by_email?: string | null
+          accepted_by_name?: string | null
+          accepted_by_phone?: string | null
+          accepted_by_role?: string | null
+          accepted_privacy?: boolean | null
+          accepted_terms?: boolean | null
+          change_type?: string | null
+          company_address?: string | null
+          company_id?: string | null
+          company_name?: string | null
+          company_tax_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          metadata?: Json | null
+          opportunity_id?: string | null
+          proposal_id: string
+          rejection_category?: string | null
+          rejection_reason?: string | null
+          requested_changes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sales_request_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          acceptance_notes?: string | null
+          acceptance_token?: string
+          accepted_by_email?: string | null
+          accepted_by_name?: string | null
+          accepted_by_phone?: string | null
+          accepted_by_role?: string | null
+          accepted_privacy?: boolean | null
+          accepted_terms?: boolean | null
+          change_type?: string | null
+          company_address?: string | null
+          company_id?: string | null
+          company_name?: string | null
+          company_tax_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          metadata?: Json | null
+          opportunity_id?: string | null
+          proposal_id?: string
+          rejection_category?: string | null
+          rejection_reason?: string | null
+          requested_changes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sales_request_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
       }
       scheduled_emails: {
         Row: {
