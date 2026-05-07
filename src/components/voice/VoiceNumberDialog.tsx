@@ -62,7 +62,7 @@ export function VoiceNumberDialog({ open, onOpenChange, initial }: Props) {
   }, [initial, open]);
 
   const handleSave = async () => {
-    const normalized = normalizePhoneNumber(form.number, form.country);
+    const normalized = normalizePhone(form.number, form.country);
     await upsert.mutateAsync({
       id: initial?.id,
       ...form,
