@@ -54,6 +54,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/settings/workspace-plan" element={<WorkspacePlanPage />} />
       <Route path="/dashboard/onboarding" element={<OnboardingProjectsPage />} />
       <Route path="/dashboard/onboarding/:id" element={<OnboardingProjectDetailPage />} />
+      <Route path="/dashboard/delivery/projects" element={<DeliveryProjectsPage />} />
+      <Route path="/dashboard/delivery/projects/:id" element={<DeliveryProjectDetailPage />} />
     </>
   );
 }
