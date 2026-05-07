@@ -99,11 +99,11 @@ Deno.serve(async (req) => {
       if (suite === "onboarding_portal") {
         const sa = Date.now();
         const { data: project } = await admin.from("customer_onboarding_projects")
-          .select("id, public_token")
+          .select("id, onboarding_token")
           .eq("workspace_id", workspace_id)
-          .not("public_token", "is", null)
+          .not("onboarding_token", "is", null)
           .order("created_at", { ascending: false }).limit(1).maybeSingle();
-        if (!project?.public_token) {
+        if (!project?.onboarding_token) {
           steps.push({ name: "find_onboarding_token", status: "warn", detail: "no_project_with_public_token", duration_ms: Date.now() - sa });
         } else {
           steps.push({ name: "find_onboarding_token", status: "pass", detail: { project_id: project.id }, duration_ms: Date.now() - sa });
