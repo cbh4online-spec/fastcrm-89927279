@@ -759,15 +759,18 @@ Deno.serve(async (req) => {
                   continue;
                 }
 
-                // --- ACCOUNT-ID ISOLATION: for social channels, verify the conversation
-                //     actually belongs to a page/account claimed by THIS workspace.
-                //     Prevents cross-workspace contamination when multiple workspaces
-                //     share the same GHL location_id.
+                // --- ACCOUNT-ID ISOLATION (fail-closed): for social channels,
+                //     verify the conversation actually belongs to a page/account
+                //     claimed by THIS workspace. Prevents cross-workspace
+                //     contamination when multiple workspaces share the same
+                //     GHL location_id.
                 const socialType = toSocialType(channel);
-                if (socialType && siblingWorkspaceIds.length > 0) {
+                const hasSiblings = siblingWorkspaceIds.length > 0;
+                if (socialType && (hasSiblings || ownAccountIdsByType.has(socialType))) {
                   const ownIds = ownAccountIdsByType.get(socialType) || [];
+
                   if (ownIds.length === 0) {
-                    // This workspace doesn't claim any account for this social type → skip
+                    // No account claimed by this workspace for this social type → skip
                     console.log(`[GHL Sync] Skipping conv ${ghlConv.id} - no ${socialType} account claimed by workspace ${workspace_id}`);
                     await logRoutingDecision(supabase, {
                       source: "sync_conversations",
@@ -787,7 +790,23 @@ Deno.serve(async (req) => {
                   const candidateIds = extractAccountIdsFromConversation(detail);
 
                   if (candidateIds.length === 0) {
-                    console.log(`[GHL Sync] Conv ${ghlConv.id} - no account_id found in detail, allowing (legacy)`);
+                    // FAIL-CLOSED: if siblings share the location, we cannot prove
+                    // ownership without an account id → skip to avoid contamination.
+                    if (hasSiblings) {
+                      console.log(`[GHL Sync] Skipping conv ${ghlConv.id} - no account_id in detail and siblings exist (fail-closed)`);
+                      await logRoutingDecision(supabase, {
+                        source: "sync_conversations",
+                        source_workspace_id: workspace_id,
+                        ghl_location_id: locationId,
+                        ghl_conversation_id: ghlConv.id,
+                        channel_type: socialType,
+                        action: "skipped_wrong_workspace",
+                        reason: "no_account_id_with_siblings_fail_closed",
+                      });
+                      result.messages_skipped++;
+                      continue;
+                    }
+                    console.log(`[GHL Sync] Conv ${ghlConv.id} - no account_id in detail, no siblings, allowing`);
                   } else {
                     const ownsIt = ownIds.some(stored =>
                       candidateIds.some(cand => matchAccountId(String(stored), String(cand)))
@@ -807,6 +826,18 @@ Deno.serve(async (req) => {
                       result.messages_skipped++;
                       continue;
                     }
+                    // Log successful ownership match for audit trail
+                    await logRoutingDecision(supabase, {
+                      source: "sync_conversations",
+                      source_workspace_id: workspace_id,
+                      resolved_workspace_id: workspace_id,
+                      ghl_location_id: locationId,
+                      ghl_conversation_id: ghlConv.id,
+                      ghl_account_id: candidateIds.find(c => ownIds.some(o => matchAccountId(String(o), String(c)))) || candidateIds[0],
+                      channel_type: socialType,
+                      action: "imported",
+                      reason: "account_id_match",
+                    });
                   }
                 }
 
