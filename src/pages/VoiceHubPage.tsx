@@ -66,10 +66,14 @@ export default function VoiceHubPage() {
 
   // KPIs
   const totalCalls = calls.length;
-  const totalDuration = calls.reduce((acc, c) => acc + (c.duration_seconds ?? 0), 0);
   const inbound = calls.filter((c) => c.call_direction === "inbound").length;
   const outbound = calls.filter((c) => c.call_direction === "outbound").length;
-  const missed = calls.filter((c) => c.call_direction === "missed" || c.status === "no_answer" || c.status === "missed").length;
+  const reviewPending = calls.filter((c: any) => c.compliance_review_required).length;
+  const avgQuality = (() => {
+    const scored = calls.filter((c: any) => typeof c.quality_score === "number");
+    if (scored.length === 0) return null;
+    return Math.round(scored.reduce((a, c: any) => a + c.quality_score, 0) / scored.length);
+  })();
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
