@@ -173,6 +173,10 @@ const App = () => (
                 
                 {/* Public Ticket Portal (token-based) */}
                 <Route path="/ticket/:token" element={<PublicTicketPortalPage />} />
+
+                {/* Public Customer Portal — Fase 1X */}
+                <Route path="/portal/proposal/:token" element={<PublicProposalPortalPage />} />
+                <Route path="/portal/onboarding/:token" element={<PublicOnboardingPortalPage />} />
                 
                 {/* Public FastClub Landing */}
                 <Route path="/fastclub" element={<FastClubLandingPage />} />
