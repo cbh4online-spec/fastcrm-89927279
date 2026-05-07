@@ -535,3 +535,173 @@ export function useUpsertVoiceCompliance() {
     onError: (e: Error) => toast.error(e.message),
   });
 }
+
+// ─────────────── Voice Intelligence (Fase 1Q) ───────────────
+
+export function useVoiceCallSegments(callLogId: string | undefined) {
+  return useQuery({
+    queryKey: ["voice-segments", callLogId],
+    enabled: !!callLogId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("voice_call_intelligence")
+        .select("*")
+        .eq("call_log_id", callLogId!)
+        .order("segment_index", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as VoiceCallSegment[];
+    },
+  });
+}
+
+export function useVoiceCallDetail(callLogId: string | undefined) {
+  return useQuery({
+    queryKey: ["voice-call-detail", callLogId],
+    enabled: !!callLogId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("voice_call_logs")
+        .select("*")
+        .eq("id", callLogId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as VoiceCallLog | null;
+    },
+  });
+}
+
+export function useTranscribeCall() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (callLogId: string) => {
+      const { data, error } = await supabase.functions.invoke("voice-transcribe-call", {
+        body: { call_log_id: callLogId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, callLogId) => {
+      qc.invalidateQueries({ queryKey: ["voice-call-detail", callLogId] });
+      qc.invalidateQueries({ queryKey: ["voice-segments", callLogId] });
+      qc.invalidateQueries({ queryKey: ["voice-call-logs"] });
+      toast.success("Transcrição iniciada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useAnalyzeCall() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (callLogId: string) => {
+      const { data, error } = await supabase.functions.invoke("voice-analyze-call", {
+        body: { call_log_id: callLogId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, callLogId) => {
+      qc.invalidateQueries({ queryKey: ["voice-call-detail", callLogId] });
+      qc.invalidateQueries({ queryKey: ["voice-call-logs"] });
+      toast.success("Análise concluída");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useUploadRecording() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { callLogId: string; file: File }) => {
+      const form = new FormData();
+      form.append("call_log_id", input.callLogId);
+      form.append("file", input.file);
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess?.session?.access_token;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-recording-upload`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok || data?.success === false) throw new Error(data?.error || "upload_failed");
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["voice-call-detail", vars.callLogId] });
+      qc.invalidateQueries({ queryKey: ["voice-call-logs"] });
+      toast.success("Gravação enviada — transcrição a iniciar");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useRecordingPlaybackUrl() {
+  return useMutation({
+    mutationFn: async (callLogId: string) => {
+      const { data, error } = await supabase.functions.invoke("voice-recording-upload", {
+        body: { call_log_id: callLogId, mode: "playback" },
+      });
+      if (error) throw error;
+      return data?.signed_url as string;
+    },
+  });
+}
+
+// Compliance keywords
+export function useComplianceKeywords() {
+  const { currentWorkspace } = useWorkspace();
+  return useQuery({
+    queryKey: ["voice-compliance-keywords", currentWorkspace?.id],
+    enabled: !!currentWorkspace?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("voice_compliance_keywords")
+        .select("*")
+        .eq("workspace_id", currentWorkspace!.id)
+        .order("kind", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as VoiceComplianceKeyword[];
+    },
+  });
+}
+
+export function useUpsertComplianceKeyword() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: Partial<VoiceComplianceKeyword> & { kind: string; phrase: string }) => {
+      if (!currentWorkspace?.id) throw new Error("Sem workspace");
+      const payload = { ...input, workspace_id: currentWorkspace.id } as never;
+      if (input.id) {
+        const { error } = await supabase.from("voice_compliance_keywords").update(payload).eq("id", input.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("voice_compliance_keywords").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["voice-compliance-keywords", currentWorkspace?.id] });
+      toast.success("Palavra-chave guardada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useDeleteComplianceKeyword() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("voice_compliance_keywords").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["voice-compliance-keywords", currentWorkspace?.id] });
+      toast.success("Removida");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
