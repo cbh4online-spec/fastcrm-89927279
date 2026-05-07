@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Plus, Plug, Hash,
-  Coins, ShieldCheck, Trash2, Pencil, TestTube2, Search,
+  Coins, ShieldCheck, Trash2, Pencil, TestTube2, Search, ShieldAlert, Sparkles, FileSearch,
 } from "lucide-react";
 import {
   useVoiceProviders, useDeleteVoiceProvider, useTestVoiceProvider,
