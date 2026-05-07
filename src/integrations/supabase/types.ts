@@ -70365,6 +70365,42 @@ export type Database = {
           },
         ]
       }
+      sprint_smoke_runs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          id: string
+          status: string
+          steps: Json
+          suite: string
+          summary: string | null
+          triggered_by: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          status: string
+          steps?: Json
+          suite: string
+          summary?: string | null
+          triggered_by?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          status?: string
+          steps?: Json
+          suite?: string
+          summary?: string | null
+          triggered_by?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       stock_alerts: {
         Row: {
           created_at: string
@@ -80702,6 +80738,54 @@ export type Database = {
           updated_at?: string
           voicemail_response_minutes?: number
           workspace_id?: string
+        }
+        Relationships: []
+      }
+      webhook_security_events: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          function_name: string
+          id: string
+          instance_id: string | null
+          outcome: string
+          payload_size: number | null
+          provider: string
+          reason: string | null
+          remote_ip: string | null
+          signature_header: string | null
+          validation_mode: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          function_name: string
+          id?: string
+          instance_id?: string | null
+          outcome: string
+          payload_size?: number | null
+          provider: string
+          reason?: string | null
+          remote_ip?: string | null
+          signature_header?: string | null
+          validation_mode: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          function_name?: string
+          id?: string
+          instance_id?: string | null
+          outcome?: string
+          payload_size?: number | null
+          provider?: string
+          reason?: string | null
+          remote_ip?: string | null
+          signature_header?: string | null
+          validation_mode?: string
+          workspace_id?: string | null
         }
         Relationships: []
       }
