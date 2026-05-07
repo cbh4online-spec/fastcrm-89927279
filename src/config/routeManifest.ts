@@ -40,7 +40,7 @@ import {
   ArrowUpDown, Headphones, Clock, Timer,
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
   Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
-  Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat,
+  Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat, Heart,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
