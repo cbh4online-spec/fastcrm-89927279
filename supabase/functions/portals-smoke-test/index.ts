@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
           steps.push({ name: "find_onboarding_token", status: "pass", detail: { project_id: project.id }, duration_ms: Date.now() - sa });
           const sl = Date.now();
           try {
-            const r = await fetch(`${supabaseUrl}/functions/v1/portal-load-onboarding?token=${encodeURIComponent(project.public_token)}`);
+            const r = await fetch(`${supabaseUrl}/functions/v1/portal-load-onboarding?token=${encodeURIComponent(project.onboarding_token)}`);
             const ok = r.ok;
             const txt = await r.text();
             steps.push({
