@@ -187,8 +187,10 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("telegram",    "Telegram",    "/dashboard/telegram",                 Send,      "comunicacao"),
   e("whatsapp-pro","WhatsApp Pro","/dashboard/whatsapp-pro",             MessageSquare, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("voicehub",    "VoiceHub",    "/dashboard/voicehub",                 Headphones, "comunicacao"),
-  e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "comunicacao"),
-  e("templates",   "Modelos",     "/dashboard/communication/templates",  FileText,  "comunicacao"),
+ e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "comunicacao"),
+ e("plan-mgmt",   "Plan Management","/admin/plan-management",                Crown,     "comunicacao"),
+ e("workspace-plan","Plano Atual",  "/dashboard/settings/workspace-plan",   CreditCard,"comunicacao"),
+ e("templates",   "Modelos",     "/dashboard/communication/templates",  FileText,  "comunicacao"),
 
   // ══════════════════════════════════════════════════════════════
   // PERFORMANCE & GAMIFICAÇÃO
