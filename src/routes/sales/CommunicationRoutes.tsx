@@ -46,6 +46,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/settings/plan" element={<MyPlanPage />} />
       <Route path="/dashboard/plans" element={<PlansComparisonPage />} />
       <Route path="/admin/billing-plans" element={<BillingPlansAdminPage />} />
+      <Route path="/admin/plan-management" element={<PlanManagementPage />} />
+      <Route path="/dashboard/settings/workspace-plan" element={<WorkspacePlanPage />} />
     </>
   );
 }
