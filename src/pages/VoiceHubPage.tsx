@@ -128,7 +128,7 @@ export default function VoiceHubPage() {
                     <TableHead>Estado</TableHead>
                     <TableHead>Resultado</TableHead>
                     <TableHead>Duração</TableHead>
-                    <TableHead>Custo</TableHead>
+                    <TableHead>IA</TableHead>
                     <TableHead>Data</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -136,8 +136,8 @@ export default function VoiceHubPage() {
                   {calls.length === 0 && (
                     <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">Sem chamadas registadas.</TableCell></TableRow>
                   )}
-                  {calls.map((c) => (
-                    <TableRow key={c.id}>
+                  {calls.map((c: any) => (
+                    <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailCallId(c.id)}>
                       <TableCell>{directionIcon(c.call_direction)}</TableCell>
                       <TableCell>
                         <div className="font-medium">{c.to_number || c.from_number || "—"}</div>
@@ -146,7 +146,14 @@ export default function VoiceHubPage() {
                       <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
                       <TableCell>{c.outcome ?? "—"}</TableCell>
                       <TableCell>{formatDuration(c.duration_seconds)}</TableCell>
-                      <TableCell>{c.cost_amount != null ? `${c.cost_amount.toFixed(4)} ${c.currency}` : "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {c.transcription_status === "completed" && <Badge variant="secondary" className="text-xs">T</Badge>}
+                          {c.ai_summary && <Sparkles className="h-3 w-3 text-primary" />}
+                          {c.quality_score != null && <span className="text-xs tabular-nums">{c.quality_score}</span>}
+                          {c.compliance_review_required && <ShieldAlert className="h-3 w-3 text-red-600" />}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {c.created_at ? format(new Date(c.created_at), "dd/MM HH:mm", { locale: pt }) : "—"}
                       </TableCell>
