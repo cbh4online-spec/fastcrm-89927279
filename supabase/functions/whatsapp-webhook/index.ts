@@ -27,12 +27,48 @@ Deno.serve(async (req) => {
   // Process incoming messages (POST)
   if (req.method === "POST") {
     try {
-      const body = await req.json();
-      console.log("WhatsApp webhook received:", JSON.stringify(body, null, 2));
-
+      // Read raw body for HMAC validation
+      const rawBody = await req.text();
+      const sigHeader = req.headers.get("x-hub-signature-256");
+      const appSecret = Deno.env.get("WHATSAPP_APP_SECRET");
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
       const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+      // Centralized HMAC validation (Meta X-Hub-Signature-256)
+      const v = await validateWebhook({
+        mode: "hmac",
+        rawBody,
+        secret: appSecret,
+        signatureHeader: sigHeader,
+        provider: "meta_cloud",
+        functionName: "whatsapp-webhook",
+        algorithm: "SHA-256",
+        signatureEncoding: "hex",
+        signaturePrefix: "sha256=",
+        remoteIp: getRemoteIp(req),
+        optional: true, // se WHATSAPP_APP_SECRET ausente → skipped (legacy)
+      });
+      await logSecurityEvent(supabase, {
+        provider: "meta_cloud",
+        function_name: "whatsapp-webhook",
+        validation_mode: "hmac",
+        outcome: v.outcome,
+        reason: v.reason,
+        remote_ip: getRemoteIp(req),
+        signature_header: sigHeader,
+        payload_size: rawBody.length,
+      });
+      if (!v.ok) {
+        console.warn(`[whatsapp-webhook] HMAC validation failed: ${v.reason}`);
+        return new Response(JSON.stringify({ ok: false, error: "invalid_signature" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const body = JSON.parse(rawBody);
+      console.log("WhatsApp webhook received:", JSON.stringify(body, null, 2));
 
       // WhatsApp Cloud API webhook format
       for (const entry of body.entry || []) {
