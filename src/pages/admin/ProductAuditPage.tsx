@@ -416,11 +416,16 @@ export default function ProductAuditPage() {
             <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
             <TabsTrigger value="flows">Fluxos demo</TabsTrigger>
             <TabsTrigger value="sprint1">Sprint 1</TabsTrigger>
+            <TabsTrigger value="ghl-routing">GHL Routing</TabsTrigger>
             <TabsTrigger value="report">Relatório</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sprint1" className="space-y-4">
             <Sprint1Tab />
+          </TabsContent>
+
+          <TabsContent value="ghl-routing" className="space-y-4">
+            <GHLRoutingTab />
           </TabsContent>
 
           {/* MÓDULOS */}
