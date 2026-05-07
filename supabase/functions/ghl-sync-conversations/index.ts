@@ -759,6 +759,58 @@ Deno.serve(async (req) => {
                   continue;
                 }
 
+                // --- ACCOUNT-ID ISOLATION: for social channels, verify the conversation
+                //     actually belongs to a page/account claimed by THIS workspace.
+                //     Prevents cross-workspace contamination when multiple workspaces
+                //     share the same GHL location_id.
+                const socialType = toSocialType(channel);
+                if (socialType && siblingWorkspaceIds.length > 0) {
+                  const ownIds = ownAccountIdsByType.get(socialType) || [];
+                  if (ownIds.length === 0) {
+                    // This workspace doesn't claim any account for this social type → skip
+                    console.log(`[GHL Sync] Skipping conv ${ghlConv.id} - no ${socialType} account claimed by workspace ${workspace_id}`);
+                    await logRoutingDecision(supabase, {
+                      source: "sync_conversations",
+                      source_workspace_id: workspace_id,
+                      ghl_location_id: locationId,
+                      ghl_conversation_id: ghlConv.id,
+                      channel_type: socialType,
+                      action: "skipped_wrong_workspace",
+                      reason: "workspace_has_no_account_for_channel",
+                    });
+                    result.messages_skipped++;
+                    continue;
+                  }
+
+                  // Fetch detail to extract the real account/page id
+                  const detail = await fetchGHLConversationDetail(apiKey, ghlConv.id);
+                  const candidateIds = extractAccountIdsFromConversation(detail);
+
+                  if (candidateIds.length === 0) {
+                    console.log(`[GHL Sync] Conv ${ghlConv.id} - no account_id found in detail, allowing (legacy)`);
+                  } else {
+                    const ownsIt = ownIds.some(stored =>
+                      candidateIds.some(cand => matchAccountId(String(stored), String(cand)))
+                    );
+                    if (!ownsIt) {
+                      console.log(`[GHL Sync] Skipping conv ${ghlConv.id} - account_id ${candidateIds.join(",")} not owned by workspace ${workspace_id} (owns: ${ownIds.join(",")})`);
+                      await logRoutingDecision(supabase, {
+                        source: "sync_conversations",
+                        source_workspace_id: workspace_id,
+                        ghl_location_id: locationId,
+                        ghl_conversation_id: ghlConv.id,
+                        ghl_account_id: candidateIds[0],
+                        channel_type: socialType,
+                        action: "skipped_wrong_workspace",
+                        reason: "account_id_owned_by_other_workspace",
+                      });
+                      result.messages_skipped++;
+                      continue;
+                    }
+                  }
+                }
+
+
                 const externalThreadId = `ghl_${ghlConv.id}`;
 
                 // CRITICAL: Skip if this conversation already exists in a sibling workspace
