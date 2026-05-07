@@ -75203,6 +75203,53 @@ export type Database = {
           },
         ]
       }
+      voice_call_intelligence: {
+        Row: {
+          call_log_id: string
+          created_at: string
+          end_seconds: number | null
+          id: string
+          metadata: Json
+          segment_index: number
+          speaker: string | null
+          start_seconds: number | null
+          text: string
+          workspace_id: string
+        }
+        Insert: {
+          call_log_id: string
+          created_at?: string
+          end_seconds?: number | null
+          id?: string
+          metadata?: Json
+          segment_index: number
+          speaker?: string | null
+          start_seconds?: number | null
+          text: string
+          workspace_id: string
+        }
+        Update: {
+          call_log_id?: string
+          created_at?: string
+          end_seconds?: number | null
+          id?: string
+          metadata?: Json
+          segment_index?: number
+          speaker?: string | null
+          start_seconds?: number | null
+          text?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_call_intelligence_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_call_logs: {
         Row: {
           ai_intent: string | null
@@ -75217,6 +75264,10 @@ export type Database = {
           call_type: string
           callback_events: Json
           communication_conversation_id: string | null
+          compliance_consent_detected: boolean | null
+          compliance_forbidden_hits: Json
+          compliance_required_missing: Json
+          compliance_review_required: boolean
           contact_id: string | null
           cost_amount: number | null
           country: string
@@ -75229,13 +75280,19 @@ export type Database = {
           ended_at: string | null
           from_number: string | null
           id: string
+          intelligence_completed_at: string | null
+          intelligence_error: string | null
+          intelligence_model: string | null
+          keywords: Json
           last_status_at: string | null
           lead_id: string | null
           margin_amount: number | null
           metadata: Json
+          next_actions: Json
           normalized_from_number: string | null
           normalized_to_number: string | null
           notes: string | null
+          objections: Json
           outcome: string | null
           product_id: string | null
           provider_call_id: string | null
@@ -75244,9 +75301,14 @@ export type Database = {
           provider_parent_call_id: string | null
           provider_raw_status: string | null
           provider_status: string | null
+          quality_breakdown: Json
+          quality_score: number | null
           recording_duration_seconds: number | null
+          recording_mime_type: string | null
           recording_provider_id: string | null
+          recording_size_bytes: number | null
           recording_status: string
+          recording_storage_path: string | null
           recording_url: string | null
           ring_duration_seconds: number | null
           started_at: string | null
@@ -75254,6 +75316,11 @@ export type Database = {
           subject: string | null
           ticket_id: string | null
           to_number: string | null
+          topics: Json
+          transcription_completed_at: string | null
+          transcription_error: string | null
+          transcription_language: string | null
+          transcription_model: string | null
           transcription_status: string
           transcription_text: string | null
           updated_at: string
@@ -75274,6 +75341,10 @@ export type Database = {
           call_type?: string
           callback_events?: Json
           communication_conversation_id?: string | null
+          compliance_consent_detected?: boolean | null
+          compliance_forbidden_hits?: Json
+          compliance_required_missing?: Json
+          compliance_review_required?: boolean
           contact_id?: string | null
           cost_amount?: number | null
           country?: string
@@ -75286,13 +75357,19 @@ export type Database = {
           ended_at?: string | null
           from_number?: string | null
           id?: string
+          intelligence_completed_at?: string | null
+          intelligence_error?: string | null
+          intelligence_model?: string | null
+          keywords?: Json
           last_status_at?: string | null
           lead_id?: string | null
           margin_amount?: number | null
           metadata?: Json
+          next_actions?: Json
           normalized_from_number?: string | null
           normalized_to_number?: string | null
           notes?: string | null
+          objections?: Json
           outcome?: string | null
           product_id?: string | null
           provider_call_id?: string | null
@@ -75301,9 +75378,14 @@ export type Database = {
           provider_parent_call_id?: string | null
           provider_raw_status?: string | null
           provider_status?: string | null
+          quality_breakdown?: Json
+          quality_score?: number | null
           recording_duration_seconds?: number | null
+          recording_mime_type?: string | null
           recording_provider_id?: string | null
+          recording_size_bytes?: number | null
           recording_status?: string
+          recording_storage_path?: string | null
           recording_url?: string | null
           ring_duration_seconds?: number | null
           started_at?: string | null
@@ -75311,6 +75393,11 @@ export type Database = {
           subject?: string | null
           ticket_id?: string | null
           to_number?: string | null
+          topics?: Json
+          transcription_completed_at?: string | null
+          transcription_error?: string | null
+          transcription_language?: string | null
+          transcription_model?: string | null
           transcription_status?: string
           transcription_text?: string | null
           updated_at?: string
@@ -75331,6 +75418,10 @@ export type Database = {
           call_type?: string
           callback_events?: Json
           communication_conversation_id?: string | null
+          compliance_consent_detected?: boolean | null
+          compliance_forbidden_hits?: Json
+          compliance_required_missing?: Json
+          compliance_review_required?: boolean
           contact_id?: string | null
           cost_amount?: number | null
           country?: string
@@ -75343,13 +75434,19 @@ export type Database = {
           ended_at?: string | null
           from_number?: string | null
           id?: string
+          intelligence_completed_at?: string | null
+          intelligence_error?: string | null
+          intelligence_model?: string | null
+          keywords?: Json
           last_status_at?: string | null
           lead_id?: string | null
           margin_amount?: number | null
           metadata?: Json
+          next_actions?: Json
           normalized_from_number?: string | null
           normalized_to_number?: string | null
           notes?: string | null
+          objections?: Json
           outcome?: string | null
           product_id?: string | null
           provider_call_id?: string | null
@@ -75358,9 +75455,14 @@ export type Database = {
           provider_parent_call_id?: string | null
           provider_raw_status?: string | null
           provider_status?: string | null
+          quality_breakdown?: Json
+          quality_score?: number | null
           recording_duration_seconds?: number | null
+          recording_mime_type?: string | null
           recording_provider_id?: string | null
+          recording_size_bytes?: number | null
           recording_status?: string
+          recording_storage_path?: string | null
           recording_url?: string | null
           ring_duration_seconds?: number | null
           started_at?: string | null
@@ -75368,6 +75470,11 @@ export type Database = {
           subject?: string | null
           ticket_id?: string | null
           to_number?: string | null
+          topics?: Json
+          transcription_completed_at?: string | null
+          transcription_error?: string | null
+          transcription_language?: string | null
+          transcription_model?: string | null
           transcription_status?: string
           transcription_text?: string | null
           updated_at?: string
@@ -75462,6 +75569,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      voice_compliance_keywords: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          kind: string
+          phrase: string
+          severity: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind: string
+          phrase: string
+          severity?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind?: string
+          phrase?: string
+          severity?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       voice_compliance_settings: {
         Row: {
