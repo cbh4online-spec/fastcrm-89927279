@@ -63,6 +63,7 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/customer-success" element={<CustomerSuccessPage />} />
       <Route path="/dashboard/customer-success/:id" element={<CustomerAccountDetailPage />} />
       <Route path="/admin/kernel" element={<KernelAdminPage />} />
+      <Route path="/admin/product-audit" element={<ProductAuditPage />} />
     </>
   );
 }
