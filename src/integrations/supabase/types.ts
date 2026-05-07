@@ -75203,6 +75203,158 @@ export type Database = {
           },
         ]
       }
+      voice_call_insights: {
+        Row: {
+          agent_id: string | null
+          ai_model: string | null
+          ai_provider: string | null
+          analyzed_at: string | null
+          appointment_id: string | null
+          buying_signals: Json
+          call_log_id: string
+          commercial_score: number | null
+          competitors_mentioned: Json
+          confidence: number | null
+          contact_id: string | null
+          created_at: string
+          deal_id: string | null
+          id: string
+          intent: string | null
+          lead_id: string | null
+          objections: Json
+          processing_seconds: number | null
+          products_mentioned: Json
+          quality_score: number | null
+          raw_ai_response: Json | null
+          risk_flags: Json
+          sentiment: string | null
+          short_summary: string | null
+          suggested_deal: Json | null
+          suggested_followup: Json | null
+          suggested_next_action: string | null
+          suggested_outcome: string | null
+          suggested_reply: string | null
+          suggested_task: Json | null
+          suggested_ticket: Json | null
+          summary: string | null
+          support_score: number | null
+          ticket_id: string | null
+          transcription_id: string | null
+          updated_at: string
+          urgency: string | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          ai_model?: string | null
+          ai_provider?: string | null
+          analyzed_at?: string | null
+          appointment_id?: string | null
+          buying_signals?: Json
+          call_log_id: string
+          commercial_score?: number | null
+          competitors_mentioned?: Json
+          confidence?: number | null
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          intent?: string | null
+          lead_id?: string | null
+          objections?: Json
+          processing_seconds?: number | null
+          products_mentioned?: Json
+          quality_score?: number | null
+          raw_ai_response?: Json | null
+          risk_flags?: Json
+          sentiment?: string | null
+          short_summary?: string | null
+          suggested_deal?: Json | null
+          suggested_followup?: Json | null
+          suggested_next_action?: string | null
+          suggested_outcome?: string | null
+          suggested_reply?: string | null
+          suggested_task?: Json | null
+          suggested_ticket?: Json | null
+          summary?: string | null
+          support_score?: number | null
+          ticket_id?: string | null
+          transcription_id?: string | null
+          updated_at?: string
+          urgency?: string | null
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          ai_model?: string | null
+          ai_provider?: string | null
+          analyzed_at?: string | null
+          appointment_id?: string | null
+          buying_signals?: Json
+          call_log_id?: string
+          commercial_score?: number | null
+          competitors_mentioned?: Json
+          confidence?: number | null
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          intent?: string | null
+          lead_id?: string | null
+          objections?: Json
+          processing_seconds?: number | null
+          products_mentioned?: Json
+          quality_score?: number | null
+          raw_ai_response?: Json | null
+          risk_flags?: Json
+          sentiment?: string | null
+          short_summary?: string | null
+          suggested_deal?: Json | null
+          suggested_followup?: Json | null
+          suggested_next_action?: string | null
+          suggested_outcome?: string | null
+          suggested_reply?: string | null
+          suggested_task?: Json | null
+          suggested_ticket?: Json | null
+          summary?: string | null
+          support_score?: number | null
+          ticket_id?: string | null
+          transcription_id?: string | null
+          updated_at?: string
+          urgency?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_call_insights_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_insights_transcription_id_fkey"
+            columns: ["transcription_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_transcriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "voice_call_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_call_intelligence: {
         Row: {
           call_log_id: string
@@ -75570,6 +75722,201 @@ export type Database = {
           },
         ]
       }
+      voice_call_recordings: {
+        Row: {
+          access_count: number
+          call_log_id: string
+          consent_method: string | null
+          consent_recorded: boolean
+          created_at: string
+          delete_after: string | null
+          deleted_at: string | null
+          duration_seconds: number | null
+          file_size_bytes: number | null
+          id: string
+          metadata: Json
+          mime_type: string | null
+          provider_call_id: string | null
+          provider_instance_id: string | null
+          provider_name: string | null
+          provider_recording_id: string | null
+          recording_status: string
+          recording_url: string | null
+          retention_days: number | null
+          storage_path: string | null
+          storage_provider: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          access_count?: number
+          call_log_id: string
+          consent_method?: string | null
+          consent_recorded?: boolean
+          created_at?: string
+          delete_after?: string | null
+          deleted_at?: string | null
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          provider_call_id?: string | null
+          provider_instance_id?: string | null
+          provider_name?: string | null
+          provider_recording_id?: string | null
+          recording_status?: string
+          recording_url?: string | null
+          retention_days?: number | null
+          storage_path?: string | null
+          storage_provider?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          access_count?: number
+          call_log_id?: string
+          consent_method?: string | null
+          consent_recorded?: boolean
+          created_at?: string
+          delete_after?: string | null
+          deleted_at?: string | null
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          provider_call_id?: string | null
+          provider_instance_id?: string | null
+          provider_name?: string | null
+          provider_recording_id?: string | null
+          recording_status?: string
+          recording_url?: string | null
+          retention_days?: number | null
+          storage_path?: string | null
+          storage_provider?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_call_recordings_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_recordings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "voice_call_recordings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_call_transcriptions: {
+        Row: {
+          call_log_id: string
+          completed_at: string | null
+          confidence: number | null
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          id: string
+          language: string
+          metadata: Json
+          recording_id: string | null
+          segments: Json
+          speaker_labels: Json
+          started_at: string | null
+          transcription_model: string | null
+          transcription_provider: string | null
+          transcription_status: string
+          transcription_text: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          call_log_id: string
+          completed_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          language?: string
+          metadata?: Json
+          recording_id?: string | null
+          segments?: Json
+          speaker_labels?: Json
+          started_at?: string | null
+          transcription_model?: string | null
+          transcription_provider?: string | null
+          transcription_status?: string
+          transcription_text?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          call_log_id?: string
+          completed_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          language?: string
+          metadata?: Json
+          recording_id?: string | null
+          segments?: Json
+          speaker_labels?: Json
+          started_at?: string | null
+          transcription_model?: string | null
+          transcription_provider?: string | null
+          transcription_status?: string
+          transcription_text?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_call_transcriptions_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_transcriptions_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_transcriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "voice_call_transcriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_compliance_keywords: {
         Row: {
           active: boolean
@@ -75611,39 +75958,54 @@ export type Database = {
       }
       voice_compliance_settings: {
         Row: {
+          allow_ai_analysis: boolean
+          allow_download: boolean
           allow_manual_delete: boolean
+          allow_transcription: boolean
           country: string
           created_at: string
           id: string
           recording_allowed: boolean
           recording_consent_required: boolean
+          recording_notice_enabled: boolean
           recording_notice_message: string | null
+          restrict_recording_access: boolean
           retention_days: number | null
           settings: Json
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          allow_ai_analysis?: boolean
+          allow_download?: boolean
           allow_manual_delete?: boolean
+          allow_transcription?: boolean
           country?: string
           created_at?: string
           id?: string
           recording_allowed?: boolean
           recording_consent_required?: boolean
+          recording_notice_enabled?: boolean
           recording_notice_message?: string | null
+          restrict_recording_access?: boolean
           retention_days?: number | null
           settings?: Json
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          allow_ai_analysis?: boolean
+          allow_download?: boolean
           allow_manual_delete?: boolean
+          allow_transcription?: boolean
           country?: string
           created_at?: string
           id?: string
           recording_allowed?: boolean
           recording_consent_required?: boolean
+          recording_notice_enabled?: boolean
           recording_notice_message?: string | null
+          restrict_recording_access?: boolean
           retention_days?: number | null
           settings?: Json
           updated_at?: string
@@ -76012,6 +76374,68 @@ export type Database = {
           },
           {
             foreignKeyName: "voice_provider_rates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_recording_access_logs: {
+        Row: {
+          action: string
+          call_log_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          recording_id: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          call_log_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          recording_id: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          call_log_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          recording_id?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_recording_access_logs_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_recording_access_logs_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_recording_access_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "voice_recording_access_logs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -82704,6 +83128,15 @@ export type Database = {
       dm_mark_read: { Args: { _conv_id: string }; Returns: undefined }
       dm_start: { Args: { _other_user: string }; Returns: string }
       dm_unread_count: { Args: never; Returns: number }
+      emit_voice_workflow_event: {
+        Args: {
+          p_call_log_id: string
+          p_event_type: string
+          p_payload?: Json
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
       emit_whatsapp_event: {
         Args: {
           p_contact_id?: string
