@@ -26077,6 +26077,401 @@ export type Database = {
           },
         ]
       }
+      customer_accounts: {
+        Row: {
+          arr: number | null
+          churn_risk_score: number | null
+          company_id: string | null
+          contact_id: string | null
+          contract_end_date: string | null
+          contract_start_date: string | null
+          created_at: string
+          currency: string | null
+          customer_success_owner_id: string | null
+          expansion_score: number | null
+          go_live_date: string | null
+          health_score: number | null
+          health_status: string | null
+          id: string
+          implementation_project_id: string | null
+          last_checkin_at: string | null
+          last_qbr_at: string | null
+          lifecycle_stage: string
+          metadata: Json
+          mrr: number | null
+          name: string
+          next_checkin_at: string | null
+          next_qbr_at: string | null
+          onboarding_project_id: string | null
+          package_id: string | null
+          plan_id: string | null
+          renewal_date: string | null
+          segment: string | null
+          status: string
+          subscription_id: string | null
+          support_owner_id: string | null
+          updated_at: string
+          vertical: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          arr?: number | null
+          churn_risk_score?: number | null
+          company_id?: string | null
+          contact_id?: string | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_success_owner_id?: string | null
+          expansion_score?: number | null
+          go_live_date?: string | null
+          health_score?: number | null
+          health_status?: string | null
+          id?: string
+          implementation_project_id?: string | null
+          last_checkin_at?: string | null
+          last_qbr_at?: string | null
+          lifecycle_stage?: string
+          metadata?: Json
+          mrr?: number | null
+          name: string
+          next_checkin_at?: string | null
+          next_qbr_at?: string | null
+          onboarding_project_id?: string | null
+          package_id?: string | null
+          plan_id?: string | null
+          renewal_date?: string | null
+          segment?: string | null
+          status?: string
+          subscription_id?: string | null
+          support_owner_id?: string | null
+          updated_at?: string
+          vertical?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          arr?: number | null
+          churn_risk_score?: number | null
+          company_id?: string | null
+          contact_id?: string | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_success_owner_id?: string | null
+          expansion_score?: number | null
+          go_live_date?: string | null
+          health_score?: number | null
+          health_status?: string | null
+          id?: string
+          implementation_project_id?: string | null
+          last_checkin_at?: string | null
+          last_qbr_at?: string | null
+          lifecycle_stage?: string
+          metadata?: Json
+          mrr?: number | null
+          name?: string
+          next_checkin_at?: string | null
+          next_qbr_at?: string | null
+          onboarding_project_id?: string | null
+          package_id?: string | null
+          plan_id?: string | null
+          renewal_date?: string | null
+          segment?: string | null
+          status?: string
+          subscription_id?: string | null
+          support_owner_id?: string | null
+          updated_at?: string
+          vertical?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      customer_churn_risks: {
+        Row: {
+          created_at: string
+          currency: string | null
+          customer_account_id: string
+          description: string | null
+          detected_at: string
+          detected_by: string
+          due_at: string | null
+          estimated_mrr_at_risk: number | null
+          id: string
+          metadata: Json
+          owner_id: string | null
+          probability: number | null
+          recommended_action: string | null
+          resolved_at: string | null
+          risk_type: string
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          customer_account_id: string
+          description?: string | null
+          detected_at?: string
+          detected_by?: string
+          due_at?: string | null
+          estimated_mrr_at_risk?: number | null
+          id?: string
+          metadata?: Json
+          owner_id?: string | null
+          probability?: number | null
+          recommended_action?: string | null
+          resolved_at?: string | null
+          risk_type: string
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          customer_account_id?: string
+          description?: string | null
+          detected_at?: string
+          detected_by?: string
+          due_at?: string | null
+          estimated_mrr_at_risk?: number | null
+          id?: string
+          metadata?: Json
+          owner_id?: string | null
+          probability?: number | null
+          recommended_action?: string | null
+          resolved_at?: string | null
+          risk_type?: string
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_churn_risks_customer_account_id_fkey"
+            columns: ["customer_account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_expansion_opportunities: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          currency: string | null
+          customer_account_id: string
+          description: string | null
+          estimated_mrr_increase: number | null
+          estimated_setup_fee: number | null
+          id: string
+          metadata: Json
+          opportunity_type: string
+          owner_id: string | null
+          priority: string
+          recommended_addon_id: string | null
+          recommended_plan_id: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          currency?: string | null
+          customer_account_id: string
+          description?: string | null
+          estimated_mrr_increase?: number | null
+          estimated_setup_fee?: number | null
+          id?: string
+          metadata?: Json
+          opportunity_type: string
+          owner_id?: string | null
+          priority?: string
+          recommended_addon_id?: string | null
+          recommended_plan_id?: string | null
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          currency?: string | null
+          customer_account_id?: string
+          description?: string | null
+          estimated_mrr_increase?: number | null
+          estimated_setup_fee?: number | null
+          id?: string
+          metadata?: Json
+          opportunity_type?: string
+          owner_id?: string | null
+          priority?: string
+          recommended_addon_id?: string | null
+          recommended_plan_id?: string | null
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_expansion_opportunities_customer_account_id_fkey"
+            columns: ["customer_account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_feedback_surveys: {
+        Row: {
+          comment: string | null
+          created_at: string
+          customer_account_id: string
+          id: string
+          metadata: Json
+          score: number | null
+          source: string | null
+          status: string
+          survey_type: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          customer_account_id: string
+          id?: string
+          metadata?: Json
+          score?: number | null
+          source?: string | null
+          status?: string
+          survey_type?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          customer_account_id?: string
+          id?: string
+          metadata?: Json
+          score?: number | null
+          source?: string | null
+          status?: string
+          survey_type?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_feedback_surveys_customer_account_id_fkey"
+            columns: ["customer_account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_health_score_snapshots: {
+        Row: {
+          adoption_score: number | null
+          calculated_by: string
+          confidence: number | null
+          created_at: string
+          customer_account_id: string
+          engagement_score: number | null
+          expansion_score: number | null
+          financial_score: number | null
+          health_status: string
+          id: string
+          opportunities: Json
+          overall_score: number
+          period_end: string | null
+          period_start: string | null
+          recommended_actions: Json
+          risk_score: number | null
+          risks: Json
+          satisfaction_score: number | null
+          signals: Json
+          support_score: number | null
+          usage_score: number | null
+          value_score: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          adoption_score?: number | null
+          calculated_by?: string
+          confidence?: number | null
+          created_at?: string
+          customer_account_id: string
+          engagement_score?: number | null
+          expansion_score?: number | null
+          financial_score?: number | null
+          health_status: string
+          id?: string
+          opportunities?: Json
+          overall_score: number
+          period_end?: string | null
+          period_start?: string | null
+          recommended_actions?: Json
+          risk_score?: number | null
+          risks?: Json
+          satisfaction_score?: number | null
+          signals?: Json
+          support_score?: number | null
+          usage_score?: number | null
+          value_score?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          adoption_score?: number | null
+          calculated_by?: string
+          confidence?: number | null
+          created_at?: string
+          customer_account_id?: string
+          engagement_score?: number | null
+          expansion_score?: number | null
+          financial_score?: number | null
+          health_status?: string
+          id?: string
+          opportunities?: Json
+          overall_score?: number
+          period_end?: string | null
+          period_start?: string | null
+          recommended_actions?: Json
+          risk_score?: number | null
+          risks?: Json
+          satisfaction_score?: number | null
+          signals?: Json
+          support_score?: number | null
+          usage_score?: number | null
+          value_score?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_health_score_snapshots_customer_account_id_fkey"
+            columns: ["customer_account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_onboarding_checklist_items: {
         Row: {
           assigned_to_customer: boolean | null
@@ -26403,6 +26798,332 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: []
+      }
+      customer_qbr_reviews: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          customer_account_id: string
+          executive_summary: string | null
+          id: string
+          next_period_goals: Json
+          opportunities: Json
+          owner_id: string | null
+          period_end: string
+          period_start: string
+          recommended_actions: Json
+          revenue_summary: Json
+          risks: Json
+          scheduled_at: string | null
+          shared_with_customer: boolean
+          status: string
+          support_summary: Json
+          updated_at: string
+          usage_summary: Json
+          value_delivered: Json
+          workspace_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          customer_account_id: string
+          executive_summary?: string | null
+          id?: string
+          next_period_goals?: Json
+          opportunities?: Json
+          owner_id?: string | null
+          period_end: string
+          period_start: string
+          recommended_actions?: Json
+          revenue_summary?: Json
+          risks?: Json
+          scheduled_at?: string | null
+          shared_with_customer?: boolean
+          status?: string
+          support_summary?: Json
+          updated_at?: string
+          usage_summary?: Json
+          value_delivered?: Json
+          workspace_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          customer_account_id?: string
+          executive_summary?: string | null
+          id?: string
+          next_period_goals?: Json
+          opportunities?: Json
+          owner_id?: string | null
+          period_end?: string
+          period_start?: string
+          recommended_actions?: Json
+          revenue_summary?: Json
+          risks?: Json
+          scheduled_at?: string | null
+          shared_with_customer?: boolean
+          status?: string
+          support_summary?: Json
+          updated_at?: string
+          usage_summary?: Json
+          value_delivered?: Json
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_qbr_reviews_customer_account_id_fkey"
+            columns: ["customer_account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_success_checkins: {
+        Row: {
+          channel: string | null
+          checkin_type: string
+          completed_at: string | null
+          created_at: string
+          customer_account_id: string
+          customer_feedback: string | null
+          health_after: number | null
+          health_before: number | null
+          id: string
+          metadata: Json
+          next_steps: string | null
+          notes: string | null
+          owner_id: string | null
+          scheduled_at: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          channel?: string | null
+          checkin_type?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_account_id: string
+          customer_feedback?: string | null
+          health_after?: number | null
+          health_before?: number | null
+          id?: string
+          metadata?: Json
+          next_steps?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          scheduled_at?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          channel?: string | null
+          checkin_type?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_account_id?: string
+          customer_feedback?: string | null
+          health_after?: number | null
+          health_before?: number | null
+          id?: string
+          metadata?: Json
+          next_steps?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          scheduled_at?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_success_checkins_customer_account_id_fkey"
+            columns: ["customer_account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_success_playbooks: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          playbook_type: string | null
+          recommended_actions: Json
+          slug: string
+          templates: Json
+          trigger_conditions: Json
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          playbook_type?: string | null
+          recommended_actions?: Json
+          slug: string
+          templates?: Json
+          trigger_conditions?: Json
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          playbook_type?: string | null
+          recommended_actions?: Json
+          slug?: string
+          templates?: Json
+          trigger_conditions?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      customer_success_signals: {
+        Row: {
+          created_at: string
+          customer_account_id: string
+          description: string | null
+          detected_at: string
+          id: string
+          metadata: Json
+          resolved_at: string | null
+          severity: string
+          signal_category: string | null
+          signal_type: string
+          source_entity_id: string | null
+          source_entity_type: string | null
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_account_id: string
+          description?: string | null
+          detected_at?: string
+          id?: string
+          metadata?: Json
+          resolved_at?: string | null
+          severity?: string
+          signal_category?: string | null
+          signal_type: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_account_id?: string
+          description?: string | null
+          detected_at?: string
+          id?: string
+          metadata?: Json
+          resolved_at?: string | null
+          severity?: string
+          signal_category?: string | null
+          signal_type?: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_success_signals_customer_account_id_fkey"
+            columns: ["customer_account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_success_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          customer_account_id: string
+          description: string | null
+          due_at: string | null
+          id: string
+          metadata: Json
+          owner_id: string | null
+          priority: string
+          related_checkin_id: string | null
+          related_expansion_id: string | null
+          related_risk_id: string | null
+          status: string
+          task_type: string | null
+          title: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          customer_account_id: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          metadata?: Json
+          owner_id?: string | null
+          priority?: string
+          related_checkin_id?: string | null
+          related_expansion_id?: string | null
+          related_risk_id?: string | null
+          status?: string
+          task_type?: string | null
+          title: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          customer_account_id?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          metadata?: Json
+          owner_id?: string | null
+          priority?: string
+          related_checkin_id?: string | null
+          related_expansion_id?: string | null
+          related_risk_id?: string | null
+          status?: string
+          task_type?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_success_tasks_customer_account_id_fkey"
+            columns: ["customer_account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_briefs: {
         Row: {

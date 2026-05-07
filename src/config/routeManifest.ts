@@ -40,7 +40,7 @@ import {
   ArrowUpDown, Headphones, Clock, Timer,
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
   Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
-  Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat,
+  Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat, Heart,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -192,6 +192,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
  e("workspace-plan","Plano Atual",  "/dashboard/settings/workspace-plan",   CreditCard,"comunicacao"),
  e("onboarding-projects","Onboarding","/dashboard/onboarding",               Briefcase, "comunicacao"),
  e("delivery-projects","Implementação","/dashboard/delivery/projects",       Rocket,    "comunicacao"),
+ e("customer-success","Customer Success","/dashboard/customer-success",        Heart,     "comunicacao"),
  e("templates",   "Modelos",     "/dashboard/communication/templates",  FileText,  "comunicacao"),
 
   // ══════════════════════════════════════════════════════════════
