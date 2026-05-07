@@ -27,6 +27,8 @@ import { VoiceNumberDialog } from "@/components/voice/VoiceNumberDialog";
 import { LogCallDialog } from "@/components/voice/LogCallDialog";
 import { VoiceCallDetailDialog } from "@/components/voice/VoiceCallDetailDialog";
 import { VoiceComplianceKeywordsManager } from "@/components/voice/VoiceComplianceKeywordsManager";
+import { CallCenterOperations } from "@/components/voice/CallCenterOperations";
+import { Activity } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
