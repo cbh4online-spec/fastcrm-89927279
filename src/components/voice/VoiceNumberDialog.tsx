@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUpsertVoiceNumber, useVoiceProviders, type VoiceNumber } from "@/hooks/useVoiceHub";
-import { normalizePhoneNumber } from "@/integrations/voice/utils/phone";
+import { normalizePhone } from "@/integrations/voice/utils/phone";
 
 interface Props {
   open: boolean;
