@@ -31,6 +31,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/groups" element={<Groups />} />
       <Route path="/dashboard/telegram" element={<TelegramPage />} />
       <Route path="/dashboard/voicehub" element={<VoiceHubPage />} />
+      <Route path="/dashboard/communication/executive" element={<ExecutiveCommandDashboard />} />
+      <Route path="/dashboard/executive-command" element={<ExecutiveCommandDashboard />} />
       <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
       <Route path="/dashboard/sequences" element={<Sequences />} />
       <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
