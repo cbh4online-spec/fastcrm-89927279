@@ -17,6 +17,7 @@ const MyPlanPage = lazy(() => import("@/pages/MyPlanPage"));
 const PlansComparisonPage = lazy(() => import("@/pages/PlansComparisonPage"));
 const BillingPlansAdminPage = lazy(() => import("@/pages/admin/BillingPlansAdminPage"));
 const VoiceHubPage = lazy(() => import("@/pages/VoiceHubPage"));
+const ExecutiveCommandDashboard = lazy(() => import("@/pages/ExecutiveCommandDashboard"));
 
 export function CommunicationRoutes() {
   return (
@@ -30,6 +31,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/groups" element={<Groups />} />
       <Route path="/dashboard/telegram" element={<TelegramPage />} />
       <Route path="/dashboard/voicehub" element={<VoiceHubPage />} />
+      <Route path="/dashboard/communication/executive" element={<ExecutiveCommandDashboard />} />
+      <Route path="/dashboard/executive-command" element={<ExecutiveCommandDashboard />} />
       <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
       <Route path="/dashboard/sequences" element={<Sequences />} />
       <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
