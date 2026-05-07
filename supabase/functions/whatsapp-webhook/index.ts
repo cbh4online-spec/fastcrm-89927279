@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { normalizeIncomingMessage } from "../_shared/normalize-message.ts";
 import { triggerWhatsAppAutopilot } from "../_shared/whatsapp-autopilot.ts";
+import { validateWebhook, logSecurityEvent, getRemoteIp, makeAdmin } from "../_shared/hmac.ts";
 
 Deno.serve(async (req) => {
   // Webhook verification (GET)
