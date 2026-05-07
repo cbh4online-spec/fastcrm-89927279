@@ -6,6 +6,7 @@
 // - Atualiza estado da instância (last_received / last_error)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { validateWebhook, logSecurityEvent, getRemoteIp } from "../_shared/hmac.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,9 +92,33 @@ Deno.serve(async (req) => {
     logId = ins?.id ?? null;
   } catch (_) { /* noop */ }
 
-  // Validação de token (apenas se a instância exige)
-  if (instance?.webhook_token && instance.webhook_token !== tokenParam) {
-    await markLog(admin, logId, false, "invalid_webhook_token", null);
+  // Validação de token centralizada (timing-safe + auditoria)
+  const tokenValidation = await validateWebhook({
+    mode: "token",
+    rawBody: bodyRaw ?? "",
+    secret: instance?.webhook_token ?? null,
+    signatureHeader: tokenParam,
+    provider: instance?.provider_name ?? providerParam,
+    functionName: "whatsapp-pro-webhook",
+    workspaceId: instance?.workspace_id ?? workspaceId ?? undefined,
+    instanceId: instance?.id ?? undefined,
+    remoteIp: getRemoteIp(req),
+    optional: true, // se token não configurado → skipped
+  });
+  await logSecurityEvent(admin, {
+    workspace_id: instance?.workspace_id ?? workspaceId ?? null,
+    provider: instance?.provider_name ?? providerParam,
+    instance_id: instance?.id ?? null,
+    function_name: "whatsapp-pro-webhook",
+    validation_mode: "token",
+    outcome: tokenValidation.outcome,
+    reason: tokenValidation.reason,
+    remote_ip: getRemoteIp(req),
+    signature_header: tokenParam,
+    payload_size: (bodyRaw ?? "").length,
+  });
+  if (!tokenValidation.ok) {
+    await markLog(admin, logId, false, `invalid_webhook_token:${tokenValidation.reason}`, null);
     return ok({ ok: false, error: "invalid_webhook_token" });
   }
 

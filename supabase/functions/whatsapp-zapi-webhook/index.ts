@@ -4,6 +4,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
 import { corsHeaders } from '../_shared/cors.ts';
+import { validateWebhook, logSecurityEvent, getRemoteIp } from '../_shared/hmac.ts';
 
 function jsonRes(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -92,6 +93,7 @@ function extractContent(payload: Record<string, unknown>): ExtractedMessage {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
+  const t0 = Date.now();
   try {
     const url = new URL(req.url);
     const workspaceId = url.searchParams.get('ws');
@@ -102,7 +104,9 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-    const payload = await req.json().catch(() => ({}));
+    // Read raw body once for HMAC validation + JSON parsing
+    const rawBody = await req.text();
+    const payload = (() => { try { return JSON.parse(rawBody); } catch { return {}; } })() as Record<string, unknown>;
     const eventType: string = (payload?.type ?? payload?.event ?? '').toString();
     console.log(`[zapi-webhook] ws=${workspaceId} type=${eventType}`);
 
@@ -114,16 +118,31 @@ Deno.serve(async (req) => {
 
     if (!conn) {
       console.warn(`[zapi-webhook] No Z-API connection for workspace ${workspaceId}`);
+      await logSecurityEvent(admin, {
+        workspace_id: workspaceId, provider: 'zapi', function_name: 'whatsapp-zapi-webhook',
+        validation_mode: 'shared_secret', outcome: 'skipped', reason: 'no_connection',
+        remote_ip: getRemoteIp(req), duration_ms: Date.now() - t0, payload_size: rawBody.length,
+      });
       return jsonRes({ ok: true, ignored: true });
     }
 
-    // Optional secret validation
-    if (conn.webhook_secret) {
-      const incoming = url.searchParams.get('secret') || req.headers.get('x-webhook-secret');
-      if (incoming !== conn.webhook_secret) {
-        console.warn(`[zapi-webhook] INVALID_SECRET ws=${workspaceId}`);
-        return jsonRes({ ok: true, ignored: 'invalid_secret' });
-      }
+    // Centralized secret validation (fail-closed if secret configured)
+    const incomingSecret = url.searchParams.get('secret') || req.headers.get('x-webhook-secret');
+    const v = await validateWebhook({
+      mode: 'shared_secret', rawBody, secret: conn.webhook_secret,
+      signatureHeader: incomingSecret, provider: 'zapi',
+      functionName: 'whatsapp-zapi-webhook', workspaceId, instanceId: conn.id,
+      remoteIp: getRemoteIp(req), optional: true, // se webhook_secret null → skipped
+    });
+    await logSecurityEvent(admin, {
+      workspace_id: workspaceId, provider: 'zapi', instance_id: conn.id,
+      function_name: 'whatsapp-zapi-webhook', validation_mode: 'shared_secret',
+      outcome: v.outcome, reason: v.reason, remote_ip: getRemoteIp(req),
+      signature_header: incomingSecret, duration_ms: Date.now() - t0, payload_size: rawBody.length,
+    });
+    if (!v.ok) {
+      console.warn(`[zapi-webhook] secret_check_failed ws=${workspaceId} reason=${v.reason}`);
+      return jsonRes({ ok: true, ignored: 'invalid_secret' });
     }
 
     const now = new Date().toISOString();
