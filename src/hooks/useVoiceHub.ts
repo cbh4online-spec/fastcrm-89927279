@@ -85,6 +85,40 @@ export type VoiceCallLog = {
   started_at: string | null;
   ended_at: string | null;
   created_at: string;
+  recording_storage_path?: string | null;
+  transcription_language?: string | null;
+  topics?: string[] | null;
+  objections?: string[] | null;
+  keywords?: string[] | null;
+  next_actions?: Array<{ action: string; priority?: string; due_in_days?: number }> | null;
+  quality_score?: number | null;
+  quality_breakdown?: Record<string, number> | null;
+  compliance_consent_detected?: boolean | null;
+  compliance_forbidden_hits?: string[] | null;
+  compliance_required_missing?: string[] | null;
+  compliance_review_required?: boolean | null;
+  intelligence_completed_at?: string | null;
+};
+
+export type VoiceCallSegment = {
+  id: string;
+  call_log_id: string;
+  segment_index: number;
+  speaker: string | null;
+  start_seconds: number | null;
+  end_seconds: number | null;
+  text: string;
+};
+
+export type VoiceComplianceKeyword = {
+  id: string;
+  workspace_id: string;
+  kind: "forbidden" | "required" | "consent";
+  phrase: string;
+  description: string | null;
+  severity: "info" | "warning" | "critical";
+  active: boolean;
+  created_at: string;
 };
 
 export type VoiceProviderRate = {
