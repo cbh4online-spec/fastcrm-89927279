@@ -57,6 +57,7 @@ export default function KernelAdminPage() {
           <TabsTrigger value="registry">Registo</TabsTrigger>
           <TabsTrigger value="decisions">Decisões</TabsTrigger>
           <TabsTrigger value="rules">Regras</TabsTrigger>
+          <TabsTrigger value="actions">Execuções</TabsTrigger>
           <TabsTrigger value="context">Grafo</TabsTrigger>
           <TabsTrigger value="impact">Impacto</TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
@@ -66,7 +67,8 @@ export default function KernelAdminPage() {
         <TabsContent value="stream"><EventStreamPanel /></TabsContent>
         <TabsContent value="registry"><RegistryPanel /></TabsContent>
         <TabsContent value="decisions"><DecisionsPanel /></TabsContent>
-        <TabsContent value="rules"><RulesPanel /></TabsContent>
+        <TabsContent value="rules"><DecisionRulesEditor /></TabsContent>
+        <TabsContent value="actions"><ActionRunsPanel /></TabsContent>
         <TabsContent value="context"><ContextGraphPanel /></TabsContent>
         <TabsContent value="impact"><ChangeImpactPanel /></TabsContent>
         <TabsContent value="audit"><AuditPanel /></TabsContent>
