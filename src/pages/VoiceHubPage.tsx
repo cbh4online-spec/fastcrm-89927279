@@ -50,6 +50,7 @@ export default function VoiceHubPage() {
   const [providerDialog, setProviderDialog] = useState<{ open: boolean; initial?: VoiceProviderInstance | null }>({ open: false });
   const [numberDialog, setNumberDialog] = useState<{ open: boolean; initial?: VoiceNumber | null }>({ open: false });
   const [callDialog, setCallDialog] = useState(false);
+  const [detailCallId, setDetailCallId] = useState<string | null>(null);
 
   const { data: providers = [] } = useVoiceProviders();
   const delProvider = useDeleteVoiceProvider();
