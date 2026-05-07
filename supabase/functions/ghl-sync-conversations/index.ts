@@ -449,11 +449,20 @@ Deno.serve(async (req) => {
 
     console.log(`[GHL Sync Conversations] Starting sync for workspace ${workspace_id}`);
 
-    // --- Load allowed social channels for THIS workspace ---
+    // --- Load allowed social channels for THIS workspace (incl. account ids) ---
     const { data: socialChannelConfig } = await supabase
       .from("workspace_ghl_social_channels")
-      .select("channel_type, is_active")
+      .select("channel_type, is_active, ghl_account_id")
       .eq("workspace_id", workspace_id);
+
+    // Account ids actively claimed by THIS workspace, indexed by social type
+    const ownAccountIdsByType = new Map<string, string[]>();
+    for (const c of (socialChannelConfig || []) as Array<{ channel_type: string; is_active: boolean; ghl_account_id: string }>) {
+      if (!c.is_active || !c.ghl_account_id) continue;
+      const arr = ownAccountIdsByType.get(c.channel_type) || [];
+      arr.push(c.ghl_account_id);
+      ownAccountIdsByType.set(c.channel_type, arr);
+    }
     
     const hasSocialChannelConfig = (socialChannelConfig?.length || 0) > 0;
 
