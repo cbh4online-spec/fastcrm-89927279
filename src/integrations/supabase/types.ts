@@ -58342,6 +58342,42 @@ export type Database = {
           },
         ]
       }
+      product_audit_validations: {
+        Row: {
+          created_at: string
+          id: string
+          module_key: string
+          notes: string | null
+          status: string | null
+          updated_at: string
+          validated: boolean
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          module_key: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          validated?: boolean
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          module_key?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          validated?: boolean
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: []
+      }
       product_bundle_items: {
         Row: {
           bundle_id: string
