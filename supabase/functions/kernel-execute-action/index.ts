@@ -147,8 +147,8 @@ async function execute(
         trigger_source: input.related_decision_id ?? input.related_event_id ?? null,
         entity_type: cfg.entity_type ?? null,
         entity_id: cfg.entity_id ?? null,
-        status: "queued",
-        input: cfg.input ?? {},
+        status: "pending",
+        input_data: cfg.input ?? {},
       }).select("id").single();
       if (execErr) throw execErr;
       return { workflow_execution_id: exec.id, workflow_code: code };
