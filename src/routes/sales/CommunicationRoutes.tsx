@@ -27,6 +27,7 @@ const DeliveryProjectDetailPage = lazy(() => import("@/pages/DeliveryProjectDeta
 const CustomerSuccessPage = lazy(() => import("@/pages/CustomerSuccessPage"));
 const CustomerAccountDetailPage = lazy(() => import("@/pages/CustomerAccountDetailPage"));
 const KernelAdminPage = lazy(() => import("@/pages/KernelAdminPage"));
+const ProductAuditPage = lazy(() => import("@/pages/admin/ProductAuditPage"));
 
 export function CommunicationRoutes() {
   return (
@@ -62,6 +63,7 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/customer-success" element={<CustomerSuccessPage />} />
       <Route path="/dashboard/customer-success/:id" element={<CustomerAccountDetailPage />} />
       <Route path="/admin/kernel" element={<KernelAdminPage />} />
+      <Route path="/admin/product-audit" element={<ProductAuditPage />} />
     </>
   );
 }
