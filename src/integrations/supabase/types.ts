@@ -75131,6 +75131,63 @@ export type Database = {
           },
         ]
       }
+      voice_agent_status: {
+        Row: {
+          active_call_id: string | null
+          created_at: string
+          current_queue_id: string | null
+          id: string
+          last_status_change_at: string
+          max_concurrent_calls: number
+          metadata: Json
+          status: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          active_call_id?: string | null
+          created_at?: string
+          current_queue_id?: string | null
+          id?: string
+          last_status_change_at?: string
+          max_concurrent_calls?: number
+          metadata?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          active_call_id?: string | null
+          created_at?: string
+          current_queue_id?: string | null
+          id?: string
+          last_status_change_at?: string
+          max_concurrent_calls?: number
+          metadata?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_agent_status_active_call_id_fkey"
+            columns: ["active_call_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_agent_status_current_queue_id_fkey"
+            columns: ["current_queue_id"]
+            isOneToOne: false
+            referencedRelation: "voice_queues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_audio_cache: {
         Row: {
           cache_key: string
@@ -75202,6 +75259,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      voice_business_hours: {
+        Row: {
+          active: boolean
+          after_hours_action: string
+          after_hours_message: string | null
+          created_at: string
+          created_by: string | null
+          holidays: Json
+          id: string
+          name: string
+          timezone: string
+          updated_at: string
+          weekly_schedule: Json
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          after_hours_action?: string
+          after_hours_message?: string | null
+          created_at?: string
+          created_by?: string | null
+          holidays?: Json
+          id?: string
+          name: string
+          timezone?: string
+          updated_at?: string
+          weekly_schedule?: Json
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          after_hours_action?: string
+          after_hours_message?: string | null
+          created_at?: string
+          created_by?: string | null
+          holidays?: Json
+          id?: string
+          name?: string
+          timezone?: string
+          updated_at?: string
+          weekly_schedule?: Json
+          workspace_id?: string
+        }
+        Relationships: []
       }
       voice_call_insights: {
         Row: {
@@ -75404,6 +75506,7 @@ export type Database = {
       }
       voice_call_logs: {
         Row: {
+          agent_status_at_call: string | null
           ai_intent: string | null
           ai_next_action: string | null
           ai_sentiment: string | null
@@ -75415,6 +75518,7 @@ export type Database = {
           call_direction: string
           call_type: string
           callback_events: Json
+          callback_request_id: string | null
           communication_conversation_id: string | null
           compliance_consent_detected: boolean | null
           compliance_forbidden_hits: Json
@@ -75435,17 +75539,21 @@ export type Database = {
           intelligence_completed_at: string | null
           intelligence_error: string | null
           intelligence_model: string | null
+          ivr_menu_id: string | null
+          ivr_selection: string | null
           keywords: Json
           last_status_at: string | null
           lead_id: string | null
           margin_amount: number | null
           metadata: Json
+          missed_reason: string | null
           next_actions: Json
           normalized_from_number: string | null
           normalized_to_number: string | null
           notes: string | null
           objections: Json
           outcome: string | null
+          overflow_action_taken: string | null
           product_id: string | null
           provider_call_id: string | null
           provider_cost_amount: number | null
@@ -75455,6 +75563,10 @@ export type Database = {
           provider_status: string | null
           quality_breakdown: Json
           quality_score: number | null
+          queue_abandoned_at: string | null
+          queue_answered_at: string | null
+          queue_entered_at: string | null
+          queue_id: string | null
           recording_duration_seconds: number | null
           recording_mime_type: string | null
           recording_provider_id: string | null
@@ -75463,6 +75575,7 @@ export type Database = {
           recording_storage_path: string | null
           recording_url: string | null
           ring_duration_seconds: number | null
+          routing_rule_id: string | null
           started_at: string | null
           status: string
           subject: string | null
@@ -75477,10 +75590,12 @@ export type Database = {
           transcription_text: string | null
           updated_at: string
           voice_number_id: string | null
+          wait_seconds: number | null
           webhook_received_at: string | null
           workspace_id: string
         }
         Insert: {
+          agent_status_at_call?: string | null
           ai_intent?: string | null
           ai_next_action?: string | null
           ai_sentiment?: string | null
@@ -75492,6 +75607,7 @@ export type Database = {
           call_direction: string
           call_type?: string
           callback_events?: Json
+          callback_request_id?: string | null
           communication_conversation_id?: string | null
           compliance_consent_detected?: boolean | null
           compliance_forbidden_hits?: Json
@@ -75512,17 +75628,21 @@ export type Database = {
           intelligence_completed_at?: string | null
           intelligence_error?: string | null
           intelligence_model?: string | null
+          ivr_menu_id?: string | null
+          ivr_selection?: string | null
           keywords?: Json
           last_status_at?: string | null
           lead_id?: string | null
           margin_amount?: number | null
           metadata?: Json
+          missed_reason?: string | null
           next_actions?: Json
           normalized_from_number?: string | null
           normalized_to_number?: string | null
           notes?: string | null
           objections?: Json
           outcome?: string | null
+          overflow_action_taken?: string | null
           product_id?: string | null
           provider_call_id?: string | null
           provider_cost_amount?: number | null
@@ -75532,6 +75652,10 @@ export type Database = {
           provider_status?: string | null
           quality_breakdown?: Json
           quality_score?: number | null
+          queue_abandoned_at?: string | null
+          queue_answered_at?: string | null
+          queue_entered_at?: string | null
+          queue_id?: string | null
           recording_duration_seconds?: number | null
           recording_mime_type?: string | null
           recording_provider_id?: string | null
@@ -75540,6 +75664,7 @@ export type Database = {
           recording_storage_path?: string | null
           recording_url?: string | null
           ring_duration_seconds?: number | null
+          routing_rule_id?: string | null
           started_at?: string | null
           status?: string
           subject?: string | null
@@ -75554,10 +75679,12 @@ export type Database = {
           transcription_text?: string | null
           updated_at?: string
           voice_number_id?: string | null
+          wait_seconds?: number | null
           webhook_received_at?: string | null
           workspace_id: string
         }
         Update: {
+          agent_status_at_call?: string | null
           ai_intent?: string | null
           ai_next_action?: string | null
           ai_sentiment?: string | null
@@ -75569,6 +75696,7 @@ export type Database = {
           call_direction?: string
           call_type?: string
           callback_events?: Json
+          callback_request_id?: string | null
           communication_conversation_id?: string | null
           compliance_consent_detected?: boolean | null
           compliance_forbidden_hits?: Json
@@ -75589,17 +75717,21 @@ export type Database = {
           intelligence_completed_at?: string | null
           intelligence_error?: string | null
           intelligence_model?: string | null
+          ivr_menu_id?: string | null
+          ivr_selection?: string | null
           keywords?: Json
           last_status_at?: string | null
           lead_id?: string | null
           margin_amount?: number | null
           metadata?: Json
+          missed_reason?: string | null
           next_actions?: Json
           normalized_from_number?: string | null
           normalized_to_number?: string | null
           notes?: string | null
           objections?: Json
           outcome?: string | null
+          overflow_action_taken?: string | null
           product_id?: string | null
           provider_call_id?: string | null
           provider_cost_amount?: number | null
@@ -75609,6 +75741,10 @@ export type Database = {
           provider_status?: string | null
           quality_breakdown?: Json
           quality_score?: number | null
+          queue_abandoned_at?: string | null
+          queue_answered_at?: string | null
+          queue_entered_at?: string | null
+          queue_id?: string | null
           recording_duration_seconds?: number | null
           recording_mime_type?: string | null
           recording_provider_id?: string | null
@@ -75617,6 +75753,7 @@ export type Database = {
           recording_storage_path?: string | null
           recording_url?: string | null
           ring_duration_seconds?: number | null
+          routing_rule_id?: string | null
           started_at?: string | null
           status?: string
           subject?: string | null
@@ -75631,15 +75768,44 @@ export type Database = {
           transcription_text?: string | null
           updated_at?: string
           voice_number_id?: string | null
+          wait_seconds?: number | null
           webhook_received_at?: string | null
           workspace_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "voice_call_logs_callback_request_id_fkey"
+            columns: ["callback_request_id"]
+            isOneToOne: false
+            referencedRelation: "voice_callback_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_logs_ivr_menu_id_fkey"
+            columns: ["ivr_menu_id"]
+            isOneToOne: false
+            referencedRelation: "voice_ivr_menus"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "voice_call_logs_provider_instance_id_fkey"
             columns: ["provider_instance_id"]
             isOneToOne: false
             referencedRelation: "voice_provider_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_logs_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "voice_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_call_logs_routing_rule_id_fkey"
+            columns: ["routing_rule_id"]
+            isOneToOne: false
+            referencedRelation: "voice_routing_rules"
             referencedColumns: ["id"]
           },
           {
@@ -75917,6 +76083,102 @@ export type Database = {
           },
         ]
       }
+      voice_callback_requests: {
+        Row: {
+          assigned_to: string | null
+          attempts: number
+          call_log_id: string | null
+          completed_at: string | null
+          contact_id: string | null
+          created_at: string
+          deal_id: string | null
+          due_at: string | null
+          id: string
+          last_attempt_at: string | null
+          lead_id: string | null
+          metadata: Json
+          normalized_phone: string
+          notes: string | null
+          phone: string
+          preferred_time: string | null
+          priority: string
+          queue_id: string | null
+          reason: string | null
+          source: string
+          status: string
+          ticket_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          attempts?: number
+          call_log_id?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          due_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          lead_id?: string | null
+          metadata?: Json
+          normalized_phone: string
+          notes?: string | null
+          phone: string
+          preferred_time?: string | null
+          priority?: string
+          queue_id?: string | null
+          reason?: string | null
+          source?: string
+          status?: string
+          ticket_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          attempts?: number
+          call_log_id?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          due_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          lead_id?: string | null
+          metadata?: Json
+          normalized_phone?: string
+          notes?: string | null
+          phone?: string
+          preferred_time?: string | null
+          priority?: string
+          queue_id?: string | null
+          reason?: string | null
+          source?: string
+          status?: string
+          ticket_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_callback_requests_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_callback_requests_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "voice_queues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_compliance_keywords: {
         Row: {
           active: boolean
@@ -76024,6 +76286,137 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: true
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_ivr_menus: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          fallback_action: string
+          fallback_queue_id: string | null
+          greeting_audio_url: string | null
+          greeting_text: string | null
+          id: string
+          language: string
+          max_retries: number
+          name: string
+          settings: Json
+          status: string
+          timeout_seconds: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fallback_action?: string
+          fallback_queue_id?: string | null
+          greeting_audio_url?: string | null
+          greeting_text?: string | null
+          id?: string
+          language?: string
+          max_retries?: number
+          name: string
+          settings?: Json
+          status?: string
+          timeout_seconds?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fallback_action?: string
+          fallback_queue_id?: string | null
+          greeting_audio_url?: string | null
+          greeting_text?: string | null
+          id?: string
+          language?: string
+          max_retries?: number
+          name?: string
+          settings?: Json
+          status?: string
+          timeout_seconds?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_ivr_menus_fallback_queue_id_fkey"
+            columns: ["fallback_queue_id"]
+            isOneToOne: false
+            referencedRelation: "voice_queues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_ivr_options: {
+        Row: {
+          action_type: string
+          active: boolean
+          created_at: string
+          digit: string
+          id: string
+          ivr_menu_id: string
+          label: string
+          metadata: Json
+          priority: number
+          target_number: string | null
+          target_queue_id: string | null
+          target_user_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          active?: boolean
+          created_at?: string
+          digit: string
+          id?: string
+          ivr_menu_id: string
+          label: string
+          metadata?: Json
+          priority?: number
+          target_number?: string | null
+          target_queue_id?: string | null
+          target_user_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          active?: boolean
+          created_at?: string
+          digit?: string
+          id?: string
+          ivr_menu_id?: string
+          label?: string
+          metadata?: Json
+          priority?: number
+          target_number?: string | null
+          target_queue_id?: string | null
+          target_user_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_ivr_options_ivr_menu_id_fkey"
+            columns: ["ivr_menu_id"]
+            isOneToOne: false
+            referencedRelation: "voice_ivr_menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_ivr_options_target_queue_id_fkey"
+            columns: ["target_queue_id"]
+            isOneToOne: false
+            referencedRelation: "voice_queues"
             referencedColumns: ["id"]
           },
         ]
@@ -76381,6 +76774,188 @@ export type Database = {
           },
         ]
       }
+      voice_queue_events: {
+        Row: {
+          call_log_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          queue_id: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          call_log_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          queue_id?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          call_log_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          queue_id?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_queue_events_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "voice_call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_queue_events_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "voice_queues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_queue_members: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          max_concurrent_calls: number
+          priority: number
+          queue_id: string
+          skill_tags: string[]
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          max_concurrent_calls?: number
+          priority?: number
+          queue_id: string
+          skill_tags?: string[]
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          max_concurrent_calls?: number
+          priority?: number
+          queue_id?: string
+          skill_tags?: string[]
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_queue_members_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "voice_queues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_queues: {
+        Row: {
+          assigned_team_id: string | null
+          business_hours_id: string | null
+          created_at: string
+          created_by: string | null
+          default_number_id: string | null
+          description: string | null
+          fallback_team_id: string | null
+          id: string
+          max_queue_size: number | null
+          max_wait_seconds: number
+          name: string
+          overflow_action: string
+          queue_type: string
+          recording_enabled: boolean
+          routing_strategy: string
+          settings: Json
+          sla_policy_id: string | null
+          status: string
+          transcription_enabled: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_team_id?: string | null
+          business_hours_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_number_id?: string | null
+          description?: string | null
+          fallback_team_id?: string | null
+          id?: string
+          max_queue_size?: number | null
+          max_wait_seconds?: number
+          name: string
+          overflow_action?: string
+          queue_type?: string
+          recording_enabled?: boolean
+          routing_strategy?: string
+          settings?: Json
+          sla_policy_id?: string | null
+          status?: string
+          transcription_enabled?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_team_id?: string | null
+          business_hours_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_number_id?: string | null
+          description?: string | null
+          fallback_team_id?: string | null
+          id?: string
+          max_queue_size?: number | null
+          max_wait_seconds?: number
+          name?: string
+          overflow_action?: string
+          queue_type?: string
+          recording_enabled?: boolean
+          routing_strategy?: string
+          settings?: Json
+          sla_policy_id?: string | null
+          status?: string
+          transcription_enabled?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_queues_business_hours_id_fkey"
+            columns: ["business_hours_id"]
+            isOneToOne: false
+            referencedRelation: "voice_business_hours"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_queues_sla_policy_id_fkey"
+            columns: ["sla_policy_id"]
+            isOneToOne: false
+            referencedRelation: "voice_sla_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_recording_access_logs: {
         Row: {
           action: string
@@ -76442,6 +77017,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      voice_routing_rules: {
+        Row: {
+          actions: Json
+          active: boolean
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          execution_count: number
+          id: string
+          last_executed_at: string | null
+          name: string
+          priority: number
+          provider_instance_id: string | null
+          trigger_type: string
+          updated_at: string
+          voice_number_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          actions?: Json
+          active?: boolean
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          execution_count?: number
+          id?: string
+          last_executed_at?: string | null
+          name: string
+          priority?: number
+          provider_instance_id?: string | null
+          trigger_type?: string
+          updated_at?: string
+          voice_number_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          actions?: Json
+          active?: boolean
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          execution_count?: number
+          id?: string
+          last_executed_at?: string | null
+          name?: string
+          priority?: number
+          provider_instance_id?: string | null
+          trigger_type?: string
+          updated_at?: string
+          voice_number_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
       }
       voice_settings: {
         Row: {
@@ -76511,6 +77143,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      voice_sla_policies: {
+        Row: {
+          active: boolean
+          business_hours_only: boolean
+          callback_completion_minutes: number
+          created_at: string
+          description: string | null
+          first_answer_seconds: number
+          id: string
+          missed_call_callback_minutes: number
+          name: string
+          priority: string
+          updated_at: string
+          voicemail_response_minutes: number
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          business_hours_only?: boolean
+          callback_completion_minutes?: number
+          created_at?: string
+          description?: string | null
+          first_answer_seconds?: number
+          id?: string
+          missed_call_callback_minutes?: number
+          name: string
+          priority?: string
+          updated_at?: string
+          voicemail_response_minutes?: number
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          business_hours_only?: boolean
+          callback_completion_minutes?: number
+          created_at?: string
+          description?: string | null
+          first_answer_seconds?: number
+          id?: string
+          missed_call_callback_minutes?: number
+          name?: string
+          priority?: string
+          updated_at?: string
+          voicemail_response_minutes?: number
+          workspace_id?: string
+        }
+        Relationships: []
       }
       website_chat_messages: {
         Row: {
