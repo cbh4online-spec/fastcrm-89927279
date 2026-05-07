@@ -1,68 +1,46 @@
-import type { VoiceProviderAdapter, VoiceProviderName } from "./types";
+import type { VoiceProviderAdapter, VoiceProviderName, ProviderRuntimeConfig } from "./types";
 import { mockVoiceAdapter } from "./mockVoiceAdapter";
+import { twilioVoiceAdapter } from "./twilioVoiceAdapter";
+import { nvoipAdapter } from "./nvoipAdapter";
+import { threecxAdapter } from "./threecxAdapter";
+import { sipAdapter } from "./sipAdapter";
+import { normalizePhone } from "../utils/phone";
+import { getDefaultCapabilities } from "../utils/providerCapabilities";
+import { estimateCallCost } from "../utils/costEstimator";
 
 /**
- * Adapters reais (Nvoip, Twilio, 3CX, SIP) — placeholders estruturais.
- * Implementação real fica para Fase 1P (Voice Provider Integration).
+ * Placeholders para providers ainda não suportados. Implementação futura na Fase 1Q+.
  */
-function createPlaceholderAdapter(name: VoiceProviderName): VoiceProviderAdapter {
+function placeholder(name: VoiceProviderName): VoiceProviderAdapter {
   return {
     name,
-    capabilities: {
-      can_click_to_call: false,
-      can_receive_calls: false,
-      can_record: false,
-      can_transcribe: false,
-      can_webhook_status: false,
-      can_manage_numbers: false,
-      can_transfer: false,
-    },
-    async testConnection() {
-      return { ok: false, message: `Adapter ${name} ainda não implementado (Fase 1P).` };
-    },
-    async clickToCall() {
-      return {
-        success: false,
-        status: "failed",
-        message: `Provider ${name} não suportado nesta fase. Use modo demonstração.`,
-      };
-    },
-    async endCall() {
-      return { success: false, message: `Provider ${name} não suportado.` };
-    },
-    async getCallStatus() {
-      return { status: "failed" as const };
-    },
-    parseIncomingCallWebhook() {
-      return null;
-    },
-    parseCallStatusWebhook() {
-      return null;
-    },
-    async getRecording() {
-      return { status: "not_available" };
-    },
-    getCapabilities() {
-      return this.capabilities;
-    },
-    normalizeNumber(num: string) {
-      return num;
-    },
+    capabilities: getDefaultCapabilities(name),
+    async testConnection() { return { ok: false, message: `Adapter ${name} não implementado.` }; },
+    async clickToCall() { return { success: false, status: "failed", message: `Provider ${name} não suportado.` }; },
+    async endCall() { return { success: false }; },
+    async getCallStatus() { return { status: "failed" as const }; },
+    parseIncomingWebhook() { return null; },
+    parseStatusWebhook() { return null; },
+    parseRecordingWebhook() { return null; },
+    async getRecording() { return { status: "not_available" }; },
+    estimateCost(input) { return estimateCallCost(input); },
+    getCapabilities() { return this.capabilities; },
+    normalizePhoneNumber(num, country = "PT") { return normalizePhone(num, country); },
   };
 }
 
 const ADAPTERS: Record<VoiceProviderName, VoiceProviderAdapter> = {
   mock: mockVoiceAdapter,
-  nvoip: createPlaceholderAdapter("nvoip"),
-  twilio: createPlaceholderAdapter("twilio"),
-  zenvia: createPlaceholderAdapter("zenvia"),
-  totalvoice: createPlaceholderAdapter("totalvoice"),
-  vozio: createPlaceholderAdapter("vozio"),
-  voip_do_brasil: createPlaceholderAdapter("voip_do_brasil"),
-  threecx: createPlaceholderAdapter("threecx"),
-  asterisk: createPlaceholderAdapter("asterisk"),
-  sip: createPlaceholderAdapter("sip"),
-  other: createPlaceholderAdapter("other"),
+  twilio: twilioVoiceAdapter,
+  nvoip: nvoipAdapter,
+  threecx: threecxAdapter,
+  sip: sipAdapter,
+  zenvia: placeholder("zenvia"),
+  totalvoice: placeholder("totalvoice"),
+  vozio: placeholder("vozio"),
+  voip_do_brasil: placeholder("voip_do_brasil"),
+  asterisk: placeholder("asterisk"),
+  other: placeholder("other"),
 };
 
 export function getVoiceAdapter(name: VoiceProviderName): VoiceProviderAdapter {
@@ -73,5 +51,5 @@ export function listVoiceAdapters(): VoiceProviderAdapter[] {
   return Object.values(ADAPTERS);
 }
 
-export { mockVoiceAdapter };
-export type { VoiceProviderAdapter, VoiceProviderName } from "./types";
+export { mockVoiceAdapter, twilioVoiceAdapter, nvoipAdapter, threecxAdapter, sipAdapter };
+export type { VoiceProviderAdapter, VoiceProviderName, ProviderRuntimeConfig } from "./types";
