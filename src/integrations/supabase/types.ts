@@ -34136,6 +34136,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ghl_routing_audit: {
+        Row: {
+          action: string
+          channel_type: string | null
+          created_at: string
+          ghl_account_id: string | null
+          ghl_conversation_id: string | null
+          ghl_location_id: string | null
+          id: string
+          payload: Json | null
+          reason: string | null
+          resolved_workspace_id: string | null
+          source: string
+          source_workspace_id: string | null
+        }
+        Insert: {
+          action: string
+          channel_type?: string | null
+          created_at?: string
+          ghl_account_id?: string | null
+          ghl_conversation_id?: string | null
+          ghl_location_id?: string | null
+          id?: string
+          payload?: Json | null
+          reason?: string | null
+          resolved_workspace_id?: string | null
+          source: string
+          source_workspace_id?: string | null
+        }
+        Update: {
+          action?: string
+          channel_type?: string | null
+          created_at?: string
+          ghl_account_id?: string | null
+          ghl_conversation_id?: string | null
+          ghl_location_id?: string | null
+          id?: string
+          payload?: Json | null
+          reason?: string | null
+          resolved_workspace_id?: string | null
+          source?: string
+          source_workspace_id?: string | null
+        }
+        Relationships: []
+      }
       ghl_sync_log: {
         Row: {
           event_type: string

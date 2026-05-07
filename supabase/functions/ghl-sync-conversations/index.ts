@@ -1,5 +1,12 @@
 // Version 1.2 - GHL Conversation Sync (fixed message parsing + auto-lead creation + autopilot trigger)
 import { createClient } from "@supabase/supabase-js";
+import {
+  toSocialType,
+  matchAccountId,
+  extractAccountIdsFromConversation,
+  fetchGHLConversationDetail,
+  logRoutingDecision,
+} from "../_shared/ghlRouting.ts";
 
 // Helper: Trigger autopilot for synced inbound messages
 async function triggerAutopilotForSyncedMessage(
@@ -442,11 +449,20 @@ Deno.serve(async (req) => {
 
     console.log(`[GHL Sync Conversations] Starting sync for workspace ${workspace_id}`);
 
-    // --- Load allowed social channels for THIS workspace ---
+    // --- Load allowed social channels for THIS workspace (incl. account ids) ---
     const { data: socialChannelConfig } = await supabase
       .from("workspace_ghl_social_channels")
-      .select("channel_type, is_active")
+      .select("channel_type, is_active, ghl_account_id")
       .eq("workspace_id", workspace_id);
+
+    // Account ids actively claimed by THIS workspace, indexed by social type
+    const ownAccountIdsByType = new Map<string, string[]>();
+    for (const c of (socialChannelConfig || []) as Array<{ channel_type: string; is_active: boolean; ghl_account_id: string }>) {
+      if (!c.is_active || !c.ghl_account_id) continue;
+      const arr = ownAccountIdsByType.get(c.channel_type) || [];
+      arr.push(c.ghl_account_id);
+      ownAccountIdsByType.set(c.channel_type, arr);
+    }
     
     const hasSocialChannelConfig = (socialChannelConfig?.length || 0) > 0;
 
@@ -742,6 +758,58 @@ Deno.serve(async (req) => {
                   result.messages_skipped++;
                   continue;
                 }
+
+                // --- ACCOUNT-ID ISOLATION: for social channels, verify the conversation
+                //     actually belongs to a page/account claimed by THIS workspace.
+                //     Prevents cross-workspace contamination when multiple workspaces
+                //     share the same GHL location_id.
+                const socialType = toSocialType(channel);
+                if (socialType && siblingWorkspaceIds.length > 0) {
+                  const ownIds = ownAccountIdsByType.get(socialType) || [];
+                  if (ownIds.length === 0) {
+                    // This workspace doesn't claim any account for this social type → skip
+                    console.log(`[GHL Sync] Skipping conv ${ghlConv.id} - no ${socialType} account claimed by workspace ${workspace_id}`);
+                    await logRoutingDecision(supabase, {
+                      source: "sync_conversations",
+                      source_workspace_id: workspace_id,
+                      ghl_location_id: locationId,
+                      ghl_conversation_id: ghlConv.id,
+                      channel_type: socialType,
+                      action: "skipped_wrong_workspace",
+                      reason: "workspace_has_no_account_for_channel",
+                    });
+                    result.messages_skipped++;
+                    continue;
+                  }
+
+                  // Fetch detail to extract the real account/page id
+                  const detail = await fetchGHLConversationDetail(apiKey, ghlConv.id);
+                  const candidateIds = extractAccountIdsFromConversation(detail);
+
+                  if (candidateIds.length === 0) {
+                    console.log(`[GHL Sync] Conv ${ghlConv.id} - no account_id found in detail, allowing (legacy)`);
+                  } else {
+                    const ownsIt = ownIds.some(stored =>
+                      candidateIds.some(cand => matchAccountId(String(stored), String(cand)))
+                    );
+                    if (!ownsIt) {
+                      console.log(`[GHL Sync] Skipping conv ${ghlConv.id} - account_id ${candidateIds.join(",")} not owned by workspace ${workspace_id} (owns: ${ownIds.join(",")})`);
+                      await logRoutingDecision(supabase, {
+                        source: "sync_conversations",
+                        source_workspace_id: workspace_id,
+                        ghl_location_id: locationId,
+                        ghl_conversation_id: ghlConv.id,
+                        ghl_account_id: candidateIds[0],
+                        channel_type: socialType,
+                        action: "skipped_wrong_workspace",
+                        reason: "account_id_owned_by_other_workspace",
+                      });
+                      result.messages_skipped++;
+                      continue;
+                    }
+                  }
+                }
+
 
                 const externalThreadId = `ghl_${ghlConv.id}`;
 
