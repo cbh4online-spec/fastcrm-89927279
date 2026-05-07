@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Plus, Plug, Hash,
-  Coins, ShieldCheck, Trash2, Pencil, TestTube2, Search,
+  Coins, ShieldCheck, Trash2, Pencil, TestTube2, Search, ShieldAlert, Sparkles, FileSearch,
 } from "lucide-react";
 import {
   useVoiceProviders, useDeleteVoiceProvider, useTestVoiceProvider,
@@ -25,6 +25,8 @@ import {
 import { VoiceProviderDialog } from "@/components/voice/VoiceProviderDialog";
 import { VoiceNumberDialog } from "@/components/voice/VoiceNumberDialog";
 import { LogCallDialog } from "@/components/voice/LogCallDialog";
+import { VoiceCallDetailDialog } from "@/components/voice/VoiceCallDetailDialog";
+import { VoiceComplianceKeywordsManager } from "@/components/voice/VoiceComplianceKeywordsManager";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -48,6 +50,7 @@ export default function VoiceHubPage() {
   const [providerDialog, setProviderDialog] = useState<{ open: boolean; initial?: VoiceProviderInstance | null }>({ open: false });
   const [numberDialog, setNumberDialog] = useState<{ open: boolean; initial?: VoiceNumber | null }>({ open: false });
   const [callDialog, setCallDialog] = useState(false);
+  const [detailCallId, setDetailCallId] = useState<string | null>(null);
 
   const { data: providers = [] } = useVoiceProviders();
   const delProvider = useDeleteVoiceProvider();
@@ -63,10 +66,14 @@ export default function VoiceHubPage() {
 
   // KPIs
   const totalCalls = calls.length;
-  const totalDuration = calls.reduce((acc, c) => acc + (c.duration_seconds ?? 0), 0);
   const inbound = calls.filter((c) => c.call_direction === "inbound").length;
   const outbound = calls.filter((c) => c.call_direction === "outbound").length;
-  const missed = calls.filter((c) => c.call_direction === "missed" || c.status === "no_answer" || c.status === "missed").length;
+  const reviewPending = calls.filter((c: any) => c.compliance_review_required).length;
+  const avgQuality = (() => {
+    const scored = calls.filter((c: any) => typeof c.quality_score === "number");
+    if (scored.length === 0) return null;
+    return Math.round(scored.reduce((a, c: any) => a + c.quality_score, 0) / scored.length);
+  })();
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -84,20 +91,22 @@ export default function VoiceHubPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Total chamadas</p><p className="text-2xl font-semibold">{totalCalls}</p></CardContent></Card>
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Entrada</p><p className="text-2xl font-semibold text-emerald-600">{inbound}</p></CardContent></Card>
         <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Saída</p><p className="text-2xl font-semibold text-blue-600">{outbound}</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Perdidas / Sem resposta</p><p className="text-2xl font-semibold text-red-600">{missed}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles className="h-3 w-3" />Qualidade média</p><p className="text-2xl font-semibold">{avgQuality != null ? `${avgQuality}/100` : "—"}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground flex items-center gap-1"><ShieldAlert className="h-3 w-3" />Revisão pendente</p><p className={`text-2xl font-semibold ${reviewPending > 0 ? "text-red-600" : ""}`}>{reviewPending}</p></CardContent></Card>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-5 max-w-2xl">
+        <TabsList className="grid grid-cols-6 max-w-3xl">
           <TabsTrigger value="calls"><Phone className="h-4 w-4 mr-2" />Chamadas</TabsTrigger>
           <TabsTrigger value="providers"><Plug className="h-4 w-4 mr-2" />Providers</TabsTrigger>
           <TabsTrigger value="numbers"><Hash className="h-4 w-4 mr-2" />Números</TabsTrigger>
           <TabsTrigger value="rates"><Coins className="h-4 w-4 mr-2" />Tarifas</TabsTrigger>
           <TabsTrigger value="compliance"><ShieldCheck className="h-4 w-4 mr-2" />Conformidade</TabsTrigger>
+          <TabsTrigger value="keywords"><FileSearch className="h-4 w-4 mr-2" />Keywords</TabsTrigger>
         </TabsList>
 
         {/* CALLS */}
@@ -119,7 +128,7 @@ export default function VoiceHubPage() {
                     <TableHead>Estado</TableHead>
                     <TableHead>Resultado</TableHead>
                     <TableHead>Duração</TableHead>
-                    <TableHead>Custo</TableHead>
+                    <TableHead>IA</TableHead>
                     <TableHead>Data</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -127,8 +136,8 @@ export default function VoiceHubPage() {
                   {calls.length === 0 && (
                     <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">Sem chamadas registadas.</TableCell></TableRow>
                   )}
-                  {calls.map((c) => (
-                    <TableRow key={c.id}>
+                  {calls.map((c: any) => (
+                    <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailCallId(c.id)}>
                       <TableCell>{directionIcon(c.call_direction)}</TableCell>
                       <TableCell>
                         <div className="font-medium">{c.to_number || c.from_number || "—"}</div>
@@ -137,7 +146,14 @@ export default function VoiceHubPage() {
                       <TableCell><Badge variant="outline">{c.status}</Badge></TableCell>
                       <TableCell>{c.outcome ?? "—"}</TableCell>
                       <TableCell>{formatDuration(c.duration_seconds)}</TableCell>
-                      <TableCell>{c.cost_amount != null ? `${c.cost_amount.toFixed(4)} ${c.currency}` : "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {c.transcription_status === "completed" && <Badge variant="secondary" className="text-xs">T</Badge>}
+                          {c.ai_summary && <Sparkles className="h-3 w-3 text-primary" />}
+                          {c.quality_score != null && <span className="text-xs tabular-nums">{c.quality_score}</span>}
+                          {c.compliance_review_required && <ShieldAlert className="h-3 w-3 text-red-600" />}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {c.created_at ? format(new Date(c.created_at), "dd/MM HH:mm", { locale: pt }) : "—"}
                       </TableCell>
@@ -366,7 +382,12 @@ export default function VoiceHubPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="keywords" className="mt-4">
+          <VoiceComplianceKeywordsManager />
+        </TabsContent>
       </Tabs>
+
 
       <VoiceProviderDialog
         open={providerDialog.open}
@@ -379,6 +400,12 @@ export default function VoiceHubPage() {
         initial={numberDialog.initial}
       />
       <LogCallDialog open={callDialog} onOpenChange={setCallDialog} />
+      <VoiceCallDetailDialog
+        callId={detailCallId}
+        open={!!detailCallId}
+        onOpenChange={(o) => !o && setDetailCallId(null)}
+      />
+
     </div>
   );
 }

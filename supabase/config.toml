@@ -117,3 +117,12 @@ verify_jwt = false
 
 [functions.voice-click-to-call]
 verify_jwt = false
+
+[functions.voice-transcribe-call]
+verify_jwt = false
+
+[functions.voice-analyze-call]
+verify_jwt = false
+
+[functions.voice-recording-upload]
+verify_jwt = false
