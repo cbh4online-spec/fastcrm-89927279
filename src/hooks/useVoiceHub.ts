@@ -326,7 +326,20 @@ export function useLogVoiceCall() {
     }) => {
       if (!currentWorkspace?.id) throw new Error("Sem workspace");
       const { data, error } = await supabase.functions.invoke("voice-log-call", {
-        body: { workspaceId: currentWorkspace.id, ...input },
+        body: {
+          workspace_id: currentWorkspace.id,
+          call_direction: input.direction,
+          phone: input.to_number,
+          from_number: input.from_number,
+          contact_id: input.contact_id,
+          deal_id: input.deal_id,
+          ticket_id: input.ticket_id,
+          duration_seconds: input.duration_seconds,
+          outcome: input.outcome,
+          notes: input.notes,
+          subject: input.subject,
+          provider_instance_id: input.provider_instance_id,
+        },
       });
       if (error) throw error;
       return data;
