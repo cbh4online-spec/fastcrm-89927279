@@ -365,7 +365,14 @@ export function useClickToCall() {
     }) => {
       if (!currentWorkspace?.id) throw new Error("Sem workspace");
       const { data, error } = await supabase.functions.invoke("voice-click-to-call", {
-        body: { workspaceId: currentWorkspace.id, ...input },
+        body: {
+          workspace_id: currentWorkspace.id,
+          to_number: input.to_number,
+          from_number: input.from_number,
+          contact_id: input.contact_id,
+          provider_instance_id: input.provider_instance_id,
+          record: input.record,
+        },
       });
       if (error) throw error;
       return data;
