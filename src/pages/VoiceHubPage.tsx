@@ -384,6 +384,8 @@ export default function VoiceHubPage() {
         </TabsContent>
       </Tabs>
 
+      <TabsKeywordsHack />
+
       <VoiceProviderDialog
         open={providerDialog.open}
         onOpenChange={(o) => setProviderDialog({ open: o, initial: o ? providerDialog.initial : null })}
@@ -395,6 +397,12 @@ export default function VoiceHubPage() {
         initial={numberDialog.initial}
       />
       <LogCallDialog open={callDialog} onOpenChange={setCallDialog} />
+      <VoiceCallDetailDialog
+        callId={detailCallId}
+        open={!!detailCallId}
+        onOpenChange={(o) => !o && setDetailCallId(null)}
+      />
+
     </div>
   );
 }
