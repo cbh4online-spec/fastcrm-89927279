@@ -191,6 +191,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
  e("plan-mgmt",   "Plan Management","/admin/plan-management",                Crown,     "comunicacao"),
  e("workspace-plan","Plano Atual",  "/dashboard/settings/workspace-plan",   CreditCard,"comunicacao"),
  e("onboarding-projects","Onboarding","/dashboard/onboarding",               Briefcase, "comunicacao"),
+ e("delivery-projects","Implementação","/dashboard/delivery/projects",       Rocket,    "comunicacao"),
  e("templates",   "Modelos",     "/dashboard/communication/templates",  FileText,  "comunicacao"),
 
   // ══════════════════════════════════════════════════════════════
