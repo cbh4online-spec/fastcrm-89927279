@@ -102,8 +102,9 @@ export default function VoiceHubPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-6 max-w-3xl">
+        <TabsList className="grid grid-cols-7 max-w-4xl">
           <TabsTrigger value="calls"><Phone className="h-4 w-4 mr-2" />Chamadas</TabsTrigger>
+          <TabsTrigger value="ops"><Activity className="h-4 w-4 mr-2" />Operations</TabsTrigger>
           <TabsTrigger value="providers"><Plug className="h-4 w-4 mr-2" />Providers</TabsTrigger>
           <TabsTrigger value="numbers"><Hash className="h-4 w-4 mr-2" />Números</TabsTrigger>
           <TabsTrigger value="rates"><Coins className="h-4 w-4 mr-2" />Tarifas</TabsTrigger>
