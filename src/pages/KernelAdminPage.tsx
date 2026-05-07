@@ -14,9 +14,11 @@ import {
 } from 'lucide-react';
 import {
   useKernelOverview, useEventRegistryFull, useEventStream,
-  useDecisionRules, useDecisionsList, useChangeImpacts,
+  useDecisionsList, useChangeImpacts,
   useContextGraph, useAuditLogs, useKernelDiagnostics,
 } from '@/hooks/useKernel';
+import { DecisionRulesEditor } from '@/components/kernel/DecisionRulesEditor';
+import { ActionRunsPanel } from '@/components/kernel/ActionRunsPanel';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
