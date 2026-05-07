@@ -178,7 +178,7 @@ export default function OnboardingProjectDetailPage() {
             <div><strong>Email:</strong> {project.customer_contact_email}</div>
             <div><strong>Telefone:</strong> {project.customer_contact_phone ?? "—"}</div>
             <Separator />
-            <div><strong>Módulos:</strong> {(project.selected_modules || []).join(", ") || "—"}</div>
+            <div><strong>Módulos:</strong> {(Array.isArray(project.selected_modules) ? project.selected_modules : []).join(", ") || "—"}</div>
           </CardContent></Card>
         </TabsContent>
 

@@ -4,7 +4,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
 export function useOnboardingProjects() {
-  const { workspace } = useWorkspace();
+  const { currentWorkspace: workspace } = useWorkspace();
   return useQuery({
     queryKey: ["onboarding-projects", workspace?.id],
     enabled: !!workspace?.id,
@@ -75,7 +75,7 @@ export function useChecklistTemplates() {
 }
 
 export function useProposalAcceptances() {
-  const { workspace } = useWorkspace();
+  const { currentWorkspace: workspace } = useWorkspace();
   return useQuery({
     queryKey: ["proposal-acceptances", workspace?.id],
     enabled: !!workspace?.id,
