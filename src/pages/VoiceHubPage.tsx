@@ -168,6 +168,11 @@ export default function VoiceHubPage() {
           </Card>
         </TabsContent>
 
+        {/* OPERATIONS */}
+        <TabsContent value="ops" className="mt-4">
+          <CallCenterOperations />
+        </TabsContent>
+
         {/* PROVIDERS */}
         <TabsContent value="providers" className="mt-4">
           <Card>
