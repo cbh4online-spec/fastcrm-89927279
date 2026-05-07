@@ -142,7 +142,7 @@ serve(async (req) => {
     const fullText: string = result.full_text || segments.map((s) => s.text).join(" ");
     const language: string = result.language || "pt-PT";
 
-    // Substitui segmentos antigos
+    // Substitui segmentos antigos (legacy intelligence table)
     await supabase.from("voice_call_intelligence").delete().eq("call_log_id", call_log_id);
     if (segments.length > 0) {
       const rows = segments.map((s, i) => ({
@@ -156,6 +156,40 @@ serve(async (req) => {
       }));
       const { error: insErr } = await supabase.from("voice_call_intelligence").insert(rows);
       if (insErr) console.error("intelligence insert error", insErr);
+    }
+
+    // Fase 1Q v2 — guarda na nova voice_call_transcriptions
+    const speakerLabels = segments.map((s) => ({
+      speaker: s.speaker ?? "unknown",
+      start: s.start_seconds ?? null,
+      end: s.end_seconds ?? null,
+      text: s.text,
+    }));
+
+    const { data: existingTranscription } = await supabase
+      .from("voice_call_transcriptions")
+      .select("id")
+      .eq("call_log_id", call_log_id)
+      .maybeSingle();
+
+    const transcriptionPayload = {
+      workspace_id: call.workspace_id,
+      call_log_id,
+      transcription_status: "completed",
+      transcription_provider: "lovable_ai",
+      transcription_model: TRANSCRIBE_MODEL,
+      language,
+      transcription_text: fullText,
+      speaker_labels: speakerLabels,
+      segments: segments,
+      completed_at: new Date().toISOString(),
+      error: null,
+    };
+
+    if (existingTranscription) {
+      await supabase.from("voice_call_transcriptions").update(transcriptionPayload).eq("id", existingTranscription.id);
+    } else {
+      await supabase.from("voice_call_transcriptions").insert(transcriptionPayload);
     }
 
     await supabase
