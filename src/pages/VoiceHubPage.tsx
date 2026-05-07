@@ -382,9 +382,12 @@ export default function VoiceHubPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="keywords" className="mt-4">
+          <VoiceComplianceKeywordsManager />
+        </TabsContent>
       </Tabs>
 
-      <TabsKeywordsHack />
 
       <VoiceProviderDialog
         open={providerDialog.open}
