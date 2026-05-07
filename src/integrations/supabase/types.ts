@@ -8166,44 +8166,65 @@ export type Database = {
       }
       billing_addons: {
         Row: {
+          addon_type: string
+          billing_period: string
           category: string | null
           code: string
           created_at: string
           currency: string
           description: string | null
+          feature_unlocks: string[]
           id: string
+          included_quantity: number | null
           is_active: boolean
+          limits: Json
           metadata: Json
           name: string
           price_per_unit: number | null
+          slug: string | null
+          status: string
           unit_name: string | null
           updated_at: string
         }
         Insert: {
+          addon_type?: string
+          billing_period?: string
           category?: string | null
           code: string
           created_at?: string
           currency?: string
           description?: string | null
+          feature_unlocks?: string[]
           id?: string
+          included_quantity?: number | null
           is_active?: boolean
+          limits?: Json
           metadata?: Json
           name: string
           price_per_unit?: number | null
+          slug?: string | null
+          status?: string
           unit_name?: string | null
           updated_at?: string
         }
         Update: {
+          addon_type?: string
+          billing_period?: string
           category?: string | null
           code?: string
           created_at?: string
           currency?: string
           description?: string | null
+          feature_unlocks?: string[]
           id?: string
+          included_quantity?: number | null
           is_active?: boolean
+          limits?: Json
           metadata?: Json
           name?: string
           price_per_unit?: number | null
+          slug?: string | null
+          status?: string
           unit_name?: string | null
           updated_at?: string
         }
@@ -8479,24 +8500,35 @@ export type Database = {
           currency: string
           description: string | null
           enterprise: boolean
+          features: Json
           id: string
+          included_seats: number | null
           is_active: boolean
           is_public: boolean
+          limits: Json
           metadata: Json
           monthly_price: number | null
           name: string
+          overage_rules: Json
+          plan_type: string
+          price_per_extra_seat: number | null
           promise: string | null
           public_description: string | null
           recommended: boolean
+          seat_limit: number | null
+          slug: string | null
           sort_order: number
+          status: string
           stripe_mode: string
           stripe_price_id_annual: string | null
           stripe_price_id_monthly: string | null
           stripe_product_id: string | null
           stripe_sync_error: string | null
           stripe_synced_at: string | null
+          trial_days: number | null
           trial_period_days: number
           updated_at: string
+          visibility: string
         }
         Insert: {
           annual_price?: number | null
@@ -8507,24 +8539,35 @@ export type Database = {
           currency?: string
           description?: string | null
           enterprise?: boolean
+          features?: Json
           id?: string
+          included_seats?: number | null
           is_active?: boolean
           is_public?: boolean
+          limits?: Json
           metadata?: Json
           monthly_price?: number | null
           name: string
+          overage_rules?: Json
+          plan_type?: string
+          price_per_extra_seat?: number | null
           promise?: string | null
           public_description?: string | null
           recommended?: boolean
+          seat_limit?: number | null
+          slug?: string | null
           sort_order?: number
+          status?: string
           stripe_mode?: string
           stripe_price_id_annual?: string | null
           stripe_price_id_monthly?: string | null
           stripe_product_id?: string | null
           stripe_sync_error?: string | null
           stripe_synced_at?: string | null
+          trial_days?: number | null
           trial_period_days?: number
           updated_at?: string
+          visibility?: string
         }
         Update: {
           annual_price?: number | null
@@ -8535,24 +8578,35 @@ export type Database = {
           currency?: string
           description?: string | null
           enterprise?: boolean
+          features?: Json
           id?: string
+          included_seats?: number | null
           is_active?: boolean
           is_public?: boolean
+          limits?: Json
           metadata?: Json
           monthly_price?: number | null
           name?: string
+          overage_rules?: Json
+          plan_type?: string
+          price_per_extra_seat?: number | null
           promise?: string | null
           public_description?: string | null
           recommended?: boolean
+          seat_limit?: number | null
+          slug?: string | null
           sort_order?: number
+          status?: string
           stripe_mode?: string
           stripe_price_id_annual?: string | null
           stripe_price_id_monthly?: string | null
           stripe_product_id?: string | null
           stripe_sync_error?: string | null
           stripe_synced_at?: string | null
+          trial_days?: number | null
           trial_period_days?: number
           updated_at?: string
+          visibility?: string
         }
         Relationships: []
       }
@@ -18314,6 +18368,124 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_packages: {
+        Row: {
+          active: boolean
+          created_at: string
+          currency: string
+          description: string | null
+          features: Json
+          id: string
+          included_addons: string[]
+          included_plan_id: string | null
+          name: string
+          positioning: string | null
+          recommended_monthly_price: number | null
+          recommended_setup_fee: number | null
+          sales_notes: string | null
+          slug: string
+          sort_order: number
+          target_segment: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          included_addons?: string[]
+          included_plan_id?: string | null
+          name: string
+          positioning?: string | null
+          recommended_monthly_price?: number | null
+          recommended_setup_fee?: number | null
+          sales_notes?: string | null
+          slug: string
+          sort_order?: number
+          target_segment?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          included_addons?: string[]
+          included_plan_id?: string | null
+          name?: string
+          positioning?: string | null
+          recommended_monthly_price?: number | null
+          recommended_setup_fee?: number | null
+          sales_notes?: string | null
+          slug?: string
+          sort_order?: number
+          target_segment?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_packages_included_plan_id_fkey"
+            columns: ["included_plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_setup_packages: {
+        Row: {
+          active: boolean
+          created_at: string
+          currency: string
+          deliverables: Json
+          description: string | null
+          id: string
+          included_hours: number | null
+          name: string
+          package_id: string | null
+          setup_fee: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          deliverables?: Json
+          description?: string | null
+          id?: string
+          included_hours?: number | null
+          name: string
+          package_id?: string | null
+          setup_fee?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          deliverables?: Json
+          description?: string | null
+          id?: string
+          included_hours?: number | null
+          name?: string
+          package_id?: string | null
+          setup_fee?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_setup_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_packages"
             referencedColumns: ["id"]
           },
         ]
@@ -30469,6 +30641,60 @@ export type Database = {
           },
           {
             foreignKeyName: "fastmatch_reputation_reviews_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_access_logs: {
+        Row: {
+          access_result: string
+          addon_id: string | null
+          created_at: string
+          feature_key: string
+          id: string
+          metadata: Json
+          plan_id: string | null
+          reason: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          access_result: string
+          addon_id?: string | null
+          created_at?: string
+          feature_key: string
+          id?: string
+          metadata?: Json
+          plan_id?: string | null
+          reason?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          access_result?: string
+          addon_id?: string | null
+          created_at?: string
+          feature_key?: string
+          id?: string
+          metadata?: Json
+          plan_id?: string | null
+          reason?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_access_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "feature_access_logs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -53278,6 +53504,54 @@ export type Database = {
           id?: string
           limit_value?: number | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_features: {
+        Row: {
+          beta: boolean
+          created_at: string
+          default_enabled: boolean
+          description: string | null
+          feature_key: string
+          feature_type: string
+          id: string
+          internal_only: boolean
+          metadata: Json
+          module: string
+          name: string
+          requires_addon: boolean
+          updated_at: string
+        }
+        Insert: {
+          beta?: boolean
+          created_at?: string
+          default_enabled?: boolean
+          description?: string | null
+          feature_key: string
+          feature_type?: string
+          id?: string
+          internal_only?: boolean
+          metadata?: Json
+          module: string
+          name: string
+          requires_addon?: boolean
+          updated_at?: string
+        }
+        Update: {
+          beta?: boolean
+          created_at?: string
+          default_enabled?: boolean
+          description?: string | null
+          feature_key?: string
+          feature_type?: string
+          id?: string
+          internal_only?: boolean
+          metadata?: Json
+          module?: string
+          name?: string
+          requires_addon?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -81514,6 +81788,60 @@ export type Database = {
           },
         ]
       }
+      workspace_plan_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          feature_key: string | null
+          id: string
+          limit_key: string | null
+          override_value: Json
+          reason: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          feature_key?: string | null
+          id?: string
+          limit_key?: string | null
+          override_value: Json
+          reason?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          feature_key?: string | null
+          id?: string
+          limit_key?: string | null
+          override_value?: Json
+          reason?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_plan_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_plan_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_plans: {
         Row: {
           calls_included: number
@@ -81772,6 +82100,7 @@ export type Database = {
       }
       workspace_subscriptions: {
         Row: {
+          billing_email: string | null
           billing_interval: string | null
           billing_plan_id: string | null
           cancel_at_period_end: boolean | null
@@ -81786,6 +82115,9 @@ export type Database = {
           last_payment_at: string | null
           last_payment_failure_at: string | null
           last_payment_failure_reason: string | null
+          manual_billing_notes: string | null
+          metadata: Json
+          payment_provider: string | null
           plan: Database["public"]["Enums"]["subscription_plan"]
           seats_included: number | null
           seats_used: number | null
@@ -81802,6 +82134,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          billing_email?: string | null
           billing_interval?: string | null
           billing_plan_id?: string | null
           cancel_at_period_end?: boolean | null
@@ -81816,6 +82149,9 @@ export type Database = {
           last_payment_at?: string | null
           last_payment_failure_at?: string | null
           last_payment_failure_reason?: string | null
+          manual_billing_notes?: string | null
+          metadata?: Json
+          payment_provider?: string | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
           seats_included?: number | null
           seats_used?: number | null
@@ -81832,6 +82168,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          billing_email?: string | null
           billing_interval?: string | null
           billing_plan_id?: string | null
           cancel_at_period_end?: boolean | null
@@ -81846,6 +82183,9 @@ export type Database = {
           last_payment_at?: string | null
           last_payment_failure_at?: string | null
           last_payment_failure_reason?: string | null
+          manual_billing_notes?: string | null
+          metadata?: Json
+          payment_provider?: string | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
           seats_included?: number | null
           seats_used?: number | null
@@ -82016,6 +82356,93 @@ export type Database = {
           },
           {
             foreignKeyName: "workspace_template_stats_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_upgrade_requests: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          current_plan_id: string | null
+          id: string
+          reason: string | null
+          request_type: string
+          requested_addon_id: string | null
+          requested_by: string | null
+          requested_plan_id: string | null
+          status: string
+          updated_at: string
+          usage_context: Json
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_plan_id?: string | null
+          id?: string
+          reason?: string | null
+          request_type: string
+          requested_addon_id?: string | null
+          requested_by?: string | null
+          requested_plan_id?: string | null
+          status?: string
+          updated_at?: string
+          usage_context?: Json
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_plan_id?: string | null
+          id?: string
+          reason?: string | null
+          request_type?: string
+          requested_addon_id?: string | null
+          requested_by?: string | null
+          requested_plan_id?: string | null
+          status?: string
+          updated_at?: string
+          usage_context?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_upgrade_requests_current_plan_id_fkey"
+            columns: ["current_plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_upgrade_requests_requested_addon_id_fkey"
+            columns: ["requested_addon_id"]
+            isOneToOne: false
+            referencedRelation: "billing_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_upgrade_requests_requested_plan_id_fkey"
+            columns: ["requested_plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_upgrade_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_upgrade_requests_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -83748,6 +84175,10 @@ export type Database = {
       check_custom_field_unique_value: {
         Args: { p_custom_field_id: string; p_entity_id: string; p_value: Json }
         Returns: boolean
+      }
+      check_feature_access: {
+        Args: { _feature_key: string; _workspace_id: string }
+        Returns: Json
       }
       check_invoice_settings_access: {
         Args: { check_workspace_id: string }

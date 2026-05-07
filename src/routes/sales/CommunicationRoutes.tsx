@@ -18,6 +18,8 @@ const PlansComparisonPage = lazy(() => import("@/pages/PlansComparisonPage"));
 const BillingPlansAdminPage = lazy(() => import("@/pages/admin/BillingPlansAdminPage"));
 const VoiceHubPage = lazy(() => import("@/pages/VoiceHubPage"));
 const ExecutiveCommandDashboard = lazy(() => import("@/pages/ExecutiveCommandDashboard"));
+const PlanManagementPage = lazy(() => import("@/pages/PlanManagementPage"));
+const WorkspacePlanPage = lazy(() => import("@/pages/WorkspacePlanPage"));
 
 export function CommunicationRoutes() {
   return (
@@ -44,6 +46,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/settings/plan" element={<MyPlanPage />} />
       <Route path="/dashboard/plans" element={<PlansComparisonPage />} />
       <Route path="/admin/billing-plans" element={<BillingPlansAdminPage />} />
+      <Route path="/admin/plan-management" element={<PlanManagementPage />} />
+      <Route path="/dashboard/settings/workspace-plan" element={<WorkspacePlanPage />} />
     </>
   );
 }
