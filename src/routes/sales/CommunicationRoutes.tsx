@@ -18,6 +18,8 @@ const PlansComparisonPage = lazy(() => import("@/pages/PlansComparisonPage"));
 const BillingPlansAdminPage = lazy(() => import("@/pages/admin/BillingPlansAdminPage"));
 const VoiceHubPage = lazy(() => import("@/pages/VoiceHubPage"));
 const ExecutiveCommandDashboard = lazy(() => import("@/pages/ExecutiveCommandDashboard"));
+const PlanManagementPage = lazy(() => import("@/pages/PlanManagementPage"));
+const WorkspacePlanPage = lazy(() => import("@/pages/WorkspacePlanPage"));
 
 export function CommunicationRoutes() {
   return (
