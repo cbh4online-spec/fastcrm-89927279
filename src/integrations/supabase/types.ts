@@ -45125,6 +45125,7 @@ export type Database = {
           current_step_order: number
           enrolled_at: string
           enrolled_by: string | null
+          enrollment_stage: string | null
           id: string
           last_step_at: string | null
           lead_id: string
@@ -45139,6 +45140,7 @@ export type Database = {
           current_step_order?: number
           enrolled_at?: string
           enrolled_by?: string | null
+          enrollment_stage?: string | null
           id?: string
           last_step_at?: string | null
           lead_id: string
@@ -45153,6 +45155,7 @@ export type Database = {
           current_step_order?: number
           enrolled_at?: string
           enrolled_by?: string | null
+          enrollment_stage?: string | null
           id?: string
           last_step_at?: string | null
           lead_id?: string
@@ -45369,6 +45372,59 @@ export type Database = {
             columns: ["referred_by_lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leadchef_sequence_run_logs: {
+        Row: {
+          action_type: string | null
+          executed_at: string
+          id: string
+          lead_id: string
+          message: string | null
+          metadata: Json
+          reason: string | null
+          run_id: string
+          sequence_id: string
+          status: string
+          step_order: number | null
+          workspace_id: string
+        }
+        Insert: {
+          action_type?: string | null
+          executed_at?: string
+          id?: string
+          lead_id: string
+          message?: string | null
+          metadata?: Json
+          reason?: string | null
+          run_id: string
+          sequence_id: string
+          status: string
+          step_order?: number | null
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string | null
+          executed_at?: string
+          id?: string
+          lead_id?: string
+          message?: string | null
+          metadata?: Json
+          reason?: string | null
+          run_id?: string
+          sequence_id?: string
+          status?: string
+          step_order?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_sequence_run_logs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "leadchef_lead_sequence_runs"
             referencedColumns: ["id"]
           },
         ]
