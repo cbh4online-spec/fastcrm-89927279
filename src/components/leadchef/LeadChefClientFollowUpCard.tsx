@@ -59,7 +59,7 @@ export function LeadChefClientFollowUpCard({ client }: Props) {
             <Plus className="h-4 w-4 mr-1" /> Marcar pós-venda
           </Button>
         ) : (
-          <Button size="sm" variant="outline" onClick={() => complete.mutate({ id: pendingPostSale.id, outcome: "done" })}>
+          <Button size="sm" variant="outline" onClick={() => complete.mutate({ appointment: pendingPostSale, outcome: "done" })}>
             <CheckCircle2 className="h-4 w-4 mr-1" /> Concluir
           </Button>
         )}
