@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, TrendingUp, Trophy, Users, Target, BarChart3 } from "lucide-react";
+import { Loader2, TrendingUp, Trophy, Users, Target, BarChart3, Download, FileText } from "lucide-react";
 import { LeadChefMobileShell } from "@/components/leadchef/LeadChefMobileShell";
 import { LeadChefPermissionGate } from "@/components/leadchef/LeadChefPermissionGate";
 import { LeadChefTeamMetricCard } from "@/components/leadchef/LeadChefTeamMetricCard";
@@ -8,6 +8,10 @@ import { useLeadChefFunnel } from "@/hooks/leadchef/useLeadChefFunnel";
 import { useLeadChefConversionTrend } from "@/hooks/leadchef/useLeadChefConversionTrend";
 import { useLeadChefAgentRanking } from "@/hooks/leadchef/useLeadChefAgentRanking";
 import type { LeadChefPeriod } from "@/utils/leadchef/period";
+import { buildCSV, downloadFile } from "@/utils/leadchef/csv";
+import { printLeadChefDocument } from "@/utils/leadchef/pdf";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   ResponsiveContainer,
   LineChart,
@@ -20,6 +24,12 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+
+const PERIOD_LABEL: Record<LeadChefPeriod, string> = {
+  today: "Hoje",
+  week: "Esta semana",
+  month: "Este mês",
+};
 
 export default function LeadChefRelatoriosPage() {
   const [period, setPeriod] = useState<LeadChefPeriod>("month");
@@ -38,7 +48,114 @@ function Content({ period, setPeriod }: { period: LeadChefPeriod; setPeriod: (p:
   const trend = useLeadChefConversionTrend(6);
   const ranking = useLeadChefAgentRanking(period);
 
-  if (funnel.isLoading || trend.isLoading || ranking.isLoading) {
+  const isLoading = funnel.isLoading || trend.isLoading || ranking.isLoading;
+
+  const stamp = () => new Date().toISOString().slice(0, 10);
+  const periodLabel = PERIOD_LABEL[period];
+
+  function handleExportCSV() {
+    try {
+      const sections: string[] = [];
+
+      // Funil
+      sections.push("FUNIL");
+      sections.push(
+        buildCSV(
+          ["Etapa", "Leads", "% do topo"],
+          (funnel.data?.steps ?? []).map((s) => ({ Etapa: s.label, Leads: s.count, "% do topo": `${s.pctOfTop}%` })),
+        ).replace(/^\uFEFF/, ""),
+      );
+      sections.push("");
+
+      // Evolução
+      sections.push("EVOLUCAO MENSAL");
+      sections.push(
+        buildCSV(
+          ["Mês", "Leads criados", "Vendas", "Conversão %"],
+          (trend.data ?? []).map((p) => ({
+            "Mês": p.label,
+            "Leads criados": p.created,
+            Vendas: p.won,
+            "Conversão %": p.conversion,
+          })),
+        ).replace(/^\uFEFF/, ""),
+      );
+      sections.push("");
+
+      // Ranking
+      sections.push(`RANKING DE AGENTES (${periodLabel})`);
+      sections.push(
+        buildCSV(
+          ["#", "Agente", "Leads", "Demos", "Vendas", "Conversão %", "Score"],
+          ranking.rows.map((r, i) => ({
+            "#": i + 1,
+            Agente: r.name,
+            Leads: r.leadsCreated,
+            Demos: r.demosCompleted,
+            Vendas: r.salesWon,
+            "Conversão %": r.conversionRate,
+            Score: r.score,
+          })),
+        ).replace(/^\uFEFF/, ""),
+      );
+
+      const content = "\uFEFF" + sections.join("\n");
+      downloadFile(`leadchef-relatorio-${period}-${stamp()}.csv`, content);
+      toast.success("CSV gerado");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar CSV");
+    }
+  }
+
+  function handleExportPDF() {
+    try {
+      const f = funnel.data;
+      printLeadChefDocument({
+        title: "LeadChef · Relatório executivo",
+        subtitle: `Período: ${periodLabel} · Gerado em ${new Date().toLocaleString("pt-PT")}`,
+        sections: [
+          {
+            title: "Indicadores chave",
+            rows: [
+              { label: "Total de leads", value: String(f?.total ?? 0) },
+              { label: "Vendas (won)", value: String(f?.won ?? 0) },
+              { label: "Perdidos (lost)", value: String(f?.lost ?? 0) },
+              { label: "Taxa de conversão", value: `${f?.conversionRate ?? 0}%` },
+            ],
+          },
+          {
+            title: "Funil",
+            rows: (f?.steps ?? []).map((s) => ({
+              label: s.label,
+              value: `${s.count} leads · ${s.pctOfTop}% do topo`,
+            })),
+          },
+          {
+            title: "Evolução (últimos 6 meses)",
+            rows: (trend.data ?? []).map((p) => ({
+              label: p.label,
+              value: `${p.created} leads · ${p.won} vendas · ${p.conversion}% conv.`,
+            })),
+          },
+          {
+            title: `Ranking de agentes (${periodLabel})`,
+            rows:
+              ranking.rows.length === 0
+                ? [{ label: "Sem dados", value: "—" }]
+                : ranking.rows.map((r, i) => ({
+                    label: `${i + 1}. ${r.name}`,
+                    value: `${r.leadsCreated} leads · ${r.demosCompleted} demos · ${r.salesWon} vendas · ${r.conversionRate}% · score ${r.score}`,
+                  })),
+          },
+        ],
+        footer: "LeadChef · Relatório gerado automaticamente",
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar PDF");
+    }
+  }
+
+  if (isLoading) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
@@ -52,7 +169,15 @@ function Content({ period, setPeriod }: { period: LeadChefPeriod; setPeriod: (p:
         <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-emerald-600" /> Indicadores chave
         </h2>
-        <LeadChefTeamDateRangeSelector value={period} onChange={setPeriod} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <LeadChefTeamDateRangeSelector value={period} onChange={setPeriod} />
+          <Button size="sm" variant="outline" onClick={handleExportCSV} className="h-8 gap-1.5">
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleExportPDF} className="h-8 gap-1.5">
+            <FileText className="h-3.5 w-3.5" /> PDF
+          </Button>
+        </div>
       </div>
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-2">
