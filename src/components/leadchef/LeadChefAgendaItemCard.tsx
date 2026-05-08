@@ -148,6 +148,7 @@ export function LeadChefAgendaItemCard({ appointment: a, onComplete, onReschedul
           <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => onReschedule?.(a)}>
             <CalendarClock className="h-3 w-3 mr-1" /> Reagendar
           </Button>
+          <LeadChefICSExportButton appointment={a as any} />
         </div>
       )}
     </div>
