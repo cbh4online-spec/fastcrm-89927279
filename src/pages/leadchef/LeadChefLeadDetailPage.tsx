@@ -12,6 +12,10 @@ import { LeadChefLeadAppointmentsSection } from "@/components/leadchef/LeadChefL
 import { LeadChefRegisterResultSheet } from "@/components/leadchef/LeadChefRegisterResultSheet";
 import { LeadChefQuickActionSheet } from "@/components/leadchef/LeadChefQuickActionSheet";
 import { Button } from "@/components/ui/button";
+import { MessageCircle } from "lucide-react";
+import { LeadChefWhatsAppActionSheet } from "@/components/leadchef/LeadChefWhatsAppActionSheet";
+import { LeadChefNextActionSuggestionCard } from "@/components/leadchef/LeadChefNextActionSuggestionCard";
+import { getLeadChefNextActionSuggestions } from "@/hooks/leadchef/useLeadChefNextActionSuggestions";
 import { useLeadChefLead } from "@/hooks/leadchef/useLeadChefLead";
 import { useUpdateLeadChefLeadStage } from "@/hooks/leadchef/useUpdateLeadChefLeadStage";
 import { useUpdateLeadChefNextAction } from "@/hooks/leadchef/useUpdateLeadChefNextAction";
@@ -26,6 +30,7 @@ export default function LeadChefLeadDetailPage() {
   const [openCreate, setOpenCreate] = useState(false);
   const [openResult, setOpenResult] = useState(false);
   const [openQuick, setOpenQuick] = useState(false);
+  const [openWa, setOpenWa] = useState(false);
   const [createDefaultType, setCreateDefaultType] =
     useState<LeadChefActivityType>("follow_up");
   const [createForceStage, setCreateForceStage] = useState<
@@ -91,13 +96,37 @@ export default function LeadChefLeadDetailPage() {
         onCreate={() => openCreateSheet("follow_up", undefined, "Nova ação")}
       />
 
-      <Button
-        onClick={() => setOpenQuick(true)}
-        variant="outline"
-        className="w-full"
-      >
-        Ações rápidas
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button onClick={() => setOpenQuick(true)} variant="outline" className="w-full">
+          Ações rápidas
+        </Button>
+        <Button
+          onClick={() => setOpenWa(true)}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+          disabled={!lead.phone}
+        >
+          <MessageCircle className="h-4 w-4 mr-1.5" /> WhatsApp
+        </Button>
+      </div>
+
+      {(() => {
+        const suggestions = getLeadChefNextActionSuggestions({
+          stage: profile.stage,
+          hasNextAction: Boolean(profile.next_action_at),
+        });
+        if (suggestions.length === 0) return null;
+        return (
+          <div className="space-y-2">
+            {suggestions.map((s) => (
+              <LeadChefNextActionSuggestionCard
+                key={s.id}
+                suggestion={s}
+                onCreate={() => openCreateSheet((s.type as any) ?? "follow_up", undefined, s.title)}
+              />
+            ))}
+          </div>
+        );
+      })()}
 
       <LeadChefStageSelector
         stage={profile.stage}
@@ -188,6 +217,23 @@ export default function LeadChefLeadDetailPage() {
         onMarkLost={() =>
           updateStage.mutate({ profileId: profile.id, leadId: lead.id, stage: "lost" })
         }
+      />
+
+      <LeadChefWhatsAppActionSheet
+        open={openWa}
+        onOpenChange={setOpenWa}
+        phone={lead.phone}
+        recipientName={lead.name}
+        entityKind="lead"
+        leadId={lead.id}
+        preferredCategory={
+          profile.stage === "demo_scheduled" ? "demo_confirmation" :
+          profile.stage === "demo_done" ? "post_demo_follow_up" :
+          profile.stage === "proposal_decision" ? "proposal_follow_up" :
+          profile.stage === "reactivate_later" ? "reactivation" :
+          "first_contact"
+        }
+        context={{ interest: profile.interest, origin: profile.origin }}
       />
     </LeadChefMobileShell>
   );

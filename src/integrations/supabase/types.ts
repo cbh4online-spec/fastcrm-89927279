@@ -44714,6 +44714,51 @@ export type Database = {
           },
         ]
       }
+      leadchef_automation_rules: {
+        Row: {
+          action_type: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_enabled: boolean
+          key: string
+          name: string
+          trigger_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          key: string
+          name: string
+          trigger_type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          key?: string
+          name?: string
+          trigger_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       leadchef_client_profiles: {
         Row: {
           contact_id: string | null
@@ -44965,6 +45010,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      leadchef_message_templates: {
+        Row: {
+          body: string
+          category: string
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          updated_at: string
+          variables: Json
+          workspace_id: string
+        }
+        Insert: {
+          body: string
+          category: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          variables?: Json
+          workspace_id: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          variables?: Json
+          workspace_id?: string
+        }
+        Relationships: []
       }
       leadchef_referrals: {
         Row: {

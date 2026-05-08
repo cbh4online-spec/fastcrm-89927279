@@ -13,6 +13,8 @@ const LeadChefObjetivosPage = lazy(() => import("@/pages/leadchef/LeadChefObjeti
 const LeadChefEquipaPage = lazy(() => import("@/pages/leadchef/LeadChefEquipaPage"));
 const LeadChefAgentDetailPage = lazy(() => import("@/pages/leadchef/LeadChefAgentDetailPage"));
 const LeadChefPermissoesPage = lazy(() => import("@/pages/leadchef/LeadChefPermissoesPage"));
+const LeadChefTemplatesPage = lazy(() => import("@/pages/leadchef/LeadChefTemplatesPage"));
+const LeadChefAutomacoesPage = lazy(() => import("@/pages/leadchef/LeadChefAutomacoesPage"));
 
 export function LeadChefRoutes() {
   return (
@@ -30,6 +32,8 @@ export function LeadChefRoutes() {
       <Route path="/dashboard/leadchef/equipa" element={<LeadChefEquipaPage />} />
       <Route path="/dashboard/leadchef/equipa/:userId" element={<LeadChefAgentDetailPage />} />
       <Route path="/dashboard/leadchef/permissoes" element={<LeadChefPermissoesPage />} />
+      <Route path="/dashboard/leadchef/templates" element={<LeadChefTemplatesPage />} />
+      <Route path="/dashboard/leadchef/automacoes" element={<LeadChefAutomacoesPage />} />
     </>
   );
 }
