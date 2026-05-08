@@ -204,6 +204,52 @@ export default function LeadChefTodayPage() {
           </p>
         )}
       </section>
+
+      {alerts.length > 0 && (
+        <section className="rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-rose-500" />
+            <h2 className="text-sm font-semibold text-slate-900">Alertas importantes</h2>
+            <span className="ml-auto text-xs text-slate-500">{alerts.length}</span>
+          </div>
+          <div className="p-3 space-y-2">
+            {alerts.slice(0, 8).map((a) => (
+              <LeadChefAlertActionCard key={a.id} alert={a} onSendMessage={onAlertSendMessage} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Settings2 className="h-4 w-4 text-slate-500" />
+          <h2 className="text-sm font-semibold text-slate-900">Configurações</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => navigate("/dashboard/leadchef/templates")}
+            className="text-xs font-medium px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700"
+          >
+            Templates
+          </button>
+          <button
+            onClick={() => navigate("/dashboard/leadchef/automacoes")}
+            className="text-xs font-medium px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700"
+          >
+            Automações
+          </button>
+        </div>
+      </section>
+
+      <LeadChefWhatsAppActionSheet
+        open={waOpen}
+        onOpenChange={(o) => { setWaOpen(o); if (!o) setWaAlert(null); }}
+        phone={null}
+        recipientName={null}
+        entityKind={waAlert?.entityType === "referral" ? "referral" : waAlert?.entityType === "client" ? "client" : "lead"}
+        leadId={waAlert && (waAlert.entityType === "lead" || waAlert.entityType === "client") ? waAlert.entityId : null}
+        preferredCategory={waAlert?.templateCategory}
+      />
     </LeadChefMobileShell>
   );
 }
