@@ -10,6 +10,9 @@ const LeadChefClienteDetailPage = lazy(() => import("@/pages/leadchef/LeadChefCl
 const LeadChefReferenciasPage = lazy(() => import("@/pages/leadchef/LeadChefReferenciasPage"));
 const LeadChefReferenciaDetailPage = lazy(() => import("@/pages/leadchef/LeadChefReferenciaDetailPage"));
 const LeadChefObjetivosPage = lazy(() => import("@/pages/leadchef/LeadChefObjetivosPage"));
+const LeadChefEquipaPage = lazy(() => import("@/pages/leadchef/LeadChefEquipaPage"));
+const LeadChefAgentDetailPage = lazy(() => import("@/pages/leadchef/LeadChefAgentDetailPage"));
+const LeadChefPermissoesPage = lazy(() => import("@/pages/leadchef/LeadChefPermissoesPage"));
 
 export function LeadChefRoutes() {
   return (
@@ -24,6 +27,9 @@ export function LeadChefRoutes() {
       <Route path="/dashboard/leadchef/referencias" element={<LeadChefReferenciasPage />} />
       <Route path="/dashboard/leadchef/referencias/:referralId" element={<LeadChefReferenciaDetailPage />} />
       <Route path="/dashboard/leadchef/objetivos" element={<LeadChefObjetivosPage />} />
+      <Route path="/dashboard/leadchef/equipa" element={<LeadChefEquipaPage />} />
+      <Route path="/dashboard/leadchef/equipa/:userId" element={<LeadChefAgentDetailPage />} />
+      <Route path="/dashboard/leadchef/permissoes" element={<LeadChefPermissoesPage />} />
     </>
   );
 }
