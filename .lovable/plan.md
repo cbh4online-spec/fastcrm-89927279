@@ -1,105 +1,150 @@
-## Diagnóstico (provado)
 
-A tua arquitetura está correta: **uma única ligação GHL** que recolhe todos os canais, e cada workspace **ativa apenas o seu canal**.
+# Fase 12 — LeadChef: Inteligência, Automações, Liderança e Mobile
 
-A BD confirma isto — não há canais duplicados entre workspaces. Cada `ghl_account_id` pertence a 1 workspace:
+Plano detalhado dividido em 4 sub-fases independentes (12A → 12D), cada uma entregável de forma autónoma. Recomendo executar pela ordem proposta — cada bloco gera dados que o seguinte aproveita.
 
-```text
-Instagram ensiformacao         → PHARLISS    (active)
-Instagram metodopare.ai        → METODOPARE  (active)
-Instagram fastcrm              → METODOPARE  (active)
-Instagram blecksen_management  → Blecksen    (active)
-Facebook  ENSI                 → PHARLISS    (active)
-Facebook  Jorge Cardoso        → METODOPARE  (active)
-Facebook  Blecksen             → Blecksen    (active)
-WhatsApp  +351925990747        → METODOPARE  (active)
+---
+
+## 12A — Inteligência e Scoring com IA
+
+### Objetivo
+Dar ao agente uma sugestão concreta do que fazer a seguir e um score de prioridade, em vez de uma lista de leads "iguais".
+
+### Entregáveis
+1. **Lead Score (0–100)** calculado para cada `leadchef_lead_profiles` ativo.
+   - Componentes: idade na etapa, nº de interações recentes, fonte, se tem próxima ação definida, conversão histórica de leads semelhantes.
+   - Calculado por edge function `leadchef-score-lead` (batch via Trigger.dev — ver 12B — e on-demand quando lead muda de stage).
+2. **Sugestão de próxima ação por IA** (Lovable AI Gateway, modelo `google/gemini-3-flash-preview`).
+   - Edge function `leadchef-next-action-ai`.
+   - Recebe contexto do lead (perfil, histórico, etapa, dias parado) e devolve `{ action, channel, message_draft, reasoning }` via tool calling estruturado.
+   - Cache por (lead_id, stage, hash do contexto) durante 24h em `leadchef_ai_suggestions`.
+3. **Deteção de leads frios** — view `leadchef_cold_leads` (sem ação > 7 dias OU score < 30) com banner em `/leads` e ação "Reativar com IA".
+4. **Página `/leadchef/inteligencia`** — top 10 leads por score, leads frios, sugestões pendentes.
+
+### Tabelas novas
+- `leadchef_lead_scores` (lead_id PK, workspace_id, score, breakdown jsonb, calculated_at)
+- `leadchef_ai_suggestions` (id, workspace_id, lead_id, kind, payload jsonb, used_at, created_at, expires_at)
+
+### Riscos
+- Custo de tokens IA → cache obrigatório + `cost_guard` (já existe no projeto).
+- Score determinístico no início (heurística), IA apenas para sugestão textual. Migrar para ML só se houver dados suficientes.
+
+---
+
+## 12B — Automações avançadas com Trigger.dev
+
+### Objetivo
+Substituir as automações "fake" (toggle sem efeito) por jobs reais com retry, logs e fallback.
+
+### Entregáveis
+1. **Job diário `leadchef-daily-recompute`** (cron 06:00 Lisboa)
+   - Recalcula lead scores
+   - Deteta leads frios e cria alertas em `leadchef_audit_logs`
+   - Envia digest opcional ao agente (email/notificação)
+2. **Job a cada 15 min `leadchef-followup-dispatcher`**
+   - Verifica leads com `next_action_at <= now()` sem ação executada
+   - Cria alerta em `leadchef_actionable_alerts` (já existe)
+   - Honra automações desativadas em `leadchef_automation_rules`
+3. **Sequências multi-passo** — nova tabela `leadchef_sequences` + `leadchef_sequence_steps` + `leadchef_lead_sequence_runs`.
+   - Sequência exemplo: "Pós-demo": Dia 0 lembrete, Dia 2 follow-up, Dia 5 último contacto, Dia 7 marcar frio.
+   - Pausa automática se lead muda de stage ou regista resposta.
+4. **Página `/leadchef/automacoes`** evoluída — toggle real, ver últimas execuções, próximas execuções, taxa de sucesso.
+
+### Infra
+- Tudo em `/trigger/jobs/leadchef.ts` (segue regra Core: lógica async em `/trigger/`).
+- Edge functions chamadas: `leadchef-recompute-scores`, `leadchef-dispatch-followups`, `leadchef-advance-sequence`.
+
+### Riscos
+- Disparo duplicado → idempotência via `leadchef_lead_sequence_runs.last_step_at`.
+- Não enviar mensagens automaticamente sem consentimento — apenas criar **alertas/drafts** que o agente confirma (mantém regra "WhatsApp só por ação do utilizador").
+
+---
+
+## 12C — Relatórios e Dashboard de Liderança
+
+### Objetivo
+Dar ao líder/admin uma visão executiva: funil real, conversão por etapa, ranking de agentes, evolução mensal.
+
+### Entregáveis
+1. **Página `/leadchef/relatorios`** (gated por `useLeadChefPermissions` ≥ manager)
+   - **Funil**: contagem por stage + taxa de conversão entre stages consecutivas.
+   - **Velocidade**: tempo médio em cada stage; alertas de stages "lentas".
+   - **Conversão**: % de leads new → won (mês corrente vs mês anterior).
+   - **Ranking de agentes**: leads ativos, ganhos, taxa de conversão, score médio dos seus leads.
+   - **Evolução**: gráfico de leads criados/ganhos por semana (últimas 12).
+   - **Origem**: distribuição de leads por origem e qual converte melhor.
+2. **Comparação mensal** — selector de período (mês atual, mês anterior, últimos 3 meses, ano).
+3. **Exportação PDF** do relatório executivo (reutiliza `pdf.ts` da Fase 11).
+4. **CSV de relatório agregado** (já temos infra; adicionar nova entidade `agent_performance`).
+
+### Implementação técnica
+- Hooks: `useLeadChefFunnel`, `useLeadChefStageVelocity`, `useLeadChefAgentRanking`, `useLeadChefConversionTrend`.
+- Cálculos em SQL via `read_query` (sem novas tabelas — derivado de `leadchef_lead_profiles` + `leads`).
+- Cache no React Query com `staleTime: 5 min`.
+- Recharts (já no projeto).
+
+### Riscos
+- RLS deve continuar a impedir agente comum de ver dados agregados de outros — gate na rota + filtro em todas as queries.
+
+---
+
+## 12D — PWA Mobile + Notificações Push
+
+### Objetivo
+Permitir uso em modo "agente no terreno": instalar no telemóvel, push para próximas ações, modo offline básico.
+
+### Entregáveis
+1. **Manifest-only PWA** (sem service worker complexo — segue regra do projeto).
+   - `manifest.webmanifest` já existe; revisar nome, ícones, theme_color, start_url para `/dashboard/leadchef/today`.
+   - Página `/leadchef/instalar` com instruções iOS/Android.
+2. **Notificações push** via Web Push API + edge function `leadchef-send-push`.
+   - Tabela `leadchef_push_subscriptions` (user_id, workspace_id, endpoint, keys jsonb, enabled).
+   - Triggers: lembrete 1h antes do compromisso, alerta de lead sem ação há 3 dias, notificação de nova referência.
+   - Job Trigger.dev `leadchef-push-dispatcher` (cron */10 min).
+3. **Otimizações mobile do LeadChef**:
+   - Bottom nav fixo com 5 ações: Hoje, Leads, Agenda, +Lead (FAB), Mais.
+   - Sheets em vez de dialogs em <768px.
+   - Lista de leads em modo "card grande" tocável.
+   - Verificar zonas de toque ≥44px em todos os botões da Fase 1–11.
+4. **Página `/leadchef/notificacoes`** — opt-in, gestão de tipos de notificação.
+
+### Riscos
+- Push em iOS exige PWA instalada (Safari 16.4+). Documentar limitação.
+- VAPID keys precisam de ser geradas e guardadas em secrets (`VAPID_PUBLIC_KEY` público no código, `VAPID_PRIVATE_KEY` em runtime secret).
+- Sem service worker complexo → não há offline real, apenas instalação. Aceitável para MVP.
+
+---
+
+## Critérios de aceitação globais
+
+| Sub-fase | Critério |
+|---|---|
+| 12A | Score visível em cada lead; sugestão IA gerada e usada pelo menos 1x; leads frios listados |
+| 12B | Job Trigger.dev a correr em cron; pelo menos 1 sequência ativa com passos a avançar; toggle real refletido na execução |
+| 12C | Líder vê funil + ranking; agente comum bloqueado; export PDF funciona |
+| 12D | App instalável em iOS+Android; push recebido em pelo menos 1 dispositivo de teste; zero overflows em 320–430px |
+
+Transversal:
+- Build TS limpo; sem console.log; RLS por workspace em todas as novas tabelas; auditoria registada.
+- Documentação atualizada em `docs/leadchef.md` + nova `docs/leadchef-phase-12.md`.
+
+---
+
+## Ordem de execução recomendada
+
+```
+12A (3–4 mensagens) → 12B (3–4) → 12C (2–3) → 12D (3–4)
 ```
 
-**Problema real** (em `ghl-webhook-message/index.ts` linhas 259–298):
+Total estimado: ~12–15 mensagens de implementação.
 
-A função identifica o **canal_type** da mensagem (ex: "instagram"), procura workspaces com esse **tipo de canal** ativo, e:
-- Se encontrar 1 → OK
-- Se encontrar **vários** → escolhe o "primary" ou o primeiro (linha 285-291)
-- Se não encontrar → fallback para "primary" ou primeiro config (linha 295-298)
+---
 
-Como tens **3 workspaces com Instagram ativo** (PHARLISS, METODOPARE, Blecksen) que partilham o mesmo `ghl_location_id`, qualquer DM de Instagram que chegue pelo Pharliss cai no ramo "vários owners" e é roteada para o **primary** (METODOPARE) — daí responder com a persona "Conceição".
+## Decisões a confirmar antes de implementar
 
-**A função nunca usa o `ghl_account_id` da mensagem recebida**, que é o único campo que identifica univocamente o canal/workspace correto. Esse é o bug.
+1. **Modelo IA padrão** para sugestões — `google/gemini-3-flash-preview` (rápido/barato) ou `google/gemini-2.5-pro` (mais preciso)?
+2. **Sequências** — começar com 1 sequência fixa ("Pós-demo") ou já permitir o líder criar sequências custom?
+3. **Push notifications** — implementar só Web Push (browser/PWA) ou também email fallback para quem não ativar push?
+4. **Relatórios** — incluir já metas vs realizado (cruzamento com `leadchef_goals`) ou deixar para fase 13?
 
-## O que fazer
-
-### 1. Resolver workspace pelo `ghl_account_id` da mensagem (fix central)
-
-No webhook, extrair o `account_id` (Instagram page ID, Facebook page ID, WhatsApp number) do payload GHL e procurar **diretamente** em `workspace_ghl_social_channels`:
-
-```text
-account_id da mensagem  →  workspace_ghl_social_channels (is_active=true)  →  workspace_id
-```
-
-Lookup determinístico, 1 resultado. Sem fallbacks, sem "primary".
-
-### 2. Fail-closed quando não houver match
-
-Se `account_id` não mapear para nenhum workspace ativo → **rejeitar a mensagem** com log de erro `UNROUTABLE_MESSAGE` em vez de cair em fallback silencioso. Resposta 200 OK com `{ outcome: "unrouted" }` para o GHL não fazer retry infinito.
-
-### 3. Manter compatibilidade para canais sem account_id
-
-SMS/email/voz que não têm `account_id` social mantêm a lógica atual (single config ou primary), mas marcados explicitamente como "non-social fallback" nos logs.
-
-### 4. Guard-rail na BD
-
-Adicionar `UNIQUE(ghl_account_id, channel_type) WHERE is_active=true` em `workspace_ghl_social_channels` — impede que dois workspaces ativem o mesmo canal por engano no futuro.
-
-### 5. Validação Nível 2 (testes obrigatórios após fix)
-
-| Teste | Como | Esperado |
-|---|---|---|
-| A. Webhook IG Pharliss | curl edge function com `account_id=17841462675469795` | workspace=PHARLISS, persona ≠ Conceição |
-| B. Webhook IG METODOPARE | curl com `account_id=17841465250555520` | workspace=METODOPARE, persona=Conceição |
-| C. Webhook IG Blecksen | curl com `account_id=17841444347607539` | workspace=Blecksen |
-| D. account_id desconhecido | curl com `account_id=fake` | outcome=unrouted, sem mensagem criada |
-| E. Logs `ai_usage_logs` | query filtrada pelos testes | `workspace_id` correto em cada linha |
-
-### 6. Hardening preventivo
-
-- Log estruturado: `[GHL-ROUTE] account_id=X → workspace=Y` em cada mensagem
-- Métrica em `system_health_diagnostics`: contador de `unrouted_messages` por hora
-- Alerta se > 5 mensagens/hora ficarem unrouted
-
-## Detalhes técnicos
-
-**Ficheiro principal:** `supabase/functions/ghl-webhook-message/index.ts` (lógica linhas 259–298)
-
-**Outros pontos a auditar (mesmo padrão de bug pode existir):**
-- `supabase/functions/ai-inbox-reply/index.ts` — confirmar que usa o `workspace_id` da mensagem, não re-resolve
-- `supabase/functions/_shared/whatsapp-autopilot.ts` — verificar resolução de workspace para WhatsApp
-- `src/lib/persona.ts` — `resolvePersonaForContext` recebe `workspaceId` como parâmetro, ok desde que o caller passe o correto
-
-**Payload GHL — onde está o account_id:**
-- Instagram/Facebook DM: `body.message.meta.facebookPageId` ou `body.conversationProviderId`
-- WhatsApp via GHL: `body.message.meta.phone` ou similar
-- Vou inspecionar payloads reais nos logs das últimas 24h para confirmar o caminho exato antes de codificar
-
-**Migração SQL:**
-```sql
-CREATE UNIQUE INDEX idx_ghl_social_active_unique
-ON workspace_ghl_social_channels (ghl_account_id, channel_type)
-WHERE is_active = true;
-```
-
-## Critérios de aceitação
-
-- [ ] Mensagem de IG do Pharliss responde com persona/contexto Pharliss
-- [ ] Mensagem de IG do METODOPARE continua a responder com Conceição
-- [ ] Logs mostram `account_id → workspace` determinístico
-- [ ] Testes A–E passam todos
-- [ ] Constraint UNIQUE ativa
-- [ ] Memória `mem://integrations/gohighlevel/multi-workspace-isolation` atualizada com a regra "account_id é a chave de routing, nunca primary"
-
-## Riscos
-
-- **Payloads GHL inconsistentes**: o campo onde o `account_id` aparece pode variar por tipo de canal. Vou ler logs reais antes de fixar o caminho.
-- **Mensagens em backlog**: mensagens já mal-roteadas em conversas existentes não são re-classificadas — o fix só protege novas mensagens.
-- **Canais inativos**: se o utilizador desativar um canal, mensagens desse canal passam a `unrouted`. Comportamento correto, mas precisa de visibilidade no UI.
-
-Aprovas para avançar para implementação?
+Diz-me o que preferes em cada ponto e arranco pela 12A.
