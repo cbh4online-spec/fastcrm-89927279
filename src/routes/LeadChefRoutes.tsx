@@ -19,6 +19,7 @@ const LeadChefSettingsPage = lazy(() => import("@/pages/leadchef/LeadChefSetting
 const LeadChefInteligenciaPage = lazy(() => import("@/pages/leadchef/LeadChefInteligenciaPage"));
 const LeadChefSequenciasPage = lazy(() => import("@/pages/leadchef/LeadChefSequenciasPage"));
 const LeadChefRelatoriosPage = lazy(() => import("@/pages/leadchef/LeadChefRelatoriosPage"));
+const LeadChefNotificacoesPage = lazy(() => import("@/pages/leadchef/LeadChefNotificacoesPage"));
 
 export function LeadChefRoutes() {
   return (
