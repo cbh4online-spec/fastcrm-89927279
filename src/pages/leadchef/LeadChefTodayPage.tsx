@@ -156,9 +156,17 @@ export default function LeadChefTodayPage() {
 
       {/* Progresso mensal */}
       <section className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="h-4 w-4 text-emerald-600" />
-          <h2 className="text-sm font-semibold text-slate-900">Progresso mensal</h2>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <h2 className="text-sm font-semibold text-slate-900">Progresso mensal</h2>
+          </div>
+          <button
+            onClick={() => navigate("/dashboard/leadchef/objetivos")}
+            className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+          >
+            Ver objetivos →
+          </button>
         </div>
         <div className="flex items-end justify-between mb-2">
           <span className="text-2xl font-bold text-slate-900">{goalPct}%</span>
@@ -167,6 +175,16 @@ export default function LeadChefTodayPage() {
           </span>
         </div>
         <Progress value={goalPct} className="h-2" />
+        <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-slate-600">
+          <div className="rounded-lg bg-slate-50 px-3 py-2">
+            <p className="font-semibold text-slate-900">{data.monthlyProgress.salesDone} de {data.monthlyProgress.salesGoal || "—"}</p>
+            <p>Vendas</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 px-3 py-2">
+            <p className="font-semibold text-slate-900">{data.monthlyProgress.demosDone} de {data.monthlyProgress.demosGoal || "—"}</p>
+            <p>Demonstrações</p>
+          </div>
+        </div>
         {data.monthlyProgress.salesGoal === 0 && (
           <p className="text-xs text-slate-500 mt-2">
             Define o teu objetivo mensal em <span className="font-medium">Objetivos</span>.
