@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 import { LeadChefWhatsAppActionSheet } from "@/components/leadchef/LeadChefWhatsAppActionSheet";
 import { LeadChefNextActionSuggestionCard } from "@/components/leadchef/LeadChefNextActionSuggestionCard";
+import { LeadChefPrintButton } from "@/components/leadchef/LeadChefPrintButton";
 import { getLeadChefNextActionSuggestions } from "@/hooks/leadchef/useLeadChefNextActionSuggestions";
 import { useLeadChefLead } from "@/hooks/leadchef/useLeadChefLead";
 import { useUpdateLeadChefLeadStage } from "@/hooks/leadchef/useUpdateLeadChefLeadStage";
@@ -86,6 +87,33 @@ export default function LeadChefLeadDetailPage() {
   return (
     <LeadChefMobileShell title="Lead">
       <LeadChefLeadDetailHeader data={data} />
+
+      <div className="flex justify-end">
+        <LeadChefPrintButton
+          title={data.lead?.name ?? "Lead LeadChef"}
+          subtitle={`Etapa: ${profile.stage} · Temperatura: ${profile.temperature ?? "—"}`}
+          sections={[
+            {
+              title: "Contacto",
+              rows: [
+                { label: "Nome", value: data.lead?.name ?? "" },
+                { label: "Telefone", value: data.lead?.phone ?? "" },
+                { label: "Email", value: data.lead?.email ?? "" },
+                { label: "Origem", value: profile.origin ?? "" },
+                { label: "Interesse", value: profile.interest ?? "" },
+              ],
+            },
+            {
+              title: "Próxima ação",
+              rows: [
+                { label: "Tipo", value: profile.next_action_type ?? "" },
+                { label: "Quando", value: profile.next_action_at ?? "" },
+                { label: "Nota", value: profile.next_action_note ?? "" },
+              ],
+            },
+          ]}
+        />
+      </div>
 
       <LeadChefNextActionCard
         profile={profile}

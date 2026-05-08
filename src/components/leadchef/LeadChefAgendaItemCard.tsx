@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { LeadChefAppointmentTypeBadge } from "./LeadChefAppointmentTypeBadge";
 import { LeadChefAppointmentStatusBadge } from "./LeadChefAppointmentStatusBadge";
 import { formatAgendaTime, isOverdue } from "@/utils/leadchef/date";
+import { LeadChefICSExportButton } from "./LeadChefICSExportButton";
 import type { LeadChefAppointment } from "@/types/leadchef";
 
 interface Props {
@@ -147,6 +148,7 @@ export function LeadChefAgendaItemCard({ appointment: a, onComplete, onReschedul
           <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => onReschedule?.(a)}>
             <CalendarClock className="h-3 w-3 mr-1" /> Reagendar
           </Button>
+          <LeadChefICSExportButton appointment={a as any} />
         </div>
       )}
     </div>

@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useCreateLeadChefAuditLog } from "./useCreateLeadChefAuditLog";
 import type { CreateLeadChefLeadInput } from "@/types/leadchef";
 
 export function useCreateLeadChefLead() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
+  const auditMut = useCreateLeadChefAuditLog();
   const workspaceId = currentWorkspace?.id;
 
   return useMutation({
@@ -75,6 +77,14 @@ export function useCreateLeadChefLead() {
       } catch (e) {
         console.warn("[LeadChef] Falha ao criar atividade inicial:", e);
       }
+
+      auditMut.mutate({
+        action: "lead_created",
+        entityType: "leadchef_lead",
+        entityId: lead.id,
+        description: `Lead "${input.name}" criado`,
+        metadata: { origin: input.origin, interest: input.interest, temperature: input.temperature },
+      });
 
       return { leadId: lead.id, profileId: profile.id };
     },
