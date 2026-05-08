@@ -17,7 +17,6 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const limit = Number(body?.limit ?? 100);
 
-    // Fetch due active runs
     const { data: runs, error: runsErr } = await sb
       .from("leadchef_lead_sequence_runs")
       .select("id, workspace_id, lead_id, sequence_id, current_step_order, status, last_step_at")
@@ -31,13 +30,13 @@ Deno.serve(async (req) => {
     const processed: any[] = [];
 
     for (const run of runs ?? []) {
-      // Pause check: did the lead reply / had inbound activity since last_step_at?
+      // Pause if lead replied / had inbound activity since last_step_at
       if (run.last_step_at) {
         const { data: replies } = await sb
-          .from("leadchef_activities")
+          .from("crm_activities")
           .select("id")
           .eq("lead_id", run.lead_id)
-          .eq("activity_type", "lead_reply")
+          .in("activity_type", ["lead_reply", "inbound_message", "incoming_message"])
           .gt("created_at", run.last_step_at)
           .limit(1);
         if (replies && replies.length > 0) {
@@ -49,7 +48,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Next step
       const nextOrder = (run.current_step_order ?? 0) + 1;
       const { data: step } = await sb
         .from("leadchef_sequence_steps")
@@ -66,35 +64,38 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Apply step action — never auto-sends; creates next-action / alert / draft activity
       const actionType = step.action_type as string;
       const now = new Date();
 
       if (actionType === "next_action") {
-        await sb.from("leadchef_leads")
-          .update({ next_action_title: step.title, next_action_due_at: now.toISOString() })
-          .eq("id", run.lead_id);
+        await sb.from("leadchef_lead_profiles")
+          .update({
+            next_action_type: "follow_up",
+            next_action_at: now.toISOString(),
+            next_action_note: step.title,
+          })
+          .eq("workspace_id", run.workspace_id)
+          .eq("lead_id", run.lead_id);
       } else if (actionType === "alert") {
-        await sb.from("leadchef_activities").insert({
+        await sb.from("crm_activities").insert({
           workspace_id: run.workspace_id,
           lead_id: run.lead_id,
-          activity_type: "sequence_alert",
+          activity_type: "leadchef_sequence_alert",
           title: step.title,
           description: step.message_template ?? null,
           metadata: { sequence_id: run.sequence_id, step_id: step.id },
         });
       } else if (actionType === "draft_message") {
-        await sb.from("leadchef_activities").insert({
+        await sb.from("crm_activities").insert({
           workspace_id: run.workspace_id,
           lead_id: run.lead_id,
-          activity_type: "sequence_draft",
+          activity_type: "leadchef_sequence_draft",
           title: step.title,
           description: step.message_template ?? null,
           metadata: { sequence_id: run.sequence_id, step_id: step.id, channel: step.config?.channel ?? "whatsapp" },
         });
       }
 
-      // Schedule next run
       const { data: peek } = await sb
         .from("leadchef_sequence_steps")
         .select("delay_days")
