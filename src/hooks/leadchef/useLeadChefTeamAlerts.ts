@@ -42,7 +42,7 @@ export function useLeadChefTeamAlerts() {
 
       const [profilesRes, apptsRes, refsRes, clientsRes, leadsRes] = await Promise.all([
         sb.from("leadchef_lead_profiles")
-          .select("lead_id, stage, next_action_at, updated_at, last_contact_at, lead:leads(id,name,assigned_to,created_by)")
+          .select("lead_id, stage, next_action_at, updated_at, lead:leads(id,name,assigned_to,created_by)")
           .eq("workspace_id", wsId).limit(3000),
         sb.from("leadchef_appointments")
           .select("id, type, status, scheduled_at, lead_id, created_by, title")

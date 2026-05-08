@@ -46,7 +46,7 @@ export function useLeadChefAgentOverview(userId?: string, period: LeadChefPeriod
           .or(`assigned_to.eq.${targetUserId},created_by.eq.${targetUserId}`)
           .limit(2000),
         sb.from("leadchef_lead_profiles")
-          .select("lead_id, stage, updated_at, last_contact_at, lead:leads(id,name)")
+          .select("lead_id, stage, updated_at, lead:leads(id,name)")
           .eq("workspace_id", wsId).limit(2000),
         sb.from("leadchef_appointments")
           .select("id, title, type, status, scheduled_at, completed_at, created_by")
@@ -73,7 +73,7 @@ export function useLeadChefAgentOverview(userId?: string, period: LeadChefPeriod
       const inPeriod = (iso?: string | null) => !!iso && iso >= fromIso && iso <= toIso;
 
       const leadsCreated = leads.filter((l) => inPeriod(l.created_at)).length;
-      const leadsContacted = profiles.filter((p) => inPeriod(p.last_contact_at)).length;
+      const leadsContacted = profiles.filter((p) => inPeriod(p.updated_at)).length;
       const actionsCompleted = appts.filter(
         (a) => a.status === "completed" && inPeriod(a.completed_at ?? a.scheduled_at)
       ).length;
