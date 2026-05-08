@@ -17,31 +17,31 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const limit = Number(body?.limit ?? 500);
 
-    const { data: leads } = await sb
-      .from("leadchef_leads")
-      .select("id, workspace_id, stage, created_at, next_action_due_at")
-      .neq("stage", "lost")
-      .neq("stage", "won")
+    const { data: profiles } = await sb
+      .from("leadchef_lead_profiles")
+      .select("id, lead_id, workspace_id, stage, created_at, next_action_at")
+      .not("stage", "in", "(lost,won,client)")
       .order("updated_at", { ascending: true })
       .limit(limit);
 
     let computed = 0;
-    for (const lead of leads ?? []) {
-      const ageDays = Math.floor((Date.now() - new Date(lead.created_at).getTime()) / 86400_000);
+    for (const p of profiles ?? []) {
+      const ageDays = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400_000);
       let score = 50;
-      if (lead.stage === "qualified") score += 20;
-      else if (lead.stage === "contacted") score += 10;
+      if (p.stage === "qualified" || p.stage === "hot") score += 20;
+      else if (p.stage === "contacted" || p.stage === "warm") score += 10;
       if (ageDays > 30) score -= 15;
       if (ageDays > 60) score -= 15;
-      if (lead.next_action_due_at && new Date(lead.next_action_due_at) < new Date()) score -= 10;
+      if (p.next_action_at && new Date(p.next_action_at) < new Date()) score -= 10;
       score = Math.max(0, Math.min(100, score));
 
       await sb.from("leadchef_lead_scores").upsert({
-        lead_id: lead.id,
-        workspace_id: lead.workspace_id,
+        lead_id: p.lead_id,
+        workspace_id: p.workspace_id,
         score,
         is_cold: ageDays > 30 && score < 40,
-        computed_at: new Date().toISOString(),
+        breakdown: { age_days: ageDays, stage: p.stage },
+        calculated_at: new Date().toISOString(),
       }, { onConflict: "lead_id" });
       computed++;
     }
