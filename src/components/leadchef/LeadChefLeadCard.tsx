@@ -1,7 +1,8 @@
-import { Phone, MessageCircle, Clock } from "lucide-react";
+import { Phone, MessageCircle, Clock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LeadChefLeadStageBadge } from "./LeadChefLeadStageBadge";
 import { LeadChefLeadTemperatureBadge } from "./LeadChefLeadTemperatureBadge";
+import { LeadChefLeadScoreBadge } from "./LeadChefLeadScoreBadge";
 import { buildTelHref, buildWhatsAppHref } from "@/utils/leadchef/contact";
 import { LEADCHEF_ACTIVITY_LABELS } from "./constants";
 import type { LeadChefLeadWithProfile } from "@/types/leadchef";
@@ -9,6 +10,10 @@ import type { LeadChefLeadWithProfile } from "@/types/leadchef";
 interface Props {
   item: LeadChefLeadWithProfile;
   onClick?: () => void;
+  score?: number | null;
+  isCold?: boolean;
+  suggestionAction?: string | null;
+  suggestionUrgency?: "low" | "medium" | "high" | null;
 }
 
 function formatNext(iso: string | null): string | null {
@@ -26,10 +31,24 @@ function isOverdue(iso: string | null): boolean {
   return new Date(iso).getTime() < Date.now();
 }
 
-export function LeadChefLeadCard({ item, onClick }: Props) {
+export function LeadChefLeadCard({
+  item,
+  onClick,
+  score = null,
+  isCold = false,
+  suggestionAction = null,
+  suggestionUrgency = null,
+}: Props) {
   const { profile, lead } = item;
   const overdue = isOverdue(profile.next_action_at);
   const next = formatNext(profile.next_action_at);
+
+  const urgencyClass =
+    suggestionUrgency === "high"
+      ? "bg-rose-50 text-rose-700 border-rose-100"
+      : suggestionUrgency === "medium"
+      ? "bg-amber-50 text-amber-800 border-amber-100"
+      : "bg-violet-50 text-violet-700 border-violet-100";
 
   return (
     <div
@@ -47,7 +66,10 @@ export function LeadChefLeadCard({ item, onClick }: Props) {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <LeadChefLeadStageBadge stage={profile.stage} />
+          <div className="flex items-center gap-1">
+            <LeadChefLeadScoreBadge score={score} isCold={isCold} />
+            <LeadChefLeadStageBadge stage={profile.stage} />
+          </div>
           <LeadChefLeadTemperatureBadge temperature={profile.temperature} />
         </div>
       </div>
