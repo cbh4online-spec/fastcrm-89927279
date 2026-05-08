@@ -16,6 +16,13 @@ export default function MarketingAboutPage() {
       <Helmet>
         <title>Sobre · FastCRM</title>
         <meta name="description" content="O método e a equipa por trás do FastCRM." />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai/sobre" />
+        <meta property="og:title" content="Sobre · FastCRM" />
+        <meta property="og:description" content="O método e a equipa por trás do FastCRM." />
+        <meta property="og:image" content="https://fastcrm.metodopare.ai/og/og-sobre.jpg" />
+        <meta property="og:url" content="https://fastcrm.metodopare.ai/sobre" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://fastcrm.metodopare.ai/og/og-sobre.jpg" />
       </Helmet>
       <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-3xl mx-auto text-center mb-16">

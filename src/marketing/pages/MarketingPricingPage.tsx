@@ -11,6 +11,13 @@ export default function MarketingPricingPage() {
       <Helmet>
         <title>Preços · FastCRM</title>
         <meta name="description" content="Planos transparentes para PME portuguesas. Trial gratuito, sem cartão." />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai/precos" />
+        <meta property="og:title" content="Preços · FastCRM" />
+        <meta property="og:description" content="Planos transparentes para PME portuguesas. Trial gratuito, sem cartão." />
+        <meta property="og:image" content="https://fastcrm.metodopare.ai/og/og-precos.jpg" />
+        <meta property="og:url" content="https://fastcrm.metodopare.ai/precos" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://fastcrm.metodopare.ai/og/og-precos.jpg" />
       </Helmet>
 
       <section className="container mx-auto px-4 py-16 md:py-24">
