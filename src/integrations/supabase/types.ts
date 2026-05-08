@@ -44619,6 +44619,45 @@ export type Database = {
           },
         ]
       }
+      leadchef_ai_suggestions: {
+        Row: {
+          context_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          kind: string
+          lead_id: string
+          payload: Json
+          used_at: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          context_hash: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kind?: string
+          lead_id: string
+          payload?: Json
+          used_at?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          context_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          payload?: Json
+          used_at?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       leadchef_appointments: {
         Row: {
           cancelled_at: string | null
@@ -45046,6 +45085,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      leadchef_lead_scores: {
+        Row: {
+          breakdown: Json
+          calculated_at: string
+          created_at: string
+          is_cold: boolean
+          lead_id: string
+          score: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          breakdown?: Json
+          calculated_at?: string
+          created_at?: string
+          is_cold?: boolean
+          lead_id: string
+          score?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          breakdown?: Json
+          calculated_at?: string
+          created_at?: string
+          is_cold?: boolean
+          lead_id?: string
+          score?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       leadchef_message_templates: {
         Row: {
