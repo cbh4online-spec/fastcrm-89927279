@@ -8,6 +8,7 @@ import { LeadChefStageSelector } from "@/components/leadchef/LeadChefStageSelect
 import { LeadChefCycleChecklist } from "@/components/leadchef/LeadChefCycleChecklist";
 import { LeadChefActivityTimeline } from "@/components/leadchef/LeadChefActivityTimeline";
 import { LeadChefCreateActionSheet } from "@/components/leadchef/LeadChefCreateActionSheet";
+import { LeadChefLeadAppointmentsSection } from "@/components/leadchef/LeadChefLeadAppointmentsSection";
 import { LeadChefRegisterResultSheet } from "@/components/leadchef/LeadChefRegisterResultSheet";
 import { LeadChefQuickActionSheet } from "@/components/leadchef/LeadChefQuickActionSheet";
 import { Button } from "@/components/ui/button";
@@ -141,6 +142,8 @@ export default function LeadChefLeadDetailPage() {
           </li>
         </ul>
       </div>
+
+      <LeadChefLeadAppointmentsSection leadId={lead.id} profileId={profile.id} />
 
       <LeadChefCycleChecklist
         profileId={profile.id}
