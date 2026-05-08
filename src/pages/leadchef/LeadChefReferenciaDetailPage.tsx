@@ -71,18 +71,10 @@ export default function LeadChefReferenciaDetailPage() {
         </Select>
       </section>
 
-      {(referral.context || referral.interest || referral.notes) && (
+      {referral.notes && (
         <section className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4 space-y-2">
-          <h2 className="text-sm font-semibold text-slate-900">Contexto</h2>
-          {referral.interest && (
-            <p className="text-xs text-slate-600"><span className="font-medium text-slate-700">Interesse:</span> {referral.interest}</p>
-          )}
-          {referral.context && (
-            <p className="text-xs text-slate-600"><span className="font-medium text-slate-700">Indicação:</span> {referral.context}</p>
-          )}
-          {referral.notes && (
-            <p className="text-xs text-slate-600 whitespace-pre-line">{referral.notes}</p>
-          )}
+          <h2 className="text-sm font-semibold text-slate-900">Notas</h2>
+          <p className="text-xs text-slate-600 whitespace-pre-line">{referral.notes}</p>
         </section>
       )}
 
