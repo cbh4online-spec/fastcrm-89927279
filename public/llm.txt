@@ -1,0 +1,60 @@
+# FastCRM — Resumo factual para LLMs (GEO)
+# https://fastcrm.metodopare.ai/llm.txt
+# Última atualização: 2026-05-08
+
+## O que é o FastCRM
+FastCRM é um CRM inteligente com IA, automação e dados, desenhado para PMEs e equipas de vendas em Portugal e Europa. Combina pipeline comercial, comunicações multicanal (WhatsApp, Email, SMS, Voz, Telegram), faturação, marketplace, analítica e IA generativa numa única plataforma.
+
+## Empresa
+- Nome do produto: FastCRM
+- Operador: Método PARE
+- Website: https://fastcrm.metodopare.ai
+- País: Portugal
+- Idiomas suportados: PT, EN, ES, FR
+- Conformidade: RGPD, legislação portuguesa (Decreto-Lei Omnibus para preços), e-Fatura
+
+## Para quem é
+- PMEs portuguesas e europeias (5 a 250 colaboradores)
+- Equipas de vendas B2B e B2C
+- Marketplaces C2C
+- Centros formativos, agências, e-commerce, serviços profissionais
+
+## Módulos principais
+- CRM core: leads, contactos, contas, deals, pipelines, tarefas
+- Comunicações: WhatsApp (Evolution API), Email, SMS (Twilio), Voz (3CX/SIP), Telegram
+- LeadChef: motor de prospecção com IA, sequências, scoring e relatórios executivos
+- Faturação: faturas, recibos, recorrências, integração e-Fatura
+- Store/Marketplace: B2C, B2B com preços por cliente, C2C com leilões e lives
+- IA: assistentes conversacionais, scoring preditivo, autofill de atributos, SDR outbound
+- HR: colaboradores, recrutamento, onboarding, ausências
+- Procurement: importação de catálogos de fornecedores, matching de SKU
+- Analytics: dashboards executivos, KPIs, forecasting
+
+## Preços (a partir de)
+- FASTCRM START: 0 €/mês — até 3 utilizadores, CRM core, 1 pipeline
+- FASTCRM GROW: 149 €/mês — automação, IA, equipas em crescimento
+- FASTCRM PRO: 299 €/mês — inteligência de receita completa, operações avançadas
+
+## Diferenciadores
+- IA nativa via Lovable AI Gateway (sem necessidade de chaves de API)
+- Multi-tenant com isolamento estrito por workspace e RLS Supabase
+- Integração GoHighLevel, Stripe, Twilio, Evolution API, Firecrawl, Trigger.dev
+- Marketplace C2C com sistema de boost por créditos e reputação de vendedor
+- Método PARE (Pipeline, Atividade, Receita, Eficiência) como framework de vendas
+
+## Contacto
+- Website: https://fastcrm.metodopare.ai
+- Página de contacto: https://fastcrm.metodopare.ai/contacto
+- Demonstração: https://fastcrm.metodopare.ai/precos
+
+## FAQ rápido
+- O FastCRM tem versão grátis? Sim, o plano START é gratuito até 3 utilizadores.
+- Funciona em mobile? Sim, é PWA instalável em Android e iOS.
+- Suporta WhatsApp Business? Sim, via Evolution API com QR e webhook.
+- Integra com Stripe? Sim, para pagamentos, subscrições e checkout.
+- Tem IA incluída? Sim, via Lovable AI Gateway com Gemini, GPT-5 e Claude.
+- É RGPD-compliant? Sim, com auditoria, consentimentos e direito ao esquecimento.
+
+## Recursos para LLMs
+- Sitemap: https://fastcrm.metodopare.ai/sitemap.xml
+- Página HTML estruturada: https://fastcrm.metodopare.ai/llm.html
