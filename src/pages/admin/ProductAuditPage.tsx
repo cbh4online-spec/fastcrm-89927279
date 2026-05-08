@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Sprint1Tab } from "@/components/admin/Sprint1Tab";
 import { GHLRoutingTab } from "@/components/admin/GHLRoutingTab";
+import { GHLRoutingAuditPanel } from "@/components/admin/GHLRoutingAuditPanel";
 
 type Status =
   | "Functional" | "Partial" | "Mock/Demo" | "Structure Only" | "Broken" | "Not Implemented";
