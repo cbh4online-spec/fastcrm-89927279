@@ -12,6 +12,7 @@ import { useLeadChefActionableAlerts } from "@/hooks/leadchef/useLeadChefActiona
 import { LEADCHEF_ACTIVITY_LABELS } from "@/components/leadchef/constants";
 import type { LeadChefTodayAction } from "@/types/leadchef";
 import type { LeadChefActionableAlert } from "@/types/leadchefTemplates";
+import { LeadChefPushSettingsCard } from "@/components/leadchef/LeadChefPushSettingsCard";
 
 const TYPE_ICON = {
   phone_call: Phone,
@@ -123,7 +124,7 @@ export default function LeadChefTodayPage() {
         />
       </section>
 
-      {/* Prioridades */}
+      <LeadChefPushSettingsCard />
       <section className="rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900">Prioridades do dia</h2>

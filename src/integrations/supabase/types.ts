@@ -45217,6 +45217,96 @@ export type Database = {
         }
         Relationships: []
       }
+      leadchef_push_queue: {
+        Row: {
+          attempts: number
+          body: string
+          created_at: string
+          id: string
+          last_error: string | null
+          payload: Json | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          title: string
+          url: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          body: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          title: string
+          url?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+          url?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      leadchef_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          enabled: boolean
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          enabled?: boolean
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          enabled?: boolean
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       leadchef_referrals: {
         Row: {
           authorization_status: string
