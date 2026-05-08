@@ -44619,6 +44619,101 @@ export type Database = {
           },
         ]
       }
+      leadchef_appointments: {
+        Row: {
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          duration_minutes: number | null
+          id: string
+          is_online: boolean
+          lead_id: string | null
+          location: string | null
+          metadata: Json
+          notes: string | null
+          outcome: string | null
+          profile_id: string | null
+          scheduled_at: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_online?: boolean
+          lead_id?: string | null
+          location?: string | null
+          metadata?: Json
+          notes?: string | null
+          outcome?: string | null
+          profile_id?: string | null
+          scheduled_at: string
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_online?: boolean
+          lead_id?: string | null
+          location?: string | null
+          metadata?: Json
+          notes?: string | null
+          outcome?: string | null
+          profile_id?: string | null
+          scheduled_at?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_appointments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadchef_appointments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "leadchef_lead_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadchef_appointments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "leadchef_appointments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leadchef_customer_experiences: {
         Row: {
           contact_id: string | null
