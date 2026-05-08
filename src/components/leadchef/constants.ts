@@ -167,3 +167,103 @@ export const LEADCHEF_APPOINTMENT_OUTCOME_LABELS: Record<LeadChefAppointmentOutc
   asked_later: "Pediu contacto mais tarde",
 };
 
+
+// ─── Referrals (Fase 6) ──────────────────────────────────────────────────────
+
+import type {
+  LeadChefReferralStatus,
+  LeadChefAuthorizationStatus,
+} from "@/types/leadchef";
+
+export const LEADCHEF_REFERRAL_STATUSES: LeadChefReferralStatus[] = [
+  "received",
+  "to_contact",
+  "contacted",
+  "converted",
+  "no_authorization",
+  "not_interested",
+  "reactivate_later",
+];
+
+export const LEADCHEF_REFERRAL_STATUS_LABELS: Record<LeadChefReferralStatus, string> = {
+  received: "Recebida",
+  to_contact: "Contactar",
+  contacted: "Contactada",
+  converted: "Convertida",
+  no_authorization: "Sem autorização",
+  not_interested: "Sem interesse",
+  reactivate_later: "Reativar mais tarde",
+};
+
+export const LEADCHEF_REFERRAL_STATUS_COLORS: Record<LeadChefReferralStatus, string> = {
+  received: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  to_contact: "bg-amber-50 text-amber-700 border-amber-200",
+  contacted: "bg-sky-50 text-sky-700 border-sky-200",
+  converted: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  no_authorization: "bg-slate-100 text-slate-600 border-slate-200",
+  not_interested: "bg-rose-50 text-rose-700 border-rose-200",
+  reactivate_later: "bg-slate-100 text-slate-700 border-slate-200",
+};
+
+export const LEADCHEF_AUTHORIZATION_STATUSES: LeadChefAuthorizationStatus[] = [
+  "unknown",
+  "granted",
+  "denied",
+];
+
+export const LEADCHEF_AUTHORIZATION_STATUS_LABELS: Record<LeadChefAuthorizationStatus, string> = {
+  unknown: "Por confirmar",
+  granted: "Autorizado",
+  denied: "Não autorizado",
+};
+
+export const LEADCHEF_AUTHORIZATION_STATUS_COLORS: Record<LeadChefAuthorizationStatus, string> = {
+  unknown: "bg-amber-50 text-amber-700 border-amber-200",
+  granted: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  denied: "bg-rose-50 text-rose-700 border-rose-200",
+};
+
+// ─── Clients (Fase 6) ────────────────────────────────────────────────────────
+
+export type LeadChefClientStatus =
+  | "new_customer"
+  | "onboarding_pending"
+  | "post_sale_pending"
+  | "active"
+  | "potential_referral"
+  | "potential_recruitment"
+  | "inactive"
+  | "reactivate_later";
+
+export const LEADCHEF_CLIENT_STATUSES: LeadChefClientStatus[] = [
+  "new_customer",
+  "onboarding_pending",
+  "post_sale_pending",
+  "active",
+  "potential_referral",
+  "potential_recruitment",
+  "inactive",
+  "reactivate_later",
+];
+
+export const LEADCHEF_CLIENT_STATUS_LABELS: Record<LeadChefClientStatus, string> = {
+  new_customer: "Novo cliente",
+  onboarding_pending: "Onboarding pendente",
+  post_sale_pending: "Pós-venda pendente",
+  active: "Ativo",
+  potential_referral: "Potencial referência",
+  potential_recruitment: "Potencial recrutamento",
+  inactive: "Inativo",
+  reactivate_later: "Reativar mais tarde",
+};
+
+export const LEADCHEF_CLIENT_STATUS_COLORS: Record<LeadChefClientStatus, string> = {
+  new_customer: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  onboarding_pending: "bg-amber-50 text-amber-700 border-amber-200",
+  post_sale_pending: "bg-orange-50 text-orange-700 border-orange-200",
+  active: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  potential_referral: "bg-violet-50 text-violet-700 border-violet-200",
+  potential_recruitment: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  inactive: "bg-slate-100 text-slate-600 border-slate-200",
+  reactivate_later: "bg-slate-100 text-slate-700 border-slate-200",
+};
