@@ -7,6 +7,8 @@ import { LeadChefQuickLeadSheet } from "@/components/leadchef/LeadChefQuickLeadS
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useLeadChefLeads } from "@/hooks/leadchef/useLeadChefLeads";
+import { useLeadChefLeadsBulkInsight, pickInsight } from "@/hooks/leadchef/useLeadChefLeadsBulkInsight";
+import { useMemo } from "react";
 import {
   LEADCHEF_STAGES,
   LEADCHEF_STAGE_LABELS,
@@ -26,6 +28,8 @@ export default function LeadChefLeadsPage() {
   const [openSheet, setOpenSheet] = useState(false);
 
   const { data, isLoading } = useLeadChefLeads({ search, stage });
+  const leadIds = useMemo(() => (data ?? []).map((d) => d.lead.id), [data]);
+  const { data: insightMap } = useLeadChefLeadsBulkInsight(leadIds);
 
   return (
     <LeadChefMobileShell title="Leads" subtitle="Funil dos teus leads LeadChef.">
@@ -86,16 +90,23 @@ export default function LeadChefLeadsPage() {
         </div>
       ) : (
         <ul className="space-y-2">
-          {data.map((item) => (
-            <li key={item.profile.id}>
-              <LeadChefLeadCard
-                item={item}
-                onClick={() =>
-                  navigate(`/dashboard/leadchef/leads/${item.lead.id}`)
-                }
-              />
-            </li>
-          ))}
+          {data.map((item) => {
+            const insight = pickInsight(insightMap, item.lead.id);
+            return (
+              <li key={item.profile.id}>
+                <LeadChefLeadCard
+                  item={item}
+                  score={insight.score}
+                  isCold={insight.isCold}
+                  suggestionAction={insight.suggestionAction}
+                  suggestionUrgency={insight.suggestionUrgency}
+                  onClick={() =>
+                    navigate(`/dashboard/leadchef/leads/${item.lead.id}`)
+                  }
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
 

@@ -98,6 +98,19 @@ export function LeadChefLeadCard({
         </div>
       )}
 
+      {suggestionAction && (
+        <div
+          className={cn(
+            "mt-2 flex items-start gap-1.5 text-xs px-2 py-1.5 rounded-md border",
+            urgencyClass
+          )}
+          title="Próxima ação sugerida pela IA"
+        >
+          <Sparkles className="h-3 w-3 mt-0.5 shrink-0" />
+          <span className="line-clamp-2">{suggestionAction}</span>
+        </div>
+      )}
+
       {lead.phone && (
         <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
           <a
