@@ -15,8 +15,9 @@
  */
 
 const OG_PROXY_BASE = "https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/og-proxy";
+const SITEMAP_DYNAMIC_URL = "https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/sitemap-dynamic";
 
-const CRAWLER_UA_REGEX = /facebookexternalhit|Facebot|facebook\.com|WhatsApp|Twitterbot|Slackbot|LinkedInBot|Discordbot|TelegramBot|Applebot|Pinterestbot|redditbot|vkShare|Viber|SkypeUriPreview|ia_archiver|Googlebot|bingbot|Baiduspider|YandexBot/i;
+const CRAWLER_UA_REGEX = /facebookexternalhit|Facebot|facebook\.com|WhatsApp|Twitterbot|Slackbot|LinkedInBot|Discordbot|TelegramBot|Applebot|Pinterestbot|redditbot|vkShare|Viber|SkypeUriPreview|ia_archiver|Googlebot|bingbot|Baiduspider|YandexBot|GPTBot|ChatGPT-User|OAI-SearchBot|PerplexityBot|Perplexity-User|Claude-Web|ClaudeBot|anthropic-ai|Google-Extended|CCBot|Bytespider|Amazonbot/i;
 
 const INTERCEPTED_PREFIXES = ["/store/", "/bio/", "/p/", "/c2c/", "/marketplace/"];
 
@@ -24,6 +25,11 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
     const pathname = url.pathname;
+
+    // Sitemap dinâmico (rewrite transparente para edge function)
+    if (pathname === "/sitemap-dynamic.xml") {
+      return fetch(SITEMAP_DYNAMIC_URL, { headers: request.headers });
+    }
 
     // Only intercept matching paths
     const shouldIntercept = INTERCEPTED_PREFIXES.some((prefix) =>
