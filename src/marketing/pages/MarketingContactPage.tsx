@@ -9,6 +9,13 @@ export default function MarketingContactPage() {
       <Helmet>
         <title>Contacto · FastCRM</title>
         <meta name="description" content="Fale com a equipa FastCRM. Resposta em menos de 24h úteis." />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai/contacto" />
+        <meta property="og:title" content="Contacto · FastCRM" />
+        <meta property="og:description" content="Fale com a equipa FastCRM. Resposta em menos de 24h úteis." />
+        <meta property="og:image" content="https://fastcrm.metodopare.ai/og/og-contacto.jpg" />
+        <meta property="og:url" content="https://fastcrm.metodopare.ai/contacto" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://fastcrm.metodopare.ai/og/og-contacto.jpg" />
       </Helmet>
 
       <section className="container mx-auto px-4 py-16 md:py-24">

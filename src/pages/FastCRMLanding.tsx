@@ -41,6 +41,12 @@ export default function FastCRMLanding() {
           content="Plataforma CRM premium com automação e inteligência artificial para equipas que querem crescer com método."
         />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://fastcrm.metodopare.ai/" />
+        <meta property="og:image" content="https://fastcrm.metodopare.ai/og/og-home.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://fastcrm.metodopare.ai/og/og-home.jpg" />
         <link rel="canonical" href="https://fastcrm.metodopare.ai/" />
         <script type="application/ld+json">
           {JSON.stringify({
