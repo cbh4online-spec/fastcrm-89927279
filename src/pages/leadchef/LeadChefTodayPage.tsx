@@ -52,7 +52,15 @@ function EmptyMini({ message }: { message: string }) {
 export default function LeadChefTodayPage() {
   const navigate = useNavigate();
   const { data, isLoading, isError } = useLeadChefToday();
+  const { data: alerts = [] } = useLeadChefActionableAlerts();
   const goToLead = (leadId: string) => navigate(`/dashboard/leadchef/leads/${leadId}`);
+
+  const [waOpen, setWaOpen] = useState(false);
+  const [waAlert, setWaAlert] = useState<LeadChefActionableAlert | null>(null);
+  const onAlertSendMessage = (a: LeadChefActionableAlert) => {
+    setWaAlert(a);
+    setWaOpen(true);
+  };
 
   if (isLoading) {
     return (
