@@ -36,10 +36,10 @@ export function LeadChefRoutes() {
       <Route path="/dashboard/leadchef/templates" element={<LeadChefTemplatesPage />} />
       <Route path="/dashboard/leadchef/automacoes" element={<LeadChefAutomacoesPage />} />
       <Route path="/dashboard/leadchef/ferramentas" element={<LeadChefSettingsPage />} />
-      <Route path="/dashboard/leadchef/importar" element={<LeadChefSettingsPage />} />
-      <Route path="/dashboard/leadchef/exportar" element={<LeadChefSettingsPage />} />
-      <Route path="/dashboard/leadchef/integracoes" element={<LeadChefSettingsPage />} />
-      <Route path="/dashboard/leadchef/auditoria" element={<LeadChefSettingsPage />} />
+      <Route path="/dashboard/leadchef/importar" element={<Navigate to="/dashboard/leadchef/ferramentas?tab=importar" replace />} />
+      <Route path="/dashboard/leadchef/exportar" element={<Navigate to="/dashboard/leadchef/ferramentas?tab=exportar" replace />} />
+      <Route path="/dashboard/leadchef/integracoes" element={<Navigate to="/dashboard/leadchef/ferramentas?tab=integracoes" replace />} />
+      <Route path="/dashboard/leadchef/auditoria" element={<Navigate to="/dashboard/leadchef/ferramentas?tab=auditoria" replace />} />
     </>
   );
 }
