@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Sprint1Tab } from "@/components/admin/Sprint1Tab";
 import { GHLRoutingTab } from "@/components/admin/GHLRoutingTab";
+import { GHLRoutingAuditPanel } from "@/components/admin/GHLRoutingAuditPanel";
 
 type Status =
   | "Functional" | "Partial" | "Mock/Demo" | "Structure Only" | "Broken" | "Not Implemented";
@@ -417,6 +418,7 @@ export default function ProductAuditPage() {
             <TabsTrigger value="flows">Fluxos demo</TabsTrigger>
             <TabsTrigger value="sprint1">Sprint 1</TabsTrigger>
             <TabsTrigger value="ghl-routing">GHL Routing</TabsTrigger>
+            <TabsTrigger value="ghl-audit">GHL Audit</TabsTrigger>
             <TabsTrigger value="report">Relatório</TabsTrigger>
           </TabsList>
 
@@ -426,6 +428,10 @@ export default function ProductAuditPage() {
 
           <TabsContent value="ghl-routing" className="space-y-4">
             <GHLRoutingTab />
+          </TabsContent>
+
+          <TabsContent value="ghl-audit" className="space-y-4">
+            <GHLRoutingAuditPanel />
           </TabsContent>
 
           {/* MÓDULOS */}
