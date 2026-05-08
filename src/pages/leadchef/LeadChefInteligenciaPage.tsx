@@ -1,4 +1,4 @@
-import { Brain, Flame, Snowflake, RefreshCcw, ChevronRight, Loader2 } from "lucide-react";
+import { Flame, Snowflake, RefreshCcw, ChevronRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { LeadChefMobileShell } from "@/components/leadchef/LeadChefMobileShell";
 import { LeadChefLeadScoreBadge } from "@/components/leadchef/LeadChefLeadScoreBadge";
@@ -18,7 +18,6 @@ export default function LeadChefInteligenciaPage() {
     <LeadChefMobileShell
       title="Inteligência"
       subtitle="Score e sugestões dos teus leads"
-      icon={Brain}
     >
       <div className="px-4 pt-3 pb-2">
         <Button
