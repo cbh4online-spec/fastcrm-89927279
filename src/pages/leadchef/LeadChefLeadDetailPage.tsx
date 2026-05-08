@@ -107,6 +107,10 @@ export default function LeadChefLeadDetailPage() {
         />
       </div>
 
+      <div className="px-4">
+        <LeadChefEnrollSequencePanel leadId={lead.id} />
+      </div>
+
       <div className="flex justify-end">
         <LeadChefPrintButton
           title={data.lead?.name ?? "Lead LeadChef"}
