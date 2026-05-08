@@ -96,13 +96,37 @@ export default function LeadChefLeadDetailPage() {
         onCreate={() => openCreateSheet("follow_up", undefined, "Nova ação")}
       />
 
-      <Button
-        onClick={() => setOpenQuick(true)}
-        variant="outline"
-        className="w-full"
-      >
-        Ações rápidas
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button onClick={() => setOpenQuick(true)} variant="outline" className="w-full">
+          Ações rápidas
+        </Button>
+        <Button
+          onClick={() => setOpenWa(true)}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+          disabled={!lead.phone}
+        >
+          <MessageCircle className="h-4 w-4 mr-1.5" /> WhatsApp
+        </Button>
+      </div>
+
+      {(() => {
+        const suggestions = useLeadChefNextActionSuggestions({
+          stage: profile.stage,
+          hasNextAction: Boolean(profile.next_action_at),
+        });
+        if (suggestions.length === 0) return null;
+        return (
+          <div className="space-y-2">
+            {suggestions.map((s) => (
+              <LeadChefNextActionSuggestionCard
+                key={s.id}
+                suggestion={s}
+                onCreate={() => openCreateSheet((s.type as any) ?? "follow_up", undefined, s.title)}
+              />
+            ))}
+          </div>
+        );
+      })()}
 
       <LeadChefStageSelector
         stage={profile.stage}
