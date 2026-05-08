@@ -143,6 +143,8 @@ export default function LeadChefLeadDetailPage() {
         </ul>
       </div>
 
+      <LeadChefLeadAppointmentsSection leadId={lead.id} profileId={profile.id} />
+
       <LeadChefCycleChecklist
         profileId={profile.id}
         cycle={profile.cycle as Record<string, unknown>}
