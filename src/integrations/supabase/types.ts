@@ -45119,6 +45119,59 @@ export type Database = {
         }
         Relationships: []
       }
+      leadchef_lead_sequence_runs: {
+        Row: {
+          completed_at: string | null
+          current_step_order: number
+          enrolled_at: string
+          enrolled_by: string | null
+          id: string
+          last_step_at: string | null
+          lead_id: string
+          metadata: Json
+          next_run_at: string
+          sequence_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          current_step_order?: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          id?: string
+          last_step_at?: string | null
+          lead_id: string
+          metadata?: Json
+          next_run_at?: string
+          sequence_id: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          current_step_order?: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          id?: string
+          last_step_at?: string | null
+          lead_id?: string
+          metadata?: Json
+          next_run_at?: string
+          sequence_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_lead_sequence_runs_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "leadchef_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leadchef_message_templates: {
         Row: {
           body: string
@@ -45229,6 +45282,86 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      leadchef_sequence_steps: {
+        Row: {
+          action_type: string
+          config: Json
+          created_at: string
+          delay_days: number
+          id: string
+          message_template: string | null
+          sequence_id: string
+          step_order: number
+          title: string
+        }
+        Insert: {
+          action_type: string
+          config?: Json
+          created_at?: string
+          delay_days?: number
+          id?: string
+          message_template?: string | null
+          sequence_id: string
+          step_order: number
+          title: string
+        }
+        Update: {
+          action_type?: string
+          config?: Json
+          created_at?: string
+          delay_days?: number
+          id?: string
+          message_template?: string | null
+          sequence_id?: string
+          step_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "leadchef_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leadchef_sequences: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_enabled: boolean
+          name: string
+          trigger_event: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name: string
+          trigger_event?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          trigger_event?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       leads: {
         Row: {
@@ -88005,6 +88138,10 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      enroll_lead_in_leadchef_sequence: {
+        Args: { p_lead_id: string; p_sequence_id: string }
+        Returns: string
       }
       ensure_b2b_catalog_kb: {
         Args: { p_user_id: string; p_workspace_id: string }
