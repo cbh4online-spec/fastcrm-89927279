@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Workflow, Loader2 } from "lucide-react";
+import { Workflow, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -7,6 +7,8 @@ import {
   useEnrollLeadInSequence,
   useLeadSequenceRuns,
 } from "@/hooks/leadchef/useLeadChefSequences";
+import { LeadChefSequenceRunLogPanel } from "./LeadChefSequenceRunLogPanel";
+import { cn } from "@/lib/utils";
 
 interface Props {
   leadId: string;
@@ -17,6 +19,7 @@ export function LeadChefEnrollSequencePanel({ leadId }: Props) {
   const { data: runs } = useLeadSequenceRuns(leadId);
   const enroll = useEnrollLeadInSequence();
   const [sequenceId, setSequenceId] = useState<string>("");
+  const [openLogsFor, setOpenLogsFor] = useState<string | null>(null);
 
   const enabled = (sequences ?? []).filter((s) => s.is_enabled);
 
@@ -55,15 +58,33 @@ export function LeadChefEnrollSequencePanel({ leadId }: Props) {
       )}
 
       {runs && runs.length > 0 && (
-        <div className="mt-3 space-y-1.5">
-          {runs.map((r) => (
-            <div key={r.id} className="text-xs flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5">
-              <span className="text-slate-700 truncate">{r.leadchef_sequences?.name ?? "Sequência"}</span>
-              <span className="text-[10px] text-slate-500">
-                passo {r.current_step_order} · {r.status}
-              </span>
-            </div>
-          ))}
+        <div className="mt-3 space-y-2">
+          {runs.map((r) => {
+            const isOpen = openLogsFor === r.id;
+            const statusClass =
+              r.status === "active"   ? "text-emerald-700"
+              : r.status === "paused" ? "text-amber-700"
+              : r.status === "completed" ? "text-sky-700"
+              : "text-slate-500";
+            return (
+              <div key={r.id} className="space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => setOpenLogsFor(isOpen ? null : r.id)}
+                  className="w-full text-xs flex items-center justify-between bg-slate-50 hover:bg-slate-100 rounded-lg px-2.5 py-1.5 transition"
+                >
+                  <span className="flex items-center gap-1.5 text-slate-700 truncate">
+                    {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    {r.leadchef_sequences?.name ?? "Sequência"}
+                  </span>
+                  <span className={cn("text-[10px] font-medium", statusClass)}>
+                    passo {r.current_step_order} · {r.status}
+                  </span>
+                </button>
+                {isOpen && <LeadChefSequenceRunLogPanel runId={r.id} className="!p-3" />}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
