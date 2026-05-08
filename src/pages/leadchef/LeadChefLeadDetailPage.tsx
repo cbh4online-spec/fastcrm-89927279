@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 import { LeadChefWhatsAppActionSheet } from "@/components/leadchef/LeadChefWhatsAppActionSheet";
 import { LeadChefNextActionSuggestionCard } from "@/components/leadchef/LeadChefNextActionSuggestionCard";
-import { useLeadChefNextActionSuggestions } from "@/hooks/leadchef/useLeadChefNextActionSuggestions";
+import { getLeadChefNextActionSuggestions } from "@/hooks/leadchef/useLeadChefNextActionSuggestions";
 import { useLeadChefLead } from "@/hooks/leadchef/useLeadChefLead";
 import { useUpdateLeadChefLeadStage } from "@/hooks/leadchef/useUpdateLeadChefLeadStage";
 import { useUpdateLeadChefNextAction } from "@/hooks/leadchef/useUpdateLeadChefNextAction";
@@ -110,7 +110,7 @@ export default function LeadChefLeadDetailPage() {
       </div>
 
       {(() => {
-        const suggestions = useLeadChefNextActionSuggestions({
+        const suggestions = getLeadChefNextActionSuggestions({
           stage: profile.stage,
           hasNextAction: Boolean(profile.next_action_at),
         });
