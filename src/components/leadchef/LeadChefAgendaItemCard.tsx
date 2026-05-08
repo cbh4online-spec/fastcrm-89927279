@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { LeadChefAppointmentTypeBadge } from "./LeadChefAppointmentTypeBadge";
 import { LeadChefAppointmentStatusBadge } from "./LeadChefAppointmentStatusBadge";
 import { formatAgendaTime, isOverdue } from "@/utils/leadchef/date";
+import { LeadChefICSExportButton } from "./LeadChefICSExportButton";
 import type { LeadChefAppointment } from "@/types/leadchef";
 
 interface Props {
