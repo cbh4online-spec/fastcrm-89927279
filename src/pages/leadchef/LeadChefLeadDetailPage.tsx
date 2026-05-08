@@ -12,6 +12,10 @@ import { LeadChefLeadAppointmentsSection } from "@/components/leadchef/LeadChefL
 import { LeadChefRegisterResultSheet } from "@/components/leadchef/LeadChefRegisterResultSheet";
 import { LeadChefQuickActionSheet } from "@/components/leadchef/LeadChefQuickActionSheet";
 import { Button } from "@/components/ui/button";
+import { MessageCircle } from "lucide-react";
+import { LeadChefWhatsAppActionSheet } from "@/components/leadchef/LeadChefWhatsAppActionSheet";
+import { LeadChefNextActionSuggestionCard } from "@/components/leadchef/LeadChefNextActionSuggestionCard";
+import { useLeadChefNextActionSuggestions } from "@/hooks/leadchef/useLeadChefNextActionSuggestions";
 import { useLeadChefLead } from "@/hooks/leadchef/useLeadChefLead";
 import { useUpdateLeadChefLeadStage } from "@/hooks/leadchef/useUpdateLeadChefLeadStage";
 import { useUpdateLeadChefNextAction } from "@/hooks/leadchef/useUpdateLeadChefNextAction";
@@ -26,6 +30,7 @@ export default function LeadChefLeadDetailPage() {
   const [openCreate, setOpenCreate] = useState(false);
   const [openResult, setOpenResult] = useState(false);
   const [openQuick, setOpenQuick] = useState(false);
+  const [openWa, setOpenWa] = useState(false);
   const [createDefaultType, setCreateDefaultType] =
     useState<LeadChefActivityType>("follow_up");
   const [createForceStage, setCreateForceStage] = useState<
