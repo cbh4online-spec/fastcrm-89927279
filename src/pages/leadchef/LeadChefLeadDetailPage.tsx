@@ -17,6 +17,7 @@ import { LeadChefWhatsAppActionSheet } from "@/components/leadchef/LeadChefWhats
 import { LeadChefNextActionSuggestionCard } from "@/components/leadchef/LeadChefNextActionSuggestionCard";
 import { LeadChefPrintButton } from "@/components/leadchef/LeadChefPrintButton";
 import { LeadChefAISuggestionPanel } from "@/components/leadchef/LeadChefAISuggestionPanel";
+import { LeadChefEnrollSequencePanel } from "@/components/leadchef/LeadChefEnrollSequencePanel";
 import { LeadChefLeadScoreBadge } from "@/components/leadchef/LeadChefLeadScoreBadge";
 import { useLeadChefLeadScore } from "@/hooks/leadchef/useLeadChefLeadScore";
 import { getLeadChefNextActionSuggestions } from "@/hooks/leadchef/useLeadChefNextActionSuggestions";
