@@ -7,6 +7,7 @@ const LeadChefLeadDetailPage = lazy(() => import("@/pages/leadchef/LeadChefLeadD
 const LeadChefAgendaPage = lazy(() => import("@/pages/leadchef/LeadChefAgendaPage"));
 const LeadChefClientesPage = lazy(() => import("@/pages/leadchef/LeadChefClientesPage"));
 const LeadChefClienteDetailPage = lazy(() => import("@/pages/leadchef/LeadChefClienteDetailPage"));
+const LeadChefReferenciasPage = lazy(() => import("@/pages/leadchef/LeadChefReferenciasPage"));
 const LeadChefReferenciaDetailPage = lazy(() => import("@/pages/leadchef/LeadChefReferenciaDetailPage"));
 const LeadChefObjetivosPage = lazy(() => import("@/pages/leadchef/LeadChefObjetivosPage"));
 
@@ -20,7 +21,7 @@ export function LeadChefRoutes() {
       <Route path="/dashboard/leadchef/agenda" element={<LeadChefAgendaPage />} />
       <Route path="/dashboard/leadchef/clientes" element={<LeadChefClientesPage />} />
       <Route path="/dashboard/leadchef/clientes/:leadId" element={<LeadChefClienteDetailPage />} />
-      <Route path="/dashboard/leadchef/referencias" element={<Navigate to="/dashboard/leadchef/clientes" replace />} />
+      <Route path="/dashboard/leadchef/referencias" element={<LeadChefReferenciasPage />} />
       <Route path="/dashboard/leadchef/referencias/:referralId" element={<LeadChefReferenciaDetailPage />} />
       <Route path="/dashboard/leadchef/objetivos" element={<LeadChefObjetivosPage />} />
     </>
