@@ -238,6 +238,12 @@ export default function LeadChefTodayPage() {
           >
             Automações
           </button>
+          <button
+            onClick={() => navigate("/dashboard/leadchef/ferramentas")}
+            className="text-xs font-medium px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 col-span-2"
+          >
+            Ferramentas (Importar / Exportar / Auditoria)
+          </button>
         </div>
       </section>
 
