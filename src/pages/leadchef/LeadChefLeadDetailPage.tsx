@@ -218,6 +218,23 @@ export default function LeadChefLeadDetailPage() {
           updateStage.mutate({ profileId: profile.id, leadId: lead.id, stage: "lost" })
         }
       />
+
+      <LeadChefWhatsAppActionSheet
+        open={openWa}
+        onOpenChange={setOpenWa}
+        phone={lead.phone}
+        recipientName={lead.name}
+        entityKind="lead"
+        leadId={lead.id}
+        preferredCategory={
+          profile.stage === "demo_scheduled" ? "demo_confirmation" :
+          profile.stage === "demo_done" ? "post_demo_follow_up" :
+          profile.stage === "proposal_decision" ? "proposal_follow_up" :
+          profile.stage === "reactivate_later" ? "reactivation" :
+          "first_contact"
+        }
+        context={{ interest: profile.interest, origin: profile.origin }}
+      />
     </LeadChefMobileShell>
   );
 }
