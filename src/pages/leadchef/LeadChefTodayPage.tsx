@@ -1,12 +1,17 @@
-import { Activity, CalendarDays, Sparkles, Target, Phone, FileText, AlertCircle, TrendingUp, ChevronRight, Loader2, MessageSquare } from "lucide-react";
+import { Activity, CalendarDays, Sparkles, Target, Phone, FileText, AlertCircle, TrendingUp, ChevronRight, Loader2, MessageSquare, Settings2 } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LeadChefMobileShell } from "@/components/leadchef/LeadChefMobileShell";
 import { LeadChefTodayCard } from "@/components/leadchef/LeadChefTodayCard";
 import { LeadChefLeadStageBadge } from "@/components/leadchef/LeadChefLeadStageBadge";
+import { LeadChefAlertActionCard } from "@/components/leadchef/LeadChefAlertActionCard";
+import { LeadChefWhatsAppActionSheet } from "@/components/leadchef/LeadChefWhatsAppActionSheet";
 import { Progress } from "@/components/ui/progress";
 import { useLeadChefToday } from "@/hooks/leadchef/useLeadChefToday";
+import { useLeadChefActionableAlerts } from "@/hooks/leadchef/useLeadChefActionableAlerts";
 import { LEADCHEF_ACTIVITY_LABELS } from "@/components/leadchef/constants";
 import type { LeadChefTodayAction } from "@/types/leadchef";
+import type { LeadChefActionableAlert } from "@/types/leadchefTemplates";
 
 const TYPE_ICON = {
   phone_call: Phone,
