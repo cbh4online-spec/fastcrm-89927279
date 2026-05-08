@@ -44714,6 +44714,65 @@ export type Database = {
           },
         ]
       }
+      leadchef_client_profiles: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_cycle: Json
+          id: string
+          lead_id: string | null
+          next_follow_up_at: string | null
+          notes: string | null
+          post_sale_status: string | null
+          potential_recruitment: boolean
+          potential_referral: boolean
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_cycle?: Json
+          id?: string
+          lead_id?: string | null
+          next_follow_up_at?: string | null
+          notes?: string | null
+          post_sale_status?: string | null
+          potential_recruitment?: boolean
+          potential_referral?: boolean
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_cycle?: Json
+          id?: string
+          lead_id?: string | null
+          next_follow_up_at?: string | null
+          notes?: string | null
+          post_sale_status?: string | null
+          potential_recruitment?: boolean
+          potential_referral?: boolean
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_client_profiles_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leadchef_customer_experiences: {
         Row: {
           contact_id: string | null
