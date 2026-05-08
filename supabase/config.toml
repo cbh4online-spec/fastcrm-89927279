@@ -3,6 +3,9 @@ project_id = "eumnfkccyvlyoyjchiwe"
 [functions.fastmatch-score]
 verify_jwt = false
 
+[functions.sitemap-dynamic]
+verify_jwt = false
+
 [functions.whatsapp-zapi-webhook]
 verify_jwt = false
 
