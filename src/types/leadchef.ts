@@ -190,6 +190,85 @@ export interface LeadChefTodayData {
   monthlyProgress: LeadChefMonthlyProgress;
 }
 
+// ─── Appointments (Fase 4) ───────────────────────────────────────────────────
+
+export type LeadChefAppointmentType =
+  | "phone_call"
+  | "whatsapp"
+  | "follow_up"
+  | "demo"
+  | "post_sale_visit"
+  | "cooking_class"
+  | "custom_visit"
+  | "proposal"
+  | "referral"
+  | "recruitment"
+  | "team_meeting"
+  | "training"
+  | "note"
+  | "other";
+
+export type LeadChefAppointmentStatus =
+  | "scheduled"
+  | "completed"
+  | "cancelled"
+  | "rescheduled"
+  | "overdue";
+
+export type LeadChefAppointmentOutcome =
+  | "done"
+  | "no_answer"
+  | "rescheduled"
+  | "proposal_sent"
+  | "won"
+  | "no_interest"
+  | "needs_followup"
+  | "asked_info"
+  | "asked_later";
+
+export interface LeadChefAppointment {
+  id: string;
+  workspace_id: string;
+  lead_id: string | null;
+  profile_id: string | null;
+  type: LeadChefAppointmentType;
+  status: LeadChefAppointmentStatus;
+  title: string;
+  notes: string | null;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  location: string | null;
+  is_online: boolean;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  outcome: LeadChefAppointmentOutcome | null;
+  metadata: Record<string, unknown>;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  lead?: { id: string; name: string; phone: string | null; email: string | null } | null;
+}
+
+export type LeadChefAgendaPeriod = "today" | "week" | "month" | "overdue" | "all";
+
+export interface LeadChefAgendaGroup {
+  date: string;
+  label: string;
+  items: LeadChefAppointment[];
+}
+
+export interface LeadChefAgendaData {
+  groups: LeadChefAgendaGroup[];
+  counters: {
+    today: number;
+    week: number;
+    month: number;
+    overdue: number;
+    total: number;
+  };
+}
+
 // ─── Mock helpers (still useful for empty state) ─────────────────────────────
 
 export interface LeadChefTodayItem {
