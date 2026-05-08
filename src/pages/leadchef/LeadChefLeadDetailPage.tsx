@@ -16,6 +16,9 @@ import { MessageCircle } from "lucide-react";
 import { LeadChefWhatsAppActionSheet } from "@/components/leadchef/LeadChefWhatsAppActionSheet";
 import { LeadChefNextActionSuggestionCard } from "@/components/leadchef/LeadChefNextActionSuggestionCard";
 import { LeadChefPrintButton } from "@/components/leadchef/LeadChefPrintButton";
+import { LeadChefAISuggestionPanel } from "@/components/leadchef/LeadChefAISuggestionPanel";
+import { LeadChefLeadScoreBadge } from "@/components/leadchef/LeadChefLeadScoreBadge";
+import { useLeadChefLeadScore } from "@/hooks/leadchef/useLeadChefLeadScore";
 import { getLeadChefNextActionSuggestions } from "@/hooks/leadchef/useLeadChefNextActionSuggestions";
 import { useLeadChefLead } from "@/hooks/leadchef/useLeadChefLead";
 import { useUpdateLeadChefLeadStage } from "@/hooks/leadchef/useUpdateLeadChefLeadStage";
@@ -27,6 +30,7 @@ export default function LeadChefLeadDetailPage() {
   const { data, isLoading } = useLeadChefLead(leadId);
   const updateStage = useUpdateLeadChefLeadStage();
   const updateNext = useUpdateLeadChefNextAction();
+  const { data: scoreData } = useLeadChefLeadScore(leadId);
 
   const [openCreate, setOpenCreate] = useState(false);
   const [openResult, setOpenResult] = useState(false);
@@ -87,6 +91,20 @@ export default function LeadChefLeadDetailPage() {
   return (
     <LeadChefMobileShell title="Lead">
       <LeadChefLeadDetailHeader data={data} />
+
+      {scoreData && (
+        <div className="flex items-center gap-2 px-4 -mt-1">
+          <span className="text-xs text-slate-500">Score IA:</span>
+          <LeadChefLeadScoreBadge score={scoreData.score} isCold={scoreData.is_cold} size="md" />
+        </div>
+      )}
+
+      <div className="px-4">
+        <LeadChefAISuggestionPanel
+          leadId={lead.id}
+          leadPhone={lead.phone}
+        />
+      </div>
 
       <div className="flex justify-end">
         <LeadChefPrintButton
