@@ -45220,11 +45220,54 @@ export type Database = {
         }
         Relationships: []
       }
+      leadchef_notification_prefs: {
+        Row: {
+          alert_cold_leads: boolean
+          cold_lead_inactive_days: number
+          created_at: string
+          id: string
+          quiet_hours_end: number | null
+          quiet_hours_start: number | null
+          remind_next_actions: boolean
+          remind_window_minutes: number
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          alert_cold_leads?: boolean
+          cold_lead_inactive_days?: number
+          created_at?: string
+          id?: string
+          quiet_hours_end?: number | null
+          quiet_hours_start?: number | null
+          remind_next_actions?: boolean
+          remind_window_minutes?: number
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          alert_cold_leads?: boolean
+          cold_lead_inactive_days?: number
+          created_at?: string
+          id?: string
+          quiet_hours_end?: number | null
+          quiet_hours_start?: number | null
+          remind_next_actions?: boolean
+          remind_window_minutes?: number
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       leadchef_push_queue: {
         Row: {
           attempts: number
           body: string
           created_at: string
+          dedupe_key: string | null
           id: string
           last_error: string | null
           payload: Json | null
@@ -45240,6 +45283,7 @@ export type Database = {
           attempts?: number
           body: string
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           last_error?: string | null
           payload?: Json | null
@@ -45255,6 +45299,7 @@ export type Database = {
           attempts?: number
           body?: string
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           last_error?: string | null
           payload?: Json | null
