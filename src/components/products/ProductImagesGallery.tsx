@@ -32,7 +32,9 @@ import {
   Loader2,
   Upload,
   Link as LinkIcon,
+  Globe,
 } from "lucide-react";
+import { ProductImageWebSearchDialog } from "./ProductImageWebSearchDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
