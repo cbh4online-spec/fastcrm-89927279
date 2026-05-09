@@ -20,6 +20,15 @@ export function AppModeGuard({ children }: AppModeGuardProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Atualiza o <title> conforme o modo
+  useEffect(() => {
+    if (isLoading) return;
+    const base = mode === "leadchef" ? "LeadChef" : "FastCRM";
+    if (!document.title.startsWith(base)) {
+      document.title = base;
+    }
+  }, [mode, isLoading]);
+
   useEffect(() => {
     if (isLoading) return;
     if (mode !== "leadchef") return;
