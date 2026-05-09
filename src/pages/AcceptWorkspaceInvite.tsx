@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle, XCircle, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { LEADCHEF_HOME_PATH } from "@/config/appModes";
 
 interface InviteData {
   id: string;
@@ -17,12 +19,15 @@ interface InviteData {
   status: string;
   expires_at: string;
   workspace_name?: string;
+  workspace_ui_mode?: string;
 }
 
 export default function AcceptWorkspaceInvite() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { refreshWorkspaces } = useWorkspace();
+  const acceptStartedRef = useRef(false);
 
   const [invite, setInvite] = useState<InviteData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,13 +81,14 @@ export default function AcceptWorkspaceInvite() {
       // Get workspace name
       const { data: ws } = await supabase
         .from("workspaces")
-        .select("name")
+        .select("name, ui_mode")
         .eq("id", inviteData.workspace_id)
         .single();
 
       setInvite({
         ...inviteData,
         workspace_name: ws?.name || "Workspace",
+        workspace_ui_mode: (ws as any)?.ui_mode || "auto",
       });
       setSignupEmail(inviteData.email);
       setLoginEmail(inviteData.email);
@@ -101,7 +107,8 @@ export default function AcceptWorkspaceInvite() {
   }, [user, authLoading, invite]);
 
   const acceptInvite = async () => {
-    if (!invite || accepting) return;
+    if (!invite || accepting || acceptStartedRef.current) return;
+    acceptStartedRef.current = true;
     setAccepting(true);
 
     try {
@@ -122,7 +129,9 @@ export default function AcceptWorkspaceInvite() {
 
       if (existing) {
         toast.info("Já é membro deste workspace.");
-        navigate("/dashboard");
+        localStorage.setItem("currentWorkspaceId", invite.workspace_id);
+        await refreshWorkspaces();
+        navigate(invite.workspace_ui_mode === "leadchef" ? LEADCHEF_HOME_PATH : "/dashboard", { replace: true });
         return;
       }
 
@@ -144,10 +153,13 @@ export default function AcceptWorkspaceInvite() {
         .eq("id", invite.id);
 
       toast.success(`Bem-vindo à equipa ${invite.workspace_name}!`);
-      navigate("/dashboard");
+      localStorage.setItem("currentWorkspaceId", invite.workspace_id);
+      await refreshWorkspaces();
+      navigate(invite.workspace_ui_mode === "leadchef" ? LEADCHEF_HOME_PATH : "/dashboard", { replace: true });
     } catch (err: any) {
       console.error("Error accepting invite:", err);
       toast.error(err.message || "Erro ao aceitar convite");
+      acceptStartedRef.current = false;
     } finally {
       setAccepting(false);
     }
