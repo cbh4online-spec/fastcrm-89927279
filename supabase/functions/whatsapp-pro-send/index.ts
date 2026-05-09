@@ -97,8 +97,10 @@ Deno.serve(async (req) => {
         message: body.text,
       };
       if (body.mediaUrl) {
+        // "product" é tratado como imagem (a mediaUrl é sempre a imagem do produto),
+        // garantindo que o caption (texto promocional) é entregue junto da imagem.
         const mediaType =
-          body.messageType === "image"
+          body.messageType === "image" || body.messageType === "product"
             ? "image"
             : body.messageType === "audio"
             ? "audio"
@@ -111,6 +113,8 @@ Deno.serve(async (req) => {
           caption: body.text,
           fileName: body.fileName,
         };
+        // Quando vai como media com caption, não duplicar como mensagem de texto separada.
+        delete invokePayload.message;
       }
 
       const { data: sendData, error: sendErr } = await adminClient.functions.invoke(
