@@ -303,7 +303,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   variant="sidebar"
                 />
                 <span className="font-bold text-white text-base truncate max-w-[140px] block">
-                  {currentWorkspace?.name || "FastCRM"}
+                  {mode === "leadchef" ? "LeadChef" : (currentWorkspace?.name || "FastCRM")}
                 </span>
               </div>
               <button
