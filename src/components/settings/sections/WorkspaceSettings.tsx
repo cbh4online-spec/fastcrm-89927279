@@ -145,6 +145,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       if (currentWorkspace) {
         setWorkspaceName(currentWorkspace.name);
         setWorkspaceSlug(currentWorkspace.slug);
+        setUiMode(currentWorkspace.ui_mode ?? "auto");
         
         const details = await fetchWorkspaceDetails();
         if (details) {
