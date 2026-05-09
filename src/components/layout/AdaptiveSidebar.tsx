@@ -9,6 +9,7 @@ import { useSidebarBadges } from "@/hooks/useSidebarBadges";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
+import { useAppMode } from "@/hooks/useAppMode";
 import {
   buildSidebarSections,
   type RouteEntry,
