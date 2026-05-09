@@ -3,7 +3,7 @@
 // Por agora, encaminha para Z-API (whatsapp-zapi-send) quando o provider é zapi.
 // Estrutura preparada para futuros adapters server-side (Meta Cloud, Twilio).
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
