@@ -291,12 +291,43 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
         <Button
           variant="outline"
           size="sm"
+          onClick={() => setWebSearchOpen(true)}
+        >
+          <Globe className="h-4 w-4 mr-2" />
+          Pesquisar Web
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => setAiDialogOpen(true)}
         >
           <Sparkles className="h-4 w-4 mr-2" />
           Gerar com IA
         </Button>
       </div>
+
+      {/* Web Search Dialog */}
+      <ProductImageWebSearchDialog
+        open={webSearchOpen}
+        onOpenChange={setWebSearchOpen}
+        defaultQuery={product.name}
+        remainingSlots={Math.max(10 - images.length, 1)}
+        onPicked={async (urls) => {
+          for (let i = 0; i < urls.length; i++) {
+            const url = urls[i];
+            const ext = url.split(".").pop()?.split("?")[0] || "jpg";
+            const seoFilename = buildSeoFilename(product, images.length + i, ext);
+            await addImage.mutateAsync({
+              productId: product.id,
+              url,
+              altText: buildAutoAltText(product),
+              seoFilename,
+              title: product.name,
+              caption: product.short_description || product.name,
+            });
+          }
+        }}
+      />
 
       {/* Image Grid */}
       {images.length > 0 ? (
