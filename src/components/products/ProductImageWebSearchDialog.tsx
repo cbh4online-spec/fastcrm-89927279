@@ -306,6 +306,48 @@ export function ProductImageWebSearchDialog({
           )}
         </div>
 
+        {picked.size > 0 && (
+          <div className="border-t pt-3 mt-1">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium">
+                Pré-visualização ({picked.size}) — confirma antes de adicionar
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setPicked(new Set())}
+                disabled={importing}
+              >
+                Limpar seleção
+              </Button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {Array.from(picked).map((url) => (
+                <div
+                  key={`preview-${url}`}
+                  className="relative h-24 w-24 shrink-0 rounded-md border overflow-hidden bg-muted group"
+                >
+                  <img
+                    src={url}
+                    alt="Selecionada"
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePick(url)}
+                    disabled={importing}
+                    className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/70 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                    title="Remover da seleção"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <DialogFooter className="gap-2">
           <Badge variant="outline">{picked.size} selecionada(s)</Badge>
           <Button
