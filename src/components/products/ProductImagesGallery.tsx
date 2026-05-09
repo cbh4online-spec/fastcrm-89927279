@@ -74,6 +74,7 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [webSearchOpen, setWebSearchOpen] = useState(false);
   const [imageToDelete, setImageToDelete] = useState<ProductImage | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [imageAlt, setImageAlt] = useState("");
