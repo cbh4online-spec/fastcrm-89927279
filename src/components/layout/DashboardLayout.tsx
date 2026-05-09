@@ -20,6 +20,7 @@ import { useSessionTracker } from "@/hooks/useSessionTracker";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DirectMessagesProvider } from "@/contexts/DirectMessagesProvider";
+import { AppModeGuard } from "./AppModeGuard";
 
 interface DashboardLayoutProps {
   children: ReactNode;
