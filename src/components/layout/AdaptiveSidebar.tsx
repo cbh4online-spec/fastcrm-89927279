@@ -91,6 +91,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const { installedModuleIds } = useWorkspaceModules();
   const { data: storeSettings } = useStoreSettings();
   const { canAccessMenu } = useMenuPermissions();
+  const { mode } = useAppMode();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [menuFilter, setMenuFilter] = useState("");
 
@@ -100,8 +101,8 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
 
   // ── Build sidebar sections from manifest ──
   const sections = useMemo(
-    () => buildSidebarSections(installedModuleIds, canAccessMenu),
-    [installedModuleIds, canAccessMenu, salesFunction]
+    () => buildSidebarSections(installedModuleIds, canAccessMenu, mode),
+    [installedModuleIds, canAccessMenu, salesFunction, mode]
   );
 
   // ── Filter sections by search ──
