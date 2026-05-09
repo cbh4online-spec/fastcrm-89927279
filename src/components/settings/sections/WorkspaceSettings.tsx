@@ -117,6 +117,8 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   // Form states - workspace info
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceSlug, setWorkspaceSlug] = useState("");
+  const [uiMode, setUiMode] = useState<WorkspaceUiMode>("auto");
+  const [savingUiMode, setSavingUiMode] = useState(false);
   
   // Form states - branding
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
