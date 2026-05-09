@@ -42,6 +42,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
+    const { workspace_id, product_id, mode, text, product_name, product_description, category, existing_specs } = body;
 
     // AI Gate — enforce credit consumption
     if (workspace_id) {
@@ -52,7 +53,6 @@ serve(async (req) => {
         });
       }
     }
-    const { workspace_id, product_id, mode, text, product_name, product_description, category, existing_specs } = body;
 
     if (!workspace_id) {
       return new Response(JSON.stringify({ error: "workspace_id required" }), {
