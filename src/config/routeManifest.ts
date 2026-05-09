@@ -417,20 +417,29 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+import { type AppMode, LEADCHEF_MODE_WHITELIST } from "@/config/appModes";
+
+/** Aplica filtro de modo (LeadChef-only mostra só whitelist) */
+function passesModeFilter(r: RouteEntry, mode: AppMode): boolean {
+  if (mode !== "leadchef") return true;
+  return LEADCHEF_MODE_WHITELIST.keys.has(r.key);
+}
+
 /** Get sidebar-visible entries for a specific group, filtered by installed modules & permissions */
 export function getSidebarItems(
   group: NavGroup,
   installedModuleSlugs: string[],
   canAccess: (menuKey: string) => boolean,
+  mode: AppMode = "fastcrm",
 ): RouteEntry[] {
   const installed = new Set(installedModuleSlugs);
   return ROUTE_MANIFEST.filter((r) => {
     if (r.group !== group) return false;
     if (!r.visibleInSidebar) return false;
     if (r.status !== "active") return false;
+    if (!passesModeFilter(r, mode)) return false;
     if (r.moduleSlug && !installed.has(r.moduleSlug)) return false;
     if (r.menuKey && !canAccess(r.menuKey)) return false;
-    // Also check by route key for profile-level submenu permissions
     if (!canAccess(r.key)) return false;
     return true;
   });
@@ -440,14 +449,15 @@ export function getSidebarItems(
 export function getSearchableRoutes(
   installedModuleSlugs: string[],
   canAccess: (menuKey: string) => boolean,
+  mode: AppMode = "fastcrm",
 ): RouteEntry[] {
   const installed = new Set(installedModuleSlugs);
   return ROUTE_MANIFEST.filter((r) => {
     if (!r.visibleInSearch) return false;
     if (r.status !== "active") return false;
+    if (!passesModeFilter(r, mode)) return false;
     if (r.moduleSlug && !installed.has(r.moduleSlug)) return false;
     if (r.menuKey && !canAccess(r.menuKey)) return false;
-    // Also enforce profile-level permission by route key (matches sidebar behavior)
     if (!canAccess(r.key)) return false;
     return true;
   });
@@ -464,11 +474,12 @@ export function getAllSearchablePages(): { path: string; label: string; icon: Lu
 export function buildSidebarSections(
   installedModuleSlugs: string[],
   canAccess: (menuKey: string) => boolean,
+  mode: AppMode = "fastcrm",
 ): Array<NavGroupMeta & { items: RouteEntry[] }> {
   return NAV_GROUPS
     .map((g) => ({
       ...g,
-      items: getSidebarItems(g.key, installedModuleSlugs, canAccess),
+      items: getSidebarItems(g.key, installedModuleSlugs, canAccess, mode),
     }))
     .filter((g) => g.items.length > 0);
 }

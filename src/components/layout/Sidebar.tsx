@@ -12,6 +12,7 @@ import {
   type NavGroupMeta,
 } from "@/config/routeManifest";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useAppMode } from "@/hooks/useAppMode";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { getExtensionObjectTabsGrouped } from "@/config/extensionRegistry";
 import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
@@ -47,6 +48,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { plan } = useSubscription();
   const { installedModuleIds } = useWorkspaceModules();
   const { canAccessMenu } = useMenuPermissions();
+  const { mode } = useAppMode();
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
   const unreadInboxCount = useUnreadInboxCount();
   const badges = useSidebarBadges();
@@ -55,8 +57,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   // ── SSoT: build all sections from routeManifest ──
   const allSections: Section[] = useMemo(
-    () => buildSidebarSections(installedModuleIds, canAccessMenu),
-    [installedModuleIds, canAccessMenu]
+    () => buildSidebarSections(installedModuleIds, canAccessMenu, mode),
+    [installedModuleIds, canAccessMenu, mode]
   );
 
   // Split: "inicio" + "ai-strategy" → flat core items at top, rest → collapsible groups
@@ -301,7 +303,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   variant="sidebar"
                 />
                 <span className="font-bold text-white text-base truncate max-w-[140px] block">
-                  {currentWorkspace?.name || "FastCRM"}
+                  {mode === "leadchef" ? "LeadChef" : (currentWorkspace?.name || "FastCRM")}
                 </span>
               </div>
               <button

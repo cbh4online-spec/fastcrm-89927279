@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useWorkspace, WorkspaceRole } from "@/contexts/WorkspaceContext";
+import { useWorkspace, WorkspaceRole, type WorkspaceUiMode } from "@/contexts/WorkspaceContext";
 import { useWorkspaceMembers, WorkspaceMember } from "@/hooks/useWorkspaceMembers";
 import { useWorkspaceSettings } from "@/hooks/useWorkspaceSettings";
 import { useAuth } from "@/contexts/AuthContext";
@@ -92,7 +92,7 @@ const commercialProfileOptions: { value: CommercialProfile; label: string; descr
 ];
 
 export function WorkspaceSettings({ searchQuery = "", matchedSections }: WorkspaceSettingsProps) {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, refreshWorkspaces } = useWorkspace();
   const { user } = useAuth();
   const { data: members = [], isLoading: membersLoading, refetch: refetchMembers } = useWorkspaceMembers();
   const { 
@@ -117,6 +117,8 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   // Form states - workspace info
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceSlug, setWorkspaceSlug] = useState("");
+  const [uiMode, setUiMode] = useState<WorkspaceUiMode>("auto");
+  const [savingUiMode, setSavingUiMode] = useState(false);
   
   // Form states - branding
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -143,6 +145,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       if (currentWorkspace) {
         setWorkspaceName(currentWorkspace.name);
         setWorkspaceSlug(currentWorkspace.slug);
+        setUiMode(currentWorkspace.ui_mode ?? "auto");
         
         const details = await fetchWorkspaceDetails();
         if (details) {
@@ -167,6 +170,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
 
   const visibleSections = [
     { id: "workspace-info", show: shouldShow("workspace-info") },
+    { id: "workspace-ui-mode", show: shouldShow("workspace-ui-mode") },
     { id: "workspace-users", show: shouldShow("workspace-users") },
     { id: "workspace-roles", show: shouldShow("workspace-roles") },
     { id: "workspace-branding", show: shouldShow("workspace-branding") },
@@ -358,6 +362,25 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
     });
   };
 
+  const handleSaveUiMode = async (next: WorkspaceUiMode) => {
+    if (!currentWorkspace) return;
+    setSavingUiMode(true);
+    setUiMode(next);
+    try {
+      const { error } = await supabase
+        .from("workspaces")
+        .update({ ui_mode: next } as any)
+        .eq("id", currentWorkspace.id);
+      if (error) throw error;
+      toast.success("Modo de interface atualizado. Recarregue para aplicar.");
+      await refreshWorkspaces?.();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao guardar modo de interface");
+    } finally {
+      setSavingUiMode(false);
+    }
+  };
+
   // Branding handlers
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -436,6 +459,37 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 "Guardar alterações"
               )}
             </Button>
+          </div>
+        </SettingsSection>
+      )}
+
+      {/* UI Mode (LeadChef-only override) */}
+      {shouldShow("workspace-ui-mode") && canManageMembers && (
+        <SettingsSection
+          title="Modo de interface"
+          description="Controla se este workspace mostra o FastCRM completo ou apenas o LeadChef."
+          icon={<LayoutGrid className="h-5 w-5" />}
+        >
+          <div className="space-y-3 max-w-md">
+            <Label>Modo</Label>
+            <Select
+              value={uiMode}
+              onValueChange={(v) => handleSaveUiMode(v as WorkspaceUiMode)}
+              disabled={savingUiMode}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Automático (decidido pelos módulos instalados)</SelectItem>
+                <SelectItem value="fastcrm">FastCRM completo</SelectItem>
+                <SelectItem value="leadchef">Apenas LeadChef</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Em modo <strong>Apenas LeadChef</strong>, o workspace mostra só o módulo LeadChef
+              (mais Inbox, Calendário e Definições) com branding LeadChef. Recarregue a página para aplicar.
+            </p>
           </div>
         </SettingsSection>
       )}

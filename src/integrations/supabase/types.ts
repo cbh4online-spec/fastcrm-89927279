@@ -86461,6 +86461,7 @@ export type Database = {
           status: string | null
           tax_id: string | null
           twitter_url: string | null
+          ui_mode: string
           updated_at: string
           website: string | null
         }
@@ -86504,6 +86505,7 @@ export type Database = {
           status?: string | null
           tax_id?: string | null
           twitter_url?: string | null
+          ui_mode?: string
           updated_at?: string
           website?: string | null
         }
@@ -86547,6 +86549,7 @@ export type Database = {
           status?: string | null
           tax_id?: string | null
           twitter_url?: string | null
+          ui_mode?: string
           updated_at?: string
           website?: string | null
         }

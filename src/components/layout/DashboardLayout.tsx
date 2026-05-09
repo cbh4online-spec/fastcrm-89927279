@@ -20,6 +20,7 @@ import { useSessionTracker } from "@/hooks/useSessionTracker";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DirectMessagesProvider } from "@/contexts/DirectMessagesProvider";
+import { AppModeGuard } from "./AppModeGuard";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -67,29 +68,31 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <AdaptiveDashboardProvider>
       <WorkspaceStatusGuard>
         <DirectMessagesProvider>
-          <div className="h-screen flex bg-background overflow-hidden">
-            {useAdaptive ? (
-              <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
-            ) : shellV2 ? (
-              <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-            ) : (
-              <SidebarV1 open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-            )}
-            <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useAdaptive ? (collapsed ? "lg:pl-16" : "lg:pl-[280px]") : collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
-              <TopBar onMenuClick={() => setSidebarOpen(true)} />
-              <AIUsageBanner />
-              <main
-                className={`flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background mobile-scroll-momentum ${isMobile ? "with-mobile-nav-pb" : ""}`}
-              >
-                {children}
-              </main>
-              {showFAB && <MQPCFloatingButton />}
-              <VoiceConversationWidget />
-              <GlobalNoCreditsDialog />
-              <CopilotDrawer />
-              {isMobile && <MobileBottomNav onMenuClick={() => setSidebarOpen(true)} />}
+          <AppModeGuard>
+            <div className="h-screen flex bg-background overflow-hidden">
+              {useAdaptive ? (
+                <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
+              ) : shellV2 ? (
+                <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+              ) : (
+                <SidebarV1 open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+              )}
+              <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useAdaptive ? (collapsed ? "lg:pl-16" : "lg:pl-[280px]") : collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
+                <TopBar onMenuClick={() => setSidebarOpen(true)} />
+                <AIUsageBanner />
+                <main
+                  className={`flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background mobile-scroll-momentum ${isMobile ? "with-mobile-nav-pb" : ""}`}
+                >
+                  {children}
+                </main>
+                {showFAB && <MQPCFloatingButton />}
+                <VoiceConversationWidget />
+                <GlobalNoCreditsDialog />
+                <CopilotDrawer />
+                {isMobile && <MobileBottomNav onMenuClick={() => setSidebarOpen(true)} />}
+              </div>
             </div>
-          </div>
+          </AppModeGuard>
         </DirectMessagesProvider>
       </WorkspaceStatusGuard>
     </AdaptiveDashboardProvider>
