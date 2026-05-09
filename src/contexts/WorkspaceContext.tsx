@@ -4,6 +4,7 @@ import { useAuth } from "./AuthContext";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type WorkspaceRole = "owner" | "admin" | "agent" | "viewer" | "agency" | "hr";
+export type WorkspaceUiMode = "auto" | "fastcrm" | "leadchef";
 
 export interface Workspace {
   id: string;
@@ -13,6 +14,7 @@ export interface Workspace {
   created_at: string;
   isAgencyManaged?: boolean;
   logo_url?: string | null;
+  ui_mode?: WorkspaceUiMode;
 }
 
 interface WorkspaceContextType {
