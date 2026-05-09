@@ -32,35 +32,30 @@ export function useLeadChefLeads(opts: Options = {}) {
       let q = (supabase as any)
         .from("leadchef_lead_profiles")
         .select(
-          "*, lead:leads(id,name,email,phone,source,status,last_contact_at,ai_temperature)"
+          "*, lead:leads!inner(id,name,email,phone,source,status,last_contact_at,ai_temperature)"
         )
         .eq("workspace_id", workspaceId)
-        .order("next_action_at", { ascending: true, nullsFirst: false });
+        .order("next_action_at", { ascending: true, nullsFirst: false })
+        .limit(500);
 
       if (stage !== "all") q = q.eq("stage", stage);
+
+      // Server-side search: usa filtro no profile (origin/interest) e no lead embebido (name/email/phone)
+      if (search) {
+        const safe = search.replace(/[%,()]/g, " ").trim();
+        if (safe) {
+          q = q.or(
+            `origin.ilike.%${safe}%,interest.ilike.%${safe}%,lead.name.ilike.%${safe}%,lead.email.ilike.%${safe}%,lead.phone.ilike.%${safe}%`
+          );
+        }
+      }
 
       const { data, error } = await q;
       if (error) throw error;
 
       const rows = (data ?? []) as RawRow[];
 
-      const filtered = search
-        ? rows.filter((r) => {
-            const haystack = [
-              r.lead?.name,
-              r.lead?.email,
-              r.lead?.phone,
-              r.origin,
-              r.interest,
-            ]
-              .filter(Boolean)
-              .join(" ")
-              .toLowerCase();
-            return haystack.includes(search.toLowerCase());
-          })
-        : rows;
-
-      return filtered
+      return rows
         .filter((r) => r.lead)
         .map((r) => ({
           profile: {
