@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useWorkspace, WorkspaceRole } from "@/contexts/WorkspaceContext";
+import { useWorkspace, WorkspaceRole, type WorkspaceUiMode } from "@/contexts/WorkspaceContext";
 import { useWorkspaceMembers, WorkspaceMember } from "@/hooks/useWorkspaceMembers";
 import { useWorkspaceSettings } from "@/hooks/useWorkspaceSettings";
 import { useAuth } from "@/contexts/AuthContext";
