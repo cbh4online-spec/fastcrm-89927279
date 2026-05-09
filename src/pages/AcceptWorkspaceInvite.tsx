@@ -107,7 +107,8 @@ export default function AcceptWorkspaceInvite() {
   }, [user, authLoading, invite]);
 
   const acceptInvite = async () => {
-    if (!invite || accepting) return;
+    if (!invite || accepting || acceptStartedRef.current) return;
+    acceptStartedRef.current = true;
     setAccepting(true);
 
     try {
@@ -128,7 +129,9 @@ export default function AcceptWorkspaceInvite() {
 
       if (existing) {
         toast.info("Já é membro deste workspace.");
-        navigate("/dashboard");
+        localStorage.setItem("currentWorkspaceId", invite.workspace_id);
+        await refreshWorkspaces();
+        navigate(invite.workspace_ui_mode === "leadchef" ? LEADCHEF_HOME_PATH : "/dashboard", { replace: true });
         return;
       }
 
@@ -150,10 +153,13 @@ export default function AcceptWorkspaceInvite() {
         .eq("id", invite.id);
 
       toast.success(`Bem-vindo à equipa ${invite.workspace_name}!`);
-      navigate("/dashboard");
+      localStorage.setItem("currentWorkspaceId", invite.workspace_id);
+      await refreshWorkspaces();
+      navigate(invite.workspace_ui_mode === "leadchef" ? LEADCHEF_HOME_PATH : "/dashboard", { replace: true });
     } catch (err: any) {
       console.error("Error accepting invite:", err);
       toast.error(err.message || "Erro ao aceitar convite");
+      acceptStartedRef.current = false;
     } finally {
       setAccepting(false);
     }
