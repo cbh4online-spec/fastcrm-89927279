@@ -96,82 +96,104 @@ Deno.serve(async (req) => {
       )
     }
 
-    // 1) Search — refina query para apanhar páginas de produto
-    const searchQuery = `${query} produto comprar`
-    console.log('[product-image-search] query:', searchQuery)
+    // Estratégia primária: Firecrawl v2 /search com sources=["images"]
+    // — devolve imagens reais indexadas pelo Google sem precisar de scraping.
+    const searchQuery = query
+    console.log('[product-image-search] query:', searchQuery, 'limit:', limit)
 
-    const searchResult = await firecrawl.search(searchQuery, {
-      limit,
-      lang: 'pt',
-      country: 'pt',
-    })
-
-    if (!searchResult.success || !searchResult.data?.length) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          candidates: [],
-          warning: 'Sem resultados de pesquisa',
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-    }
-
-    // 2) Scrape em paralelo para extrair imagens
+    const apiKey = Deno.env.get('FIRECRAWL_API_KEY')!
     const candidates: ImageCandidate[] = []
     const seen = new Set<string>()
 
-    await Promise.all(
-      searchResult.data.slice(0, limit).map(async (r) => {
-        try {
-          const scrape = await firecrawl.scrape(r.url, {
-            formats: ['links'],
-            onlyMainContent: true,
-            timeout: 15000,
+    try {
+      const v2Resp = await fetch('https://api.firecrawl.dev/v2/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          query: searchQuery,
+          limit: Math.max(limit * 4, 12),
+          sources: ['images'],
+        }),
+      })
+
+      if (v2Resp.ok) {
+        const v2Data = await v2Resp.json().catch(() => null) as any
+        const images: any[] = v2Data?.data?.images ?? []
+        for (const img of images) {
+          const url: string = img?.imageUrl || img?.url
+          if (!url || !url.startsWith('http') || seen.has(url)) continue
+          seen.add(url)
+          candidates.push({
+            url,
+            source_url: img?.url || url,
+            source_title: img?.title,
           })
-          if (!scrape.success || !scrape.data) return
-
-          // ogImage do metadata costuma ser a melhor imagem do produto
-          const ogImage = (scrape.data.metadata?.ogImage as string) || null
-          if (ogImage && looksLikeImage(ogImage) && !seen.has(ogImage)) {
-            seen.add(ogImage)
-            candidates.push({
-              url: ogImage,
-              source_url: r.url,
-              source_title: r.title,
-            })
-          }
-
-          // Links da página filtrados por extensão de imagem
-          const links = (scrape.data as any).links as string[] | undefined
-          if (Array.isArray(links)) {
-            for (const link of links) {
-              if (looksLikeImage(link) && !seen.has(link)) {
-                seen.add(link)
-                candidates.push({
-                  url: link,
-                  source_url: r.url,
-                  source_title: r.title,
-                })
-                if (candidates.length >= 24) break
-              }
-            }
-          }
-        } catch (err) {
-          console.warn('[product-image-search] scrape failed', r.url, (err as Error).message)
         }
-      }),
-    )
+        console.log('[product-image-search] v2 images:', candidates.length)
+      } else {
+        const txt = await v2Resp.text()
+        console.warn('[product-image-search] v2 search failed', v2Resp.status, txt.slice(0, 200))
+      }
+    } catch (err) {
+      console.warn('[product-image-search] v2 search error', (err as Error).message)
+    }
+
+    // Fallback: se não vieram imagens, tenta scrape do top resultado web
+    if (candidates.length === 0) {
+      const searchResult = await firecrawl.search(`${query} produto`, {
+        limit: 6,
+        lang: 'pt',
+        country: 'pt',
+      })
+
+      if (searchResult.success && searchResult.data?.length) {
+        await Promise.all(
+          searchResult.data.slice(0, 6).map(async (r) => {
+            try {
+              const scrape = await firecrawl.scrape(r.url, {
+                formats: ['links'],
+                onlyMainContent: true,
+                timeout: 25000,
+              })
+              if (!scrape.success || !scrape.data) return
+
+              const ogImage = (scrape.data.metadata?.ogImage as string) || null
+              if (ogImage && ogImage.startsWith('http') && !seen.has(ogImage)) {
+                seen.add(ogImage)
+                candidates.push({ url: ogImage, source_url: r.url, source_title: r.title })
+              }
+
+              const links = (scrape.data as any).links as string[] | undefined
+              if (Array.isArray(links)) {
+                for (const link of links) {
+                  if (looksLikeImage(link) && !seen.has(link)) {
+                    seen.add(link)
+                    candidates.push({ url: link, source_url: r.url, source_title: r.title })
+                    if (candidates.length >= 24) break
+                  }
+                }
+              }
+            } catch (err) {
+              console.warn('[product-image-search] scrape failed', r.url, (err as Error).message)
+            }
+          }),
+        )
+      }
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         candidates: candidates.slice(0, 24),
         query: searchQuery,
-        searched: searchResult.data.length,
+        warning: candidates.length === 0 ? 'Sem imagens encontradas para esta pesquisa' : undefined,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+    )</replace>
+</invoke>
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('[product-image-search] error:', msg)
