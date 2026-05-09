@@ -362,6 +362,25 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
     });
   };
 
+  const handleSaveUiMode = async (next: WorkspaceUiMode) => {
+    if (!currentWorkspace) return;
+    setSavingUiMode(true);
+    setUiMode(next);
+    try {
+      const { error } = await supabase
+        .from("workspaces")
+        .update({ ui_mode: next } as any)
+        .eq("id", currentWorkspace.id);
+      if (error) throw error;
+      toast.success("Modo de interface atualizado. Recarregue para aplicar.");
+      await refreshWorkspaces?.();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao guardar modo de interface");
+    } finally {
+      setSavingUiMode(false);
+    }
+  };
+
   // Branding handlers
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
