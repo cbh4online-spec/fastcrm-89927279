@@ -92,7 +92,7 @@ const commercialProfileOptions: { value: CommercialProfile; label: string; descr
 ];
 
 export function WorkspaceSettings({ searchQuery = "", matchedSections }: WorkspaceSettingsProps) {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, refreshWorkspaces } = useWorkspace();
   const { user } = useAuth();
   const { data: members = [], isLoading: membersLoading, refetch: refetchMembers } = useWorkspaceMembers();
   const { 
