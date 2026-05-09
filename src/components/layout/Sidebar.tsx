@@ -12,6 +12,7 @@ import {
   type NavGroupMeta,
 } from "@/config/routeManifest";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useAppMode } from "@/hooks/useAppMode";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { getExtensionObjectTabsGrouped } from "@/config/extensionRegistry";
 import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
