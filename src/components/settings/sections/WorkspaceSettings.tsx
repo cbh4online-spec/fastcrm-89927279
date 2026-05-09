@@ -170,6 +170,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
 
   const visibleSections = [
     { id: "workspace-info", show: shouldShow("workspace-info") },
+    { id: "workspace-ui-mode", show: shouldShow("workspace-ui-mode") },
     { id: "workspace-users", show: shouldShow("workspace-users") },
     { id: "workspace-roles", show: shouldShow("workspace-roles") },
     { id: "workspace-branding", show: shouldShow("workspace-branding") },
