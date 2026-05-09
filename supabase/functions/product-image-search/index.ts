@@ -192,8 +192,7 @@ Deno.serve(async (req) => {
         warning: candidates.length === 0 ? 'Sem imagens encontradas para esta pesquisa' : undefined,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )</replace>
-</invoke>
+    )
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('[product-image-search] error:', msg)
