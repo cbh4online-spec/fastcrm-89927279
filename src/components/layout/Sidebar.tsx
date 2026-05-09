@@ -48,6 +48,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { plan } = useSubscription();
   const { installedModuleIds } = useWorkspaceModules();
   const { canAccessMenu } = useMenuPermissions();
+  const { mode } = useAppMode();
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
   const unreadInboxCount = useUnreadInboxCount();
   const badges = useSidebarBadges();
@@ -56,8 +57,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   // ── SSoT: build all sections from routeManifest ──
   const allSections: Section[] = useMemo(
-    () => buildSidebarSections(installedModuleIds, canAccessMenu),
-    [installedModuleIds, canAccessMenu]
+    () => buildSidebarSections(installedModuleIds, canAccessMenu, mode),
+    [installedModuleIds, canAccessMenu, mode]
   );
 
   // Split: "inicio" + "ai-strategy" → flat core items at top, rest → collapsible groups
