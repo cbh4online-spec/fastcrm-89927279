@@ -7,21 +7,19 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
 import {
-  getNavV2Core,
-  getNavV2Groups,
-  getNavV2Footer,
-  NavV2CoreItem,
-  NavV2Group,
-  NavV2GroupChild,
-} from "@/config/nav.v2";
-import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+  buildSidebarSections,
+  type RouteEntry,
+  type NavGroupMeta,
+} from "@/config/routeManifest";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { getExtensionObjectTabsGrouped } from "@/config/extensionRegistry";
 import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
-import { X, Puzzle, ChevronRight, Star, Command, Search } from "lucide-react";
+import { Settings as SettingsIcon, X, Puzzle, ChevronRight, Star, Command, Search } from "lucide-react";
 import { useMemo, useState, useCallback } from "react";
 import { useUnreadInboxCount } from "@/hooks/useUnreadInboxCount";
 import { useSidebarBadges } from "@/hooks/useSidebarBadges";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -39,26 +37,37 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+type Section = NavGroupMeta & { items: RouteEntry[] };
+
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { t } = useTranslation("nav");
   const { t: tc } = useTranslation("common");
   const location = useLocation();
   const { currentWorkspace } = useWorkspace();
   const { plan } = useSubscription();
-  const { data: flags, isLoading: flagsLoading } = useFeatureFlags();
   const { installedModuleIds } = useWorkspaceModules();
+  const { canAccessMenu } = useMenuPermissions();
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
   const unreadInboxCount = useUnreadInboxCount();
   const badges = useSidebarBadges();
   const [navSearch, setNavSearch] = useState("");
-
-  // Translated nav items
-  const navCore = useMemo(() => getNavV2Core(t), [t]);
-  const navGroups = useMemo(() => getNavV2Groups(t), [t]);
-  const navFooter = useMemo(() => getNavV2Footer(t), [t]);
-
-  // Collapsible group state — auto-open group containing active route
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  // ── SSoT: build all sections from routeManifest ──
+  const allSections: Section[] = useMemo(
+    () => buildSidebarSections(installedModuleIds, canAccessMenu),
+    [installedModuleIds, canAccessMenu]
+  );
+
+  // Split: "inicio" + "ai-strategy" → flat core items at top, rest → collapsible groups
+  const coreSections = useMemo(
+    () => allSections.filter((s) => s.key === "inicio" || s.key === "ai-strategy"),
+    [allSections]
+  );
+  const groupedSections = useMemo(
+    () => allSections.filter((s) => s.key !== "inicio" && s.key !== "ai-strategy"),
+    [allSections]
+  );
 
   const isActive = useCallback(
     (href: string, end?: boolean) => {
@@ -69,106 +78,66 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     [location.pathname]
   );
 
-  const isFlagEnabled = useCallback(
-    (flag?: string) => {
-      if (!flag) return true;
-      if (flagsLoading) return true;
-      return flags?.find((f) => f.flag_key === flag)?.enabled ?? false;
-    },
-    [flags, flagsLoading]
-  );
+  // Apply search filter
+  const filteredCoreItems = useMemo(() => {
+    const items = coreSections.flatMap((s) => s.items);
+    if (!navSearch) return items;
+    const q = navSearch.toLowerCase();
+    return items.filter((i) => i.label.toLowerCase().includes(q));
+  }, [coreSections, navSearch]);
 
-  const isModuleVisible = useCallback(
-    (moduleSlug?: string) => {
-      if (!moduleSlug) return true;
-      return installedModuleIds.includes(moduleSlug);
-    },
+  const filteredGroups = useMemo(() => {
+    if (!navSearch) return groupedSections;
+    const q = navSearch.toLowerCase();
+    return groupedSections
+      .map((s) => ({ ...s, items: s.items.filter((i) => i.label.toLowerCase().includes(q)) }))
+      .filter((s) => s.items.length > 0);
+  }, [groupedSections, navSearch]);
+
+  const extensionGroups = useMemo(
+    () => getExtensionObjectTabsGrouped(installedModuleIds),
     [installedModuleIds]
   );
 
-  const filteredGroups = useMemo(() => {
-    return navGroups
-      .filter((g) => isFlagEnabled(g.featureFlag))
-      .map((g) => {
-        const groupHasSlug = !!g.moduleSlug;
-        const groupVisible = groupHasSlug ? installedModuleIds.includes(g.moduleSlug!) : true;
-
-        if (groupHasSlug && !groupVisible) return null;
-
-        let visibleChildren = g.children.filter((c) => {
-          if (!isFlagEnabled(c.featureFlag)) return false;
-          if (groupHasSlug) return true;
-          return c.moduleSlug ? installedModuleIds.includes(c.moduleSlug) : true;
-        });
-
-        // Apply nav search filter
-        if (navSearch) {
-          const lower = navSearch.toLowerCase();
-          visibleChildren = visibleChildren.filter((c) =>
-            c.name.toLowerCase().includes(lower)
-          );
-        }
-
-        if (visibleChildren.length === 0) return null;
-        return { ...g, children: visibleChildren };
-      })
-      .filter(Boolean) as (NavV2Group & { children: NavV2GroupChild[] })[];
-  }, [isFlagEnabled, installedModuleIds, navGroups, navSearch]);
-
-  // Filter core items by search
-  const filteredCore = useMemo(() => {
-    if (!navSearch) return navCore;
-    const lower = navSearch.toLowerCase();
-    return navCore.filter((item) => item.name.toLowerCase().includes(lower));
-  }, [navCore, navSearch]);
-
-  const extensionGroups = useMemo(() => {
-    return getExtensionObjectTabsGrouped(installedModuleIds);
-  }, [installedModuleIds]);
-
-  // Compute which groups should be auto-opened (contain active route)
-  const groupHasActiveRoute = useCallback(
-    (group: NavV2Group) =>
-      group.children.some((c) => isActive(c.href)),
+  const sectionHasActive = useCallback(
+    (items: RouteEntry[]) => items.some((i) => isActive(i.href, i.end)),
     [isActive]
   );
 
   const isGroupOpen = useCallback(
-    (groupName: string, group: NavV2Group) => {
-      // When searching, auto-open all groups
+    (key: string, items: RouteEntry[]) => {
       if (navSearch) return true;
-      if (openGroups[groupName] !== undefined) return openGroups[groupName];
-      return groupHasActiveRoute(group);
+      if (openGroups[key] !== undefined) return openGroups[key];
+      return sectionHasActive(items);
     },
-    [openGroups, groupHasActiveRoute, navSearch]
+    [openGroups, sectionHasActive, navSearch]
   );
 
-  const toggleGroup = useCallback((name: string) => {
-    setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
+  const toggleGroup = useCallback((key: string) => {
+    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  // All favoritable items (flat list)
-  const allItems = useMemo(() => {
-    const items: NavV2GroupChild[] = [];
-    navCore.forEach((i) => items.push({ name: i.name, href: i.href, icon: i.icon }));
-    navGroups.forEach((g) => g.children.forEach((c) => items.push(c)));
-    return items;
-  }, [navCore, navGroups]);
-
+  // Flat list for favorites
+  const allItems = useMemo(() => allSections.flatMap((s) => s.items), [allSections]);
   const favoriteItems = useMemo(
-    () => favorites.map((href) => allItems.find((i) => i.href === href)).filter(Boolean) as NavV2GroupChild[],
+    () => favorites.map((href) => allItems.find((i) => i.href === href)).filter(Boolean) as RouteEntry[],
     [favorites, allItems]
   );
 
-  // Badge lookup
-  const getBadgeCount = useCallback((href: string): number => {
-    if (href === "/dashboard/inbox") return unreadInboxCount;
-    if (href === "/dashboard/leads") return badges.pendingLeads;
-    if (href === "/dashboard/invoices") return badges.overdueInvoices;
-    return 0;
-  }, [unreadInboxCount, badges]);
+  const getBadgeCount = useCallback(
+    (item: RouteEntry): number => {
+      if (item.href === "/dashboard/inbox") return unreadInboxCount;
+      if (item.badgeKey === "new_leads") return badges.pendingLeads;
+      if (item.badgeKey === "activities_today") return badges.activitiesToday;
+      if (item.badgeKey === "overdue_followups") return badges.overdueFollowups;
+      if (item.badgeKey === "pending_decisions") return badges.pendingDecisions;
+      if (item.href === "/dashboard/invoices") return badges.overdueInvoices;
+      return 0;
+    },
+    [unreadInboxCount, badges]
+  );
 
-  // --- Render helpers ---
+  // ── Render helpers ──
 
   const renderBadge = (count: number) => {
     if (count <= 0) return null;
@@ -179,18 +148,26 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     );
   };
 
-  const renderLink = (item: { name: string; href: string; icon: any; iconColor?: string; badgeKey?: string }, end?: boolean, indent = false, showPinButton = false) => {
-    const active = isActive(item.href, end);
+  const renderTag = (item: RouteEntry) => {
+    if (item.isPro) return <Badge variant="outline" className="ml-auto h-4 px-1.5 text-[10px] font-semibold border-amber-500/40 text-amber-500">Pro</Badge>;
+    if (item.isBeta) return <Badge variant="outline" className="ml-auto h-4 px-1.5 text-[10px] font-semibold border-blue-400/40 text-blue-400">Beta</Badge>;
+    return null;
+  };
+
+  const renderLink = (item: RouteEntry, indent = false, showPinButton = false) => {
+    const active = isActive(item.href, item.end);
     const Icon = item.icon;
-    const badgeCount = getBadgeCount(item.href);
+    const badgeCount = getBadgeCount(item);
     const pinned = isFavorite(item.href);
+    const hasTag = (item.isPro || item.isBeta) && badgeCount === 0;
     return (
-      <Tooltip key={item.href}>
+      <Tooltip key={item.key}>
         <TooltipTrigger asChild>
           <div className="group/pin relative flex items-center">
             <Link
               to={item.href}
               onClick={onClose}
+              aria-current={active ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 flex-1",
                 indent && "pl-9",
@@ -199,9 +176,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   : "text-white/60 hover:bg-white/5 hover:text-white/90"
               )}
             >
-              <Icon className={cn("w-[18px] h-[18px] shrink-0", active ? "text-primary" : item.iconColor)} />
-              <span className="truncate">{item.name}</span>
-              {renderBadge(badgeCount)}
+              <Icon className={cn("w-[18px] h-[18px] shrink-0", active && "text-primary")} />
+              <span className="truncate">{item.label}</span>
+              {hasTag ? renderTag(item) : renderBadge(badgeCount)}
             </Link>
             {showPinButton && (
               <button
@@ -220,22 +197,35 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
         </TooltipTrigger>
         <TooltipContent side="right" className="text-xs">
-          {item.name}
+          {item.label}
         </TooltipContent>
       </Tooltip>
     );
   };
 
-  const renderGroup = (group: NavV2Group & { children: NavV2GroupChild[] }) => {
-    const groupOpen = isGroupOpen(group.name, group as any);
-    const hasActive = groupHasActiveRoute(group as any);
+  const renderGroup = (group: Section) => {
+    if (!group.collapsible) {
+      return (
+        <div key={group.key} className="space-y-0.5">
+          <div className="px-3 pt-3 pb-1">
+            <span className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">
+              {group.label}
+            </span>
+          </div>
+          {group.items.map((child) => renderLink(child, false, true))}
+        </div>
+      );
+    }
+
+    const groupOpen = isGroupOpen(group.key, group.items);
+    const hasActive = sectionHasActive(group.items);
     const Icon = group.icon;
 
     return (
       <Collapsible
-        key={group.name}
+        key={group.key}
         open={groupOpen}
-        onOpenChange={() => toggleGroup(group.name)}
+        onOpenChange={() => toggleGroup(group.key)}
       >
         <CollapsibleTrigger className="w-full">
           <div
@@ -246,8 +236,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 : "text-white/50 hover:bg-white/5 hover:text-white/80"
             )}
           >
-            <Icon className={cn("w-[18px] h-[18px] shrink-0", hasActive ? "text-primary" : group.iconColor)} />
-            <span className="truncate flex-1 text-left">{group.name}</span>
+            <Icon className={cn("w-[18px] h-[18px] shrink-0", hasActive && "text-primary")} />
+            <span className="truncate flex-1 text-left">{group.label}</span>
             <ChevronRight
               className={cn(
                 "w-3.5 h-3.5 transition-transform duration-300 ease-out text-white/30",
@@ -257,18 +247,30 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up space-y-0.5 mt-0.5">
-          {group.children.map((child, idx) => (
+          {group.items.map((child, idx) => (
             <div
-              key={child.href}
+              key={child.key}
               className="animate-fade-in"
               style={{ animationDelay: `${idx * 40}ms`, animationFillMode: 'both' }}
             >
-              {renderLink(child, false, true, true)}
+              {renderLink(child, true, true)}
             </div>
           ))}
         </CollapsibleContent>
       </Collapsible>
     );
+  };
+
+  // Static footer entry — Settings always available
+  const settingsItem: RouteEntry = {
+    key: "settings",
+    label: t("settings", { defaultValue: "Definições" }),
+    href: "/dashboard/settings",
+    icon: SettingsIcon,
+    group: "administracao",
+    status: "active",
+    visibleInSidebar: true,
+    visibleInSearch: true,
   };
 
   return (
@@ -373,10 +375,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 </div>
               )}
 
-              {/* Core items */}
-              <div className="pb-2 mb-1">
-                {filteredCore.map((item) => renderLink(item, item.end))}
-              </div>
+              {/* Core items (Início + Estratégia IA, flat) */}
+              {filteredCoreItems.length > 0 && (
+                <div className="pb-2 mb-1">
+                  {filteredCoreItems.map((item) => renderLink(item, false, true))}
+                </div>
+              )}
 
               {/* Collapsible groups */}
               <div className="space-y-0.5 pt-3 mt-3 border-t border-white/5">
@@ -428,7 +432,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 ))}
 
               {/* No results */}
-              {navSearch && filteredCore.length === 0 && filteredGroups.length === 0 && (
+              {navSearch && filteredCoreItems.length === 0 && filteredGroups.length === 0 && (
                 <div className="text-center py-6">
                   <p className="text-xs text-white/30">{t("noResults")}</p>
                 </div>
@@ -437,7 +441,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
             {/* Footer: Settings */}
             <div className="px-3 py-2 border-t border-white/5">
-              {renderLink(navFooter)}
+              {renderLink(settingsItem)}
             </div>
 
             {/* Role badge */}
