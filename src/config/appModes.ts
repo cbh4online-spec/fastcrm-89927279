@@ -34,3 +34,31 @@ export const FASTCRM_PRODUCT_MODULES: string[] = [
   "lead-enrichment-pro",
   "voicehub",
 ];
+
+/**
+ * Whitelist de routes visíveis no sidebar/search quando em modo 'leadchef'.
+ * - keys: chaves explícitas do RouteEntry
+ * - hrefPrefixes: prefixos de path para o guard de rotas
+ */
+export const LEADCHEF_MODE_WHITELIST = {
+  keys: new Set<string>([
+    "leadchef",
+    "inbox",
+    "calendar",
+    "settings-main",
+    "profile",
+    "settings-team",
+    "settings-billing",
+    "settings-workspace",
+  ]),
+  hrefPrefixes: [
+    "/dashboard/leadchef",
+    "/dashboard/inbox",
+    "/dashboard/scheduling",
+    "/dashboard/profile",
+    "/settings",
+  ],
+};
+
+/** Path para onde o guard redireciona quando a rota não é permitida */
+export const LEADCHEF_HOME_PATH = "/dashboard/leadchef/today";
