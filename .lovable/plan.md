@@ -1,150 +1,115 @@
+# Modo LeadChef-only por Workspace
 
-# Fase 12 — LeadChef: Inteligência, Automações, Liderança e Mobile
-
-Plano detalhado dividido em 4 sub-fases independentes (12A → 12D), cada uma entregável de forma autónoma. Recomendo executar pela ordem proposta — cada bloco gera dados que o seguinte aproveita.
-
----
-
-## 12A — Inteligência e Scoring com IA
-
-### Objetivo
-Dar ao agente uma sugestão concreta do que fazer a seguir e um score de prioridade, em vez de uma lista de leads "iguais".
-
-### Entregáveis
-1. **Lead Score (0–100)** calculado para cada `leadchef_lead_profiles` ativo.
-   - Componentes: idade na etapa, nº de interações recentes, fonte, se tem próxima ação definida, conversão histórica de leads semelhantes.
-   - Calculado por edge function `leadchef-score-lead` (batch via Trigger.dev — ver 12B — e on-demand quando lead muda de stage).
-2. **Sugestão de próxima ação por IA** (Lovable AI Gateway, modelo `google/gemini-3-flash-preview`).
-   - Edge function `leadchef-next-action-ai`.
-   - Recebe contexto do lead (perfil, histórico, etapa, dias parado) e devolve `{ action, channel, message_draft, reasoning }` via tool calling estruturado.
-   - Cache por (lead_id, stage, hash do contexto) durante 24h em `leadchef_ai_suggestions`.
-3. **Deteção de leads frios** — view `leadchef_cold_leads` (sem ação > 7 dias OU score < 30) com banner em `/leads` e ação "Reativar com IA".
-4. **Página `/leadchef/inteligencia`** — top 10 leads por score, leads frios, sugestões pendentes.
-
-### Tabelas novas
-- `leadchef_lead_scores` (lead_id PK, workspace_id, score, breakdown jsonb, calculated_at)
-- `leadchef_ai_suggestions` (id, workspace_id, lead_id, kind, payload jsonb, used_at, created_at, expires_at)
-
-### Riscos
-- Custo de tokens IA → cache obrigatório + `cost_guard` (já existe no projeto).
-- Score determinístico no início (heurística), IA apenas para sugestão textual. Migrar para ML só se houver dados suficientes.
+Permitir criar workspaces que só dão acesso ao módulo LeadChef (mais Inbox, Calendário e Definições), com branding próprio. A detecção é automática com base no módulo instalado, e existe uma flag manual de override para casos especiais.
 
 ---
 
-## 12B — Automações avançadas com Trigger.dev
+## 1. Diagnóstico
 
-### Objetivo
-Substituir as automações "fake" (toggle sem efeito) por jobs reais com retry, logs e fallback.
+Hoje o `routeManifest.ts` é a SSoT da sidebar e já filtra entradas por `moduleSlug` e `menuKey`. Não existe, no entanto, nenhum mecanismo de "modo restrito" ao nível do shell — qualquer membro de um workspace vê a árvore completa de menus que o seu role permitir, independentemente do produto comprado.
 
-### Entregáveis
-1. **Job diário `leadchef-daily-recompute`** (cron 06:00 Lisboa)
-   - Recalcula lead scores
-   - Deteta leads frios e cria alertas em `leadchef_audit_logs`
-   - Envia digest opcional ao agente (email/notificação)
-2. **Job a cada 15 min `leadchef-followup-dispatcher`**
-   - Verifica leads com `next_action_at <= now()` sem ação executada
-   - Cria alerta em `leadchef_actionable_alerts` (já existe)
-   - Honra automações desativadas em `leadchef_automation_rules`
-3. **Sequências multi-passo** — nova tabela `leadchef_sequences` + `leadchef_sequence_steps` + `leadchef_lead_sequence_runs`.
-   - Sequência exemplo: "Pós-demo": Dia 0 lembrete, Dia 2 follow-up, Dia 5 último contacto, Dia 7 marcar frio.
-   - Pausa automática se lead muda de stage ou regista resposta.
-4. **Página `/leadchef/automacoes`** evoluída — toggle real, ver últimas execuções, próximas execuções, taxa de sucesso.
+Queremos que, quando um workspace tem apenas o produto **LeadChef** ativo, toda a aplicação se comporte como se fosse um produto autónomo: sidebar minimalista, branding "LeadChef", rota raiz aterra em `/dashboard/leadchef/today`, e tentativas de aceder a outras páginas redirecionam de volta.
 
-### Infra
-- Tudo em `/trigger/jobs/leadchef.ts` (segue regra Core: lógica async em `/trigger/`).
-- Edge functions chamadas: `leadchef-recompute-scores`, `leadchef-dispatch-followups`, `leadchef-advance-sequence`.
+## 2. Decisões de produto / UX
 
-### Riscos
-- Disparo duplicado → idempotência via `leadchef_lead_sequence_runs.last_step_at`.
-- Não enviar mensagens automaticamente sem consentimento — apenas criar **alertas/drafts** que o agente confirma (mantém regra "WhatsApp só por ação do utilizador").
+- **Atribuição automática**: se o workspace tem o módulo `leadchef` ativo e não tem nenhum outro módulo de produto (ver lista no §4), entra automaticamente em **modo LeadChef-only**. Não requer trabalho do admin.
+- **Override manual** (para casos especiais — p.ex. cliente quer LeadChef + algo mais mas mesmo assim com shell minimalista, ou vice-versa): coluna `ui_mode` em `workspaces` com valores `auto | fastcrm | leadchef`. Default `auto`.
+- **Branding em modo LeadChef**:
+  - Nome do produto: "LeadChef" (substitui "FastCRM" no logo, no `<title>`, no switcher e no rodapé).
+  - Cor primária: tom verde-esmeralda já usado no ícone (`emerald-500`), aplicado via tokens `--primary` num scope `[data-app-mode="leadchef"]` no `index.css`.
+  - Logo dedicado (ícone `ChefHat` + wordmark "LeadChef").
+- **Sidebar em modo LeadChef** mostra apenas:
+  - Grupo "LeadChef" completo (todas as páginas do módulo).
+  - Item "Caixa de Entrada" (`inbox`).
+  - Item "Calendário" (`calendar` / scheduling).
+  - Footer fixo: "Definições" (`/settings`) e "Perfil" (`/dashboard/profile`).
+- **Rota raiz**: `/` e `/dashboard` redirecionam para `/dashboard/leadchef/today`.
+- **Guard de rotas**: qualquer URL fora da whitelist redireciona para `/dashboard/leadchef/today` com toast informativo ("Esta área não está disponível no seu plano").
+- **Workspace switcher**: continua a funcionar (um utilizador pode pertencer a vários workspaces, alguns LeadChef, outros FastCRM completo); o modo é recalculado por workspace ativo.
+- **Super admin**: ignora o modo restrito (continua a ver tudo) — útil para suporte.
 
----
+## 3. Estrutura técnica
 
-## 12C — Relatórios e Dashboard de Liderança
+### Migration (DB)
+- `ALTER TABLE public.workspaces ADD COLUMN ui_mode text NOT NULL DEFAULT 'auto' CHECK (ui_mode IN ('auto','fastcrm','leadchef'))`.
+- Sem mudanças nas RLS existentes — esta coluna é puramente cosmética/UX.
 
-### Objetivo
-Dar ao líder/admin uma visão executiva: funil real, conversão por etapa, ranking de agentes, evolução mensal.
+### Novo hook `useAppMode()`
+Localização: `src/hooks/useAppMode.ts`. Retorna:
 
-### Entregáveis
-1. **Página `/leadchef/relatorios`** (gated por `useLeadChefPermissions` ≥ manager)
-   - **Funil**: contagem por stage + taxa de conversão entre stages consecutivas.
-   - **Velocidade**: tempo médio em cada stage; alertas de stages "lentas".
-   - **Conversão**: % de leads new → won (mês corrente vs mês anterior).
-   - **Ranking de agentes**: leads ativos, ganhos, taxa de conversão, score médio dos seus leads.
-   - **Evolução**: gráfico de leads criados/ganhos por semana (últimas 12).
-   - **Origem**: distribuição de leads por origem e qual converte melhor.
-2. **Comparação mensal** — selector de período (mês atual, mês anterior, últimos 3 meses, ano).
-3. **Exportação PDF** do relatório executivo (reutiliza `pdf.ts` da Fase 11).
-4. **CSV de relatório agregado** (já temos infra; adicionar nova entidade `agent_performance`).
-
-### Implementação técnica
-- Hooks: `useLeadChefFunnel`, `useLeadChefStageVelocity`, `useLeadChefAgentRanking`, `useLeadChefConversionTrend`.
-- Cálculos em SQL via `read_query` (sem novas tabelas — derivado de `leadchef_lead_profiles` + `leads`).
-- Cache no React Query com `staleTime: 5 min`.
-- Recharts (já no projeto).
-
-### Riscos
-- RLS deve continuar a impedir agente comum de ver dados agregados de outros — gate na rota + filtro em todas as queries.
-
----
-
-## 12D — PWA Mobile + Notificações Push
-
-### Objetivo
-Permitir uso em modo "agente no terreno": instalar no telemóvel, push para próximas ações, modo offline básico.
-
-### Entregáveis
-1. **Manifest-only PWA** (sem service worker complexo — segue regra do projeto).
-   - `manifest.webmanifest` já existe; revisar nome, ícones, theme_color, start_url para `/dashboard/leadchef/today`.
-   - Página `/leadchef/instalar` com instruções iOS/Android.
-2. **Notificações push** via Web Push API + edge function `leadchef-send-push`.
-   - Tabela `leadchef_push_subscriptions` (user_id, workspace_id, endpoint, keys jsonb, enabled).
-   - Triggers: lembrete 1h antes do compromisso, alerta de lead sem ação há 3 dias, notificação de nova referência.
-   - Job Trigger.dev `leadchef-push-dispatcher` (cron */10 min).
-3. **Otimizações mobile do LeadChef**:
-   - Bottom nav fixo com 5 ações: Hoje, Leads, Agenda, +Lead (FAB), Mais.
-   - Sheets em vez de dialogs em <768px.
-   - Lista de leads em modo "card grande" tocável.
-   - Verificar zonas de toque ≥44px em todos os botões da Fase 1–11.
-4. **Página `/leadchef/notificacoes`** — opt-in, gestão de tipos de notificação.
-
-### Riscos
-- Push em iOS exige PWA instalada (Safari 16.4+). Documentar limitação.
-- VAPID keys precisam de ser geradas e guardadas em secrets (`VAPID_PUBLIC_KEY` público no código, `VAPID_PRIVATE_KEY` em runtime secret).
-- Sem service worker complexo → não há offline real, apenas instalação. Aceitável para MVP.
-
----
-
-## Critérios de aceitação globais
-
-| Sub-fase | Critério |
-|---|---|
-| 12A | Score visível em cada lead; sugestão IA gerada e usada pelo menos 1x; leads frios listados |
-| 12B | Job Trigger.dev a correr em cron; pelo menos 1 sequência ativa com passos a avançar; toggle real refletido na execução |
-| 12C | Líder vê funil + ranking; agente comum bloqueado; export PDF funciona |
-| 12D | App instalável em iOS+Android; push recebido em pelo menos 1 dispositivo de teste; zero overflows em 320–430px |
-
-Transversal:
-- Build TS limpo; sem console.log; RLS por workspace em todas as novas tabelas; auditoria registada.
-- Documentação atualizada em `docs/leadchef.md` + nova `docs/leadchef-phase-12.md`.
-
----
-
-## Ordem de execução recomendada
-
-```
-12A (3–4 mensagens) → 12B (3–4) → 12C (2–3) → 12D (3–4)
+```ts
+type AppMode = "fastcrm" | "leadchef";
+{ mode: AppMode; isLeadChefOnly: boolean; isLoading: boolean }
 ```
 
-Total estimado: ~12–15 mensagens de implementação.
+Lógica:
+1. Lê `currentWorkspace.ui_mode` do `WorkspaceContext` (adicionar campo ao tipo).
+2. Se `ui_mode === 'leadchef'` → `mode = 'leadchef'`.
+3. Se `ui_mode === 'fastcrm'` → `mode = 'fastcrm'`.
+4. Se `ui_mode === 'auto'`: usa `useWorkspaceModules()` →
+   - se `installedModuleIds` inclui `'leadchef'` **e** não inclui nenhum dos slugs em `FASTCRM_PRODUCT_MODULES` → `'leadchef'`.
+   - caso contrário → `'fastcrm'`.
+5. Super admin força sempre `'fastcrm'`.
 
----
+`FASTCRM_PRODUCT_MODULES` = lista canónica dos módulos que sinalizam "FastCRM completo" (ex.: `crm-core`, `online-store`, `hr-management`, `whatsapp-business`, `partner-center`, etc. — a confirmar pela equipa de produto).
 
-## Decisões a confirmar antes de implementar
+### routeManifest — whitelist por modo
+Adicionar campo opcional `availableInModes?: AppMode[]` a `RouteEntry`. Default = ambos. Marcar com `["leadchef"]` apenas:
+- todas as entradas do grupo `comercial` cujo `key` começa com `leadchef-*` (já são vários sub-itens).
+- `inbox`, `calendar`.
+- `settings-main`, `profile`, `settings-team`, `settings-billing`, `settings-workspace` (footer mínimo de conta).
 
-1. **Modelo IA padrão** para sugestões — `google/gemini-3-flash-preview` (rápido/barato) ou `google/gemini-2.5-pro` (mais preciso)?
-2. **Sequências** — começar com 1 sequência fixa ("Pós-demo") ou já permitir o líder criar sequências custom?
-3. **Push notifications** — implementar só Web Push (browser/PWA) ou também email fallback para quem não ativar push?
-4. **Relatórios** — incluir já metas vs realizado (cruzamento com `leadchef_goals`) ou deixar para fase 13?
+Funções `getSidebarItems`, `buildSidebarSections`, `getSearchableRoutes` recebem novo parâmetro `mode: AppMode` e filtram por `availableInModes`.
 
-Diz-me o que preferes em cada ponto e arranco pela 12A.
+### Sidebar e Layout
+- `Sidebar.tsx` (já a consumir `routeManifest`): passa `mode` do `useAppMode()` para `buildSidebarSections`.
+- Em modo `leadchef`: troca o componente de logo (`<FastCRMLogo />` → `<LeadChefLogo />`) e oculta o `WorkspaceSwitcher` se o utilizador só tem 1 workspace LeadChef (caso contrário mantém).
+- `AdaptiveSidebar.tsx`: mesma alteração para paridade.
+- `DashboardLayout.tsx`: aplica `data-app-mode={mode}` no wrapper raiz para o CSS scoped funcionar.
+
+### Guard de rotas
+Novo componente `<AppModeGuard>` que envolve as rotas dentro do `DashboardLayout`. Recebe `mode` e a lista de paths permitidos (derivados do manifest filtrado). Se `pathname` não bater certo com nenhum permitido → `<Navigate to="/dashboard/leadchef/today" replace />` + toast.
+
+### Rebrand visual
+- Em `index.css`, adicionar bloco:
+  ```css
+  [data-app-mode="leadchef"] {
+    --primary: 158 64% 40%;          /* emerald-600 */
+    --primary-foreground: 0 0% 100%;
+    --ring: 158 64% 40%;
+  }
+  ```
+- Atualizar `<title>` dinamicamente via hook `useDocumentTitle` ("LeadChef" vs "FastCRM").
+- Componente `LeadChefLogo` reutiliza `ChefHat` + texto "LeadChef" (sem novo asset).
+
+## 4. Plano de implementação
+
+1. **Migration** `add_workspaces_ui_mode`: adiciona coluna `ui_mode` + CHECK constraint.
+2. **Tipos**: estender `Workspace` em `WorkspaceContext.tsx` com `ui_mode`.
+3. **Constantes**: criar `src/config/appModes.ts` com `FASTCRM_PRODUCT_MODULES` e tipo `AppMode`.
+4. **Hook**: criar `src/hooks/useAppMode.ts`.
+5. **Manifest**: adicionar `availableInModes` ao `RouteEntry`, marcar entradas LeadChef-only, atualizar `getSidebarItems`/`buildSidebarSections`/`getSearchableRoutes`.
+6. **Sidebar + AdaptiveSidebar**: consumir `useAppMode()`, trocar logo, passar `mode` ao manifest.
+7. **CSS**: adicionar tokens no `index.css` sob `[data-app-mode="leadchef"]`.
+8. **Layout**: aplicar `data-app-mode` no root do `DashboardLayout`; integrar `<AppModeGuard>`.
+9. **Redirect raiz**: ajustar redirect default para considerar o modo (em `App.tsx` ou no índice do dashboard).
+10. **Settings → Workspace**: adicionar select "Modo de interface" (Auto / FastCRM / LeadChef) visível só para owner/admin (override manual).
+11. **QA** com 3 workspaces de teste: (a) só LeadChef, (b) FastCRM completo, (c) ambos com override `leadchef`.
+
+## 5. Critérios de aceitação
+
+- Workspace com apenas o módulo `leadchef` instalado mostra sidebar reduzida (LeadChef + Inbox + Calendário + Settings/Perfil), branding "LeadChef" e cor verde.
+- Tentar abrir `/dashboard/store-settings` nesse workspace redireciona para `/dashboard/leadchef/today` com toast.
+- Workspace com FastCRM completo continua exatamente igual ao actual (zero regressão visual).
+- Switcher de workspace alterna o modo em tempo real, sem refresh.
+- Super admin vê sempre tudo, mesmo em workspaces marcados como `leadchef`.
+- Owner/admin pode forçar `ui_mode` em **Settings → Workspace**.
+- Pesquisa global (command palette) também respeita o modo.
+
+## 6. Riscos e pontos por validar
+
+- **Lista canónica de "módulos FastCRM"**: precisa de confirmação para a deteção `auto` ser fiável. Se a lista evoluir, é só editar `appModes.ts`.
+- **Rotas profundas do LeadChef**: o guard usa whitelist por prefixo (`/dashboard/leadchef/*`); confirmar que não há sub-rotas LeadChef fora desse namespace.
+- **Notificações/topbar**: atualmente a topbar mostra contadores cross-módulo (ex. tickets). Em modo LeadChef devemos esconder os que não pertencem ao whitelist — incluir no passo 6.
+- **SEO/Meta**: páginas públicas não são afetadas; só o shell autenticado muda de marca.
+- **Logos próprios por workspace**: fora de âmbito desta entrega; cliente que queira logo personalizado entra na fase seguinte (white-label).
