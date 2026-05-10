@@ -198,6 +198,7 @@ e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Pac
  e("whatsapp-contacts-import","Importar Contactos WhatsApp","/dashboard/whatsapp-pro/contacts-import", Upload, "comunicacao", { moduleSlug: "whatsapp-business" }),
  e("whatsapp-segments","Segmentos WhatsApp","/dashboard/whatsapp-pro/segments", Target, "comunicacao", { moduleSlug: "whatsapp-business" }),
  e("whatsapp-consent","Consentimento WhatsApp","/dashboard/whatsapp-pro/consent", ShieldCheck, "comunicacao", { moduleSlug: "whatsapp-business" }),
+ e("whatsapp-quick-templates","Templates Rápidos WhatsApp","/dashboard/whatsapp-pro/quick-templates", Sparkles, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("voicehub",    "VoiceHub",    "/dashboard/voicehub",                 Headphones, "comunicacao"),
  e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "comunicacao"),
  e("plan-mgmt",   "Plan Management","/admin/plan-management",                Crown,     "comunicacao"),
