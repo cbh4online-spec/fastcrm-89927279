@@ -449,9 +449,9 @@ export function SendProductByWhatsAppDialog({
               <label className="flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md border bg-muted/30">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <ImageIcon className="h-3.5 w-3.5" />
-                  Incluir imagem do produto
+                  Enviar imagem grande
                   <span className="text-[10px] text-muted-foreground/70">
-                    ({includeImage ? "imagem grande" : "só link com pré-visualização compacta"})
+                    ({includeImage ? "imagem anexada" : "recomendado: só link com pré-visualização"})
                   </span>
                 </span>
                 <Switch checked={includeImage} onCheckedChange={setIncludeImage} />
@@ -476,9 +476,19 @@ export function SendProductByWhatsAppDialog({
               <TabsContent value="preview" className="flex-1 mt-2 min-h-0">
                 <div className="h-full min-h-[200px] rounded-md p-4 bg-[#e5ddd5] dark:bg-zinc-800 overflow-auto">
                   <div className="ml-auto max-w-[85%] bg-[#dcf8c6] dark:bg-emerald-900/40 rounded-lg p-2.5 shadow-sm">
-                    {includeImage && productImageUrl && (
-                      <img src={productImageUrl} alt="" className="rounded mb-2 max-h-32 w-full object-cover" />
-                    )}
+                    {includeImage && productImageUrl ? (
+                      <img src={productImageUrl} alt="" className="rounded mb-2 max-h-24 w-28 object-cover" />
+                    ) : absoluteProductLink ? (
+                      <div className="mb-2 rounded border border-zinc-200/70 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50 overflow-hidden">
+                        <div className="flex gap-2 p-2">
+                          {productImageUrl && <img src={productImageUrl} alt="" className="h-12 w-12 rounded object-cover shrink-0" />}
+                          <div className="min-w-0 text-left">
+                            <p className="text-[11px] font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2">{productName ?? "Produto"}</p>
+                            <p className="text-[10px] text-zinc-500 truncate">{absoluteProductLink}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                     <p className="text-xs whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 break-words">
                       {message || "(mensagem vazia)"}
                     </p>
