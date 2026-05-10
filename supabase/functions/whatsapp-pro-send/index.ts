@@ -22,6 +22,8 @@ interface SendPayload {
   mediaUrl?: string;
   mediaMimeType?: string;
   fileName?: string;
+  ctaUrl?: string | null;
+  ctaLabel?: string | null;
   productId?: string;
   templateId?: string;
   templateVariables?: Record<string, string | number>;
@@ -96,6 +98,11 @@ Deno.serve(async (req) => {
         conversationId: body.conversationId ?? undefined,
         message: body.text,
       };
+      const validCtaUrl = body.ctaUrl && /^https?:\/\//i.test(body.ctaUrl) ? body.ctaUrl : null;
+      if (!body.mediaUrl && validCtaUrl) {
+        invokePayload.buttons = [{ id: "buy_now", type: "URL", label: body.ctaLabel || "Comprar Agora", url: validCtaUrl }];
+        invokePayload.buttonHeader = body.messageType === "product" ? "Produto" : undefined;
+      }
       if (body.mediaUrl) {
         // "product" é tratado como imagem (a mediaUrl é sempre a imagem do produto),
         // garantindo que o caption (texto promocional) é entregue junto da imagem.
@@ -113,6 +120,10 @@ Deno.serve(async (req) => {
           caption: body.text,
           fileName: body.fileName,
         };
+        if (validCtaUrl) {
+          invokePayload.buttons = [{ id: "buy_now", type: "URL", label: body.ctaLabel || "Comprar Agora", url: validCtaUrl }];
+          invokePayload.buttonHeader = body.text;
+        }
         // Quando vai como media com caption, não duplicar como mensagem de texto separada.
         delete invokePayload.message;
       }
@@ -130,6 +141,18 @@ Deno.serve(async (req) => {
       } else if (sendData?.error) {
         result = { success: false, error: sendData.error };
       } else {
+        if (body.mediaUrl && validCtaUrl) {
+          await adminClient.functions.invoke("whatsapp-zapi-send", {
+            body: {
+              workspaceId: body.workspaceId,
+              phone: body.phone,
+              conversationId: body.conversationId ?? undefined,
+              message: "🛒 Comprar Agora",
+              buttons: [{ id: "buy_now", type: "URL", label: body.ctaLabel || "Comprar Agora", url: validCtaUrl }],
+            },
+            headers: { Authorization: authHeader },
+          });
+        }
         result = {
           success: !!sendData?.success,
           providerMessageId: sendData?.externalMessageId ?? null,

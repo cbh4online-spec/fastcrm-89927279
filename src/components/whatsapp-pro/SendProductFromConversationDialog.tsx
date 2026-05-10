@@ -75,7 +75,7 @@ export function SendProductFromConversationDialog({
         productName={picked.name}
         productPrice={picked.base_price}
         productImageUrl={picked.images?.[0] ?? null}
-        productLink={picked.sheet_slug ? `/produto/${picked.sheet_slug}` : null}
+        productLink={currentWorkspace?.slug ? `/store/${currentWorkspace.slug}/product/${picked.id}` : null}
         prefillContactId={contactId ?? null}
         prefillConversationId={conversationId}
         prefillPhone={contactPhone ?? null}

@@ -11,6 +11,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppProSend, useRegisterWhatsAppProductShare, useWhatsAppProTemplates } from "@/hooks/useWhatsAppPro";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -74,12 +75,38 @@ function buildDefaultMessage(opts: {
   }
   if (opts.productLink) {
     lines.push("");
-    lines.push(`🛒 Ver detalhes e comprar:`);
+    lines.push(`🛒 Comprar agora:`);
     lines.push(opts.productLink);
   }
   lines.push("");
   lines.push("Se quiser, posso ajudar com a compra ou esclarecer qualquer dúvida.");
   return lines.join("\n");
+}
+
+async function imageUrlToDataUrl(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Não foi possível carregar a imagem (${response.status}).`);
+  const blob = await response.blob();
+  if (!blob.type.startsWith("image/")) throw new Error("O ficheiro carregado não é uma imagem válida.");
+  const originalDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = originalDataUrl;
+  });
+  const maxSide = 640;
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.72);
 }
 
 export function SendProductByWhatsAppDialog({
@@ -108,7 +135,7 @@ export function SendProductByWhatsAppDialog({
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [includeImage, setIncludeImage] = useState<boolean>(false);
+  const [includeImage, setIncludeImage] = useState<boolean>(true);
 
   // Buscar dados extra do produto (short_description) — opcional
   const { data: productExtra } = useQuery({
@@ -160,7 +187,7 @@ export function SendProductByWhatsAppDialog({
     const raw = productLink && !productLink.startsWith("/produto/") ? productLink : workspaceProductPath;
     if (!raw) return null;
     if (/^https?:\/\//i.test(raw)) return raw;
-    if (typeof window !== "undefined") return `${window.location.origin}${raw.startsWith("/") ? "" : "/"}${raw}`;
+    if (typeof window !== "undefined") return `${getPublicBaseUrl()}${raw.startsWith("/") ? "" : "/"}${raw}`;
     return raw;
   }, [productLink, currentWorkspace?.slug, productId]);
 
@@ -183,9 +210,9 @@ export function SendProductByWhatsAppDialog({
     if (open) setMessage(defaultMessage);
   }, [defaultMessage, open]);
 
-  // Por defeito, partilha compacta: texto + link (o WhatsApp gera a pré-visualização pequena).
+  // Por defeito, partilha com imagem do produto + CTA de compra.
   useEffect(() => {
-    if (open) setIncludeImage(false);
+    if (open) setIncludeImage(true);
   }, [open, productId]);
 
   // Quick-create contact
@@ -255,14 +282,24 @@ export function SendProductByWhatsAppDialog({
     }
 
     try {
+      let mediaUrl = includeImage && productImageUrl ? productImageUrl : undefined;
+      if (mediaUrl) {
+        try {
+          mediaUrl = await imageUrlToDataUrl(mediaUrl);
+        } catch {
+          // Se a conversão falhar, mantém o URL original para o provider tentar enviar por link público.
+        }
+      }
       const result = await send.mutateAsync({
         phone: normalizedPhone,
         contactId: selectedContactId ?? undefined,
         conversationId: prefillConversationId ?? undefined,
-        messageType: includeImage && productImageUrl ? "product" : "text",
+        messageType: mediaUrl ? "product" : "text",
         text: parsed.data,
         productId,
-        mediaUrl: includeImage && productImageUrl ? productImageUrl : undefined,
+        mediaUrl,
+        ctaUrl: absoluteProductLink,
+        ctaLabel: "Comprar Agora",
         metadata: {
           source: prefillConversationId ? "conversation" : "product_detail",
           product_name: productName,
@@ -454,9 +491,9 @@ export function SendProductByWhatsAppDialog({
               <label className="flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md border bg-muted/30">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <ImageIcon className="h-3.5 w-3.5" />
-                  Enviar imagem grande
+                  Anexar imagem do produto
                   <span className="text-[10px] text-muted-foreground/70">
-                    ({includeImage ? "imagem anexada" : "recomendado: só link com pré-visualização"})
+                    ({includeImage ? "imagem + botão" : "só texto + botão"})
                   </span>
                 </span>
                 <Switch checked={includeImage} onCheckedChange={setIncludeImage} />
@@ -497,6 +534,11 @@ export function SendProductByWhatsAppDialog({
                     <p className="text-xs whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 break-words">
                       {message || "(mensagem vazia)"}
                     </p>
+                    {absoluteProductLink && (
+                      <div className="mt-2 rounded-md bg-background/90 px-3 py-1.5 text-center text-[11px] font-semibold text-primary">
+                        Comprar Agora
+                      </div>
+                    )}
                     <p className="text-[10px] text-zinc-500 text-right mt-1">agora · ✓✓</p>
                   </div>
                 </div>

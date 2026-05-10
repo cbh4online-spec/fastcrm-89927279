@@ -339,6 +339,7 @@ export function ProductDetailDialog({
                         productName={product.name}
                         productPrice={product.base_price}
                         productImageUrl={mainImage?.url ?? null}
+                        productLink={currentWorkspace?.slug ? `/store/${currentWorkspace.slug}/product/${product.id}` : null}
                       />
                     </div>
 

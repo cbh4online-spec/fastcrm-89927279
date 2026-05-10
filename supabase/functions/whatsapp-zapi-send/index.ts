@@ -8,6 +8,9 @@ import { zapiCall, safeJson, type ZapiCredentials } from '../_shared/zapi.ts';
 interface ButtonOption {
   id?: string;
   label: string;
+  type?: 'CALL' | 'URL' | 'REPLY';
+  phone?: string;
+  url?: string;
 }
 
 interface SendBody {
@@ -137,18 +140,31 @@ Deno.serve(async (req) => {
     let zapiBody: Record<string, unknown> = { ...destPayload };
     let messagePreview = message || '';
 
-    if (buttons && buttons.length > 0) {
-      // Buttons (max 3 per Z-API spec)
-      zapiPath = '/send-button-list';
-      zapiBody = {
-        ...destPayload,
-        message: message || '',
-        title: buttonHeader || '',
-        footer: buttonFooter || '',
-        buttonList: {
-          buttons: buttons.slice(0, 3).map((b, i) => ({ id: b.id || `btn_${i}`, label: b.label })),
-        },
-      };
+    if (buttons && buttons.length > 0 && !media) {
+      const actionButtons = buttons.filter((b) => b.type === 'URL' || b.type === 'CALL');
+      zapiPath = actionButtons.length > 0 ? '/send-button-actions' : '/send-button-list';
+      zapiBody = actionButtons.length > 0
+        ? {
+            ...destPayload,
+            message: message || buttonHeader || '',
+            title: buttonHeader || '',
+            footer: buttonFooter || '',
+            buttonActions: actionButtons.slice(0, 2).map((b, i) => ({
+              id: b.id || `btn_${i}`,
+              type: b.type,
+              label: b.label,
+              ...(b.type === 'URL' ? { url: b.url } : { phone: b.phone }),
+            })),
+          }
+        : {
+            ...destPayload,
+            message: message || '',
+            title: buttonHeader || '',
+            footer: buttonFooter || '',
+            buttonList: {
+              buttons: buttons.slice(0, 3).map((b, i) => ({ id: b.id || `btn_${i}`, label: b.label })),
+            },
+          };
       messagePreview = `${message || ''} [${buttons.map((b) => b.label).join(' | ')}]`;
     } else if (media) {
       switch (media.type) {
