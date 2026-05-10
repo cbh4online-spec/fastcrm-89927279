@@ -88,7 +88,7 @@ export function WhatsAppHealthBanner() {
             Verificar
           </Button>
           <Button asChild size="sm" className="h-7">
-            <Link to="/dashboard/integrations/whatsapp">{copy.cta}</Link>
+            <Link to="/settings/integrations">{copy.cta}</Link>
           </Button>
           <Button
             size="icon"
