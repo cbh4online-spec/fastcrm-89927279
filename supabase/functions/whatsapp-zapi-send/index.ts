@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
     let zapiBody: Record<string, unknown> = { ...destPayload };
     let messagePreview = message || '';
 
-    if (buttons && buttons.length > 0) {
+    if (buttons && buttons.length > 0 && !media) {
       const actionButtons = buttons.filter((b) => b.type === 'URL' || b.type === 'CALL');
       zapiPath = actionButtons.length > 0 ? '/send-button-actions' : '/send-button-list';
       zapiBody = actionButtons.length > 0
