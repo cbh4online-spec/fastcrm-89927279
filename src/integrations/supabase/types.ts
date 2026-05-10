@@ -83080,6 +83080,111 @@ export type Database = {
           },
         ]
       }
+      whatsapp_recurring_campaigns: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string
+          cta_label: string | null
+          cta_url: string | null
+          description: string | null
+          ends_at: string | null
+          frequency: string
+          id: string
+          jitter_minutes: number
+          last_dispatch_count: number
+          last_error: string | null
+          last_run_at: string | null
+          max_runs: number | null
+          media_mime_type: string | null
+          media_url: string | null
+          metadata: Json
+          monthly_day: number | null
+          name: string
+          next_run_at: string | null
+          run_count: number
+          run_time: string
+          segment_id: string | null
+          starts_at: string
+          status: string
+          target_tags: string[]
+          target_type: string
+          template_id: string | null
+          timezone: string
+          updated_at: string
+          weekly_days: number[]
+          workspace_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by: string
+          cta_label?: string | null
+          cta_url?: string | null
+          description?: string | null
+          ends_at?: string | null
+          frequency?: string
+          id?: string
+          jitter_minutes?: number
+          last_dispatch_count?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          max_runs?: number | null
+          media_mime_type?: string | null
+          media_url?: string | null
+          metadata?: Json
+          monthly_day?: number | null
+          name: string
+          next_run_at?: string | null
+          run_count?: number
+          run_time?: string
+          segment_id?: string | null
+          starts_at?: string
+          status?: string
+          target_tags?: string[]
+          target_type?: string
+          template_id?: string | null
+          timezone?: string
+          updated_at?: string
+          weekly_days?: number[]
+          workspace_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          description?: string | null
+          ends_at?: string | null
+          frequency?: string
+          id?: string
+          jitter_minutes?: number
+          last_dispatch_count?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          max_runs?: number | null
+          media_mime_type?: string | null
+          media_url?: string | null
+          metadata?: Json
+          monthly_day?: number | null
+          name?: string
+          next_run_at?: string | null
+          run_count?: number
+          run_time?: string
+          segment_id?: string | null
+          starts_at?: string
+          status?: string
+          target_tags?: string[]
+          target_type?: string
+          template_id?: string | null
+          timezone?: string
+          updated_at?: string
+          weekly_days?: number[]
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_scheduled_messages: {
         Row: {
           attempts: number
