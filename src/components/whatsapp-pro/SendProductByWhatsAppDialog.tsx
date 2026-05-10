@@ -174,6 +174,27 @@ export function SendProductByWhatsAppDialog({
     enabled: open && !!productId,
   });
 
+  const { data: contacts, isLoading: contactsLoading } = useQuery({
+    queryKey: ["contacts-search-whatsapp", currentWorkspace?.id, search],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      let q = supabase
+        .from("contacts")
+        .select("id, name, phone, email")
+        .eq("workspace_id", currentWorkspace.id)
+        .not("phone", "is", null)
+        .order("updated_at", { ascending: false })
+        .limit(20);
+      if (search.trim().length > 1) {
+        q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as ContactOption[];
+    },
+    enabled: open && !!currentWorkspace,
+  });
+
   // Recomendações: pesquisa e seleção (até 3 produtos)
   const { data: recCandidates } = useQuery({
     queryKey: ["product-rec-picker", currentWorkspace?.id, productId, recSearch, productExtra?.category],
