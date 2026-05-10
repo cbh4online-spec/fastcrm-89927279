@@ -663,6 +663,39 @@ export function SendProductByWhatsAppDialog({
                 </div>
               )}
             </div>
+
+            {/* CTA prompt (texto da bolha do botão) */}
+            {willSendCtaButton && (
+              <div className="rounded-md border bg-muted/30 p-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    Texto antes do botão "Comprar Agora"
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[11px]"
+                    onClick={() => setShowCtaEditor((v) => !v)}
+                  >
+                    {showCtaEditor ? "Ocultar" : "Personalizar"}
+                  </Button>
+                </div>
+                {showCtaEditor ? (
+                  <Input
+                    value={ctaPrompt}
+                    onChange={(e) => setCtaPrompt(e.target.value.slice(0, 120))}
+                    maxLength={120}
+                    placeholder={DEFAULT_CTA_PROMPT}
+                    className="h-7 text-xs"
+                  />
+                ) : (
+                  <p className="text-[11px] text-muted-foreground italic line-clamp-1">
+                    "{ctaPrompt || DEFAULT_CTA_PROMPT}"
+                  </p>
+                )}
+              </div>
+            )}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")} className="flex-1 flex flex-col min-h-0">
               <TabsList className="h-8">
                 <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
