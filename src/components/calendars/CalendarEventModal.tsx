@@ -32,12 +32,13 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin, Video, Trash2, User } from 'lucide-react';
+import { CalendarIcon, MapPin, Video, Trash2, User, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EntityPicker } from '@/components/common/EntityPicker';
 import { useAvailableVideoProviders } from '@/hooks/useAvailableVideoProviders';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useWhatsAppProSend, useWhatsAppProviderInstance } from '@/hooks/useWhatsAppPro';
 import type { Calendar as CalendarType, CalendarEvent, CreateEventData } from '@/hooks/useCalendars';
 
 const eventSchema = z.object({
@@ -55,6 +56,7 @@ const eventSchema = z.object({
   status: z.enum(['tentative', 'confirmed', 'cancelled']).default('confirmed'),
   contact_id: z.string().optional().nullable(),
   company_id: z.string().optional().nullable(),
+  notify_whatsapp: z.boolean().default(false),
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -87,6 +89,9 @@ export function CalendarEventModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { currentWorkspace } = useWorkspace();
   const videoProviders = useAvailableVideoProviders();
+  const { data: whatsappProvider } = useWhatsAppProviderInstance();
+  const sendWhatsApp = useWhatsAppProSend();
+  const [contactPhone, setContactPhone] = useState<string | null>(null);
   const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null; leadId?: string | null }>({
     contactId: defaultContactId || null,
     companyId: defaultCompanyId || null,
@@ -111,6 +116,7 @@ export function CalendarEventModal({
           status: event.status,
           contact_id: event.contact_id || null,
           company_id: event.company_id || null,
+          notify_whatsapp: false,
         }
       : {
           calendar_id: calendars[0]?.id || '',
@@ -127,6 +133,7 @@ export function CalendarEventModal({
           status: 'confirmed',
           contact_id: null,
           company_id: null,
+          notify_whatsapp: false,
         },
   });
 
@@ -149,6 +156,7 @@ export function CalendarEventModal({
           status: event.status,
           contact_id: event.contact_id || null,
           company_id: event.company_id || null,
+          notify_whatsapp: false,
         });
         setEntityValue({
           contactId: event.contact_id || null,
@@ -171,6 +179,7 @@ export function CalendarEventModal({
           status: 'confirmed',
           contact_id: defaultContactId || null,
           company_id: defaultCompanyId || null,
+          notify_whatsapp: false,
         });
         setEntityValue({ 
           contactId: defaultContactId || null, 
@@ -180,6 +189,42 @@ export function CalendarEventModal({
       }
     }
   }, [open, event, calendars, defaultDate, form, defaultContactId, defaultCompanyId, defaultLeadId]);
+
+  // Buscar telefone do contacto / lead associado para permitir notificação WhatsApp
+  useEffect(() => {
+    let cancelled = false;
+    const fetchPhone = async () => {
+      const contactId = entityValue.contactId;
+      const leadId = entityValue.leadId;
+      if (!contactId && !leadId) {
+        if (!cancelled) setContactPhone(null);
+        return;
+      }
+      try {
+        if (contactId) {
+          const { data } = await supabase
+            .from('contacts')
+            .select('phone')
+            .eq('id', contactId)
+            .maybeSingle();
+          if (!cancelled) setContactPhone((data?.phone as string | null) || null);
+          return;
+        }
+        if (leadId) {
+          const { data } = await supabase
+            .from('leads')
+            .select('phone')
+            .eq('id', leadId)
+            .maybeSingle();
+          if (!cancelled) setContactPhone((data?.phone as string | null) || null);
+        }
+      } catch {
+        if (!cancelled) setContactPhone(null);
+      }
+    };
+    fetchPhone();
+    return () => { cancelled = true; };
+  }, [entityValue.contactId, entityValue.leadId]);
 
   const handleSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);
@@ -235,6 +280,36 @@ export function CalendarEventModal({
         company_id: entityValue.companyId || undefined,
         lead_id: entityValue.leadId || undefined,
       });
+
+      // Notificação por WhatsApp (opcional)
+      if (data.notify_whatsapp && contactPhone) {
+        try {
+          const dateLabel = format(startTime, 'dd/MM/yyyy');
+          const timeLabel = data.all_day ? 'Dia inteiro' : `${format(startTime, 'HH:mm')} - ${format(endTime, 'HH:mm')}`;
+          const lines = [
+            `📅 *${data.title}*`,
+            '',
+            `🗓️ ${dateLabel}`,
+            `⏰ ${timeLabel}`,
+          ];
+          if (data.location) lines.push(`📍 ${data.location}`);
+          if (meetingUrl) lines.push(`🎥 ${meetingUrl}`);
+          if (data.description) lines.push('', data.description);
+          lines.push('', 'Confirmamos a marcação. Até breve!');
+          await sendWhatsApp.mutateAsync({
+            contactId: entityValue.contactId || undefined,
+            phone: contactPhone,
+            messageType: 'text',
+            text: lines.join('\n'),
+            metadata: { source: 'calendar_event_notification' },
+          });
+          toast.success('Notificação WhatsApp enviada');
+        } catch (err) {
+          console.error('WhatsApp notification failed:', err);
+          toast.error('Evento criado, mas não foi possível enviar WhatsApp');
+        }
+      }
+
       form.reset();
       setEntityValue({ contactId: null, companyId: null });
       onOpenChange(false);
@@ -541,6 +616,41 @@ export function CalendarEventModal({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            {/* Notificação por WhatsApp */}
+            <FormField
+              control={form.control}
+              name="notify_whatsapp"
+              render={({ field }) => {
+                const canSend = !!whatsappProvider && !!contactPhone;
+                return (
+                  <FormItem className="flex items-start justify-between rounded-md border border-border bg-muted/30 p-3">
+                    <div className="space-y-1 pr-3">
+                      <FormLabel className="flex items-center gap-2 text-sm">
+                        <MessageCircle className="h-4 w-4 text-emerald-600" />
+                        Notificar por WhatsApp
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        {!whatsappProvider
+                          ? 'WhatsApp Pro não está ativo neste workspace.'
+                          : !entityValue.contactId && !entityValue.leadId
+                            ? 'Associe um contacto ou lead para enviar.'
+                            : !contactPhone
+                              ? 'O contacto associado não tem telefone registado.'
+                              : `Enviar confirmação para ${contactPhone}.`}
+                      </p>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={!!field.value && canSend}
+                        disabled={!canSend}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                );
+              }}
             />
 
             <DialogFooter className="gap-2">
