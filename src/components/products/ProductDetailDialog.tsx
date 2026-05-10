@@ -196,6 +196,18 @@ export function ProductDetailDialog({
     }).format(value);
   };
 
+  // Preço líquido (sem IVA). Se o produto está marcado como tax_included,
+  // remove o IVA usando tax_rate_estimate_pct (default 23%).
+  const toNet = (value: number | null | undefined): number => {
+    if (value == null) return 0;
+    const taxIncluded = (product as any)?.tax_included;
+    const vat = Number((product as any)?.tax_rate_estimate_pct ?? 23) || 0;
+    if (taxIncluded && vat > 0) return value / (1 + vat / 100);
+    return value;
+  };
+  const netBasePrice = product ? toNet(product.base_price) : 0;
+  const netDirectCost = product?.direct_cost != null ? toNet(product.direct_cost) : null;
+
   const handleArchive = async () => {
     if (!product) return;
     await archiveProduct.mutateAsync({
