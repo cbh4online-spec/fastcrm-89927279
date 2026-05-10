@@ -54,6 +54,7 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/whatsapp-pro/inbox" element={<WhatsAppInboxPage />} />
       <Route path="/dashboard/whatsapp-pro/scheduled" element={<WhatsAppScheduledPage />} />
       <Route path="/dashboard/whatsapp-pro/quick-replies" element={<WhatsAppQuickRepliesPage />} />
+      <Route path="/dashboard/whatsapp-pro/catalog" element={<WhatsAppCatalogPage />} />
       <Route path="/dashboard/whatsapp" element={<Navigate to="/dashboard/whatsapp-pro" replace />} />
       <Route path="/dashboard/groups" element={<Groups />} />
       <Route path="/dashboard/telegram" element={<TelegramPage />} />
