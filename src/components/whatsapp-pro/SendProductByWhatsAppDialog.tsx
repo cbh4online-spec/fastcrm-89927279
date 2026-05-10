@@ -264,6 +264,8 @@ export function SendProductByWhatsAppDialog({
         text: parsed.data,
         productId,
         mediaUrl: includeImage && productImageUrl ? productImageUrl : undefined,
+        ctaUrl: absoluteProductLink,
+        ctaLabel: "Comprar Agora",
         metadata: {
           source: prefillConversationId ? "conversation" : "product_detail",
           product_name: productName,
@@ -455,9 +457,9 @@ export function SendProductByWhatsAppDialog({
               <label className="flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md border bg-muted/30">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <ImageIcon className="h-3.5 w-3.5" />
-                  Enviar imagem grande
+                  Anexar imagem do produto
                   <span className="text-[10px] text-muted-foreground/70">
-                    ({includeImage ? "imagem anexada" : "recomendado: só link com pré-visualização"})
+                    ({includeImage ? "imagem + botão" : "só texto + botão"})
                   </span>
                 </span>
                 <Switch checked={includeImage} onCheckedChange={setIncludeImage} />
@@ -498,6 +500,11 @@ export function SendProductByWhatsAppDialog({
                     <p className="text-xs whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 break-words">
                       {message || "(mensagem vazia)"}
                     </p>
+                    {absoluteProductLink && (
+                      <div className="mt-2 rounded-md bg-background/90 px-3 py-1.5 text-center text-[11px] font-semibold text-primary">
+                        Comprar Agora
+                      </div>
+                    )}
                     <p className="text-[10px] text-zinc-500 text-right mt-1">agora · ✓✓</p>
                   </div>
                 </div>
