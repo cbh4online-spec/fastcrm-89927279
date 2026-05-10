@@ -89,6 +89,9 @@ export function CalendarEventModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { currentWorkspace } = useWorkspace();
   const videoProviders = useAvailableVideoProviders();
+  const { data: whatsappProvider } = useWhatsAppProviderInstance();
+  const sendWhatsApp = useWhatsAppProSend();
+  const [contactPhone, setContactPhone] = useState<string | null>(null);
   const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null; leadId?: string | null }>({
     contactId: defaultContactId || null,
     companyId: defaultCompanyId || null,
