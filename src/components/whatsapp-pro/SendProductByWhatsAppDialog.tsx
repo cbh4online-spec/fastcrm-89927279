@@ -159,6 +159,9 @@ export function SendProductByWhatsAppDialog({
   const [recommendedIds, setRecommendedIds] = useState<string[]>([]);
   const [showRecPicker, setShowRecPicker] = useState(false);
   const [recSearch, setRecSearch] = useState("");
+  const DEFAULT_CTA_PROMPT = "👇 Toque no botão para abrir a página segura do produto.";
+  const [ctaPrompt, setCtaPrompt] = useState<string>(DEFAULT_CTA_PROMPT);
+  const [showCtaEditor, setShowCtaEditor] = useState(false);
 
   // Buscar dados extra do produto (short_description, tax) — opcional
   const { data: productExtra } = useQuery({
