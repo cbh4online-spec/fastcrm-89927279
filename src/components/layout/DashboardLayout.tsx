@@ -13,6 +13,7 @@ import { MQPCFloatingButton } from "@/components/mqpc/MQPCFloatingButton";
 import { useFeatureFlag } from "@/hooks/useFeatureFlags";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { AIUsageBanner } from "@/components/saas/AIUsageBanner";
+import { WhatsAppHealthBanner } from "@/components/whatsapp-pro/WhatsAppHealthBanner";
 import { VoiceConversationWidget } from "@/components/voice/VoiceConversationWidget";
 import { GlobalNoCreditsDialog } from "@/components/credits/GlobalNoCreditsDialog";
 import { CopilotDrawer } from "@/components/copilot/CopilotDrawer";
@@ -80,6 +81,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useAdaptive ? (collapsed ? "lg:pl-16" : "lg:pl-[280px]") : collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
                 <TopBar onMenuClick={() => setSidebarOpen(true)} />
                 <AIUsageBanner />
+                <WhatsAppHealthBanner />
                 <main
                   className={`flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background mobile-scroll-momentum ${isMobile ? "with-mobile-nav-pb" : ""}`}
                 >
