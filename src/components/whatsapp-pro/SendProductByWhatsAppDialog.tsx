@@ -82,7 +82,7 @@ function buildDefaultMessage(opts: {
   lines.push("");
   if (opts.productName) lines.push(`📦 *${opts.productName}*`);
   if (priceLine) lines.push(priceLine);
-  if (opts.productLink) {
+  if (opts.productLink && opts.embedLink !== false) {
     lines.push(`🛒 Comprar agora: ${opts.productLink}`);
   }
   if (clippedDescription) {
