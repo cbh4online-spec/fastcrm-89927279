@@ -116,6 +116,7 @@ export function CalendarEventModal({
           status: event.status,
           contact_id: event.contact_id || null,
           company_id: event.company_id || null,
+          notify_whatsapp: false,
         }
       : {
           calendar_id: calendars[0]?.id || '',
@@ -132,6 +133,7 @@ export function CalendarEventModal({
           status: 'confirmed',
           contact_id: null,
           company_id: null,
+          notify_whatsapp: false,
         },
   });
 
