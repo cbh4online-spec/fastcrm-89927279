@@ -12,6 +12,7 @@ const WhatsAppSequencesPage = lazy(() => import("@/pages/WhatsAppSequencesPage")
 const WhatsAppSequenceEditorPage = lazy(() => import("@/pages/WhatsAppSequenceEditorPage"));
 const WhatsAppInboxPage = lazy(() => import("@/pages/WhatsAppInboxPage"));
 const WhatsAppScheduledPage = lazy(() => import("@/pages/WhatsAppScheduledPage"));
+const WhatsAppQuickRepliesPage = lazy(() => import("@/pages/WhatsAppQuickRepliesPage"));
 const Groups = lazy(() => import("@/pages/Groups"));
 const TelegramPage = lazy(() => import("@/pages/TelegramPage"));
 const CommunicationTemplates = lazy(() => import("@/pages/CommunicationTemplates"));
