@@ -153,11 +153,11 @@ export function useSaveSegment() {
         cached_at: new Date().toISOString(),
       };
       if (input.id) {
-        const { error } = await supabase.from("whatsapp_segments" as never).update(payload).eq("id", input.id);
+        const { error } = await (supabase as any).from("whatsapp_segments").update(payload).eq("id", input.id);
         if (error) throw error;
         return input.id;
       }
-      const { data, error } = await supabase.from("whatsapp_segments" as never).insert(payload).select("id").single();
+      const { data, error } = await (supabase as any).from("whatsapp_segments").insert(payload).select("id").single();
       if (error) throw error;
       return (data as { id: string }).id;
     },
@@ -174,7 +174,7 @@ export function useDeleteSegment() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("whatsapp_segments" as never).update({ is_archived: true }).eq("id", id);
+      const { error } = await (supabase as any).from("whatsapp_segments").update({ is_archived: true }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
