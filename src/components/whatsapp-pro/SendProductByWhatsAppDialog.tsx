@@ -52,19 +52,29 @@ function buildDefaultMessage(opts: {
   productLink?: string | null;
   shortDescription?: string | null;
 }): string {
-  const greet = opts.contactName ? `Olá ${opts.contactName.split(" ")[0]},` : "Olá,";
+  const firstName = opts.contactName ? opts.contactName.split(" ")[0] : null;
+  const greet = firstName ? `Olá ${firstName} 👋` : "Olá 👋";
   const lines: string[] = [];
-  lines.push(`${greet} envio-lhe a sugestão que pode fazer sentido para si:`);
+  lines.push(`${greet}`);
+  lines.push("");
+  lines.push("Encontrei esta opção que pode fazer sentido para si:");
   lines.push("");
   if (opts.productName) lines.push(`📦 *${opts.productName}*`);
-  if (opts.shortDescription) lines.push(opts.shortDescription);
-  if (typeof opts.productPrice === "number") lines.push(`💶 ${opts.productPrice.toFixed(2)} €`);
+  if (opts.shortDescription) {
+    lines.push("");
+    lines.push(opts.shortDescription);
+  }
+  if (typeof opts.productPrice === "number") {
+    lines.push("");
+    lines.push(`💶 *${opts.productPrice.toFixed(2)} €*`);
+  }
   if (opts.productLink) {
     lines.push("");
-    lines.push(`🔗 ${opts.productLink}`);
+    lines.push(`🛒 Comprar agora:`);
+    lines.push(opts.productLink);
   }
   lines.push("");
-  lines.push("Se fizer sentido, posso enviar-lhe também uma sugestão complementar.");
+  lines.push("Qualquer dúvida diga, estou disponível para ajudar.");
   return lines.join("\n");
 }
 
