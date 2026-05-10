@@ -54,15 +54,19 @@ function buildDefaultMessage(opts: {
 }): string {
   const firstName = opts.contactName ? opts.contactName.split(" ")[0] : null;
   const greet = firstName ? `Olá ${firstName} 👋` : "Olá 👋";
+  const shortDescription = opts.shortDescription?.trim();
+  const clippedDescription = shortDescription && shortDescription.length > 180
+    ? `${shortDescription.slice(0, 177).trim()}...`
+    : shortDescription;
   const lines: string[] = [];
   lines.push(`${greet}`);
   lines.push("");
-  lines.push("Encontrei esta opção que pode fazer sentido para si:");
+  lines.push("Tenho esta opção que pode fazer sentido para si:");
   lines.push("");
   if (opts.productName) lines.push(`📦 *${opts.productName}*`);
-  if (opts.shortDescription) {
+  if (clippedDescription) {
     lines.push("");
-    lines.push(opts.shortDescription);
+    lines.push(clippedDescription);
   }
   if (typeof opts.productPrice === "number") {
     lines.push("");
@@ -70,11 +74,11 @@ function buildDefaultMessage(opts: {
   }
   if (opts.productLink) {
     lines.push("");
-    lines.push(`🛒 Comprar agora:`);
+    lines.push(`🛒 Ver detalhes e comprar:`);
     lines.push(opts.productLink);
   }
   lines.push("");
-  lines.push("Qualquer dúvida diga, estou disponível para ajudar.");
+  lines.push("Se quiser, posso ajudar com a compra ou esclarecer qualquer dúvida.");
   return lines.join("\n");
 }
 
@@ -104,7 +108,7 @@ export function SendProductByWhatsAppDialog({
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [includeImage, setIncludeImage] = useState<boolean>(true);
+  const [includeImage, setIncludeImage] = useState<boolean>(false);
 
   // Buscar dados extra do produto (short_description) — opcional
   const { data: productExtra } = useQuery({
@@ -152,12 +156,13 @@ export function SendProductByWhatsAppDialog({
   const phoneIsValid = !!rawPhone && isValidPhone(rawPhone, "PT");
 
   const absoluteProductLink = useMemo(() => {
-    const raw = productLink ?? (productExtra?.sheet_slug ? `/produto/${productExtra.sheet_slug}` : null);
+    const workspaceProductPath = currentWorkspace?.slug ? `/store/${currentWorkspace.slug}/product/${productId}` : null;
+    const raw = productLink && !productLink.startsWith("/produto/") ? productLink : workspaceProductPath;
     if (!raw) return null;
     if (/^https?:\/\//i.test(raw)) return raw;
     if (typeof window !== "undefined") return `${window.location.origin}${raw.startsWith("/") ? "" : "/"}${raw}`;
     return raw;
-  }, [productLink, productExtra?.sheet_slug]);
+  }, [productLink, currentWorkspace?.slug, productId]);
 
   const defaultMessage = useMemo(
     () =>
@@ -177,6 +182,11 @@ export function SendProductByWhatsAppDialog({
   useEffect(() => {
     if (open) setMessage(defaultMessage);
   }, [defaultMessage, open]);
+
+  // Por defeito, partilha compacta: texto + link (o WhatsApp gera a pré-visualização pequena).
+  useEffect(() => {
+    if (open) setIncludeImage(false);
+  }, [open, productId]);
 
   // Quick-create contact
   const quickCreate = useMutation({
@@ -444,9 +454,9 @@ export function SendProductByWhatsAppDialog({
               <label className="flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md border bg-muted/30">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <ImageIcon className="h-3.5 w-3.5" />
-                  Incluir imagem do produto
+                  Enviar imagem grande
                   <span className="text-[10px] text-muted-foreground/70">
-                    ({includeImage ? "imagem grande" : "só link com pré-visualização compacta"})
+                    ({includeImage ? "imagem anexada" : "recomendado: só link com pré-visualização"})
                   </span>
                 </span>
                 <Switch checked={includeImage} onCheckedChange={setIncludeImage} />
@@ -471,9 +481,19 @@ export function SendProductByWhatsAppDialog({
               <TabsContent value="preview" className="flex-1 mt-2 min-h-0">
                 <div className="h-full min-h-[200px] rounded-md p-4 bg-[#e5ddd5] dark:bg-zinc-800 overflow-auto">
                   <div className="ml-auto max-w-[85%] bg-[#dcf8c6] dark:bg-emerald-900/40 rounded-lg p-2.5 shadow-sm">
-                    {includeImage && productImageUrl && (
-                      <img src={productImageUrl} alt="" className="rounded mb-2 max-h-32 w-full object-cover" />
-                    )}
+                    {includeImage && productImageUrl ? (
+                      <img src={productImageUrl} alt="" className="rounded mb-2 max-h-24 w-28 object-cover" />
+                    ) : absoluteProductLink ? (
+                      <div className="mb-2 rounded border border-border bg-background/80 overflow-hidden">
+                        <div className="flex gap-2 p-2">
+                          {productImageUrl && <img src={productImageUrl} alt="" className="h-12 w-12 rounded object-cover shrink-0" />}
+                          <div className="min-w-0 text-left">
+                            <p className="text-[11px] font-medium text-foreground line-clamp-2">{productName ?? "Produto"}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{absoluteProductLink}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                     <p className="text-xs whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 break-words">
                       {message || "(mensagem vazia)"}
                     </p>
