@@ -373,11 +373,12 @@ export function ProductDetailDialog({
 
                     <div className="mt-2 flex items-baseline gap-3">
                       <span className="text-xl font-bold text-primary">
-                        {formatCurrency(product.base_price, product.currency)}
+                        {formatCurrency(netBasePrice, product.currency)}
                       </span>
-                      {showMargin && product.direct_cost !== null && (
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">s/IVA</span>
+                      {showMargin && netDirectCost !== null && netBasePrice > 0 && (
                         <span className="text-xs text-muted-foreground">
-                          Margem {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(0)}%
+                          Margem {((netBasePrice - netDirectCost) / netBasePrice * 100).toFixed(0)}%
                         </span>
                       )}
                       {product.sku && (
