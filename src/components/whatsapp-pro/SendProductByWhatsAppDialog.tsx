@@ -70,11 +70,10 @@ function buildDefaultMessage(opts: {
     ? `${shortDescription.slice(0, 217).trim()}...`
     : shortDescription;
 
-  const taxLabel =
-    opts.taxIncluded === true ? "c/ IVA" : opts.taxIncluded === false ? "s/ IVA" : null;
+  // Convenção do projeto: base_price é sempre líquido (s/ IVA)
   const priceLine =
     typeof opts.productPrice === "number"
-      ? `💶 *${opts.productPrice.toFixed(2)} €*${taxLabel ? ` (${taxLabel})` : ""}`
+      ? `💶 *${opts.productPrice.toFixed(2)} €* (s/ IVA)`
       : null;
 
   const lines: string[] = [];
