@@ -104,6 +104,7 @@ export function SendProductByWhatsAppDialog({
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const [includeImage, setIncludeImage] = useState<boolean>(true);
 
   // Buscar dados extra do produto (short_description) — opcional
   const { data: productExtra } = useQuery({
