@@ -86158,12 +86158,15 @@ export type Database = {
           primary_module: string | null
           updated_at: string
           whatsapp_pro_auto_analyze_inbound: boolean
+          whatsapp_pro_auto_assign_enabled: boolean
           whatsapp_pro_auto_create_followup: boolean | null
           whatsapp_pro_auto_send_confirmation: boolean | null
           whatsapp_pro_default_duration_minutes: number | null
           whatsapp_pro_default_reminder_channel: string | null
           whatsapp_pro_default_reminders: Json | null
           whatsapp_pro_default_timezone: string | null
+          whatsapp_pro_sla_first_response_minutes: number
+          whatsapp_pro_sla_resolution_hours: number
           workspace_id: string
         }
         Insert: {
@@ -86176,12 +86179,15 @@ export type Database = {
           primary_module?: string | null
           updated_at?: string
           whatsapp_pro_auto_analyze_inbound?: boolean
+          whatsapp_pro_auto_assign_enabled?: boolean
           whatsapp_pro_auto_create_followup?: boolean | null
           whatsapp_pro_auto_send_confirmation?: boolean | null
           whatsapp_pro_default_duration_minutes?: number | null
           whatsapp_pro_default_reminder_channel?: string | null
           whatsapp_pro_default_reminders?: Json | null
           whatsapp_pro_default_timezone?: string | null
+          whatsapp_pro_sla_first_response_minutes?: number
+          whatsapp_pro_sla_resolution_hours?: number
           workspace_id: string
         }
         Update: {
@@ -86194,12 +86200,15 @@ export type Database = {
           primary_module?: string | null
           updated_at?: string
           whatsapp_pro_auto_analyze_inbound?: boolean
+          whatsapp_pro_auto_assign_enabled?: boolean
           whatsapp_pro_auto_create_followup?: boolean | null
           whatsapp_pro_auto_send_confirmation?: boolean | null
           whatsapp_pro_default_duration_minutes?: number | null
           whatsapp_pro_default_reminder_channel?: string | null
           whatsapp_pro_default_reminders?: Json | null
           whatsapp_pro_default_timezone?: string | null
+          whatsapp_pro_sla_first_response_minutes?: number
+          whatsapp_pro_sla_resolution_hours?: number
           workspace_id?: string
         }
         Relationships: [
