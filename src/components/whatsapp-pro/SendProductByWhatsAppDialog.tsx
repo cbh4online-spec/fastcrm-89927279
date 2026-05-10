@@ -379,6 +379,7 @@ export function SendProductByWhatsAppDialog({
         mediaUrl,
         ctaUrl: absoluteProductLink,
         ctaLabel: "Comprar Agora",
+        ctaPrompt: ctaPrompt.trim() || DEFAULT_CTA_PROMPT,
         metadata: {
           source: prefillConversationId ? "conversation" : "product_detail",
           product_name: productName,
