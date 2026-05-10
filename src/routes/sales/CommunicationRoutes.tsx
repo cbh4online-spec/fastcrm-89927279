@@ -42,6 +42,7 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/whatsapp-pro" element={<WhatsAppPro />} />
       <Route path="/dashboard/whatsapp-pro/campaigns" element={<WhatsAppCampaignsPage />} />
       <Route path="/dashboard/whatsapp-pro/analytics" element={<WhatsAppAnalyticsPage />} />
+      <Route path="/dashboard/whatsapp-pro/templates" element={<WhatsAppTemplatesPage />} />
       <Route path="/dashboard/whatsapp" element={<Navigate to="/dashboard/whatsapp-pro" replace />} />
       <Route path="/dashboard/groups" element={<Groups />} />
       <Route path="/dashboard/telegram" element={<TelegramPage />} />
