@@ -88,12 +88,25 @@ async function imageUrlToDataUrl(url: string): Promise<string> {
   if (!response.ok) throw new Error(`Não foi possível carregar a imagem (${response.status}).`);
   const blob = await response.blob();
   if (!blob.type.startsWith("image/")) throw new Error("O ficheiro carregado não é uma imagem válida.");
-  return await new Promise<string>((resolve, reject) => {
+  const originalDataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(String(reader.result));
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = originalDataUrl;
+  });
+  const maxSide = 640;
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.72);
 }
 
 export function SendProductByWhatsAppDialog({
