@@ -196,6 +196,7 @@ e("whatsapp-quick-replies","Quick Replies WhatsApp","/dashboard/whatsapp-pro/qui
 e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Package, "comunicacao", { moduleSlug: "whatsapp-business" }),
  e("whatsapp-bot-rules","Bot WhatsApp","/dashboard/whatsapp-pro/bot-rules", Bot, "comunicacao", { moduleSlug: "whatsapp-business" }),
  e("whatsapp-contacts-import","Importar Contactos WhatsApp","/dashboard/whatsapp-pro/contacts-import", Upload, "comunicacao", { moduleSlug: "whatsapp-business" }),
+ e("whatsapp-segments","Segmentos WhatsApp","/dashboard/whatsapp-pro/segments", Target, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("voicehub",    "VoiceHub",    "/dashboard/voicehub",                 Headphones, "comunicacao"),
  e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "comunicacao"),
  e("plan-mgmt",   "Plan Management","/admin/plan-management",                Crown,     "comunicacao"),
