@@ -440,6 +440,18 @@ export function SendProductByWhatsAppDialog({
               )}
             </div>
 
+            {productImageUrl && (
+              <label className="flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md border bg-muted/30">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Incluir imagem do produto
+                  <span className="text-[10px] text-muted-foreground/70">
+                    ({includeImage ? "imagem grande" : "só link com pré-visualização compacta"})
+                  </span>
+                </span>
+                <Switch checked={includeImage} onCheckedChange={setIncludeImage} />
+              </label>
+            )}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")} className="flex-1 flex flex-col min-h-0">
               <TabsList className="h-8">
                 <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
