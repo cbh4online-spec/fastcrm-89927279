@@ -22,6 +22,8 @@ interface SendPayload {
   mediaUrl?: string;
   mediaMimeType?: string;
   fileName?: string;
+  ctaUrl?: string | null;
+  ctaLabel?: string | null;
   productId?: string;
   templateId?: string;
   templateVariables?: Record<string, string | number>;
