@@ -471,7 +471,7 @@ export function SendProductByWhatsAppDialog({
               <TabsContent value="preview" className="flex-1 mt-2 min-h-0">
                 <div className="h-full min-h-[200px] rounded-md p-4 bg-[#e5ddd5] dark:bg-zinc-800 overflow-auto">
                   <div className="ml-auto max-w-[85%] bg-[#dcf8c6] dark:bg-emerald-900/40 rounded-lg p-2.5 shadow-sm">
-                    {productImageUrl && (
+                    {includeImage && productImageUrl && (
                       <img src={productImageUrl} alt="" className="rounded mb-2 max-h-32 w-full object-cover" />
                     )}
                     <p className="text-xs whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 break-words">
