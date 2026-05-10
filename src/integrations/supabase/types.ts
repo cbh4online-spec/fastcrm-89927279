@@ -83048,6 +83048,201 @@ export type Database = {
           },
         ]
       }
+      whatsapp_sequence_enrollments: {
+        Row: {
+          completed_at: string | null
+          contact_id: string | null
+          current_step_order: number
+          enrolled_at: string
+          id: string
+          last_error: string | null
+          metadata: Json
+          next_run_at: string
+          phone: string
+          sequence_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_id?: string | null
+          current_step_order?: number
+          enrolled_at?: string
+          id?: string
+          last_error?: string | null
+          metadata?: Json
+          next_run_at?: string
+          phone: string
+          sequence_id: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          contact_id?: string | null
+          current_step_order?: number
+          enrolled_at?: string
+          id?: string
+          last_error?: string | null
+          metadata?: Json
+          next_run_at?: string
+          phone?: string
+          sequence_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_sequence_logs: {
+        Row: {
+          enrollment_id: string
+          error: string | null
+          executed_at: string
+          id: string
+          provider_message_id: string | null
+          status: string
+          step_order: number
+          workspace_id: string
+        }
+        Insert: {
+          enrollment_id: string
+          error?: string | null
+          executed_at?: string
+          id?: string
+          provider_message_id?: string | null
+          status: string
+          step_order: number
+          workspace_id: string
+        }
+        Update: {
+          enrollment_id?: string
+          error?: string | null
+          executed_at?: string
+          id?: string
+          provider_message_id?: string | null
+          status?: string
+          step_order?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_sequence_logs_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_sequence_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_sequence_steps: {
+        Row: {
+          created_at: string
+          cta_label: string | null
+          cta_url: string | null
+          delay_minutes: number
+          id: string
+          media_type: string | null
+          media_url: string | null
+          message_body: string
+          metadata: Json
+          sequence_id: string
+          step_order: number
+          template_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          delay_minutes?: number
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_body?: string
+          metadata?: Json
+          sequence_id: string
+          step_order: number
+          template_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          delay_minutes?: number
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_body?: string
+          metadata?: Json
+          sequence_id?: string
+          step_order?: number
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_sequences: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_enabled: boolean
+          name: string
+          send_window_end: string | null
+          send_window_start: string | null
+          stop_on_reply: boolean
+          trigger_config: Json
+          trigger_event: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name: string
+          send_window_end?: string | null
+          send_window_start?: string | null
+          stop_on_reply?: boolean
+          trigger_config?: Json
+          trigger_event?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          send_window_end?: string | null
+          send_window_start?: string | null
+          stop_on_reply?: boolean
+          trigger_config?: Json
+          trigger_event?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_settings: {
         Row: {
           ai_persona: string | null
