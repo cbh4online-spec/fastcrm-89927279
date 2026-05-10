@@ -191,6 +191,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
  e("whatsapp-templates","Templates WhatsApp","/dashboard/whatsapp-pro/templates", FileText, "comunicacao", { moduleSlug: "whatsapp-business" }),
  e("whatsapp-sequences","Sequências WhatsApp","/dashboard/whatsapp-pro/sequences", Workflow, "comunicacao", { moduleSlug: "whatsapp-business" }),
  e("whatsapp-inbox","Inbox WhatsApp","/dashboard/whatsapp-pro/inbox", Inbox, "comunicacao", { moduleSlug: "whatsapp-business" }),
+ e("whatsapp-scheduled","Mensagens Agendadas","/dashboard/whatsapp-pro/scheduled", Calendar, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("voicehub",    "VoiceHub",    "/dashboard/voicehub",                 Headphones, "comunicacao"),
  e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "comunicacao"),
  e("plan-mgmt",   "Plan Management","/admin/plan-management",                Crown,     "comunicacao"),
