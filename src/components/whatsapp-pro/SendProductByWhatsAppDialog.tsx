@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, Search, UserPlus, Sparkles, FileText, MessageCircle } from "lucide-react";
+import { Loader2, Send, Search, UserPlus, Sparkles, FileText, MessageCircle, ImageIcon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,19 +52,29 @@ function buildDefaultMessage(opts: {
   productLink?: string | null;
   shortDescription?: string | null;
 }): string {
-  const greet = opts.contactName ? `Olá ${opts.contactName.split(" ")[0]},` : "Olá,";
+  const firstName = opts.contactName ? opts.contactName.split(" ")[0] : null;
+  const greet = firstName ? `Olá ${firstName} 👋` : "Olá 👋";
   const lines: string[] = [];
-  lines.push(`${greet} envio-lhe a sugestão que pode fazer sentido para si:`);
+  lines.push(`${greet}`);
+  lines.push("");
+  lines.push("Encontrei esta opção que pode fazer sentido para si:");
   lines.push("");
   if (opts.productName) lines.push(`📦 *${opts.productName}*`);
-  if (opts.shortDescription) lines.push(opts.shortDescription);
-  if (typeof opts.productPrice === "number") lines.push(`💶 ${opts.productPrice.toFixed(2)} €`);
+  if (opts.shortDescription) {
+    lines.push("");
+    lines.push(opts.shortDescription);
+  }
+  if (typeof opts.productPrice === "number") {
+    lines.push("");
+    lines.push(`💶 *${opts.productPrice.toFixed(2)} €*`);
+  }
   if (opts.productLink) {
     lines.push("");
-    lines.push(`🔗 ${opts.productLink}`);
+    lines.push(`🛒 Comprar agora:`);
+    lines.push(opts.productLink);
   }
   lines.push("");
-  lines.push("Se fizer sentido, posso enviar-lhe também uma sugestão complementar.");
+  lines.push("Qualquer dúvida diga, estou disponível para ajudar.");
   return lines.join("\n");
 }
 
@@ -93,6 +104,7 @@ export function SendProductByWhatsAppDialog({
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const [includeImage, setIncludeImage] = useState<boolean>(true);
 
   // Buscar dados extra do produto (short_description) — opcional
   const { data: productExtra } = useQuery({
@@ -139,16 +151,24 @@ export function SendProductByWhatsAppDialog({
   const normalizedPhone = useMemo(() => toE164(rawPhone, "PT"), [rawPhone]);
   const phoneIsValid = !!rawPhone && isValidPhone(rawPhone, "PT");
 
+  const absoluteProductLink = useMemo(() => {
+    const raw = productLink ?? (productExtra?.sheet_slug ? `/produto/${productExtra.sheet_slug}` : null);
+    if (!raw) return null;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (typeof window !== "undefined") return `${window.location.origin}${raw.startsWith("/") ? "" : "/"}${raw}`;
+    return raw;
+  }, [productLink, productExtra?.sheet_slug]);
+
   const defaultMessage = useMemo(
     () =>
       buildDefaultMessage({
         contactName: selectedContact?.name,
         productName,
         productPrice,
-        productLink: productLink ?? (productExtra?.sheet_slug ? `/produto/${productExtra.sheet_slug}` : null),
+        productLink: absoluteProductLink,
         shortDescription: productExtra?.short_description,
       }),
-    [selectedContact?.name, productName, productPrice, productLink, productExtra],
+    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra],
   );
 
   const [message, setMessage] = useState<string>(defaultMessage);
@@ -202,7 +222,7 @@ export function SendProductByWhatsAppDialog({
       contact_name: selectedContact?.name ?? "",
       product_name: productName ?? "",
       product_price: typeof productPrice === "number" ? `${productPrice.toFixed(2)} €` : "",
-      product_link: productLink ?? "",
+      product_link: absoluteProductLink ?? "",
       product_short_description: productExtra?.short_description ?? "",
     };
     let text = t.content;
@@ -229,15 +249,16 @@ export function SendProductByWhatsAppDialog({
         phone: normalizedPhone,
         contactId: selectedContactId ?? undefined,
         conversationId: prefillConversationId ?? undefined,
-        messageType: "product",
+        messageType: includeImage && productImageUrl ? "product" : "text",
         text: parsed.data,
         productId,
-        mediaUrl: productImageUrl ?? undefined,
+        mediaUrl: includeImage && productImageUrl ? productImageUrl : undefined,
         metadata: {
           source: prefillConversationId ? "conversation" : "product_detail",
           product_name: productName,
           product_price: productPrice,
-          product_link: productLink,
+          product_link: absoluteProductLink,
+          include_image: includeImage,
           product_image: productImageUrl,
         },
       });
@@ -419,6 +440,18 @@ export function SendProductByWhatsAppDialog({
               )}
             </div>
 
+            {productImageUrl && (
+              <label className="flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md border bg-muted/30">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Incluir imagem do produto
+                  <span className="text-[10px] text-muted-foreground/70">
+                    ({includeImage ? "imagem grande" : "só link com pré-visualização compacta"})
+                  </span>
+                </span>
+                <Switch checked={includeImage} onCheckedChange={setIncludeImage} />
+              </label>
+            )}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")} className="flex-1 flex flex-col min-h-0">
               <TabsList className="h-8">
                 <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
@@ -438,7 +471,7 @@ export function SendProductByWhatsAppDialog({
               <TabsContent value="preview" className="flex-1 mt-2 min-h-0">
                 <div className="h-full min-h-[200px] rounded-md p-4 bg-[#e5ddd5] dark:bg-zinc-800 overflow-auto">
                   <div className="ml-auto max-w-[85%] bg-[#dcf8c6] dark:bg-emerald-900/40 rounded-lg p-2.5 shadow-sm">
-                    {productImageUrl && (
+                    {includeImage && productImageUrl && (
                       <img src={productImageUrl} alt="" className="rounded mb-2 max-h-32 w-full object-cover" />
                     )}
                     <p className="text-xs whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 break-words">
