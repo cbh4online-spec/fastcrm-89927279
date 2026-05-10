@@ -263,6 +263,10 @@ export function SendProductByWhatsAppDialog({
     return raw;
   }, [productLink, currentWorkspace?.slug, productId]);
 
+  // Quando vamos enviar imagem + CTA via Z-API, o link vai como botão numa 2ª mensagem.
+  // Nesse caso não duplicamos o URL na caption.
+  const willSendCtaButton = !!absoluteProductLink && includeImage;
+
   const defaultMessage = useMemo(
     () =>
       buildDefaultMessage({
@@ -273,8 +277,9 @@ export function SendProductByWhatsAppDialog({
         shortDescription: productExtra?.short_description,
         taxIncluded: (productExtra as any)?.tax_included,
         recommendations: selectedRecs ?? [],
+        embedLink: !willSendCtaButton,
       }),
-    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra, selectedRecs],
+    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra, selectedRecs, willSendCtaButton],
   );
 
   const [message, setMessage] = useState<string>(defaultMessage);
