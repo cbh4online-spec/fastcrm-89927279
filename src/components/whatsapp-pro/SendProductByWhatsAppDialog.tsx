@@ -61,6 +61,7 @@ function buildDefaultMessage(opts: {
   shortDescription?: string | null;
   taxIncluded?: boolean | null;
   recommendations?: RecommendationItem[];
+  embedLink?: boolean;
 }): string {
   const firstName = opts.contactName ? opts.contactName.split(" ")[0] : null;
   const greet = firstName ? `Olá ${firstName} 👋` : "Olá 👋";
