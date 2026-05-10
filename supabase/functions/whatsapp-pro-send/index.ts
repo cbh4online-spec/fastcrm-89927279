@@ -141,6 +141,18 @@ Deno.serve(async (req) => {
       } else if (sendData?.error) {
         result = { success: false, error: sendData.error };
       } else {
+        if (body.mediaUrl && validCtaUrl) {
+          await adminClient.functions.invoke("whatsapp-zapi-send", {
+            body: {
+              workspaceId: body.workspaceId,
+              phone: body.phone,
+              conversationId: body.conversationId ?? undefined,
+              message: "🛒 Comprar Agora",
+              buttons: [{ id: "buy_now", type: "URL", label: body.ctaLabel || "Comprar Agora", url: validCtaUrl }],
+            },
+            headers: { Authorization: authHeader },
+          });
+        }
         result = {
           success: !!sendData?.success,
           providerMessageId: sendData?.externalMessageId ?? null,
