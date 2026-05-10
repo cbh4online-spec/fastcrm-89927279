@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useWhatsAppCampaigns, type CampaignRecipientInput } from "@/hooks/useWhatsAppCampaigns";
+import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
-import { Loader2, Users } from "lucide-react";
+import { Loader2, Users, FileText } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -19,6 +21,9 @@ interface Props {
 
 export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
   const { create } = useWhatsAppCampaigns();
+  const { data: templates } = useWhatsAppTemplates();
+  const approvedTemplates = (templates || []).filter(t => (t.status || "draft") === "approved" && t.is_active !== false);
+  const [templateId, setTemplateId] = useState<string>("");
   const { currentWorkspace } = useWorkspace();
   const [step, setStep] = useState(1);
 
@@ -138,6 +143,26 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
               <Label>Nome interno</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Black Friday – clientes ativos" />
             </div>
+            {approvedTemplates.length > 0 && (
+              <div>
+                <Label className="flex items-center gap-1"><FileText className="h-3 w-3" /> Usar template aprovado (opcional)</Label>
+                <Select
+                  value={templateId}
+                  onValueChange={(v) => {
+                    setTemplateId(v);
+                    const t = approvedTemplates.find(x => x.id === v);
+                    if (t) setMessageText(t.body);
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecionar template…" /></SelectTrigger>
+                  <SelectContent>
+                    {approvedTemplates.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name} ({t.language})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Mensagem</Label>
               <Textarea
@@ -146,7 +171,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
                 onChange={(e) => setMessageText(e.target.value)}
                 placeholder="Olá {{name}}, temos uma novidade para ti..."
               />
-              <p className="text-xs text-muted-foreground mt-1">Variáveis: {"{{name}}"}, {"{{phone}}"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Variáveis: {"{{name}}"}, {"{{phone}}"} ou as definidas no template.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
