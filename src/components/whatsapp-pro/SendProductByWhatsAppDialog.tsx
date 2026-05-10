@@ -83,6 +83,19 @@ function buildDefaultMessage(opts: {
   return lines.join("\n");
 }
 
+async function imageUrlToDataUrl(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Não foi possível carregar a imagem (${response.status}).`);
+  const blob = await response.blob();
+  if (!blob.type.startsWith("image/")) throw new Error("O ficheiro carregado não é uma imagem válida.");
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 export function SendProductByWhatsAppDialog({
   open,
   onOpenChange,
@@ -109,7 +122,7 @@ export function SendProductByWhatsAppDialog({
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [includeImage, setIncludeImage] = useState<boolean>(false);
+  const [includeImage, setIncludeImage] = useState<boolean>(true);
 
   // Buscar dados extra do produto (short_description) — opcional
   const { data: productExtra } = useQuery({
@@ -184,9 +197,9 @@ export function SendProductByWhatsAppDialog({
     if (open) setMessage(defaultMessage);
   }, [defaultMessage, open]);
 
-  // Por defeito, partilha compacta: texto + link (o WhatsApp gera a pré-visualização pequena).
+  // Por defeito, partilha com imagem do produto + CTA de compra.
   useEffect(() => {
-    if (open) setIncludeImage(false);
+    if (open) setIncludeImage(true);
   }, [open, productId]);
 
   // Quick-create contact
@@ -256,14 +269,22 @@ export function SendProductByWhatsAppDialog({
     }
 
     try {
+      let mediaUrl = includeImage && productImageUrl ? productImageUrl : undefined;
+      if (mediaUrl) {
+        try {
+          mediaUrl = await imageUrlToDataUrl(mediaUrl);
+        } catch {
+          // Se a conversão falhar, mantém o URL original para o provider tentar enviar por link público.
+        }
+      }
       const result = await send.mutateAsync({
         phone: normalizedPhone,
         contactId: selectedContactId ?? undefined,
         conversationId: prefillConversationId ?? undefined,
-        messageType: includeImage && productImageUrl ? "product" : "text",
+        messageType: mediaUrl ? "product" : "text",
         text: parsed.data,
         productId,
-        mediaUrl: includeImage && productImageUrl ? productImageUrl : undefined,
+        mediaUrl,
         ctaUrl: absoluteProductLink,
         ctaLabel: "Comprar Agora",
         metadata: {
