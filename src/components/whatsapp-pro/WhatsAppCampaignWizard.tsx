@@ -143,6 +143,26 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
               <Label>Nome interno</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Black Friday – clientes ativos" />
             </div>
+            {approvedTemplates.length > 0 && (
+              <div>
+                <Label className="flex items-center gap-1"><FileText className="h-3 w-3" /> Usar template aprovado (opcional)</Label>
+                <Select
+                  value={templateId}
+                  onValueChange={(v) => {
+                    setTemplateId(v);
+                    const t = approvedTemplates.find(x => x.id === v);
+                    if (t) setMessageText(t.body);
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecionar template…" /></SelectTrigger>
+                  <SelectContent>
+                    {approvedTemplates.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name} ({t.language})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Mensagem</Label>
               <Textarea
@@ -151,7 +171,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
                 onChange={(e) => setMessageText(e.target.value)}
                 placeholder="Olá {{name}}, temos uma novidade para ti..."
               />
-              <p className="text-xs text-muted-foreground mt-1">Variáveis: {"{{name}}"}, {"{{phone}}"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Variáveis: {"{{name}}"}, {"{{phone}}"} ou as definidas no template.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
