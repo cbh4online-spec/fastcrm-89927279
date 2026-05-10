@@ -71,15 +71,16 @@ export function FilterSidebar({
     setOpenGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
   };
 
+  const term = searchTerm.toLowerCase();
   const filteredGroups = filterGroups.map((group) => ({
     ...group,
-    items: group.items.filter((item) =>
-      item.label.toLowerCase().includes(searchTerm.toLowerCase())
+    items: (group.items || []).filter((item) =>
+      String(item?.label ?? "").toLowerCase().includes(term)
     ),
   })).filter((group) => group.items.length > 0 || searchTerm === "");
 
   const filteredSaved = savedFilters.filter((item) =>
-    item.label.toLowerCase().includes(searchTerm.toLowerCase())
+    String(item?.label ?? "").toLowerCase().includes(term)
   );
 
   if (!isOpen) return null;
