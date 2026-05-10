@@ -18,6 +18,7 @@ const WhatsAppBotRulesPage = lazy(() => import("@/pages/WhatsAppBotRulesPage"));
 const WhatsAppContactsImportPage = lazy(() => import("@/pages/WhatsAppContactsImportPage"));
 const WhatsAppSegmentsPage = lazy(() => import("@/pages/WhatsAppSegmentsPage"));
 const WhatsAppConsentPage = lazy(() => import("@/pages/WhatsAppConsentPage"));
+const WhatsAppQuickTemplatesPage = lazy(() => import("@/pages/WhatsAppQuickTemplatesPage"));
 const Groups = lazy(() => import("@/pages/Groups"));
 const TelegramPage = lazy(() => import("@/pages/TelegramPage"));
 const CommunicationTemplates = lazy(() => import("@/pages/CommunicationTemplates"));
@@ -63,6 +64,7 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/whatsapp-pro/contacts-import" element={<WhatsAppContactsImportPage />} />
       <Route path="/dashboard/whatsapp-pro/segments" element={<WhatsAppSegmentsPage />} />
       <Route path="/dashboard/whatsapp-pro/consent" element={<WhatsAppConsentPage />} />
+      <Route path="/dashboard/whatsapp-pro/quick-templates" element={<WhatsAppQuickTemplatesPage />} />
       <Route path="/dashboard/whatsapp" element={<Navigate to="/dashboard/whatsapp-pro" replace />} />
       <Route path="/dashboard/groups" element={<Groups />} />
       <Route path="/dashboard/telegram" element={<TelegramPage />} />
