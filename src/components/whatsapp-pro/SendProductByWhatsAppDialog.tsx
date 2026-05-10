@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, Search, UserPlus, Sparkles, FileText, MessageCircle, ImageIcon } from "lucide-react";
+import { Loader2, Send, Search, UserPlus, Sparkles, FileText, MessageCircle, ImageIcon, Plus, X, Package } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -46,37 +46,56 @@ interface ContactOption {
   email: string | null;
 }
 
+interface RecommendationItem {
+  id: string;
+  name: string;
+  base_price: number | null;
+  link: string | null;
+}
+
 function buildDefaultMessage(opts: {
   contactName?: string | null;
   productName?: string;
   productPrice?: number | null;
   productLink?: string | null;
   shortDescription?: string | null;
+  taxIncluded?: boolean | null;
+  recommendations?: RecommendationItem[];
 }): string {
   const firstName = opts.contactName ? opts.contactName.split(" ")[0] : null;
   const greet = firstName ? `Olá ${firstName} 👋` : "Olá 👋";
   const shortDescription = opts.shortDescription?.trim();
-  const clippedDescription = shortDescription && shortDescription.length > 180
-    ? `${shortDescription.slice(0, 177).trim()}...`
+  const clippedDescription = shortDescription && shortDescription.length > 220
+    ? `${shortDescription.slice(0, 217).trim()}...`
     : shortDescription;
+
+  const taxLabel =
+    opts.taxIncluded === true ? "c/ IVA" : opts.taxIncluded === false ? "s/ IVA" : null;
+  const priceLine =
+    typeof opts.productPrice === "number"
+      ? `💶 *${opts.productPrice.toFixed(2)} €*${taxLabel ? ` (${taxLabel})` : ""}`
+      : null;
+
   const lines: string[] = [];
-  lines.push(`${greet}`);
-  lines.push("");
-  lines.push("Tenho esta opção que pode fazer sentido para si:");
+  lines.push(greet);
   lines.push("");
   if (opts.productName) lines.push(`📦 *${opts.productName}*`);
+  if (priceLine) lines.push(priceLine);
+  if (opts.productLink) {
+    lines.push(`🛒 Comprar agora: ${opts.productLink}`);
+  }
   if (clippedDescription) {
     lines.push("");
     lines.push(clippedDescription);
   }
-  if (typeof opts.productPrice === "number") {
+  if (opts.recommendations && opts.recommendations.length > 0) {
     lines.push("");
-    lines.push(`💶 *${opts.productPrice.toFixed(2)} €*`);
-  }
-  if (opts.productLink) {
-    lines.push("");
-    lines.push(`🛒 Comprar agora:`);
-    lines.push(opts.productLink);
+    lines.push("✨ *Pode também gostar:*");
+    for (const r of opts.recommendations) {
+      const price = typeof r.base_price === "number" ? ` — ${r.base_price.toFixed(2)} €` : "";
+      lines.push(`• ${r.name}${price}`);
+      if (r.link) lines.push(`  ${r.link}`);
+    }
   }
   lines.push("");
   lines.push("Se quiser, posso ajudar com a compra ou esclarecer qualquer dúvida.");
@@ -136,14 +155,17 @@ export function SendProductByWhatsAppDialog({
   const [quickPhone, setQuickPhone] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [includeImage, setIncludeImage] = useState<boolean>(true);
+  const [recommendedIds, setRecommendedIds] = useState<string[]>([]);
+  const [showRecPicker, setShowRecPicker] = useState(false);
+  const [recSearch, setRecSearch] = useState("");
 
-  // Buscar dados extra do produto (short_description) — opcional
+  // Buscar dados extra do produto (short_description, tax) — opcional
   const { data: productExtra } = useQuery({
     queryKey: ["product-short-desc", productId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("short_description, sheet_slug, images, category, stock_status")
+        .select("short_description, sheet_slug, images, category, stock_status, tax_included")
         .eq("id", productId)
         .maybeSingle();
       if (error) throw error;
@@ -173,6 +195,52 @@ export function SendProductByWhatsAppDialog({
     enabled: open && !!currentWorkspace,
   });
 
+  // Recomendações: pesquisa e seleção (até 3 produtos)
+  const { data: recCandidates } = useQuery({
+    queryKey: ["product-rec-picker", currentWorkspace?.id, productId, recSearch, productExtra?.category],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      let q = supabase
+        .from("products")
+        .select("id, name, base_price, sheet_slug, category")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("status", "active")
+        .neq("id", productId)
+        .order("updated_at", { ascending: false })
+        .limit(20);
+      if (recSearch.trim().length > 1) {
+        q = q.ilike("name", `%${recSearch}%`);
+      } else if (productExtra?.category) {
+        q = q.eq("category", productExtra.category);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: open && showRecPicker && !!currentWorkspace,
+  });
+
+  // Resolver dados completos das recomendações selecionadas (independente da query de pesquisa)
+  const { data: selectedRecs } = useQuery({
+    queryKey: ["product-rec-selected", recommendedIds, currentWorkspace?.id],
+    queryFn: async () => {
+      if (recommendedIds.length === 0) return [] as RecommendationItem[];
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, base_price, sheet_slug")
+        .in("id", recommendedIds);
+      if (error) throw error;
+      const baseUrl = getPublicBaseUrl();
+      return (data ?? []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        base_price: p.base_price,
+        link: currentWorkspace?.slug ? `${baseUrl}/store/${currentWorkspace.slug}/product/${p.id}` : null,
+      })) as RecommendationItem[];
+    },
+    enabled: recommendedIds.length > 0,
+  });
+
   const selectedContact = useMemo(
     () => contacts?.find((c) => c.id === selectedContactId) ?? null,
     [contacts, selectedContactId],
@@ -199,8 +267,10 @@ export function SendProductByWhatsAppDialog({
         productPrice,
         productLink: absoluteProductLink,
         shortDescription: productExtra?.short_description,
+        taxIncluded: (productExtra as any)?.tax_included,
+        recommendations: selectedRecs ?? [],
       }),
-    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra],
+    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra, selectedRecs],
   );
 
   const [message, setMessage] = useState<string>(defaultMessage);
@@ -499,6 +569,90 @@ export function SendProductByWhatsAppDialog({
                 <Switch checked={includeImage} onCheckedChange={setIncludeImage} />
               </label>
             )}
+
+            {/* Recomendações */}
+            <div className="rounded-md border bg-muted/30 p-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Recomendações ({recommendedIds.length}/3)
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-[11px] gap-1"
+                  onClick={() => setShowRecPicker((v) => !v)}
+                >
+                  <Plus className="h-3 w-3" />
+                  {showRecPicker ? "Fechar" : "Adicionar"}
+                </Button>
+              </div>
+
+              {selectedRecs && selectedRecs.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedRecs.map((r) => (
+                    <Badge key={r.id} variant="secondary" className="gap-1 pr-1 text-[11px]">
+                      <span className="truncate max-w-[140px]">{r.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setRecommendedIds((ids) => ids.filter((x) => x !== r.id))}
+                        className="hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {showRecPicker && (
+                <div className="space-y-1.5 pt-1 border-t">
+                  <Input
+                    placeholder="Pesquisar produto…"
+                    value={recSearch}
+                    onChange={(e) => setRecSearch(e.target.value)}
+                    className="h-7 text-xs"
+                  />
+                  <ScrollArea className="h-[120px] border rounded bg-background">
+                    {!recCandidates || recCandidates.length === 0 ? (
+                      <div className="text-[11px] text-muted-foreground p-3 text-center">
+                        Sem produtos encontrados.
+                      </div>
+                    ) : (
+                      <div className="divide-y">
+                        {recCandidates.map((p: any) => {
+                          const picked = recommendedIds.includes(p.id);
+                          const disabled = !picked && recommendedIds.length >= 3;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              disabled={disabled}
+                              onClick={() => {
+                                setRecommendedIds((ids) =>
+                                  picked ? ids.filter((x) => x !== p.id) : [...ids, p.id],
+                                );
+                              }}
+                              className={`w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/40 transition disabled:opacity-40 ${picked ? "bg-primary/5" : ""}`}
+                            >
+                              <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-xs truncate flex-1">{p.name}</span>
+                              {typeof p.base_price === "number" && (
+                                <span className="text-[11px] text-emerald-600 font-medium">
+                                  {p.base_price.toFixed(2)} €
+                                </span>
+                              )}
+                              {picked && <Badge variant="secondary" className="text-[9px]">✓</Badge>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")} className="flex-1 flex flex-col min-h-0">
               <TabsList className="h-8">
                 <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
