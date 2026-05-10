@@ -174,25 +174,50 @@ export function SendProductByWhatsAppDialog({
     enabled: open && !!productId,
   });
 
-  const { data: contacts, isLoading: contactsLoading } = useQuery({
-    queryKey: ["contacts-search-whatsapp", currentWorkspace?.id, search],
+  // Recomendações: pesquisa e seleção (até 3 produtos)
+  const { data: recCandidates } = useQuery({
+    queryKey: ["product-rec-picker", currentWorkspace?.id, productId, recSearch, productExtra?.category],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       let q = supabase
-        .from("contacts")
-        .select("id, name, phone, email")
+        .from("products")
+        .select("id, name, base_price, sheet_slug, category")
         .eq("workspace_id", currentWorkspace.id)
-        .not("phone", "is", null)
+        .eq("status", "active")
+        .neq("id", productId)
         .order("updated_at", { ascending: false })
         .limit(20);
-      if (search.trim().length > 1) {
-        q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+      if (recSearch.trim().length > 1) {
+        q = q.ilike("name", `%${recSearch}%`);
+      } else if (productExtra?.category) {
+        q = q.eq("category", productExtra.category);
       }
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as ContactOption[];
+      return data ?? [];
     },
-    enabled: open && !!currentWorkspace,
+    enabled: open && showRecPicker && !!currentWorkspace,
+  });
+
+  // Resolver dados completos das recomendações selecionadas (independente da query de pesquisa)
+  const { data: selectedRecs } = useQuery({
+    queryKey: ["product-rec-selected", recommendedIds, currentWorkspace?.id],
+    queryFn: async () => {
+      if (recommendedIds.length === 0) return [] as RecommendationItem[];
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, base_price, sheet_slug")
+        .in("id", recommendedIds);
+      if (error) throw error;
+      const baseUrl = getPublicBaseUrl();
+      return (data ?? []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        base_price: p.base_price,
+        link: currentWorkspace?.slug ? `${baseUrl}/store/${currentWorkspace.slug}/product/${p.id}` : null,
+      })) as RecommendationItem[];
+    },
+    enabled: recommendedIds.length > 0,
   });
 
   const selectedContact = useMemo(
@@ -221,8 +246,10 @@ export function SendProductByWhatsAppDialog({
         productPrice,
         productLink: absoluteProductLink,
         shortDescription: productExtra?.short_description,
+        taxIncluded: (productExtra as any)?.tax_included,
+        recommendations: selectedRecs ?? [],
       }),
-    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra],
+    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra, selectedRecs],
   );
 
   const [message, setMessage] = useState<string>(defaultMessage);
