@@ -8,6 +8,8 @@ const WhatsAppPro = lazy(() => import("@/pages/WhatsAppPro"));
 const WhatsAppCampaignsPage = lazy(() => import("@/pages/WhatsAppCampaignsPage"));
 const WhatsAppAnalyticsPage = lazy(() => import("@/pages/WhatsAppAnalyticsPage"));
 const WhatsAppTemplatesPage = lazy(() => import("@/pages/WhatsAppTemplatesPage"));
+const WhatsAppSequencesPage = lazy(() => import("@/pages/WhatsAppSequencesPage"));
+const WhatsAppSequenceEditorPage = lazy(() => import("@/pages/WhatsAppSequenceEditorPage"));
 const Groups = lazy(() => import("@/pages/Groups"));
 const TelegramPage = lazy(() => import("@/pages/TelegramPage"));
 const CommunicationTemplates = lazy(() => import("@/pages/CommunicationTemplates"));
@@ -43,6 +45,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/whatsapp-pro/campaigns" element={<WhatsAppCampaignsPage />} />
       <Route path="/dashboard/whatsapp-pro/analytics" element={<WhatsAppAnalyticsPage />} />
       <Route path="/dashboard/whatsapp-pro/templates" element={<WhatsAppTemplatesPage />} />
+      <Route path="/dashboard/whatsapp-pro/sequences" element={<WhatsAppSequencesPage />} />
+      <Route path="/dashboard/whatsapp-pro/sequences/:id" element={<WhatsAppSequenceEditorPage />} />
       <Route path="/dashboard/whatsapp" element={<Navigate to="/dashboard/whatsapp-pro" replace />} />
       <Route path="/dashboard/groups" element={<Groups />} />
       <Route path="/dashboard/telegram" element={<TelegramPage />} />
