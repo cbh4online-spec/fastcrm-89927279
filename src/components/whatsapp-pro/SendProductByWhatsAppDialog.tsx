@@ -484,12 +484,12 @@ export function SendProductByWhatsAppDialog({
                     {includeImage && productImageUrl ? (
                       <img src={productImageUrl} alt="" className="rounded mb-2 max-h-24 w-28 object-cover" />
                     ) : absoluteProductLink ? (
-                      <div className="mb-2 rounded border border-zinc-200/70 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50 overflow-hidden">
+                      <div className="mb-2 rounded border border-border bg-background/80 overflow-hidden">
                         <div className="flex gap-2 p-2">
                           {productImageUrl && <img src={productImageUrl} alt="" className="h-12 w-12 rounded object-cover shrink-0" />}
                           <div className="min-w-0 text-left">
-                            <p className="text-[11px] font-medium text-zinc-900 dark:text-zinc-100 line-clamp-2">{productName ?? "Produto"}</p>
-                            <p className="text-[10px] text-zinc-500 truncate">{absoluteProductLink}</p>
+                            <p className="text-[11px] font-medium text-foreground line-clamp-2">{productName ?? "Produto"}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{absoluteProductLink}</p>
                           </div>
                         </div>
                       </div>
