@@ -10,6 +10,7 @@ const WhatsAppAnalyticsPage = lazy(() => import("@/pages/WhatsAppAnalyticsPage")
 const WhatsAppTemplatesPage = lazy(() => import("@/pages/WhatsAppTemplatesPage"));
 const WhatsAppSequencesPage = lazy(() => import("@/pages/WhatsAppSequencesPage"));
 const WhatsAppSequenceEditorPage = lazy(() => import("@/pages/WhatsAppSequenceEditorPage"));
+const WhatsAppInboxPage = lazy(() => import("@/pages/WhatsAppInboxPage"));
 const Groups = lazy(() => import("@/pages/Groups"));
 const TelegramPage = lazy(() => import("@/pages/TelegramPage"));
 const CommunicationTemplates = lazy(() => import("@/pages/CommunicationTemplates"));
