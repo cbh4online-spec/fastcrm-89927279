@@ -32,12 +32,13 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin, Video, Trash2, User } from 'lucide-react';
+import { CalendarIcon, MapPin, Video, Trash2, User, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EntityPicker } from '@/components/common/EntityPicker';
 import { useAvailableVideoProviders } from '@/hooks/useAvailableVideoProviders';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useWhatsAppProSend, useWhatsAppProviderInstance } from '@/hooks/useWhatsAppPro';
 import type { Calendar as CalendarType, CalendarEvent, CreateEventData } from '@/hooks/useCalendars';
 
 const eventSchema = z.object({
