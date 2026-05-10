@@ -82943,6 +82943,75 @@ export type Database = {
           },
         ]
       }
+      whatsapp_scheduled_messages: {
+        Row: {
+          attempts: number
+          body: string
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          created_by: string
+          external_message_id: string | null
+          id: string
+          last_error: string | null
+          lead_id: string | null
+          media_mime_type: string | null
+          media_url: string | null
+          metadata: Json
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          timezone: string
+          to_phone: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          body: string
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by: string
+          external_message_id?: string | null
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
+          metadata?: Json
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          timezone?: string
+          to_phone: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string
+          external_message_id?: string | null
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
+          metadata?: Json
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          timezone?: string
+          to_phone?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_scheduled_reminders: {
         Row: {
           appointment_id: string | null
