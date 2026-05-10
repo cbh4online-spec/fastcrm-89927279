@@ -280,6 +280,36 @@ export function CalendarEventModal({
         company_id: entityValue.companyId || undefined,
         lead_id: entityValue.leadId || undefined,
       });
+
+      // Notificação por WhatsApp (opcional)
+      if (data.notify_whatsapp && contactPhone) {
+        try {
+          const dateLabel = format(startTime, 'dd/MM/yyyy');
+          const timeLabel = data.all_day ? 'Dia inteiro' : `${format(startTime, 'HH:mm')} - ${format(endTime, 'HH:mm')}`;
+          const lines = [
+            `📅 *${data.title}*`,
+            '',
+            `🗓️ ${dateLabel}`,
+            `⏰ ${timeLabel}`,
+          ];
+          if (data.location) lines.push(`📍 ${data.location}`);
+          if (meetingUrl) lines.push(`🎥 ${meetingUrl}`);
+          if (data.description) lines.push('', data.description);
+          lines.push('', 'Confirmamos a marcação. Até breve!');
+          await sendWhatsApp.mutateAsync({
+            contactId: entityValue.contactId || undefined,
+            phone: contactPhone,
+            messageType: 'text',
+            text: lines.join('\n'),
+            metadata: { source: 'calendar_event_notification' },
+          });
+          toast.success('Notificação WhatsApp enviada');
+        } catch (err) {
+          console.error('WhatsApp notification failed:', err);
+          toast.error('Evento criado, mas não foi possível enviar WhatsApp');
+        }
+      }
+
       form.reset();
       setEntityValue({ contactId: null, companyId: null });
       onOpenChange(false);
