@@ -155,14 +155,17 @@ export function SendProductByWhatsAppDialog({
   const [quickPhone, setQuickPhone] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [includeImage, setIncludeImage] = useState<boolean>(true);
+  const [recommendedIds, setRecommendedIds] = useState<string[]>([]);
+  const [showRecPicker, setShowRecPicker] = useState(false);
+  const [recSearch, setRecSearch] = useState("");
 
-  // Buscar dados extra do produto (short_description) — opcional
+  // Buscar dados extra do produto (short_description, tax) — opcional
   const { data: productExtra } = useQuery({
     queryKey: ["product-short-desc", productId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("short_description, sheet_slug, images, category, stock_status")
+        .select("short_description, sheet_slug, images, category, stock_status, tax_included")
         .eq("id", productId)
         .maybeSingle();
       if (error) throw error;
