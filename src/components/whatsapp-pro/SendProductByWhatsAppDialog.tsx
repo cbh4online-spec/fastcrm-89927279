@@ -183,6 +183,11 @@ export function SendProductByWhatsAppDialog({
     if (open) setMessage(defaultMessage);
   }, [defaultMessage, open]);
 
+  // Por defeito, partilha compacta: texto + link (o WhatsApp gera a pré-visualização pequena).
+  useEffect(() => {
+    if (open) setIncludeImage(false);
+  }, [open, productId]);
+
   // Quick-create contact
   const quickCreate = useMutation({
     mutationFn: async () => {
