@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useWhatsAppCampaigns, type CampaignRecipientInput } from "@/hooks/useWhatsAppCampaigns";
+import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
-import { Loader2, Users } from "lucide-react";
+import { Loader2, Users, FileText } from "lucide-react";
 
 interface Props {
   open: boolean;
