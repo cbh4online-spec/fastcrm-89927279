@@ -222,7 +222,7 @@ export function SendProductByWhatsAppDialog({
       contact_name: selectedContact?.name ?? "",
       product_name: productName ?? "",
       product_price: typeof productPrice === "number" ? `${productPrice.toFixed(2)} €` : "",
-      product_link: productLink ?? "",
+      product_link: absoluteProductLink ?? "",
       product_short_description: productExtra?.short_description ?? "",
     };
     let text = t.content;
