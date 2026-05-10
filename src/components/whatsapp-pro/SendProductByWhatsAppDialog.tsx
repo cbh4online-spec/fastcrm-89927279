@@ -54,15 +54,19 @@ function buildDefaultMessage(opts: {
 }): string {
   const firstName = opts.contactName ? opts.contactName.split(" ")[0] : null;
   const greet = firstName ? `Olá ${firstName} 👋` : "Olá 👋";
+  const shortDescription = opts.shortDescription?.trim();
+  const clippedDescription = shortDescription && shortDescription.length > 180
+    ? `${shortDescription.slice(0, 177).trim()}...`
+    : shortDescription;
   const lines: string[] = [];
   lines.push(`${greet}`);
   lines.push("");
-  lines.push("Encontrei esta opção que pode fazer sentido para si:");
+  lines.push("Tenho esta opção que pode fazer sentido para si:");
   lines.push("");
   if (opts.productName) lines.push(`📦 *${opts.productName}*`);
-  if (opts.shortDescription) {
+  if (clippedDescription) {
     lines.push("");
-    lines.push(opts.shortDescription);
+    lines.push(clippedDescription);
   }
   if (typeof opts.productPrice === "number") {
     lines.push("");
@@ -70,11 +74,11 @@ function buildDefaultMessage(opts: {
   }
   if (opts.productLink) {
     lines.push("");
-    lines.push(`🛒 Comprar agora:`);
+    lines.push(`🛒 Ver detalhes e comprar:`);
     lines.push(opts.productLink);
   }
   lines.push("");
-  lines.push("Qualquer dúvida diga, estou disponível para ajudar.");
+  lines.push("Se quiser, posso ajudar com a compra ou esclarecer qualquer dúvida.");
   return lines.join("\n");
 }
 
@@ -104,7 +108,7 @@ export function SendProductByWhatsAppDialog({
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [includeImage, setIncludeImage] = useState<boolean>(true);
+  const [includeImage, setIncludeImage] = useState<boolean>(false);
 
   // Buscar dados extra do produto (short_description) — opcional
   const { data: productExtra } = useQuery({
@@ -152,12 +156,13 @@ export function SendProductByWhatsAppDialog({
   const phoneIsValid = !!rawPhone && isValidPhone(rawPhone, "PT");
 
   const absoluteProductLink = useMemo(() => {
-    const raw = productLink ?? (productExtra?.sheet_slug ? `/produto/${productExtra.sheet_slug}` : null);
+    const workspaceProductPath = currentWorkspace?.slug ? `/store/${currentWorkspace.slug}/product/${productId}` : null;
+    const raw = productLink && !productLink.startsWith("/produto/") ? productLink : workspaceProductPath;
     if (!raw) return null;
     if (/^https?:\/\//i.test(raw)) return raw;
     if (typeof window !== "undefined") return `${window.location.origin}${raw.startsWith("/") ? "" : "/"}${raw}`;
     return raw;
-  }, [productLink, productExtra?.sheet_slug]);
+  }, [productLink, currentWorkspace?.slug, productId]);
 
   const defaultMessage = useMemo(
     () =>
