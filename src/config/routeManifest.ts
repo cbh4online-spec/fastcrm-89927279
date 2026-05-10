@@ -40,7 +40,7 @@ import {
   ArrowUpDown, Headphones, Clock, Timer,
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
   Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
-  Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat, Heart,
+  Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat, Heart, Repeat,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -199,6 +199,7 @@ e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Pac
  e("whatsapp-segments","Segmentos WhatsApp","/dashboard/whatsapp-pro/segments", Target, "comunicacao", { moduleSlug: "whatsapp-business" }),
  e("whatsapp-consent","Consentimento WhatsApp","/dashboard/whatsapp-pro/consent", ShieldCheck, "comunicacao", { moduleSlug: "whatsapp-business" }),
  e("whatsapp-quick-templates","Templates Rápidos WhatsApp","/dashboard/whatsapp-pro/quick-templates", Sparkles, "comunicacao", { moduleSlug: "whatsapp-business" }),
+ e("whatsapp-recurring","Campanhas Recorrentes WhatsApp","/dashboard/whatsapp-pro/recurring", Repeat, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("voicehub",    "VoiceHub",    "/dashboard/voicehub",                 Headphones, "comunicacao"),
  e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "comunicacao"),
  e("plan-mgmt",   "Plan Management","/admin/plan-management",                Crown,     "comunicacao"),
