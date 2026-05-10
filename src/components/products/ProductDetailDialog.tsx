@@ -196,6 +196,18 @@ export function ProductDetailDialog({
     }).format(value);
   };
 
+  // Preço líquido (sem IVA). Se o produto está marcado como tax_included,
+  // remove o IVA usando tax_rate_estimate_pct (default 23%).
+  const toNet = (value: number | null | undefined): number => {
+    if (value == null) return 0;
+    const taxIncluded = (product as any)?.tax_included;
+    const vat = Number((product as any)?.tax_rate_estimate_pct ?? 23) || 0;
+    if (taxIncluded && vat > 0) return value / (1 + vat / 100);
+    return value;
+  };
+  const netBasePrice = product ? toNet(product.base_price) : 0;
+  const netDirectCost = product?.direct_cost != null ? toNet(product.direct_cost) : null;
+
   const handleArchive = async () => {
     if (!product) return;
     await archiveProduct.mutateAsync({
@@ -361,11 +373,12 @@ export function ProductDetailDialog({
 
                     <div className="mt-2 flex items-baseline gap-3">
                       <span className="text-xl font-bold text-primary">
-                        {formatCurrency(product.base_price, product.currency)}
+                        {formatCurrency(netBasePrice, product.currency)}
                       </span>
-                      {showMargin && product.direct_cost !== null && (
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">s/IVA</span>
+                      {showMargin && netDirectCost !== null && netBasePrice > 0 && (
                         <span className="text-xs text-muted-foreground">
-                          Margem {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(0)}%
+                          Margem {((netBasePrice - netDirectCost) / netBasePrice * 100).toFixed(0)}%
                         </span>
                       )}
                       {product.sku && (
@@ -546,10 +559,10 @@ export function ProductDetailDialog({
                     <div className="grid grid-cols-2 gap-3">
                       <Card className="p-3">
                         <p className="text-xs text-muted-foreground">
-                          {isBundle ? "Preço do Bundle" : "Preço Base"}
+                          {isBundle ? "Preço do Bundle" : "Preço Base"} <span className="text-[10px] uppercase">(s/IVA)</span>
                         </p>
                         <p className="text-xl font-bold mt-0.5">
-                          {formatCurrency(product.base_price, product.currency)}
+                          {formatCurrency(netBasePrice, product.currency)}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-1">
                           {billingTypeLabels[product.billing_type]}
@@ -562,16 +575,16 @@ export function ProductDetailDialog({
                       {showCost && (
                         <Card className="p-3">
                           <p className="text-xs text-muted-foreground">
-                            {isBundle ? "Custo Total" : "Custo Direto"}
+                            {isBundle ? "Custo Total" : "Custo Direto"} <span className="text-[10px] uppercase">(s/IVA)</span>
                           </p>
-                          {product.direct_cost !== null ? (
+                          {netDirectCost !== null ? (
                             <>
                               <p className="text-xl font-semibold mt-0.5">
-                                {formatCurrency(product.direct_cost, product.currency)}
+                                {formatCurrency(netDirectCost, product.currency)}
                               </p>
-                              {showMargin && (
+                              {showMargin && netBasePrice > 0 && (
                                 <p className="text-[10px] text-muted-foreground mt-1">
-                                  Margem: {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(1)}%
+                                  Margem: {((netBasePrice - netDirectCost) / netBasePrice * 100).toFixed(1)}%
                                 </p>
                               )}
                             </>
