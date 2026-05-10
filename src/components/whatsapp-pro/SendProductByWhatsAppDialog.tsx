@@ -569,6 +569,90 @@ export function SendProductByWhatsAppDialog({
                 <Switch checked={includeImage} onCheckedChange={setIncludeImage} />
               </label>
             )}
+
+            {/* Recomendações */}
+            <div className="rounded-md border bg-muted/30 p-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Recomendações ({recommendedIds.length}/3)
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-[11px] gap-1"
+                  onClick={() => setShowRecPicker((v) => !v)}
+                >
+                  <Plus className="h-3 w-3" />
+                  {showRecPicker ? "Fechar" : "Adicionar"}
+                </Button>
+              </div>
+
+              {selectedRecs && selectedRecs.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedRecs.map((r) => (
+                    <Badge key={r.id} variant="secondary" className="gap-1 pr-1 text-[11px]">
+                      <span className="truncate max-w-[140px]">{r.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setRecommendedIds((ids) => ids.filter((x) => x !== r.id))}
+                        className="hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {showRecPicker && (
+                <div className="space-y-1.5 pt-1 border-t">
+                  <Input
+                    placeholder="Pesquisar produto…"
+                    value={recSearch}
+                    onChange={(e) => setRecSearch(e.target.value)}
+                    className="h-7 text-xs"
+                  />
+                  <ScrollArea className="h-[120px] border rounded bg-background">
+                    {!recCandidates || recCandidates.length === 0 ? (
+                      <div className="text-[11px] text-muted-foreground p-3 text-center">
+                        Sem produtos encontrados.
+                      </div>
+                    ) : (
+                      <div className="divide-y">
+                        {recCandidates.map((p: any) => {
+                          const picked = recommendedIds.includes(p.id);
+                          const disabled = !picked && recommendedIds.length >= 3;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              disabled={disabled}
+                              onClick={() => {
+                                setRecommendedIds((ids) =>
+                                  picked ? ids.filter((x) => x !== p.id) : [...ids, p.id],
+                                );
+                              }}
+                              className={`w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/40 transition disabled:opacity-40 ${picked ? "bg-primary/5" : ""}`}
+                            >
+                              <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-xs truncate flex-1">{p.name}</span>
+                              {typeof p.base_price === "number" && (
+                                <span className="text-[11px] text-emerald-600 font-medium">
+                                  {p.base_price.toFixed(2)} €
+                                </span>
+                              )}
+                              {picked && <Badge variant="secondary" className="text-[9px]">✓</Badge>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")} className="flex-1 flex flex-col min-h-0">
               <TabsList className="h-8">
                 <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
