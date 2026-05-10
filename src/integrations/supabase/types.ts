@@ -82125,6 +82125,143 @@ export type Database = {
           },
         ]
       }
+      whatsapp_bot_rule_logs: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          error: string | null
+          handoff_triggered: boolean
+          id: string
+          matched_keyword: string | null
+          message_excerpt: string | null
+          message_id: string | null
+          reply_sent: boolean
+          rule_id: string
+          workspace_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          error?: string | null
+          handoff_triggered?: boolean
+          id?: string
+          matched_keyword?: string | null
+          message_excerpt?: string | null
+          message_id?: string | null
+          reply_sent?: boolean
+          rule_id: string
+          workspace_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          error?: string | null
+          handoff_triggered?: boolean
+          id?: string
+          matched_keyword?: string | null
+          message_excerpt?: string | null
+          message_id?: string | null
+          reply_sent?: boolean
+          rule_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_bot_rule_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_bot_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_bot_rules: {
+        Row: {
+          attach_product_id: string | null
+          case_sensitive: boolean
+          cooldown_minutes: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          handoff_assign_to_user_id: string | null
+          handoff_to_human: boolean
+          id: string
+          is_active: boolean
+          keywords: string[]
+          last_matched_at: string | null
+          match_count: number
+          match_type: string
+          name: string
+          priority: number
+          reply_media_mime_type: string | null
+          reply_media_url: string | null
+          reply_text: string | null
+          respect_working_hours: boolean
+          send_once_per_conversation: boolean
+          updated_at: string
+          working_days: number[]
+          working_hours_end: string | null
+          working_hours_start: string | null
+          workspace_id: string
+        }
+        Insert: {
+          attach_product_id?: string | null
+          case_sensitive?: boolean
+          cooldown_minutes?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          handoff_assign_to_user_id?: string | null
+          handoff_to_human?: boolean
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          last_matched_at?: string | null
+          match_count?: number
+          match_type?: string
+          name: string
+          priority?: number
+          reply_media_mime_type?: string | null
+          reply_media_url?: string | null
+          reply_text?: string | null
+          respect_working_hours?: boolean
+          send_once_per_conversation?: boolean
+          updated_at?: string
+          working_days?: number[]
+          working_hours_end?: string | null
+          working_hours_start?: string | null
+          workspace_id: string
+        }
+        Update: {
+          attach_product_id?: string | null
+          case_sensitive?: boolean
+          cooldown_minutes?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          handoff_assign_to_user_id?: string | null
+          handoff_to_human?: boolean
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          last_matched_at?: string | null
+          match_count?: number
+          match_type?: string
+          name?: string
+          priority?: number
+          reply_media_mime_type?: string | null
+          reply_media_url?: string | null
+          reply_text?: string | null
+          respect_working_hours?: boolean
+          send_once_per_conversation?: boolean
+          updated_at?: string
+          working_days?: number[]
+          working_hours_end?: string | null
+          working_hours_start?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_campaign_recipients: {
         Row: {
           attempts: number
