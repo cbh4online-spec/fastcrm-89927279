@@ -156,6 +156,7 @@ export function CalendarEventModal({
           status: event.status,
           contact_id: event.contact_id || null,
           company_id: event.company_id || null,
+          notify_whatsapp: false,
         });
         setEntityValue({
           contactId: event.contact_id || null,
@@ -178,6 +179,7 @@ export function CalendarEventModal({
           status: 'confirmed',
           contact_id: defaultContactId || null,
           company_id: defaultCompanyId || null,
+          notify_whatsapp: false,
         });
         setEntityValue({ 
           contactId: defaultContactId || null, 
@@ -187,6 +189,42 @@ export function CalendarEventModal({
       }
     }
   }, [open, event, calendars, defaultDate, form, defaultContactId, defaultCompanyId, defaultLeadId]);
+
+  // Buscar telefone do contacto / lead associado para permitir notificação WhatsApp
+  useEffect(() => {
+    let cancelled = false;
+    const fetchPhone = async () => {
+      const contactId = entityValue.contactId;
+      const leadId = entityValue.leadId;
+      if (!contactId && !leadId) {
+        if (!cancelled) setContactPhone(null);
+        return;
+      }
+      try {
+        if (contactId) {
+          const { data } = await supabase
+            .from('contacts')
+            .select('phone')
+            .eq('id', contactId)
+            .maybeSingle();
+          if (!cancelled) setContactPhone((data?.phone as string | null) || null);
+          return;
+        }
+        if (leadId) {
+          const { data } = await supabase
+            .from('leads')
+            .select('phone')
+            .eq('id', leadId)
+            .maybeSingle();
+          if (!cancelled) setContactPhone((data?.phone as string | null) || null);
+        }
+      } catch {
+        if (!cancelled) setContactPhone(null);
+      }
+    };
+    fetchPhone();
+    return () => { cancelled = true; };
+  }, [entityValue.contactId, entityValue.leadId]);
 
   const handleSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);
