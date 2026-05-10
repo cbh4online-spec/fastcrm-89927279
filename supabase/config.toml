@@ -129,3 +129,6 @@ verify_jwt = false
 
 [functions.voice-recording-upload]
 verify_jwt = false
+
+[functions.whatsapp-pro-campaign-dispatch]
+verify_jwt = false

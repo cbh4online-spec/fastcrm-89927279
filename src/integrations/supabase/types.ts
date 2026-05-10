@@ -82125,6 +82125,179 @@ export type Database = {
           },
         ]
       }
+      whatsapp_campaign_recipients: {
+        Row: {
+          attempts: number
+          campaign_id: string
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          phone: string
+          provider_message_id: string | null
+          read_at: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          campaign_id: string
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          phone: string
+          provider_message_id?: string | null
+          read_at?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          campaign_id?: string
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          phone?: string
+          provider_message_id?: string | null
+          read_at?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_campaigns: {
+        Row: {
+          append_optout_footer: boolean
+          audience_filters: Json
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_url: string | null
+          delivered_count: number
+          description: string | null
+          error_message: string | null
+          failed_count: number
+          id: string
+          last_dispatched_at: string | null
+          media_mime_type: string | null
+          media_url: string | null
+          message_text: string | null
+          message_type: string
+          name: string
+          product_id: string | null
+          read_count: number
+          scheduled_at: string | null
+          send_window_end: string
+          send_window_start: string
+          sent_count: number
+          skipped_count: number
+          started_at: string | null
+          status: string
+          throttle_per_minute: number
+          timezone: string
+          total_recipients: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          append_optout_footer?: boolean
+          audience_filters?: Json
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          delivered_count?: number
+          description?: string | null
+          error_message?: string | null
+          failed_count?: number
+          id?: string
+          last_dispatched_at?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
+          message_text?: string | null
+          message_type?: string
+          name: string
+          product_id?: string | null
+          read_count?: number
+          scheduled_at?: string | null
+          send_window_end?: string
+          send_window_start?: string
+          sent_count?: number
+          skipped_count?: number
+          started_at?: string | null
+          status?: string
+          throttle_per_minute?: number
+          timezone?: string
+          total_recipients?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          append_optout_footer?: boolean
+          audience_filters?: Json
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          delivered_count?: number
+          description?: string | null
+          error_message?: string | null
+          failed_count?: number
+          id?: string
+          last_dispatched_at?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
+          message_text?: string | null
+          message_type?: string
+          name?: string
+          product_id?: string | null
+          read_count?: number
+          scheduled_at?: string | null
+          send_window_end?: string
+          send_window_start?: string
+          sent_count?: number
+          skipped_count?: number
+          started_at?: string | null
+          status?: string
+          throttle_per_minute?: number
+          timezone?: string
+          total_recipients?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_communication_events: {
         Row: {
           contact_id: string | null
@@ -82427,6 +82600,33 @@ export type Database = {
           message?: string | null
           metadata?: Json
           to_status?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_optouts: {
+        Row: {
+          created_at: string
+          id: string
+          phone: string
+          reason: string | null
+          source: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone: string
+          reason?: string | null
+          source?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone?: string
+          reason?: string | null
+          source?: string
           workspace_id?: string
         }
         Relationships: []
@@ -89387,6 +89587,10 @@ export type Database = {
       sj_match_profile_to_contact: {
         Args: { p_profile_id: string }
         Returns: string
+      }
+      skip_optout_recipients: {
+        Args: { p_campaign_id: string }
+        Returns: number
       }
       snapshot_all_workspace_activations: {
         Args: never

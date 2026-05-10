@@ -186,6 +186,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("groups",      "Grupos",      "/dashboard/groups",                   Users,     "comunicacao"),
   e("telegram",    "Telegram",    "/dashboard/telegram",                 Send,      "comunicacao"),
   e("whatsapp-pro","WhatsApp Pro","/dashboard/whatsapp-pro",             MessageSquare, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-campaigns","Campanhas WhatsApp","/dashboard/whatsapp-pro/campaigns", Send, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("voicehub",    "VoiceHub",    "/dashboard/voicehub",                 Headphones, "comunicacao"),
  e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "comunicacao"),
  e("plan-mgmt",   "Plan Management","/admin/plan-management",                Crown,     "comunicacao"),
