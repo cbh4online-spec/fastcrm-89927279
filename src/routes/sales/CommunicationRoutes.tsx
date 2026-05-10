@@ -6,6 +6,7 @@ const InboxSnippets = lazy(() => import("@/pages/InboxSnippets"));
 const WhatsAppOpsDashboard = lazy(() => import("@/pages/WhatsAppOpsDashboard"));
 const WhatsAppPro = lazy(() => import("@/pages/WhatsAppPro"));
 const WhatsAppCampaignsPage = lazy(() => import("@/pages/WhatsAppCampaignsPage"));
+const WhatsAppAnalyticsPage = lazy(() => import("@/pages/WhatsAppAnalyticsPage"));
 const Groups = lazy(() => import("@/pages/Groups"));
 const TelegramPage = lazy(() => import("@/pages/TelegramPage"));
 const CommunicationTemplates = lazy(() => import("@/pages/CommunicationTemplates"));
