@@ -21,6 +21,9 @@ interface Props {
 
 export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
   const { create } = useWhatsAppCampaigns();
+  const { data: templates } = useWhatsAppTemplates();
+  const approvedTemplates = (templates || []).filter(t => (t.status || "draft") === "approved" && t.is_active !== false);
+  const [templateId, setTemplateId] = useState<string>("");
   const { currentWorkspace } = useWorkspace();
   const [step, setStep] = useState(1);
 
