@@ -82395,6 +82395,42 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_health_events: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          message: string | null
+          metadata: Json
+          to_status: string | null
+          workspace_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json
+          to_status?: string | null
+          workspace_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json
+          to_status?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_product_share_responses: {
         Row: {
           ai_summary: string | null
@@ -83010,13 +83046,16 @@ export type Database = {
           client_token: string | null
           connected_at: string | null
           connected_by: string | null
+          consecutive_failures: number
           created_at: string
           disconnected_at: string | null
+          health_alert_dismissed_until: string | null
           id: string
           instance_id: string | null
           instance_name: string | null
           instance_token: string | null
           last_error: string | null
+          last_health_check_at: string | null
           last_inbound_message_at: string | null
           last_outbound_message_at: string | null
           last_seen_at: string | null
@@ -83039,13 +83078,16 @@ export type Database = {
           client_token?: string | null
           connected_at?: string | null
           connected_by?: string | null
+          consecutive_failures?: number
           created_at?: string
           disconnected_at?: string | null
+          health_alert_dismissed_until?: string | null
           id?: string
           instance_id?: string | null
           instance_name?: string | null
           instance_token?: string | null
           last_error?: string | null
+          last_health_check_at?: string | null
           last_inbound_message_at?: string | null
           last_outbound_message_at?: string | null
           last_seen_at?: string | null
@@ -83068,13 +83110,16 @@ export type Database = {
           client_token?: string | null
           connected_at?: string | null
           connected_by?: string | null
+          consecutive_failures?: number
           created_at?: string
           disconnected_at?: string | null
+          health_alert_dismissed_until?: string | null
           id?: string
           instance_id?: string | null
           instance_name?: string | null
           instance_token?: string | null
           last_error?: string | null
+          last_health_check_at?: string | null
           last_inbound_message_at?: string | null
           last_outbound_message_at?: string | null
           last_seen_at?: string | null
