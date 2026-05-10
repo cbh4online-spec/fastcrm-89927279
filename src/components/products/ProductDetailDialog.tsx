@@ -559,10 +559,10 @@ export function ProductDetailDialog({
                     <div className="grid grid-cols-2 gap-3">
                       <Card className="p-3">
                         <p className="text-xs text-muted-foreground">
-                          {isBundle ? "Preço do Bundle" : "Preço Base"}
+                          {isBundle ? "Preço do Bundle" : "Preço Base"} <span className="text-[10px] uppercase">(s/IVA)</span>
                         </p>
                         <p className="text-xl font-bold mt-0.5">
-                          {formatCurrency(product.base_price, product.currency)}
+                          {formatCurrency(netBasePrice, product.currency)}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-1">
                           {billingTypeLabels[product.billing_type]}
@@ -575,16 +575,16 @@ export function ProductDetailDialog({
                       {showCost && (
                         <Card className="p-3">
                           <p className="text-xs text-muted-foreground">
-                            {isBundle ? "Custo Total" : "Custo Direto"}
+                            {isBundle ? "Custo Total" : "Custo Direto"} <span className="text-[10px] uppercase">(s/IVA)</span>
                           </p>
-                          {product.direct_cost !== null ? (
+                          {netDirectCost !== null ? (
                             <>
                               <p className="text-xl font-semibold mt-0.5">
-                                {formatCurrency(product.direct_cost, product.currency)}
+                                {formatCurrency(netDirectCost, product.currency)}
                               </p>
-                              {showMargin && (
+                              {showMargin && netBasePrice > 0 && (
                                 <p className="text-[10px] text-muted-foreground mt-1">
-                                  Margem: {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(1)}%
+                                  Margem: {((netBasePrice - netDirectCost) / netBasePrice * 100).toFixed(1)}%
                                 </p>
                               )}
                             </>
