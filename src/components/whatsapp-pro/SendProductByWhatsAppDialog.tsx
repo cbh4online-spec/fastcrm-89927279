@@ -11,6 +11,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppProSend, useRegisterWhatsAppProductShare, useWhatsAppProTemplates } from "@/hooks/useWhatsAppPro";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -74,7 +75,7 @@ function buildDefaultMessage(opts: {
   }
   if (opts.productLink) {
     lines.push("");
-    lines.push(`🛒 Ver detalhes e comprar:`);
+    lines.push(`🛒 Comprar agora:`);
     lines.push(opts.productLink);
   }
   lines.push("");
@@ -160,7 +161,7 @@ export function SendProductByWhatsAppDialog({
     const raw = productLink && !productLink.startsWith("/produto/") ? productLink : workspaceProductPath;
     if (!raw) return null;
     if (/^https?:\/\//i.test(raw)) return raw;
-    if (typeof window !== "undefined") return `${window.location.origin}${raw.startsWith("/") ? "" : "/"}${raw}`;
+    if (typeof window !== "undefined") return `${getPublicBaseUrl()}${raw.startsWith("/") ? "" : "/"}${raw}`;
     return raw;
   }, [productLink, currentWorkspace?.slug, productId]);
 
