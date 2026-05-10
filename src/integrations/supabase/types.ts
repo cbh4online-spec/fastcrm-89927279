@@ -83254,6 +83254,48 @@ export type Database = {
           },
         ]
       }
+      whatsapp_segments: {
+        Row: {
+          cached_at: string | null
+          cached_count: number
+          created_at: string
+          created_by: string
+          description: string | null
+          filters: Json
+          id: string
+          is_archived: boolean
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cached_at?: string | null
+          cached_count?: number
+          created_at?: string
+          created_by: string
+          description?: string | null
+          filters?: Json
+          id?: string
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cached_at?: string | null
+          cached_count?: number
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          filters?: Json
+          id?: string
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_sequence_enrollments: {
         Row: {
           completed_at: string | null
