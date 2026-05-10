@@ -46,37 +46,56 @@ interface ContactOption {
   email: string | null;
 }
 
+interface RecommendationItem {
+  id: string;
+  name: string;
+  base_price: number | null;
+  link: string | null;
+}
+
 function buildDefaultMessage(opts: {
   contactName?: string | null;
   productName?: string;
   productPrice?: number | null;
   productLink?: string | null;
   shortDescription?: string | null;
+  taxIncluded?: boolean | null;
+  recommendations?: RecommendationItem[];
 }): string {
   const firstName = opts.contactName ? opts.contactName.split(" ")[0] : null;
   const greet = firstName ? `Olá ${firstName} 👋` : "Olá 👋";
   const shortDescription = opts.shortDescription?.trim();
-  const clippedDescription = shortDescription && shortDescription.length > 180
-    ? `${shortDescription.slice(0, 177).trim()}...`
+  const clippedDescription = shortDescription && shortDescription.length > 220
+    ? `${shortDescription.slice(0, 217).trim()}...`
     : shortDescription;
+
+  const taxLabel =
+    opts.taxIncluded === true ? "c/ IVA" : opts.taxIncluded === false ? "s/ IVA" : null;
+  const priceLine =
+    typeof opts.productPrice === "number"
+      ? `💶 *${opts.productPrice.toFixed(2)} €*${taxLabel ? ` (${taxLabel})` : ""}`
+      : null;
+
   const lines: string[] = [];
-  lines.push(`${greet}`);
-  lines.push("");
-  lines.push("Tenho esta opção que pode fazer sentido para si:");
+  lines.push(greet);
   lines.push("");
   if (opts.productName) lines.push(`📦 *${opts.productName}*`);
+  if (priceLine) lines.push(priceLine);
+  if (opts.productLink) {
+    lines.push(`🛒 Comprar agora: ${opts.productLink}`);
+  }
   if (clippedDescription) {
     lines.push("");
     lines.push(clippedDescription);
   }
-  if (typeof opts.productPrice === "number") {
+  if (opts.recommendations && opts.recommendations.length > 0) {
     lines.push("");
-    lines.push(`💶 *${opts.productPrice.toFixed(2)} €*`);
-  }
-  if (opts.productLink) {
-    lines.push("");
-    lines.push(`🛒 Comprar agora:`);
-    lines.push(opts.productLink);
+    lines.push("✨ *Pode também gostar:*");
+    for (const r of opts.recommendations) {
+      const price = typeof r.base_price === "number" ? ` — ${r.base_price.toFixed(2)} €` : "";
+      lines.push(`• ${r.name}${price}`);
+      if (r.link) lines.push(`  ${r.link}`);
+    }
   }
   lines.push("");
   lines.push("Se quiser, posso ajudar com a compra ou esclarecer qualquer dúvida.");
