@@ -8,6 +8,9 @@ import { zapiCall, safeJson, type ZapiCredentials } from '../_shared/zapi.ts';
 interface ButtonOption {
   id?: string;
   label: string;
+  type?: 'CALL' | 'URL' | 'REPLY';
+  phone?: string;
+  url?: string;
 }
 
 interface SendBody {
