@@ -151,16 +151,24 @@ export function SendProductByWhatsAppDialog({
   const normalizedPhone = useMemo(() => toE164(rawPhone, "PT"), [rawPhone]);
   const phoneIsValid = !!rawPhone && isValidPhone(rawPhone, "PT");
 
+  const absoluteProductLink = useMemo(() => {
+    const raw = productLink ?? (productExtra?.sheet_slug ? `/produto/${productExtra.sheet_slug}` : null);
+    if (!raw) return null;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (typeof window !== "undefined") return `${window.location.origin}${raw.startsWith("/") ? "" : "/"}${raw}`;
+    return raw;
+  }, [productLink, productExtra?.sheet_slug]);
+
   const defaultMessage = useMemo(
     () =>
       buildDefaultMessage({
         contactName: selectedContact?.name,
         productName,
         productPrice,
-        productLink: productLink ?? (productExtra?.sheet_slug ? `/produto/${productExtra.sheet_slug}` : null),
+        productLink: absoluteProductLink,
         shortDescription: productExtra?.short_description,
       }),
-    [selectedContact?.name, productName, productPrice, productLink, productExtra],
+    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra],
   );
 
   const [message, setMessage] = useState<string>(defaultMessage);
