@@ -618,6 +618,41 @@ export function CalendarEventModal({
               )}
             />
 
+            {/* Notificação por WhatsApp */}
+            <FormField
+              control={form.control}
+              name="notify_whatsapp"
+              render={({ field }) => {
+                const canSend = !!whatsappProvider && !!contactPhone;
+                return (
+                  <FormItem className="flex items-start justify-between rounded-md border border-border bg-muted/30 p-3">
+                    <div className="space-y-1 pr-3">
+                      <FormLabel className="flex items-center gap-2 text-sm">
+                        <MessageCircle className="h-4 w-4 text-emerald-600" />
+                        Notificar por WhatsApp
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        {!whatsappProvider
+                          ? 'WhatsApp Pro não está ativo neste workspace.'
+                          : !entityValue.contactId && !entityValue.leadId
+                            ? 'Associe um contacto ou lead para enviar.'
+                            : !contactPhone
+                              ? 'O contacto associado não tem telefone registado.'
+                              : `Enviar confirmação para ${contactPhone}.`}
+                      </p>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={!!field.value && canSend}
+                        disabled={!canSend}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                );
+              }}
+            />
+
             <DialogFooter className="gap-2">
               {event && onDelete && (
                 <Button
