@@ -24,6 +24,7 @@ interface SendPayload {
   fileName?: string;
   ctaUrl?: string | null;
   ctaLabel?: string | null;
+  ctaPrompt?: string | null;
   productId?: string;
   templateId?: string;
   templateVariables?: Record<string, string | number>;
@@ -142,12 +143,15 @@ Deno.serve(async (req) => {
         result = { success: false, error: sendData.error };
       } else {
         if (body.mediaUrl && validCtaUrl) {
+          const ctaPrompt =
+            (body.ctaPrompt && body.ctaPrompt.trim().slice(0, 120)) ||
+            "👇 Toque no botão para abrir a página segura do produto.";
           await adminClient.functions.invoke("whatsapp-zapi-send", {
             body: {
               workspaceId: body.workspaceId,
               phone: body.phone,
               conversationId: body.conversationId ?? undefined,
-              message: "🛒 Comprar Agora",
+              message: ctaPrompt,
               buttons: [{ id: "buy_now", type: "URL", label: body.ctaLabel || "Comprar Agora", url: validCtaUrl }],
             },
             headers: { Authorization: authHeader },

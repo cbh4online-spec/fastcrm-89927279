@@ -61,6 +61,7 @@ function buildDefaultMessage(opts: {
   shortDescription?: string | null;
   taxIncluded?: boolean | null;
   recommendations?: RecommendationItem[];
+  embedLink?: boolean;
 }): string {
   const firstName = opts.contactName ? opts.contactName.split(" ")[0] : null;
   const greet = firstName ? `Olá ${firstName} 👋` : "Olá 👋";
@@ -81,7 +82,7 @@ function buildDefaultMessage(opts: {
   lines.push("");
   if (opts.productName) lines.push(`📦 *${opts.productName}*`);
   if (priceLine) lines.push(priceLine);
-  if (opts.productLink) {
+  if (opts.productLink && opts.embedLink !== false) {
     lines.push(`🛒 Comprar agora: ${opts.productLink}`);
   }
   if (clippedDescription) {
@@ -158,6 +159,9 @@ export function SendProductByWhatsAppDialog({
   const [recommendedIds, setRecommendedIds] = useState<string[]>([]);
   const [showRecPicker, setShowRecPicker] = useState(false);
   const [recSearch, setRecSearch] = useState("");
+  const DEFAULT_CTA_PROMPT = "👇 Toque no botão para abrir a página segura do produto.";
+  const [ctaPrompt, setCtaPrompt] = useState<string>(DEFAULT_CTA_PROMPT);
+  const [showCtaEditor, setShowCtaEditor] = useState(false);
 
   // Buscar dados extra do produto (short_description, tax) — opcional
   const { data: productExtra } = useQuery({
@@ -259,6 +263,10 @@ export function SendProductByWhatsAppDialog({
     return raw;
   }, [productLink, currentWorkspace?.slug, productId]);
 
+  // Quando vamos enviar imagem + CTA via Z-API, o link vai como botão numa 2ª mensagem.
+  // Nesse caso não duplicamos o URL na caption.
+  const willSendCtaButton = !!absoluteProductLink && includeImage;
+
   const defaultMessage = useMemo(
     () =>
       buildDefaultMessage({
@@ -269,8 +277,9 @@ export function SendProductByWhatsAppDialog({
         shortDescription: productExtra?.short_description,
         taxIncluded: (productExtra as any)?.tax_included,
         recommendations: selectedRecs ?? [],
+        embedLink: !willSendCtaButton,
       }),
-    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra, selectedRecs],
+    [selectedContact?.name, productName, productPrice, absoluteProductLink, productExtra, selectedRecs, willSendCtaButton],
   );
 
   const [message, setMessage] = useState<string>(defaultMessage);
@@ -370,6 +379,7 @@ export function SendProductByWhatsAppDialog({
         mediaUrl,
         ctaUrl: absoluteProductLink,
         ctaLabel: "Comprar Agora",
+        ctaPrompt: ctaPrompt.trim() || DEFAULT_CTA_PROMPT,
         metadata: {
           source: prefillConversationId ? "conversation" : "product_detail",
           product_name: productName,
@@ -653,6 +663,39 @@ export function SendProductByWhatsAppDialog({
                 </div>
               )}
             </div>
+
+            {/* CTA prompt (texto da bolha do botão) */}
+            {willSendCtaButton && (
+              <div className="rounded-md border bg-muted/30 p-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    Texto antes do botão "Comprar Agora"
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[11px]"
+                    onClick={() => setShowCtaEditor((v) => !v)}
+                  >
+                    {showCtaEditor ? "Ocultar" : "Personalizar"}
+                  </Button>
+                </div>
+                {showCtaEditor ? (
+                  <Input
+                    value={ctaPrompt}
+                    onChange={(e) => setCtaPrompt(e.target.value.slice(0, 120))}
+                    maxLength={120}
+                    placeholder={DEFAULT_CTA_PROMPT}
+                    className="h-7 text-xs"
+                  />
+                ) : (
+                  <p className="text-[11px] text-muted-foreground italic line-clamp-1">
+                    "{ctaPrompt || DEFAULT_CTA_PROMPT}"
+                  </p>
+                )}
+              </div>
+            )}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")} className="flex-1 flex flex-col min-h-0">
               <TabsList className="h-8">
                 <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
@@ -670,11 +713,11 @@ export function SendProductByWhatsAppDialog({
               </TabsContent>
 
               <TabsContent value="preview" className="flex-1 mt-2 min-h-0">
-                <div className="h-full min-h-[200px] rounded-md p-4 bg-[#e5ddd5] dark:bg-zinc-800 overflow-auto">
+                <div className="h-full min-h-[200px] rounded-md p-4 bg-[#e5ddd5] dark:bg-zinc-800 overflow-auto space-y-2">
                   <div className="ml-auto max-w-[85%] bg-[#dcf8c6] dark:bg-emerald-900/40 rounded-lg p-2.5 shadow-sm">
                     {includeImage && productImageUrl ? (
                       <img src={productImageUrl} alt="" className="rounded mb-2 max-h-24 w-28 object-cover" />
-                    ) : absoluteProductLink ? (
+                    ) : absoluteProductLink && !willSendCtaButton ? (
                       <div className="mb-2 rounded border border-border bg-background/80 overflow-hidden">
                         <div className="flex gap-2 p-2">
                           {productImageUrl && <img src={productImageUrl} alt="" className="h-12 w-12 rounded object-cover shrink-0" />}
@@ -688,13 +731,20 @@ export function SendProductByWhatsAppDialog({
                     <p className="text-xs whitespace-pre-wrap text-zinc-900 dark:text-zinc-100 break-words">
                       {message || "(mensagem vazia)"}
                     </p>
-                    {absoluteProductLink && (
-                      <div className="mt-2 rounded-md bg-background/90 px-3 py-1.5 text-center text-[11px] font-semibold text-primary">
-                        Comprar Agora
-                      </div>
-                    )}
                     <p className="text-[10px] text-zinc-500 text-right mt-1">agora · ✓✓</p>
                   </div>
+
+                  {willSendCtaButton && (
+                    <div className="ml-auto max-w-[85%] bg-[#dcf8c6] dark:bg-emerald-900/40 rounded-lg p-2.5 shadow-sm">
+                      <p className="text-xs text-zinc-900 dark:text-zinc-100 break-words">
+                        {ctaPrompt || DEFAULT_CTA_PROMPT}
+                      </p>
+                      <div className="mt-2 rounded-md bg-background/90 px-3 py-1.5 text-center text-[11px] font-semibold text-primary border border-border">
+                        🛒 Comprar Agora
+                      </div>
+                      <p className="text-[10px] text-zinc-500 text-right mt-1">agora · ✓✓</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
