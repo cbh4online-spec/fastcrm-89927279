@@ -24,6 +24,7 @@ interface SendPayload {
   fileName?: string;
   ctaUrl?: string | null;
   ctaLabel?: string | null;
+  ctaPrompt?: string | null;
   productId?: string;
   templateId?: string;
   templateVariables?: Record<string, string | number>;
