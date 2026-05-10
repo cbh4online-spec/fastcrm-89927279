@@ -56,6 +56,7 @@ const eventSchema = z.object({
   status: z.enum(['tentative', 'confirmed', 'cancelled']).default('confirmed'),
   contact_id: z.string().optional().nullable(),
   company_id: z.string().optional().nullable(),
+  notify_whatsapp: z.boolean().default(false),
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
