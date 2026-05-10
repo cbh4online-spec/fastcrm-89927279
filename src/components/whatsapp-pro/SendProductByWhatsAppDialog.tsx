@@ -88,7 +88,7 @@ async function imageUrlToDataUrl(url: string): Promise<string> {
   if (!response.ok) throw new Error(`Não foi possível carregar a imagem (${response.status}).`);
   const blob = await response.blob();
   if (!blob.type.startsWith("image/")) throw new Error("O ficheiro carregado não é uma imagem válida.");
-  return await new Promise((resolve, reject) => {
+  return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(String(reader.result));
     reader.onerror = reject;
