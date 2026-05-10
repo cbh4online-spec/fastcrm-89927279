@@ -13,6 +13,7 @@ import { MQPCFloatingButton } from "@/components/mqpc/MQPCFloatingButton";
 import { useFeatureFlag } from "@/hooks/useFeatureFlags";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { AIUsageBanner } from "@/components/saas/AIUsageBanner";
+import { WhatsAppHealthBanner } from "@/components/whatsapp-pro/WhatsAppHealthBanner";
 import { VoiceConversationWidget } from "@/components/voice/VoiceConversationWidget";
 import { GlobalNoCreditsDialog } from "@/components/credits/GlobalNoCreditsDialog";
 import { CopilotDrawer } from "@/components/copilot/CopilotDrawer";
