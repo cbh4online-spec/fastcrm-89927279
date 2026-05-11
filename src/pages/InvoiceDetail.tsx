@@ -315,6 +315,7 @@ export default function InvoiceDetail() {
                 invoiceTotal={invoice.total}
                 amountPaid={invoice.amount_paid || 0}
                 currency={invoice.currency}
+                invoiceNumber={invoice.invoice_number}
               />
             )}
 
