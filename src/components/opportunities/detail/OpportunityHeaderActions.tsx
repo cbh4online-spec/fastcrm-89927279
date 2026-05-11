@@ -246,6 +246,23 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
           }}
         />
       )}
+
+      <QuickProposalDrawer
+        open={showQuickProposal}
+        onOpenChange={setShowQuickProposal}
+        opportunityId={opportunityId}
+        opportunityTitle={title}
+        contactId={contactId ?? null}
+        companyId={companyId ?? null}
+        defaultCurrency={currency || "EUR"}
+      />
+
+      <AdjudicateDialog
+        open={showAdjudicate}
+        onOpenChange={setShowAdjudicate}
+        opportunityId={opportunityId}
+        opportunityTitle={title}
+      />
     </>
   );
 }
