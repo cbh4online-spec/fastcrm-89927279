@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Copy, Loader2, Check, Link2, ExternalLink } from "lucide-react";
+import { CreditCard, Copy, Loader2, Check, Link2, ExternalLink, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   useCreateIfthenpayPayment,
@@ -14,6 +14,7 @@ import {
   type IfthenpayMethodId,
 } from "@/hooks/payments/useIfthenpayPayments";
 import { useIfthenpaySettings } from "@/hooks/integrations/useIfthenpaySettings";
+import { useWhatsAppProviderInstance, useWhatsAppProSend } from "@/hooks/useWhatsAppPro";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { formatEUR } from "@/lib/currency";
@@ -69,19 +70,52 @@ export function PaymentActionsCard({
     reference_id: invoiceId,
   });
 
+  const { data: waInstance } = useWhatsAppProviderInstance();
+  const waSend = useWhatsAppProSend();
+  const waActive = !!waInstance?.active;
+
+  const ensureLink = async (): Promise<string> => {
+    if (shareLink) return shareLink;
+    const { data, error } = await (supabase as any).rpc("ensure_invoice_public_token", {
+      _invoice_id: invoiceId,
+    });
+    if (error) throw error;
+    const url = `${window.location.origin}/pay/invoice/${data}`;
+    setShareLink(url);
+    return url;
+  };
+
   const handleGenerateLink = async () => {
     setGeneratingLink(true);
     try {
-      const { data, error } = await (supabase as any).rpc("ensure_invoice_public_token", {
-        _invoice_id: invoiceId,
-      });
-      if (error) throw error;
-      const url = `${window.location.origin}/pay/invoice/${data}`;
-      setShareLink(url);
+      const url = await ensureLink();
       navigator.clipboard.writeText(url);
       toast.success("Link copiado para a área de transferência");
     } catch (e: any) {
       toast.error(e?.message || "Erro a gerar link");
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!customerPhone) {
+      toast.error("Cliente sem telemóvel registado");
+      return;
+    }
+    setGeneratingLink(true);
+    try {
+      const url = await ensureLink();
+      const text = `Olá! Pode efectuar o pagamento da fatura aqui: ${url}`;
+      await waSend.mutateAsync({
+        phone: customerPhone,
+        messageType: "text" as any,
+        text,
+        metadata: { source: "invoice_payment_link", invoice_id: invoiceId },
+      });
+      toast.success("Link enviado por WhatsApp");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro a enviar por WhatsApp");
     } finally {
       setGeneratingLink(false);
     }
@@ -164,6 +198,22 @@ export function PaymentActionsCard({
               <Button size="sm" variant="outline" onClick={handleGenerateLink} disabled={generatingLink}>
                 {generatingLink ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Link2 className="w-3 h-3 mr-2" />}
                 Gerar e copiar link
+              </Button>
+            )}
+            {waActive && customerPhone && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSendWhatsApp}
+                disabled={generatingLink || waSend.isPending}
+                className="text-emerald-600 hover:text-emerald-700"
+              >
+                {waSend.isPending ? (
+                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                ) : (
+                  <MessageCircle className="w-3 h-3 mr-2" />
+                )}
+                Enviar por WhatsApp
               </Button>
             )}
           </div>
