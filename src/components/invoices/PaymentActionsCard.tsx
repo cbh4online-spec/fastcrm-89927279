@@ -60,11 +60,32 @@ export function PaymentActionsCard({
   const [phone, setPhone] = useState(customerPhone || "");
   const [amount, setAmount] = useState<string>(outstanding.toFixed(2));
 
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
+
   const createPayment = useCreateIfthenpayPayment();
   const { data: payments = [] } = useIfthenpayPayments({
     reference_type: "invoice",
     reference_id: invoiceId,
   });
+
+  const handleGenerateLink = async () => {
+    setGeneratingLink(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("ensure_invoice_public_token", {
+        _invoice_id: invoiceId,
+      });
+      if (error) throw error;
+      const url = `${window.location.origin}/pay/invoice/${data}`;
+      setShareLink(url);
+      navigator.clipboard.writeText(url);
+      toast.success("Link copiado para a área de transferência");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro a gerar link");
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
 
   const handleGenerate = async () => {
     const value = Number(amount);
