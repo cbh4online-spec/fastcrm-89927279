@@ -42,6 +42,7 @@ import {
 } from "@/hooks/useBillingIntegrations";
 import { BillingIntegrationDialog } from "@/components/settings/billing/BillingIntegrationDialog";
 import { BillingSyncSheet } from "@/components/settings/billing/BillingSyncSheet";
+import { getInvoiceXpressAccountUrl } from "@/utils/invoicexpress";
 import {
   Plus,
   Plug,
@@ -182,7 +183,7 @@ export default function BillingIntegrationsPage() {
                       <TableCell>
                         {row.provider === "invoicexpress" ? (
                           <a
-                            href={`https://${row.account_name}.app.invoicexpress.com`}
+                            href={getInvoiceXpressAccountUrl(row.account_name)}
                             target="_blank"
                             rel="noreferrer"
                             className="text-primary hover:underline inline-flex items-center gap-1"
