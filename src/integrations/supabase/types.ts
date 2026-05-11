@@ -86849,6 +86849,69 @@ export type Database = {
           },
         ]
       }
+      workspace_payment_gateways: {
+        Row: {
+          capabilities: Json
+          created_at: string
+          display_name: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          last_health_at: string | null
+          last_health_error: string | null
+          last_health_status: string | null
+          provider: string
+          test_mode: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          capabilities?: Json
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_health_at?: string | null
+          last_health_error?: string | null
+          last_health_status?: string | null
+          provider: string
+          test_mode?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          capabilities?: Json
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_health_at?: string | null
+          last_health_error?: string | null
+          last_health_status?: string | null
+          provider?: string
+          test_mode?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_payment_gateways_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_payment_gateways_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_plan_overrides: {
         Row: {
           created_at: string
