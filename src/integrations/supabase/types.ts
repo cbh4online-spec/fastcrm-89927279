@@ -22947,6 +22947,80 @@ export type Database = {
           },
         ]
       }
+      conversation_contact_resolutions: {
+        Row: {
+          ambiguous: boolean
+          candidates_count: number
+          conversation_id: string
+          created_at: string
+          matched_phone: string | null
+          normalized_e164: string | null
+          resolved_at: string
+          resolved_entity_id: string
+          resolved_entity_name: string
+          resolved_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ambiguous?: boolean
+          candidates_count?: number
+          conversation_id: string
+          created_at?: string
+          matched_phone?: string | null
+          normalized_e164?: string | null
+          resolved_at?: string
+          resolved_entity_id: string
+          resolved_entity_name: string
+          resolved_type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ambiguous?: boolean
+          candidates_count?: number
+          conversation_id?: string
+          created_at?: string
+          matched_phone?: string | null
+          normalized_e164?: string | null
+          resolved_at?: string
+          resolved_entity_id?: string
+          resolved_entity_name?: string
+          resolved_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_contact_resolutions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_contact_resolutions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_contact_resolutions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "conversation_contact_resolutions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_followups: {
         Row: {
           appointment_id: string | null

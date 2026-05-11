@@ -144,7 +144,11 @@ export function useConversations(filters?: ConversationFilters) {
           *,
           lead:leads(id, name, email, phone, status),
           contact:contacts(id, name, email, phone, company),
-          company:companies(id, name)
+          company:companies(id, name),
+          resolution:conversation_contact_resolutions(
+            resolved_type, resolved_entity_id, resolved_entity_name,
+            matched_phone, ambiguous, candidates_count, resolved_at
+          )
         `)
         .eq("workspace_id", currentWorkspace.id)
         .order("conversation_priority_score", { ascending: false, nullsFirst: true })
@@ -203,190 +207,59 @@ export function useConversations(filters?: ConversationFilters) {
         }
       }
 
-      // Attach opportunities to conversations
-      const conversationsWithOpps = convData?.map(conv => ({
-        ...conv,
-        opportunities: conv.lead?.id ? opportunitiesMap[conv.lead.id] || [] : [],
-      })) || [];
+      // Attach opportunities + map cached phone resolution → resolved_contact.
+      const conversationsWithOpps = (convData || []).map((conv: any) => {
+        const resRow = Array.isArray(conv.resolution) ? conv.resolution[0] : conv.resolution;
+        const resolved_contact = resRow
+          ? {
+              type: resRow.resolved_type as "lead" | "contact" | "company",
+              id: resRow.resolved_entity_id as string,
+              name: resRow.resolved_entity_name as string,
+              matched_phone: resRow.matched_phone as string | null,
+              ambiguous: !!resRow.ambiguous,
+              candidates_count: resRow.candidates_count as number,
+            }
+          : null;
+        const { resolution: _drop, ...rest } = conv;
+        return {
+          ...rest,
+          opportunities: conv.lead?.id ? opportunitiesMap[conv.lead.id] || [] : [],
+          resolved_contact,
+        };
+      });
 
-      // ----- Resolve display name by phone for unlinked conversations -----
-      // For conversations without lead/contact/company but with a phone-like
-      // external_thread_id, look up matching leads/contacts/companies by phone
-      // suffix (last 9 digits) so the inbox can show the real contact name
-      // instead of the raw phone number.
+      // Trigger backend resolver (debounced, fire-and-forget) when there are
+      // unlinked phone-channel conversations missing a fresh cache entry.
       const phoneChannels: ConversationChannel[] = ["whatsapp", "sms", "phone", "ghl"];
-      const unlinked = conversationsWithOpps.filter(
-        (c) =>
+      const needsResolution = conversationsWithOpps.some(
+        (c: any) =>
           !c.lead?.id &&
           !c.contact?.id &&
           !c.company?.id &&
+          !c.resolved_contact &&
           phoneChannels.includes(c.channel as ConversationChannel) &&
           !!c.external_thread_id,
       );
 
-      if (unlinked.length > 0) {
-        // Lazy-load libphonenumber to keep the main bundle lean.
-        const { parsePhoneNumberFromString } = await import("libphonenumber-js");
-
-        // Robust normalization: try E.164 with PT default; fall back to a 9-digit
-        // national-number suffix when parsing fails. Returns null when the input
-        // has too few digits to be considered a phone number at all.
-        const normalize = (raw: string | null | undefined): { key: string; e164: string | null; suffix: string } | null => {
-          if (!raw) return null;
-          const digits = String(raw).replace(/\D/g, "");
-          if (digits.length < 7) return null;
-
-          // Try parsing as-is, then with explicit '+' prefix when missing.
-          let parsed = parsePhoneNumberFromString(raw, "PT");
-          if ((!parsed || !parsed.isValid()) && !raw.startsWith("+") && digits.length >= 11) {
-            parsed = parsePhoneNumberFromString(`+${digits}`);
-          }
-
-          if (parsed && parsed.isValid()) {
-            const e164 = parsed.format("E.164"); // e.g. +351966014669
-            const national = parsed.nationalNumber.toString();
-            // Use national-number digits for suffix to avoid country-code collisions.
-            return { key: e164, e164, suffix: national.slice(-9) };
-          }
-
-          // Fallback: keep raw digits suffix; prefix the key to avoid colliding
-          // with E.164 keys.
-          const suffix = digits.slice(-9);
-          return { key: `~${suffix}`, e164: null, suffix };
-        };
-
-        type ConvNorm = { convId: string; key: string; suffix: string; raw: string };
-        const convNorms: ConvNorm[] = [];
-        const suffixSet = new Set<string>();
-        for (const c of unlinked) {
-          const n = normalize(c.external_thread_id);
-          if (!n) continue;
-          convNorms.push({ convId: c.id, key: n.key, suffix: n.suffix, raw: c.external_thread_id! });
-          suffixSet.add(n.suffix);
-        }
-
-        if (suffixSet.size > 0) {
-          // Broad DB filter via suffix ilike; final precision happens client-side via E.164 match.
-          const orFilter = Array.from(suffixSet).map((s) => `phone.ilike.%${s}%`).join(",");
-
-          const [leadsRes, contactsRes, companiesRes] = await Promise.all([
-            workspaceClient
-              .from("leads")
-              .select("id, name, phone")
-              .eq("workspace_id", currentWorkspace.id)
-              .not("phone", "is", null)
-              .or(orFilter)
-              .limit(1000),
-            workspaceClient
-              .from("contacts")
-              .select("id, name, phone")
-              .eq("workspace_id", currentWorkspace.id)
-              .not("phone", "is", null)
-              .or(orFilter)
-              .limit(1000),
-            workspaceClient
-              .from("companies")
-              .select("id, name, phone")
-              .eq("workspace_id", currentWorkspace.id)
-              .not("phone", "is", null)
-              .or(orFilter)
-              .limit(1000),
-          ]);
-
-          // Group rows by normalized key per type — so we can detect ambiguity within a tier.
-          type Row = { id: string; name: string; phone: string };
-          const byKey: Record<"contact" | "lead" | "company", Map<string, Row[]>> = {
-            contact: new Map(),
-            lead: new Map(),
-            company: new Map(),
-          };
-
-          const indexRows = (rows: Array<{ id: string; name: string | null; phone: string | null }> | null, type: "contact" | "lead" | "company") => {
-            if (!rows) return;
-            for (const r of rows) {
-              if (!r.phone || !r.name) continue;
-              const n = normalize(r.phone);
-              if (!n) continue;
-              const arr = byKey[type].get(n.key) || [];
-              arr.push({ id: r.id, name: r.name, phone: r.phone });
-              byKey[type].set(n.key, arr);
-            }
-          };
-          indexRows(contactsRes.data as any, "contact");
-          indexRows(leadsRes.data as any, "lead");
-          indexRows(companiesRes.data as any, "company");
-
-          const convResolution = new Map<string, NonNullable<Conversation["resolved_contact"]>>();
-
-          for (const cn of convNorms) {
-            // Walk priority tiers: contact → lead → company. Stop at first tier with matches.
-            for (const type of ["contact", "lead", "company"] as const) {
-              const candidates = byKey[type].get(cn.key);
-              if (!candidates || candidates.length === 0) continue;
-
-              // Deduplicate by id (same record could appear twice if phone has odd whitespace).
-              const uniq = Array.from(new Map(candidates.map((c) => [c.id, c])).values());
-
-              if (uniq.length === 1) {
-                convResolution.set(cn.convId, {
-                  type,
-                  id: uniq[0].id,
-                  name: uniq[0].name,
-                  matched_phone: uniq[0].phone,
-                });
-              } else {
-                // Ambiguous: multiple distinct records in the same tier share this phone.
-                // Surface the first for display but flag it and skip auto-link.
-                convResolution.set(cn.convId, {
-                  type,
-                  id: uniq[0].id,
-                  name: uniq[0].name,
-                  matched_phone: uniq[0].phone,
-                  ambiguous: true,
-                  candidates_count: uniq.length,
-                });
+      if (needsResolution) {
+        const wsId = currentWorkspace.id;
+        const dedupKey = `__inbox_resolve_${wsId}`;
+        const w = window as unknown as Record<string, number>;
+        const now = Date.now();
+        // Throttle: at most one call per 30s per workspace per page session.
+        if (!w[dedupKey] || now - w[dedupKey] > 30_000) {
+          w[dedupKey] = now;
+          void supabase.functions
+            .invoke("inbox-resolve-contacts", { body: { workspace_id: wsId } })
+            .then((res) => {
+              if (res?.data?.resolved > 0 || res?.data?.linked > 0) {
+                queryClient.invalidateQueries({ queryKey: ["conversations", wsId] });
               }
-              break;
-            }
-          }
-
-          if (convResolution.size > 0) {
-            for (const c of conversationsWithOpps) {
-              const r = convResolution.get(c.id);
-              if (r) (c as any).resolved_contact = r;
-            }
-
-            // Persist the link only for unambiguous matches — never overwrite an existing link.
-            const colMap = { lead: "lead_id", contact: "contact_id", company: "company_id" } as const;
-            const groupBy = { lead: new Map<string, string[]>(), contact: new Map<string, string[]>(), company: new Map<string, string[]>() };
-            for (const [convId, r] of convResolution.entries()) {
-              if (r.ambiguous) continue;
-              const m = groupBy[r.type];
-              const arr = m.get(r.id) || [];
-              arr.push(convId);
-              m.set(r.id, arr);
-            }
-
-            const updates: Array<Promise<unknown>> = [];
-            for (const type of ["contact", "lead", "company"] as const) {
-              for (const [entityId, convIds] of groupBy[type].entries()) {
-                updates.push(
-                  Promise.resolve(
-                    workspaceClient
-                      .from("conversations")
-                      .update({ [colMap[type]]: entityId } as any)
-                      .in("id", convIds)
-                      .is(colMap[type], null),
-                  ).then((res: any) => {
-                    if (res?.error) console.warn("[Inbox] auto-link conversation failed:", res.error.message);
-                  }),
-                );
-              }
-            }
-            void Promise.allSettled(updates);
-          }
+            })
+            .catch((e) => console.warn("[Inbox] resolve-contacts invoke failed", e));
         }
       }
+
       return conversationsWithOpps as Conversation[];
     },
     enabled: !!currentWorkspace,
