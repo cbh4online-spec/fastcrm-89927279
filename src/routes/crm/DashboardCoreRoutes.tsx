@@ -41,6 +41,7 @@ const ChangelogPage = lazy(() => import("@/pages/ChangelogPage"));
 const GDPRBackofficePage = lazy(() => import("@/modules/growth-seo/pages/GDPRBackofficePage"));
 const BlogDashboard = lazy(() => import("@/pages/dashboard/blog/index"));
 const CreditHistoryPage = lazy(() => import("@/pages/CreditHistoryPage"));
+const BillingIntegrationsPage = lazy(() => import("@/pages/settings/BillingIntegrationsPage"));
 
 export function DashboardCoreRoutes() {
   return (
@@ -97,6 +98,8 @@ export function DashboardCoreRoutes() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/settings/data-model" element={<DataModelPage />} />
       <Route path="/settings/tags" element={<WorkspaceTagsPage />} />
+      <Route path="/settings/billing-integrations" element={<BillingIntegrationsPage />} />
+      <Route path="/dashboard/settings/billing-integrations" element={<BillingIntegrationsPage />} />
       <Route path="/platform/data" element={<VisualDataModelPage />} />
       <Route path="/settings/:section" element={<Settings />} />
       <Route path="/settings/rgpd" element={<GDPRBackofficePage />} />
