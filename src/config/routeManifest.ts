@@ -416,6 +416,7 @@ e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Pac
   e("credits-history",       "Histórico de Créditos", "/dashboard/credits",     Coins,        "administracao"),
   e("settings-integrations", "Integrações & API",     "/settings/integrations",      Plug,         "administracao", { menuKey: "integrations" }),
   e("settings-billing-integrations", "Programas de Faturação", "/settings/billing-integrations", Receipt, "administracao", { visibleInSidebar: false, menuKey: "integrations" }),
+  e("settings-payment-gateways", "Gateways de Pagamento", "/settings/payment-gateways", CreditCard, "administracao", { menuKey: "billing" }),
   e("settings-workspace",    "Workspace",       "/settings/workspace",         FolderCog,    "administracao"),
   e("settings-roles",        "Papéis",          "/settings/roles",             ShieldCheck,  "administracao"),
   e("marketplace",           "Marketplace",     "/dashboard/marketplace",      Puzzle,       "administracao"),

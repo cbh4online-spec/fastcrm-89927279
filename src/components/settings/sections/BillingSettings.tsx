@@ -1,6 +1,7 @@
+import { Link } from "react-router-dom";
 import { SettingsSection } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
-import { Building2, CreditCard, Crown, RefreshCw } from "lucide-react";
+import { Building2, CreditCard, Crown, RefreshCw, Plug, ArrowRight } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { CurrentPlanOverview, UsageDashboard, UsageAlertsBanner } from "@/components/saas";
 import { PricingCards } from "@/components/subscription/PricingCards";
@@ -24,6 +25,24 @@ export function BillingSettings({ searchQuery = "", matchedSections }: BillingSe
     <div className="space-y-6">
       {/* Usage Alerts */}
       <UsageAlertsBanner />
+
+      {/* Payment Gateways shortcut */}
+      <SettingsSection
+        title="Gateways de Pagamento"
+        description="Configura Stripe, ifthenpay e outros métodos de cobrança"
+        icon={<Plug className="h-5 w-5" />}
+      >
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div className="text-sm text-muted-foreground">
+            Hub unificado para gerir os fornecedores de pagamento do workspace.
+          </div>
+          <Button asChild size="sm">
+            <Link to="/settings/payment-gateways">
+              Abrir hub <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </SettingsSection>
 
       {/* Company Billing Data */}
       {shouldShow("billing-company") && (

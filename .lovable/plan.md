@@ -1,119 +1,89 @@
-# Pipeline como ferramenta rápida de proposta + fatura via WhatsApp
+
+# Gateways de Pagamento — Hub unificado + ifthenpay
 
 ## Diagnóstico
 
-A infraestrutura já existe — só falta cosê-la num fluxo 1-clique a partir da oportunidade:
-- `proposals` + `proposal_items` (catálogo, qtd, total automático) ✅
-- `invoices` com FK `opportunity_id` / `proposal_id` ✅
-- `invoicexpress-proxy` + `invoicexpress-sync-invoices` ✅
-- `whatsapp-pro-send` com suporte a `mediaUrl` (PDF) ✅
-- `pipeline_stages` com `probability` (estágio "Ganho" = 100%) ✅
-- Opportunity Detail já tem `OpportunityProposalsTab` ✅
+Já existe no projeto:
+- `ifthenpay_settings` + `ifthenpay_callback_logs` (tabelas)
+- Edge function `ifthenpay-callback` + hook `useIfthenpaySettings`
+- Stripe ligado a planos SaaS, store e faturas (`create-checkout`, `customer-portal`, `useBillingStripe`)
 
-Hoje o utilizador tem de: criar proposta noutra página → preencher tudo → publicar → ir a InvoiceXpress → criar fatura → copiar link → ir ao WhatsApp → enviar. Vamos colapsar isto em **2 cliques**.
+Falta:
+- Uma área dedicada "Gateways de Pagamento" que agregue todos os PSP do workspace.
+- Fluxo completo de cobrança ifthenpay (criar pagamento MB / MBWAY / CC / Payshop / Pix, conciliar via callback).
+- Plug-in de ifthenpay nos 3 contextos: faturas, checkout da store e subscrições SaaS.
 
 ## Decisões de produto/UX
 
-**1. "Proposta Rápida" — drawer dentro da OpportunityDetail**
-- Botão primário no header: **"Nova proposta rápida"**
-- Drawer lateral (não modal full-page) com:
-  - Seletor de produtos do catálogo (combobox com search) → adiciona linha
-  - Linhas editáveis: nome, qtd, preço unitário, desconto % (preenche automático do produto)
-  - Total/IVA/Final calculado em tempo real
-  - Validade (default 7 dias) + condições pagamento (default da workspace)
-  - 1 botão: **"Criar e enviar por WhatsApp"** → cria proposta `published`, gera link público, envia mensagem via `whatsapp-pro-send` com link curto + (opcional) PDF.
-
-**2. Adjudicação automática ao mover para "Ganho"**
-- Hook em `useUpdateOpportunityEnhanced`: quando `stage_id` novo tem `probability === 100`:
-  - Procura proposta `accepted` ou mais recente `published` da oportunidade
-  - Cria fatura local (`invoices`) a partir dos `proposal_items`
-  - Sincroniza com InvoiceXpress (se integração ativa) → recebe `public_url` e PDF
-  - Envia WhatsApp ao contacto com link curto + PDF anexo
-  - Toast: "Fatura #INV-2025-001 enviada por WhatsApp ✅" com undo de 5s
-- Confirmação prévia: AlertDialog "Adjudicar este negócio? Será gerada e enviada a fatura."
-
-**3. Configuração mínima (Settings → Pipeline)**
-- Toggle: "Gerar fatura automaticamente ao Ganhar" (default ON)
-- Toggle: "Anexar PDF no WhatsApp" (default ON, só link se OFF)
-- Template editável da mensagem WhatsApp: `Olá {{cliente}}, segue a fatura nº {{numero}} no valor de {{total}}. Link: {{link}}`
+1. **Hub** em `Definições → Gateways de Pagamento` com cards por gateway (Stripe, ifthenpay, + placeholder para futuros). Cada card mostra: estado (ligado/test/live), métodos ativos, último evento, ações (configurar, testar, desligar).
+2. **Página detalhe ifthenpay** com tabs: *Credenciais & Métodos*, *Callback & Logs*, *Pagamentos* (lista de cobranças geradas + estado).
+3. **Botão "Cobrar"** em faturas: dialog onde o operador escolhe método (MB/MBWAY/CC/Payshop/Pix) → backend cria pagamento ifthenpay → devolve referência/URL/SMS push. Estado da fatura passa a `pending_payment` até callback.
+4. **Store checkout**: ifthenpay aparece como opção quando ativo no workspace (paralela ao Stripe).
+5. **Subscrições SaaS (CRM)**: ifthenpay disponível para planos pagos via referência MB recorrente (geração mensal de nova ref). Cartão recorrente fica fora desta fase (ifthenpay não tem token de cartão recorrente nativo simples).
+6. Tudo escopado por `workspace_id` com RLS. Apenas admins podem editar credenciais.
 
 ## Estrutura técnica
 
-### Novos componentes
-```
-src/components/opportunities/quick-proposal/
-  QuickProposalDrawer.tsx          # drawer principal
-  QuickProposalProductPicker.tsx   # combobox catálogo
-  QuickProposalLineRow.tsx         # linha editável
-  QuickProposalSummary.tsx         # totais + envio
-src/components/opportunities/AdjudicateDialog.tsx
-src/components/settings/pipeline/PipelineAutomationSettings.tsx
-```
+### DB (migration)
+- `payment_gateways` (catálogo): `id`, `provider` (`stripe|ifthenpay|...`), `name`, `supports_recurring`, `supports_oneoff`, `methods jsonb`.
+- `workspace_payment_gateways`: `workspace_id`, `provider`, `is_active`, `is_default`, `test_mode`, `display_name`, `last_health_at`, `last_health_status`. Vista unificada para o hub.
+- `ifthenpay_payments`: `id`, `workspace_id`, `method` (`mb|mbway|cc|payshop|pix`), `amount`, `currency`, `order_id`, `entity`, `reference`, `request_id`, `checkout_url`, `expiry_date`, `status` (`pending|paid|expired|cancelled|error`), `paid_at`, `paid_amount`, `metadata jsonb`, `invoice_id?`, `store_order_id?`, `subscription_id?`.
+- RLS: SELECT por membros do workspace; INSERT/UPDATE só admin ou service_role.
+- Trigger para refletir `paid_at` → marcar fatura/order/subscription como pagas.
 
-### Novos hooks
-```
-src/hooks/proposals/useCreateQuickProposal.ts   # cria proposta + items + publica
-src/hooks/opportunities/useAdjudicateOpportunity.ts  # ganha → fatura → whatsapp
-```
+### Edge functions (novas)
+- `ifthenpay-create-payment` — recebe `{ method, amount, order_id, invoice_id?, store_order_id?, subscription_id?, customer:{name,email,phone?} }`, valida JWT + workspace, chama API ifthenpay correta:
+  - MB: `/multibanco/reference/init` (dynamic ref)
+  - MBWAY: `/spg/payment/mbway`
+  - CC: `/spg/payment/creditcard`
+  - Payshop: `/payshop/reference`
+  - Pix: `/pix/init`
+- `ifthenpay-callback` (já existe) — estender para localizar `ifthenpay_payments.request_id`, atualizar estado, emitir update à entidade ligada.
+- `payment-gateways-health` — pinga config de cada gateway ativo do workspace (Stripe via `accounts.retrieve`, ifthenpay via verificação local de keys).
 
-### Nova edge function
-```
-supabase/functions/opportunity-adjudicate/index.ts
-```
-Input: `{ opportunityId }` | Auth: JWT + workspace check
-Fluxo:
-1. Carrega oportunidade + proposta ativa + items + contacto
-2. INSERT `invoices` + `invoice_items` (workspace_id, opportunity_id, proposal_id)
-3. Se workspace tem `billing_integrations.is_active` (InvoiceXpress) → POST via `invoicexpress-proxy` → guarda `external_id` + `public_url` + `pdf_url` em `invoices`
-4. Resolve telefone do contacto → invoca `whatsapp-pro-send` com template + mediaUrl (PDF)
-5. Atualiza `opportunities.status='won'` + `last_won_at`
-6. Logs em `activity_logs` com `correlation_id`
-7. Retorna 200 com `{ ok, invoiceId, publicUrl, whatsappStatus }`; em falha parcial devolve `{ ok: false, fallback: 'invoice_created_whatsapp_failed' }`
+### Frontend
+- `src/pages/settings/PaymentGatewaysPage.tsx` — hub com grid de cards.
+- `src/components/settings/payment-gateways/GatewayCard.tsx` — card padronizado.
+- `src/components/settings/payment-gateways/StripeGatewayPanel.tsx` — usa hooks existentes.
+- `src/components/settings/payment-gateways/ifthenpay/` — `CredentialsTab`, `CallbackTab`, `PaymentsTab`, `MethodsToggleGroup`.
+- `src/hooks/payments/useWorkspaceGateways.ts`, `useIfthenpayPayments.ts`, `useChargeIfthenpay.ts`.
+- `src/components/invoices/ChargeWithIfthenpayDialog.tsx` — botão na ficha da fatura.
+- Store checkout (`StoreCheckout*`): adicionar opção "ifthenpay" + sub-seleção de método.
+- SaaS billing (`BillingSettings`/`PricingCards`): nova rota `start-checkout-ifthenpay` para planos com pagamento por referência.
 
-### Migration
-```sql
--- Tabela de configuração por workspace
-CREATE TABLE pipeline_automation_settings (
-  workspace_id uuid PK FK,
-  auto_invoice_on_won boolean DEFAULT true,
-  attach_pdf_whatsapp boolean DEFAULT true,
-  whatsapp_template text DEFAULT 'Olá {{cliente}}...',
-  ...
-);
--- RLS: SELECT/UPDATE para members; INSERT via trigger
-```
+### Navegação
+- Acrescentar entrada em `routeManifest.ts` (Definições → Faturação → Gateways de Pagamento).
 
-## Plano de implementação
+## Plano de implementação (faseado)
 
-1. **Migration** — tabela `pipeline_automation_settings` + RLS
-2. **Edge function** `opportunity-adjudicate` (núcleo: fatura + WhatsApp)
-3. **Hook** `useCreateQuickProposal` — wrapper sobre `proposals` + `proposal_items` + publish
-4. **QuickProposalDrawer** + sub-componentes — UI 1-clique
-5. **Botão "Nova proposta rápida"** no `OpportunityDetail` header
-6. **AdjudicateDialog** + integração no `OpportunityStagesStepper` e drag-drop kanban
-7. **Settings → Pipeline** — toggles + template
-8. **i18n PT** + estados (loading/erro/sucesso/sem integração) + toasts com undo
-9. QA: oportunidade sem contacto WhatsApp, sem InvoiceXpress, sem produtos, com catálogo grande (virtualização do picker)
+**Fase 1 — Infraestrutura + Hub**
+1. Migration: `workspace_payment_gateways`, `ifthenpay_payments`, RLS, triggers.
+2. Hook `useWorkspaceGateways` + página `PaymentGatewaysPage` + cards Stripe/ifthenpay (read-only de estado).
+3. Mover `IfthenpaySettings` existente para tab dentro do detalhe.
+
+**Fase 2 — Cobranças ifthenpay**
+4. Edge function `ifthenpay-create-payment` (5 métodos).
+5. Estender `ifthenpay-callback` para conciliar `ifthenpay_payments` + entidade ligada.
+6. Tab *Pagamentos* com lista, filtros por estado/método, reenviar MBWAY, anular.
+
+**Fase 3 — Integração nos contextos**
+7. Botão "Cobrar via ifthenpay" em faturas (dialog).
+8. Opção ifthenpay no store checkout.
+9. Opção ifthenpay nos planos SaaS (referência MB recorrente).
 
 ## Critérios de aceitação
+- Admin vê hub com Stripe + ifthenpay e estado real.
+- Admin configura ifthenpay (entidade, subentidade, keys por método, anti-phishing) e roda key.
+- Operador gera pagamento por qualquer dos 5 métodos a partir de uma fatura, vê referência/URL e estado atualiza por callback.
+- Cliente final escolhe ifthenpay no checkout da store; encomenda fica pendente até callback.
+- Subscrição SaaS por referência MB renova mensalmente (nova ref por ciclo).
+- Todas as tabelas têm RLS escopada por workspace; só service_role escreve em `ifthenpay_payments` e logs.
+- Sem chaves privadas no frontend; CORS e validação zod nas edge functions.
 
-- [ ] A partir de `/dashboard/opportunities/:id`, em ≤ 30s e ≤ 2 cliques crio proposta com 3 produtos do catálogo e envio por WhatsApp
-- [ ] Mover deal para etapa "Ganho" no kanban dispara confirmação → fatura → WhatsApp automático
-- [ ] Mensagem WhatsApp chega com link público da fatura (InvoiceXpress se ativo, senão local) + PDF anexo
-- [ ] Se InvoiceXpress falhar: fatura local é criada na mesma + toast com erro acionável
-- [ ] Se WhatsApp falhar: fatura permanece + utilizador vê botão "Reenviar por WhatsApp"
-- [ ] Toggle "auto-fatura" em Settings desativa o trigger automático
-- [ ] Sem contacto/telefone: bloqueia com mensagem clara antes de tentar enviar
-- [ ] RLS: utilizador de outra workspace não consegue adjudicar
-- [ ] Mobile: drawer responsivo, picker usável
+## Riscos / por validar
+- ifthenpay não suporta tokenização de cartão recorrente — SaaS recorrente via cartão fica só no Stripe.
+- Pix exige conta brasileira ifthenpay — confirmar disponibilidade no workspace antes de mostrar.
+- Conciliação por callback exige idempotência (chave: `request_id` + `amount`).
+- Necessário decidir política quando referência MB expira sem pagamento (auto-regenerar?).
 
-## Riscos e pontos por validar
-
-- **InvoiceXpress async**: a sincronização atual é via cron — vamos invocar `invoicexpress-proxy` em modo síncrono (POST `/invoices.json` + `finalise`) para obter `public_url` na hora. Confirmar que o proxy suporta este fluxo ou estender.
-- **PDF do InvoiceXpress**: endpoint `/invoices/{id}/pdf` pode demorar a estar disponível após finalize → fazer poll curto (max 5s) e cair para "só link" se não vier a tempo.
-- **Telefone do contacto**: alguns contactos podem ter telefone em `phone` ou `mobile_phone` — usar normalizador `src/utils/phone.ts`.
-- **Numeração da fatura local**: já existe `invoice_number` — manter sequência via função existente; quando InvoiceXpress sincroniza, atualizar com número oficial.
-- **Reversão**: se utilizador desadjudicar (move para outra etapa), NÃO eliminar fatura — apenas marcar `status='cancelled'` opcionalmente. Pedir confirmação ao utilizador.
-- **Permissões**: só roles `admin`/`sales` podem adjudicar (verificar `has_role`).
-
-Aprovas avançar com este plano? Posso começar pela migration + edge function `opportunity-adjudicate` e depois o drawer.
+Posso avançar pela Fase 1 já a seguir?

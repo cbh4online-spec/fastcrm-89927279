@@ -71,6 +71,7 @@ const B2BStockPage = lazy(() => import("@/pages/B2BStockPage"));
 const B2BPromotionsPage = lazy(() => import("@/pages/B2BPromotionsPage"));
 const B2BFunnelPage = lazy(() => import("@/pages/B2BFunnelPage"));
 const IfthenpaySettingsPage = lazy(() => import("@/pages/IfthenpaySettingsPage"));
+const PaymentGatewaysPage = lazy(() => import("@/pages/settings/PaymentGatewaysPage"));
 
 export function StoreRoutes() {
   return (
@@ -168,6 +169,7 @@ export function B2BAdminRoutes() {
       <Route path="/dashboard/b2b/funnel" element={<B2BFunnelPage />} />
       <Route path="/dashboard/b2b-funnel" element={<B2BFunnelPage />} />
       <Route path="/dashboard/integrations/ifthenpay" element={<IfthenpaySettingsPage />} />
+      <Route path="/settings/payment-gateways" element={<PaymentGatewaysPage />} />
     </>
   );
 }
