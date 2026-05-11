@@ -117,9 +117,16 @@ export default function BillingIntegrationsPage() {
               </p>
             </div>
           </div>
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4 mr-2" /> Ligar fornecedor
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <a href="/settings/billing-integrations/sync">
+                <RefreshCw className="h-4 w-4 mr-2" /> Sincronização
+              </a>
+            </Button>
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4 mr-2" /> Ligar fornecedor
+            </Button>
+          </div>
         </div>
 
         <Card>
