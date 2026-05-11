@@ -500,13 +500,26 @@ export default function Invoices() {
                           />
                         </TableCell>
                         <TableCell className="font-mono font-medium">
-                          <span className="flex items-center gap-1.5">
+                          <span className="flex items-center gap-1.5 flex-wrap">
                             {invoice.invoice_number}
                             {(invoice as any).renewal_contract_id && (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-300 text-purple-700 bg-purple-50">
                                 <RefreshCcw className="h-2.5 w-2.5 mr-0.5" />
                                 Renovação
                               </Badge>
+                            )}
+                            {(invoice as any).external_provider === "invoicexpress" && (
+                              <a
+                                href={(invoice as any).external_url || "#"}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Aberta no InvoiceXpress"
+                              >
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100">
+                                  InvoiceXpress
+                                </Badge>
+                              </a>
                             )}
                           </span>
                         </TableCell>
