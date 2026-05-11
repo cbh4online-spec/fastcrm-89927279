@@ -108,6 +108,9 @@ export function PaymentActionsCard({
   const { data: waSettings } = useWhatsAppSettings();
   const waSend = useWhatsAppProSend();
   const logSend = useLogInvoiceWhatsAppSend();
+  const { data: waSendsHistory = [] } = useInvoiceWhatsAppSends(invoiceId);
+  // Cooldown anti-duplicado para mesma mensagem/telemóvel
+  const WA_DEDUPE_WINDOW_SEC = 120;
   const waActive =
     !!waInstance?.active && (waSettings?.payment_link_enabled ?? true);
   const customerPhoneE164 = customerPhone ? toE164(customerPhone, "PT") : null;
