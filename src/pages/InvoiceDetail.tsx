@@ -28,6 +28,7 @@ import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDialog";
 import { InvoicePaymentsHistory } from "@/components/invoices/InvoicePaymentsHistory";
+import { PaymentActionsCard } from "@/components/invoices/PaymentActionsCard";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -306,6 +307,16 @@ export default function InvoiceDetail() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Online Payment (admin) — neutral, no provider branding */}
+            {canRegisterPayment && (
+              <PaymentActionsCard
+                invoiceId={invoice.id}
+                invoiceTotal={invoice.total}
+                amountPaid={invoice.amount_paid || 0}
+                currency={invoice.currency}
+              />
+            )}
 
             {/* Payments History */}
             <InvoicePaymentsHistory
