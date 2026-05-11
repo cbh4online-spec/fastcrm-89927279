@@ -74,6 +74,7 @@ export function PaymentActionsCard({
   const { data: waInstance } = useWhatsAppProviderInstance();
   const waSend = useWhatsAppProSend();
   const waActive = !!waInstance?.active;
+  const customerPhoneE164 = customerPhone ? toE164(customerPhone, "PT") : null;
 
   const ensureLink = async (): Promise<string> => {
     if (shareLink) return shareLink;
