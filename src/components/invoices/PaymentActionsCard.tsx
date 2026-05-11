@@ -100,8 +100,15 @@ export function PaymentActionsCard({
   };
 
   const handleSendWhatsApp = async () => {
-    if (!customerPhone) {
+    if (!customerPhone || !customerPhone.trim()) {
       toast.error("Cliente sem telemóvel registado");
+      return;
+    }
+    const e164 = toE164(customerPhone, "PT");
+    if (!e164) {
+      toast.error(
+        `Telemóvel inválido (${customerPhone}). Actualize o contacto do cliente para um número válido.`,
+      );
       return;
     }
     setGeneratingLink(true);
@@ -109,12 +116,16 @@ export function PaymentActionsCard({
       const url = await ensureLink();
       const text = `Olá! Pode efectuar o pagamento da fatura aqui: ${url}`;
       await waSend.mutateAsync({
-        phone: customerPhone,
+        phone: e164,
         messageType: "text" as any,
         text,
-        metadata: { source: "invoice_payment_link", invoice_id: invoiceId },
+        metadata: {
+          source: "invoice_payment_link",
+          invoice_id: invoiceId,
+          phone_formatted: formatPhone(e164, "PT"),
+        },
       });
-      toast.success("Link enviado por WhatsApp");
+      toast.success(`Link enviado por WhatsApp para ${formatPhone(e164, "PT")}`);
     } catch (e: any) {
       toast.error(e?.message || "Erro a enviar por WhatsApp");
     } finally {
