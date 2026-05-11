@@ -82125,6 +82125,42 @@ export type Database = {
           },
         ]
       }
+      whatsapp_birthday_logs: {
+        Row: {
+          entity_id: string
+          entity_type: string
+          error: string | null
+          id: string
+          message_year: number
+          phone: string | null
+          sent_at: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          entity_id: string
+          entity_type: string
+          error?: string | null
+          id?: string
+          message_year: number
+          phone?: string | null
+          sent_at?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          entity_id?: string
+          entity_type?: string
+          error?: string | null
+          id?: string
+          message_year?: number
+          phone?: string | null
+          sent_at?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_bot_rule_logs: {
         Row: {
           conversation_id: string | null
@@ -83635,10 +83671,14 @@ export type Database = {
           auto_create_leads: boolean
           autopilot_enabled: boolean
           away_message: string | null
+          birthday_enabled: boolean
+          birthday_message_template: string
+          birthday_send_hour: number
           business_hours_only: boolean
           created_at: string
           id: string
           notify_on_new_message: boolean
+          timezone: string
           updated_at: string
           welcome_message: string | null
           workspace_id: string
@@ -83648,10 +83688,14 @@ export type Database = {
           auto_create_leads?: boolean
           autopilot_enabled?: boolean
           away_message?: string | null
+          birthday_enabled?: boolean
+          birthday_message_template?: string
+          birthday_send_hour?: number
           business_hours_only?: boolean
           created_at?: string
           id?: string
           notify_on_new_message?: boolean
+          timezone?: string
           updated_at?: string
           welcome_message?: string | null
           workspace_id: string
@@ -83661,10 +83705,14 @@ export type Database = {
           auto_create_leads?: boolean
           autopilot_enabled?: boolean
           away_message?: string | null
+          birthday_enabled?: boolean
+          birthday_message_template?: string
+          birthday_send_hour?: number
           business_hours_only?: boolean
           created_at?: string
           id?: string
           notify_on_new_message?: boolean
+          timezone?: string
           updated_at?: string
           welcome_message?: string | null
           workspace_id?: string
