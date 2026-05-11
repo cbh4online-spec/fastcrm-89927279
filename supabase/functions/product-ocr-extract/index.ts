@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
       const status = aiResponse.status;
       let userMsg = "Erro ao processar com IA";
       if (status === 429) userMsg = "Limite de pedidos atingido. Tenta novamente daqui a uns minutos.";
-      else if (status === 402) userMsg = "Créditos AI esgotados. Adiciona créditos no workspace.";
+      else if (status === 402) userMsg = "Limite temporário da IA atingido. O saldo do workspace não foi debitado; tenta novamente daqui a pouco.";
       // telemetria de erro
       if (doc.workspace_id) {
         logAIUsage({
