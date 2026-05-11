@@ -64,6 +64,8 @@ interface ProductSpecifications {
 
 interface SKUSearchResult {
   found: boolean;
+  fallback?: boolean;
+  message?: string;
   technicalName?: string;
   technicalDescription?: string;
   commercialName?: string;
@@ -78,6 +80,41 @@ interface SKUSearchResult {
   source?: string;
   sources?: string[];
   specifications?: ProductSpecifications;
+}
+
+function buildSkuFallbackResult(sku: string, results: any[], images: string[], reason: string): SKUSearchResult {
+  const sources = [...new Set(results.map((r: any) => r?.url).filter(Boolean))].slice(0, 5);
+  const best = results.find((r: any) => r?.title || r?.description || r?.markdown) || {};
+  const title = String(best.title || sku).replace(/\s+/g, ' ').trim().slice(0, 150);
+  const rawText = String(best.description || best.markdown || '').replace(/\s+/g, ' ').trim();
+  const description = rawText.slice(0, 300) || `Produto importado pela referência ${sku}.`;
+  const content = results.map((r: any) => `${r?.title || ''} ${r?.description || ''} ${r?.markdown || ''}`).join(' ');
+  const prices = [...content.matchAll(/(?:€|EUR\s*)\s*([0-9]+(?:[.,][0-9]{1,2})?)/gi)]
+    .map((m) => Number(String(m[1]).replace(',', '.')))
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .slice(0, 20);
+  const min = prices.length ? Math.min(...prices) : 0;
+  const max = prices.length ? Math.max(...prices) : 0;
+
+  return {
+    found: true,
+    fallback: true,
+    message: reason,
+    technicalName: title,
+    commercialName: title,
+    technicalDescription: description.slice(0, 200),
+    commercialDescription: description,
+    name: title,
+    description,
+    priceRange: { min, max },
+    suggestedPrice: prices.length ? Math.round(((min + max) / 2) * 100) / 100 : 0,
+    category: 'Produto',
+    images: [...new Set(images)].slice(0, 10),
+    imageUrl: images[0],
+    sources,
+    source: sources[0],
+    specifications: { brand: undefined },
+  };
 }
 
   // Helper: search for brand logo via Firecrawl
@@ -464,6 +501,18 @@ REGRAS para descrição comercial:
       });
 
       if (!extractResponse.ok) {
+        if (extractResponse.status === 402 || extractResponse.status === 429) {
+          const reason = extractResponse.status === 402
+            ? 'IA temporariamente indisponível por limite de créditos; dados criados a partir da pesquisa web.'
+            : 'Limite de pedidos IA atingido; dados criados a partir da pesquisa web.';
+          const fallbackResult = buildSkuFallbackResult(sku, uniqueResults, extractedImages, reason);
+          return new Response(JSON.stringify({
+            success: true,
+            data: fallbackResult,
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         throw new Error(`AI extraction failed: ${extractResponse.status}`);
       }
 
