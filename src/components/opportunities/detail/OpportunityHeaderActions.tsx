@@ -23,11 +23,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MoreHorizontal, Copy, Link, Trash2, Star, Mail, ClipboardCopy, Share2, Maximize2 } from "lucide-react";
+import { MoreHorizontal, Copy, Link, Trash2, Star, Mail, ClipboardCopy, Share2, Maximize2, FileText, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { ComposeEmailDialog } from "@/components/email";
+import { QuickProposalDrawer } from "@/components/opportunities/quick-proposal/QuickProposalDrawer";
+import { AdjudicateDialog } from "@/components/opportunities/AdjudicateDialog";
 
 interface OpportunityHeaderActionsProps {
   opportunityId: string;
@@ -38,16 +40,21 @@ interface OpportunityHeaderActionsProps {
   contactEmail?: string;
   contactName?: string;
   contactId?: string;
+  companyId?: string;
   contactEntityType?: 'contact' | 'lead';
   stageName?: string;
   companyName?: string;
+  currency?: string;
+  isWon?: boolean;
 }
 
-export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onToggleFavorite, onDelete, contactEmail, contactName, contactId, contactEntityType, stageName, companyName }: OpportunityHeaderActionsProps) {
+export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onToggleFavorite, onDelete, contactEmail, contactName, contactId, companyId, contactEntityType, stageName, companyName, currency, isWon }: OpportunityHeaderActionsProps) {
   const { t } = useTranslation("crm");
   const navigate = useNavigate();
   const [showDelete, setShowDelete] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [showQuickProposal, setShowQuickProposal] = useState(false);
+  const [showAdjudicate, setShowAdjudicate] = useState(false);
 
   const copyUrl = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -81,6 +88,30 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
 
   return (
     <>
+      {/* Proposta rápida — destaque */}
+      <Button
+        variant="default"
+        size="sm"
+        className="gap-1.5 h-8 text-xs"
+        onClick={() => setShowQuickProposal(true)}
+      >
+        <FileText className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Proposta rápida</span>
+      </Button>
+
+      {/* Adjudicar e faturar */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-1.5 h-8 text-xs border-primary/40 text-primary hover:bg-primary/10"
+        onClick={() => setShowAdjudicate(true)}
+        disabled={isWon}
+        title={isWon ? "Negócio já adjudicado" : "Adjudicar e faturar via WhatsApp"}
+      >
+        <Trophy className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">{isWon ? "Adjudicado" : "Adjudicar"}</span>
+      </Button>
+
       {/* Mobile: icon-only email button */}
       <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={handleComposeEmail}>
         <Mail className="w-3.5 h-3.5" />
@@ -215,6 +246,23 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
           }}
         />
       )}
+
+      <QuickProposalDrawer
+        open={showQuickProposal}
+        onOpenChange={setShowQuickProposal}
+        opportunityId={opportunityId}
+        opportunityTitle={title}
+        contactId={contactId ?? null}
+        companyId={companyId ?? null}
+        defaultCurrency={currency || "EUR"}
+      />
+
+      <AdjudicateDialog
+        open={showAdjudicate}
+        onOpenChange={setShowAdjudicate}
+        opportunityId={opportunityId}
+        opportunityTitle={title}
+      />
     </>
   );
 }
