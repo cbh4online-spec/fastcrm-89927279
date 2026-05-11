@@ -473,6 +473,100 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
                 </div>
                 </div>
 
+                {/* Painel manual-only: quando há URLs adicionadas mas ainda sem descoberta */}
+                {!siteClone.discovery && cloneExtraPages.length > 0 && (
+                  <div className="space-y-3 border rounded-lg p-4 bg-muted/20">
+                    <h3 className="font-medium text-sm flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      {cloneExtraPages.length} URL{cloneExtraPages.length > 1 ? "s" : ""} pronta{cloneExtraPages.length > 1 ? "s" : ""} a clonar
+                    </h3>
+
+                    <div>
+                      <Label htmlFor="clone-name-manual" className="text-xs">Nome do site</Label>
+                      <Input
+                        id="clone-name-manual"
+                        value={cloneName}
+                        onChange={(e) => setCloneName(e.target.value)}
+                        placeholder="meu-site"
+                        maxLength={160}
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto border rounded-md bg-background divide-y">
+                      {cloneExtraPages.map((p) => (
+                        <div key={p} className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs">
+                          <span className="truncate font-mono">{p}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => {
+                              setCloneExtraPages((prev) => prev.filter((x) => x !== p));
+                              setCloneSelected((prev) => {
+                                const next = new Set(prev);
+                                next.delete(p);
+                                return next;
+                              });
+                            }}
+                          >
+                            Remover
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="clone-keep-scripts-manual"
+                        checked={cloneKeepScripts}
+                        onCheckedChange={(c) => setCloneKeepScripts(!!c)}
+                      />
+                      <label htmlFor="clone-keep-scripts-manual" className="text-xs text-muted-foreground cursor-pointer">
+                        Manter scripts JS originais (não recomendado)
+                      </label>
+                    </div>
+
+                    <Button
+                      className="w-full"
+                      disabled={cloneExtraPages.length === 0 || siteClone.cloning}
+                      onClick={async () => {
+                        try {
+                          const sourceUrl = (() => {
+                            try { return new URL(cloneExtraPages[0]).origin; } catch { return cloneExtraPages[0]; }
+                          })();
+                          const res = await siteClone.startClone({
+                            sourceUrl,
+                            pages: cloneExtraPages,
+                            name: cloneName.trim() || sourceUrl,
+                            keepScripts: cloneKeepScripts,
+                            includeSubdomains: cloneIncludeSub,
+                          });
+                          toast({
+                            title: "Clone iniciado",
+                            description: `${res.pages_total} páginas em processamento.`,
+                          });
+                        } catch (err) {
+                          toast({
+                            title: "Falha ao iniciar clone",
+                            description: err instanceof Error ? err.message : String(err),
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      {siteClone.cloning ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          A clonar…
+                        </>
+                      ) : (
+                        `Clonar ${cloneExtraPages.length} página${cloneExtraPages.length > 1 ? "s" : ""}`
+                      )}
+                    </Button>
+                  </div>
+                )}
+
                 {siteClone.discovery && (
                   <div className="space-y-3 border rounded-lg p-4 bg-muted/20">
                     <h3 className="font-medium text-sm flex items-center gap-2">
