@@ -93,6 +93,11 @@ function C2CRedirectToMarketplace() {
   return <Navigate to={`/marketplace/${workspaceSlug}${suffix}${window.location.search}`} replace />;
 }
 
+function BuilderIdRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/dashboard/builder/${id}`} replace />;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -141,6 +146,10 @@ const App = () => (
 
                 {/* Builder — public published assets */}
                 <Route path="/p/:slug" element={<BuilderPublicPage />} />
+
+                {/* Builder shortcuts → redirect to dashboard */}
+                <Route path="/builder" element={<Navigate to="/dashboard/builder" replace />} />
+                <Route path="/builder/:id" element={<BuilderIdRedirect />} />
 
                 {/* Store - ISOLATED from CRM providers */}
                 <Route path="/store/*" element={<StoreRoutes />} />
