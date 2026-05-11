@@ -214,6 +214,15 @@ export function PaymentActionsCard({
 
   const confirmSendWhatsApp = async () => {
     if (!waPreview || !waConsent) return;
+    const finalText = (waEditedText || "").trim();
+    if (!finalText) {
+      toast.error("Mensagem vazia. Escreva o texto antes de enviar.");
+      return;
+    }
+    if (!finalText.includes(waPreview.url)) {
+      toast.error("A mensagem não contém o link de pagamento. Reponha o link antes de enviar.");
+      return;
+    }
     try {
       // Backend opt-in precheck (workspace-scoped). Fail-closed if not allowed.
       const { data: pre, error: preErr } = await supabase.functions.invoke(
@@ -234,11 +243,11 @@ export function PaymentActionsCard({
             .mutateAsync({
               invoiceId,
               phone: waPreview.e164,
-              messageText: waPreview.text,
+              messageText: finalText,
               shareUrl: waPreview.url,
               status: "failed",
               errorMessage: "blocked_optout",
-              metadata: { consent_confirmed: true, blocked_reason: "optout" },
+              metadata: { consent_confirmed: true, blocked_reason: "optout", edited: finalText !== waPreview.text },
             })
             .catch(() => {});
         } else if (reason === "invalid_phone") {
@@ -253,39 +262,41 @@ export function PaymentActionsCard({
       const res = await waSend.mutateAsync({
         phone: waPreview.e164,
         messageType: "text" as any,
-        text: waPreview.text,
+        text: finalText,
         metadata: {
           source: "invoice_payment_link",
           invoice_id: invoiceId,
           phone_formatted: formatPhone(waPreview.e164, "PT"),
           consent_confirmed: true,
+          edited: finalText !== waPreview.text,
         },
       });
       logSend
         .mutateAsync({
           invoiceId,
           phone: waPreview.e164,
-          messageText: waPreview.text,
+          messageText: finalText,
           shareUrl: waPreview.url,
           status: "sent",
           providerMessageId: (res as any)?.providerMessageId ?? null,
-          metadata: { consent_confirmed: true },
+          metadata: { consent_confirmed: true, edited: finalText !== waPreview.text },
         })
         .catch(() => {});
       toast.success(`Link enviado por WhatsApp para ${formatPhone(waPreview.e164, "PT")}`);
       setWaConfirmOpen(false);
       setWaPreview(null);
+      setWaEditedText("");
       setWaConsent(false);
     } catch (e: any) {
       logSend
         .mutateAsync({
           invoiceId,
           phone: waPreview.e164,
-          messageText: waPreview.text,
+          messageText: finalText,
           shareUrl: waPreview.url,
           status: "failed",
           errorMessage: e?.message || "Erro desconhecido",
-          metadata: { consent_confirmed: true },
+          metadata: { consent_confirmed: true, edited: finalText !== waPreview.text },
         })
         .catch(() => {});
       toast.error(e?.message || "Erro a enviar por WhatsApp");
