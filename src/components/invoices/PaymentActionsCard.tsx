@@ -142,6 +142,33 @@ export function PaymentActionsCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {outstanding > 0 && (
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Link2 className="w-4 h-4" /> Link de pagamento para o cliente
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Envie por email ou WhatsApp. O cliente escolhe o método e paga sem login.
+            </p>
+            {shareLink ? (
+              <div className="flex items-center gap-2">
+                <Input value={shareLink} readOnly className="text-xs font-mono" />
+                <Button size="icon" variant="outline" onClick={() => copyToClipboard(shareLink, "Link")}>
+                  <Copy className="w-3 h-3" />
+                </Button>
+                <Button size="icon" variant="outline" asChild>
+                  <a href={shareLink} target="_blank" rel="noreferrer"><ExternalLink className="w-3 h-3" /></a>
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" onClick={handleGenerateLink} disabled={generatingLink}>
+                {generatingLink ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Link2 className="w-3 h-3 mr-2" />}
+                Gerar e copiar link
+              </Button>
+            )}
+          </div>
+        )}
+
         {outstanding <= 0 ? (
           <p className="text-sm text-emerald-600 flex items-center gap-2">
             <Check className="w-4 h-4" /> Fatura totalmente paga
