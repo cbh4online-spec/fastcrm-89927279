@@ -68,6 +68,7 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/whatsapp-pro/consent" element={<WhatsAppConsentPage />} />
       <Route path="/dashboard/whatsapp-pro/quick-templates" element={<WhatsAppQuickTemplatesPage />} />
       <Route path="/dashboard/whatsapp-pro/recurring" element={<WhatsAppRecurringPage />} />
+      <Route path="/dashboard/whatsapp-pro/throttle" element={<WhatsAppThrottlePage />} />
       <Route path="/dashboard/whatsapp" element={<Navigate to="/dashboard/whatsapp-pro" replace />} />
       <Route path="/dashboard/groups" element={<Groups />} />
       <Route path="/dashboard/telegram" element={<TelegramPage />} />
