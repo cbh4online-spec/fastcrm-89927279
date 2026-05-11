@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,15 +76,30 @@ export function PaymentActionsCard({
   const waActive = !!waInstance?.active;
   const customerPhoneE164 = customerPhone ? toE164(customerPhone, "PT") : null;
 
-  const ensureLink = async (): Promise<string> => {
-    if (shareLink) return shareLink;
-    const { data, error } = await (supabase as any).rpc("ensure_invoice_public_token", {
-      _invoice_id: invoiceId,
+  // Cache + in-flight dedupe: evita chamadas duplicadas ao RPC quando
+  // o utilizador clica em "Gerar link" e logo a seguir em "Enviar por WhatsApp".
+  const linkPromiseRef = useRef<Promise<string> | null>(null);
+
+  const ensureLink = (): Promise<string> => {
+    if (shareLink) return Promise.resolve(shareLink);
+    if (linkPromiseRef.current) return linkPromiseRef.current;
+
+    const p = (async () => {
+      const { data, error } = await (supabase as any).rpc("ensure_invoice_public_token", {
+        _invoice_id: invoiceId,
+      });
+      if (error) throw error;
+      const url = `${window.location.origin}/pay/invoice/${data}`;
+      setShareLink(url);
+      return url;
+    })();
+
+    linkPromiseRef.current = p;
+    p.catch(() => {}).finally(() => {
+      // Mantém o resultado em shareLink; limpa o in-flight para permitir retry em caso de erro
+      linkPromiseRef.current = null;
     });
-    if (error) throw error;
-    const url = `${window.location.origin}/pay/invoice/${data}`;
-    setShareLink(url);
-    return url;
+    return p;
   };
 
   const handleGenerateLink = async () => {
