@@ -669,12 +669,48 @@ export function ConversationList({
                         <div className="flex-1 min-w-0">
                           {/* Line 1: Name + badges + Time */}
                           <div className="flex items-center gap-1.5 overflow-hidden">
-                            <span className={cn(
-                              "text-sm truncate",
-                              hasUnread ? "font-bold text-foreground" : "font-normal text-foreground"
-                            )}>
-                              {displayName}
-                            </span>
+                            {conv.resolved_contact && !conv.contact?.name && !conv.lead?.name ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={cn(
+                                    "text-sm truncate cursor-help",
+                                    hasUnread ? "font-bold text-foreground" : "font-normal text-foreground"
+                                  )}>
+                                    {displayName}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">
+                                    Identificado por {conv.resolved_contact.type === "contact" ? "contacto" : conv.resolved_contact.type === "lead" ? "lead" : "empresa"}
+                                  </p>
+                                  {conv.resolved_contact.matched_phone && (
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                      Match: {conv.resolved_contact.matched_phone} ↔ {conv.external_thread_id}
+                                    </p>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <span className={cn(
+                                "text-sm truncate",
+                                hasUnread ? "font-bold text-foreground" : "font-normal text-foreground"
+                              )}>
+                                {displayName}
+                              </span>
+                            )}
+                            {conv.resolved_contact && !conv.contact?.name && !conv.lead?.name && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "h-4 px-1 text-[9px] font-medium flex-shrink-0 uppercase tracking-wide",
+                                  conv.resolved_contact.type === "contact" && "border-emerald-500/40 text-emerald-600",
+                                  conv.resolved_contact.type === "lead" && "border-amber-500/40 text-amber-600",
+                                  conv.resolved_contact.type === "company" && "border-sky-500/40 text-sky-600",
+                                )}
+                              >
+                                {conv.resolved_contact.type === "contact" ? "Contacto" : conv.resolved_contact.type === "lead" ? "Lead" : "Empresa"}
+                              </Badge>
+                            )}
                             {urgent && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
