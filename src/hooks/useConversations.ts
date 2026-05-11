@@ -55,6 +55,13 @@ export interface Conversation {
   contact?: ConversationContact | null;
   company?: ConversationCompany | null;
   opportunities?: ConversationOpportunity[];
+  /** Resolved by phone suffix when conversation has no linked lead/contact/company */
+  resolved_contact?: {
+    type: "lead" | "contact" | "company";
+    id: string;
+    name: string;
+    matched_phone?: string | null;
+  } | null;
   // AI Classification fields
   ai_priority?: "high" | "medium" | "low" | null;
   ai_intent?: "support" | "sales" | "question" | "follow_up" | "complaint" | "other" | null;
