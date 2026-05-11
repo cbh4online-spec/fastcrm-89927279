@@ -320,6 +320,11 @@ export default function InvoiceDetail() {
               />
             )}
 
+            {/* Histórico de envios por WhatsApp */}
+            {canRegisterPayment && (
+              <InvoiceWhatsAppHistoryCard invoiceId={invoice.id} />
+            )}
+
             {/* Payments History */}
             <InvoicePaymentsHistory
               invoiceId={invoice.id}
