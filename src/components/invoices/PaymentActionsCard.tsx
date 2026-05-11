@@ -81,6 +81,15 @@ export function PaymentActionsCard({
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [generatingLink, setGeneratingLink] = useState(false);
 
+  const [waConfirmOpen, setWaConfirmOpen] = useState(false);
+  const [waPreview, setWaPreview] = useState<{
+    text: string;
+    e164: string;
+    url: string;
+  } | null>(null);
+  const [waConsent, setWaConsent] = useState(false);
+  const [preparingPreview, setPreparingPreview] = useState(false);
+
   const createPayment = useCreateIfthenpayPayment();
   const { data: payments = [] } = useIfthenpayPayments({
     reference_type: "invoice",
