@@ -23,11 +23,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MoreHorizontal, Copy, Link, Trash2, Star, Mail, ClipboardCopy, Share2, Maximize2 } from "lucide-react";
+import { MoreHorizontal, Copy, Link, Trash2, Star, Mail, ClipboardCopy, Share2, Maximize2, FileText, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { ComposeEmailDialog } from "@/components/email";
+import { QuickProposalDrawer } from "@/components/opportunities/quick-proposal/QuickProposalDrawer";
+import { AdjudicateDialog } from "@/components/opportunities/AdjudicateDialog";
 
 interface OpportunityHeaderActionsProps {
   opportunityId: string;
@@ -38,16 +40,21 @@ interface OpportunityHeaderActionsProps {
   contactEmail?: string;
   contactName?: string;
   contactId?: string;
+  companyId?: string;
   contactEntityType?: 'contact' | 'lead';
   stageName?: string;
   companyName?: string;
+  currency?: string;
+  isWon?: boolean;
 }
 
-export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onToggleFavorite, onDelete, contactEmail, contactName, contactId, contactEntityType, stageName, companyName }: OpportunityHeaderActionsProps) {
+export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onToggleFavorite, onDelete, contactEmail, contactName, contactId, companyId, contactEntityType, stageName, companyName, currency, isWon }: OpportunityHeaderActionsProps) {
   const { t } = useTranslation("crm");
   const navigate = useNavigate();
   const [showDelete, setShowDelete] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [showQuickProposal, setShowQuickProposal] = useState(false);
+  const [showAdjudicate, setShowAdjudicate] = useState(false);
 
   const copyUrl = () => {
     navigator.clipboard.writeText(window.location.href);
