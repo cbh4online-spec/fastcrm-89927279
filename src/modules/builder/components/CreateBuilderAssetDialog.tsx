@@ -94,6 +94,8 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
     setCloneKeepScripts(false);
     setCloneSelected(new Set());
     setCloneName("");
+    setCloneExtraPages([]);
+    setManualUrls("");
     siteClone.reset();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
