@@ -31,6 +31,7 @@ import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
 import { WhatsAppProviderConfigCard } from "@/components/whatsapp-pro/WhatsAppProviderConfigCard";
 import { WhatsAppWebhookLogsTable } from "@/components/whatsapp-pro/WhatsAppWebhookLogsTable";
 import { WhatsAppSimulateInboundCard } from "@/components/whatsapp-pro/WhatsAppSimulateInboundCard";
+import { WhatsAppPaymentMessageCard } from "@/components/whatsapp-pro/WhatsAppPaymentMessageCard";
 import { WhatsAppAppointmentsSection } from "@/components/whatsapp-pro/WhatsAppAppointmentsSection";
 import { WhatsAppFollowupsSection } from "@/components/whatsapp-pro/WhatsAppFollowupsSection";
 import { TeamPerformanceDashboard } from "@/components/team-inbox/TeamPerformanceDashboard";
@@ -272,6 +273,7 @@ export default function WhatsAppPro() {
 
           <TabsContent value="config" className="space-y-4">
             <WhatsAppProviderConfigCard />
+            <WhatsAppPaymentMessageCard />
             <Card className="p-4 space-y-3">
               <h3 className="text-sm font-semibold">Estado do canal</h3>
               <div className="text-sm space-y-2">

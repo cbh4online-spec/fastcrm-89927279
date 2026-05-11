@@ -15,6 +15,8 @@ import {
 } from "@/hooks/payments/useIfthenpayPayments";
 import { useIfthenpaySettings } from "@/hooks/integrations/useIfthenpaySettings";
 import { useWhatsAppProviderInstance, useWhatsAppProSend } from "@/hooks/useWhatsAppPro";
+import { useWhatsAppSettings, DEFAULT_PAYMENT_LINK_TEMPLATE } from "@/hooks/useWhatsAppSettings";
+import { renderPaymentMessage } from "@/lib/whatsapp/paymentMessage";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { formatEUR } from "@/lib/currency";
@@ -27,6 +29,8 @@ interface Props {
   amountPaid: number;
   currency: string;
   customerPhone?: string | null;
+  customerName?: string | null;
+  invoiceNumber?: string | null;
 }
 
 const METHOD_LABELS: Record<IfthenpayMethodId, string> = {
@@ -51,6 +55,8 @@ export function PaymentActionsCard({
   amountPaid,
   currency,
   customerPhone,
+  customerName,
+  invoiceNumber,
 }: Props) {
   const { settings } = useIfthenpaySettings();
   const enabledMethods: IfthenpayMethodId[] = (settings?.enabled_methods as IfthenpayMethodId[]) || [];
@@ -72,8 +78,10 @@ export function PaymentActionsCard({
   });
 
   const { data: waInstance } = useWhatsAppProviderInstance();
+  const { data: waSettings } = useWhatsAppSettings();
   const waSend = useWhatsAppProSend();
-  const waActive = !!waInstance?.active;
+  const waActive =
+    !!waInstance?.active && (waSettings?.payment_link_enabled ?? true);
   const customerPhoneE164 = customerPhone ? toE164(customerPhone, "PT") : null;
 
   // Cache + in-flight dedupe: evita chamadas duplicadas ao RPC quando
@@ -130,7 +138,15 @@ export function PaymentActionsCard({
     setGeneratingLink(true);
     try {
       const url = await ensureLink();
-      const text = `Olá! Pode efectuar o pagamento da fatura aqui: ${url}`;
+      const template =
+        (waSettings?.payment_link_enabled !== false && waSettings?.payment_link_template) ||
+        DEFAULT_PAYMENT_LINK_TEMPLATE;
+      const text = renderPaymentMessage(template, {
+        customer_name: customerName ?? "",
+        invoice_number: invoiceNumber ?? "",
+        amount: formatEUR(Number(invoiceTotal)),
+        link: url,
+      });
       await waSend.mutateAsync({
         phone: e164,
         messageType: "text" as any,
