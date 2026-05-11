@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Copy, Loader2, Check } from "lucide-react";
+import { CreditCard, Copy, Loader2, Check, Link2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import {
   useCreateIfthenpayPayment,
@@ -17,6 +17,7 @@ import { useIfthenpaySettings } from "@/hooks/integrations/useIfthenpaySettings"
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { formatEUR } from "@/lib/currency";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   invoiceId: string;
