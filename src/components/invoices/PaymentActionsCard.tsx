@@ -326,6 +326,20 @@ export function PaymentActionsCard({
                     ? `Enviar por WhatsApp (${formatPhone(customerPhoneE164, "PT")})`
                     : "Enviar por WhatsApp"}
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={openScheduleDialog}
+                  disabled={generatingLink || preparingPreview || !customerPhoneE164}
+                  title="Programar envio para data/hora futura"
+                >
+                  {preparingSchedule ? (
+                    <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                  ) : (
+                    <CalendarClock className="w-3 h-3 mr-2" />
+                  )}
+                  Agendar envio…
+                </Button>
                 {!customerPhoneE164 && (
                   <p className="text-[11px] text-destructive">
                     Telemóvel do cliente inválido ({customerPhone}). Actualize o contacto.
