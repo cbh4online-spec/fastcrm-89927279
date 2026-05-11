@@ -152,21 +152,33 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    // Verifica membership (bypass RLS) — também aceita super_admin
-    const { data: membership } = await admin
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("workspace_id", body.workspace_id)
-      .eq("user_id", userId)
-      .maybeSingle();
+    // Verifica membership (bypass RLS) — também aceita owner e super_admin
+    const [{ data: membership }, { data: ws }] = await Promise.all([
+      admin
+        .from("workspace_members")
+        .select("workspace_id")
+        .eq("workspace_id", body.workspace_id)
+        .eq("user_id", userId)
+        .maybeSingle(),
+      admin
+        .from("workspaces")
+        .select("id, owner_id")
+        .eq("id", body.workspace_id)
+        .maybeSingle(),
+    ]);
 
-    let hasAccess = !!membership;
+    let hasAccess = !!membership || (ws?.owner_id === userId);
     if (!hasAccess) {
       const { data: isSuper } = await admin.rpc("is_super_admin", { _user_id: userId });
       hasAccess = !!isSuper;
     }
     if (!hasAccess) {
-      console.warn("[builder-site-clone] acesso negado", { userId, workspace_id: body.workspace_id });
+      console.error("[builder-site-clone] acesso negado", {
+        userId,
+        workspace_id: body.workspace_id,
+        workspace_exists: !!ws,
+        owner_id: ws?.owner_id ?? null,
+      });
       return json({ error: "Sem acesso a este workspace" }, 403);
     }
 
