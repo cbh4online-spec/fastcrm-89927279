@@ -23,14 +23,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, ClipboardPaste, Upload, Link2, Sparkles, Layout } from "lucide-react";
+import { Loader2, ClipboardPaste, Upload, Link2, Sparkles, Layout, Globe2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { BUILDER_ASSET_TYPES, type BuilderAssetType } from "../types";
 import { useCreateBuilderAsset } from "../hooks/useBuilderAssets";
+import { useSiteClone } from "../hooks/useSiteClone";
 import { BuilderPreviewFrame } from "./BuilderPreviewFrame";
 import { BUILDER_TEMPLATES, type BuilderTemplate } from "../lib/templates";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 
 const createSchema = z.object({
   name: z.string().trim().min(2, "Nome demasiado curto").max(160, "Máx. 160 caracteres"),
@@ -55,7 +58,15 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
   const [description, setDescription] = useState("");
   const [html, setHtml] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<"paste" | "upload" | "url" | "templates" | "ai">("paste");
+  const [tab, setTab] = useState<"paste" | "upload" | "url" | "clone" | "templates" | "ai">("paste");
+
+  // Site clone
+  const siteClone = useSiteClone();
+  const [cloneUrl, setCloneUrl] = useState("");
+  const [cloneIncludeSub, setCloneIncludeSub] = useState(false);
+  const [cloneKeepScripts, setCloneKeepScripts] = useState(false);
+  const [cloneSelected, setCloneSelected] = useState<Set<string>>(new Set());
+  const [cloneName, setCloneName] = useState("");
 
   // Upload
   const [uploading, setUploading] = useState(false);
@@ -76,6 +87,12 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
     setUploadInfo(null);
     setUrlValue("");
     setImportingUrl(false);
+    setCloneUrl("");
+    setCloneIncludeSub(false);
+    setCloneKeepScripts(false);
+    setCloneSelected(new Set());
+    setCloneName("");
+    siteClone.reset();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -195,7 +212,7 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
             <TabsTrigger value="paste" className="gap-2">
               <ClipboardPaste className="h-4 w-4" /> Colar HTML
             </TabsTrigger>
@@ -204,6 +221,9 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
             </TabsTrigger>
             <TabsTrigger value="url" className="gap-2">
               <Link2 className="h-4 w-4" /> URL
+            </TabsTrigger>
+            <TabsTrigger value="clone" className="gap-2">
+              <Globe2 className="h-4 w-4" /> Clonar site
             </TabsTrigger>
             <TabsTrigger value="templates" className="gap-2">
               <Layout className="h-4 w-4" /> Templates
@@ -325,6 +345,235 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
                 <p>• Scripts são removidos; URLs relativas são absolutizadas.</p>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="clone" className="flex-1 overflow-hidden mt-4">
+            <ScrollArea className="h-full pr-2">
+              <div className="space-y-4 max-w-3xl">
+                <div className="space-y-2">
+                  <Label htmlFor="clone-url">URL do site a clonar</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="clone-url"
+                      value={cloneUrl}
+                      onChange={(e) => setCloneUrl(e.target.value)}
+                      placeholder="https://exemplo.com"
+                      disabled={siteClone.discovering || siteClone.cloning}
+                    />
+                    <Button
+                      onClick={() =>
+                        siteClone
+                          .discover(cloneUrl.trim(), cloneIncludeSub)
+                          .then((d) => {
+                            setCloneSelected(new Set(d.pages));
+                            if (!cloneName) setCloneName(d.host);
+                          })
+                          .catch((err) =>
+                            toast({
+                              title: "Falha na descoberta",
+                              description: err instanceof Error ? err.message : String(err),
+                              variant: "destructive",
+                            }),
+                          )
+                      }
+                      disabled={!cloneUrl.trim() || siteClone.discovering || siteClone.cloning}
+                    >
+                      {siteClone.discovering ? <Loader2 className="h-4 w-4 animate-spin" /> : "Descobrir páginas"}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="clone-subdomains"
+                      checked={cloneIncludeSub}
+                      onCheckedChange={(c) => setCloneIncludeSub(!!c)}
+                      disabled={siteClone.discovering || siteClone.cloning}
+                    />
+                    <label htmlFor="clone-subdomains" className="text-xs text-muted-foreground cursor-pointer">
+                      Incluir subdomínios (blog., shop., …)
+                    </label>
+                  </div>
+                </div>
+
+                {siteClone.discovery && (
+                  <div className="space-y-3 border rounded-lg p-4 bg-muted/20">
+                    <h3 className="font-medium text-sm flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      {siteClone.discovery.pagesCount} páginas em <code>{siteClone.discovery.host}</code>
+                    </h3>
+
+                    {(siteClone.discovery.branding.colors.length > 0 ||
+                      siteClone.discovery.branding.fonts.length > 0 ||
+                      siteClone.discovery.branding.logo) && (
+                      <div className="flex flex-wrap items-center gap-3 text-xs">
+                        {siteClone.discovery.branding.logo && (
+                          <img
+                            src={siteClone.discovery.branding.logo}
+                            alt="logo"
+                            className="h-8 w-auto object-contain border rounded bg-background p-1"
+                          />
+                        )}
+                        {siteClone.discovery.branding.colors.slice(0, 6).map((c) => (
+                          <div key={c} className="h-6 w-6 rounded border" style={{ background: c }} title={c} />
+                        ))}
+                        {siteClone.discovery.branding.fonts.slice(0, 3).map((f) => (
+                          <Badge key={f} variant="outline">{f}</Badge>
+                        ))}
+                      </div>
+                    )}
+
+                    <div>
+                      <Label htmlFor="clone-name" className="text-xs">Nome do site</Label>
+                      <Input
+                        id="clone-name"
+                        value={cloneName}
+                        onChange={(e) => setCloneName(e.target.value)}
+                        placeholder={siteClone.discovery.host}
+                        maxLength={160}
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">
+                          Páginas a clonar ({cloneSelected.size}/{siteClone.discovery.pages.length})
+                        </Label>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => setCloneSelected(new Set(siteClone.discovery!.pages))}>
+                            Todas
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setCloneSelected(new Set())}>
+                            Nenhuma
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="max-h-56 overflow-y-auto border rounded-md bg-background divide-y">
+                        {siteClone.discovery.pages.map((p) => {
+                          const checked = cloneSelected.has(p);
+                          return (
+                            <label key={p} className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/50 cursor-pointer">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(c) => {
+                                  setCloneSelected((prev) => {
+                                    const next = new Set(prev);
+                                    if (c) next.add(p);
+                                    else next.delete(p);
+                                    return next;
+                                  });
+                                }}
+                              />
+                              <span className="truncate font-mono">{p}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {cloneSelected.size > 50 && (
+                        <p className="text-xs text-amber-600 flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" /> Mais de 50 páginas pode demorar vários minutos.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="clone-keep-scripts"
+                        checked={cloneKeepScripts}
+                        onCheckedChange={(c) => setCloneKeepScripts(!!c)}
+                      />
+                      <label htmlFor="clone-keep-scripts" className="text-xs text-muted-foreground cursor-pointer">
+                        Manter scripts JS originais (não recomendado)
+                      </label>
+                    </div>
+
+                    <Button
+                      className="w-full"
+                      disabled={cloneSelected.size === 0 || siteClone.cloning}
+                      onClick={async () => {
+                        try {
+                          const res = await siteClone.startClone({
+                            sourceUrl: siteClone.discovery!.sourceUrl,
+                            pages: Array.from(cloneSelected),
+                            name: cloneName.trim() || siteClone.discovery!.host,
+                            keepScripts: cloneKeepScripts,
+                            includeSubdomains: cloneIncludeSub,
+                            designTokens: {
+                              colors: siteClone.discovery!.branding.colors,
+                              fonts: siteClone.discovery!.branding.fonts,
+                              logo: siteClone.discovery!.branding.logo,
+                            },
+                          });
+                          toast({
+                            title: "Clone iniciado",
+                            description: `${res.pages_total} páginas em processamento.`,
+                          });
+                        } catch (err) {
+                          toast({
+                            title: "Falha ao iniciar clone",
+                            description: err instanceof Error ? err.message : String(err),
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      {siteClone.cloning ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          A clonar…
+                        </>
+                      ) : (
+                        `Clonar ${cloneSelected.size} páginas`
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {siteClone.progress && siteClone.siteId && (
+                  <div className="space-y-2 border rounded-lg p-4 bg-card">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">Progresso do clone</span>
+                      <Badge variant={siteClone.progress.status === "completed" ? "default" : "secondary"}>
+                        {siteClone.progress.status}
+                      </Badge>
+                    </div>
+                    <Progress
+                      value={
+                        siteClone.progress.pages_total > 0
+                          ? ((siteClone.progress.pages_done + siteClone.progress.pages_failed) /
+                              siteClone.progress.pages_total) *
+                            100
+                          : 0
+                      }
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>
+                        {siteClone.progress.pages_done}/{siteClone.progress.pages_total} concluídas
+                        {siteClone.progress.pages_failed > 0 && ` · ${siteClone.progress.pages_failed} falharam`}
+                      </span>
+                      {siteClone.assetId && siteClone.progress.status === "completed" && (
+                        <Button
+                          size="sm"
+                          variant="link"
+                          className="h-auto p-0"
+                          onClick={() => {
+                            onOpenChange(false);
+                            navigate(`/dashboard/builder/${siteClone.assetId}`);
+                          }}
+                        >
+                          Abrir no editor →
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Faz scrape de cada página, descarrega imagens/CSS para o teu workspace e re-escreve links internos.</p>
+                  <p>• Páginas SPA podem perder interactividade.</p>
+                  <p>• Limite recomendado: 50 páginas por clone.</p>
+                </div>
+              </div>
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="paste" className="flex-1 overflow-hidden mt-4">
