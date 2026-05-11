@@ -40989,6 +40989,69 @@ export type Database = {
           },
         ]
       }
+      invoice_whatsapp_sends: {
+        Row: {
+          agent_id: string | null
+          clicked_at: string | null
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          invoice_id: string
+          message_text: string | null
+          metadata: Json
+          phone: string
+          provider_message_id: string | null
+          read_at: string | null
+          sent_at: string
+          share_url: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          invoice_id: string
+          message_text?: string | null
+          metadata?: Json
+          phone: string
+          provider_message_id?: string | null
+          read_at?: string | null
+          sent_at?: string
+          share_url?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          invoice_id?: string
+          message_text?: string | null
+          metadata?: Json
+          phone?: string
+          provider_message_id?: string | null
+          read_at?: string | null
+          sent_at?: string
+          share_url?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount_paid: number | null

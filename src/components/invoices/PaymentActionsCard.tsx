@@ -27,6 +27,7 @@ import { useIfthenpaySettings } from "@/hooks/integrations/useIfthenpaySettings"
 import { useWhatsAppProviderInstance, useWhatsAppProSend } from "@/hooks/useWhatsAppPro";
 import { useWhatsAppSettings, DEFAULT_PAYMENT_LINK_TEMPLATE } from "@/hooks/useWhatsAppSettings";
 import { renderPaymentMessage } from "@/lib/whatsapp/paymentMessage";
+import { useLogInvoiceWhatsAppSend } from "@/hooks/invoices/useInvoiceWhatsAppSends";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -100,6 +101,7 @@ export function PaymentActionsCard({
   const { data: waInstance } = useWhatsAppProviderInstance();
   const { data: waSettings } = useWhatsAppSettings();
   const waSend = useWhatsAppProSend();
+  const logSend = useLogInvoiceWhatsAppSend();
   const waActive =
     !!waInstance?.active && (waSettings?.payment_link_enabled ?? true);
   const customerPhoneE164 = customerPhone ? toE164(customerPhone, "PT") : null;
@@ -180,7 +182,7 @@ export function PaymentActionsCard({
   const confirmSendWhatsApp = async () => {
     if (!waPreview || !waConsent) return;
     try {
-      await waSend.mutateAsync({
+      const res = await waSend.mutateAsync({
         phone: waPreview.e164,
         messageType: "text" as any,
         text: waPreview.text,
@@ -191,11 +193,33 @@ export function PaymentActionsCard({
           consent_confirmed: true,
         },
       });
+      logSend
+        .mutateAsync({
+          invoiceId,
+          phone: waPreview.e164,
+          messageText: waPreview.text,
+          shareUrl: waPreview.url,
+          status: "sent",
+          providerMessageId: (res as any)?.providerMessageId ?? null,
+          metadata: { consent_confirmed: true },
+        })
+        .catch(() => {});
       toast.success(`Link enviado por WhatsApp para ${formatPhone(waPreview.e164, "PT")}`);
       setWaConfirmOpen(false);
       setWaPreview(null);
       setWaConsent(false);
     } catch (e: any) {
+      logSend
+        .mutateAsync({
+          invoiceId,
+          phone: waPreview.e164,
+          messageText: waPreview.text,
+          shareUrl: waPreview.url,
+          status: "failed",
+          errorMessage: e?.message || "Erro desconhecido",
+          metadata: { consent_confirmed: true },
+        })
+        .catch(() => {});
       toast.error(e?.message || "Erro a enviar por WhatsApp");
     }
   };
