@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      _cron_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       abandoned_carts: {
         Row: {
           cart_items: Json
