@@ -14,7 +14,7 @@ import {
   type MegaGroup,
 } from "@/config/routeManifest";
 import {
-  X, ChevronDown, ChevronRight, Search, PanelLeftClose, PanelLeftOpen,
+  X, ChevronRight, Search, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
