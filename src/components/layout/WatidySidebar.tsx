@@ -235,7 +235,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                onClick={() => setPanelOpen(true)}
+                onClick={() => togglePanel()}
                 className="w-9 h-9 rounded-lg bg-sidebar-primary/15 flex items-center justify-center shrink-0 hover:bg-sidebar-primary/25 transition-colors"
                 aria-label={workspaceName}
               >
@@ -267,7 +267,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                     <button
                       onClick={() => {
                         setActiveMega(mg.key);
-                        if (!panelOpen) setPanelOpen(true);
+                        if (!panelOpen) togglePanel();
                       }}
                       aria-current={fromRoute ? "page" : undefined}
                       className={cn(
