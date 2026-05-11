@@ -25,6 +25,7 @@ import {
   useSaveBillingIntegration,
   useTestBillingConnection,
 } from "@/hooks/useBillingIntegrations";
+import { normalizeInvoiceXpressAccountInput } from "@/utils/invoicexpress";
 import { CheckCircle2, AlertTriangle, Loader2, Plug } from "lucide-react";
 
 const PROVIDERS: { value: BillingProvider; label: string; supported: boolean }[] = [
@@ -67,17 +68,21 @@ export function BillingIntegrationDialog({ open, onOpenChange, editing }: Props)
   }, [open, editing]);
 
   const handleTest = () => {
-    if (!accountName || !apiKey) return;
-    test.mutate({ provider, account_name: accountName, api_key: apiKey });
+    const normalizedAccount = normalizeInvoiceXpressAccountInput(accountName);
+    if (!normalizedAccount || !apiKey) return;
+    setAccountName(normalizedAccount);
+    test.mutate({ provider, account_name: normalizedAccount, api_key: apiKey });
   };
 
   const handleSave = () => {
+    const normalizedAccount = normalizeInvoiceXpressAccountInput(accountName);
+    setAccountName(normalizedAccount);
     save.mutate(
       {
         id: editing?.id,
         provider,
         display_name: displayName,
-        account_name: accountName,
+        account_name: normalizedAccount,
         api_key: apiKey || undefined,
         config: { default_serie: defaultSerie || undefined },
         is_active: isActive,
@@ -88,7 +93,8 @@ export function BillingIntegrationDialog({ open, onOpenChange, editing }: Props)
   };
 
   const isInvoiceXpress = provider === "invoicexpress";
-  const canSubmit = !!accountName && (editing ? true : !!apiKey);
+  const normalizedAccountName = normalizeInvoiceXpressAccountInput(accountName);
+  const canSubmit = !!normalizedAccountName && (editing ? true : !!apiKey);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -137,18 +143,17 @@ export function BillingIntegrationDialog({ open, onOpenChange, editing }: Props)
           {isInvoiceXpress && (
             <>
               <div>
-                <Label>Subdomínio da conta InvoiceXpress *</Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value.replace(/[^a-z0-9-]/gi, "").toLowerCase())}
-                    placeholder="aminhaempresa"
-                    maxLength={80}
-                  />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    .app.invoicexpress.com
-                  </span>
-                </div>
+                <Label>Nome da conta ou URL InvoiceXpress *</Label>
+                <Input
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  onBlur={() => setAccountName(normalizeInvoiceXpressAccountInput(accountName))}
+                  placeholder="Ex.: simplesdivertidou ou https://simplesdivertidou.app.invoicexpress.com"
+                  maxLength={160}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Usa o “Nome da conta” que aparece no InvoiceXpress. Também podes colar o URL completo; guardamos só o identificador necessário.
+                </p>
               </div>
 
               <div>
@@ -162,7 +167,7 @@ export function BillingIntegrationDialog({ open, onOpenChange, editing }: Props)
                   autoComplete="off"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Encontras em InvoiceXpress → Configurações → Integrações → API.
+                  Na documentação da InvoiceXpress: API key em Users/API; no painel costuma aparecer em Configurações → Integrações → API.
                 </p>
               </div>
 
@@ -213,7 +218,7 @@ export function BillingIntegrationDialog({ open, onOpenChange, editing }: Props)
           <Button
             variant="outline"
             onClick={handleTest}
-            disabled={!accountName || !apiKey || test.isPending}
+            disabled={!normalizedAccountName || !apiKey || test.isPending}
           >
             {test.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />

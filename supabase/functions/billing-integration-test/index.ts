@@ -19,6 +19,24 @@ interface TestPayload {
   api_key: string;
 }
 
+function normalizeInvoiceXpressAccount(value: string): string {
+  const raw = value.trim().toLowerCase();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw.match(/^https?:\/\//) ? raw : `https://${raw}`);
+    const host = url.hostname.replace(/^www\./, "");
+    if (host.endsWith(".app.invoicexpress.com")) return host.replace(/\.app\.invoicexpress\.com$/, "");
+    if (!host.includes(".")) return host;
+  } catch {
+    // plain account name
+  }
+  return raw
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\.app\.invoicexpress\.com.*$/, "")
+    .replace(/[^a-z0-9-]/g, "");
+}
+
 async function testInvoiceXpress(account: string, apiKey: string) {
   const url = `https://${encodeURIComponent(account)}.app.invoicexpress.com/users/me.json?api_key=${encodeURIComponent(apiKey)}`;
   const ctrl = new AbortController();
@@ -86,12 +104,16 @@ Deno.serve(async (req) => {
     if (!body?.provider || !body?.account_name || !body?.api_key) {
       return json({ ok: false, error: "Campos provider, account_name e api_key são obrigatórios" }, 200);
     }
-    if (body.account_name.length > 80 || body.api_key.length > 200) {
+    const normalizedAccount = normalizeInvoiceXpressAccount(body.account_name);
+    if (!normalizedAccount) {
+      return json({ ok: false, error: "Nome da conta InvoiceXpress inválido" }, 200);
+    }
+    if (normalizedAccount.length > 80 || body.api_key.length > 200) {
       return json({ ok: false, error: "Valores demasiado longos" }, 200);
     }
 
     if (body.provider === "invoicexpress") {
-      const result = await testInvoiceXpress(body.account_name.trim(), body.api_key.trim());
+      const result = await testInvoiceXpress(normalizedAccount, body.api_key.trim());
       return json(result, 200);
     }
 

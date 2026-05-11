@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +16,24 @@ interface ProxyPayload {
   path: string; // e.g. /clients.json or /invoices/123.json
   body?: unknown;
   query?: Record<string, string>;
+}
+
+function normalizeInvoiceXpressAccount(value: string): string {
+  const raw = value.trim().toLowerCase();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw.match(/^https?:\/\//) ? raw : `https://${raw}`);
+    const host = url.hostname.replace(/^www\./, "");
+    if (host.endsWith(".app.invoicexpress.com")) return host.replace(/\.app\.invoicexpress\.com$/, "");
+    if (!host.includes(".")) return host;
+  } catch {
+    // plain account name
+  }
+  return raw
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\.app\.invoicexpress\.com.*$/, "")
+    .replace(/[^a-z0-9-]/g, "");
 }
 
 Deno.serve(async (req) => {
@@ -69,7 +87,9 @@ Deno.serve(async (req) => {
     }
 
     const qs = new URLSearchParams({ api_key: integ.api_key_encrypted, ...(payload.query || {}) });
-    const url = `https://${encodeURIComponent(integ.account_name)}.app.invoicexpress.com${payload.path}?${qs.toString()}`;
+    const accountName = normalizeInvoiceXpressAccount(integ.account_name);
+    if (!accountName) return json({ ok: false, error: "Conta InvoiceXpress inválida" }, 200);
+    const url = `https://${encodeURIComponent(accountName)}.app.invoicexpress.com${payload.path}?${qs.toString()}`;
 
     const method = payload.method || "GET";
     const ctrl = new AbortController();

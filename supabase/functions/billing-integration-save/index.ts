@@ -26,6 +26,24 @@ interface SavePayload {
   skip_test?: boolean;
 }
 
+function normalizeInvoiceXpressAccount(value: string): string {
+  const raw = value.trim().toLowerCase();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw.match(/^https?:\/\//) ? raw : `https://${raw}`);
+    const host = url.hostname.replace(/^www\./, "");
+    if (host.endsWith(".app.invoicexpress.com")) return host.replace(/\.app\.invoicexpress\.com$/, "");
+    if (!host.includes(".")) return host;
+  } catch {
+    // plain account name
+  }
+  return raw
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\.app\.invoicexpress\.com.*$/, "")
+    .replace(/[^a-z0-9-]/g, "");
+}
+
 async function testProvider(provider: string, account: string, apiKey: string) {
   if (provider !== "invoicexpress") return { ok: true, skipped: true };
   const url = `https://${encodeURIComponent(account)}.app.invoicexpress.com/users/me.json?api_key=${encodeURIComponent(apiKey)}`;
@@ -66,6 +84,11 @@ Deno.serve(async (req) => {
     if (!body.workspace_id || !body.provider || !body.account_name) {
       return json({ ok: false, error: "Campos obrigatórios em falta" }, 200);
     }
+    const accountName = body.provider === "invoicexpress"
+      ? normalizeInvoiceXpressAccount(body.account_name)
+      : body.account_name.trim();
+    if (!accountName) return json({ ok: false, error: "Nome da conta inválido" }, 200);
+    if (accountName.length > 80) return json({ ok: false, error: "Nome da conta demasiado longo" }, 200);
 
     // Permission check via RPC
     const { data: isAdmin } = await userClient.rpc("is_workspace_admin", {
@@ -98,7 +121,7 @@ Deno.serve(async (req) => {
     let last_check_status = "untested";
     let last_check_error: string | null = null;
     if (!body.skip_test) {
-      const t = await testProvider(body.provider, body.account_name.trim(), apiKey);
+      const t = await testProvider(body.provider, accountName, apiKey);
       last_check_status = t.ok ? "ok" : "error";
       last_check_error = t.ok ? null : (t as any).error || "unknown";
       if (!t.ok && !body.id) {
@@ -111,7 +134,7 @@ Deno.serve(async (req) => {
       workspace_id: body.workspace_id,
       provider: body.provider,
       display_name: body.display_name?.trim() || null,
-      account_name: body.account_name.trim(),
+      account_name: accountName,
       api_key_encrypted: apiKey,
       config: body.config || {},
       is_active: body.is_active ?? true,
