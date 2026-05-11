@@ -283,16 +283,16 @@ export function PaymentActionsCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleSendWhatsApp}
-                  disabled={generatingLink || waSend.isPending || !customerPhoneE164}
+                  onClick={openWhatsAppConfirm}
+                  disabled={generatingLink || preparingPreview || waSend.isPending || !customerPhoneE164}
                   className="text-emerald-600 hover:text-emerald-700"
                   title={
                     customerPhoneE164
-                      ? `Enviar para ${formatPhone(customerPhoneE164, "PT")}`
+                      ? `Pré-visualizar e enviar para ${formatPhone(customerPhoneE164, "PT")}`
                       : "Telemóvel inválido — actualize o contacto"
                   }
                 >
-                  {waSend.isPending ? (
+                  {preparingPreview || waSend.isPending ? (
                     <Loader2 className="w-3 h-3 mr-2 animate-spin" />
                   ) : (
                     <MessageCircle className="w-3 h-3 mr-2" />
