@@ -38,7 +38,9 @@ function normalizeInvoiceXpressAccount(value: string): string {
 }
 
 async function testInvoiceXpress(account: string, apiKey: string) {
-  const url = `https://${encodeURIComponent(account)}.app.invoicexpress.com/users/me.json?api_key=${encodeURIComponent(apiKey)}`;
+  // InvoiceXpress não tem endpoint /users/me. Usamos /sequences.json (leve e sempre disponível)
+  // para validar tanto o subdomínio (conta) como a api_key.
+  const url = `https://${encodeURIComponent(account)}.app.invoicexpress.com/sequences.json?api_key=${encodeURIComponent(apiKey)}&page=1&per_page=1`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 8000);
   try {
