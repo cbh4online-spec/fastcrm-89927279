@@ -246,6 +246,7 @@ export default function PublicBookingPage() {
           start_time: selectedSlot,
           guest_name: guestName,
           guest_email: guestEmail,
+          guest_phone: guestPhone || null,
         }),
       });
       const result = await res.json();

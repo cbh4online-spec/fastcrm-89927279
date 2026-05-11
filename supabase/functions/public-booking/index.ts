@@ -356,7 +356,7 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
 }
 
 async function handleConfirmBooking(supabase: any, body: any, headers: Record<string, string>) {
-  const { booking_page_id, lead_id, date, start_time, guest_name, guest_email } = body;
+  const { booking_page_id, lead_id, date, start_time, guest_name, guest_email, guest_phone } = body;
 
   if (!booking_page_id || !date || !start_time || !guest_name || !guest_email) {
     return new Response(JSON.stringify({ error: "Campos obrigatórios em falta" }), {
@@ -468,16 +468,25 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
       workspace_id: page.workspace_id,
       created_by: member?.user_id || "00000000-0000-0000-0000-000000000000",
       title: eventTitle,
-      description: `Agendamento público\nNome: ${guest_name}\nEmail: ${guest_email}`,
+      description: `Agendamento público\nNome: ${guest_name}\nEmail: ${guest_email}${guest_phone ? `\nTelefone: ${guest_phone}` : ""}`,
       start_time: startDate.toISOString(),
       end_time: endDate.toISOString(),
       status: "confirmed",
       lead_id: crmLeadId,
       contact_id: crmContactId,
+      appointment_type: "online_meeting",
+      duration_minutes: page.duration_minutes,
+      timezone: page.timezone || "Europe/Lisbon",
+      reminder_settings: {
+        requested: ["reminder_24h", "reminder_2h", "reminder_15m"],
+        send_confirmation: !!guest_phone,
+      },
+      source: "public_booking",
       metadata: {
         booking_page_id: page.id,
         guest_name,
         guest_email,
+        guest_phone: guest_phone || null,
         source: "public_booking",
       },
     })
@@ -508,6 +517,72 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
       .eq("id", lead_id);
   }
 
+  // Resolve telefone para WhatsApp (guest_phone ou contacto associado)
+  let toPhone: string | null = (guest_phone || "").toString().trim() || null;
+  if (!toPhone && crmContactId) {
+    const { data: c } = await supabase
+      .from("contacts")
+      .select("phone, mobile_phone")
+      .eq("id", crmContactId)
+      .maybeSingle();
+    toPhone = (c?.phone as string) || (c?.mobile_phone as string) || null;
+  }
+
+  // Agendar lembretes WhatsApp (24h, 2h, 15m)
+  if (toPhone) {
+    const offsets: Array<{ type: string; min: number }> = [
+      { type: "reminder_24h", min: 24 * 60 },
+      { type: "reminder_2h", min: 2 * 60 },
+      { type: "reminder_15m", min: 15 },
+    ];
+    const reminders: Record<string, unknown>[] = [];
+    for (const o of offsets) {
+      const due = new Date(startDate.getTime() - o.min * 60 * 1000);
+      if (due.getTime() <= Date.now()) continue;
+      reminders.push({
+        workspace_id: page.workspace_id,
+        appointment_id: event.id,
+        contact_id: crmContactId,
+        channel: "whatsapp",
+        reminder_type: o.type,
+        message_content: buildBookingReminderMessage(o.type, eventTitle, startDate, meetingUrl),
+        to_phone: toPhone,
+        due_at: due.toISOString(),
+        status: "scheduled",
+      });
+    }
+    if (reminders.length > 0) {
+      const { error: remErr } = await supabase
+        .from("whatsapp_scheduled_reminders")
+        .insert(reminders);
+      if (remErr) console.error("[public-booking] reminders insert failed", remErr);
+    }
+
+    // Confirmação imediata via WhatsApp
+    try {
+      const confirmText =
+        `Olá ${guest_name}! O teu agendamento "${page.title}" foi confirmado para ` +
+        `${startDate.toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" })} às ` +
+        `${startDate.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}.` +
+        (meetingUrl ? `\nLink da reunião: ${meetingUrl}` : "");
+      await supabase.functions.invoke("whatsapp-pro-send", {
+        body: {
+          workspace_id: page.workspace_id,
+          to: toPhone,
+          type: "text",
+          text: { body: confirmText },
+          context: { appointment_id: event.id, kind: "appointment_confirmation" },
+        },
+      });
+      await supabase
+        .from("calendar_events")
+        .update({ confirmation_sent_at: new Date().toISOString() })
+        .eq("id", event.id);
+    } catch (e) {
+      console.error("[public-booking] whatsapp confirmation failed", e);
+    }
+  }
+
   return new Response(
     JSON.stringify({
       success: true,
@@ -516,7 +591,29 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
       start_time,
       duration_minutes: page.duration_minutes,
       meeting_url: meetingUrl || null,
+      whatsapp_scheduled: !!toPhone,
     }),
     { status: 200, headers: { ...headers, "Content-Type": "application/json" } }
   );
+}
+
+function buildBookingReminderMessage(
+  type: string,
+  title: string,
+  start: Date,
+  meetingUrl: string | null,
+) {
+  const date = start.toLocaleDateString("pt-PT", { day: "2-digit", month: "long" });
+  const time = start.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+  const link = meetingUrl ? `\nLink: ${meetingUrl}` : "";
+  switch (type) {
+    case "reminder_24h":
+      return `Olá! Lembramos que tem o agendamento "${title}" amanhã, ${date} às ${time}.${link}\nResponde aqui se precisares de reagendar.`;
+    case "reminder_2h":
+      return `Faltam cerca de 2 horas para "${title}" às ${time}.${link}`;
+    case "reminder_15m":
+      return `Em 15 minutos começamos "${title}".${link}`;
+    default:
+      return `Lembrete: ${title} — ${date} às ${time}.${link}`;
+  }
 }
