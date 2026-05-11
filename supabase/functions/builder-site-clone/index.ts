@@ -132,18 +132,18 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: auth } } },
     );
     const { data: u, error: uerr } = await userClient.auth.getUser();
-    if (uerr || !u?.user) return json({ error: "Sessão inválida" }, 401);
+    if (uerr || !u?.user) return json({ error: "Sessão inválida", code: "INVALID_SESSION" }, 401);
     const userId = u.user.id;
 
     const body = (await req.json().catch(() => null)) as ClonePayload | null;
     if (!body?.workspace_id || !body?.source_url || !Array.isArray(body.pages)) {
-      return json({ error: "Payload inválido" }, 400);
+      return json({ error: "Payload inválido", code: "INVALID_PAYLOAD" }, 400);
     }
 
     // Valida formato UUID do workspace_id
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!UUID_RE.test(body.workspace_id)) {
-      return json({ error: "workspace_id inválido" }, 400);
+      return json({ error: "workspace_id inválido", code: "INVALID_WORKSPACE_ID" }, 400);
     }
 
     // Cliente service-role para verificações de acesso e escrita atómica
@@ -161,10 +161,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (wsErr) {
       console.error("[builder-site-clone] erro a obter workspace", wsErr);
-      return json({ error: "Erro a validar workspace" }, 500);
+      return json({ error: "Erro a validar workspace", code: "WORKSPACE_LOOKUP_ERROR" }, 500);
     }
     if (!ws || ws.deleted_at) {
-      return json({ error: "Workspace não encontrado" }, 404);
+      return json({ error: "Workspace não encontrado", code: "WORKSPACE_NOT_FOUND" }, 404);
     }
 
     // 2. Verifica se o utilizador é owner, membro (qualquer role) ou super_admin
