@@ -671,7 +671,13 @@ export function PaymentActionsCard({
                 e.preventDefault();
                 confirmSendWhatsApp();
               }}
-              disabled={!waConsent || waSend.isPending}
+              disabled={
+                !waConsent ||
+                waSend.isPending ||
+                !waPreview ||
+                waEditedText.trim().length === 0 ||
+                (waPreview ? !waEditedText.includes(waPreview.url) : true)
+              }
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               {waSend.isPending ? (
