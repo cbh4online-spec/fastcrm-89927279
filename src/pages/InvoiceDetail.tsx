@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDialog";
 import { InvoicePaymentsHistory } from "@/components/invoices/InvoicePaymentsHistory";
 import { PaymentActionsCard } from "@/components/invoices/PaymentActionsCard";
+import { InvoiceWhatsAppHistoryCard } from "@/components/invoices/InvoiceWhatsAppHistoryCard";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
