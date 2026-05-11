@@ -1,86 +1,119 @@
+# Pipeline como ferramenta rápida de proposta + fatura via WhatsApp
+
 ## Diagnóstico
 
-Já existe a tabela `public.invoices` no CRM e a integração `workspace_billing_integrations` (InvoiceXpress) com proxy autenticado. Falta o elo: trazer faturas emitidas no InvoiceXpress para dentro do CRM, manter o estado em dia (rascunho, enviada, paga, vencida, anulada) e expor isso na UI de faturação do workspace, sem duplicar registos quando a fatura também é criada no CRM.
+A infraestrutura já existe — só falta cosê-la num fluxo 1-clique a partir da oportunidade:
+- `proposals` + `proposal_items` (catálogo, qtd, total automático) ✅
+- `invoices` com FK `opportunity_id` / `proposal_id` ✅
+- `invoicexpress-proxy` + `invoicexpress-sync-invoices` ✅
+- `whatsapp-pro-send` com suporte a `mediaUrl` (PDF) ✅
+- `pipeline_stages` com `probability` (estágio "Ganho" = 100%) ✅
+- Opportunity Detail já tem `OpportunityProposalsTab` ✅
+
+Hoje o utilizador tem de: criar proposta noutra página → preencher tudo → publicar → ir a InvoiceXpress → criar fatura → copiar link → ir ao WhatsApp → enviar. Vamos colapsar isto em **2 cliques**.
 
 ## Decisões de produto/UX
 
-- Sincronização **pull-only** (InvoiceXpress → CRM) nesta fase. Emissão a partir do CRM fica para fase 2.
-- Cada fatura sincronizada fica em `invoices` com `external_provider = 'invoicexpress'` e `external_id` único — sem duplicar quando já existe.
-- Tipos suportados: `invoice`, `invoice_receipt`, `simplified_invoice`, `credit_note`. Outros são ignorados (fallback log).
-- Mapeamento de estados InvoiceXpress → CRM:
-  - `draft` → `draft`
-  - `sent` → `sent`
-  - `settled` / `paid` → `paid`
-  - `canceled` → `cancelled`
-  - se `due_date < hoje` e não pago → `overdue`
-- Cliente: tenta fazer match por NIF (em `companies.tax_id`) e/ou email (`contacts.email`). Se não encontrar, grava em `client_*` snapshot e deixa `company_id`/`contact_id` nulos (utilizador resolve depois).
-- Botão **"Sincronizar agora"** na página de Faturação API → Detalhes da integração (executa sync incremental dos últimos 30 dias).
-- **Cron diário** automático (06:00 UTC) sincroniza últimos 7 dias de todas as integrações activas.
-- Badge na lista de faturas: 🔗 InvoiceXpress + número original + link para abrir no IX.
-- Página `/dashboard/settings/billing-integrations/:id/sync` mostra: última sincronização, total importado, falhas e log das últimas 50 corridas.
+**1. "Proposta Rápida" — drawer dentro da OpportunityDetail**
+- Botão primário no header: **"Nova proposta rápida"**
+- Drawer lateral (não modal full-page) com:
+  - Seletor de produtos do catálogo (combobox com search) → adiciona linha
+  - Linhas editáveis: nome, qtd, preço unitário, desconto % (preenche automático do produto)
+  - Total/IVA/Final calculado em tempo real
+  - Validade (default 7 dias) + condições pagamento (default da workspace)
+  - 1 botão: **"Criar e enviar por WhatsApp"** → cria proposta `published`, gera link público, envia mensagem via `whatsapp-pro-send` com link curto + (opcional) PDF.
+
+**2. Adjudicação automática ao mover para "Ganho"**
+- Hook em `useUpdateOpportunityEnhanced`: quando `stage_id` novo tem `probability === 100`:
+  - Procura proposta `accepted` ou mais recente `published` da oportunidade
+  - Cria fatura local (`invoices`) a partir dos `proposal_items`
+  - Sincroniza com InvoiceXpress (se integração ativa) → recebe `public_url` e PDF
+  - Envia WhatsApp ao contacto com link curto + PDF anexo
+  - Toast: "Fatura #INV-2025-001 enviada por WhatsApp ✅" com undo de 5s
+- Confirmação prévia: AlertDialog "Adjudicar este negócio? Será gerada e enviada a fatura."
+
+**3. Configuração mínima (Settings → Pipeline)**
+- Toggle: "Gerar fatura automaticamente ao Ganhar" (default ON)
+- Toggle: "Anexar PDF no WhatsApp" (default ON, só link se OFF)
+- Template editável da mensagem WhatsApp: `Olá {{cliente}}, segue a fatura nº {{numero}} no valor de {{total}}. Link: {{link}}`
 
 ## Estrutura técnica
 
-### DB (migração)
-- `ALTER TABLE invoices ADD COLUMN external_provider text` (nullable)
-- `ALTER TABLE invoices ADD COLUMN external_id text` (id no IX)
-- `ALTER TABLE invoices ADD COLUMN external_url text` (link público IX)
-- `ALTER TABLE invoices ADD COLUMN external_synced_at timestamptz`
-- `CREATE UNIQUE INDEX uniq_invoices_external ON invoices (workspace_id, external_provider, external_id) WHERE external_id IS NOT NULL`
-- Nova tabela `billing_sync_runs`:
-  - `id`, `workspace_id`, `integration_id` (FK), `started_at`, `finished_at`, `status` (`running|ok|error`), `imported_count`, `updated_count`, `failed_count`, `cursor_from`, `cursor_to`, `error_message`, `details jsonb`
-  - RLS: SELECT para admins do workspace; INSERT/UPDATE só via service_role.
+### Novos componentes
+```
+src/components/opportunities/quick-proposal/
+  QuickProposalDrawer.tsx          # drawer principal
+  QuickProposalProductPicker.tsx   # combobox catálogo
+  QuickProposalLineRow.tsx         # linha editável
+  QuickProposalSummary.tsx         # totais + envio
+src/components/opportunities/AdjudicateDialog.tsx
+src/components/settings/pipeline/PipelineAutomationSettings.tsx
+```
 
-### Edge Functions
-1. **`invoicexpress-sync-invoices`** (manual + cron)
-   - Input: `{integration_id, since?}` (opcional, default = 30 dias).
-   - Valida JWT + admin do workspace (quando manual). Em modo cron usa `x-cron-secret`.
-   - Usa o `invoicexpress-proxy` internamente (ou chama IX directamente via service_role) para `GET /invoices.json?date[from]=...&page=N`.
-   - Itera todas as páginas, normaliza cada documento e faz UPSERT em `invoices` por `(workspace_id, external_provider, external_id)`.
-   - Resolve `company_id`/`contact_id` por NIF/email (best-effort).
-   - Regista corrida em `billing_sync_runs` com contadores e erros parciais.
-   - Padrão Resilient Errors: 200 OK + `{ok:false, error}` em todas as falhas.
+### Novos hooks
+```
+src/hooks/proposals/useCreateQuickProposal.ts   # cria proposta + items + publica
+src/hooks/opportunities/useAdjudicateOpportunity.ts  # ganha → fatura → whatsapp
+```
 
-2. **`billing-sync-cron`** (HTTP target do `pg_cron`)
-   - Lista integrações activas via service_role e dispara `invoicexpress-sync-invoices` para cada uma com `since = now-7d`.
-   - Cron registado via `supabase--insert` (não migração, contém URL/anon key).
+### Nova edge function
+```
+supabase/functions/opportunity-adjudicate/index.ts
+```
+Input: `{ opportunityId }` | Auth: JWT + workspace check
+Fluxo:
+1. Carrega oportunidade + proposta ativa + items + contacto
+2. INSERT `invoices` + `invoice_items` (workspace_id, opportunity_id, proposal_id)
+3. Se workspace tem `billing_integrations.is_active` (InvoiceXpress) → POST via `invoicexpress-proxy` → guarda `external_id` + `public_url` + `pdf_url` em `invoices`
+4. Resolve telefone do contacto → invoca `whatsapp-pro-send` com template + mediaUrl (PDF)
+5. Atualiza `opportunities.status='won'` + `last_won_at`
+6. Logs em `activity_logs` com `correlation_id`
+7. Retorna 200 com `{ ok, invoiceId, publicUrl, whatsappStatus }`; em falha parcial devolve `{ ok: false, fallback: 'invoice_created_whatsapp_failed' }`
 
-### Frontend
-- `useBillingSyncRuns(integrationId)` — lista corridas (últimas 50).
-- `useTriggerBillingSync()` — invoca `invoicexpress-sync-invoices` (manual).
-- Página `BillingIntegrationDetailPage.tsx` (rota `/dashboard/settings/billing-integrations/:id`):
-  - Cabeçalho com estado da ligação + botão "Sincronizar agora".
-  - Tabela de runs (data, status, importados/atualizados/falhas, duração).
-  - Link "Ver faturas importadas" → filtro `external_provider=invoicexpress` na lista de faturas.
-- Em `InvoicesListPage` (já existente): adicionar badge "InvoiceXpress" com link `external_url` quando aplicável; coluna "Origem".
+### Migration
+```sql
+-- Tabela de configuração por workspace
+CREATE TABLE pipeline_automation_settings (
+  workspace_id uuid PK FK,
+  auto_invoice_on_won boolean DEFAULT true,
+  attach_pdf_whatsapp boolean DEFAULT true,
+  whatsapp_template text DEFAULT 'Olá {{cliente}}...',
+  ...
+);
+-- RLS: SELECT/UPDATE para members; INSERT via trigger
+```
 
 ## Plano de implementação
 
-1. Migração: colunas `external_*` em `invoices` + índice único + tabela `billing_sync_runs` + RLS.
-2. Edge Function `invoicexpress-sync-invoices` (paginação, normalização, upsert, log de run).
-3. Edge Function `billing-sync-cron` + agendamento `pg_cron` (06:00 UTC diário).
-4. Hooks `useBillingSyncRuns`, `useTriggerBillingSync`.
-5. Página `BillingIntegrationDetailPage` + rota.
-6. Badge "InvoiceXpress" + link no listado de faturas.
-7. QA: criar 1 fatura no IX → sincronizar manualmente → ver na lista CRM com badge.
+1. **Migration** — tabela `pipeline_automation_settings` + RLS
+2. **Edge function** `opportunity-adjudicate` (núcleo: fatura + WhatsApp)
+3. **Hook** `useCreateQuickProposal` — wrapper sobre `proposals` + `proposal_items` + publish
+4. **QuickProposalDrawer** + sub-componentes — UI 1-clique
+5. **Botão "Nova proposta rápida"** no `OpportunityDetail` header
+6. **AdjudicateDialog** + integração no `OpportunityStagesStepper` e drag-drop kanban
+7. **Settings → Pipeline** — toggles + template
+8. **i18n PT** + estados (loading/erro/sucesso/sem integração) + toasts com undo
+9. QA: oportunidade sem contacto WhatsApp, sem InvoiceXpress, sem produtos, com catálogo grande (virtualização do picker)
 
 ## Critérios de aceitação
 
-- Admin clica "Sincronizar agora" e em <15s vê a lista de faturas atualizada.
-- Faturas IX aparecem com badge + número original + link clicável para abrir no IX.
-- Sync incremental não duplica registos (idempotente por `external_id`).
-- Estados (`paid`, `overdue`, `cancelled`) refletidos correctamente no CRM.
-- Match automático cliente↔company por NIF quando existe; fallback para snapshot.
-- `billing_sync_runs` mostra histórico claro com contadores e mensagem de erro quando falha.
-- Cron diário corre sem intervenção e logs ficam em `billing_sync_runs`.
-- RLS garante isolamento por workspace.
-- Estados vazio/loading/erro/sem permissão tratados na UI.
+- [ ] A partir de `/dashboard/opportunities/:id`, em ≤ 30s e ≤ 2 cliques crio proposta com 3 produtos do catálogo e envio por WhatsApp
+- [ ] Mover deal para etapa "Ganho" no kanban dispara confirmação → fatura → WhatsApp automático
+- [ ] Mensagem WhatsApp chega com link público da fatura (InvoiceXpress se ativo, senão local) + PDF anexo
+- [ ] Se InvoiceXpress falhar: fatura local é criada na mesma + toast com erro acionável
+- [ ] Se WhatsApp falhar: fatura permanece + utilizador vê botão "Reenviar por WhatsApp"
+- [ ] Toggle "auto-fatura" em Settings desativa o trigger automático
+- [ ] Sem contacto/telefone: bloqueia com mensagem clara antes de tentar enviar
+- [ ] RLS: utilizador de outra workspace não consegue adjudicar
+- [ ] Mobile: drawer responsivo, picker usável
 
-## Riscos / pontos por validar
+## Riscos e pontos por validar
 
-- **Rate limits InvoiceXpress** não documentados — proxy precisa de retry com backoff (vou adicionar 1 retry em 429/5xx).
-- **Mapeamento de séries**: o IX tem múltiplas séries; nesta fase guardamos só `external_id` + `invoice_number` original sem replicar séries no CRM.
-- **Notas de crédito**: ligadas à fatura original via `related_invoice_id` (precisa segunda passagem após o upsert principal).
-- **Histórico inicial grande**: primeira sync usa janela 30 dias; para histórico completo o utilizador terá de carregar manualmente ajustando `since` (UI futura — fora deste scope).
-- **Campo `paid_at`**: IX nem sempre devolve data exata de pagamento; usaremos `updated_at` do IX como aproximação quando `status=settled`.
-- **Anti-flapping**: se `status` mudar de `paid` para outra coisa por engano no IX, refletir mas registar em `details` da run.
+- **InvoiceXpress async**: a sincronização atual é via cron — vamos invocar `invoicexpress-proxy` em modo síncrono (POST `/invoices.json` + `finalise`) para obter `public_url` na hora. Confirmar que o proxy suporta este fluxo ou estender.
+- **PDF do InvoiceXpress**: endpoint `/invoices/{id}/pdf` pode demorar a estar disponível após finalize → fazer poll curto (max 5s) e cair para "só link" se não vier a tempo.
+- **Telefone do contacto**: alguns contactos podem ter telefone em `phone` ou `mobile_phone` — usar normalizador `src/utils/phone.ts`.
+- **Numeração da fatura local**: já existe `invoice_number` — manter sequência via função existente; quando InvoiceXpress sincroniza, atualizar com número oficial.
+- **Reversão**: se utilizador desadjudicar (move para outra etapa), NÃO eliminar fatura — apenas marcar `status='cancelled'` opcionalmente. Pedir confirmação ao utilizador.
+- **Permissões**: só roles `admin`/`sales` podem adjudicar (verificar `has_role`).
+
+Aprovas avançar com este plano? Posso começar pela migration + edge function `opportunity-adjudicate` e depois o drawer.
