@@ -93,6 +93,11 @@ function C2CRedirectToMarketplace() {
   return <Navigate to={`/marketplace/${workspaceSlug}${suffix}${window.location.search}`} replace />;
 }
 
+function BuilderIdRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/dashboard/builder/${id}`} replace />;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
