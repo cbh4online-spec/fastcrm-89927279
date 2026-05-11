@@ -67,6 +67,8 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
   const { installedModuleIds } = useWorkspaceModules();
   const { data: storeSettings } = useStoreSettings();
   const { canAccessMenu } = useMenuPermissions();
+  const { collapsed, toggleCollapse } = useSidebarCollapse();
+  const panelOpen = !collapsed;
 
   const megaGroups = useMemo(
     () => buildMegaGroupSections(installedModuleIds, canAccessMenu),
