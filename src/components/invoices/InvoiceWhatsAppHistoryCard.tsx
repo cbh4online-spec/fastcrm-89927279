@@ -1,11 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, RefreshCw, Loader2, ExternalLink, AlertCircle, Check, Eye, MousePointerClick } from "lucide-react";
+import { MessageCircle, RefreshCw, Loader2, ExternalLink, AlertCircle, Check, Eye, MousePointerClick, CalendarClock, X, Repeat } from "lucide-react";
 import { useInvoiceWhatsAppSends, type InvoiceWhatsAppSend } from "@/hooks/invoices/useInvoiceWhatsAppSends";
+import {
+  useInvoiceScheduledWhatsApp,
+  useCancelScheduledWhatsApp,
+  type InvoiceScheduledWhatsApp,
+} from "@/hooks/invoices/useInvoiceScheduledWhatsApp";
 import { formatPhone } from "@/utils/phone";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface Props {
   invoiceId: string;
