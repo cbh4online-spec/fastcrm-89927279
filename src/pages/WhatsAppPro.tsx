@@ -273,6 +273,7 @@ export default function WhatsAppPro() {
 
           <TabsContent value="config" className="space-y-4">
             <WhatsAppProviderConfigCard />
+            <WhatsAppPaymentMessageCard />
             <Card className="p-4 space-y-3">
               <h3 className="text-sm font-semibold">Estado do canal</h3>
               <div className="text-sm space-y-2">
