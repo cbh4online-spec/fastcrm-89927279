@@ -212,6 +212,41 @@ export function PaymentActionsCard({
   const confirmSendWhatsApp = async () => {
     if (!waPreview || !waConsent) return;
     try {
+      // Backend opt-in precheck (workspace-scoped). Fail-closed if not allowed.
+      const { data: pre, error: preErr } = await supabase.functions.invoke(
+        "invoice-whatsapp-optin-precheck",
+        { body: { invoice_id: invoiceId, phone: waPreview.e164 } },
+      );
+      if (preErr) {
+        toast.error(`Não foi possível validar opt-in: ${preErr.message}`);
+        return;
+      }
+      if (!pre?.allowed) {
+        const reason = pre?.reason as string | undefined;
+        if (reason === "optout") {
+          toast.error(
+            "Cliente está em opt-out de WhatsApp neste workspace. Envio bloqueado.",
+          );
+          logSend
+            .mutateAsync({
+              invoiceId,
+              phone: waPreview.e164,
+              messageText: waPreview.text,
+              shareUrl: waPreview.url,
+              status: "failed",
+              errorMessage: "blocked_optout",
+              metadata: { consent_confirmed: true, blocked_reason: "optout" },
+            })
+            .catch(() => {});
+        } else if (reason === "invalid_phone") {
+          toast.error("Telemóvel inválido para verificação de opt-in.");
+        } else {
+          toast.error(
+            `Verificação de opt-in falhou (${reason || "desconhecido"}). Tente novamente.`,
+          );
+        }
+        return;
+      }
       const res = await waSend.mutateAsync({
         phone: waPreview.e164,
         messageType: "text" as any,
