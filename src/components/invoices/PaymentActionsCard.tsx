@@ -561,7 +561,10 @@ export function PaymentActionsCard({
         open={waConfirmOpen}
         onOpenChange={(open) => {
           setWaConfirmOpen(open);
-          if (!open) setWaConsent(false);
+          if (!open) {
+            setWaConsent(false);
+            setWaEditedText("");
+          }
         }}
       >
         <AlertDialogContent className="max-w-lg">
@@ -571,12 +574,17 @@ export function PaymentActionsCard({
               Confirmar envio por WhatsApp
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Reveja a mensagem antes de enviar. O envio só fica disponível depois
-              de confirmar o consentimento do cliente.
+              Edite a mensagem se necessário e confirme o consentimento do
+              cliente antes de enviar.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          {waPreview && (
+          {waPreview && (() => {
+            const charCount = waEditedText.length;
+            const linkMissing = !waEditedText.includes(waPreview.url);
+            const isEmpty = waEditedText.trim().length === 0;
+            const isEdited = waEditedText !== waPreview.text;
+            return (
             <div className="space-y-3">
               <div className="rounded-md border bg-muted/40 p-3 text-xs">
                 <div className="flex items-center justify-between mb-2">
@@ -588,12 +596,43 @@ export function PaymentActionsCard({
                   </span>
                 </div>
                 <Separator className="my-2" />
-                <div className="font-medium text-muted-foreground mb-1">
-                  Pré-visualização da mensagem
+                <div className="flex items-center justify-between mb-1">
+                  <Label htmlFor="wa-message-edit" className="text-xs font-medium text-muted-foreground">
+                    Mensagem
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    {isEdited && (
+                      <button
+                        type="button"
+                        className="text-[11px] text-muted-foreground underline hover:text-foreground"
+                        onClick={() => setWaEditedText(waPreview.text)}
+                      >
+                        Repor original
+                      </button>
+                    )}
+                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                      {charCount} car.
+                    </span>
+                  </div>
                 </div>
-                <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed max-h-64 overflow-y-auto">
-                  {waPreview.text}
-                </pre>
+                <Textarea
+                  id="wa-message-edit"
+                  value={waEditedText}
+                  onChange={(e) => setWaEditedText(e.target.value)}
+                  className="min-h-[140px] max-h-64 font-sans text-xs leading-relaxed"
+                  spellCheck
+                  disabled={waSend.isPending}
+                />
+                {linkMissing && (
+                  <p className="mt-1 text-[11px] text-destructive">
+                    A mensagem deve incluir o link de pagamento ({waPreview.url}).
+                  </p>
+                )}
+                {isEmpty && !linkMissing && (
+                  <p className="mt-1 text-[11px] text-destructive">
+                    A mensagem não pode ficar vazia.
+                  </p>
+                )}
               </div>
 
               <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
@@ -611,6 +650,7 @@ export function PaymentActionsCard({
                   checked={waConsent}
                   onCheckedChange={(v) => setWaConsent(v === true)}
                   className="mt-0.5"
+                  disabled={isEmpty || linkMissing}
                 />
                 <span>
                   Confirmo que o cliente autorizou receber comunicações por
@@ -619,7 +659,8 @@ export function PaymentActionsCard({
                 </span>
               </label>
             </div>
-          )}
+            );
+          })()}
 
           <AlertDialogFooter>
             <AlertDialogCancel disabled={waSend.isPending}>
