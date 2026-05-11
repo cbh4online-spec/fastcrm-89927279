@@ -55,12 +55,15 @@ export interface Conversation {
   contact?: ConversationContact | null;
   company?: ConversationCompany | null;
   opportunities?: ConversationOpportunity[];
-  /** Resolved by phone suffix when conversation has no linked lead/contact/company */
+  /** Resolved by phone normalization when conversation has no linked lead/contact/company */
   resolved_contact?: {
     type: "lead" | "contact" | "company";
     id: string;
     name: string;
     matched_phone?: string | null;
+    /** True when multiple records share the same normalized phone — auto-link is skipped. */
+    ambiguous?: boolean;
+    candidates_count?: number;
   } | null;
   // AI Classification fields
   ai_priority?: "high" | "medium" | "low" | null;
@@ -222,24 +225,49 @@ export function useConversations(filters?: ConversationFilters) {
       );
 
       if (unlinked.length > 0) {
-        const suffixOf = (raw: string): string | null => {
+        // Lazy-load libphonenumber to keep the main bundle lean.
+        const { parsePhoneNumberFromString } = await import("libphonenumber-js");
+
+        // Robust normalization: try E.164 with PT default; fall back to a 9-digit
+        // national-number suffix when parsing fails. Returns null when the input
+        // has too few digits to be considered a phone number at all.
+        const normalize = (raw: string | null | undefined): { key: string; e164: string | null; suffix: string } | null => {
+          if (!raw) return null;
           const digits = String(raw).replace(/\D/g, "");
           if (digits.length < 7) return null;
-          return digits.slice(-9);
+
+          // Try parsing as-is, then with explicit '+' prefix when missing.
+          let parsed = parsePhoneNumberFromString(raw, "PT");
+          if ((!parsed || !parsed.isValid()) && !raw.startsWith("+") && digits.length >= 11) {
+            parsed = parsePhoneNumberFromString(`+${digits}`);
+          }
+
+          if (parsed && parsed.isValid()) {
+            const e164 = parsed.format("E.164"); // e.g. +351966014669
+            const national = parsed.nationalNumber.toString();
+            // Use national-number digits for suffix to avoid country-code collisions.
+            return { key: e164, e164, suffix: national.slice(-9) };
+          }
+
+          // Fallback: keep raw digits suffix; prefix the key to avoid colliding
+          // with E.164 keys.
+          const suffix = digits.slice(-9);
+          return { key: `~${suffix}`, e164: null, suffix };
         };
 
-        const suffixToConvIds = new Map<string, string[]>();
+        type ConvNorm = { convId: string; key: string; suffix: string; raw: string };
+        const convNorms: ConvNorm[] = [];
+        const suffixSet = new Set<string>();
         for (const c of unlinked) {
-          const s = suffixOf(c.external_thread_id || "");
-          if (!s) continue;
-          const arr = suffixToConvIds.get(s) || [];
-          arr.push(c.id);
-          suffixToConvIds.set(s, arr);
+          const n = normalize(c.external_thread_id);
+          if (!n) continue;
+          convNorms.push({ convId: c.id, key: n.key, suffix: n.suffix, raw: c.external_thread_id! });
+          suffixSet.add(n.suffix);
         }
 
-        const suffixes = Array.from(suffixToConvIds.keys());
-        if (suffixes.length > 0) {
-          const orFilter = suffixes.map((s) => `phone.ilike.%${s}%`).join(",");
+        if (suffixSet.size > 0) {
+          // Broad DB filter via suffix ilike; final precision happens client-side via E.164 match.
+          const orFilter = Array.from(suffixSet).map((s) => `phone.ilike.%${s}%`).join(",");
 
           const [leadsRes, contactsRes, companiesRes] = await Promise.all([
             workspaceClient
@@ -248,85 +276,100 @@ export function useConversations(filters?: ConversationFilters) {
               .eq("workspace_id", currentWorkspace.id)
               .not("phone", "is", null)
               .or(orFilter)
-              .limit(500),
+              .limit(1000),
             workspaceClient
               .from("contacts")
               .select("id, name, phone")
               .eq("workspace_id", currentWorkspace.id)
               .not("phone", "is", null)
               .or(orFilter)
-              .limit(500),
+              .limit(1000),
             workspaceClient
               .from("companies")
               .select("id, name, phone")
               .eq("workspace_id", currentWorkspace.id)
               .not("phone", "is", null)
               .or(orFilter)
-              .limit(500),
+              .limit(1000),
           ]);
 
-          // Index by suffix; prefer contact > lead > company
-          const matchBySuffix = new Map<
-            string,
-            { type: "lead" | "contact" | "company"; id: string; name: string; matched_phone: string }
-          >();
-
-          const ingest = (
-            rows: Array<{ id: string; name: string | null; phone: string | null }> | null,
-            type: "lead" | "contact" | "company",
-          ) => {
-            if (!rows) return;
-            const priority = { contact: 0, lead: 1, company: 2 } as const;
-            for (const r of rows) {
-              if (!r.phone || !r.name) continue;
-              const s = suffixOf(r.phone);
-              if (!s || !suffixToConvIds.has(s)) continue;
-              const existing = matchBySuffix.get(s);
-              if (!existing || priority[type] < priority[existing.type]) {
-                matchBySuffix.set(s, { type, id: r.id, name: r.name, matched_phone: r.phone });
-              }
-            }
+          // Group rows by normalized key per type — so we can detect ambiguity within a tier.
+          type Row = { id: string; name: string; phone: string };
+          const byKey: Record<"contact" | "lead" | "company", Map<string, Row[]>> = {
+            contact: new Map(),
+            lead: new Map(),
+            company: new Map(),
           };
 
-          ingest(contactsRes.data as any, "contact");
-          ingest(leadsRes.data as any, "lead");
-          ingest(companiesRes.data as any, "company");
+          const indexRows = (rows: Array<{ id: string; name: string | null; phone: string | null }> | null, type: "contact" | "lead" | "company") => {
+            if (!rows) return;
+            for (const r of rows) {
+              if (!r.phone || !r.name) continue;
+              const n = normalize(r.phone);
+              if (!n) continue;
+              const arr = byKey[type].get(n.key) || [];
+              arr.push({ id: r.id, name: r.name, phone: r.phone });
+              byKey[type].set(n.key, arr);
+            }
+          };
+          indexRows(contactsRes.data as any, "contact");
+          indexRows(leadsRes.data as any, "lead");
+          indexRows(companiesRes.data as any, "company");
 
-          if (matchBySuffix.size > 0) {
-            const convResolution = new Map<string, NonNullable<Conversation["resolved_contact"]>>();
-            for (const [suffix, match] of matchBySuffix.entries()) {
-              const convIds = suffixToConvIds.get(suffix) || [];
-              for (const cid of convIds) {
-                convResolution.set(cid, {
-                  type: match.type,
-                  id: match.id,
-                  name: match.name,
-                  matched_phone: match.matched_phone,
+          const convResolution = new Map<string, NonNullable<Conversation["resolved_contact"]>>();
+
+          for (const cn of convNorms) {
+            // Walk priority tiers: contact → lead → company. Stop at first tier with matches.
+            for (const type of ["contact", "lead", "company"] as const) {
+              const candidates = byKey[type].get(cn.key);
+              if (!candidates || candidates.length === 0) continue;
+
+              // Deduplicate by id (same record could appear twice if phone has odd whitespace).
+              const uniq = Array.from(new Map(candidates.map((c) => [c.id, c])).values());
+
+              if (uniq.length === 1) {
+                convResolution.set(cn.convId, {
+                  type,
+                  id: uniq[0].id,
+                  name: uniq[0].name,
+                  matched_phone: uniq[0].phone,
+                });
+              } else {
+                // Ambiguous: multiple distinct records in the same tier share this phone.
+                // Surface the first for display but flag it and skip auto-link.
+                convResolution.set(cn.convId, {
+                  type,
+                  id: uniq[0].id,
+                  name: uniq[0].name,
+                  matched_phone: uniq[0].phone,
+                  ambiguous: true,
+                  candidates_count: uniq.length,
                 });
               }
+              break;
             }
+          }
+
+          if (convResolution.size > 0) {
             for (const c of conversationsWithOpps) {
               const r = convResolution.get(c.id);
               if (r) (c as any).resolved_contact = r;
             }
 
-            // Persist the link so the whole app benefits (kanban, KPIs, detail view, etc.).
-            // Fire-and-forget per type — RLS on `conversations` already restricts to workspace members.
-            const updates: Array<Promise<unknown>> = [];
-            const groupBy = { lead: [] as Array<{ convId: string; entityId: string }>, contact: [] as Array<{ convId: string; entityId: string }>, company: [] as Array<{ convId: string; entityId: string }> };
-            for (const [convId, r] of convResolution.entries()) {
-              groupBy[r.type].push({ convId, entityId: r.id });
-            }
+            // Persist the link only for unambiguous matches — never overwrite an existing link.
             const colMap = { lead: "lead_id", contact: "contact_id", company: "company_id" } as const;
+            const groupBy = { lead: new Map<string, string[]>(), contact: new Map<string, string[]>(), company: new Map<string, string[]>() };
+            for (const [convId, r] of convResolution.entries()) {
+              if (r.ambiguous) continue;
+              const m = groupBy[r.type];
+              const arr = m.get(r.id) || [];
+              arr.push(convId);
+              m.set(r.id, arr);
+            }
+
+            const updates: Array<Promise<unknown>> = [];
             for (const type of ["contact", "lead", "company"] as const) {
-              // Group by entityId to batch updates
-              const byEntity = new Map<string, string[]>();
-              for (const item of groupBy[type]) {
-                const arr = byEntity.get(item.entityId) || [];
-                arr.push(item.convId);
-                byEntity.set(item.entityId, arr);
-              }
-              for (const [entityId, convIds] of byEntity.entries()) {
+              for (const [entityId, convIds] of groupBy[type].entries()) {
                 updates.push(
                   Promise.resolve(
                     workspaceClient
@@ -340,12 +383,10 @@ export function useConversations(filters?: ConversationFilters) {
                 );
               }
             }
-            // Don't await — let it complete in background. Realtime invalidation will refresh.
             void Promise.allSettled(updates);
           }
         }
       }
-
       return conversationsWithOpps as Conversation[];
     },
     enabled: !!currentWorkspace,
