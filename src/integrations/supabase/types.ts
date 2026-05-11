@@ -10588,6 +10588,183 @@ export type Database = {
           },
         ]
       }
+      builder_site_assets: {
+        Row: {
+          bytes: number
+          content_type: string | null
+          created_at: string
+          id: string
+          kind: string
+          original_url: string
+          sha256: string | null
+          site_id: string
+          storage_path: string
+          workspace_id: string
+        }
+        Insert: {
+          bytes?: number
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          original_url: string
+          sha256?: string | null
+          site_id: string
+          storage_path: string
+          workspace_id: string
+        }
+        Update: {
+          bytes?: number
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          original_url?: string
+          sha256?: string | null
+          site_id?: string
+          storage_path?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_site_assets_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "builder_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      builder_site_pages: {
+        Row: {
+          bytes: number
+          created_at: string
+          error: string | null
+          html: string
+          id: string
+          is_home: boolean
+          order_index: number
+          path: string
+          site_id: string
+          slug: string
+          source_url: string
+          status: Database["public"]["Enums"]["builder_site_page_status"]
+          title: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          bytes?: number
+          created_at?: string
+          error?: string | null
+          html?: string
+          id?: string
+          is_home?: boolean
+          order_index?: number
+          path: string
+          site_id: string
+          slug: string
+          source_url: string
+          status?: Database["public"]["Enums"]["builder_site_page_status"]
+          title?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          bytes?: number
+          created_at?: string
+          error?: string | null
+          html?: string
+          id?: string
+          is_home?: boolean
+          order_index?: number
+          path?: string
+          site_id?: string
+          slug?: string
+          source_url?: string
+          status?: Database["public"]["Enums"]["builder_site_page_status"]
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_site_pages_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "builder_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      builder_sites: {
+        Row: {
+          asset_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          design_tokens: Json
+          error: string | null
+          id: string
+          name: string
+          options: Json
+          pages_done: number
+          pages_failed: number
+          pages_total: number
+          source_host: string
+          source_url: string
+          status: Database["public"]["Enums"]["builder_site_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          asset_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          design_tokens?: Json
+          error?: string | null
+          id?: string
+          name: string
+          options?: Json
+          pages_done?: number
+          pages_failed?: number
+          pages_total?: number
+          source_host: string
+          source_url: string
+          status?: Database["public"]["Enums"]["builder_site_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          design_tokens?: Json
+          error?: string | null
+          id?: string
+          name?: string
+          options?: Json
+          pages_done?: number
+          pages_failed?: number
+          pages_total?: number
+          source_host?: string
+          source_url?: string
+          status?: Database["public"]["Enums"]["builder_site_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_sites_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "builder_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       builder_templates: {
         Row: {
           category: string | null
@@ -91139,6 +91316,20 @@ export type Database = {
       bot_type: "guided" | "prompt" | "flow"
       builder_asset_status: "draft" | "published" | "archived"
       builder_asset_type: "site" | "landing" | "funnel" | "form" | "newsletter"
+      builder_site_page_status:
+        | "pending"
+        | "cloning"
+        | "ok"
+        | "error"
+        | "skipped"
+      builder_site_status:
+        | "discovering"
+        | "pending"
+        | "cloning"
+        | "completed"
+        | "failed"
+        | "partial"
+        | "cancelled"
       c2c_buyer_status: "active" | "suspended"
       c2c_seller_status: "pending" | "approved" | "rejected" | "suspended"
       campaign_audience:
@@ -91719,6 +91910,22 @@ export const Constants = {
       bot_type: ["guided", "prompt", "flow"],
       builder_asset_status: ["draft", "published", "archived"],
       builder_asset_type: ["site", "landing", "funnel", "form", "newsletter"],
+      builder_site_page_status: [
+        "pending",
+        "cloning",
+        "ok",
+        "error",
+        "skipped",
+      ],
+      builder_site_status: [
+        "discovering",
+        "pending",
+        "cloning",
+        "completed",
+        "failed",
+        "partial",
+        "cancelled",
+      ],
       c2c_buyer_status: ["active", "suspended"],
       c2c_seller_status: ["pending", "approved", "rejected", "suspended"],
       campaign_audience: [
