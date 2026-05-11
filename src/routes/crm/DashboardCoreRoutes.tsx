@@ -101,6 +101,8 @@ export function DashboardCoreRoutes() {
       <Route path="/settings/tags" element={<WorkspaceTagsPage />} />
       <Route path="/settings/billing-integrations" element={<BillingIntegrationsPage />} />
       <Route path="/dashboard/settings/billing-integrations" element={<BillingIntegrationsPage />} />
+      <Route path="/settings/billing-integrations/sync" element={<BillingSyncPage />} />
+      <Route path="/dashboard/settings/billing-integrations/sync" element={<BillingSyncPage />} />
       <Route path="/platform/data" element={<VisualDataModelPage />} />
       <Route path="/settings/:section" element={<Settings />} />
       <Route path="/settings/rgpd" element={<GDPRBackofficePage />} />
