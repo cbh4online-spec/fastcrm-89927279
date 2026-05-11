@@ -9,6 +9,7 @@ import { ResponseInfoSheet } from "./ResponseInfoSheet";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
 import { WhatsAppProductMessageCard } from "@/components/whatsapp-pro/WhatsAppProductMessageCard";
 import { WhatsAppAudioMessageCard } from "@/components/whatsapp-pro/WhatsAppAudioMessageCard";
+import { InlineMessageTranslator } from "./InlineMessageTranslator";
 interface MessageBubbleProps {
   message: {
     id: string;
