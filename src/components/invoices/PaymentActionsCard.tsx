@@ -214,20 +214,34 @@ export function PaymentActionsCard({
               </Button>
             )}
             {waActive && customerPhone && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleSendWhatsApp}
-                disabled={generatingLink || waSend.isPending}
-                className="text-emerald-600 hover:text-emerald-700"
-              >
-                {waSend.isPending ? (
-                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                ) : (
-                  <MessageCircle className="w-3 h-3 mr-2" />
+              <div className="flex flex-col gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSendWhatsApp}
+                  disabled={generatingLink || waSend.isPending || !customerPhoneE164}
+                  className="text-emerald-600 hover:text-emerald-700"
+                  title={
+                    customerPhoneE164
+                      ? `Enviar para ${formatPhone(customerPhoneE164, "PT")}`
+                      : "Telemóvel inválido — actualize o contacto"
+                  }
+                >
+                  {waSend.isPending ? (
+                    <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                  ) : (
+                    <MessageCircle className="w-3 h-3 mr-2" />
+                  )}
+                  {customerPhoneE164
+                    ? `Enviar por WhatsApp (${formatPhone(customerPhoneE164, "PT")})`
+                    : "Enviar por WhatsApp"}
+                </Button>
+                {!customerPhoneE164 && (
+                  <p className="text-[11px] text-destructive">
+                    Telemóvel do cliente inválido ({customerPhone}). Actualize o contacto.
+                  </p>
                 )}
-                Enviar por WhatsApp
-              </Button>
+              </div>
             )}
           </div>
         )}
