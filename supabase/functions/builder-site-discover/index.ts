@@ -137,38 +137,119 @@ Deno.serve(async (req) => {
       return json({ error: "Apenas http/https" }, 400);
     if (isBlockedHost(parsed.hostname)) return json({ error: "Host bloqueado" }, 400);
 
-    // Firecrawl /map
-    let mapped: { success: boolean; links?: string[]; error?: string };
-    try {
-      mapped = await firecrawl<{ success: boolean; links?: string[]; error?: string }>(
-        "/map",
-        { url: parsed.toString(), limit: MAX_PAGES, includeSubdomains: !!body?.includeSubdomains },
-      );
-    } catch (e) {
-      return json({ error: e instanceof Error ? e.message : "Falha no map" }, 502);
-    }
-    if (!mapped.success) return json({ error: mapped.error ?? "Falha no map" }, 502);
-
-    // Filtra URLs do mesmo host (a menos que peçam subdomínios)
     const root = parsed.hostname.replace(/^www\./, "");
-    const links = (mapped.links ?? [])
-      .filter((l) => {
-        try {
-          const u = new URL(l);
-          if (!["http:", "https:"].includes(u.protocol)) return false;
-          const host = u.hostname.replace(/^www\./, "");
-          return body?.includeSubdomains ? host.endsWith(root) : host === root;
-        } catch { return false; }
-      })
-      .filter((l, i, a) => a.indexOf(l) === i)
-      .slice(0, MAX_PAGES);
+    const sameHost = (l: string): boolean => {
+      try {
+        const u = new URL(l);
+        if (!["http:", "https:"].includes(u.protocol)) return false;
+        const host = u.hostname.replace(/^www\./, "");
+        return body?.includeSubdomains ? host.endsWith(root) : host === root;
+      } catch {
+        return false;
+      }
+    };
+
+    const collected = new Set<string>();
+    const sources: string[] = [];
+
+    // 1) Firecrawl v2 /map com sitemap include (apanha sitemap.xml)
+    try {
+      const m2 = await firecrawl<{ success?: boolean; links?: Array<string | { url: string }>; error?: string }>(
+        FIRECRAWL_V2,
+        "/map",
+        {
+          url: parsed.toString(),
+          limit: MAX_PAGES,
+          includeSubdomains: !!body?.includeSubdomains,
+          sitemap: "include",
+        },
+      );
+      for (const item of m2.links ?? []) {
+        const u = typeof item === "string" ? item : item?.url;
+        if (u && sameHost(u)) collected.add(u);
+      }
+      sources.push(`map-v2:${collected.size}`);
+    } catch (e) {
+      sources.push(`map-v2-fail:${e instanceof Error ? e.message.slice(0, 60) : "?"}`);
+    }
+
+    // 2) Fallback para v1 /map se v2 falhou
+    if (collected.size <= 1) {
+      try {
+        const m1 = await firecrawl<{ success: boolean; links?: string[]; error?: string }>(
+          FIRECRAWL_V1,
+          "/map",
+          { url: parsed.toString(), limit: MAX_PAGES, includeSubdomains: !!body?.includeSubdomains },
+        );
+        for (const l of m1.links ?? []) if (sameHost(l)) collected.add(l);
+        sources.push(`map-v1:${collected.size}`);
+      } catch (e) {
+        sources.push(`map-v1-fail:${e instanceof Error ? e.message.slice(0, 60) : "?"}`);
+      }
+    }
+
+    // 3) Fallback para crawl (segue links HTML) se ainda muito poucas páginas
+    if (collected.size <= 1) {
+      try {
+        const job = await firecrawl<{ id?: string; jobId?: string; error?: string }>(
+          FIRECRAWL_V2,
+          "/crawl",
+          {
+            url: parsed.toString(),
+            limit: 60,
+            maxDepth: 3,
+            scrapeOptions: { formats: ["links"] },
+            allowExternalLinks: false,
+          },
+        );
+        const id = job.id ?? job.jobId;
+        if (id) {
+          const found = await pollCrawl(id, 28_000);
+          for (const l of found) if (sameHost(l)) collected.add(l);
+          sources.push(`crawl:${collected.size}`);
+        }
+      } catch (e) {
+        sources.push(`crawl-fail:${e instanceof Error ? e.message.slice(0, 60) : "?"}`);
+      }
+    }
+
+    // 4) Fallback final: scrape home, extrai todos os <a href> internos
+    if (collected.size <= 1) {
+      try {
+        const sc = await firecrawl<{ success?: boolean; data?: { html?: string; links?: string[] } }>(
+          FIRECRAWL_V2,
+          "/scrape",
+          { url: parsed.toString(), formats: ["html", "links"], onlyMainContent: false },
+        );
+        for (const l of sc?.data?.links ?? []) if (sameHost(l)) collected.add(l);
+        const html = sc?.data?.html ?? "";
+        const re = /<a[^>]+href=["']([^"']+)["']/gi;
+        let m;
+        while ((m = re.exec(html))) {
+          try {
+            const abs = new URL(m[1], parsed.toString()).toString().split("#")[0];
+            if (sameHost(abs)) collected.add(abs);
+          } catch { /* ignore */ }
+        }
+        sources.push(`scrape-links:${collected.size}`);
+      } catch (e) {
+        sources.push(`scrape-fail:${e instanceof Error ? e.message.slice(0, 60) : "?"}`);
+      }
+    }
+
+    // Garante que a home está incluída
+    collected.add(parsed.toString());
+
+    const links = Array.from(collected).slice(0, MAX_PAGES);
+    console.log(`[discover] ${parsed.hostname} → ${links.length} URLs (${sources.join(" | ")})`);
 
     // Scrape rápido da home p/ branding
     let branding: { colors: string[]; fonts: string[]; logo: string | null } = {
       colors: [], fonts: [], logo: null,
     };
     try {
-      const sc = await firecrawl<{ success: boolean; data?: { html?: string } }>(
+      const sc = await firecrawl<{ success?: boolean; data?: { html?: string } }>(
+        FIRECRAWL_V2,
         "/scrape",
         { url: parsed.toString(), formats: ["html"], onlyMainContent: false, timeout: 20000 },
       );
