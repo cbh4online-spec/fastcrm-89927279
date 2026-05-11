@@ -1,56 +1,64 @@
 ## Diagnóstico
 
-A captura mostra três problemas claros no envio do produto por WhatsApp:
+Cada workspace deve poder ligar a sua própria conta de software de faturação (começando pelo **InvoiceXpress**, mas com arquitectura preparada para Moloni, Vendus, etc.). As credenciais devem ser isoladas por workspace, guardadas em segurança no backend (nunca no cliente) e usadas via Edge Function que actua como proxy autenticado.
 
-1. **Link duplicado** — o URL longo aparece na caption da imagem (`🛒 Comprar agora: https://…`) **e**, logo a seguir, é enviada uma segunda mensagem com o botão `Comprar Agora` apontando para o mesmo URL. Resultado: ruído visual e poluição da conversa.
-2. **Segunda mensagem redundante** — o header dessa segunda bolha é literalmente `🛒 Comprar Agora` e o botão por baixo também diz `Comprar Agora`. Lê-se "Comprar Agora / Comprar Agora" duas vezes seguidas, parece bug/spam.
-3. **Caption ainda fica truncada** — a descrição longa empurra o "Ler mais" para baixo, mesmo com o preço já no topo. Quando o utilizador é forçado a expandir, perde o impacto inicial.
+## Decisões de produto/UX
 
-A causa está em `supabase/functions/whatsapp-pro-send/index.ts` (linhas 101–155): o adapter Z-API não suporta botões inline numa mensagem de imagem, por isso o envio é feito em dois passos (imagem+caption → mensagem de botão), mas a caption e o segundo bubble não foram desenhados como um par coerente.
-
-## Decisões de produto / UX
-
-- **Uma única mensagem visualmente "rica"** + **uma única call-to-action limpa**. Sem repetição de URL nem de label.
-- **Caption** = saudação + nome do produto + preço destacado (com indicação de IVA). **Sem URL inline** quando vai ser enviado o botão CTA.
-- **Mensagem do botão** = frase curta e útil (ex.: `👇 Toque para finalizar a compra com segurança` ou personalizável), nunca repetir "Comprar Agora" como header.
-- **Fallback sem CTA** (provider sem suporte / sem link válido) = manter o URL inline no texto.
-- **Recomendações** continuam a ir no fim da caption (já implementado), mas curtas.
+- Página em **Backoffice → Definições do Workspace → Faturação / Integrações** (`/dashboard/settings/billing-integrations`).
+- Lista de integrações activas + botão "Ligar fornecedor".
+- Form por provider (InvoiceXpress: `account_name` + `api_key`).
+- Botão "Testar ligação" antes de gravar (chama endpoint `/users/me.json` da InvoiceXpress).
+- Estado visível: ✅ ligado, ⚠️ erro, 🔌 desligado. Última verificação e mensagem de erro.
+- Possibilidade de definir uma integração **default** (a usar quando se gera fatura a partir do CRM).
+- Apenas administradores do workspace (role `admin` / `owner`) podem gerir.
 
 ## Estrutura técnica
 
-- `src/components/whatsapp-pro/SendProductByWhatsAppDialog.tsx`
-  - `buildDefaultMessage()` ganha um parâmetro `embedLink: boolean`. Quando `true` (sem CTA), inclui a linha `🛒 Comprar agora: URL`. Quando `false` (vai haver botão CTA), omite essa linha — o botão trata da ação.
-  - O componente passa `embedLink = !absoluteProductLink || !includeCTA`. Por defeito `includeCTA = true` quando há link válido.
-  - Adicionar campo opcional `ctaPrompt` (string editável) com default `"👇 Toque para abrir a página segura do produto"`. Enviado para a edge function como `ctaPrompt`.
-  - Atualizar a pré-visualização para refletir o novo formato (sem URL repetido).
+### DB (`workspace_billing_integrations`)
+- `id`, `workspace_id`, `provider` (enum: `invoicexpress`, `moloni`, `vendus`, `sage`, `primavera`)
+- `account_name` (subdomínio para InvoiceXpress)
+- `api_key_encrypted` (texto — guardado apenas server-side via service_role)
+- `config` jsonb (séries de documento, NIF emissor, prefixos)
+- `is_active`, `is_default`, `last_check_at`, `last_check_status`, `last_check_error`
+- RLS: SELECT/UPDATE/DELETE para membros admin do workspace; INSERT idem; **api_key nunca exposto** (campo lido só via Edge Function com service_role).
+- View `workspace_billing_integrations_safe` que omite `api_key_encrypted` para o frontend.
 
-- `supabase/functions/whatsapp-pro-send/index.ts`
-  - Aceitar `ctaPrompt?: string` no body.
-  - Substituir o header hardcoded `"🛒 Comprar Agora"` (linha 150) por `body.ctaPrompt || "👇 Toque para abrir a página do produto"`.
-  - Manter o split em duas mensagens (limitação real do Z-API com media+buttons), mas garantir que o texto do segundo envio é distinto do label do botão.
-  - Caso `mediaUrl` exista mas `ctaUrl` esteja inválido, não enviar segunda mensagem.
+### Edge Functions
+1. **`billing-integration-test`** — recebe `{provider, account_name, api_key}`, valida JWT + admin do workspace, chama InvoiceXpress `/users/me.json`, devolve `{ok, account_info}`. Não guarda nada.
+2. **`billing-integration-save`** — valida JWT + admin, faz teste de ligação, guarda registo (insert/update) com api_key (RLS bypass via service_role).
+3. **`invoicexpress-proxy`** — proxy genérico autenticado para chamadas server-side futuras (criar fatura, listar clientes). Aceita `{integration_id, method, path, body}`. Resolve api_key do registo, encaminha para `https://{account}.app.invoicexpress.com/api/{path}?api_key=...`.
 
-- `src/integrations/whatsapp/providers/types.ts`
-  - Adicionar `ctaPrompt?: string` ao payload tipado.
+Todas com CORS, validação Zod, 200 OK + payload de erro (padrão "Resilient Error Patterns").
+
+### Frontend
+- `src/hooks/useBillingIntegrations.ts` — list/create/update/delete/test/setDefault.
+- `src/pages/settings/BillingIntegrationsPage.tsx` — UI com tabela + dialog de configuração.
+- `src/components/settings/billing/InvoiceXpressForm.tsx` — form específico do provider.
+- Rota em `routeManifest.ts` + `SettingsRoutes.tsx`.
 
 ## Plano de implementação
 
-1. Atualizar `types.ts` com `ctaPrompt`.
-2. Refatorar `buildDefaultMessage` no dialog para aceitar `embedLink` e omitir a linha de URL quando vai haver botão.
-3. Adicionar estado `ctaPrompt` no dialog (com input pequeno opcional sob a secção de recomendações, escondido atrás de um "Personalizar CTA"), enviar junto do mutate.
-4. Ajustar a pré-visualização: mostrar a caption sem o URL e a "segunda bolha" com `ctaPrompt` + botão.
-5. Atualizar `whatsapp-pro-send/index.ts` para usar `ctaPrompt` no segundo invoke e tratar o caso sem CTA.
+1. Migração DB (`workspace_billing_integrations` + view + RLS + trigger updated_at).
+2. Edge Function `billing-integration-test`.
+3. Edge Function `billing-integration-save`.
+4. Edge Function `invoicexpress-proxy` (esqueleto pronto a usar em features futuras).
+5. Hook `useBillingIntegrations`.
+6. Página `BillingIntegrationsPage` com tabela + dialog.
+7. Form específico InvoiceXpress (account_name, api_key, série default).
+8. Registar rota em `routeManifest.ts` (área `definicoes`/Backoffice) + `SettingsRoutes.tsx`.
 
 ## Critérios de aceitação
 
-- Ao enviar com imagem + link: chega **uma** mensagem com imagem + caption (sem URL repetido) e **uma** mensagem com texto do CTA + botão `Comprar Agora` funcional.
-- Ao enviar sem imagem mas com link: chega **uma única** mensagem de texto com URL no corpo + botão CTA por baixo (comportamento atual da Z-API para text+buttons).
-- Ao enviar sem link válido: chega só a mensagem (com ou sem imagem). Sem segunda bolha.
-- A pré-visualização no dialog reflete fielmente os bubbles que serão entregues.
-- Sem regressões no envio simples de texto, no logging, nem no `registerShare`.
+- Admin consegue adicionar uma conta InvoiceXpress, testar e gravar.
+- Cada workspace só vê as suas integrações (verificado por RLS).
+- A `api_key` não é devolvida em nenhuma resposta para o cliente.
+- Botão "Testar ligação" responde com sucesso/erro claro em < 5s.
+- Marcar como default actualiza apenas uma integração por workspace.
+- Estados vazio / loading / erro / sem permissão tratados.
+- Mobile: tabela vira cards.
 
-## Riscos / pontos a validar
+## Riscos / pontos por validar
 
-- Confirmar que a Z-API entrega corretamente `send-button-actions` apontando para um URL diferente do texto da mensagem (já é o que o código faz hoje, só muda o copy).
-- Validar comportamento em conversas existentes do Inbox (mesmo `conversationId`) para garantir que ambas as mensagens ficam atribuídas à mesma thread.
-- Caracteres no `ctaPrompt` — limitar a ~120 chars para evitar quebra de layout em alguns clientes WhatsApp.
+- Encriptação real da `api_key`: para já fica em coluna restrita por RLS + service_role only. Se for crítico, evoluir para `pgsodium`/`vault` em sprint dedicado.
+- InvoiceXpress rate limits (não documentados publicamente) — proxy futuro deverá adicionar retry/backoff.
+- Multi-conta InvoiceXpress no mesmo workspace: suportado (várias linhas), apenas uma `is_default`.
