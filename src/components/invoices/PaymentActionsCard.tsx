@@ -439,6 +439,93 @@ export function PaymentActionsCard({
           </>
         )}
       </CardContent>
+
+      <AlertDialog
+        open={waConfirmOpen}
+        onOpenChange={(open) => {
+          setWaConfirmOpen(open);
+          if (!open) setWaConsent(false);
+        }}
+      >
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-emerald-600" />
+              Confirmar envio por WhatsApp
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Reveja a mensagem antes de enviar. O envio só fica disponível depois
+              de confirmar o consentimento do cliente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {waPreview && (
+            <div className="space-y-3">
+              <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-muted-foreground">
+                    Destinatário
+                  </span>
+                  <span className="font-mono">
+                    {formatPhone(waPreview.e164, "PT")}
+                  </span>
+                </div>
+                <Separator className="my-2" />
+                <div className="font-medium text-muted-foreground mb-1">
+                  Pré-visualização da mensagem
+                </div>
+                <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed max-h-64 overflow-y-auto">
+                  {waPreview.text}
+                </pre>
+              </div>
+
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <p>
+                  O envio de mensagens por WhatsApp para clientes exige
+                  consentimento prévio (opt-in). Não envie mensagens não
+                  solicitadas — pode resultar no bloqueio do número e em
+                  incumprimento do RGPD e dos Termos do WhatsApp Business.
+                </p>
+              </div>
+
+              <label className="flex items-start gap-2 text-xs cursor-pointer select-none">
+                <Checkbox
+                  checked={waConsent}
+                  onCheckedChange={(v) => setWaConsent(v === true)}
+                  className="mt-0.5"
+                />
+                <span>
+                  Confirmo que o cliente autorizou receber comunicações por
+                  WhatsApp e que esta mensagem está em conformidade com a
+                  legislação aplicável.
+                </span>
+              </label>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={waSend.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmSendWhatsApp();
+              }}
+              disabled={!waConsent || waSend.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {waSend.isPending ? (
+                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+              ) : (
+                <MessageCircle className="w-3 h-3 mr-2" />
+              )}
+              Confirmar e enviar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
