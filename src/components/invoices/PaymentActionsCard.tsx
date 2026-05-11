@@ -28,7 +28,7 @@ import { useIfthenpaySettings } from "@/hooks/integrations/useIfthenpaySettings"
 import { useWhatsAppProviderInstance, useWhatsAppProSend } from "@/hooks/useWhatsAppPro";
 import { useWhatsAppSettings, DEFAULT_PAYMENT_LINK_TEMPLATE } from "@/hooks/useWhatsAppSettings";
 import { renderPaymentMessage } from "@/lib/whatsapp/paymentMessage";
-import { useLogInvoiceWhatsAppSend } from "@/hooks/invoices/useInvoiceWhatsAppSends";
+import { useInvoiceWhatsAppSends, useLogInvoiceWhatsAppSend } from "@/hooks/invoices/useInvoiceWhatsAppSends";
 import { ScheduleWhatsAppDialog } from "@/components/invoices/ScheduleWhatsAppDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
