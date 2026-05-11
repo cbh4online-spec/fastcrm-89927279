@@ -1,8 +1,6 @@
-import { Link } from "react-router-dom";
 import { SettingsSection, SettingsItem } from "../SettingsSection";
 import { AutopilotMonitorPanel } from "./AutopilotMonitorPanel";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   CreditCard,
   Code,
@@ -16,8 +14,6 @@ import {
   Blocks,
   Receipt,
   Activity,
-  ArrowRight,
-  CheckCircle2,
 } from "lucide-react";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
 import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
@@ -26,7 +22,7 @@ import { WhatsAppZapiConnectionCard } from "@/components/integrations/WhatsAppZa
 import { MCPProvidersPanel } from "@/components/marketing/mcp/MCPProvidersPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useBillingIntegrations } from "@/hooks/useBillingIntegrations";
+import { BillingIntegrationsPanel } from "@/components/settings/billing/BillingIntegrationsPanel";
 
 interface IntegrationsSettingsProps {
   searchQuery?: string;
@@ -36,16 +32,12 @@ interface IntegrationsSettingsProps {
 export function IntegrationsSettings({ searchQuery = "", matchedSections }: IntegrationsSettingsProps) {
   const { isSuperAdmin } = useUserRole();
   const { currentWorkspace } = useWorkspace();
-  const { data: billingIntegrations } = useBillingIntegrations();
   const hasSearch = searchQuery.trim().length > 0;
 
   const shouldShow = (sectionId: string) => {
     if (!hasSearch || !matchedSections) return true;
     return matchedSections.has(sectionId);
   };
-
-  const billingCount = billingIntegrations?.length ?? 0;
-  const billingDefault = billingIntegrations?.find((i) => i.is_default);
 
   const sectionIds = [
     "integrations-billing-providers",
@@ -83,35 +75,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
               description="Liga softwares de faturação por API (InvoiceXpress, Moloni, Vendus, Sage, Primavera) para emitir e sincronizar faturas no CRM."
               icon={<Receipt className="h-5 w-5 text-primary" />}
             >
-              <div className="flex items-center justify-between gap-4 p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  {billingCount > 0 ? (
-                    <Badge className="gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
-                      <CheckCircle2 className="h-3 w-3" />
-                      {billingCount} ligad{billingCount === 1 ? "a" : "as"}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">Nenhuma integração</Badge>
-                  )}
-                  {billingDefault && (
-                    <span className="text-sm text-muted-foreground">
-                      Predefinida: <strong>{billingDefault.account_name}</strong>
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/settings/billing-integrations/sync">
-                      Sincronizações
-                    </Link>
-                  </Button>
-                  <Button asChild size="sm">
-                    <Link to="/settings/billing-integrations">
-                      Gerir <ArrowRight className="h-4 w-4 ml-1" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+              <BillingIntegrationsPanel />
             </SettingsSection>
           )}
 
