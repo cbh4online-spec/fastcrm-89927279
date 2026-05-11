@@ -596,7 +596,7 @@ export function ConversationList({
             <div className="divide-y divide-border/50">
               {processedConversations.map((conv, idx) => {
                 const ChannelIcon = channelIcons[conv.channel];
-                const displayName = conv.contact?.name || conv.lead?.name || conv.external_thread_id || "Desconhecido";
+                const displayName = conv.contact?.name || conv.lead?.name || conv.resolved_contact?.name || conv.external_thread_id || "Desconhecido";
                 const avatarUrl = (conv.lead as any)?.avatar_url || (conv.contact as any)?.avatar_url;
                 const isSelected = selectedIds.has(conv.id);
                 const hasUnread = conv.unread_count > 0;
