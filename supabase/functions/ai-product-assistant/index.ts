@@ -501,6 +501,18 @@ REGRAS para descrição comercial:
       });
 
       if (!extractResponse.ok) {
+        if (extractResponse.status === 402 || extractResponse.status === 429) {
+          const reason = extractResponse.status === 402
+            ? 'IA temporariamente indisponível por limite de créditos; dados criados a partir da pesquisa web.'
+            : 'Limite de pedidos IA atingido; dados criados a partir da pesquisa web.';
+          const fallbackResult = buildSkuFallbackResult(sku, uniqueResults, extractedImages, reason);
+          return new Response(JSON.stringify({
+            success: true,
+            data: fallbackResult,
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         throw new Error(`AI extraction failed: ${extractResponse.status}`);
       }
 
