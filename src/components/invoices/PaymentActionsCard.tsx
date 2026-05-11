@@ -138,7 +138,15 @@ export function PaymentActionsCard({
     setGeneratingLink(true);
     try {
       const url = await ensureLink();
-      const text = `Olá! Pode efectuar o pagamento da fatura aqui: ${url}`;
+      const template =
+        (waSettings?.payment_link_enabled !== false && waSettings?.payment_link_template) ||
+        DEFAULT_PAYMENT_LINK_TEMPLATE;
+      const text = renderPaymentMessage(template, {
+        customer_name: customerName ?? "",
+        invoice_number: invoiceNumber ?? "",
+        amount: formatEUR(Number(invoiceTotal)),
+        link: url,
+      });
       await waSend.mutateAsync({
         phone: e164,
         messageType: "text" as any,
