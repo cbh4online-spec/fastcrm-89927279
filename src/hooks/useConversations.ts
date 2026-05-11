@@ -55,12 +55,15 @@ export interface Conversation {
   contact?: ConversationContact | null;
   company?: ConversationCompany | null;
   opportunities?: ConversationOpportunity[];
-  /** Resolved by phone suffix when conversation has no linked lead/contact/company */
+  /** Resolved by phone normalization when conversation has no linked lead/contact/company */
   resolved_contact?: {
     type: "lead" | "contact" | "company";
     id: string;
     name: string;
     matched_phone?: string | null;
+    /** True when multiple records share the same normalized phone — auto-link is skipped. */
+    ambiguous?: boolean;
+    candidates_count?: number;
   } | null;
   // AI Classification fields
   ai_priority?: "high" | "medium" | "low" | null;
