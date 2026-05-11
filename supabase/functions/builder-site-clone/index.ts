@@ -48,6 +48,16 @@ function slugify(s: string, fallback = "page"): string {
 
 function pathToSlug(u: URL): { path: string; slug: string; isHome: boolean } {
   const path = u.pathname.replace(/\/+$/, "") || "/";
+  const hash = (u.hash || "").replace(/^#/, "").trim();
+  if (hash) {
+    // Fragmento → tratar como página/secção separada
+    const base = path === "/" ? "" : path;
+    return {
+      path: `${base}#${hash}`,
+      slug: slugify(`${base.replace(/^\//, "") || "home"}-${hash}`),
+      isHome: false,
+    };
+  }
   if (path === "/" || path === "") return { path: "/", slug: "home", isHome: true };
   return { path, slug: slugify(path), isHome: false };
 }
