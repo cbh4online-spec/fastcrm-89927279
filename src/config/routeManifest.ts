@@ -41,6 +41,7 @@ import {
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
   Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
   Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat, Heart, Repeat,
+  Wand2,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -227,6 +228,7 @@ e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Pac
   e("email-campaigns", "Campanhas Email",  "/dashboard/email-campaigns",  Mail,      "marketing", { moduleSlug: "email-campaigns", menuKey: "marketing" }),
   e("marketing-hub",   "Marketing",        "/dashboard/marketing",        Megaphone, "marketing", { visibleInSidebar: false }),
   e("conversion-hub",  "Funis & Landing Pages", "/dashboard/conversion", Workflow, "marketing"),
+  e("builder",         "HTML Builder",     "/dashboard/builder",          Wand2,     "marketing"),
   e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing", { visibleInSidebar: false }),
   e("landing-pages",   "Landing Pages",    "/dashboard/landing-pages",    Globe,     "marketing", { visibleInSidebar: false }),
   e("ebooks",          "eBooks",           "/dashboard/ebooks",           BookOpen,  "marketing"),
