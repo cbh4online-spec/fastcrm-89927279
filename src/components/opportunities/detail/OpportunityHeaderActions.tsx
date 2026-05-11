@@ -88,6 +88,30 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
 
   return (
     <>
+      {/* Proposta rápida — destaque */}
+      <Button
+        variant="default"
+        size="sm"
+        className="gap-1.5 h-8 text-xs"
+        onClick={() => setShowQuickProposal(true)}
+      >
+        <FileText className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Proposta rápida</span>
+      </Button>
+
+      {/* Adjudicar e faturar */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-1.5 h-8 text-xs border-primary/40 text-primary hover:bg-primary/10"
+        onClick={() => setShowAdjudicate(true)}
+        disabled={isWon}
+        title={isWon ? "Negócio já adjudicado" : "Adjudicar e faturar via WhatsApp"}
+      >
+        <Trophy className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">{isWon ? "Adjudicado" : "Adjudicar"}</span>
+      </Button>
+
       {/* Mobile: icon-only email button */}
       <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={handleComposeEmail}>
         <Mail className="w-3.5 h-3.5" />
