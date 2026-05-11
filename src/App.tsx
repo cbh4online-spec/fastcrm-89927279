@@ -68,6 +68,7 @@ const InstallPage = lazy(() => import("@/pages/InstallPage"));
 const PortalDashboardPage = lazy(() => import("@/pages/public/PortalDashboardPage"));
 const WorkerRegisterPage = lazy(() => import("@/pages/public/WorkerRegisterPage"));
 const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPage"));
+const PublicInvoicePayPage = lazy(() => import("@/pages/public/PublicInvoicePayPage"));
 
 // FastCRM V2 — premium app shell preview
 const DashboardV2Page = lazy(() => import("@/pages/app-v2/DashboardV2Page"));
