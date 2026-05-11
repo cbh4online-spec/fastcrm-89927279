@@ -41,6 +41,7 @@ const ChangelogPage = lazy(() => import("@/pages/ChangelogPage"));
 const GDPRBackofficePage = lazy(() => import("@/modules/growth-seo/pages/GDPRBackofficePage"));
 const BlogDashboard = lazy(() => import("@/pages/dashboard/blog/index"));
 const CreditHistoryPage = lazy(() => import("@/pages/CreditHistoryPage"));
+const BillingIntegrationsPage = lazy(() => import("@/pages/settings/BillingIntegrationsPage"));
 
 export function DashboardCoreRoutes() {
   return (
