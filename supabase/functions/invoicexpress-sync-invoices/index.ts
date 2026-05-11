@@ -1,5 +1,5 @@
 // InvoiceXpress → CRM invoice sync (incremental)
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +14,24 @@ const json = (b: unknown, status = 200) =>
   });
 
 const PROVIDER = "invoicexpress";
+function normalizeInvoiceXpressAccount(value: string): string {
+  const raw = value.trim().toLowerCase();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw.match(/^https?:\/\//) ? raw : `https://${raw}`);
+    const host = url.hostname.replace(/^www\./, "");
+    if (host.endsWith(".app.invoicexpress.com")) return host.replace(/\.app\.invoicexpress\.com$/, "");
+    if (!host.includes(".")) return host;
+  } catch {
+    // plain account name
+  }
+  return raw
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\.app\.invoicexpress\.com.*$/, "")
+    .replace(/[^a-z0-9-]/g, "");
+}
+
 // IX statuses: draft (DR), sent (SE), settled (ST), canceled (CA), second copy (SC)
 function mapStatus(ixStatus: string | undefined, dueDate?: string, paid?: boolean): string {
   const s = (ixStatus || "").toLowerCase();
@@ -294,7 +312,7 @@ Deno.serve(async (req) => {
         let page = 1;
         // safety cap: 20 pages × 30 = 600 docs por tipo / corrida
         while (page <= 20) {
-          const r = await fetchIXPage(integ.account_name, integ.api_key_encrypted, path, since, page);
+          const r = await fetchIXPage(normalizeInvoiceXpressAccount(integ.account_name), integ.api_key_encrypted, path, since, page);
           if (!r.ok) {
             errors.push({ type: ixType, page, status: r.status, body: (r.raw || "").slice(0, 200) });
             break;
