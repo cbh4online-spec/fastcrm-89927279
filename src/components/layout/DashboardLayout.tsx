@@ -3,6 +3,7 @@ import { AdaptiveDashboardProvider } from "@/contexts/AdaptiveDashboardContext";
 import { Sidebar } from "./Sidebar";
 import { SidebarV1 } from "./SidebarV1";
 import { AdaptiveSidebar } from "./AdaptiveSidebar";
+import { WatidySidebar } from "./WatidySidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
