@@ -176,6 +176,7 @@ export function PaymentActionsCard({
         link: url,
       });
       setWaPreview({ text, e164, url });
+      setWaEditedText(text);
       setWaConsent(false);
       setWaConfirmOpen(true);
     } catch (e: any) {
