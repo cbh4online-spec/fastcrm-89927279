@@ -104,13 +104,6 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
     return stored || megaGroups[0]?.key || "core";
   });
 
-  // Panel open/closed (rail-only mode)
-  const [panelOpen, setPanelOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    const v = localStorage.getItem(STORAGE_KEY_PANEL);
-    return v === null ? true : v === "1";
-  });
-
   // Sync to route changes
   useEffect(() => {
     if (activeMegaFromRoute && activeMegaFromRoute !== activeMega) {
@@ -123,11 +116,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
     localStorage.setItem(STORAGE_KEY_GROUP, activeMega);
   }, [activeMega]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PANEL, panelOpen ? "1" : "0");
-  }, [panelOpen]);
-
-  const togglePanel = useCallback(() => setPanelOpen((v) => !v), []);
+  const togglePanel = toggleCollapse;
 
   // ⌘B
   useEffect(() => {
