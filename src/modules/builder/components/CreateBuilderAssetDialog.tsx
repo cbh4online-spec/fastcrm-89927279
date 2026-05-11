@@ -67,6 +67,8 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
   const [cloneKeepScripts, setCloneKeepScripts] = useState(false);
   const [cloneSelected, setCloneSelected] = useState<Set<string>>(new Set());
   const [cloneName, setCloneName] = useState("");
+  const [cloneExtraPages, setCloneExtraPages] = useState<string[]>([]);
+  const [manualUrls, setManualUrls] = useState("");
 
   // Upload
   const [uploading, setUploading] = useState(false);
@@ -92,6 +94,8 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
     setCloneKeepScripts(false);
     setCloneSelected(new Set());
     setCloneName("");
+    setCloneExtraPages([]);
+    setManualUrls("");
     siteClone.reset();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -391,7 +395,82 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
                     <label htmlFor="clone-subdomains" className="text-xs text-muted-foreground cursor-pointer">
                       Incluir subdomínios (blog., shop., …)
                     </label>
+                </div>
+
+                {/* Lista manual de URLs (funciona com ou sem descoberta automática — útil p/ SPAs) */}
+                <div className="space-y-2 border rounded-lg p-3 bg-muted/10">
+                  <Label htmlFor="clone-manual" className="text-xs font-medium">
+                    Lista manual de URLs (uma por linha)
+                  </Label>
+                  <Textarea
+                    id="clone-manual"
+                    value={manualUrls}
+                    onChange={(e) => setManualUrls(e.target.value)}
+                    rows={4}
+                    placeholder={"https://exemplo.com/sobre\nhttps://exemplo.com/contactos\nhttps://exemplo.com/blog"}
+                    className="font-mono text-xs"
+                    disabled={siteClone.cloning}
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-muted-foreground">
+                      Útil para sites de página única (SPA) ou quando a descoberta automática não encontra tudo. Fragmentos <code>#secção</code> são ignorados (mesma página).
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!manualUrls.trim() || siteClone.cloning}
+                      onClick={() => {
+                        const lines = manualUrls
+                          .split(/\r?\n/)
+                          .map((l) => l.trim())
+                          .filter(Boolean);
+                        const valid: string[] = [];
+                        const seen = new Set<string>([
+                          ...(siteClone.discovery?.pages ?? []),
+                          ...cloneExtraPages,
+                        ]);
+                        for (const l of lines) {
+                          try {
+                            const u = new URL(l);
+                            if (!["http:", "https:"].includes(u.protocol)) continue;
+                            const clean = `${u.origin}${u.pathname}${u.search}`;
+                            if (seen.has(clean)) continue;
+                            seen.add(clean);
+                            valid.push(clean);
+                          } catch {
+                            /* ignora linha inválida */
+                          }
+                        }
+                        if (valid.length === 0) {
+                          toast({
+                            title: "Nenhuma URL nova",
+                            description: "Verifica se começam por http:// ou https:// e não estão duplicadas.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setCloneExtraPages((p) => [...p, ...valid]);
+                        setCloneSelected((prev) => {
+                          const next = new Set(prev);
+                          for (const v of valid) next.add(v);
+                          return next;
+                        });
+                        setManualUrls("");
+                        if (!cloneName) {
+                          try {
+                            setCloneName(new URL(valid[0]).hostname);
+                          } catch { /* ignore */ }
+                        }
+                        toast({
+                          title: `${valid.length} URL${valid.length > 1 ? "s" : ""} adicionada${valid.length > 1 ? "s" : ""}`,
+                          description: "Já estão selecionadas para clone.",
+                        });
+                      }}
+                    >
+                      Adicionar à lista
+                    </Button>
                   </div>
+                </div>
                 </div>
 
                 {siteClone.discovery && (
