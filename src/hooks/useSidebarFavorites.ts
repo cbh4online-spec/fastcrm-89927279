@@ -1,62 +1,53 @@
-import { useState, useCallback, useEffect } from "react";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useCallback, useEffect, useState } from "react";
 
-const MAX_FAVORITES = 8;
+const STORAGE_KEY = "watidy_sidebar_favorites";
+const EVENT = "watidy-favorites-change";
+const MAX_FAVORITES = 6;
 
-function getStorageKey(workspaceId: string) {
-  return `sidebar-favorites-${workspaceId}`;
+function read(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function write(keys: string[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
+  } catch {}
+  window.dispatchEvent(new Event(EVENT));
 }
 
 export function useSidebarFavorites() {
-  const { currentWorkspace } = useWorkspace();
-  const workspaceId = currentWorkspace?.id ?? "default";
+  const [favorites, setFavorites] = useState<string[]>(read);
 
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem(getStorageKey(workspaceId));
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Sync when workspace changes
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(getStorageKey(workspaceId));
-      setFavorites(stored ? JSON.parse(stored) : []);
-    } catch {
-      setFavorites([]);
+    const sync = () => setFavorites(read());
+    window.addEventListener(EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  const isFavorite = useCallback((key: string) => favorites.includes(key), [favorites]);
+
+  const toggleFavorite = useCallback((key: string) => {
+    const current = read();
+    let next: string[];
+    if (current.includes(key)) {
+      next = current.filter((k) => k !== key);
+    } else {
+      next = [key, ...current.filter((k) => k !== key)].slice(0, MAX_FAVORITES);
     }
-  }, [workspaceId]);
+    write(next);
+    setFavorites(next);
+  }, []);
 
-  const persist = useCallback(
-    (next: string[]) => {
-      setFavorites(next);
-      localStorage.setItem(getStorageKey(workspaceId), JSON.stringify(next));
-    },
-    [workspaceId]
-  );
-
-  const toggleFavorite = useCallback(
-    (href: string) => {
-      setFavorites((prev) => {
-        const next = prev.includes(href)
-          ? prev.filter((h) => h !== href)
-          : prev.length < MAX_FAVORITES
-          ? [...prev, href]
-          : prev;
-        localStorage.setItem(getStorageKey(workspaceId), JSON.stringify(next));
-        return next;
-      });
-    },
-    [workspaceId]
-  );
-
-  const isFavorite = useCallback(
-    (href: string) => favorites.includes(href),
-    [favorites]
-  );
-
-  return { favorites, toggleFavorite, isFavorite };
+  return { favorites, isFavorite, toggleFavorite, max: MAX_FAVORITES };
 }
