@@ -65,13 +65,12 @@ async function testInvoiceXpress(account: string, apiKey: string) {
           `HTTP ${r.status} ${text.slice(0, 200)}`,
       };
     }
-    const u = data?.user || data;
+    const seqs = data?.sequences || [];
     return {
       ok: true,
       account_info: {
-        name: u?.name || u?.first_name || null,
-        email: u?.email || null,
-        account: account,
+        account,
+        sequences_count: Array.isArray(seqs) ? seqs.length : 0,
       },
     };
   } catch (e) {
