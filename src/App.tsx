@@ -144,7 +144,7 @@ const App = () => (
 
                 {/* Builder shortcuts → redirect to dashboard */}
                 <Route path="/builder" element={<Navigate to="/dashboard/builder" replace />} />
-                <Route path="/builder/:id" element={<Navigate to="/dashboard/builder/:id" replace />} />
+                <Route path="/builder/:id" element={<BuilderIdRedirect />} />
 
                 {/* Store - ISOLATED from CRM providers */}
                 <Route path="/store/*" element={<StoreRoutes />} />
