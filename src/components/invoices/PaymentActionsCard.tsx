@@ -200,6 +200,22 @@ export function PaymentActionsCard({
                 Gerar e copiar link
               </Button>
             )}
+            {waActive && customerPhone && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSendWhatsApp}
+                disabled={generatingLink || waSend.isPending}
+                className="text-emerald-600 hover:text-emerald-700"
+              >
+                {waSend.isPending ? (
+                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                ) : (
+                  <MessageCircle className="w-3 h-3 mr-2" />
+                )}
+                Enviar por WhatsApp
+              </Button>
+            )}
           </div>
         )}
 
