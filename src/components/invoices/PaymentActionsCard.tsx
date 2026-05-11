@@ -180,7 +180,7 @@ export function PaymentActionsCard({
   const confirmSendWhatsApp = async () => {
     if (!waPreview || !waConsent) return;
     try {
-      await waSend.mutateAsync({
+      const res = await waSend.mutateAsync({
         phone: waPreview.e164,
         messageType: "text" as any,
         text: waPreview.text,
@@ -191,11 +191,33 @@ export function PaymentActionsCard({
           consent_confirmed: true,
         },
       });
+      logSend
+        .mutateAsync({
+          invoiceId,
+          phone: waPreview.e164,
+          messageText: waPreview.text,
+          shareUrl: waPreview.url,
+          status: "sent",
+          providerMessageId: (res as any)?.providerMessageId ?? null,
+          metadata: { consent_confirmed: true },
+        })
+        .catch(() => {});
       toast.success(`Link enviado por WhatsApp para ${formatPhone(waPreview.e164, "PT")}`);
       setWaConfirmOpen(false);
       setWaPreview(null);
       setWaConsent(false);
     } catch (e: any) {
+      logSend
+        .mutateAsync({
+          invoiceId,
+          phone: waPreview.e164,
+          messageText: waPreview.text,
+          shareUrl: waPreview.url,
+          status: "failed",
+          errorMessage: e?.message || "Erro desconhecido",
+          metadata: { consent_confirmed: true },
+        })
+        .catch(() => {});
       toast.error(e?.message || "Erro a enviar por WhatsApp");
     }
   };
