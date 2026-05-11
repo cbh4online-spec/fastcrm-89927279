@@ -6,7 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Copy, Loader2, Check, Link2, ExternalLink, MessageCircle } from "lucide-react";
+import { CreditCard, Copy, Loader2, Check, Link2, ExternalLink, MessageCircle, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
   useCreateIfthenpayPayment,
@@ -17,6 +27,7 @@ import { useIfthenpaySettings } from "@/hooks/integrations/useIfthenpaySettings"
 import { useWhatsAppProviderInstance, useWhatsAppProSend } from "@/hooks/useWhatsAppPro";
 import { useWhatsAppSettings, DEFAULT_PAYMENT_LINK_TEMPLATE } from "@/hooks/useWhatsAppSettings";
 import { renderPaymentMessage } from "@/lib/whatsapp/paymentMessage";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { formatEUR } from "@/lib/currency";
@@ -71,6 +82,15 @@ export function PaymentActionsCard({
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [generatingLink, setGeneratingLink] = useState(false);
 
+  const [waConfirmOpen, setWaConfirmOpen] = useState(false);
+  const [waPreview, setWaPreview] = useState<{
+    text: string;
+    e164: string;
+    url: string;
+  } | null>(null);
+  const [waConsent, setWaConsent] = useState(false);
+  const [preparingPreview, setPreparingPreview] = useState(false);
+
   const createPayment = useCreateIfthenpayPayment();
   const { data: payments = [] } = useIfthenpayPayments({
     reference_type: "invoice",
@@ -123,7 +143,7 @@ export function PaymentActionsCard({
     }
   };
 
-  const handleSendWhatsApp = async () => {
+  const openWhatsAppConfirm = async () => {
     if (!customerPhone || !customerPhone.trim()) {
       toast.error("Cliente sem telemóvel registado");
       return;
@@ -135,7 +155,7 @@ export function PaymentActionsCard({
       );
       return;
     }
-    setGeneratingLink(true);
+    setPreparingPreview(true);
     try {
       const url = await ensureLink();
       const template =
@@ -147,21 +167,36 @@ export function PaymentActionsCard({
         amount: formatEUR(Number(invoiceTotal)),
         link: url,
       });
+      setWaPreview({ text, e164, url });
+      setWaConsent(false);
+      setWaConfirmOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro a preparar mensagem");
+    } finally {
+      setPreparingPreview(false);
+    }
+  };
+
+  const confirmSendWhatsApp = async () => {
+    if (!waPreview || !waConsent) return;
+    try {
       await waSend.mutateAsync({
-        phone: e164,
+        phone: waPreview.e164,
         messageType: "text" as any,
-        text,
+        text: waPreview.text,
         metadata: {
           source: "invoice_payment_link",
           invoice_id: invoiceId,
-          phone_formatted: formatPhone(e164, "PT"),
+          phone_formatted: formatPhone(waPreview.e164, "PT"),
+          consent_confirmed: true,
         },
       });
-      toast.success(`Link enviado por WhatsApp para ${formatPhone(e164, "PT")}`);
+      toast.success(`Link enviado por WhatsApp para ${formatPhone(waPreview.e164, "PT")}`);
+      setWaConfirmOpen(false);
+      setWaPreview(null);
+      setWaConsent(false);
     } catch (e: any) {
       toast.error(e?.message || "Erro a enviar por WhatsApp");
-    } finally {
-      setGeneratingLink(false);
     }
   };
 
@@ -249,16 +284,16 @@ export function PaymentActionsCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleSendWhatsApp}
-                  disabled={generatingLink || waSend.isPending || !customerPhoneE164}
+                  onClick={openWhatsAppConfirm}
+                  disabled={generatingLink || preparingPreview || waSend.isPending || !customerPhoneE164}
                   className="text-emerald-600 hover:text-emerald-700"
                   title={
                     customerPhoneE164
-                      ? `Enviar para ${formatPhone(customerPhoneE164, "PT")}`
+                      ? `Pré-visualizar e enviar para ${formatPhone(customerPhoneE164, "PT")}`
                       : "Telemóvel inválido — actualize o contacto"
                   }
                 >
-                  {waSend.isPending ? (
+                  {preparingPreview || waSend.isPending ? (
                     <Loader2 className="w-3 h-3 mr-2 animate-spin" />
                   ) : (
                     <MessageCircle className="w-3 h-3 mr-2" />
@@ -404,6 +439,93 @@ export function PaymentActionsCard({
           </>
         )}
       </CardContent>
+
+      <AlertDialog
+        open={waConfirmOpen}
+        onOpenChange={(open) => {
+          setWaConfirmOpen(open);
+          if (!open) setWaConsent(false);
+        }}
+      >
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-emerald-600" />
+              Confirmar envio por WhatsApp
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Reveja a mensagem antes de enviar. O envio só fica disponível depois
+              de confirmar o consentimento do cliente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {waPreview && (
+            <div className="space-y-3">
+              <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-muted-foreground">
+                    Destinatário
+                  </span>
+                  <span className="font-mono">
+                    {formatPhone(waPreview.e164, "PT")}
+                  </span>
+                </div>
+                <Separator className="my-2" />
+                <div className="font-medium text-muted-foreground mb-1">
+                  Pré-visualização da mensagem
+                </div>
+                <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed max-h-64 overflow-y-auto">
+                  {waPreview.text}
+                </pre>
+              </div>
+
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <p>
+                  O envio de mensagens por WhatsApp para clientes exige
+                  consentimento prévio (opt-in). Não envie mensagens não
+                  solicitadas — pode resultar no bloqueio do número e em
+                  incumprimento do RGPD e dos Termos do WhatsApp Business.
+                </p>
+              </div>
+
+              <label className="flex items-start gap-2 text-xs cursor-pointer select-none">
+                <Checkbox
+                  checked={waConsent}
+                  onCheckedChange={(v) => setWaConsent(v === true)}
+                  className="mt-0.5"
+                />
+                <span>
+                  Confirmo que o cliente autorizou receber comunicações por
+                  WhatsApp e que esta mensagem está em conformidade com a
+                  legislação aplicável.
+                </span>
+              </label>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={waSend.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmSendWhatsApp();
+              }}
+              disabled={!waConsent || waSend.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {waSend.isPending ? (
+                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+              ) : (
+                <MessageCircle className="w-3 h-3 mr-2" />
+              )}
+              Confirmar e enviar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
