@@ -226,6 +226,27 @@ export function PaymentActionsCard({
       toast.error("A mensagem não contém o link de pagamento. Reponha o link antes de enviar.");
       return;
     }
+    // Cooldown: bloquear envio idêntico (mesmo telemóvel + mesmo texto) dentro da janela
+    const normalize = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+    const finalNorm = normalize(finalText);
+    const nowMs = Date.now();
+    const duplicate = waSendsHistory.find((s) => {
+      if (s.status !== "sent") return false;
+      if (s.phone !== waPreview.e164) return false;
+      const sentMs = new Date(s.sent_at).getTime();
+      if (!Number.isFinite(sentMs)) return false;
+      const ageSec = (nowMs - sentMs) / 1000;
+      if (ageSec > WA_DEDUPE_WINDOW_SEC || ageSec < 0) return false;
+      return normalize(s.message_text ?? "") === finalNorm;
+    });
+    if (duplicate) {
+      const ageSec = Math.max(1, Math.round((nowMs - new Date(duplicate.sent_at).getTime()) / 1000));
+      const remaining = Math.max(1, WA_DEDUPE_WINDOW_SEC - ageSec);
+      toast.error(
+        `Mensagem idêntica já enviada há ${ageSec}s para este número. Aguarde ${remaining}s ou edite o texto antes de reenviar.`,
+      );
+      return;
+    }
     try {
       // Backend opt-in precheck (workspace-scoped). Fail-closed if not allowed.
       const { data: pre, error: preErr } = await supabase.functions.invoke(
