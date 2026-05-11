@@ -115,18 +115,26 @@ export function useIfthenpaySettings() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao rodar key"),
   });
 
-  // Build callback URL
+  // Build callback URL — ifthenpay exige TEMPLATE com placeholders entre [ ]
+  // Docs: https://ifthenpay.com/docs/en/guides/callback/
+  // Os placeholders são substituídos pela ifthenpay no momento da notificação.
+  // NÃO usar URLSearchParams (encodaria os [ ]) e NÃO incluir a anti-phishing key real.
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-  const buildCallbackUrl = (key: string) => {
+  const buildCallbackUrl = () => {
     if (!workspaceSlug) return "";
     const base = `${supabaseUrl}/functions/v1/ifthenpay-callback`;
-    const params = new URLSearchParams({ workspace: workspaceSlug, key });
-    return `${base}?${params.toString()}`;
+    // workspace é estático (slug), restantes vêm da ifthenpay via placeholders.
+    return (
+      `${base}?workspace=${encodeURIComponent(workspaceSlug)}` +
+      `&key=[ANTI_PHISHING_KEY]` +
+      `&orderId=[ORDER_ID]` +
+      `&amount=[AMOUNT]` +
+      `&requestId=[REQUEST_ID]` +
+      `&payment_datetime=[PAYMENT_DATETIME]`
+    );
   };
 
-  const callbackUrl = settingsQuery.data
-    ? buildCallbackUrl(settingsQuery.data.anti_phishing_key)
-    : "";
+  const callbackUrl = settingsQuery.data ? buildCallbackUrl() : "";
 
   // Recent callback logs (admin only, RLS-enforced)
   const logsQuery = useQuery({
