@@ -228,7 +228,10 @@ export function MessageBubble({
               metadata={message.metadata ?? undefined}
             />
           ) : (
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
+            <>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
+              <InlineMessageTranslator text={message.content} />
+            </>
           )}
 
           {/* Attachments */}
