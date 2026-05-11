@@ -30,10 +30,14 @@ function isBlockedHost(hostname: string): boolean {
   return false;
 }
 
-async function firecrawl<T>(path: string, body: Record<string, unknown>): Promise<T> {
+async function firecrawl<T>(
+  base: string,
+  path: string,
+  body: Record<string, unknown>,
+): Promise<T> {
   const key = Deno.env.get("FIRECRAWL_API_KEY");
   if (!key) throw new Error("FIRECRAWL_API_KEY não está configurado.");
-  const res = await fetch(`${FIRECRAWL_BASE}${path}`, {
+  const res = await fetch(`${base}${path}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
@@ -46,6 +50,29 @@ async function firecrawl<T>(path: string, body: Record<string, unknown>): Promis
     throw new Error(`Firecrawl ${res.status}: ${t.slice(0, 300)}`);
   }
   return (await res.json()) as T;
+}
+
+async function pollCrawl(jobId: string, maxMs = 25_000): Promise<string[]> {
+  const key = Deno.env.get("FIRECRAWL_API_KEY")!;
+  const start = Date.now();
+  const seen = new Set<string>();
+  while (Date.now() - start < maxMs) {
+    const res = await fetch(`${FIRECRAWL_V2}/crawl/${jobId}`, {
+      headers: { Authorization: `Bearer ${key}` },
+    });
+    if (!res.ok) break;
+    const j = (await res.json()) as {
+      status?: string;
+      data?: Array<{ metadata?: { sourceURL?: string; url?: string } }>;
+    };
+    for (const d of j.data ?? []) {
+      const u = d.metadata?.sourceURL ?? d.metadata?.url;
+      if (u) seen.add(u);
+    }
+    if (j.status === "completed" || j.status === "failed") break;
+    await new Promise((r) => setTimeout(r, 2500));
+  }
+  return Array.from(seen);
 }
 
 function pickColors(html: string): string[] {
