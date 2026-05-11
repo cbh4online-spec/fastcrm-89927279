@@ -439,7 +439,7 @@ async function rewriteAssets(
   // Faz fetch + upload em paralelo limitado
   const urlMap = new Map<string, string>();
   const arr = Array.from(refs);
-  const batchSize = 6;
+  const batchSize = 16;
   for (let i = 0; i < arr.length; i += batchSize) {
     const batch = arr.slice(i, i + batchSize);
     await Promise.all(batch.map(async (assetUrl) => {
