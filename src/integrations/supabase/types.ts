@@ -83678,6 +83678,8 @@ export type Database = {
           created_at: string
           id: string
           notify_on_new_message: boolean
+          order_tracking_enabled: boolean
+          order_tracking_template: string
           timezone: string
           updated_at: string
           welcome_message: string | null
@@ -83695,6 +83697,8 @@ export type Database = {
           created_at?: string
           id?: string
           notify_on_new_message?: boolean
+          order_tracking_enabled?: boolean
+          order_tracking_template?: string
           timezone?: string
           updated_at?: string
           welcome_message?: string | null
@@ -83712,6 +83716,8 @@ export type Database = {
           created_at?: string
           id?: string
           notify_on_new_message?: boolean
+          order_tracking_enabled?: boolean
+          order_tracking_template?: string
           timezone?: string
           updated_at?: string
           welcome_message?: string | null
