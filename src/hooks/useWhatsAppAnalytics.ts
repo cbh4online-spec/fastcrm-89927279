@@ -42,10 +42,18 @@ export interface WhatsAppDayPoint {
   failed: number;
 }
 
+export interface WhatsAppHourPoint {
+  weekday: number; // 0=Sun..6=Sat
+  hour: number; // 0..23
+  count: number;
+}
+
 export interface WhatsAppAnalyticsData {
   kpis: WhatsAppAnalyticsKPIs;
   campaigns: WhatsAppCampaignMetric[];
   series: WhatsAppDayPoint[];
+  heatmap: WhatsAppHourPoint[];
+  bestHour: { weekday: number; hour: number; count: number } | null;
 }
 
 function pct(num: number, den: number) {
@@ -137,14 +145,32 @@ export function useWhatsAppAnalytics(days = 30) {
         const b = buckets.get(d);
         if (b) (b[key] as number)++;
       };
+      // Build heatmap (weekday × hour) from sent_at
+      const heatMap = new Map<string, WhatsAppHourPoint>();
+      for (let w = 0; w < 7; w++) {
+        for (let h = 0; h < 24; h++) {
+          heatMap.set(`${w}-${h}`, { weekday: w, hour: h, count: 0 });
+        }
+      }
       for (const r of recips || []) {
         bump(r.sent_at, "sent");
         bump(r.delivered_at, "delivered");
         bump(r.read_at, "read");
         bump(r.failed_at, "failed");
+        if (r.sent_at) {
+          const d = new Date(r.sent_at);
+          const key = `${d.getDay()}-${d.getHours()}`;
+          const cell = heatMap.get(key);
+          if (cell) cell.count++;
+        }
       }
+      const heatmap = Array.from(heatMap.values());
+      const bestHour = heatmap.reduce<WhatsAppAnalyticsData["bestHour"]>(
+        (best, cur) => (cur.count > (best?.count ?? 0) ? cur : best),
+        null,
+      );
 
-      return { kpis, campaigns, series: Array.from(buckets.values()) };
+      return { kpis, campaigns, series: Array.from(buckets.values()), heatmap, bestHour };
     },
   });
 }
