@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { formatEUR } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
+import { toE164, formatPhone } from "@/utils/phone";
 
 interface Props {
   invoiceId: string;
