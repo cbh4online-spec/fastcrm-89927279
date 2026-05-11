@@ -308,6 +308,16 @@ export default function InvoiceDetail() {
               </CardContent>
             </Card>
 
+            {/* Online Payment (admin) — neutral, no provider branding */}
+            {canRegisterPayment && (
+              <PaymentActionsCard
+                invoiceId={invoice.id}
+                invoiceTotal={invoice.total}
+                amountPaid={invoice.amount_paid || 0}
+                currency={invoice.currency}
+              />
+            )}
+
             {/* Payments History */}
             <InvoicePaymentsHistory
               invoiceId={invoice.id}
