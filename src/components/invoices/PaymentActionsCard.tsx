@@ -91,6 +91,7 @@ export function PaymentActionsCard({
     e164: string;
     url: string;
   } | null>(null);
+  const [waEditedText, setWaEditedText] = useState<string>("");
   const [waConsent, setWaConsent] = useState(false);
   const [preparingPreview, setPreparingPreview] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
