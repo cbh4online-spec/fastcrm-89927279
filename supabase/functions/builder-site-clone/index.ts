@@ -146,20 +146,29 @@ Deno.serve(async (req) => {
     try { srcUrl = new URL(body.source_url); } catch { return json({ error: "source_url inválida" }, 400); }
     if (isBlockedHost(srcUrl.hostname)) return json({ error: "Host bloqueado" }, 400);
 
-    // Verifica membership via RLS-friendly select
-    const { data: ws, error: werr } = await userClient
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("workspace_id", body.workspace_id)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (werr || !ws) return json({ error: "Sem acesso a este workspace" }, 403);
-
     // Cliente service-role para escrita atómica
     const admin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
+
+    // Verifica membership (bypass RLS) — também aceita super_admin
+    const { data: membership } = await admin
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("workspace_id", body.workspace_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    let hasAccess = !!membership;
+    if (!hasAccess) {
+      const { data: isSuper } = await admin.rpc("is_super_admin", { _user_id: userId });
+      hasAccess = !!isSuper;
+    }
+    if (!hasAccess) {
+      console.warn("[builder-site-clone] acesso negado", { userId, workspace_id: body.workspace_id });
+      return json({ error: "Sem acesso a este workspace" }, 403);
+    }
 
     const name = body.options?.name?.trim() || srcUrl.hostname;
     const slug = slugify(name) + "-" + Math.random().toString(36).slice(2, 8);
