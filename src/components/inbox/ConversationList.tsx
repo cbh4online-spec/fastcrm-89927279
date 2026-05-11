@@ -699,17 +699,35 @@ export function ConversationList({
                               </span>
                             )}
                             {conv.resolved_contact && !conv.contact?.name && !conv.lead?.name && (
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "h-4 px-1 text-[9px] font-medium flex-shrink-0 uppercase tracking-wide",
-                                  conv.resolved_contact.type === "contact" && "border-emerald-500/40 text-emerald-600",
-                                  conv.resolved_contact.type === "lead" && "border-amber-500/40 text-amber-600",
-                                  conv.resolved_contact.type === "company" && "border-sky-500/40 text-sky-600",
-                                )}
-                              >
-                                {conv.resolved_contact.type === "contact" ? "Contacto" : conv.resolved_contact.type === "lead" ? "Lead" : "Empresa"}
-                              </Badge>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "h-4 px-1 text-[9px] font-medium flex-shrink-0 uppercase tracking-wide",
+                                      conv.resolved_contact.ambiguous
+                                        ? "border-destructive/50 text-destructive"
+                                        : conv.resolved_contact.type === "contact"
+                                          ? "border-emerald-500/40 text-emerald-600"
+                                          : conv.resolved_contact.type === "lead"
+                                            ? "border-amber-500/40 text-amber-600"
+                                            : "border-sky-500/40 text-sky-600",
+                                    )}
+                                  >
+                                    {conv.resolved_contact.ambiguous ? "?" : ""}
+                                    {conv.resolved_contact.type === "contact" ? "Contacto" : conv.resolved_contact.type === "lead" ? "Lead" : "Empresa"}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {conv.resolved_contact.ambiguous ? (
+                                    <p className="text-xs">
+                                      {conv.resolved_contact.candidates_count} registos partilham este telefone — ligação automática suspensa.
+                                    </p>
+                                  ) : (
+                                    <p className="text-xs">Identificado por correspondência E.164</p>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                             {urgent && (
                               <Tooltip>
