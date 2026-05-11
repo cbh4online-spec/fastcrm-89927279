@@ -132,18 +132,18 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: auth } } },
     );
     const { data: u, error: uerr } = await userClient.auth.getUser();
-    if (uerr || !u?.user) return json({ error: "Sessão inválida" }, 401);
+    if (uerr || !u?.user) return json({ error: "Sessão inválida", code: "INVALID_SESSION" }, 401);
     const userId = u.user.id;
 
     const body = (await req.json().catch(() => null)) as ClonePayload | null;
     if (!body?.workspace_id || !body?.source_url || !Array.isArray(body.pages)) {
-      return json({ error: "Payload inválido" }, 400);
+      return json({ error: "Payload inválido", code: "INVALID_PAYLOAD" }, 400);
     }
 
     // Valida formato UUID do workspace_id
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!UUID_RE.test(body.workspace_id)) {
-      return json({ error: "workspace_id inválido" }, 400);
+      return json({ error: "workspace_id inválido", code: "INVALID_WORKSPACE_ID" }, 400);
     }
 
     // Cliente service-role para verificações de acesso e escrita atómica
@@ -161,10 +161,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (wsErr) {
       console.error("[builder-site-clone] erro a obter workspace", wsErr);
-      return json({ error: "Erro a validar workspace" }, 500);
+      return json({ error: "Erro a validar workspace", code: "WORKSPACE_LOOKUP_ERROR" }, 500);
     }
     if (!ws || ws.deleted_at) {
-      return json({ error: "Workspace não encontrado" }, 404);
+      return json({ error: "Workspace não encontrado", code: "WORKSPACE_NOT_FOUND" }, 404);
     }
 
     // 2. Verifica se o utilizador é owner, membro (qualquer role) ou super_admin
@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
         workspace_id: body.workspace_id,
         owner_id: ws.owner_id,
       });
-      return json({ error: "Sem acesso a este workspace" }, 403);
+      return json({ error: "Sem acesso a este workspace", code: "USER_NOT_MEMBER" }, 403);
     }
 
     console.log("[builder-site-clone] acesso autorizado", {
@@ -208,11 +208,11 @@ Deno.serve(async (req) => {
     // ===== FIM VALIDAÇÃO =====
 
     const pages = body.pages.slice(0, MAX_PAGES_HARD);
-    if (pages.length === 0) return json({ error: "Sem páginas para clonar" }, 400);
+    if (pages.length === 0) return json({ error: "Sem páginas para clonar", code: "NO_PAGES" }, 400);
 
     let srcUrl: URL;
-    try { srcUrl = new URL(body.source_url); } catch { return json({ error: "source_url inválida" }, 400); }
-    if (isBlockedHost(srcUrl.hostname)) return json({ error: "Host bloqueado" }, 400);
+    try { srcUrl = new URL(body.source_url); } catch { return json({ error: "source_url inválida", code: "INVALID_SOURCE_URL" }, 400); }
+    if (isBlockedHost(srcUrl.hostname)) return json({ error: "Host bloqueado", code: "BLOCKED_HOST" }, 400);
 
     const name = body.options?.name?.trim() || srcUrl.hostname;
     const slug = slugify(name) + "-" + Math.random().toString(36).slice(2, 8);
