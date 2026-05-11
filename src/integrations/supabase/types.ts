@@ -8655,6 +8655,89 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_sync_runs: {
+        Row: {
+          created_at: string
+          cursor_from: string | null
+          cursor_to: string | null
+          details: Json
+          error_message: string | null
+          failed_count: number
+          finished_at: string | null
+          id: string
+          imported_count: number
+          integration_id: string
+          started_at: string
+          status: string
+          trigger: string
+          updated_count: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          cursor_from?: string | null
+          cursor_to?: string | null
+          details?: Json
+          error_message?: string | null
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          imported_count?: number
+          integration_id: string
+          started_at?: string
+          status?: string
+          trigger?: string
+          updated_count?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          cursor_from?: string | null
+          cursor_to?: string | null
+          details?: Json
+          error_message?: string | null
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          imported_count?: number
+          integration_id?: string
+          started_at?: string
+          status?: string
+          trigger?: string
+          updated_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_sync_runs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_billing_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_sync_runs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_billing_integrations_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_sync_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "billing_sync_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_types: {
         Row: {
           code: string
@@ -40833,6 +40916,10 @@ export type Database = {
           discount_amount: number | null
           document_type: string
           due_date: string
+          external_id: string | null
+          external_provider: string | null
+          external_synced_at: string | null
+          external_url: string | null
           fiscal_status: string | null
           footer_text: string | null
           hash_control: string | null
@@ -40877,6 +40964,10 @@ export type Database = {
           discount_amount?: number | null
           document_type?: string
           due_date?: string
+          external_id?: string | null
+          external_provider?: string | null
+          external_synced_at?: string | null
+          external_url?: string | null
           fiscal_status?: string | null
           footer_text?: string | null
           hash_control?: string | null
@@ -40921,6 +41012,10 @@ export type Database = {
           discount_amount?: number | null
           document_type?: string
           due_date?: string
+          external_id?: string | null
+          external_provider?: string | null
+          external_synced_at?: string | null
+          external_url?: string | null
           fiscal_status?: string | null
           footer_text?: string | null
           hash_control?: string | null
