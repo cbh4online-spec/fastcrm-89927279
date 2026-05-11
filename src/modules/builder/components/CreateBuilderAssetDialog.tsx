@@ -433,7 +433,7 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
                           try {
                             const u = new URL(l);
                             if (!["http:", "https:"].includes(u.protocol)) continue;
-                            const clean = `${u.origin}${u.pathname}${u.search}`;
+                            const clean = `${u.origin}${u.pathname}${u.search}${u.hash}`;
                             if (seen.has(clean)) continue;
                             seen.add(clean);
                             valid.push(clean);
