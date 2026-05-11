@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { formatEUR } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
+import { toE164, formatPhone } from "@/utils/phone";
 
 interface Props {
   invoiceId: string;
@@ -73,6 +74,7 @@ export function PaymentActionsCard({
   const { data: waInstance } = useWhatsAppProviderInstance();
   const waSend = useWhatsAppProSend();
   const waActive = !!waInstance?.active;
+  const customerPhoneE164 = customerPhone ? toE164(customerPhone, "PT") : null;
 
   const ensureLink = async (): Promise<string> => {
     if (shareLink) return shareLink;
@@ -99,8 +101,15 @@ export function PaymentActionsCard({
   };
 
   const handleSendWhatsApp = async () => {
-    if (!customerPhone) {
+    if (!customerPhone || !customerPhone.trim()) {
       toast.error("Cliente sem telemóvel registado");
+      return;
+    }
+    const e164 = toE164(customerPhone, "PT");
+    if (!e164) {
+      toast.error(
+        `Telemóvel inválido (${customerPhone}). Actualize o contacto do cliente para um número válido.`,
+      );
       return;
     }
     setGeneratingLink(true);
@@ -108,12 +117,16 @@ export function PaymentActionsCard({
       const url = await ensureLink();
       const text = `Olá! Pode efectuar o pagamento da fatura aqui: ${url}`;
       await waSend.mutateAsync({
-        phone: customerPhone,
+        phone: e164,
         messageType: "text" as any,
         text,
-        metadata: { source: "invoice_payment_link", invoice_id: invoiceId },
+        metadata: {
+          source: "invoice_payment_link",
+          invoice_id: invoiceId,
+          phone_formatted: formatPhone(e164, "PT"),
+        },
       });
-      toast.success("Link enviado por WhatsApp");
+      toast.success(`Link enviado por WhatsApp para ${formatPhone(e164, "PT")}`);
     } catch (e: any) {
       toast.error(e?.message || "Erro a enviar por WhatsApp");
     } finally {
@@ -201,20 +214,34 @@ export function PaymentActionsCard({
               </Button>
             )}
             {waActive && customerPhone && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleSendWhatsApp}
-                disabled={generatingLink || waSend.isPending}
-                className="text-emerald-600 hover:text-emerald-700"
-              >
-                {waSend.isPending ? (
-                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                ) : (
-                  <MessageCircle className="w-3 h-3 mr-2" />
+              <div className="flex flex-col gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSendWhatsApp}
+                  disabled={generatingLink || waSend.isPending || !customerPhoneE164}
+                  className="text-emerald-600 hover:text-emerald-700"
+                  title={
+                    customerPhoneE164
+                      ? `Enviar para ${formatPhone(customerPhoneE164, "PT")}`
+                      : "Telemóvel inválido — actualize o contacto"
+                  }
+                >
+                  {waSend.isPending ? (
+                    <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                  ) : (
+                    <MessageCircle className="w-3 h-3 mr-2" />
+                  )}
+                  {customerPhoneE164
+                    ? `Enviar por WhatsApp (${formatPhone(customerPhoneE164, "PT")})`
+                    : "Enviar por WhatsApp"}
+                </Button>
+                {!customerPhoneE164 && (
+                  <p className="text-[11px] text-destructive">
+                    Telemóvel do cliente inválido ({customerPhone}). Actualize o contacto.
+                  </p>
                 )}
-                Enviar por WhatsApp
-              </Button>
+              </div>
             )}
           </div>
         )}
