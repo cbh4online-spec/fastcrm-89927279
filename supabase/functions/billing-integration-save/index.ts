@@ -46,7 +46,7 @@ function normalizeInvoiceXpressAccount(value: string): string {
 
 async function testProvider(provider: string, account: string, apiKey: string) {
   if (provider !== "invoicexpress") return { ok: true, skipped: true };
-  const url = `https://${encodeURIComponent(account)}.app.invoicexpress.com/users/me.json?api_key=${encodeURIComponent(apiKey)}`;
+  const url = `https://${encodeURIComponent(account)}.app.invoicexpress.com/sequences.json?api_key=${encodeURIComponent(apiKey)}&page=1&per_page=1`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 8000);
   try {
