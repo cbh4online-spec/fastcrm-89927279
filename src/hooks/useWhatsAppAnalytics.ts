@@ -42,10 +42,18 @@ export interface WhatsAppDayPoint {
   failed: number;
 }
 
+export interface WhatsAppHourPoint {
+  weekday: number; // 0=Sun..6=Sat
+  hour: number; // 0..23
+  count: number;
+}
+
 export interface WhatsAppAnalyticsData {
   kpis: WhatsAppAnalyticsKPIs;
   campaigns: WhatsAppCampaignMetric[];
   series: WhatsAppDayPoint[];
+  heatmap: WhatsAppHourPoint[];
+  bestHour: { weekday: number; hour: number; count: number } | null;
 }
 
 function pct(num: number, den: number) {
