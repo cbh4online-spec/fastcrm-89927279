@@ -40949,7 +40949,9 @@ export type Database = {
           notes: string | null
           opportunity_id: string | null
           paid_at: string | null
+          pdf_url: string | null
           proposal_id: string | null
+          public_url: string | null
           related_invoice_id: string | null
           renewal_contract_id: string | null
           sent_at: string | null
@@ -40997,7 +40999,9 @@ export type Database = {
           notes?: string | null
           opportunity_id?: string | null
           paid_at?: string | null
+          pdf_url?: string | null
           proposal_id?: string | null
+          public_url?: string | null
           related_invoice_id?: string | null
           renewal_contract_id?: string | null
           sent_at?: string | null
@@ -41045,7 +41049,9 @@ export type Database = {
           notes?: string | null
           opportunity_id?: string | null
           paid_at?: string | null
+          pdf_url?: string | null
           proposal_id?: string | null
+          public_url?: string | null
           related_invoice_id?: string | null
           renewal_contract_id?: string | null
           sent_at?: string | null
@@ -56396,6 +56402,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pipeline_automation_settings: {
+        Row: {
+          attach_pdf_whatsapp: boolean
+          auto_invoice_on_won: boolean
+          created_at: string
+          default_payment_conditions: string | null
+          default_validity_days: number
+          proposal_whatsapp_template: string
+          updated_at: string
+          whatsapp_template: string
+          workspace_id: string
+        }
+        Insert: {
+          attach_pdf_whatsapp?: boolean
+          auto_invoice_on_won?: boolean
+          created_at?: string
+          default_payment_conditions?: string | null
+          default_validity_days?: number
+          proposal_whatsapp_template?: string
+          updated_at?: string
+          whatsapp_template?: string
+          workspace_id: string
+        }
+        Update: {
+          attach_pdf_whatsapp?: boolean
+          auto_invoice_on_won?: boolean
+          created_at?: string
+          default_payment_conditions?: string | null
+          default_validity_days?: number
+          proposal_whatsapp_template?: string
+          updated_at?: string
+          whatsapp_template?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_automation_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "pipeline_automation_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pipeline_email_triggers: {
         Row: {
