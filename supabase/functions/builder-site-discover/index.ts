@@ -12,7 +12,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const FIRECRAWL_BASE = "https://api.firecrawl.dev/v1";
+const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
+const FIRECRAWL_V1 = "https://api.firecrawl.dev/v1";
 const MAX_PAGES = 200;
 
 function isBlockedHost(hostname: string): boolean {
