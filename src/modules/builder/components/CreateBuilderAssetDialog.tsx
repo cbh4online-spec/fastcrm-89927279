@@ -67,6 +67,8 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
   const [cloneKeepScripts, setCloneKeepScripts] = useState(false);
   const [cloneSelected, setCloneSelected] = useState<Set<string>>(new Set());
   const [cloneName, setCloneName] = useState("");
+  const [cloneExtraPages, setCloneExtraPages] = useState<string[]>([]);
+  const [manualUrls, setManualUrls] = useState("");
 
   // Upload
   const [uploading, setUploading] = useState(false);
