@@ -212,7 +212,7 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
             <TabsTrigger value="paste" className="gap-2">
               <ClipboardPaste className="h-4 w-4" /> Colar HTML
             </TabsTrigger>
@@ -221,6 +221,9 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
             </TabsTrigger>
             <TabsTrigger value="url" className="gap-2">
               <Link2 className="h-4 w-4" /> URL
+            </TabsTrigger>
+            <TabsTrigger value="clone" className="gap-2">
+              <Globe2 className="h-4 w-4" /> Clonar site
             </TabsTrigger>
             <TabsTrigger value="templates" className="gap-2">
               <Layout className="h-4 w-4" /> Templates
