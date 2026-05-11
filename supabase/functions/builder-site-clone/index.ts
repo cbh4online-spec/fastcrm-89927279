@@ -48,6 +48,16 @@ function slugify(s: string, fallback = "page"): string {
 
 function pathToSlug(u: URL): { path: string; slug: string; isHome: boolean } {
   const path = u.pathname.replace(/\/+$/, "") || "/";
+  const hash = (u.hash || "").replace(/^#/, "").trim();
+  if (hash) {
+    // Fragmento → tratar como página/secção separada
+    const base = path === "/" ? "" : path;
+    return {
+      path: `${base}#${hash}`,
+      slug: slugify(`${base.replace(/^\//, "") || "home"}-${hash}`),
+      isHome: false,
+    };
+  }
   if (path === "/" || path === "") return { path: "/", slug: "home", isHome: true };
   return { path, slug: slugify(path), isHome: false };
 }
@@ -282,10 +292,13 @@ async function processSite(admin: ReturnType<typeof createClient>, ctx: ProcessC
     await admin.from("builder_site_pages").update({ status: "cloning" }).eq("id", page.id);
 
     try {
+      // Para fragmentos #secção, fazemos scrape da página base (mesma URL sem hash).
+      // Cada secção fica como página própria no builder mas partilha o HTML de origem.
+      const fetchUrl = String(page.source_url).split("#")[0];
       const sc = await firecrawl<{ success: boolean; data?: { html?: string; metadata?: { title?: string } } }>(
         "/scrape",
         {
-          url: String(page.source_url),
+          url: fetchUrl,
           formats: ["html"],
           onlyMainContent: false,
           timeout: 25000,

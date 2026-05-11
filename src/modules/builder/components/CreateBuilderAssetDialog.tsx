@@ -413,7 +413,7 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
                   />
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] text-muted-foreground">
-                      Útil para sites de página única (SPA) ou quando a descoberta automática não encontra tudo. Fragmentos <code>#secção</code> são ignorados (mesma página).
+                      Útil para sites de página única (SPA) ou quando a descoberta automática não encontra tudo. Fragmentos <code>#secção</code> são tratados como páginas separadas (cada secção fica num ficheiro próprio).
                     </p>
                     <Button
                       size="sm"
@@ -433,7 +433,7 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
                           try {
                             const u = new URL(l);
                             if (!["http:", "https:"].includes(u.protocol)) continue;
-                            const clean = `${u.origin}${u.pathname}${u.search}`;
+                            const clean = `${u.origin}${u.pathname}${u.search}${u.hash}`;
                             if (seen.has(clean)) continue;
                             seen.add(clean);
                             valid.push(clean);
