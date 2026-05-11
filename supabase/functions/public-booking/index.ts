@@ -356,7 +356,7 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
 }
 
 async function handleConfirmBooking(supabase: any, body: any, headers: Record<string, string>) {
-  const { booking_page_id, lead_id, date, start_time, guest_name, guest_email } = body;
+  const { booking_page_id, lead_id, date, start_time, guest_name, guest_email, guest_phone } = body;
 
   if (!booking_page_id || !date || !start_time || !guest_name || !guest_email) {
     return new Response(JSON.stringify({ error: "Campos obrigatórios em falta" }), {
