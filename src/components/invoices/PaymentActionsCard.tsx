@@ -142,7 +142,7 @@ export function PaymentActionsCard({
     }
   };
 
-  const handleSendWhatsApp = async () => {
+  const openWhatsAppConfirm = async () => {
     if (!customerPhone || !customerPhone.trim()) {
       toast.error("Cliente sem telemóvel registado");
       return;
@@ -154,7 +154,7 @@ export function PaymentActionsCard({
       );
       return;
     }
-    setGeneratingLink(true);
+    setPreparingPreview(true);
     try {
       const url = await ensureLink();
       const template =
@@ -166,21 +166,36 @@ export function PaymentActionsCard({
         amount: formatEUR(Number(invoiceTotal)),
         link: url,
       });
+      setWaPreview({ text, e164, url });
+      setWaConsent(false);
+      setWaConfirmOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro a preparar mensagem");
+    } finally {
+      setPreparingPreview(false);
+    }
+  };
+
+  const confirmSendWhatsApp = async () => {
+    if (!waPreview || !waConsent) return;
+    try {
       await waSend.mutateAsync({
-        phone: e164,
+        phone: waPreview.e164,
         messageType: "text" as any,
-        text,
+        text: waPreview.text,
         metadata: {
           source: "invoice_payment_link",
           invoice_id: invoiceId,
-          phone_formatted: formatPhone(e164, "PT"),
+          phone_formatted: formatPhone(waPreview.e164, "PT"),
+          consent_confirmed: true,
         },
       });
-      toast.success(`Link enviado por WhatsApp para ${formatPhone(e164, "PT")}`);
+      toast.success(`Link enviado por WhatsApp para ${formatPhone(waPreview.e164, "PT")}`);
+      setWaConfirmOpen(false);
+      setWaPreview(null);
+      setWaConsent(false);
     } catch (e: any) {
       toast.error(e?.message || "Erro a enviar por WhatsApp");
-    } finally {
-      setGeneratingLink(false);
     }
   };
 
