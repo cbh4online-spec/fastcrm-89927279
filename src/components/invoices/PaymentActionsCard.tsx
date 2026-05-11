@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Copy, Loader2, Check } from "lucide-react";
+import { CreditCard, Copy, Loader2, Check, Link2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import {
   useCreateIfthenpayPayment,
@@ -17,6 +17,7 @@ import { useIfthenpaySettings } from "@/hooks/integrations/useIfthenpaySettings"
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { formatEUR } from "@/lib/currency";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   invoiceId: string;
@@ -59,11 +60,32 @@ export function PaymentActionsCard({
   const [phone, setPhone] = useState(customerPhone || "");
   const [amount, setAmount] = useState<string>(outstanding.toFixed(2));
 
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
+
   const createPayment = useCreateIfthenpayPayment();
   const { data: payments = [] } = useIfthenpayPayments({
     reference_type: "invoice",
     reference_id: invoiceId,
   });
+
+  const handleGenerateLink = async () => {
+    setGeneratingLink(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("ensure_invoice_public_token", {
+        _invoice_id: invoiceId,
+      });
+      if (error) throw error;
+      const url = `${window.location.origin}/pay/invoice/${data}`;
+      setShareLink(url);
+      navigator.clipboard.writeText(url);
+      toast.success("Link copiado para a área de transferência");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro a gerar link");
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
 
   const handleGenerate = async () => {
     const value = Number(amount);
@@ -120,6 +142,33 @@ export function PaymentActionsCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {outstanding > 0 && (
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Link2 className="w-4 h-4" /> Link de pagamento para o cliente
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Envie por email ou WhatsApp. O cliente escolhe o método e paga sem login.
+            </p>
+            {shareLink ? (
+              <div className="flex items-center gap-2">
+                <Input value={shareLink} readOnly className="text-xs font-mono" />
+                <Button size="icon" variant="outline" onClick={() => copyToClipboard(shareLink, "Link")}>
+                  <Copy className="w-3 h-3" />
+                </Button>
+                <Button size="icon" variant="outline" asChild>
+                  <a href={shareLink} target="_blank" rel="noreferrer"><ExternalLink className="w-3 h-3" /></a>
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" onClick={handleGenerateLink} disabled={generatingLink}>
+                {generatingLink ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Link2 className="w-3 h-3 mr-2" />}
+                Gerar e copiar link
+              </Button>
+            )}
+          </div>
+        )}
+
         {outstanding <= 0 ? (
           <p className="text-sm text-emerald-600 flex items-center gap-2">
             <Check className="w-4 h-4" /> Fatura totalmente paga
