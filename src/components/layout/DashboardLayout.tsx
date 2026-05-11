@@ -74,14 +74,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <DirectMessagesProvider>
           <AppModeGuard>
             <div className="h-screen flex bg-background overflow-hidden">
-              {useAdaptive ? (
+              {useWatidy ? (
+                <WatidySidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
+              ) : useAdaptive ? (
                 <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
               ) : shellV2 ? (
                 <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
               ) : (
                 <SidebarV1 open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
               )}
-              <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useAdaptive ? (collapsed ? "lg:pl-16" : "lg:pl-[280px]") : collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
+              <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useWatidy ? "lg:pl-[304px]" : useAdaptive ? (collapsed ? "lg:pl-16" : "lg:pl-[280px]") : collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
                 <TopBar onMenuClick={() => setSidebarOpen(true)} />
                 <AIUsageBanner />
                 <WhatsAppHealthBanner />
