@@ -29,6 +29,8 @@ interface Props {
   amountPaid: number;
   currency: string;
   customerPhone?: string | null;
+  customerName?: string | null;
+  invoiceNumber?: string | null;
 }
 
 const METHOD_LABELS: Record<IfthenpayMethodId, string> = {
