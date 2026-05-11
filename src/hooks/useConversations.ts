@@ -55,6 +55,13 @@ export interface Conversation {
   contact?: ConversationContact | null;
   company?: ConversationCompany | null;
   opportunities?: ConversationOpportunity[];
+  /** Resolved by phone suffix when conversation has no linked lead/contact/company */
+  resolved_contact?: {
+    type: "lead" | "contact" | "company";
+    id: string;
+    name: string;
+    matched_phone?: string | null;
+  } | null;
   // AI Classification fields
   ai_priority?: "high" | "medium" | "low" | null;
   ai_intent?: "support" | "sales" | "question" | "follow_up" | "complaint" | "other" | null;
@@ -198,6 +205,113 @@ export function useConversations(filters?: ConversationFilters) {
         ...conv,
         opportunities: conv.lead?.id ? opportunitiesMap[conv.lead.id] || [] : [],
       })) || [];
+
+      // ----- Resolve display name by phone for unlinked conversations -----
+      // For conversations without lead/contact/company but with a phone-like
+      // external_thread_id, look up matching leads/contacts/companies by phone
+      // suffix (last 9 digits) so the inbox can show the real contact name
+      // instead of the raw phone number.
+      const phoneChannels: ConversationChannel[] = ["whatsapp", "sms", "phone", "ghl"];
+      const unlinked = conversationsWithOpps.filter(
+        (c) =>
+          !c.lead?.id &&
+          !c.contact?.id &&
+          !c.company?.id &&
+          phoneChannels.includes(c.channel as ConversationChannel) &&
+          !!c.external_thread_id,
+      );
+
+      if (unlinked.length > 0) {
+        const suffixOf = (raw: string): string | null => {
+          const digits = String(raw).replace(/\D/g, "");
+          if (digits.length < 7) return null;
+          return digits.slice(-9);
+        };
+
+        const suffixToConvIds = new Map<string, string[]>();
+        for (const c of unlinked) {
+          const s = suffixOf(c.external_thread_id || "");
+          if (!s) continue;
+          const arr = suffixToConvIds.get(s) || [];
+          arr.push(c.id);
+          suffixToConvIds.set(s, arr);
+        }
+
+        const suffixes = Array.from(suffixToConvIds.keys());
+        if (suffixes.length > 0) {
+          const orFilter = suffixes.map((s) => `phone.ilike.%${s}%`).join(",");
+
+          const [leadsRes, contactsRes, companiesRes] = await Promise.all([
+            workspaceClient
+              .from("leads")
+              .select("id, name, phone")
+              .eq("workspace_id", currentWorkspace.id)
+              .not("phone", "is", null)
+              .or(orFilter)
+              .limit(500),
+            workspaceClient
+              .from("contacts")
+              .select("id, name, phone")
+              .eq("workspace_id", currentWorkspace.id)
+              .not("phone", "is", null)
+              .or(orFilter)
+              .limit(500),
+            workspaceClient
+              .from("companies")
+              .select("id, name, phone")
+              .eq("workspace_id", currentWorkspace.id)
+              .not("phone", "is", null)
+              .or(orFilter)
+              .limit(500),
+          ]);
+
+          // Index by suffix; prefer contact > lead > company
+          const matchBySuffix = new Map<
+            string,
+            { type: "lead" | "contact" | "company"; id: string; name: string; matched_phone: string }
+          >();
+
+          const ingest = (
+            rows: Array<{ id: string; name: string | null; phone: string | null }> | null,
+            type: "lead" | "contact" | "company",
+          ) => {
+            if (!rows) return;
+            const priority = { contact: 0, lead: 1, company: 2 } as const;
+            for (const r of rows) {
+              if (!r.phone || !r.name) continue;
+              const s = suffixOf(r.phone);
+              if (!s || !suffixToConvIds.has(s)) continue;
+              const existing = matchBySuffix.get(s);
+              if (!existing || priority[type] < priority[existing.type]) {
+                matchBySuffix.set(s, { type, id: r.id, name: r.name, matched_phone: r.phone });
+              }
+            }
+          };
+
+          ingest(contactsRes.data as any, "contact");
+          ingest(leadsRes.data as any, "lead");
+          ingest(companiesRes.data as any, "company");
+
+          if (matchBySuffix.size > 0) {
+            const convResolution = new Map<string, NonNullable<Conversation["resolved_contact"]>>();
+            for (const [suffix, match] of matchBySuffix.entries()) {
+              const convIds = suffixToConvIds.get(suffix) || [];
+              for (const cid of convIds) {
+                convResolution.set(cid, {
+                  type: match.type,
+                  id: match.id,
+                  name: match.name,
+                  matched_phone: match.matched_phone,
+                });
+              }
+            }
+            for (const c of conversationsWithOpps) {
+              const r = convResolution.get(c.id);
+              if (r) (c as any).resolved_contact = r;
+            }
+          }
+        }
+      }
 
       return conversationsWithOpps as Conversation[];
     },
