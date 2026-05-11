@@ -328,14 +328,15 @@ export function useConversations(filters?: ConversationFilters) {
               }
               for (const [entityId, convIds] of byEntity.entries()) {
                 updates.push(
-                  workspaceClient
-                    .from("conversations")
-                    .update({ [colMap[type]]: entityId } as any)
-                    .in("id", convIds)
-                    .is(colMap[type], null)
-                    .then(({ error }) => {
-                      if (error) console.warn("[Inbox] auto-link conversation failed:", error.message);
-                    }),
+                  Promise.resolve(
+                    workspaceClient
+                      .from("conversations")
+                      .update({ [colMap[type]]: entityId } as any)
+                      .in("id", convIds)
+                      .is(colMap[type], null),
+                  ).then((res: any) => {
+                    if (res?.error) console.warn("[Inbox] auto-link conversation failed:", res.error.message);
+                  }),
                 );
               }
             }
