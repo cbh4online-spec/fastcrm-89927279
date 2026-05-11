@@ -13,9 +13,14 @@ export interface WhatsAppSettings {
   business_hours_only: boolean;
   auto_create_leads: boolean;
   notify_on_new_message: boolean;
+  payment_link_enabled: boolean;
+  payment_link_template: string;
   created_at: string;
   updated_at: string;
 }
+
+export const DEFAULT_PAYMENT_LINK_TEMPLATE =
+  "Olá {{customer_name}}! 💳 Pode efectuar o pagamento da fatura {{invoice_number}} ({{amount}}) através deste link seguro: {{link}}";
 
 const DEFAULT_SETTINGS: Omit<WhatsAppSettings, "id" | "workspace_id" | "created_at" | "updated_at"> = {
   autopilot_enabled: false,
@@ -25,6 +30,8 @@ const DEFAULT_SETTINGS: Omit<WhatsAppSettings, "id" | "workspace_id" | "created_
   business_hours_only: false,
   auto_create_leads: true,
   notify_on_new_message: true,
+  payment_link_enabled: true,
+  payment_link_template: DEFAULT_PAYMENT_LINK_TEMPLATE,
 };
 
 export function useWhatsAppSettings() {
