@@ -132,3 +132,6 @@ verify_jwt = false
 
 [functions.whatsapp-pro-campaign-dispatch]
 verify_jwt = false
+
+[functions.invoice-pay-public]
+verify_jwt = false
