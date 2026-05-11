@@ -85000,6 +85000,75 @@ export type Database = {
           },
         ]
       }
+      workspace_billing_integrations: {
+        Row: {
+          account_name: string
+          api_key_encrypted: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          last_check_at: string | null
+          last_check_error: string | null
+          last_check_status: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          account_name: string
+          api_key_encrypted: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_check_at?: string | null
+          last_check_error?: string | null
+          last_check_status?: string | null
+          provider: Database["public"]["Enums"]["billing_provider"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          account_name?: string
+          api_key_encrypted?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_check_at?: string | null
+          last_check_error?: string | null
+          last_check_status?: string | null
+          provider?: Database["public"]["Enums"]["billing_provider"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_billing_integrations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_billing_integrations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_bundles: {
         Row: {
           bundle_id: string
@@ -88380,13 +88449,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_b"]
-            isOneToOne: false
-            referencedRelation: "partner_b2b_catalog_grouped"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "partner_b2b_catalog_grouped"
@@ -88396,8 +88458,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_b2b_content"
-            referencedColumns: ["product_id"]
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -88410,8 +88472,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_catalog"
-            referencedColumns: ["id"]
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -88424,8 +88486,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -88437,13 +88499,20 @@ export type Database = {
           {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_a"]
+            columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
@@ -88754,6 +88823,75 @@ export type Database = {
           workspace_name: string | null
         }
         Relationships: []
+      }
+      workspace_billing_integrations_safe: {
+        Row: {
+          account_name: string | null
+          api_key_masked: string | null
+          config: Json | null
+          created_at: string | null
+          created_by: string | null
+          display_name: string | null
+          id: string | null
+          is_active: boolean | null
+          is_default: boolean | null
+          last_check_at: string | null
+          last_check_error: string | null
+          last_check_status: string | null
+          provider: Database["public"]["Enums"]["billing_provider"] | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          api_key_masked?: never
+          config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          last_check_at?: string | null
+          last_check_error?: string | null
+          last_check_status?: string | null
+          provider?: Database["public"]["Enums"]["billing_provider"] | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          api_key_masked?: never
+          config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          last_check_at?: string | null
+          last_check_error?: string | null
+          last_check_status?: string | null
+          provider?: Database["public"]["Enums"]["billing_provider"] | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_billing_integrations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_billing_integrations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_progression_leaderboard: {
         Row: {
@@ -90607,6 +90745,12 @@ export type Database = {
         | "quarterly"
         | "semi_annual"
         | "yearly"
+      billing_provider:
+        | "invoicexpress"
+        | "moloni"
+        | "vendus"
+        | "sage"
+        | "primavera"
       billing_type: "one_time" | "recurring"
       bot_status: "draft" | "active" | "paused"
       bot_type: "guided" | "prompt" | "flow"
@@ -91179,6 +91323,13 @@ export const Constants = {
         "quarterly",
         "semi_annual",
         "yearly",
+      ],
+      billing_provider: [
+        "invoicexpress",
+        "moloni",
+        "vendus",
+        "sage",
+        "primavera",
       ],
       billing_type: ["one_time", "recurring"],
       bot_status: ["draft", "active", "paused"],
