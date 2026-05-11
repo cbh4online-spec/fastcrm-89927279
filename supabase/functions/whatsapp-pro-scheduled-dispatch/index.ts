@@ -100,6 +100,41 @@ Deno.serve(async (req) => {
             })
             .eq("id", msg.id);
           sent++;
+
+          // Recurrence: create next occurrence if metadata.recurrence != 'none'
+          try {
+            const recurrence = (msg.metadata as any)?.recurrence as
+              | "none"
+              | "daily"
+              | "weekly"
+              | "monthly"
+              | undefined;
+            if (recurrence && recurrence !== "none") {
+              const base = new Date(msg.scheduled_at as string);
+              const next = new Date(base);
+              if (recurrence === "daily") next.setUTCDate(next.getUTCDate() + 1);
+              else if (recurrence === "weekly") next.setUTCDate(next.getUTCDate() + 7);
+              else if (recurrence === "monthly") next.setUTCMonth(next.getUTCMonth() + 1);
+
+              await supabase.from("whatsapp_scheduled_messages").insert({
+                workspace_id: msg.workspace_id,
+                created_by: msg.created_by,
+                conversation_id: msg.conversation_id,
+                contact_id: msg.contact_id,
+                lead_id: msg.lead_id,
+                to_phone: msg.to_phone,
+                body: msg.body,
+                media_url: msg.media_url,
+                media_mime_type: msg.media_mime_type,
+                scheduled_at: next.toISOString(),
+                timezone: msg.timezone,
+                status: "pending",
+                metadata: { ...(msg.metadata ?? {}), recurrence_parent_id: msg.id },
+              });
+            }
+          } catch (recErr) {
+            console.error("recurrence insert failed", recErr);
+          }
         }
       } catch (innerErr) {
         console.error("scheduled dispatch error", innerErr);
