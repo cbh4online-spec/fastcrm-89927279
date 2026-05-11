@@ -41025,6 +41025,7 @@ export type Database = {
           paid_at: string | null
           pdf_url: string | null
           proposal_id: string | null
+          public_token: string | null
           public_url: string | null
           related_invoice_id: string | null
           renewal_contract_id: string | null
@@ -41075,6 +41076,7 @@ export type Database = {
           paid_at?: string | null
           pdf_url?: string | null
           proposal_id?: string | null
+          public_token?: string | null
           public_url?: string | null
           related_invoice_id?: string | null
           renewal_contract_id?: string | null
@@ -41125,6 +41127,7 @@ export type Database = {
           paid_at?: string | null
           pdf_url?: string | null
           proposal_id?: string | null
+          public_token?: string | null
           public_url?: string | null
           related_invoice_id?: string | null
           renewal_contract_id?: string | null
@@ -89733,6 +89736,10 @@ export type Database = {
       }
       ensure_b2b_catalog_kb: {
         Args: { p_user_id: string; p_workspace_id: string }
+        Returns: string
+      }
+      ensure_invoice_public_token: {
+        Args: { _invoice_id: string }
         Returns: string
       }
       ensure_whatsapp_provider_instance: {
