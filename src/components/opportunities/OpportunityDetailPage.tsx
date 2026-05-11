@@ -219,6 +219,9 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
             contactEntityType={opportunity.contact ? 'contact' : opportunity.lead ? 'lead' : undefined}
             stageName={currentStage?.name}
             companyName={opportunity.company?.name}
+            companyId={opportunity.company?.id}
+            currency={opportunity.currency || "EUR"}
+            isWon={opportunity.status === "won"}
           />
         </div>
       </div>
