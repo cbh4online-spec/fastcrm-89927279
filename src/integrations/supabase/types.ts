@@ -83401,6 +83401,39 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_send_counters: {
+        Row: {
+          day: string
+          error_count: number
+          id: string
+          instance_id: string | null
+          last_send_at: string | null
+          sent_count: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          day?: string
+          error_count?: number
+          id?: string
+          instance_id?: string | null
+          last_send_at?: string | null
+          sent_count?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          day?: string
+          error_count?: number
+          id?: string
+          instance_id?: string | null
+          last_send_at?: string | null
+          sent_count?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_sequence_enrollments: {
         Row: {
           completed_at: string | null
@@ -83714,6 +83747,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_throttle_settings: {
+        Row: {
+          created_at: string
+          error_pause_threshold: number
+          error_pause_window_minutes: number
+          id: string
+          instance_id: string | null
+          max_interval_seconds: number
+          max_per_day: number
+          min_interval_seconds: number
+          paused: boolean
+          paused_at: string | null
+          paused_reason: string | null
+          updated_at: string
+          warmup_enabled: boolean
+          warmup_increment_per_day: number
+          warmup_start_per_day: number
+          warmup_started_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_pause_threshold?: number
+          error_pause_window_minutes?: number
+          id?: string
+          instance_id?: string | null
+          max_interval_seconds?: number
+          max_per_day?: number
+          min_interval_seconds?: number
+          paused?: boolean
+          paused_at?: string | null
+          paused_reason?: string | null
+          updated_at?: string
+          warmup_enabled?: boolean
+          warmup_increment_per_day?: number
+          warmup_start_per_day?: number
+          warmup_started_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          error_pause_threshold?: number
+          error_pause_window_minutes?: number
+          id?: string
+          instance_id?: string | null
+          max_interval_seconds?: number
+          max_per_day?: number
+          min_interval_seconds?: number
+          paused?: boolean
+          paused_at?: string | null
+          paused_reason?: string | null
+          updated_at?: string
+          warmup_enabled?: boolean
+          warmup_increment_per_day?: number
+          warmup_start_per_day?: number
+          warmup_started_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
       }
       whatsapp_webhook_logs: {
         Row: {
@@ -90309,6 +90402,19 @@ export type Database = {
       verify_builder_domain: {
         Args: { _domain_id: string; _resolved_token: string }
         Returns: boolean
+      }
+      wa_evaluate_auto_pause: { Args: { _workspace_id: string }; Returns: Json }
+      wa_get_throttle_status: {
+        Args: { _instance_id?: string; _workspace_id: string }
+        Returns: Json
+      }
+      wa_register_send: {
+        Args: {
+          _instance_id?: string
+          _is_error?: boolean
+          _workspace_id: string
+        }
+        Returns: undefined
       }
       whatsapp_ops_dashboard: {
         Args: {
