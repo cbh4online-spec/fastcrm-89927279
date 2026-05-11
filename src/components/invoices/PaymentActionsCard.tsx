@@ -101,6 +101,7 @@ export function PaymentActionsCard({
   const { data: waInstance } = useWhatsAppProviderInstance();
   const { data: waSettings } = useWhatsAppSettings();
   const waSend = useWhatsAppProSend();
+  const logSend = useLogInvoiceWhatsAppSend();
   const waActive =
     !!waInstance?.active && (waSettings?.payment_link_enabled ?? true);
   const customerPhoneE164 = customerPhone ? toE164(customerPhone, "PT") : null;
