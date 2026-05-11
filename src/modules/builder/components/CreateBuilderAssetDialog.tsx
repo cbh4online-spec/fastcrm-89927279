@@ -87,6 +87,12 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
     setUploadInfo(null);
     setUrlValue("");
     setImportingUrl(false);
+    setCloneUrl("");
+    setCloneIncludeSub(false);
+    setCloneKeepScripts(false);
+    setCloneSelected(new Set());
+    setCloneName("");
+    siteClone.reset();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
