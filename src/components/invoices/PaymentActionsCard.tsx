@@ -55,6 +55,8 @@ export function PaymentActionsCard({
   amountPaid,
   currency,
   customerPhone,
+  customerName,
+  invoiceNumber,
 }: Props) {
   const { settings } = useIfthenpaySettings();
   const enabledMethods: IfthenpayMethodId[] = (settings?.enabled_methods as IfthenpayMethodId[]) || [];
@@ -76,8 +78,10 @@ export function PaymentActionsCard({
   });
 
   const { data: waInstance } = useWhatsAppProviderInstance();
+  const { data: waSettings } = useWhatsAppSettings();
   const waSend = useWhatsAppProSend();
-  const waActive = !!waInstance?.active;
+  const waActive =
+    !!waInstance?.active && (waSettings?.payment_link_enabled ?? true);
   const customerPhoneE164 = customerPhone ? toE164(customerPhone, "PT") : null;
 
   // Cache + in-flight dedupe: evita chamadas duplicadas ao RPC quando
