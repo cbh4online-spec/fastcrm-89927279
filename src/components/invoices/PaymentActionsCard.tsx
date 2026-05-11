@@ -183,6 +183,32 @@ export function PaymentActionsCard({
     }
   };
 
+  const openScheduleDialog = async () => {
+    if (!customerPhone || !customerPhoneE164) {
+      toast.error("Telemóvel do cliente inválido");
+      return;
+    }
+    setPreparingSchedule(true);
+    try {
+      const url = await ensureLink();
+      const template =
+        (waSettings?.payment_link_enabled !== false && waSettings?.payment_link_template) ||
+        DEFAULT_PAYMENT_LINK_TEMPLATE;
+      const text = renderPaymentMessage(template, {
+        customer_name: customerName ?? "",
+        invoice_number: invoiceNumber ?? "",
+        amount: formatEUR(Number(invoiceTotal)),
+        link: url,
+      });
+      setScheduleData({ phoneE164: customerPhoneE164, body: text, url });
+      setScheduleOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro a preparar agendamento");
+    } finally {
+      setPreparingSchedule(false);
+    }
+  };
+
   const confirmSendWhatsApp = async () => {
     if (!waPreview || !waConsent) return;
     try {
