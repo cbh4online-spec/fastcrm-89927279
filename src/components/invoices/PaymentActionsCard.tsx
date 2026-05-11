@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Copy, Loader2, Check, Link2, ExternalLink, MessageCircle, AlertTriangle } from "lucide-react";
+import { CreditCard, Copy, Loader2, Check, Link2, ExternalLink, MessageCircle, AlertTriangle, CalendarClock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,7 @@ import { useWhatsAppProviderInstance, useWhatsAppProSend } from "@/hooks/useWhat
 import { useWhatsAppSettings, DEFAULT_PAYMENT_LINK_TEMPLATE } from "@/hooks/useWhatsAppSettings";
 import { renderPaymentMessage } from "@/lib/whatsapp/paymentMessage";
 import { useLogInvoiceWhatsAppSend } from "@/hooks/invoices/useInvoiceWhatsAppSends";
+import { ScheduleWhatsAppDialog } from "@/components/invoices/ScheduleWhatsAppDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -91,6 +92,9 @@ export function PaymentActionsCard({
   } | null>(null);
   const [waConsent, setWaConsent] = useState(false);
   const [preparingPreview, setPreparingPreview] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleData, setScheduleData] = useState<{ phoneE164: string; body: string; url: string } | null>(null);
+  const [preparingSchedule, setPreparingSchedule] = useState(false);
 
   const createPayment = useCreateIfthenpayPayment();
   const { data: payments = [] } = useIfthenpayPayments({
@@ -176,6 +180,32 @@ export function PaymentActionsCard({
       toast.error(e?.message || "Erro a preparar mensagem");
     } finally {
       setPreparingPreview(false);
+    }
+  };
+
+  const openScheduleDialog = async () => {
+    if (!customerPhone || !customerPhoneE164) {
+      toast.error("Telemóvel do cliente inválido");
+      return;
+    }
+    setPreparingSchedule(true);
+    try {
+      const url = await ensureLink();
+      const template =
+        (waSettings?.payment_link_enabled !== false && waSettings?.payment_link_template) ||
+        DEFAULT_PAYMENT_LINK_TEMPLATE;
+      const text = renderPaymentMessage(template, {
+        customer_name: customerName ?? "",
+        invoice_number: invoiceNumber ?? "",
+        amount: formatEUR(Number(invoiceTotal)),
+        link: url,
+      });
+      setScheduleData({ phoneE164: customerPhoneE164, body: text, url });
+      setScheduleOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro a preparar agendamento");
+    } finally {
+      setPreparingSchedule(false);
     }
   };
 
@@ -325,6 +355,20 @@ export function PaymentActionsCard({
                   {customerPhoneE164
                     ? `Enviar por WhatsApp (${formatPhone(customerPhoneE164, "PT")})`
                     : "Enviar por WhatsApp"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={openScheduleDialog}
+                  disabled={generatingLink || preparingPreview || !customerPhoneE164}
+                  title="Programar envio para data/hora futura"
+                >
+                  {preparingSchedule ? (
+                    <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                  ) : (
+                    <CalendarClock className="w-3 h-3 mr-2" />
+                  )}
+                  Agendar envio…
                 </Button>
                 {!customerPhoneE164 && (
                   <p className="text-[11px] text-destructive">
@@ -550,6 +594,20 @@ export function PaymentActionsCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {scheduleData && (
+        <ScheduleWhatsAppDialog
+          open={scheduleOpen}
+          onOpenChange={(o) => {
+            setScheduleOpen(o);
+            if (!o) setScheduleData(null);
+          }}
+          invoiceId={invoiceId}
+          phoneE164={scheduleData.phoneE164}
+          defaultBody={scheduleData.body}
+          shareUrl={scheduleData.url}
+        />
+      )}
     </Card>
   );
 }

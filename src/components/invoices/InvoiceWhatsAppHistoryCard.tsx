@@ -1,11 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, RefreshCw, Loader2, ExternalLink, AlertCircle, Check, Eye, MousePointerClick } from "lucide-react";
+import { MessageCircle, RefreshCw, Loader2, ExternalLink, AlertCircle, Check, Eye, MousePointerClick, CalendarClock, X, Repeat } from "lucide-react";
 import { useInvoiceWhatsAppSends, type InvoiceWhatsAppSend } from "@/hooks/invoices/useInvoiceWhatsAppSends";
+import {
+  useInvoiceScheduledWhatsApp,
+  useCancelScheduledWhatsApp,
+  type InvoiceScheduledWhatsApp,
+} from "@/hooks/invoices/useInvoiceScheduledWhatsApp";
 import { formatPhone } from "@/utils/phone";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface Props {
   invoiceId: string;
@@ -106,9 +112,88 @@ function Row({ s }: { s: InvoiceWhatsAppSend }) {
   );
 }
 
+function ScheduledRow({
+  s,
+  onCancel,
+  cancelling,
+}: {
+  s: InvoiceScheduledWhatsApp;
+  onCancel: (id: string) => void;
+  cancelling: boolean;
+}) {
+  const recurrence = (s.metadata?.recurrence as string) ?? "none";
+  const recurrenceLabel: Record<string, string> = {
+    none: "",
+    daily: "diária",
+    weekly: "semanal",
+    monthly: "mensal",
+  };
+  return (
+    <div className="border border-dashed rounded-md p-3 space-y-2 text-sm bg-muted/20">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Badge variant="outline" className="gap-1">
+            <CalendarClock className="w-3 h-3" />
+            Agendado
+          </Badge>
+          {recurrence !== "none" && (
+            <Badge variant="secondary" className="gap-1 text-[10px]">
+              <Repeat className="w-3 h-3" />
+              {recurrenceLabel[recurrence]}
+            </Badge>
+          )}
+          <span className="font-mono text-xs truncate">{formatPhone(s.to_phone, "PT")}</span>
+        </div>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => onCancel(s.id)}
+          disabled={cancelling}
+          title="Cancelar agendamento"
+          className="h-7 w-7 text-destructive hover:text-destructive"
+        >
+          {cancelling ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+        </Button>
+      </div>
+      <div className="text-xs text-muted-foreground">
+        Envio previsto: <span className="font-medium text-foreground">{fmtDate(s.scheduled_at)}</span>
+      </div>
+      {s.metadata?.title && (
+        <div className="text-xs text-muted-foreground">Título: {String(s.metadata.title)}</div>
+      )}
+      <details className="text-xs">
+        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+          Ver mensagem
+        </summary>
+        <pre className="mt-2 whitespace-pre-wrap break-words font-sans bg-muted/40 rounded p-2">
+          {s.body}
+        </pre>
+      </details>
+    </div>
+  );
+}
+
 export function InvoiceWhatsAppHistoryCard({ invoiceId }: Props) {
   const { data, isLoading, isFetching, refetch } = useInvoiceWhatsAppSends(invoiceId);
+  const { data: scheduledData, refetch: refetchSched, isFetching: schedFetching } =
+    useInvoiceScheduledWhatsApp(invoiceId);
+  const cancelMut = useCancelScheduledWhatsApp();
   const sends = data ?? [];
+  const scheduled = scheduledData ?? [];
+
+  const handleCancel = async (id: string) => {
+    try {
+      await cancelMut.mutateAsync({ id, invoiceId });
+      toast.success("Agendamento cancelado");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao cancelar");
+    }
+  };
+
+  const refresh = () => {
+    refetch();
+    refetchSched();
+  };
 
   return (
     <Card>
@@ -120,29 +205,56 @@ export function InvoiceWhatsAppHistoryCard({ invoiceId }: Props) {
         <Button
           size="icon"
           variant="ghost"
-          onClick={() => refetch()}
-          disabled={isFetching}
+          onClick={refresh}
+          disabled={isFetching || schedFetching}
           title="Actualizar"
         >
-          {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          {isFetching || schedFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
         </Button>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin" /> A carregar histórico…
-          </div>
-        ) : sends.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Ainda não foram registados envios por WhatsApp para esta fatura.
-          </p>
-        ) : (
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {sends.map((s) => (
-              <Row key={s.id} s={s} />
-            ))}
+      <CardContent className="space-y-3">
+        {scheduled.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+              Agendados ({scheduled.length})
+            </p>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {scheduled.map((s) => (
+                <ScheduledRow
+                  key={s.id}
+                  s={s}
+                  onCancel={handleCancel}
+                  cancelling={cancelMut.isPending}
+                />
+              ))}
+            </div>
           </div>
         )}
+
+        <div className="space-y-2">
+          {scheduled.length > 0 && (
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+              Histórico
+            </p>
+          )}
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" /> A carregar histórico…
+            </div>
+          ) : sends.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {scheduled.length > 0
+                ? "Ainda não há envios concluídos."
+                : "Ainda não foram registados envios por WhatsApp para esta fatura."}
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {sends.map((s) => (
+                <Row key={s.id} s={s} />
+              ))}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
