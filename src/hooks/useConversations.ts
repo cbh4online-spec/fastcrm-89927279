@@ -144,7 +144,11 @@ export function useConversations(filters?: ConversationFilters) {
           *,
           lead:leads(id, name, email, phone, status),
           contact:contacts(id, name, email, phone, company),
-          company:companies(id, name)
+          company:companies(id, name),
+          resolution:conversation_contact_resolutions(
+            resolved_type, resolved_entity_id, resolved_entity_name,
+            matched_phone, ambiguous, candidates_count, resolved_at
+          )
         `)
         .eq("workspace_id", currentWorkspace.id)
         .order("conversation_priority_score", { ascending: false, nullsFirst: true })
