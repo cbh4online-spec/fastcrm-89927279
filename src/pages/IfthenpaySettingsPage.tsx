@@ -49,7 +49,18 @@ export default function IfthenpaySettingsPage() {
 
   function saveKeys() {
     if (Object.keys(draft).length === 0) return;
-    updateSettings.mutate(draft, { onSuccess: () => setDraft({}) });
+    // Normalizar tipos: expiry_days é integer, restantes campos vazios → null
+    const patch: Record<string, any> = {};
+    for (const [k, v] of Object.entries(draft)) {
+      if (k === "expiry_days") {
+        const n = parseInt(v, 10);
+        patch[k] = Number.isFinite(n) && n > 0 ? n : 60;
+      } else {
+        const trimmed = (v ?? "").trim();
+        patch[k] = trimmed === "" ? null : trimmed;
+      }
+    }
+    updateSettings.mutate(patch, { onSuccess: () => setDraft({}) });
   }
 
   function toggleMethod(method: IfthenpayMethod, on: boolean) {
