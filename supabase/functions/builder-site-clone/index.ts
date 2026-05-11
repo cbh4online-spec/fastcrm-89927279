@@ -308,13 +308,21 @@ async function processSite(admin: ReturnType<typeof createClient>, ctx: ProcessC
 
   const assetCacheBySha = new Map<string, string>(); // sha256 -> public url
   let done = 0; let failed = 0;
+  let lastProgressUpdate = 0;
 
-  for (const page of pages) {
+  const updateProgress = async (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastProgressUpdate < 1500) return;
+    lastProgressUpdate = now;
+    await admin.from("builder_sites").update({
+      pages_done: done,
+      pages_failed: failed,
+    }).eq("id", ctx.siteId);
+  };
+
+  const processPage = async (page: typeof pages[number]) => {
     await admin.from("builder_site_pages").update({ status: "cloning" }).eq("id", page.id);
-
     try {
-      // Para fragmentos #secção, fazemos scrape da página base (mesma URL sem hash).
-      // Cada secção fica como página própria no builder mas partilha o HTML de origem.
       const fetchUrl = String(page.source_url).split("#")[0];
       const sc = await firecrawl<{ success: boolean; data?: { html?: string; metadata?: { title?: string } } }>(
         "/scrape",
@@ -328,17 +336,13 @@ async function processSite(admin: ReturnType<typeof createClient>, ctx: ProcessC
       let html = sc?.data?.html ?? "";
       if (!html) throw new Error("HTML vazio");
 
-      // Remove scripts se opção off
       if (!ctx.keepScripts) {
         html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
                    .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
                    .replace(/\son\w+\s*=\s*'[^']*'/gi, "");
       }
 
-      // Reescrita de URLs (img/link/script src+href) → bucket
       html = await rewriteAssets(html, String(page.source_url), ctx, admin, assetCacheBySha);
-
-      // Reescrita de links internos para slugs do builder
       html = rewriteInternalLinks(html, String(page.source_url), ctx, slugByUrl);
 
       const title = sc?.data?.metadata?.title ?? null;
@@ -358,12 +362,16 @@ async function processSite(admin: ReturnType<typeof createClient>, ctx: ProcessC
         error: e instanceof Error ? e.message.slice(0, 500) : "Erro desconhecido",
       }).eq("id", page.id);
     }
+    await updateProgress();
+  };
 
-    await admin.from("builder_sites").update({
-      pages_done: done,
-      pages_failed: failed,
-    }).eq("id", ctx.siteId);
+  // Paraleliza páginas (4 simultâneas) — cache de assets partilhada acelera ainda mais
+  const PAGE_CONCURRENCY = 4;
+  for (let i = 0; i < pages.length; i += PAGE_CONCURRENCY) {
+    const batch = pages.slice(i, i + PAGE_CONCURRENCY);
+    await Promise.all(batch.map(processPage));
   }
+  await updateProgress(true);
 
   const finalStatus = failed === 0 ? "completed" : (done === 0 ? "failed" : "partial");
   await admin.from("builder_sites").update({
@@ -431,7 +439,7 @@ async function rewriteAssets(
   // Faz fetch + upload em paralelo limitado
   const urlMap = new Map<string, string>();
   const arr = Array.from(refs);
-  const batchSize = 6;
+  const batchSize = 16;
   for (let i = 0; i < arr.length; i += batchSize) {
     const batch = arr.slice(i, i + batchSize);
     await Promise.all(batch.map(async (assetUrl) => {
