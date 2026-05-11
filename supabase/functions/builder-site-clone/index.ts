@@ -139,48 +139,80 @@ Deno.serve(async (req) => {
     if (!body?.workspace_id || !body?.source_url || !Array.isArray(body.pages)) {
       return json({ error: "Payload inválido" }, 400);
     }
+
+    // Valida formato UUID do workspace_id
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(body.workspace_id)) {
+      return json({ error: "workspace_id inválido" }, 400);
+    }
+
+    // Cliente service-role para verificações de acesso e escrita atómica
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+
+    // ===== VALIDAÇÃO DE ACESSO (antes de qualquer operação) =====
+    // 1. Verifica se o workspace existe
+    const { data: ws, error: wsErr } = await admin
+      .from("workspaces")
+      .select("id, owner_id, deleted_at")
+      .eq("id", body.workspace_id)
+      .maybeSingle();
+    if (wsErr) {
+      console.error("[builder-site-clone] erro a obter workspace", wsErr);
+      return json({ error: "Erro a validar workspace" }, 500);
+    }
+    if (!ws || ws.deleted_at) {
+      return json({ error: "Workspace não encontrado" }, 404);
+    }
+
+    // 2. Verifica se o utilizador é owner, membro (qualquer role) ou super_admin
+    const isOwner = ws.owner_id === userId;
+    let isMember = false;
+    let memberRole: string | null = null;
+
+    if (!isOwner) {
+      const { data: membership } = await admin
+        .from("workspace_members")
+        .select("role")
+        .eq("workspace_id", body.workspace_id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (membership) {
+        isMember = true;
+        memberRole = String(membership.role ?? "member");
+      }
+    }
+
+    let isSuper = false;
+    if (!isOwner && !isMember) {
+      const { data: superFlag } = await admin.rpc("is_super_admin", { _user_id: userId });
+      isSuper = !!superFlag;
+    }
+
+    if (!isOwner && !isMember && !isSuper) {
+      console.error("[builder-site-clone] acesso negado", {
+        userId,
+        workspace_id: body.workspace_id,
+        owner_id: ws.owner_id,
+      });
+      return json({ error: "Sem acesso a este workspace" }, 403);
+    }
+
+    console.log("[builder-site-clone] acesso autorizado", {
+      userId,
+      workspace_id: body.workspace_id,
+      via: isOwner ? "owner" : isMember ? `member:${memberRole}` : "super_admin",
+    });
+    // ===== FIM VALIDAÇÃO =====
+
     const pages = body.pages.slice(0, MAX_PAGES_HARD);
     if (pages.length === 0) return json({ error: "Sem páginas para clonar" }, 400);
 
     let srcUrl: URL;
     try { srcUrl = new URL(body.source_url); } catch { return json({ error: "source_url inválida" }, 400); }
     if (isBlockedHost(srcUrl.hostname)) return json({ error: "Host bloqueado" }, 400);
-
-    // Cliente service-role para escrita atómica
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
-
-    // Verifica membership (bypass RLS) — também aceita owner e super_admin
-    const [{ data: membership }, { data: ws }] = await Promise.all([
-      admin
-        .from("workspace_members")
-        .select("workspace_id")
-        .eq("workspace_id", body.workspace_id)
-        .eq("user_id", userId)
-        .maybeSingle(),
-      admin
-        .from("workspaces")
-        .select("id, owner_id")
-        .eq("id", body.workspace_id)
-        .maybeSingle(),
-    ]);
-
-    let hasAccess = !!membership || (ws?.owner_id === userId);
-    if (!hasAccess) {
-      const { data: isSuper } = await admin.rpc("is_super_admin", { _user_id: userId });
-      hasAccess = !!isSuper;
-    }
-    if (!hasAccess) {
-      console.error("[builder-site-clone] acesso negado", {
-        userId,
-        workspace_id: body.workspace_id,
-        workspace_exists: !!ws,
-        owner_id: ws?.owner_id ?? null,
-      });
-      return json({ error: "Sem acesso a este workspace" }, 403);
-    }
 
     const name = body.options?.name?.trim() || srcUrl.hostname;
     const slug = slugify(name) + "-" + Math.random().toString(36).slice(2, 8);
