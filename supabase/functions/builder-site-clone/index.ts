@@ -292,10 +292,13 @@ async function processSite(admin: ReturnType<typeof createClient>, ctx: ProcessC
     await admin.from("builder_site_pages").update({ status: "cloning" }).eq("id", page.id);
 
     try {
+      // Para fragmentos #secção, fazemos scrape da página base (mesma URL sem hash).
+      // Cada secção fica como página própria no builder mas partilha o HTML de origem.
+      const fetchUrl = String(page.source_url).split("#")[0];
       const sc = await firecrawl<{ success: boolean; data?: { html?: string; metadata?: { title?: string } } }>(
         "/scrape",
         {
-          url: String(page.source_url),
+          url: fetchUrl,
           formats: ["html"],
           onlyMainContent: false,
           timeout: 25000,
