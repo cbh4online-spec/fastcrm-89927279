@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
         workspace_id: body.workspace_id,
         owner_id: ws.owner_id,
       });
-      return json({ error: "Sem acesso a este workspace" }, 403);
+      return json({ error: "Sem acesso a este workspace", code: "USER_NOT_MEMBER" }, 403);
     }
 
     console.log("[builder-site-clone] acesso autorizado", {
@@ -208,11 +208,11 @@ Deno.serve(async (req) => {
     // ===== FIM VALIDAÇÃO =====
 
     const pages = body.pages.slice(0, MAX_PAGES_HARD);
-    if (pages.length === 0) return json({ error: "Sem páginas para clonar" }, 400);
+    if (pages.length === 0) return json({ error: "Sem páginas para clonar", code: "NO_PAGES" }, 400);
 
     let srcUrl: URL;
-    try { srcUrl = new URL(body.source_url); } catch { return json({ error: "source_url inválida" }, 400); }
-    if (isBlockedHost(srcUrl.hostname)) return json({ error: "Host bloqueado" }, 400);
+    try { srcUrl = new URL(body.source_url); } catch { return json({ error: "source_url inválida", code: "INVALID_SOURCE_URL" }, 400); }
+    if (isBlockedHost(srcUrl.hostname)) return json({ error: "Host bloqueado", code: "BLOCKED_HOST" }, 400);
 
     const name = body.options?.name?.trim() || srcUrl.hostname;
     const slug = slugify(name) + "-" + Math.random().toString(36).slice(2, 8);
