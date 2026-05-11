@@ -33,7 +33,6 @@ interface WatidySidebarProps {
 }
 
 const STORAGE_KEY_GROUP = "watidy_sidebar_active_group";
-const STORAGE_KEY_PANEL = "watidy_sidebar_panel_open";
 
 function NavBadge({ count }: { count: number }) {
   if (count <= 0) return null;
