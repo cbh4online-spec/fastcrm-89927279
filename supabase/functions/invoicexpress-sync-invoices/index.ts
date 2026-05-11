@@ -274,6 +274,8 @@ Deno.serve(async (req) => {
     if (integ.provider !== PROVIDER) {
       return json({ ok: false, error: `Provider '${integ.provider}' não suportado` }, 200);
     }
+    const accountName = normalizeInvoiceXpressAccount(integ.account_name);
+    if (!accountName) return json({ ok: false, error: "Conta InvoiceXpress inválida" }, 200);
 
     if (!isCron && userId) {
       const userClient = createClient(
@@ -312,7 +314,7 @@ Deno.serve(async (req) => {
         let page = 1;
         // safety cap: 20 pages × 30 = 600 docs por tipo / corrida
         while (page <= 20) {
-          const r = await fetchIXPage(normalizeInvoiceXpressAccount(integ.account_name), integ.api_key_encrypted, path, since, page);
+          const r = await fetchIXPage(accountName, integ.api_key_encrypted, path, since, page);
           if (!r.ok) {
             errors.push({ type: ixType, page, status: r.status, body: (r.raw || "").slice(0, 200) });
             break;
