@@ -594,6 +594,20 @@ export function PaymentActionsCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {scheduleData && (
+        <ScheduleWhatsAppDialog
+          open={scheduleOpen}
+          onOpenChange={(o) => {
+            setScheduleOpen(o);
+            if (!o) setScheduleData(null);
+          }}
+          invoiceId={invoiceId}
+          phoneE164={scheduleData.phoneE164}
+          defaultBody={scheduleData.body}
+          shareUrl={scheduleData.url}
+        />
+      )}
     </Card>
   );
 }
