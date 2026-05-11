@@ -41,6 +41,7 @@ import {
   useSetDefaultBillingIntegration,
 } from "@/hooks/useBillingIntegrations";
 import { BillingIntegrationDialog } from "@/components/settings/billing/BillingIntegrationDialog";
+import { BillingSyncSheet } from "@/components/settings/billing/BillingSyncSheet";
 import {
   Plus,
   Plug,
@@ -52,6 +53,7 @@ import {
   Trash2,
   Star,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -90,6 +92,7 @@ export default function BillingIntegrationsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<BillingIntegration | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<BillingIntegration | null>(null);
+  const [syncing, setSyncing] = useState<BillingIntegration | null>(null);
 
   const openNew = () => {
     setEditing(null);
@@ -233,6 +236,11 @@ export default function BillingIntegrationsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {row.provider === "invoicexpress" && (
+                              <DropdownMenuItem onClick={() => setSyncing(row)}>
+                                <RefreshCw className="h-4 w-4 mr-2" /> Sincronizar faturas
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => openEdit(row)}>
                               <Pencil className="h-4 w-4 mr-2" /> Editar
                             </DropdownMenuItem>
@@ -257,6 +265,12 @@ export default function BillingIntegrationsPage() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           editing={editing}
+        />
+
+        <BillingSyncSheet
+          integration={syncing}
+          open={!!syncing}
+          onOpenChange={(o) => !o && setSyncing(null)}
         />
 
         <AlertDialog
