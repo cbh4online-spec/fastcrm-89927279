@@ -9,6 +9,7 @@ import { ResponseInfoSheet } from "./ResponseInfoSheet";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
 import { WhatsAppProductMessageCard } from "@/components/whatsapp-pro/WhatsAppProductMessageCard";
 import { WhatsAppAudioMessageCard } from "@/components/whatsapp-pro/WhatsAppAudioMessageCard";
+import { InlineMessageTranslator } from "./InlineMessageTranslator";
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -227,7 +228,10 @@ export function MessageBubble({
               metadata={message.metadata ?? undefined}
             />
           ) : (
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
+            <>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
+              <InlineMessageTranslator text={message.content} />
+            </>
           )}
 
           {/* Attachments */}
