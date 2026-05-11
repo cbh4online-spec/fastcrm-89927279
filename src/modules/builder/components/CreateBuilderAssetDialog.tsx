@@ -819,13 +819,82 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
         </Tabs>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={create.isPending}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={create.isPending || siteClone.cloning}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={create.isPending}>
-            {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Criar rascunho
-          </Button>
+          {tab === "clone" ? (
+            <Button
+              disabled={
+                siteClone.cloning ||
+                siteClone.discovering ||
+                (cloneSelected.size === 0 && cloneExtraPages.length === 0)
+              }
+              onClick={async () => {
+                try {
+                  const pages =
+                    cloneSelected.size > 0
+                      ? Array.from(cloneSelected)
+                      : cloneExtraPages;
+                  if (pages.length === 0) {
+                    toast({
+                      title: "Sem páginas para clonar",
+                      description: "Descobre páginas ou cola URLs na lista manual.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  const sourceUrl =
+                    siteClone.discovery?.sourceUrl ??
+                    (() => {
+                      try { return new URL(pages[0]).origin; } catch { return pages[0]; }
+                    })();
+                  const fallbackName =
+                    siteClone.discovery?.host ??
+                    (() => {
+                      try { return new URL(pages[0]).hostname; } catch { return "site"; }
+                    })();
+                  const res = await siteClone.startClone({
+                    sourceUrl,
+                    pages,
+                    name: cloneName.trim() || fallbackName,
+                    keepScripts: cloneKeepScripts,
+                    includeSubdomains: cloneIncludeSub,
+                    designTokens: siteClone.discovery
+                      ? {
+                          colors: siteClone.discovery.branding.colors,
+                          fonts: siteClone.discovery.branding.fonts,
+                          logo: siteClone.discovery.branding.logo,
+                        }
+                      : undefined,
+                  });
+                  toast({
+                    title: "Clone iniciado",
+                    description: `${res.pages_total} página${(res.pages_total ?? 0) > 1 ? "s" : ""} em processamento.`,
+                  });
+                } catch (err) {
+                  toast({
+                    title: "Falha ao iniciar clone",
+                    description: err instanceof Error ? err.message : String(err),
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              {siteClone.cloning ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  A clonar…
+                </>
+              ) : (
+                `Clonar ${cloneSelected.size > 0 ? cloneSelected.size : cloneExtraPages.length} página${(cloneSelected.size > 0 ? cloneSelected.size : cloneExtraPages.length) > 1 ? "s" : ""}`
+              )}
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={create.isPending}>
+              {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Criar rascunho
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
