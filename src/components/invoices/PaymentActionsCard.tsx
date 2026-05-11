@@ -92,6 +92,9 @@ export function PaymentActionsCard({
   } | null>(null);
   const [waConsent, setWaConsent] = useState(false);
   const [preparingPreview, setPreparingPreview] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleData, setScheduleData] = useState<{ phoneE164: string; body: string; url: string } | null>(null);
+  const [preparingSchedule, setPreparingSchedule] = useState(false);
 
   const createPayment = useCreateIfthenpayPayment();
   const { data: payments = [] } = useIfthenpayPayments({
