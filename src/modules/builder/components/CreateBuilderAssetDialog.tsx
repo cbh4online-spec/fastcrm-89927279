@@ -23,14 +23,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, ClipboardPaste, Upload, Link2, Sparkles, Layout } from "lucide-react";
+import { Loader2, ClipboardPaste, Upload, Link2, Sparkles, Layout, Globe2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { BUILDER_ASSET_TYPES, type BuilderAssetType } from "../types";
 import { useCreateBuilderAsset } from "../hooks/useBuilderAssets";
+import { useSiteClone } from "../hooks/useSiteClone";
 import { BuilderPreviewFrame } from "./BuilderPreviewFrame";
 import { BUILDER_TEMPLATES, type BuilderTemplate } from "../lib/templates";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 
 const createSchema = z.object({
   name: z.string().trim().min(2, "Nome demasiado curto").max(160, "Máx. 160 caracteres"),
