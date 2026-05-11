@@ -135,3 +135,6 @@ verify_jwt = false
 
 [functions.invoice-pay-public]
 verify_jwt = false
+
+[functions.workspace-health-check]
+verify_jwt = false
