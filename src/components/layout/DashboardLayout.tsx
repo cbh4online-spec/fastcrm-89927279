@@ -35,8 +35,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const { enabled: shellV2 } = useFeatureFlag("ui.shell_v2_enabled");
   const { enabled: adaptiveSidebar } = useFeatureFlag("ui.adaptive_sidebar_enabled");
-  // Default to adaptive sidebar when no shell v2 flag is active
-  const useAdaptive = adaptiveSidebar || !shellV2;
+  const { enabled: watidySidebar } = useFeatureFlag("ui.watidy_sidebar_enabled");
+  // Default to watidy when no other flag is forced
+  const useWatidy = watidySidebar || (!adaptiveSidebar && !shellV2);
+  const useAdaptive = !useWatidy && (adaptiveSidebar || !shellV2);
   const { collapsed } = useSidebarCollapse();
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
   const isMobile = useIsMobile();
