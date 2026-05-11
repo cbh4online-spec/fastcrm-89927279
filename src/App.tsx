@@ -142,6 +142,10 @@ const App = () => (
                 {/* Builder — public published assets */}
                 <Route path="/p/:slug" element={<BuilderPublicPage />} />
 
+                {/* Builder shortcuts → redirect to dashboard */}
+                <Route path="/builder" element={<Navigate to="/dashboard/builder" replace />} />
+                <Route path="/builder/:id" element={<Navigate to="/dashboard/builder/:id" replace />} />
+
                 {/* Store - ISOLATED from CRM providers */}
                 <Route path="/store/*" element={<StoreRoutes />} />
                 
