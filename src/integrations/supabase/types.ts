@@ -83927,6 +83927,8 @@ export type Database = {
           notify_on_new_message: boolean
           order_tracking_enabled: boolean
           order_tracking_template: string
+          payment_link_enabled: boolean
+          payment_link_template: string
           timezone: string
           updated_at: string
           welcome_message: string | null
@@ -83946,6 +83948,8 @@ export type Database = {
           notify_on_new_message?: boolean
           order_tracking_enabled?: boolean
           order_tracking_template?: string
+          payment_link_enabled?: boolean
+          payment_link_template?: string
           timezone?: string
           updated_at?: string
           welcome_message?: string | null
@@ -83965,6 +83969,8 @@ export type Database = {
           notify_on_new_message?: boolean
           order_tracking_enabled?: boolean
           order_tracking_template?: string
+          payment_link_enabled?: boolean
+          payment_link_template?: string
           timezone?: string
           updated_at?: string
           welcome_message?: string | null
