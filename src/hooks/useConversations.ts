@@ -309,6 +309,38 @@ export function useConversations(filters?: ConversationFilters) {
               const r = convResolution.get(c.id);
               if (r) (c as any).resolved_contact = r;
             }
+
+            // Persist the link so the whole app benefits (kanban, KPIs, detail view, etc.).
+            // Fire-and-forget per type — RLS on `conversations` already restricts to workspace members.
+            const updates: Array<Promise<unknown>> = [];
+            const groupBy = { lead: [] as Array<{ convId: string; entityId: string }>, contact: [] as Array<{ convId: string; entityId: string }>, company: [] as Array<{ convId: string; entityId: string }> };
+            for (const [convId, r] of convResolution.entries()) {
+              groupBy[r.type].push({ convId, entityId: r.id });
+            }
+            const colMap = { lead: "lead_id", contact: "contact_id", company: "company_id" } as const;
+            for (const type of ["contact", "lead", "company"] as const) {
+              // Group by entityId to batch updates
+              const byEntity = new Map<string, string[]>();
+              for (const item of groupBy[type]) {
+                const arr = byEntity.get(item.entityId) || [];
+                arr.push(item.convId);
+                byEntity.set(item.entityId, arr);
+              }
+              for (const [entityId, convIds] of byEntity.entries()) {
+                updates.push(
+                  workspaceClient
+                    .from("conversations")
+                    .update({ [colMap[type]]: entityId } as any)
+                    .in("id", convIds)
+                    .is(colMap[type], null)
+                    .then(({ error }) => {
+                      if (error) console.warn("[Inbox] auto-link conversation failed:", error.message);
+                    }),
+                );
+              }
+            }
+            // Don't await — let it complete in background. Realtime invalidation will refresh.
+            void Promise.allSettled(updates);
           }
         }
       }
