@@ -239,11 +239,11 @@ export default function LeadChefLanding() {
                       <CalendarCheck className="h-5 w-5" /> {hero.primaryCtaLabel ?? "Agendar demonstração"}
                     </Button>
                   </a>
-                  <Link to={hero.secondaryCtaHref ?? ctas.signupHref ?? "/signup"}>
+                  <a href={hero.secondaryCtaHref ?? "#contacto"}>
                     <Button size="lg" variant="outline" className="gap-2 px-8">
                       <Sparkles className="h-5 w-5" /> {hero.secondaryCtaLabel ?? "Experimentar grátis"}
                     </Button>
-                  </Link>
+                  </a>
                 </div>
                 <div className="pt-2">
                   <Link
