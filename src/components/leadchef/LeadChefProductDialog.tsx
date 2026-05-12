@@ -48,6 +48,9 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
       setSortOrder(String(product?.sort_order ?? 0));
       setCategory(product?.category ?? "");
       setImageUrl(product?.image_url ?? "");
+      setSearchQuery(product?.name ?? "");
+      setSearchResults([]);
+      setSearchOpen(false);
     }
   }, [open, product]);
 
