@@ -234,7 +234,12 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
   const isCloning = site.status === "discovering" || site.status === "cloning";
 
   return (
-    <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
+    <div className="relative h-full">
+      <BuilderClonedSiteTutorial
+        forceOpen={tutorialOpen}
+        onClose={() => setTutorialOpen(false)}
+      />
+      <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
       {/* Sidebar páginas */}
       <ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
         <div className="flex flex-col h-full bg-muted/20">
