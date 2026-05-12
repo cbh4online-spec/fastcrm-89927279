@@ -83,18 +83,28 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
     }
   };
 
-  const searchOnline = () => {
-    const q = name.trim();
+  const runSearch = async () => {
+    const q = (searchQuery || name).trim();
     if (!q) {
-      toast.info("Escreve primeiro o nome do produto.");
+      toast.info("Escreve um termo para pesquisar.");
       return;
     }
-    window.open(
-      `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q)}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-    toast.info("Copia o URL da imagem e cola no campo abaixo.");
+    setSearching(true);
+    setSearchOpen(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("leadchef-image-search", {
+        body: { query: q },
+      });
+      if (error) throw error;
+      const imgs = (data?.images ?? []) as { url: string; thumb: string }[];
+      setSearchResults(imgs);
+      if (imgs.length === 0) toast.info("Sem resultados. Tenta outro termo.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro na pesquisa");
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
   };
 
   const submit = async () => {
