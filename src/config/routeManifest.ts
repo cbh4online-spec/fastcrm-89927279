@@ -257,7 +257,6 @@ e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Pac
   e("payments",     "Pagamentos",       "/dashboard/payments",          CreditCard,  "vendas"),
   e("packages",     "Pacotes",          "/dashboard/packages",          Package,     "vendas", { visibleInSidebar: false }),
   e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
-  e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
   e("reports",      "Relatórios",       "/dashboard/reports",           BarChart3,   "vendas", { menuKey: "reports" }),
   e("strategy",     "Estratégia",       "/dashboard/strategy",          Brain,       "vendas", { visibleInSidebar: false }),
   e("checkout-admin","Admin Checkout",  "/dashboard/checkout-admin",    ShoppingCart, "vendas", { visibleInSidebar: false }),
