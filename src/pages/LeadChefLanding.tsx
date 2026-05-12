@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useLeadChefLandingContent } from "@/hooks/leadchef/useLeadChefLandingContent";
 
-const modules = [
+const defaultModules = [
   {
     icon: ClipboardList,
     title: "Pipeline de leads",
