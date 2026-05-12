@@ -3,10 +3,11 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { LeadChefMobileShell } from "@/components/leadchef/LeadChefMobileShell";
 import { LeadChefLandingEditor } from "@/components/leadchef/admin/LeadChefLandingEditor";
 import { LeadChefAccessManager } from "@/components/leadchef/admin/LeadChefAccessManager";
 import { LeadChefAppConfigEditor } from "@/components/leadchef/admin/LeadChefAppConfigEditor";
-import { ArrowLeft, ChefHat } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export default function LeadChefAdminPage() {
   const { currentWorkspace, isSuperAdmin, loading } = useWorkspace();
@@ -19,33 +20,25 @@ export default function LeadChefAdminPage() {
   const canManage = isSuperAdmin || role === "owner" || role === "admin";
   if (!canManage) return <Navigate to="/dashboard/leadchef/today" replace />;
 
+  const goBack = () =>
+    window.history.length > 1 ? navigate(-1) : navigate("/dashboard/leadchef/today");
+
   return (
-    <div className="container mx-auto max-w-5xl space-y-6 p-4 md:p-6">
+    <LeadChefMobileShell
+      title="Centro LeadChef"
+      subtitle="Conteúdos, acessos e configuração da app."
+      showFab={false}
+    >
       <Helmet><title>Centro LeadChef</title></Helmet>
 
-      <Button
-        variant="ghost"
-        size="sm"
-        className="gap-2 -ml-2"
-        onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/dashboard/leadchef/today"))}
-      >
-        <ArrowLeft className="h-4 w-4" /> Voltar
-      </Button>
-
-      <header className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <ChefHat className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold">Centro LeadChef</h1>
-          <p className="text-sm text-muted-foreground">
-            Conteúdos, acessos e configuração da app — geridos a partir deste workspace.
-          </p>
-        </div>
-      </header>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" className="gap-2 -ml-2" onClick={goBack}>
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </Button>
+      </div>
 
       <Tabs defaultValue="landing">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="landing">Conteúdos da Landing</TabsTrigger>
           <TabsTrigger value="access">Acessos & Utilizadores</TabsTrigger>
           <TabsTrigger value="app">Configuração da App</TabsTrigger>
@@ -61,6 +54,6 @@ export default function LeadChefAdminPage() {
           <LeadChefAppConfigEditor workspaceId={currentWorkspace.id} />
         </TabsContent>
       </Tabs>
-    </div>
+    </LeadChefMobileShell>
   );
 }
