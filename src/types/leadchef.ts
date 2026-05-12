@@ -73,6 +73,9 @@ export interface LeadChefLeadBase {
   status: string;
   last_contact_at: string | null;
   ai_temperature: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
 }
 
 export interface LeadChefLeadWithProfile {
@@ -150,6 +153,9 @@ export interface CreateLeadChefLeadInput {
   nextActionNote?: string;
   temperature: LeadChefTemperature;
   notes?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
 }
 
 export interface UpdateLeadChefLeadStageInput {

@@ -29,6 +29,9 @@ export function useCreateLeadChefLead() {
           source: input.origin || null,
           status: "new",
           ai_temperature: input.temperature,
+          address: input.address?.trim() || null,
+          city: input.city?.trim() || null,
+          postal_code: input.postalCode?.trim() || null,
           created_by: user.id,
         } as any)
         .select("id")
