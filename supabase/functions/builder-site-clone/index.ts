@@ -300,7 +300,11 @@ export async function handleClone(req: Request): Promise<Response> {
       })
       .select()
       .single();
-    if (serr || !site) return json({ error: serr?.message ?? "Falha a criar site" }, 500);
+    if (serr || !site) {
+      log("site.create_failed", { error: serr?.message });
+      return json({ error: serr?.message ?? "Falha a criar site" }, 500);
+    }
+    log("site.created", { site_id: site.id, asset_id: asset.id, pages_total: pages.length });
 
     // 3. Cria registos pendentes para cada página
     const pageRows = pages.map((p, i) => {
@@ -334,9 +338,11 @@ export async function handleClone(req: Request): Promise<Response> {
 
     const { error: perr } = await admin.from("builder_site_pages").insert(pageRows);
     if (perr) {
+      log("site_pages.insert_failed", { error: perr.message, site_id: site.id });
       await admin.from("builder_sites").update({ status: "failed", error: perr.message }).eq("id", site.id);
       return json({ error: perr.message }, 500);
     }
+    log("site_pages.inserted", { site_id: site.id, count: pageRows.length });
 
     // 4. Dispara processamento em background
     const ctx = {
@@ -347,16 +353,29 @@ export async function handleClone(req: Request): Promise<Response> {
       sourceHost: srcUrl.hostname,
       sourceOrigin: srcUrl.origin,
     };
+    log("background.scheduled", {
+      site_id: site.id,
+      asset_id: asset.id,
+      workspace_id: body.workspace_id,
+      pages_total: pages.length,
+    });
     // @ts-ignore EdgeRuntime is available in supabase deno runtime
     EdgeRuntime.waitUntil(processSite(admin, ctx));
 
+    log("response.sent", {
+      site_id: site.id,
+      asset_id: asset.id,
+      pages_total: pages.length,
+    });
     return json({
       site_id: site.id,
       asset_id: asset.id,
       pages_total: pages.length,
       status: "cloning",
+      correlation_id: correlationId,
     });
   } catch (e) {
+    log("error.unhandled", { error: e instanceof Error ? e.message : String(e) });
     return json({ error: e instanceof Error ? e.message : "Erro inesperado" }, 500);
   }
 }
