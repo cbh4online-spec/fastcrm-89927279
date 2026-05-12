@@ -85,8 +85,8 @@ export default function LeadChefLeadsPage() {
           <UserRoundSearch className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
           <p className="text-sm text-slate-600">
             {search || stage !== "all"
-              ? "Sem leads com estes filtros."
-              : "Ainda não tens leads LeadChef. Cria o primeiro com o botão acima."}
+              ? LEADCHEF_COPY.noEntities
+              : `Ainda não tens ${L.plural} LeadChef. Cria a primeira com o botão acima.`}
           </p>
         </div>
       ) : (
