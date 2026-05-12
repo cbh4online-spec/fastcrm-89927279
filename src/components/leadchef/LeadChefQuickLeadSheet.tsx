@@ -26,6 +26,9 @@ const schema = z.object({
   nextActionNote: z.string().max(300).optional(),
   temperature: z.enum(["cold", "warm", "hot"]),
   notes: z.string().max(500).optional(),
+  address: z.string().max(200).optional(),
+  city: z.string().max(80).optional(),
+  postalCode: z.string().max(20).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -62,6 +65,9 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
       nextActionNote: "",
       temperature: "warm",
       notes: "",
+      address: "",
+      city: "",
+      postalCode: "",
     },
   });
 
@@ -81,6 +87,9 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
         nextActionNote: values.nextActionNote,
         temperature: values.temperature as LeadChefTemperature,
         notes: values.notes,
+        address: values.address || undefined,
+        city: values.city || undefined,
+        postalCode: values.postalCode || undefined,
       });
       form.reset();
       onOpenChange(false);
@@ -186,6 +195,22 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
                 <SelectItem value="hot">Quente</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="lc-address">Morada</Label>
+            <Input id="lc-address" placeholder="Rua, número, andar" {...form.register("address")} />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="lc-postal">Código postal</Label>
+              <Input id="lc-postal" placeholder="0000-000" {...form.register("postalCode")} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="lc-city">Localidade</Label>
+              <Input id="lc-city" placeholder="Cidade" {...form.register("city")} />
+            </div>
           </div>
 
           <div className="space-y-1">
