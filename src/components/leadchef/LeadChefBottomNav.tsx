@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
 import { Home, UserRoundSearch, CalendarDays, UsersRound, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { L } from "@/config/leadchef/labels";
 
 const items = [
   { to: "/dashboard/leadchef/today", label: "Hoje", icon: Home },
-  { to: "/dashboard/leadchef/leads", label: "Referências", icon: UserRoundSearch },
+  { to: "/dashboard/leadchef/leads", label: L.Plural, icon: UserRoundSearch },
   { to: "/dashboard/leadchef/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/dashboard/leadchef/clientes", label: "Clientes", icon: UsersRound },
   { to: "/dashboard/leadchef/objetivos", label: "Objetivos", icon: Target },
