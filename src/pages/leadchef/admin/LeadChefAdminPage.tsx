@@ -1,11 +1,12 @@
 import { Helmet } from "react-helmet-async";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { LeadChefLandingEditor } from "@/components/leadchef/admin/LeadChefLandingEditor";
 import { LeadChefAccessManager } from "@/components/leadchef/admin/LeadChefAccessManager";
 import { LeadChefAppConfigEditor } from "@/components/leadchef/admin/LeadChefAppConfigEditor";
-import { ChefHat } from "lucide-react";
+import { ArrowLeft, ChefHat } from "lucide-react";
 
 export default function LeadChefAdminPage() {
   const { currentWorkspace, isSuperAdmin, loading } = useWorkspace();
