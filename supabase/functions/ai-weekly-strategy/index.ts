@@ -9,6 +9,86 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+function getGapStatus(actual: number, target: number, weekProgressPct: number) {
+  if (!target || target <= 0) return "on_track";
+  const expected = target * (weekProgressPct / 100);
+  if (actual >= expected) return "on_track";
+  if (actual >= expected * 0.7) return "at_risk";
+  return "behind";
+}
+
+function buildFallbackStrategy(metrics: any, reason = "ai_gateway_unavailable") {
+  const metricLabels: Record<string, string> = {
+    leads: "Leads",
+    meetings: "Reuniões",
+    proposals: "Propostas",
+    deals: "Negócios ganhos",
+    revenue: "Receita",
+  };
+
+  const gap_analysis = ["leads", "meetings", "proposals", "deals", "revenue"].map((key) => {
+    const actual = Number(metrics[key]?.actual ?? 0);
+    const target = Number(metrics[key]?.target ?? 0);
+    const expected = target ? target * (metrics.week_progress_pct / 100) : 0;
+    const gapPct = target ? Math.round(((actual - expected) / Math.max(expected, 1)) * 100) : 0;
+    const status = getGapStatus(actual, target, metrics.week_progress_pct);
+    return {
+      metric: metricLabels[key] ?? key,
+      actual,
+      target,
+      gap_pct: gapPct,
+      status,
+      required_action: status === "on_track"
+        ? "Manter cadência e proteger os próximos passos."
+        : `Priorizar ações para recuperar ${metricLabels[key]?.toLowerCase() ?? key} ainda esta semana.`,
+    };
+  });
+
+  const behind = gap_analysis.filter((g) => g.status === "behind");
+  const atRisk = gap_analysis.filter((g) => g.status === "at_risk");
+  const mainRisk = behind[0] ?? atRisk[0] ?? null;
+  const stalledCount = Array.isArray(metrics.stalled_deals) ? metrics.stalled_deals.length : 0;
+
+  return {
+    summary: mainRisk
+      ? `A semana está ${metrics.week_progress_pct}% concluída e o principal foco deve ser ${mainRisk.metric.toLowerCase()}. Esta análise foi gerada em modo seguro porque a IA externa está temporariamente indisponível.`
+      : `A semana está ${metrics.week_progress_pct}% concluída e os principais indicadores estão controlados. Esta análise foi gerada em modo seguro porque a IA externa está temporariamente indisponível.`,
+    gap_analysis,
+    risk_alerts: [
+      mainRisk
+        ? `${mainRisk.metric} está abaixo do ritmo esperado para a semana.`
+        : "Sem risco crítico imediato nos indicadores semanais.",
+      stalledCount > 0
+        ? `${stalledCount} negócios parados podem ser recuperados com follow-up hoje.`
+        : "Oportunidade: aumentar atividade comercial para criar margem antes do fim da semana.",
+    ],
+    recommendations: [
+      {
+        priority: "high",
+        action: mainRisk ? `Recuperar ${mainRisk.metric.toLowerCase()} com uma ação dedicada hoje.` : "Reforçar a cadência comercial nos próximos blocos de trabalho.",
+        impact: "Aumenta a probabilidade de fechar a semana dentro da meta.",
+      },
+      {
+        priority: stalledCount > 0 ? "high" : "medium",
+        action: stalledCount > 0 ? "Contactar primeiro os negócios parados há mais de 5 dias." : "Criar próximos passos claros para oportunidades abertas.",
+        impact: "Reduz risco de perda por inércia no pipeline.",
+      },
+      {
+        priority: "medium",
+        action: "Rever propostas e leads sem resposta antes do final do dia.",
+        impact: "Gera quick wins sem depender de nova aquisição.",
+      },
+    ],
+    quick_wins: [
+      "Enviar follow-up aos negócios com maior valor em aberto.",
+      "Agendar próximas reuniões com leads quentes.",
+      "Atualizar o pipeline e remover bloqueios visíveis.",
+    ],
+    fallback: true,
+    fallback_reason: reason,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -119,7 +199,10 @@ serve(async (req) => {
     // Call Lovable AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI not configured" }), { status: 500, headers: corsHeaders });
+      return new Response(JSON.stringify({ metrics, strategy: buildFallbackStrategy(metrics, "ai_not_configured") }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const systemPrompt = `You are a Revenue Strategy AI for a CRM system. Analyze weekly performance metrics and provide actionable strategy.
@@ -210,7 +293,7 @@ Analyze and provide strategy using the tool.`;
       if (status === 402) {
         return new Response(JSON.stringify({ error: "Credits AI esgotados. Adicione créditos para continuar." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      return new Response(JSON.stringify({ error: "AI analysis failed" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ metrics, strategy: buildFallbackStrategy(metrics, `gateway_${status}`) }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();
@@ -233,6 +316,9 @@ Analyze and provide strategy using the tool.`;
       } catch {
         strategy = null;
       }
+    }
+    if (!strategy) {
+      strategy = buildFallbackStrategy(metrics, "invalid_ai_response");
     }
 
     return new Response(JSON.stringify({ metrics, strategy }), {
