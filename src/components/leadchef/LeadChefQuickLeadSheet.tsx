@@ -74,6 +74,8 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
       temperature: "warm",
       notes: "",
       address: "",
+      addressNumber: "",
+      addressFloor: "",
       city: "",
       postalCode: "",
     },
