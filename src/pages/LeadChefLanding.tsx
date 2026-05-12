@@ -492,13 +492,18 @@ export default function LeadChefLanding() {
                       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <CheckCircle2 className="h-6 w-6" />
                       </div>
-                      <h3 className="text-xl font-semibold">Registo recebido!</h3>
+                      <h3 className="text-xl font-semibold">Conta criada!</h3>
                       <p className="text-sm text-muted-foreground">
-                        Obrigado. A equipa LeadChef entrará em contacto consigo brevemente.
+                        Enviámos-lhe um email de confirmação. Confirme para entrar na app LeadChef.
                       </p>
-                      <Button variant="outline" onClick={() => setSubmitted(false)}>
-                        Submeter novo pedido
-                      </Button>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                        <Link to="/auth">
+                          <Button variant="outline">Já confirmei — entrar</Button>
+                        </Link>
+                        <Button variant="ghost" onClick={() => setSubmitted(false)}>
+                          Criar outra conta
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -535,28 +540,35 @@ export default function LeadChefLanding() {
                           placeholder="email@empresa.pt"
                           required
                           maxLength={160}
+                          autoComplete="email"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="lc-msg">Mensagem (opcional)</Label>
-                        <Textarea
-                          id="lc-msg"
-                          value={form.message}
-                          onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                          placeholder="Conte-nos brevemente sobre a sua equipa..."
-                          rows={3}
-                          maxLength={600}
+                        <Label htmlFor="lc-pass">Palavra-passe *</Label>
+                        <Input
+                          id="lc-pass"
+                          type="password"
+                          value={form.password}
+                          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                          placeholder="Mínimo 8 caracteres"
+                          required
+                          minLength={8}
+                          maxLength={72}
+                          autoComplete="new-password"
                         />
                       </div>
                       <Button type="submit" size="lg" className="w-full gap-2" disabled={submitting}>
                         {submitting ? (
-                          <><Loader2 className="h-5 w-5 animate-spin" /> A enviar...</>
+                          <><Loader2 className="h-5 w-5 animate-spin" /> A criar conta...</>
                         ) : (
-                          <><CalendarCheck className="h-5 w-5" /> Quero conhecer o LeadChef</>
+                          <><CalendarCheck className="h-5 w-5" /> Criar conta LeadChef</>
                         )}
                       </Button>
                       <p className="text-center text-xs text-muted-foreground">
-                        Ao submeter aceita ser contactado pela equipa LeadChef.
+                        Já tem conta?{" "}
+                        <Link to="/auth" className="font-medium text-primary hover:underline">
+                          Entrar
+                        </Link>
                       </p>
                     </form>
                   )}
