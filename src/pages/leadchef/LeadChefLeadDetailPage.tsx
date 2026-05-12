@@ -46,7 +46,7 @@ export default function LeadChefLeadDetailPage() {
 
   if (isLoading) {
     return (
-      <LeadChefMobileShell title="Lead">
+      <LeadChefMobileShell title="Referência">
         <div className="flex justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
         </div>
@@ -56,7 +56,7 @@ export default function LeadChefLeadDetailPage() {
 
   if (!data) {
     return (
-      <LeadChefMobileShell title="Lead">
+      <LeadChefMobileShell title="Referência">
         <div className="rounded-2xl bg-white border border-slate-200 p-8 text-center">
           <p className="text-sm text-slate-600">Não encontrámos este lead.</p>
         </div>
@@ -90,7 +90,7 @@ export default function LeadChefLeadDetailPage() {
   };
 
   return (
-    <LeadChefMobileShell title="Lead">
+    <LeadChefMobileShell title="Referência">
       <LeadChefLeadDetailHeader data={data} />
 
       {scoreData && (
@@ -113,7 +113,7 @@ export default function LeadChefLeadDetailPage() {
 
       <div className="flex justify-end">
         <LeadChefPrintButton
-          title={data.lead?.name ?? "Lead LeadChef"}
+          title={data.lead?.name ?? "Referência LeadChef"}
           subtitle={`Etapa: ${profile.stage} · Temperatura: ${profile.temperature ?? "—"}`}
           sections={[
             {

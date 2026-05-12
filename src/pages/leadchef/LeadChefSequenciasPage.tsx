@@ -70,7 +70,7 @@ export default function LeadChefSequenciasPage() {
   return (
     <LeadChefMobileShell
       title="Sequências"
-      subtitle="Follow-ups multi-passo. Pausam automaticamente se o lead responder."
+      subtitle="Follow-ups multi-passo. Pausam automaticamente se a referência responder."
     >
       <div className="flex justify-end">
         <Button size="sm" onClick={() => setOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">

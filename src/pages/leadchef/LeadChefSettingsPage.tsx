@@ -310,7 +310,7 @@ function ExportTab() {
             <Select value={entity} onValueChange={(v) => setEntity(v as ExportEntity)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="leads">Leads</SelectItem>
+                <SelectItem value="leads">Referências</SelectItem>
                 <SelectItem value="clients">Clientes</SelectItem>
                 <SelectItem value="referrals">Referências</SelectItem>
                 <SelectItem value="agenda">Agenda</SelectItem>

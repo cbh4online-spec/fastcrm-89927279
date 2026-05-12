@@ -28,9 +28,9 @@ export function LeadChefSimpleDashboard({ data }: Props) {
           <h2 className="text-sm font-semibold text-slate-900">Conversão do mês</h2>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          <ConversionBox label="Lead → Demo" value={conversion.leadToDemoRate} />
+          <ConversionBox label="Referência → Demo" value={conversion.leadToDemoRate} />
           <ConversionBox label="Demo → Venda" value={conversion.demoToSaleRate} />
-          <ConversionBox label="Lead → Venda" value={conversion.leadToSaleRate} />
+          <ConversionBox label="Referência → Venda" value={conversion.leadToSaleRate} />
         </div>
       </section>
 

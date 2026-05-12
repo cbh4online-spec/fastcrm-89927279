@@ -15,7 +15,7 @@ import {
 
 const MODULE_LABELS: Record<string, string> = {
   today: "Hoje",
-  leads: "Leads",
+  leads: "Referências",
   agenda: "Agenda",
   clientes: "Clientes",
   referencias: "Referências",

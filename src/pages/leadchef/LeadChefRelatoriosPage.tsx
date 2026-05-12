@@ -61,7 +61,7 @@ function Content({ period, setPeriod }: { period: LeadChefPeriod; setPeriod: (p:
       sections.push("FUNIL");
       sections.push(
         buildCSV(
-          ["Etapa", "Leads", "% do topo"],
+          ["Etapa", "Referências", "% do topo"],
           (funnel.data?.steps ?? []).map((s) => ({ Etapa: s.label, Leads: s.count, "% do topo": `${s.pctOfTop}%` })),
         ).replace(/^\uFEFF/, ""),
       );
@@ -86,7 +86,7 @@ function Content({ period, setPeriod }: { period: LeadChefPeriod; setPeriod: (p:
       sections.push(`RANKING DE AGENTES (${periodLabel})`);
       sections.push(
         buildCSV(
-          ["#", "Agente", "Leads", "Demos", "Vendas", "Conversão %", "Score"],
+          ["#", "Agente", "Referências", "Demos", "Vendas", "Conversão %", "Score"],
           ranking.rows.map((r, i) => ({
             "#": i + 1,
             Agente: r.name,
@@ -216,7 +216,7 @@ function Content({ period, setPeriod }: { period: LeadChefPeriod; setPeriod: (p:
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="created" name="Leads" stroke="#0ea5e9" strokeWidth={2} />
+              <Line type="monotone" dataKey="created" name="Referências" stroke="#0ea5e9" strokeWidth={2} />
               <Line type="monotone" dataKey="won" name="Vendas" stroke="#10b981" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>

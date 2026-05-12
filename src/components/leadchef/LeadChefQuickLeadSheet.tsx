@@ -96,7 +96,7 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[92vh] overflow-y-auto">
         <SheetHeader className="text-left">
-          <SheetTitle>Novo lead LeadChef</SheetTitle>
+          <SheetTitle>Nova referência LeadChef</SheetTitle>
         </SheetHeader>
 
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 mt-4 pb-4">
