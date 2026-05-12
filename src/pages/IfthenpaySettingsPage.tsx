@@ -434,5 +434,6 @@ export default function IfthenpaySettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }
