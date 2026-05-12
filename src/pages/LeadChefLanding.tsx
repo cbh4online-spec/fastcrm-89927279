@@ -59,7 +59,7 @@ const defaultModules = [
   },
 ];
 
-const benefits = [
+const defaultBenefits = [
   { value: "+38%", label: "demonstrações concluídas por mês" },
   { value: "−52%", label: "tempo gasto em follow-ups manuais" },
   { value: "+24%", label: "taxa de conversão lead → cliente" },
