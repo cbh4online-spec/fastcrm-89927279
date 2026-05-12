@@ -115,6 +115,41 @@ export default function LeadChefLanding() {
     window.scrollTo(0, 0);
   }, []);
 
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) {
+      toast.error("Preencha nome e email.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-public-lead", {
+        body: {
+          workspace_id: LEADCHEF_WORKSPACE_ID,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || undefined,
+          source: "Landing LeadChef",
+        },
+      });
+      if (error || (data && (data as any).error)) {
+        throw new Error(error?.message || (data as any).error);
+      }
+      setSubmitted(true);
+      setForm({ name: "", email: "", phone: "", message: "" });
+      toast.success("Registo recebido. Entraremos em contacto em breve!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Não foi possível submeter. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const { data: cms } = useLeadChefLandingContent();
 
   const modules = useMemo(() => {
