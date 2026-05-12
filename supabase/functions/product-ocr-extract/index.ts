@@ -201,9 +201,14 @@ Deno.serve(async (req) => {
         image_url: { url: `data:${mime};base64,${base64}` },
       });
     } else if (mime === "application/pdf") {
+      // Lovable AI Gateway / Gemini espera PDFs no formato `file` (OpenAI-compatible),
+      // não em `image_url`. Usar `image_url` com data:application/pdf devolve 400 "Invalid request body".
       parts.push({
-        type: "image_url",
-        image_url: { url: `data:application/pdf;base64,${base64}` },
+        type: "file",
+        file: {
+          filename: (doc.file_path?.split("/").pop() ?? "document.pdf"),
+          file_data: `data:application/pdf;base64,${base64}`,
+        },
       });
     } else {
       throw new Error(`Tipo de ficheiro não suportado: ${mime}`);
