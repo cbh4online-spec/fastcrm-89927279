@@ -21,6 +21,7 @@ import {
   Eye,
   ExternalLink,
   FileCode2,
+  HelpCircle,
   Home,
   Loader2,
   RefreshCw,
@@ -30,6 +31,7 @@ import {
 import { toast } from "sonner";
 import { BuilderPreviewFrame } from "./BuilderPreviewFrame";
 import { BuilderCodeEditor } from "./BuilderCodeEditor";
+import { BuilderClonedSiteTutorial } from "./BuilderClonedSiteTutorial";
 import { cn } from "@/lib/utils";
 
 interface SitePage {
