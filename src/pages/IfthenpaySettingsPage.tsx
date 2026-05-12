@@ -85,7 +85,7 @@ export default function IfthenpaySettingsPage() {
   }
 
   if (isLoading) {
-    return <div className="p-6 text-muted-foreground">A carregar configuração…</div>;
+    return <DashboardLayout><div className="p-6 text-muted-foreground">A carregar configuração…</div></DashboardLayout>;
   }
 
   // Empty state — no settings row yet
