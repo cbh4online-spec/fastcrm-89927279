@@ -69,6 +69,7 @@ const PortalDashboardPage = lazy(() => import("@/pages/public/PortalDashboardPag
 const WorkerRegisterPage = lazy(() => import("@/pages/public/WorkerRegisterPage"));
 const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPage"));
 const PublicInvoicePayPage = lazy(() => import("@/pages/public/PublicInvoicePayPage"));
+const LeadChefLanding = lazy(() => import("@/pages/LeadChefLanding"));
 
 // FastCRM V2 — premium app shell preview
 const DashboardV2Page = lazy(() => import("@/pages/app-v2/DashboardV2Page"));
@@ -196,6 +197,10 @@ const App = () => (
                 {/* Public FastClub Landing */}
                 <Route path="/fastclub" element={<FastClubLandingPage />} />
                 <Route path="/club/fastclub/apply" element={<FastClubApplyPage />} />
+
+                {/* Public LeadChef Landing */}
+                <Route path="/leadchef" element={<LeadChefLanding />} />
+                <Route path="/leadchef-landing" element={<LeadChefLanding />} />
                 
                 {/* FastClub Portal Routes */}
                 {FastClubPortalRoutes()}

@@ -115,14 +115,14 @@ export default function LeadChefLanding() {
           content="Da primeira conversa à venda. Pipeline, agenda, pós-venda e referências num só lugar, pensado para chefs e consultores."
         />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="/leadchef-landing" />
+        <link rel="canonical" href="/leadchef" />
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground antialiased">
         {/* Header */}
         <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto flex h-16 items-center justify-between px-4">
-            <Link to="/leadchef-landing" className="flex items-center gap-2 font-semibold">
+            <Link to="/leadchef" className="flex items-center gap-2 font-semibold">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <ChefHat className="h-5 w-5" />
               </span>
