@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { Route, Navigate } from "react-router-dom";
 
 const FastCRMLanding = lazy(() => import("@/pages/FastCRMLanding"));
+const LeadChefLanding = lazy(() => import("@/pages/LeadChefLanding"));
 const Login = lazy(() => import("@/pages/Login"));
 const Signup = lazy(() => import("@/pages/Signup"));
 const Auth = lazy(() => import("@/pages/Auth"));
@@ -50,6 +51,8 @@ export function DashboardCoreRoutes() {
       {/* Main Routes */}
       <Route path="/" element={<FastCRMLanding />} />
       <Route path="/fastcrm" element={<FastCRMLanding />} />
+      <Route path="/leadchef-landing" element={<LeadChefLanding />} />
+      <Route path="/leadchef" element={<LeadChefLanding />} />
       <Route path="/admin/generate-landing-images" element={<GenerateLandingImages />} />
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/changelog" element={<ChangelogPage />} />
