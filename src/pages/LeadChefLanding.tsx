@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Label } from "@/components/ui/label";
 import {
   Accordion,
@@ -115,33 +116,74 @@ export default function LeadChefLanding() {
     window.scrollTo(0, 0);
   }, []);
 
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const signupSchema = z.object({
+    name: z.string().trim().min(2, "Nome demasiado curto").max(120),
+    email: z.string().trim().email("Email inválido").max(160),
+    phone: z.string().trim().max(32).optional().or(z.literal("")),
+    password: z.string().min(8, "Mínimo 8 caracteres").max(72),
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim()) {
-      toast.error("Preencha nome e email.");
+    const parsed = signupSchema.safeParse(form);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
       return;
     }
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-public-lead", {
-        body: {
-          workspace_id: LEADCHEF_WORKSPACE_ID,
-          name: form.name.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim() || undefined,
-          source: "Landing LeadChef",
+      const redirectUrl = `${window.location.origin}/dashboard/leadchef/today`;
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: parsed.data.name,
+            phone: parsed.data.phone || null,
+            source: "leadchef-landing",
+          },
         },
       });
-      if (error || (data && (data as any).error)) {
-        throw new Error(error?.message || (data as any).error);
+      if (signUpError) {
+        if (/already registered|already exists/i.test(signUpError.message)) {
+          toast.error("Este email já tem conta. Faça login.");
+        } else {
+          toast.error(signUpError.message || "Não foi possível criar a conta.");
+        }
+        return;
       }
+
+      // Best-effort: registar também como lead para a equipa LeadChef
+      try {
+        await supabase.functions.invoke("create-public-lead", {
+          body: {
+            workspace_id: LEADCHEF_WORKSPACE_ID,
+            name: parsed.data.name,
+            email: parsed.data.email,
+            phone: parsed.data.phone || null,
+            source: "Landing LeadChef — Registo",
+          },
+        });
+      } catch (e) {
+        console.warn("[LeadChef] Falha a registar lead paralelo:", e);
+      }
+
+      // Se sessão já criada (auto-confirm), entra direto na app
+      if (signUpData.session) {
+        toast.success("Conta criada! A entrar...");
+        navigate("/dashboard/leadchef/today", { replace: true });
+        return;
+      }
+
       setSubmitted(true);
-      setForm({ name: "", email: "", phone: "", message: "" });
-      toast.success("Registo recebido. Entraremos em contacto em breve!");
+      setForm({ name: "", email: "", phone: "", password: "" });
+      toast.success("Conta criada! Confirme o seu email para entrar.");
     } catch (err: any) {
       console.error(err);
       toast.error("Não foi possível submeter. Tente novamente.");
@@ -450,13 +492,18 @@ export default function LeadChefLanding() {
                       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <CheckCircle2 className="h-6 w-6" />
                       </div>
-                      <h3 className="text-xl font-semibold">Registo recebido!</h3>
+                      <h3 className="text-xl font-semibold">Conta criada!</h3>
                       <p className="text-sm text-muted-foreground">
-                        Obrigado. A equipa LeadChef entrará em contacto consigo brevemente.
+                        Enviámos-lhe um email de confirmação. Confirme para entrar na app LeadChef.
                       </p>
-                      <Button variant="outline" onClick={() => setSubmitted(false)}>
-                        Submeter novo pedido
-                      </Button>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                        <Link to="/auth">
+                          <Button variant="outline">Já confirmei — entrar</Button>
+                        </Link>
+                        <Button variant="ghost" onClick={() => setSubmitted(false)}>
+                          Criar outra conta
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -493,28 +540,35 @@ export default function LeadChefLanding() {
                           placeholder="email@empresa.pt"
                           required
                           maxLength={160}
+                          autoComplete="email"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="lc-msg">Mensagem (opcional)</Label>
-                        <Textarea
-                          id="lc-msg"
-                          value={form.message}
-                          onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                          placeholder="Conte-nos brevemente sobre a sua equipa..."
-                          rows={3}
-                          maxLength={600}
+                        <Label htmlFor="lc-pass">Palavra-passe *</Label>
+                        <Input
+                          id="lc-pass"
+                          type="password"
+                          value={form.password}
+                          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                          placeholder="Mínimo 8 caracteres"
+                          required
+                          minLength={8}
+                          maxLength={72}
+                          autoComplete="new-password"
                         />
                       </div>
                       <Button type="submit" size="lg" className="w-full gap-2" disabled={submitting}>
                         {submitting ? (
-                          <><Loader2 className="h-5 w-5 animate-spin" /> A enviar...</>
+                          <><Loader2 className="h-5 w-5 animate-spin" /> A criar conta...</>
                         ) : (
-                          <><CalendarCheck className="h-5 w-5" /> Quero conhecer o LeadChef</>
+                          <><CalendarCheck className="h-5 w-5" /> Criar conta LeadChef</>
                         )}
                       </Button>
                       <p className="text-center text-xs text-muted-foreground">
-                        Ao submeter aceita ser contactado pela equipa LeadChef.
+                        Já tem conta?{" "}
+                        <Link to="/auth" className="font-medium text-primary hover:underline">
+                          Entrar
+                        </Link>
                       </p>
                     </form>
                   )}
