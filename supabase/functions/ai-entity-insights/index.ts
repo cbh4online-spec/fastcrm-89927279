@@ -100,8 +100,15 @@ Deno.serve(async (req) => {
     if (workspaceId) {
       const gate = await aiGate(workspaceId, 'medium', 'ai-entity-insights');
       if (!gate.allowed) {
-        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({
+          success: false,
+          fallback: true,
+          code: "CREDITS_EXHAUSTED",
+          error: "Créditos de IA esgotados. Os insights ficarão disponíveis quando os créditos forem repostos.",
+          upgrade_required: true,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     }
