@@ -10,6 +10,7 @@ import { ArrowLeft, ChefHat } from "lucide-react";
 
 export default function LeadChefAdminPage() {
   const { currentWorkspace, isSuperAdmin, loading } = useWorkspace();
+  const navigate = useNavigate();
 
   if (loading) return <div className="p-6 text-sm text-muted-foreground">A carregar…</div>;
   if (!currentWorkspace) return <div className="p-6 text-sm text-muted-foreground">Sem workspace ativo.</div>;
