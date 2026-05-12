@@ -180,36 +180,38 @@ export default function LeadChefLanding() {
             <div className="container mx-auto px-4 py-20 md:py-28">
               <div className="mx-auto max-w-3xl text-center space-y-6">
                 <Badge variant="secondary" className="gap-1">
-                  <Flame className="h-3 w-3" /> CRM dedicado a demonstrações culinárias
+                  <Flame className="h-3 w-3" /> {hero.badge ?? "CRM dedicado a demonstrações culinárias"}
                 </Badge>
                 <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
-                  Da primeira receita à venda fechada — <span className="text-primary">tudo num só lugar</span>.
+                  {hero.title ?? "Da primeira receita à venda fechada — "}
+                  <span className="text-primary">{hero.highlight ?? "tudo num só lugar"}</span>
+                  {!hero.title && "."}
                 </h1>
                 <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl">
-                  O LeadChef organiza leads, agenda, clientes e referências para equipas que vendem com demonstrações culinárias. Menos folhas de cálculo, mais cozinha.
+                  {hero.subtitle ?? "O LeadChef organiza leads, agenda, clientes e referências para equipas que vendem com demonstrações culinárias. Menos folhas de cálculo, mais cozinha."}
                 </p>
                 <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
-                  <a href="#contacto">
+                  <a href={hero.primaryCtaHref ?? "#contacto"}>
                     <Button size="lg" className="gap-2 px-8">
-                      <CalendarCheck className="h-5 w-5" /> Agendar demonstração
+                      <CalendarCheck className="h-5 w-5" /> {hero.primaryCtaLabel ?? "Agendar demonstração"}
                     </Button>
                   </a>
-                  <Link to="/signup">
+                  <Link to={hero.secondaryCtaHref ?? ctas.signupHref ?? "/signup"}>
                     <Button size="lg" variant="outline" className="gap-2 px-8">
-                      <Sparkles className="h-5 w-5" /> Experimentar grátis
+                      <Sparkles className="h-5 w-5" /> {hero.secondaryCtaLabel ?? "Experimentar grátis"}
                     </Button>
                   </Link>
                 </div>
                 <div className="pt-2">
                   <Link
-                    to="/dashboard/leadchef/today"
+                    to={ctas.appHref ?? "/dashboard/leadchef/today"}
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
                   >
                     Explorar a aplicação LeadChef <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  ✓ Sem cartão de crédito · ✓ Setup em minutos · ✓ Português de Portugal
+                  {hero.microCopy ?? "✓ Sem cartão de crédito · ✓ Setup em minutos · ✓ Português de Portugal"}
                 </p>
               </div>
 
