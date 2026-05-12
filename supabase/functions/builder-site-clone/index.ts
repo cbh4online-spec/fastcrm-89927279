@@ -199,18 +199,22 @@ export async function handleClone(req: Request): Promise<Response> {
     // 1. Verifica se o workspace existe
     const { data: ws, error: wsErr } = await admin
       .from("workspaces")
-      .select("id, owner_id, deleted_at")
+      .select("id, owner_id, status")
       .eq("id", body.workspace_id)
       .maybeSingle();
     if (wsErr) {
       log("workspace.lookup_error", { error: wsErr.message });
       return json({ error: "Erro a validar workspace", code: "WORKSPACE_LOOKUP_ERROR" }, 500);
     }
-    if (!ws || ws.deleted_at) {
-      log("workspace.not_found", { workspace_id: body.workspace_id, deleted: !!ws?.deleted_at });
+    if (!ws) {
+      log("workspace.not_found", { workspace_id: body.workspace_id });
       return json({ error: "Workspace não encontrado", code: "WORKSPACE_NOT_FOUND" }, 404);
     }
-    log("workspace.found", { workspace_id: ws.id, owner_id: ws.owner_id });
+    if (ws.status && ["deleted", "inactive", "suspended"].includes(String(ws.status))) {
+      log("workspace.inactive", { workspace_id: body.workspace_id, status: ws.status });
+      return json({ error: "Workspace inativo", code: "WORKSPACE_INACTIVE" }, 403);
+    }
+    log("workspace.found", { workspace_id: ws.id, owner_id: ws.owner_id, status: ws.status });
 
     // 2. Verifica se o utilizador é owner, membro (qualquer role) ou super_admin
     const isOwner = ws.owner_id === userId;
