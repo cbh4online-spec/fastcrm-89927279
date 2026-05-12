@@ -121,20 +121,52 @@ interface ClonePayload {
 
 export async function handleClone(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const correlationId =
+    req.headers.get("x-correlation-id") ||
+    req.headers.get("x-request-id") ||
+    crypto.randomUUID();
+  const t0 = Date.now();
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const projectRef = (() => { try { return new URL(SUPABASE_URL).hostname.split(".")[0]; } catch { return "unknown"; } })();
+  const log = (event: string, data: Record<string, unknown> = {}) => {
+    console.log(JSON.stringify({
+      fn: "builder-site-clone",
+      correlation_id: correlationId,
+      event,
+      elapsed_ms: Date.now() - t0,
+      ...data,
+    }));
+  };
+  log("request.received", {
+    method: req.method,
+    project_ref: projectRef,
+    supabase_url: SUPABASE_URL,
+    has_anon_key: !!SUPABASE_ANON_KEY,
+    has_service_role: !!SUPABASE_SERVICE_ROLE_KEY,
+    user_agent: req.headers.get("user-agent"),
+    origin: req.headers.get("origin"),
+  });
   try {
     if (req.method !== "POST") return json({ error: "Método inválido" }, 405);
 
     const auth = req.headers.get("Authorization");
-    if (!auth) return json({ error: "Não autenticado" }, 401);
+    if (!auth) {
+      log("auth.missing");
+      return json({ error: "Não autenticado" }, 401);
+    }
 
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: auth } } },
-    );
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: auth } },
+    });
     const { data: u, error: uerr } = await userClient.auth.getUser();
-    if (uerr || !u?.user) return json({ error: "Sessão inválida", code: "INVALID_SESSION" }, 401);
+    if (uerr || !u?.user) {
+      log("auth.invalid", { error: uerr?.message });
+      return json({ error: "Sessão inválida", code: "INVALID_SESSION" }, 401);
+    }
     const userId = u.user.id;
+    log("auth.ok", { user_id: userId, email: u.user.email });
 
     const body = (await req.json().catch(() => null)) as ClonePayload | null;
     if (!body?.workspace_id || !body?.source_url || !Array.isArray(body.pages)) {
