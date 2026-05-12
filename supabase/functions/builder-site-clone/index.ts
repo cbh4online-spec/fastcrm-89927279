@@ -118,7 +118,7 @@ interface ClonePayload {
   };
 }
 
-Deno.serve(async (req) => {
+export async function handleClone(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     if (req.method !== "POST") return json({ error: "Método inválido" }, 405);
