@@ -97,26 +97,49 @@ const defaultFaqs = [
   },
 ];
 
+const ICON_MAP: Record<string, any> = {
+  ClipboardList, CalendarCheck, Users, Sparkles, Target, MessageSquare,
+  Utensils, LineChart, CheckCircle2, ChefHat, Flame,
+};
+
 export default function LeadChefLanding() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const { data: cms } = useLeadChefLandingContent();
+
+  const modules = useMemo(() => {
+    const list = (cms?.modules?.length ? cms.modules : defaultModules) as any[];
+    return list.map((m, i) => ({
+      ...m,
+      icon: typeof m.icon === "string" ? (ICON_MAP[m.icon] ?? defaultModules[i % defaultModules.length].icon) : (m.icon ?? defaultModules[i % defaultModules.length].icon),
+    }));
+  }, [cms?.modules]);
+  const benefits = cms?.benefits?.length ? cms.benefits : defaultBenefits;
+  const journey = cms?.journey?.length ? cms.journey : defaultJourney;
+  const faqs = cms?.faqs?.length ? cms.faqs : defaultFaqs;
+
+  const hero = cms?.hero ?? {};
+  const seo = cms?.seo ?? {};
+  const ctas = cms?.ctas ?? {};
+
+  const seoTitle = seo.title ?? "LeadChef — CRM para equipas de demonstração culinária";
+  const seoDescription = seo.description ?? "LeadChef organiza leads, demonstrações, clientes e referências para equipas de venda com demonstração culinária. Agende uma demonstração ou experimente grátis.";
+  const ogTitle = seo.ogTitle ?? seoTitle;
+  const ogDescription = seo.ogDescription ?? "Da primeira conversa à venda. Pipeline, agenda, pós-venda e referências num só lugar, pensado para chefs e consultores.";
+  const canonical = seo.canonical ?? "/leadchef";
+
   return (
     <>
       <Helmet>
-        <title>LeadChef — CRM para equipas de demonstração culinária</title>
-        <meta
-          name="description"
-          content="LeadChef organiza leads, demonstrações, clientes e referências para equipas de venda com demonstração culinária. Agende uma demonstração ou experimente grátis."
-        />
-        <meta property="og:title" content="LeadChef — CRM para equipas de demonstração culinária" />
-        <meta
-          property="og:description"
-          content="Da primeira conversa à venda. Pipeline, agenda, pós-venda e referências num só lugar, pensado para chefs e consultores."
-        />
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="/leadchef" />
+        {cms?.images?.ogImage && <meta property="og:image" content={cms.images.ogImage} />}
+        <link rel="canonical" href={canonical} />
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground antialiased">
