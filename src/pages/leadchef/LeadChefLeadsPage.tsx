@@ -40,7 +40,7 @@ export default function LeadChefLeadsPage() {
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Novo lead
+          {LEADCHEF_COPY.newEntity}
         </Button>
 
         <div className="relative">
