@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LeadChefBottomNav } from "./LeadChefBottomNav";
 import { LeadChefFloatingActionButton } from "./LeadChefFloatingActionButton";
+import { L } from "@/config/leadchef/labels";
 
 interface Props {
   title: string;
