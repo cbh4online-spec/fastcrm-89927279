@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useCreateLeadChefReferral } from "@/hooks/leadchef/useCreateLeadChefReferral";
 import { useLeadChefClients } from "@/hooks/leadchef/useLeadChefClients";
 import { LEADCHEF_AUTHORIZATION_STATUSES, LEADCHEF_AUTHORIZATION_STATUS_LABELS } from "./constants";
+import { LEADCHEF_DEVICE_BRANDS } from "@/config/leadchef/devices";
 import type { LeadChefAuthorizationStatus } from "@/types/leadchef";
 
 const schema = z.object({
@@ -25,6 +26,8 @@ const schema = z.object({
   context: z.string().max(300).optional(),
   interest: z.string().max(120).optional(),
   notes: z.string().max(500).optional(),
+  device_brand: z.string().max(60).optional(),
+  device_model: z.string().max(60).optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -62,6 +65,8 @@ export function LeadChefReferralFormSheet({ open, onOpenChange, referrerLeadId, 
       context: "",
       interest: "",
       notes: "",
+      device_brand: "",
+      device_model: "",
     },
   });
 
@@ -77,6 +82,8 @@ export function LeadChefReferralFormSheet({ open, onOpenChange, referrerLeadId, 
         context: v.context,
         interest: v.interest,
         notes: v.notes,
+        device_brand: v.device_brand,
+        device_model: v.device_model,
       });
       form.reset();
       setSelectedReferrerId(referrerLeadId ?? null);
@@ -214,6 +221,26 @@ export function LeadChefReferralFormSheet({ open, onOpenChange, referrerLeadId, 
           <div className="space-y-1">
             <Label htmlFor="ref-notes">Notas</Label>
             <Textarea id="ref-notes" rows={2} {...form.register("notes")} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Equipamento atual — marca</Label>
+              <Select
+                value={form.watch("device_brand") || ""}
+                onValueChange={(v) => form.setValue("device_brand", v, { shouldDirty: true })}
+              >
+                <SelectTrigger><SelectValue placeholder="Ex.: Bimby" /></SelectTrigger>
+                <SelectContent>
+                  {LEADCHEF_DEVICE_BRANDS.map((b) => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ref-device-model">Modelo</Label>
+              <Input id="ref-device-model" placeholder="Ex.: TM6, TM7" {...form.register("device_model")} />
+            </div>
           </div>
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>

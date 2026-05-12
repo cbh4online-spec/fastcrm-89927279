@@ -158,6 +158,8 @@ export interface CreateLeadChefLeadInput {
   addressFloor?: string;
   city?: string;
   postalCode?: string;
+  deviceBrand?: string;
+  deviceModel?: string;
 }
 
 export interface UpdateLeadChefLeadStageInput {

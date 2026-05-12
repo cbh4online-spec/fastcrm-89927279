@@ -18,6 +18,8 @@ export interface CreateLeadChefReferralInput {
   context?: string; // junta-se às notas
   interest?: string; // junta-se às notas
   notes?: string;
+  device_brand?: string;
+  device_model?: string;
 }
 
 export function useCreateLeadChefReferral() {
@@ -49,6 +51,8 @@ export function useCreateLeadChefReferral() {
           authorization_status: auth,
           status: auth === "denied" ? "no_authorization" : "received",
           notes: composedNotes,
+          device_brand: input.device_brand?.trim() || null,
+          device_model: input.device_model?.trim() || null,
           created_by: user?.id || null,
         })
         .select("*")

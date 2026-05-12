@@ -34,6 +34,8 @@ export function useCreateLeadChefLead() {
           address_floor: input.addressFloor?.trim() || null,
           city: input.city?.trim() || null,
           postal_code: input.postalCode?.trim() || null,
+          device_brand: input.deviceBrand?.trim() || null,
+          device_model: input.deviceModel?.trim() || null,
           created_by: user.id,
         } as any)
         .select("id")

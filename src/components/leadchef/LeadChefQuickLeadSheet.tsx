@@ -18,6 +18,7 @@ import {
   isValidPortugalPostalCode,
   lookupPortugalPostalCode,
 } from "@/utils/leadchef/postalCode";
+import { LEADCHEF_DEVICE_BRANDS } from "@/config/leadchef/devices";
 import { toast } from "sonner";
 
 const schema = z.object({
@@ -36,6 +37,8 @@ const schema = z.object({
   addressFloor: z.string().max(40).optional(),
   city: z.string().max(80).optional(),
   postalCode: z.string().max(20).optional(),
+  deviceBrand: z.string().max(60).optional(),
+  deviceModel: z.string().max(60).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -78,6 +81,8 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
       addressFloor: "",
       city: "",
       postalCode: "",
+      deviceBrand: "",
+      deviceModel: "",
     },
   });
 
@@ -102,6 +107,8 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
         addressFloor: values.addressFloor?.trim() || undefined,
         city: values.city?.trim() || undefined,
         postalCode: values.postalCode?.trim() || undefined,
+        deviceBrand: values.deviceBrand?.trim() || undefined,
+        deviceModel: values.deviceModel?.trim() || undefined,
       });
       form.reset();
       onOpenChange(false);
@@ -267,6 +274,27 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
             <div className="space-y-1">
               <Label htmlFor="lc-city">Localidade</Label>
               <Input id="lc-city" placeholder="Cidade" {...form.register("city")} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Equipamento atual — marca</Label>
+              <Select
+                value={form.watch("deviceBrand") || ""}
+                onValueChange={(v) => form.setValue("deviceBrand", v, { shouldDirty: true })}
+              >
+                <SelectTrigger><SelectValue placeholder="Ex.: Bimby" /></SelectTrigger>
+                <SelectContent>
+                  {LEADCHEF_DEVICE_BRANDS.map((b) => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="lc-device-model">Modelo</Label>
+              <Input id="lc-device-model" placeholder="Ex.: TM6, TM7" {...form.register("deviceModel")} />
             </div>
           </div>
 
