@@ -141,6 +141,37 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
       "☐ Cebola — 200 g\n" +
       "☐ Cenoura — 500 g",
   },
+  {
+    category: "cooking_class_invite",
+    name: "Lista de Compras Degustação Carne",
+    body:
+      "🛒 *Lista de Compras Degustação Carne*\n\n" +
+      "🍓 *Frutas*\n" +
+      "☐ Frutos vermelhos congelados — 500 g\n" +
+      "☐ Limões — 3 un.\n\n" +
+      "🥚 *Mercearia*\n" +
+      "☐ Açúcar\n" +
+      "☐ Ovo — 1 un.\n" +
+      "☐ Farinha (preferencialmente tipo 65)\n" +
+      "☐ Azeite\n" +
+      "☐ Fermento de padeiro — 1 saqueta\n" +
+      "☐ Mostarda\n" +
+      "☐ Pickles\n\n" +
+      "🥓 *Charcutaria e Queijo*\n" +
+      "☐ Bacon fatiado — 100 g\n" +
+      "☐ Fiambre fatiado — 100 g\n" +
+      "☐ Chouriço fatiado — 100 g\n" +
+      "☐ Paio fatiado — 100 g\n" +
+      "☐ Queijo fatiado — 100 g\n\n" +
+      "🥩 *Carne*\n" +
+      "☐ Carne cortada em tiras para pica-pau — 250 g\n\n" +
+      "🧄 *Legumes e Aromáticos*\n" +
+      "☐ Alho\n\n" +
+      "🍺 *Bebidas*\n" +
+      "☐ Cerveja\n\n" +
+      "🧻 *Outros*\n" +
+      "☐ Papel vegetal",
+  },
 ];
 
 // ─── Automations defaults ────────────────────────────────────────────────────
