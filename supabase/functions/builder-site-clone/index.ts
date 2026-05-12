@@ -121,37 +121,79 @@ interface ClonePayload {
 
 export async function handleClone(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const correlationId =
+    req.headers.get("x-correlation-id") ||
+    req.headers.get("x-request-id") ||
+    crypto.randomUUID();
+  const t0 = Date.now();
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const projectRef = (() => { try { return new URL(SUPABASE_URL).hostname.split(".")[0]; } catch { return "unknown"; } })();
+  const log = (event: string, data: Record<string, unknown> = {}) => {
+    console.log(JSON.stringify({
+      fn: "builder-site-clone",
+      correlation_id: correlationId,
+      event,
+      elapsed_ms: Date.now() - t0,
+      ...data,
+    }));
+  };
+  log("request.received", {
+    method: req.method,
+    project_ref: projectRef,
+    supabase_url: SUPABASE_URL,
+    has_anon_key: !!SUPABASE_ANON_KEY,
+    has_service_role: !!SUPABASE_SERVICE_ROLE_KEY,
+    user_agent: req.headers.get("user-agent"),
+    origin: req.headers.get("origin"),
+  });
   try {
     if (req.method !== "POST") return json({ error: "Método inválido" }, 405);
 
     const auth = req.headers.get("Authorization");
-    if (!auth) return json({ error: "Não autenticado" }, 401);
+    if (!auth) {
+      log("auth.missing");
+      return json({ error: "Não autenticado" }, 401);
+    }
 
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: auth } } },
-    );
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: auth } },
+    });
     const { data: u, error: uerr } = await userClient.auth.getUser();
-    if (uerr || !u?.user) return json({ error: "Sessão inválida", code: "INVALID_SESSION" }, 401);
+    if (uerr || !u?.user) {
+      log("auth.invalid", { error: uerr?.message });
+      return json({ error: "Sessão inválida", code: "INVALID_SESSION" }, 401);
+    }
     const userId = u.user.id;
+    log("auth.ok", { user_id: userId, email: u.user.email });
 
     const body = (await req.json().catch(() => null)) as ClonePayload | null;
     if (!body?.workspace_id || !body?.source_url || !Array.isArray(body.pages)) {
+      log("payload.invalid", { has_body: !!body });
       return json({ error: "Payload inválido", code: "INVALID_PAYLOAD" }, 400);
     }
+    log("payload.received", {
+      workspace_id: body.workspace_id,
+      source_url: body.source_url,
+      pages_count: body.pages.length,
+      options: body.options,
+    });
 
     // Valida formato UUID do workspace_id
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!UUID_RE.test(body.workspace_id)) {
+      log("workspace.uuid_invalid", { workspace_id: body.workspace_id });
       return json({ error: "workspace_id inválido", code: "INVALID_WORKSPACE_ID" }, 400);
     }
 
     // Cliente service-role para verificações de acesso e escrita atómica
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    log("routing.resolved", {
+      workspace_id: body.workspace_id,
+      project_ref: projectRef,
+      supabase_url: SUPABASE_URL,
+    });
 
     // ===== VALIDAÇÃO DE ACESSO (antes de qualquer operação) =====
     // 1. Verifica se o workspace existe
@@ -161,12 +203,14 @@ export async function handleClone(req: Request): Promise<Response> {
       .eq("id", body.workspace_id)
       .maybeSingle();
     if (wsErr) {
-      console.error("[builder-site-clone] erro a obter workspace", wsErr);
+      log("workspace.lookup_error", { error: wsErr.message });
       return json({ error: "Erro a validar workspace", code: "WORKSPACE_LOOKUP_ERROR" }, 500);
     }
     if (!ws || ws.deleted_at) {
+      log("workspace.not_found", { workspace_id: body.workspace_id, deleted: !!ws?.deleted_at });
       return json({ error: "Workspace não encontrado", code: "WORKSPACE_NOT_FOUND" }, 404);
     }
+    log("workspace.found", { workspace_id: ws.id, owner_id: ws.owner_id });
 
     // 2. Verifica se o utilizador é owner, membro (qualquer role) ou super_admin
     const isOwner = ws.owner_id === userId;
@@ -193,16 +237,16 @@ export async function handleClone(req: Request): Promise<Response> {
     }
 
     if (!isOwner && !isMember && !isSuper) {
-      console.error("[builder-site-clone] acesso negado", {
-        userId,
+      log("access.denied", {
+        user_id: userId,
         workspace_id: body.workspace_id,
         owner_id: ws.owner_id,
       });
       return json({ error: "Sem acesso a este workspace", code: "USER_NOT_MEMBER" }, 403);
     }
 
-    console.log("[builder-site-clone] acesso autorizado", {
-      userId,
+    log("access.granted", {
+      user_id: userId,
       workspace_id: body.workspace_id,
       via: isOwner ? "owner" : isMember ? `member:${memberRole}` : "super_admin",
     });
@@ -228,12 +272,16 @@ export async function handleClone(req: Request): Promise<Response> {
         name,
         slug,
         html: "<!-- multi-page site, ver builder_site_pages -->",
-        metadata: { source_url: srcUrl.toString(), is_cloned_site: true },
+        metadata: { source_url: srcUrl.toString(), is_cloned_site: true, correlation_id: correlationId },
         created_by: userId,
       })
       .select()
       .single();
-    if (aerr || !asset) return json({ error: aerr?.message ?? "Falha a criar asset" }, 500);
+    if (aerr || !asset) {
+      log("asset.create_failed", { error: aerr?.message });
+      return json({ error: aerr?.message ?? "Falha a criar asset" }, 500);
+    }
+    log("asset.created", { asset_id: asset.id });
 
     // 2. Cria builder_sites
     const { data: site, error: serr } = await admin
@@ -252,7 +300,11 @@ export async function handleClone(req: Request): Promise<Response> {
       })
       .select()
       .single();
-    if (serr || !site) return json({ error: serr?.message ?? "Falha a criar site" }, 500);
+    if (serr || !site) {
+      log("site.create_failed", { error: serr?.message });
+      return json({ error: serr?.message ?? "Falha a criar site" }, 500);
+    }
+    log("site.created", { site_id: site.id, asset_id: asset.id, pages_total: pages.length });
 
     // 3. Cria registos pendentes para cada página
     const pageRows = pages.map((p, i) => {
@@ -286,9 +338,11 @@ export async function handleClone(req: Request): Promise<Response> {
 
     const { error: perr } = await admin.from("builder_site_pages").insert(pageRows);
     if (perr) {
+      log("site_pages.insert_failed", { error: perr.message, site_id: site.id });
       await admin.from("builder_sites").update({ status: "failed", error: perr.message }).eq("id", site.id);
       return json({ error: perr.message }, 500);
     }
+    log("site_pages.inserted", { site_id: site.id, count: pageRows.length });
 
     // 4. Dispara processamento em background
     const ctx = {
@@ -299,16 +353,29 @@ export async function handleClone(req: Request): Promise<Response> {
       sourceHost: srcUrl.hostname,
       sourceOrigin: srcUrl.origin,
     };
+    log("background.scheduled", {
+      site_id: site.id,
+      asset_id: asset.id,
+      workspace_id: body.workspace_id,
+      pages_total: pages.length,
+    });
     // @ts-ignore EdgeRuntime is available in supabase deno runtime
     EdgeRuntime.waitUntil(processSite(admin, ctx));
 
+    log("response.sent", {
+      site_id: site.id,
+      asset_id: asset.id,
+      pages_total: pages.length,
+    });
     return json({
       site_id: site.id,
       asset_id: asset.id,
       pages_total: pages.length,
       status: "cloning",
+      correlation_id: correlationId,
     });
   } catch (e) {
+    log("error.unhandled", { error: e instanceof Error ? e.message : String(e) });
     return json({ error: e instanceof Error ? e.message : "Erro inesperado" }, 500);
   }
 }
