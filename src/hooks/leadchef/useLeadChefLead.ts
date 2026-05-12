@@ -15,7 +15,7 @@ export function useLeadChefLead(leadId: string | undefined) {
       const { data, error } = await (supabase as any)
         .from("leadchef_lead_profiles")
         .select(
-          "*, lead:leads(id,name,email,phone,source,status,last_contact_at,ai_temperature)"
+          "*, lead:leads(id,name,email,phone,source,status,last_contact_at,ai_temperature,address,city,postal_code)"
         )
         .eq("workspace_id", workspaceId)
         .eq("lead_id", leadId)
