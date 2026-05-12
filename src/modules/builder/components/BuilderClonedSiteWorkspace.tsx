@@ -376,10 +376,53 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
                 </a>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-0.5 rounded-md border bg-muted/40 p-0.5">
+                  <Button
+                    size="sm"
+                    variant={viewMode === "preview" ? "secondary" : "ghost"}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setViewMode("preview")}
+                    title="Apenas pré-visualização"
+                  >
+                    <Eye className="h-3.5 w-3.5 mr-1" /> Preview
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={viewMode === "split" ? "secondary" : "ghost"}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setViewMode("split")}
+                    title="Código + pré-visualização"
+                  >
+                    <Columns2 className="h-3.5 w-3.5 mr-1" /> Split
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={viewMode === "code" ? "secondary" : "ghost"}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setViewMode("code")}
+                    title="Apenas código"
+                  >
+                    <Code2 className="h-3.5 w-3.5 mr-1" /> Código
+                  </Button>
+                </div>
+                {lastSavedAt && (
+                  <span className="text-[11px] text-muted-foreground hidden md:inline">
+                    Guardado {lastSavedAt.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  </span>
+                )}
                 <span className="text-[11px] text-muted-foreground">
                   {(selected.bytes / 1024).toFixed(1)} KB
                 </span>
                 {dirty && <Badge variant="secondary" className="text-[10px]">Não guardado</Badge>}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setPreviewKey((k) => k + 1)}
+                  title="Recarregar pré-visualização"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
                 <Button
                   size="sm"
                   onClick={handleSave}
@@ -406,6 +449,21 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
                   </div>
                 )}
               </div>
+            ) : viewMode === "preview" ? (
+              <div className="flex-1 min-h-0 p-2 bg-muted/30">
+                <BuilderPreviewFrame key={previewKey} html={draftHtml} className="h-full" />
+              </div>
+            ) : viewMode === "code" ? (
+              <div className="flex-1 min-h-0">
+                <BuilderCodeEditor
+                  value={draftHtml}
+                  onChange={(v) => {
+                    setDraftHtml(v);
+                    setDirty(v !== (selected.html ?? ""));
+                  }}
+                  saveState={dirty ? "dirty" : saving ? "saving" : "idle"}
+                />
+              </div>
             ) : (
               <ResizablePanelGroup direction="horizontal" className="flex-1">
                 <ResizablePanel defaultSize={45} minSize={25}>
@@ -420,7 +478,7 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
                 </ResizablePanel>
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={55} minSize={30}>
-                  <BuilderPreviewFrame html={draftHtml} />
+                  <BuilderPreviewFrame key={previewKey} html={draftHtml} />
                 </ResizablePanel>
               </ResizablePanelGroup>
             )}
