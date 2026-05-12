@@ -135,9 +135,9 @@ export default function LeadChefLanding() {
               <a href="#faq" className="hover:text-foreground">FAQ</a>
             </nav>
             <div className="flex items-center gap-2">
-              <Link to="/signup">
-                <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-                  Experimentar grátis
+              <Link to="/dashboard/leadchef/today">
+                <Button variant="ghost" size="sm" className="hidden gap-1 sm:inline-flex">
+                  Entrar na app <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               <a href="#contacto">
