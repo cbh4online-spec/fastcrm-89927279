@@ -32,7 +32,7 @@ export default function LeadChefLeadsPage() {
   const { data: insightMap } = useLeadChefLeadsBulkInsight(leadIds);
 
   return (
-    <LeadChefMobileShell title="Referências" subtitle="Funil das tuas referências LeadChef.">
+    <LeadChefMobileShell title={L.Plural} subtitle={LEADCHEF_COPY.entityFunnelSubtitle}>
       <div className="space-y-3">
         <Button
           onClick={() => setOpenSheet(true)}
