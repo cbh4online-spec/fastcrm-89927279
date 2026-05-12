@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { LeadChefQuickLeadSheet } from "./LeadChefQuickLeadSheet";
+import { LEADCHEF_COPY } from "@/config/leadchef/labels";
 
 export function LeadChefFloatingActionButton() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -38,7 +39,7 @@ export function LeadChefFloatingActionButton() {
           <div className="mt-4 grid gap-2">
             <Button variant="outline" className="justify-start h-14" onClick={openLead}>
               <UserPlus className="mr-3 h-5 w-5 text-emerald-600" />
-              Novo lead
+              {LEADCHEF_COPY.newEntity}
             </Button>
             <Button variant="outline" className="justify-start h-14" onClick={() => notImpl("Nova demonstração")}>
               <CalendarPlus className="mr-3 h-5 w-5 text-emerald-600" />
