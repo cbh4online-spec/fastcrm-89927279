@@ -252,7 +252,7 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
                       toast.error("Código postal não encontrado.");
                       return;
                     }
-                    if (result.address && !form.getValues("address")) {
+                    if (result.address) {
                       form.setValue("address", result.address, { shouldDirty: true });
                     }
                     if (result.city) {
