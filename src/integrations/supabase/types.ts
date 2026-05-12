@@ -45815,6 +45815,51 @@ export type Database = {
         }
         Relationships: []
       }
+      leadchef_products: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          points: number
+          price: number
+          promo: boolean
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          points?: number
+          price?: number
+          promo?: boolean
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          points?: number
+          price?: number
+          promo?: boolean
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       leadchef_push_queue: {
         Row: {
           attempts: number
