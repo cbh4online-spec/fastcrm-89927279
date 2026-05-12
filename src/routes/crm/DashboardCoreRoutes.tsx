@@ -51,6 +51,8 @@ export function DashboardCoreRoutes() {
       {/* Main Routes */}
       <Route path="/" element={<FastCRMLanding />} />
       <Route path="/fastcrm" element={<FastCRMLanding />} />
+      <Route path="/leadchef-landing" element={<LeadChefLanding />} />
+      <Route path="/leadchef" element={<LeadChefLanding />} />
       <Route path="/admin/generate-landing-images" element={<GenerateLandingImages />} />
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/changelog" element={<ChangelogPage />} />
