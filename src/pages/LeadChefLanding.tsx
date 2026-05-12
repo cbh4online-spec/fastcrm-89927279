@@ -176,6 +176,14 @@ export default function LeadChefLanding() {
                     </Button>
                   </Link>
                 </div>
+                <div className="pt-2">
+                  <Link
+                    to="/dashboard/leadchef/today"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Explorar a aplicação LeadChef <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   ✓ Sem cartão de crédito · ✓ Setup em minutos · ✓ Português de Portugal
                 </p>
