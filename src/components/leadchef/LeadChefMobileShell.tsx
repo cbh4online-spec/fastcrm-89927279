@@ -65,7 +65,7 @@ export function LeadChefMobileShell({ title, subtitle, children, showFab = true 
             </Badge>
             <Button variant="outline" size="sm" className="h-8 gap-2" onClick={goBack}>
               <ArrowLeft className="h-4 w-4" />
-              Voltar
+              Menus FastCRM
             </Button>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
