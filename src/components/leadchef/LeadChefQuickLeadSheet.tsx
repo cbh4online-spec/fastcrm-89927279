@@ -32,6 +32,8 @@ const schema = z.object({
   temperature: z.enum(["cold", "warm", "hot"]),
   notes: z.string().max(500).optional(),
   address: z.string().max(200).optional(),
+  addressNumber: z.string().max(20).optional(),
+  addressFloor: z.string().max(40).optional(),
   city: z.string().max(80).optional(),
   postalCode: z.string().max(20).optional(),
 });
