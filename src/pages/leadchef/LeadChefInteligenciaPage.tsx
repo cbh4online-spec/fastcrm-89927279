@@ -17,7 +17,7 @@ export default function LeadChefInteligenciaPage() {
   return (
     <LeadChefMobileShell
       title="Inteligência"
-      subtitle="Score e sugestões dos teus leads"
+      subtitle="Score e sugestões das tuas referências"
     >
       <div className="px-4 pt-3 pb-2">
         <Button
