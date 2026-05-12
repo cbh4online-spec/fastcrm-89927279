@@ -418,18 +418,32 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
                   size="sm"
                   variant="outline"
                   className="h-7 text-xs"
+                  disabled={openingSite}
                   onClick={() => {
                     const htmlToPreview = selected?.html ?? "";
-                    if (!htmlToPreview.trim()) return;
-                    const blob = new Blob([htmlToPreview], { type: "text/html" });
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, "_blank", "noopener,noreferrer");
-                    // Revogar após um tempo para não vazar memória
-                    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                    if (!htmlToPreview.trim()) {
+                      toast.error("Página sem conteúdo para pré-visualizar");
+                      return;
+                    }
+                    setOpeningSite(true);
+                    toast.info("A gerar pré-visualização…");
+                    setTimeout(() => {
+                      const blob = new Blob([htmlToPreview], { type: "text/html" });
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, "_blank", "noopener,noreferrer");
+                      setOpeningSite(false);
+                      // Revogar após um tempo para não vazar memória
+                      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                    }, 100);
                   }}
                   title="Abrir página numa nova aba"
                 >
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ver site
+                  {openingSite ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Ver site
                 </Button>
                 <Button
                   size="sm"
