@@ -43,6 +43,7 @@ export const FASTCRM_PRODUCT_MODULES: string[] = [
 export const LEADCHEF_MODE_WHITELIST = {
   keys: new Set<string>([
     "leadchef",
+    "leadchef-admin",
     "inbox",
     "calendar",
     "settings-main",
