@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Copy, RotateCw, ExternalLink, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -73,21 +74,24 @@ export default function IfthenpaySettingsPage() {
 
   if (!currentWorkspace) {
     return (
-      <div className="p-6">
-        <Alert>
-          <AlertDescription>Seleciona um workspace para configurar a ifthenpay.</AlertDescription>
-        </Alert>
-      </div>
+      <DashboardLayout>
+        <div className="p-6">
+          <Alert>
+            <AlertDescription>Seleciona um workspace para configurar a ifthenpay.</AlertDescription>
+          </Alert>
+        </div>
+      </DashboardLayout>
     );
   }
 
   if (isLoading) {
-    return <div className="p-6 text-muted-foreground">A carregar configuração…</div>;
+    return <DashboardLayout><div className="p-6 text-muted-foreground">A carregar configuração…</div></DashboardLayout>;
   }
 
   // Empty state — no settings row yet
   if (!settings) {
     return (
+      <DashboardLayout>
       <div className="p-6 max-w-3xl mx-auto space-y-4">
         <Card>
           <CardHeader>
@@ -120,10 +124,12 @@ export default function IfthenpaySettingsPage() {
           </CardContent>
         </Card>
       </div>
+      </DashboardLayout>
     );
   }
 
   return (
+    <DashboardLayout>
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -428,5 +434,6 @@ export default function IfthenpaySettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }
