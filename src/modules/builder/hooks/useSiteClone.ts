@@ -81,6 +81,13 @@ export function useSiteClone() {
       setCloning(true);
       setProgress({ pages_total: params.pages.length, pages_done: 0, pages_failed: 0, status: "queued" });
       try {
+        const correlationId = crypto.randomUUID();
+        console.log("[useSiteClone] startClone", {
+          correlation_id: correlationId,
+          workspace_id: currentWorkspace.id,
+          source_url: params.sourceUrl,
+          pages_count: params.pages.length,
+        });
         const { data, error } = await supabase.functions.invoke("builder-site-clone", {
           body: {
             workspace_id: currentWorkspace.id,
@@ -93,6 +100,7 @@ export function useSiteClone() {
               design_tokens: params.designTokens,
             },
           },
+          headers: { "x-correlation-id": correlationId },
         });
         if (error) throw error;
         const payload = data as { site_id?: string; asset_id?: string; pages_total?: number; error?: string };
