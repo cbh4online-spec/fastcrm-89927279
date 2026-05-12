@@ -171,7 +171,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("prospecting",     "Prospecção",      "/dashboard/prospecting",    UserPlus,      "comercial", { moduleSlug: "prospecting-pro" }),
   e("lead-enricher",   "Enriquecimento de Leads", "/dashboard/lead-enricher",  Search,        "comercial", { moduleSlug: "lead-enricher", isPro: true }),
   e("fastmatch",       "FastMatch",       "/dashboard/fastmatch",      Zap,           "comercial"),
-  e("leadchef",        "LeadChef",        "/dashboard/leadchef/today", ChefHat,       "comercial", { isBeta: true }),
+ e("leadchef",        "LeadChef",        "/dashboard/leadchef/today", ChefHat,       "comercial", { isBeta: true }),
+ e("leadchef-admin",  "Centro LeadChef", "/dashboard/leadchef/admin", Settings,      "comercial", { isBeta: true }),
   // Search-only CRM routes
   e("crm-hub",         "CRM",             "/dashboard/crm",            Users,         "comercial", { visibleInSidebar: false }),
   e("google-local",    "Google Local",    "/dashboard/prospecting/google-local", MapPin, "comercial", { visibleInSidebar: false, moduleSlug: "google-local-services" }),
