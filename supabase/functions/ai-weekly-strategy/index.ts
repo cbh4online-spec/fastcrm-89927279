@@ -199,7 +199,10 @@ serve(async (req) => {
     // Call Lovable AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI not configured" }), { status: 500, headers: corsHeaders });
+      return new Response(JSON.stringify({ metrics, strategy: buildFallbackStrategy(metrics, "ai_not_configured") }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const systemPrompt = `You are a Revenue Strategy AI for a CRM system. Analyze weekly performance metrics and provide actionable strategy.
@@ -290,7 +293,7 @@ Analyze and provide strategy using the tool.`;
       if (status === 402) {
         return new Response(JSON.stringify({ error: "Credits AI esgotados. Adicione créditos para continuar." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      return new Response(JSON.stringify({ error: "AI analysis failed" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ metrics, strategy: buildFallbackStrategy(metrics, `gateway_${status}`) }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();
@@ -313,6 +316,9 @@ Analyze and provide strategy using the tool.`;
       } catch {
         strategy = null;
       }
+    }
+    if (!strategy) {
+      strategy = buildFallbackStrategy(metrics, "invalid_ai_response");
     }
 
     return new Response(JSON.stringify({ metrics, strategy }), {
