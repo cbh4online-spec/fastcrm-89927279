@@ -170,20 +170,30 @@ export async function handleClone(req: Request): Promise<Response> {
 
     const body = (await req.json().catch(() => null)) as ClonePayload | null;
     if (!body?.workspace_id || !body?.source_url || !Array.isArray(body.pages)) {
+      log("payload.invalid", { has_body: !!body });
       return json({ error: "Payload inválido", code: "INVALID_PAYLOAD" }, 400);
     }
+    log("payload.received", {
+      workspace_id: body.workspace_id,
+      source_url: body.source_url,
+      pages_count: body.pages.length,
+      options: body.options,
+    });
 
     // Valida formato UUID do workspace_id
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!UUID_RE.test(body.workspace_id)) {
+      log("workspace.uuid_invalid", { workspace_id: body.workspace_id });
       return json({ error: "workspace_id inválido", code: "INVALID_WORKSPACE_ID" }, 400);
     }
 
     // Cliente service-role para verificações de acesso e escrita atómica
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    log("routing.resolved", {
+      workspace_id: body.workspace_id,
+      project_ref: projectRef,
+      supabase_url: SUPABASE_URL,
+    });
 
     // ===== VALIDAÇÃO DE ACESSO (antes de qualquer operação) =====
     // 1. Verifica se o workspace existe
@@ -193,12 +203,14 @@ export async function handleClone(req: Request): Promise<Response> {
       .eq("id", body.workspace_id)
       .maybeSingle();
     if (wsErr) {
-      console.error("[builder-site-clone] erro a obter workspace", wsErr);
+      log("workspace.lookup_error", { error: wsErr.message });
       return json({ error: "Erro a validar workspace", code: "WORKSPACE_LOOKUP_ERROR" }, 500);
     }
     if (!ws || ws.deleted_at) {
+      log("workspace.not_found", { workspace_id: body.workspace_id, deleted: !!ws?.deleted_at });
       return json({ error: "Workspace não encontrado", code: "WORKSPACE_NOT_FOUND" }, 404);
     }
+    log("workspace.found", { workspace_id: ws.id, owner_id: ws.owner_id });
 
     // 2. Verifica se o utilizador é owner, membro (qualquer role) ou super_admin
     const isOwner = ws.owner_id === userId;
@@ -225,16 +237,16 @@ export async function handleClone(req: Request): Promise<Response> {
     }
 
     if (!isOwner && !isMember && !isSuper) {
-      console.error("[builder-site-clone] acesso negado", {
-        userId,
+      log("access.denied", {
+        user_id: userId,
         workspace_id: body.workspace_id,
         owner_id: ws.owner_id,
       });
       return json({ error: "Sem acesso a este workspace", code: "USER_NOT_MEMBER" }, 403);
     }
 
-    console.log("[builder-site-clone] acesso autorizado", {
-      userId,
+    log("access.granted", {
+      user_id: userId,
       workspace_id: body.workspace_id,
       via: isOwner ? "owner" : isMember ? `member:${memberRole}` : "super_admin",
     });
@@ -260,12 +272,16 @@ export async function handleClone(req: Request): Promise<Response> {
         name,
         slug,
         html: "<!-- multi-page site, ver builder_site_pages -->",
-        metadata: { source_url: srcUrl.toString(), is_cloned_site: true },
+        metadata: { source_url: srcUrl.toString(), is_cloned_site: true, correlation_id: correlationId },
         created_by: userId,
       })
       .select()
       .single();
-    if (aerr || !asset) return json({ error: aerr?.message ?? "Falha a criar asset" }, 500);
+    if (aerr || !asset) {
+      log("asset.create_failed", { error: aerr?.message });
+      return json({ error: aerr?.message ?? "Falha a criar asset" }, 500);
+    }
+    log("asset.created", { asset_id: asset.id });
 
     // 2. Cria builder_sites
     const { data: site, error: serr } = await admin
