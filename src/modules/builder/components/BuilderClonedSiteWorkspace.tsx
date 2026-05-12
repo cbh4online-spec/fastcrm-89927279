@@ -21,6 +21,7 @@ import {
   Eye,
   ExternalLink,
   FileCode2,
+  HelpCircle,
   Home,
   Loader2,
   RefreshCw,
@@ -30,6 +31,7 @@ import {
 import { toast } from "sonner";
 import { BuilderPreviewFrame } from "./BuilderPreviewFrame";
 import { BuilderCodeEditor } from "./BuilderCodeEditor";
+import { BuilderClonedSiteTutorial } from "./BuilderClonedSiteTutorial";
 import { cn } from "@/lib/utils";
 
 interface SitePage {
@@ -79,6 +81,7 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState<"split" | "preview" | "code">("preview");
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const lastLoadedRef = useRef<string | null>(null);
@@ -231,7 +234,12 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
   const isCloning = site.status === "discovering" || site.status === "cloning";
 
   return (
-    <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
+    <div className="relative h-full">
+      <BuilderClonedSiteTutorial
+        forceOpen={tutorialOpen}
+        onClose={() => setTutorialOpen(false)}
+      />
+      <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
       {/* Sidebar páginas */}
       <ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
         <div className="flex flex-col h-full bg-muted/20">
@@ -422,6 +430,15 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
                 >
                   <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ver site
                 </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setTutorialOpen(true)}
+                  title="Mostrar tutorial"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </Button>
                 {lastSavedAt && (
                   <span className="text-[11px] text-muted-foreground hidden md:inline">
                     Guardado {lastSavedAt.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
@@ -503,5 +520,6 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
         )}
       </ResizablePanel>
     </ResizablePanelGroup>
+    </div>
   );
 }
