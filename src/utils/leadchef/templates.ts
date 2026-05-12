@@ -121,6 +121,26 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
     name: "Agradecimento",
     body: "Olá {{firstName}}, obrigada pela disponibilidade. Qualquer questão, estou por aqui.",
   },
+  {
+    category: "cooking_class_invite",
+    name: "Lista de Compras Demo Bebé 4–6 meses",
+    body:
+      "🛒 *Lista de Compras Demo Bebé 4–6 meses*\n\n" +
+      "🍚 *Cereais e Legumes Secos*\n" +
+      "☐ Arroz — 200 g\n\n" +
+      "🍎 *Frutas*\n" +
+      "☐ Banana — 30 g\n" +
+      "☐ Maçã — 780 g\n\n" +
+      "🫒 *Gorduras*\n" +
+      "☐ Azeite extra virgem — 6 c. chá\n\n" +
+      "🍼 *Laticínios*\n" +
+      "☐ Leite em pó para lactentes — 150 g\n\n" +
+      "🥬 *Legumes e Ervas Aromáticas*\n" +
+      "☐ Alface — 50 g\n" +
+      "☐ Batata — 300 g\n" +
+      "☐ Cebola — 200 g\n" +
+      "☐ Cenoura — 500 g",
+  },
 ];
 
 // ─── Automations defaults ────────────────────────────────────────────────────
