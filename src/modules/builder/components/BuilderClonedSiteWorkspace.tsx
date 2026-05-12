@@ -430,6 +430,15 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
                 >
                   <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ver site
                 </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setTutorialOpen(true)}
+                  title="Mostrar tutorial"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </Button>
                 {lastSavedAt && (
                   <span className="text-[11px] text-muted-foreground hidden md:inline">
                     Guardado {lastSavedAt.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
