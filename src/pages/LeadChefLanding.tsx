@@ -66,7 +66,7 @@ const defaultBenefits = [
   { value: "100%", label: "rastreabilidade do ciclo de venda" },
 ];
 
-const journey = [
+const defaultJourney = [
   { step: "1", title: "Lead chega", desc: "Captado via formulário, indicação ou contacto direto." },
   { step: "2", title: "Conversa inicial", desc: "Qualificação rápida e agendamento da demonstração." },
   { step: "3", title: "Demonstração culinária", desc: "Receita, equipamento e resultado registados na hora." },
