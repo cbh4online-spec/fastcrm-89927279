@@ -92,14 +92,19 @@ export function getGoalStatusTone(status: GoalStatus): {
   }
 }
 
+function formatYmd(y: number, m: number): string {
+  const mm = String(m).padStart(2, "0");
+  return `${y}-${mm}-01`;
+}
+
 export function startOfMonthIso(date: Date = new Date()): string {
-  return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().slice(0, 10);
+  return formatYmd(date.getFullYear(), date.getMonth() + 1);
 }
 
 export function shiftMonth(periodMonth: string, delta: number): string {
   const [y, m] = periodMonth.split("-").map(Number);
   const d = new Date(y, (m - 1) + delta, 1);
-  return d.toISOString().slice(0, 10);
+  return formatYmd(d.getFullYear(), d.getMonth() + 1);
 }
 
 export function formatMonthPt(periodMonth: string): string {
