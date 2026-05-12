@@ -300,7 +300,7 @@ Gere insights acionáveis baseados nestes dados.`;
     // Log AI usage (fire-and-forget)
     try {
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id: workspaceId,
         feature: "ai-entity-insights",
         model: "google/gemini-3-flash-preview",
         tokens_input: aiResponse?.usage?.prompt_tokens ?? 0,
