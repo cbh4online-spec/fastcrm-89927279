@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   ChefHat,
+  ArrowLeft,
   Home,
   UserRoundSearch,
   CalendarDays,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LeadChefBottomNav } from "./LeadChefBottomNav";
 import { LeadChefFloatingActionButton } from "./LeadChefFloatingActionButton";
@@ -41,9 +43,13 @@ const desktopNav = [
 ];
 
 export function LeadChefMobileShell({ title, subtitle, children, showFab = true }: Props) {
+  const navigate = useNavigate();
   const { currentWorkspace, isSuperAdmin } = useWorkspace();
   const role = currentWorkspace?.role;
   const canManage = isSuperAdmin || role === "owner" || role === "admin";
+
+  const goBack = () =>
+    window.history.length > 1 ? navigate(-1) : navigate("/dashboard");
 
   const navItems = canManage
     ? [...desktopNav, { to: "/dashboard/leadchef/admin", label: "Centro", icon: Sliders }]
@@ -53,10 +59,16 @@ export function LeadChefMobileShell({ title, subtitle, children, showFab = true 
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-8">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 backdrop-blur-xl bg-white/90">
         <div className="max-w-6xl mx-auto px-4 py-4 safe-area-pt">
-          <Badge className="bg-emerald-100 text-emerald-700 border-0 hover:bg-emerald-100 mb-2">
-            <ChefHat className="h-3 w-3 mr-1" />
-            LeadChef CRM
-          </Badge>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <Badge className="bg-emerald-100 text-emerald-700 border-0 hover:bg-emerald-100">
+              <ChefHat className="h-3 w-3 mr-1" />
+              LeadChef CRM
+            </Badge>
+            <Button variant="outline" size="sm" className="h-8 gap-2" onClick={goBack}>
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
+          </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
           {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
         </div>
