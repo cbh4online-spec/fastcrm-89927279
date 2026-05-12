@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LeadChefBottomNav } from "./LeadChefBottomNav";
 import { LeadChefFloatingActionButton } from "./LeadChefFloatingActionButton";
+import { L } from "@/config/leadchef/labels";
 
 interface Props {
   title: string;
@@ -31,7 +32,7 @@ interface Props {
 
 const desktopNav = [
   { to: "/dashboard/leadchef/today", label: "Hoje", icon: Home },
-  { to: "/dashboard/leadchef/leads", label: "Referências", icon: UserRoundSearch },
+  { to: "/dashboard/leadchef/leads", label: L.Plural, icon: UserRoundSearch },
   { to: "/dashboard/leadchef/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/dashboard/leadchef/clientes", label: "Clientes", icon: UsersRound },
   { to: "/dashboard/leadchef/referencias", label: "Referências", icon: Sparkles },
