@@ -47,6 +47,7 @@ export function LeadChefRoutes() {
       <Route path="/dashboard/leadchef/relatorios" element={<LeadChefRelatoriosPage />} />
       <Route path="/dashboard/leadchef/notificacoes" element={<LeadChefNotificacoesPage />} />
       <Route path="/dashboard/leadchef/admin" element={<LeadChefAdminPage />} />
+      <Route path="/dashboard/leadchef/produtos" element={<LeadChefProdutosPage />} />
       <Route path="/dashboard/leadchef/importar" element={<Navigate to="/dashboard/leadchef/ferramentas?tab=importar" replace />} />
       <Route path="/dashboard/leadchef/exportar" element={<Navigate to="/dashboard/leadchef/ferramentas?tab=exportar" replace />} />
       <Route path="/dashboard/leadchef/integracoes" element={<Navigate to="/dashboard/leadchef/ferramentas?tab=integracoes" replace />} />
