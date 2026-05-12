@@ -12,6 +12,7 @@ export interface LeadChefProductRow {
   category: string | null;
   sort_order: number;
   is_active: boolean;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +25,7 @@ export interface LeadChefProductInput {
   category?: string | null;
   sort_order?: number;
   is_active?: boolean;
+  image_url?: string | null;
 }
 
 const KEY = (ws: string | undefined) => ["leadchef-products", ws];
@@ -60,6 +62,7 @@ export function useUpsertLeadChefProduct(workspaceId: string | undefined) {
         category: rest.category?.trim() || null,
         sort_order: Number(rest.sort_order) || 0,
         is_active: rest.is_active ?? true,
+        image_url: rest.image_url?.trim() || null,
       };
       if (id) {
         const { error } = await supabase

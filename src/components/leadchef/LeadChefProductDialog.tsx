@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Upload, Search, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   type LeadChefProductRow,
   useUpsertLeadChefProduct,
@@ -16,8 +19,11 @@ interface Props {
   product?: LeadChefProductRow | null;
 }
 
+const BUCKET = "leadchef-products";
+
 export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product }: Props) {
   const upsert = useUpsertLeadChefProduct(workspaceId);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [points, setPoints] = useState<string>("0");
   const [price, setPrice] = useState<string>("0");
@@ -25,6 +31,8 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
   const [isActive, setIsActive] = useState(true);
   const [sortOrder, setSortOrder] = useState<string>("0");
   const [category, setCategory] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -35,8 +43,52 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
       setIsActive(product?.is_active ?? true);
       setSortOrder(String(product?.sort_order ?? 0));
       setCategory(product?.category ?? "");
+      setImageUrl(product?.image_url ?? "");
     }
   }, [open, product]);
+
+  const handleUpload = async (file: File) => {
+    if (!workspaceId) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Ficheiro deve ser uma imagem.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem demasiado grande (máx 5MB).");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${workspaceId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      setImageUrl(data.publicUrl);
+      toast.success("Imagem carregada");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao carregar imagem");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const searchOnline = () => {
+    const q = name.trim();
+    if (!q) {
+      toast.info("Escreve primeiro o nome do produto.");
+      return;
+    }
+    window.open(
+      `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+    toast.info("Copia o URL da imagem e cola no campo abaixo.");
+  };
 
   const submit = async () => {
     if (!name.trim()) return;
@@ -49,17 +101,92 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
       is_active: isActive,
       sort_order: Number(sortOrder) || 0,
       category: category || null,
+      image_url: imageUrl || null,
     });
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{product ? "Editar produto" : "Novo produto"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          <div>
+            <Label>Imagem</Label>
+            <div className="mt-1 flex items-start gap-3">
+              <div className="h-20 w-20 shrink-0 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden relative">
+                {imageUrl ? (
+                  <>
+                    <img
+                      src={imageUrl}
+                      alt="Pré-visualização"
+                      className="h-full w-full object-cover"
+                      onError={() => toast.error("URL de imagem inválido")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl("")}
+                      className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5"
+                      aria-label="Remover imagem"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </>
+                ) : (
+                  <ImageIcon className="h-6 w-6 text-slate-300" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-1" />
+                    )}
+                    Carregar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={searchOnline}
+                  >
+                    <Search className="h-4 w-4 mr-1" />
+                    Pesquisar
+                  </Button>
+                </div>
+                <Input
+                  placeholder="ou cola URL da imagem"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleUpload(f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="p-name">Nome</Label>
             <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
