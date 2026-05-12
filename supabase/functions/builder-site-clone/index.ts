@@ -1,3 +1,4 @@
+// @ts-nocheck — tabelas builder_* não estão nos types gerados pelo Supabase
 // Edge Function: builder-site-clone
 // Clona um site completo: cria builder_sites + builder_assets agregador,
 // faz scrape de cada página via Firecrawl, baixa assets binários para o
