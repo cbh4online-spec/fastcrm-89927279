@@ -222,6 +222,26 @@ export function LeadChefReferralFormSheet({ open, onOpenChange, referrerLeadId, 
             <Label htmlFor="ref-notes">Notas</Label>
             <Textarea id="ref-notes" rows={2} {...form.register("notes")} />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Equipamento atual — marca</Label>
+              <Select
+                value={form.watch("device_brand") || ""}
+                onValueChange={(v) => form.setValue("device_brand", v, { shouldDirty: true })}
+              >
+                <SelectTrigger><SelectValue placeholder="Ex.: Bimby" /></SelectTrigger>
+                <SelectContent>
+                  {LEADCHEF_DEVICE_BRANDS.map((b) => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ref-device-model">Modelo</Label>
+              <Input id="ref-device-model" placeholder="Ex.: TM6, TM7" {...form.register("device_model")} />
+            </div>
+          </div>
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>
             <Button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={submitting}>
