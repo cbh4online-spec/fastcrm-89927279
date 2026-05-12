@@ -33,14 +33,22 @@ export async function lookupPortugalPostalCode(
   const data = await res.json().catch(() => null);
   if (!data || typeof data !== "object") return null;
 
-  const arruamento: string | undefined = data.arruamento || data.partes?.[0]?.arruamento;
+  const partes: Array<Record<string, string>> = Array.isArray(data.partes) ? data.partes : [];
+  const firstParte = partes[0] ?? {};
+
+  // Geoapi.pt usa "Artéria" (rua) e "Local" (bairro/zona) dentro de cada parte.
+  const arteria: string | undefined =
+    firstParte["Artéria"] || firstParte["Arteria"] || firstParte["arruamento"] || data.arruamento;
+  const local: string | undefined = firstParte["Local"];
+  const address = [arteria, local].filter(Boolean).join(", ") || null;
+
   const localidade: string | undefined =
-    data.Localidade || data.localidade || data.partes?.[0]?.Localidade;
-  const concelho: string | undefined = data.Concelho || data.concelho;
-  const distrito: string | undefined = data.Distrito || data.distrito;
+    data["Localidade"] || data["localidade"] || data["Designação Postal"];
+  const concelho: string | undefined = data["Concelho"] || data["concelho"];
+  const distrito: string | undefined = data["Distrito"] || data["distrito"];
 
   return {
-    address: arruamento ?? null,
+    address,
     city: localidade ?? concelho ?? null,
     municipality: concelho ?? null,
     district: distrito ?? null,
