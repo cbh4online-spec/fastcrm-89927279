@@ -45914,6 +45914,8 @@ export type Database = {
           converted_lead_id: string | null
           created_at: string
           created_by: string | null
+          device_brand: string | null
+          device_model: string | null
           email: string | null
           id: string
           name: string
@@ -45930,6 +45932,8 @@ export type Database = {
           converted_lead_id?: string | null
           created_at?: string
           created_by?: string | null
+          device_brand?: string | null
+          device_model?: string | null
           email?: string | null
           id?: string
           name: string
@@ -45946,6 +45950,8 @@ export type Database = {
           converted_lead_id?: string | null
           created_at?: string
           created_by?: string | null
+          device_brand?: string | null
+          device_model?: string | null
           email?: string | null
           id?: string
           name?: string
@@ -46140,6 +46146,8 @@ export type Database = {
           county: string | null
           created_at: string
           created_by: string | null
+          device_brand: string | null
+          device_model: string | null
           email: string | null
           email_verified: boolean | null
           engagement_score: number | null
@@ -46242,6 +46250,8 @@ export type Database = {
           county?: string | null
           created_at?: string
           created_by?: string | null
+          device_brand?: string | null
+          device_model?: string | null
           email?: string | null
           email_verified?: boolean | null
           engagement_score?: number | null
@@ -46344,6 +46354,8 @@ export type Database = {
           county?: string | null
           created_at?: string
           created_by?: string | null
+          device_brand?: string | null
+          device_model?: string | null
           email?: string | null
           email_verified?: boolean | null
           engagement_score?: number | null
