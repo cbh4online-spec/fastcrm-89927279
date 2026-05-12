@@ -18,6 +18,7 @@ import {
   isValidPortugalPostalCode,
   lookupPortugalPostalCode,
 } from "@/utils/leadchef/postalCode";
+import { LEADCHEF_DEVICE_BRANDS } from "@/config/leadchef/devices";
 import { toast } from "sonner";
 
 const schema = z.object({
@@ -36,6 +37,8 @@ const schema = z.object({
   addressFloor: z.string().max(40).optional(),
   city: z.string().max(80).optional(),
   postalCode: z.string().max(20).optional(),
+  deviceBrand: z.string().max(60).optional(),
+  deviceModel: z.string().max(60).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
