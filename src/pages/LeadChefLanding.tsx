@@ -135,9 +135,9 @@ export default function LeadChefLanding() {
               <a href="#faq" className="hover:text-foreground">FAQ</a>
             </nav>
             <div className="flex items-center gap-2">
-              <Link to="/signup">
-                <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-                  Experimentar grátis
+              <Link to="/dashboard/leadchef/today">
+                <Button variant="ghost" size="sm" className="hidden gap-1 sm:inline-flex">
+                  Entrar na app <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               <a href="#contacto">
@@ -174,6 +174,14 @@ export default function LeadChefLanding() {
                     <Button size="lg" variant="outline" className="gap-2 px-8">
                       <Sparkles className="h-5 w-5" /> Experimentar grátis
                     </Button>
+                  </Link>
+                </div>
+                <div className="pt-2">
+                  <Link
+                    to="/dashboard/leadchef/today"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Explorar a aplicação LeadChef <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -373,6 +381,11 @@ export default function LeadChefLanding() {
                   <Link to="/signup">
                     <Button size="lg" variant="outline" className="gap-2 px-8">
                       <Sparkles className="h-5 w-5" /> Experimentar grátis
+                    </Button>
+                  </Link>
+                  <Link to="/dashboard/leadchef/today">
+                    <Button size="lg" variant="secondary" className="gap-2 px-8">
+                      <ChefHat className="h-5 w-5" /> Explorar a aplicação
                     </Button>
                   </Link>
                 </div>
