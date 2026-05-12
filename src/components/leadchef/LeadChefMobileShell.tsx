@@ -48,8 +48,7 @@ export function LeadChefMobileShell({ title, subtitle, children, showFab = true 
   const role = currentWorkspace?.role;
   const canManage = isSuperAdmin || role === "owner" || role === "admin";
 
-  const goBack = () =>
-    window.history.length > 1 ? navigate(-1) : navigate("/dashboard");
+  const goBack = () => navigate("/dashboard");
 
   const navItems = canManage
     ? [...desktopNav, { to: "/dashboard/leadchef/admin", label: "Centro", icon: Sliders }]
@@ -66,7 +65,7 @@ export function LeadChefMobileShell({ title, subtitle, children, showFab = true 
             </Badge>
             <Button variant="outline" size="sm" className="h-8 gap-2" onClick={goBack}>
               <ArrowLeft className="h-4 w-4" />
-              Voltar
+              Menus FastCRM
             </Button>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
