@@ -14,6 +14,7 @@ import {
   Zap,
   Settings2,
   Sliders,
+  Package,
 } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
