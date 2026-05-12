@@ -300,7 +300,7 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
             ) : (
               <ul className="divide-y">
                 {filtered.map((p) => {
-                  const meta = STATUS_META[p.status];
+                  const meta = STATUS_META[p.status] ?? STATUS_META.pending;
                   const Icon = meta.icon;
                   const active = p.id === selectedId;
                   return (
