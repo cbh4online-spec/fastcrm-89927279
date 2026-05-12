@@ -187,6 +187,8 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
       if (error) throw error;
       toast.success("Página guardada");
       setDirty(false);
+      setLastSavedAt(new Date());
+      setPreviewKey((k) => k + 1);
       qc.invalidateQueries({ queryKey: ["builder-site-pages", siteId] });
     } catch (err) {
       toast.error("Erro a guardar", {
