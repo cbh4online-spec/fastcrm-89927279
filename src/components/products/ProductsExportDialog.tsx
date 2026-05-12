@@ -87,6 +87,38 @@ export function ProductsExportDialog({
       case "delivery_mode": return product.delivery_mode || "";
       case "created_at": return product.created_at ? new Date(product.created_at).toLocaleDateString("pt-PT") : "";
       case "updated_at": return product.updated_at ? new Date(product.updated_at).toLocaleDateString("pt-PT") : "";
+      case "short_description": return product.short_description || "";
+      case "commercial_description": return product.commercial_description || "";
+      case "benefits": return Array.isArray(product.benefits) ? product.benefits.join(" | ") : "";
+      case "conditions": return product.conditions || "";
+      case "specifications":
+        return product.specifications && typeof product.specifications === "object"
+          ? Object.entries(product.specifications).map(([k, v]) => `${k}: ${v}`).join(" | ")
+          : "";
+      case "currency": return product.currency || "";
+      case "setup_fee": return product.setup_fee || 0;
+      case "recurring_fee": return product.recurring_fee || 0;
+      case "target_margin_pct": return product.target_margin_pct || 0;
+      case "unit_name": return product.unit_name || "";
+      case "labor_hours": return product.labor_hours || 0;
+      case "labor_hourly_rate": return product.labor_hourly_rate || 0;
+      case "sheet_slug": return product.sheet_slug || "";
+      case "demo_video_url": return product.demo_video_url || "";
+      case "store_featured": return product.store_featured ? "Sim" : "Não";
+      case "primary_image_url": {
+        const imgs = Array.isArray(product.images) ? product.images : [];
+        const idx = product.primary_image_index ?? 0;
+        return imgs[idx] || imgs[0] || "";
+      }
+      case "margin_status": {
+        if (!product.base_price || !product.direct_cost) return "";
+        const pct = ((product.base_price - product.direct_cost) / product.base_price) * 100;
+        if (pct < 10) return "Crítica";
+        if (pct < 25) return "Baixa";
+        if (pct < 50) return "Saudável";
+        return "Excelente";
+      }
+      case "recommended_price": return (product as any).recommended_price || product.base_price || 0;
       default: return "";
     }
   };
