@@ -33,6 +33,10 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
   const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<{ url: string; thumb: string }[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
