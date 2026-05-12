@@ -33,6 +33,10 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
   const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<{ url: string; thumb: string }[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -44,6 +48,9 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
       setSortOrder(String(product?.sort_order ?? 0));
       setCategory(product?.category ?? "");
       setImageUrl(product?.image_url ?? "");
+      setSearchQuery(product?.name ?? "");
+      setSearchResults([]);
+      setSearchOpen(false);
     }
   }, [open, product]);
 
@@ -76,18 +83,28 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
     }
   };
 
-  const searchOnline = () => {
-    const q = name.trim();
+  const runSearch = async () => {
+    const q = (searchQuery || name).trim();
     if (!q) {
-      toast.info("Escreve primeiro o nome do produto.");
+      toast.info("Escreve um termo para pesquisar.");
       return;
     }
-    window.open(
-      `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q)}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-    toast.info("Copia o URL da imagem e cola no campo abaixo.");
+    setSearching(true);
+    setSearchOpen(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("leadchef-image-search", {
+        body: { query: q },
+      });
+      if (error) throw error;
+      const imgs = (data?.images ?? []) as { url: string; thumb: string }[];
+      setSearchResults(imgs);
+      if (imgs.length === 0) toast.info("Sem resultados. Tenta outro termo.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro na pesquisa");
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
   };
 
   const submit = async () => {
@@ -139,33 +156,21 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
                 )}
               </div>
               <div className="flex-1 space-y-2">
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4 mr-1" />
-                    )}
-                    Carregar
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={searchOnline}
-                  >
-                    <Search className="h-4 w-4 mr-1" />
-                    Pesquisar
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-1" />
+                  )}
+                  Carregar imagem
+                </Button>
                 <Input
                   placeholder="ou cola URL da imagem"
                   value={imageUrl}
@@ -184,6 +189,76 @@ export function LeadChefProductDialog({ open, onOpenChange, workspaceId, product
                   e.target.value = "";
                 }}
               />
+            </div>
+
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/60 p-2">
+              <div className="flex gap-2">
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      runSearch();
+                    }
+                  }}
+                  placeholder="Pesquisar imagem na internet…"
+                  className="text-xs h-9 bg-white"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={runSearch}
+                  disabled={searching}
+                >
+                  {searching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {searchOpen && (
+                <div className="mt-2">
+                  {searching ? (
+                    <div className="text-center text-xs text-slate-500 py-4">A pesquisar…</div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="text-center text-xs text-slate-400 py-4">Sem resultados.</div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-1.5 max-h-44 overflow-y-auto p-0.5">
+                      {searchResults.map((r) => (
+                        <button
+                          key={r.url}
+                          type="button"
+                          onClick={() => {
+                            setImageUrl(r.url);
+                            setSearchOpen(false);
+                            toast.success("Imagem selecionada");
+                          }}
+                          className={`relative aspect-square rounded-md overflow-hidden border bg-white hover:ring-2 hover:ring-emerald-500 transition ${
+                            imageUrl === r.url
+                              ? "ring-2 ring-emerald-600 border-emerald-600"
+                              : "border-slate-200"
+                          }`}
+                          title={r.url}
+                        >
+                          <img
+                            src={r.thumb}
+                            alt=""
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
