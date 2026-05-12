@@ -511,5 +511,6 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
         )}
       </ResizablePanel>
     </ResizablePanelGroup>
+    </div>
   );
 }
