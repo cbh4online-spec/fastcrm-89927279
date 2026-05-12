@@ -69,7 +69,7 @@ export function LeadChefReferralCard({ referral, referrerName, onClick, onConver
             onClick={(e) => { e.stopPropagation(); onConvert(); }}
             className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700"
           >
-            Converter em lead
+            Converter em referência
           </button>
         )}
       </div>
