@@ -219,7 +219,7 @@ Analyze and provide strategy using the tool.`;
       logAIUsage({
         workspace_id: workspace_id,
         feature: "ai-weekly-strategy",
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         tokens_input: aiData?.usage?.prompt_tokens ?? 0,
         tokens_output: aiData?.usage?.completion_tokens ?? 0,
       });
