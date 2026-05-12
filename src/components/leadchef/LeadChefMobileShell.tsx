@@ -39,6 +39,7 @@ const desktopNav = [
   { to: "/dashboard/leadchef/referencias", label: "Referências", icon: Sparkles },
   { to: "/dashboard/leadchef/objetivos", label: "Objetivos", icon: Target },
   { to: "/dashboard/leadchef/equipa", label: "Equipa", icon: Users },
+  { to: "/dashboard/leadchef/produtos", label: "Produtos", icon: Package },
   { to: "/dashboard/leadchef/templates", label: "Templates", icon: MessageSquare },
   { to: "/dashboard/leadchef/automacoes", label: "Automações", icon: Zap },
   { to: "/dashboard/leadchef/ferramentas", label: "Ferramentas", icon: Settings2 },
