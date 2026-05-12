@@ -78,6 +78,9 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
   const [draftHtml, setDraftHtml] = useState<string>("");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<"split" | "preview" | "code">("preview");
+  const [previewKey, setPreviewKey] = useState(0);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const lastLoadedRef = useRef<string | null>(null);
 
   // 1. Site agregador
