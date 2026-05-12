@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,9 @@ import {
   Utensils,
   CheckCircle2,
 } from "lucide-react";
+import { useLeadChefLandingContent } from "@/hooks/leadchef/useLeadChefLandingContent";
 
-const modules = [
+const defaultModules = [
   {
     icon: ClipboardList,
     title: "Pipeline de leads",
@@ -58,14 +59,14 @@ const modules = [
   },
 ];
 
-const benefits = [
+const defaultBenefits = [
   { value: "+38%", label: "demonstrações concluídas por mês" },
   { value: "−52%", label: "tempo gasto em follow-ups manuais" },
   { value: "+24%", label: "taxa de conversão lead → cliente" },
   { value: "100%", label: "rastreabilidade do ciclo de venda" },
 ];
 
-const journey = [
+const defaultJourney = [
   { step: "1", title: "Lead chega", desc: "Captado via formulário, indicação ou contacto direto." },
   { step: "2", title: "Conversa inicial", desc: "Qualificação rápida e agendamento da demonstração." },
   { step: "3", title: "Demonstração culinária", desc: "Receita, equipamento e resultado registados na hora." },
@@ -73,7 +74,7 @@ const journey = [
   { step: "5", title: "Pós-venda e referência", desc: "Cliente fidelizado torna-se a próxima fonte de leads." },
 ];
 
-const faqs = [
+const defaultFaqs = [
   {
     q: "Para que tipo de equipas foi feito o LeadChef?",
     a: "Para equipas que vendem com demonstrações culinárias presenciais — chefs, consultores e representantes que precisam de organizar leads, agenda, referências e pós-venda num só lugar.",
@@ -96,26 +97,49 @@ const faqs = [
   },
 ];
 
+const ICON_MAP: Record<string, any> = {
+  ClipboardList, CalendarCheck, Users, Sparkles, Target, MessageSquare,
+  Utensils, LineChart, CheckCircle2, ChefHat, Flame,
+};
+
 export default function LeadChefLanding() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const { data: cms } = useLeadChefLandingContent();
+
+  const modules = useMemo(() => {
+    const list = (cms?.modules?.length ? cms.modules : defaultModules) as any[];
+    return list.map((m, i) => ({
+      ...m,
+      icon: typeof m.icon === "string" ? (ICON_MAP[m.icon] ?? defaultModules[i % defaultModules.length].icon) : (m.icon ?? defaultModules[i % defaultModules.length].icon),
+    }));
+  }, [cms?.modules]);
+  const benefits = cms?.benefits?.length ? cms.benefits : defaultBenefits;
+  const journey = cms?.journey?.length ? cms.journey : defaultJourney;
+  const faqs = cms?.faqs?.length ? cms.faqs : defaultFaqs;
+
+  const hero = cms?.hero ?? {};
+  const seo = cms?.seo ?? {};
+  const ctas = cms?.ctas ?? {};
+
+  const seoTitle = seo.title ?? "LeadChef — CRM para equipas de demonstração culinária";
+  const seoDescription = seo.description ?? "LeadChef organiza leads, demonstrações, clientes e referências para equipas de venda com demonstração culinária. Agende uma demonstração ou experimente grátis.";
+  const ogTitle = seo.ogTitle ?? seoTitle;
+  const ogDescription = seo.ogDescription ?? "Da primeira conversa à venda. Pipeline, agenda, pós-venda e referências num só lugar, pensado para chefs e consultores.";
+  const canonical = seo.canonical ?? "/leadchef";
+
   return (
     <>
       <Helmet>
-        <title>LeadChef — CRM para equipas de demonstração culinária</title>
-        <meta
-          name="description"
-          content="LeadChef organiza leads, demonstrações, clientes e referências para equipas de venda com demonstração culinária. Agende uma demonstração ou experimente grátis."
-        />
-        <meta property="og:title" content="LeadChef — CRM para equipas de demonstração culinária" />
-        <meta
-          property="og:description"
-          content="Da primeira conversa à venda. Pipeline, agenda, pós-venda e referências num só lugar, pensado para chefs e consultores."
-        />
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="/leadchef" />
+        {cms?.images?.ogImage && <meta property="og:image" content={cms.images.ogImage} />}
+        <link rel="canonical" href={canonical} />
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground antialiased">
@@ -156,36 +180,38 @@ export default function LeadChefLanding() {
             <div className="container mx-auto px-4 py-20 md:py-28">
               <div className="mx-auto max-w-3xl text-center space-y-6">
                 <Badge variant="secondary" className="gap-1">
-                  <Flame className="h-3 w-3" /> CRM dedicado a demonstrações culinárias
+                  <Flame className="h-3 w-3" /> {hero.badge ?? "CRM dedicado a demonstrações culinárias"}
                 </Badge>
                 <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
-                  Da primeira receita à venda fechada — <span className="text-primary">tudo num só lugar</span>.
+                  {hero.title ?? "Da primeira receita à venda fechada — "}
+                  <span className="text-primary">{hero.highlight ?? "tudo num só lugar"}</span>
+                  {!hero.title && "."}
                 </h1>
                 <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl">
-                  O LeadChef organiza leads, agenda, clientes e referências para equipas que vendem com demonstrações culinárias. Menos folhas de cálculo, mais cozinha.
+                  {hero.subtitle ?? "O LeadChef organiza leads, agenda, clientes e referências para equipas que vendem com demonstrações culinárias. Menos folhas de cálculo, mais cozinha."}
                 </p>
                 <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
-                  <a href="#contacto">
+                  <a href={hero.primaryCtaHref ?? "#contacto"}>
                     <Button size="lg" className="gap-2 px-8">
-                      <CalendarCheck className="h-5 w-5" /> Agendar demonstração
+                      <CalendarCheck className="h-5 w-5" /> {hero.primaryCtaLabel ?? "Agendar demonstração"}
                     </Button>
                   </a>
-                  <Link to="/signup">
+                  <Link to={hero.secondaryCtaHref ?? ctas.signupHref ?? "/signup"}>
                     <Button size="lg" variant="outline" className="gap-2 px-8">
-                      <Sparkles className="h-5 w-5" /> Experimentar grátis
+                      <Sparkles className="h-5 w-5" /> {hero.secondaryCtaLabel ?? "Experimentar grátis"}
                     </Button>
                   </Link>
                 </div>
                 <div className="pt-2">
                   <Link
-                    to="/dashboard/leadchef/today"
+                    to={ctas.appHref ?? "/dashboard/leadchef/today"}
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
                   >
                     Explorar a aplicação LeadChef <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  ✓ Sem cartão de crédito · ✓ Setup em minutos · ✓ Português de Portugal
+                  {hero.microCopy ?? "✓ Sem cartão de crédito · ✓ Setup em minutos · ✓ Português de Portugal"}
                 </p>
               </div>
 

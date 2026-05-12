@@ -12,7 +12,9 @@ import {
   MessageSquare,
   Zap,
   Settings2,
+  Sliders,
 } from "lucide-react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { LeadChefBottomNav } from "./LeadChefBottomNav";
@@ -39,6 +41,14 @@ const desktopNav = [
 ];
 
 export function LeadChefMobileShell({ title, subtitle, children, showFab = true }: Props) {
+  const { currentWorkspace, isSuperAdmin } = useWorkspace();
+  const role = currentWorkspace?.role;
+  const canManage = isSuperAdmin || role === "owner" || role === "admin";
+
+  const navItems = canManage
+    ? [...desktopNav, { to: "/dashboard/leadchef/admin", label: "Centro", icon: Sliders }]
+    : desktopNav;
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-8">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 backdrop-blur-xl bg-white/90">
@@ -57,7 +67,7 @@ export function LeadChefMobileShell({ title, subtitle, children, showFab = true 
         >
           <div className="max-w-6xl mx-auto px-4">
             <ul className="flex items-center gap-1 overflow-x-auto">
-              {desktopNav.map((it) => {
+              {navItems.map((it) => {
                 const Icon = it.icon;
                 return (
                   <li key={it.to}>

@@ -45094,6 +45094,60 @@ export type Database = {
         }
         Relationships: []
       }
+      leadchef_app_config: {
+        Row: {
+          accent_color: string | null
+          created_at: string
+          enabled_modules: string[]
+          features: Json
+          logo_url: string | null
+          onboarding: Json
+          primary_color: string | null
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          created_at?: string
+          enabled_modules?: string[]
+          features?: Json
+          logo_url?: string | null
+          onboarding?: Json
+          primary_color?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          created_at?: string
+          enabled_modules?: string[]
+          features?: Json
+          logo_url?: string | null
+          onboarding?: Json
+          primary_color?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_app_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "leadchef_app_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leadchef_appointments: {
         Row: {
           cancelled_at: string | null
@@ -45456,6 +45510,69 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: []
+      }
+      leadchef_landing_content: {
+        Row: {
+          benefits: Json
+          created_at: string
+          ctas: Json
+          faqs: Json
+          hero: Json
+          images: Json
+          is_canonical: boolean
+          journey: Json
+          modules: Json
+          seo: Json
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          benefits?: Json
+          created_at?: string
+          ctas?: Json
+          faqs?: Json
+          hero?: Json
+          images?: Json
+          is_canonical?: boolean
+          journey?: Json
+          modules?: Json
+          seo?: Json
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          benefits?: Json
+          created_at?: string
+          ctas?: Json
+          faqs?: Json
+          hero?: Json
+          images?: Json
+          is_canonical?: boolean
+          journey?: Json
+          modules?: Json
+          seo?: Json
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_landing_content_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "leadchef_landing_content_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leadchef_lead_profiles: {
         Row: {
