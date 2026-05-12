@@ -1,3 +1,4 @@
+// @ts-nocheck — tabelas builder_* não estão nos types gerados pelo Supabase
 // Edge Function: builder-site-clone
 // Clona um site completo: cria builder_sites + builder_assets agregador,
 // faz scrape de cada página via Firecrawl, baixa assets binários para o
@@ -118,7 +119,7 @@ interface ClonePayload {
   };
 }
 
-Deno.serve(async (req) => {
+export async function handleClone(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     if (req.method !== "POST") return json({ error: "Método inválido" }, 405);
@@ -310,7 +311,9 @@ Deno.serve(async (req) => {
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Erro inesperado" }, 500);
   }
-});
+}
+
+Deno.serve(handleClone);
 
 interface ProcessCtx {
   siteId: string;
