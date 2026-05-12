@@ -189,7 +189,7 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
           </div>
 
           <div className="space-y-1">
-            <Label>Temperatura</Label>
+            <Label>Interesse</Label>
             <Select
               value={form.watch("temperature")}
               onValueChange={(v) => form.setValue("temperature", v as LeadChefTemperature)}
