@@ -14,6 +14,11 @@ import { Loader2 } from "lucide-react";
 import { useCreateLeadChefLead } from "@/hooks/leadchef/useCreateLeadChefLead";
 import { LEADCHEF_ACTIVITY_LABELS } from "./constants";
 import type { LeadChefActivityType, LeadChefTemperature } from "@/types/leadchef";
+import {
+  isValidPortugalPostalCode,
+  lookupPortugalPostalCode,
+} from "@/utils/leadchef/postalCode";
+import { toast } from "sonner";
 
 const schema = z.object({
   name: z.string().min(2, "Indica o nome do lead.").max(120),
@@ -51,6 +56,7 @@ const ACTIVITY_OPTIONS: LeadChefActivityType[] = [
 export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props) {
   const create = useCreateLeadChefLead();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLookingUpCp, setIsLookingUpCp] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -204,8 +210,42 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="lc-postal">Código postal</Label>
-              <Input id="lc-postal" placeholder="0000-000" {...form.register("postalCode")} />
+              <Label htmlFor="lc-postal">
+                Código postal
+                {isLookingUpCp && (
+                  <Loader2 className="inline h-3 w-3 ml-2 animate-spin text-emerald-600" />
+                )}
+              </Label>
+              <Input
+                id="lc-postal"
+                placeholder="0000-000"
+                {...form.register("postalCode")}
+                onBlur={async (e) => {
+                  const cp = e.target.value.trim();
+                  if (!isValidPortugalPostalCode(cp)) return;
+                  setIsLookingUpCp(true);
+                  try {
+                    const result = await lookupPortugalPostalCode(cp);
+                    if (!result) {
+                      toast.error("Código postal não encontrado.");
+                      return;
+                    }
+                    if (result.address && !form.getValues("address")) {
+                      form.setValue("address", result.address, { shouldDirty: true });
+                    }
+                    if (result.city) {
+                      form.setValue("city", result.city, { shouldDirty: true });
+                    }
+                  } catch {
+                    toast.error("Falha ao consultar código postal.");
+                  } finally {
+                    setIsLookingUpCp(false);
+                  }
+                }}
+              />
+              <p className="text-[11px] text-slate-500">
+                Indica o código postal e a morada/localidade são preenchidas automaticamente.
+              </p>
             </div>
             <div className="space-y-1">
               <Label htmlFor="lc-city">Localidade</Label>
