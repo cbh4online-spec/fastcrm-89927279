@@ -31,7 +31,7 @@ interface Props {
 
 const desktopNav = [
   { to: "/dashboard/leadchef/today", label: "Hoje", icon: Home },
-  { to: "/dashboard/leadchef/leads", label: "Leads", icon: UserRoundSearch },
+  { to: "/dashboard/leadchef/leads", label: "Referências", icon: UserRoundSearch },
   { to: "/dashboard/leadchef/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/dashboard/leadchef/clientes", label: "Clientes", icon: UsersRound },
   { to: "/dashboard/leadchef/referencias", label: "Referências", icon: Sparkles },
