@@ -65468,6 +65468,33 @@ export type Database = {
           },
         ]
       }
+      pt_postal_code_cache: {
+        Row: {
+          address: string | null
+          cached_at: string
+          city: string | null
+          district: string | null
+          municipality: string | null
+          postal_code: string
+        }
+        Insert: {
+          address?: string | null
+          cached_at?: string
+          city?: string | null
+          district?: string | null
+          municipality?: string | null
+          postal_code: string
+        }
+        Update: {
+          address?: string | null
+          cached_at?: string
+          city?: string | null
+          district?: string | null
+          municipality?: string | null
+          postal_code?: string
+        }
+        Relationships: []
+      }
       purchase_order_items: {
         Row: {
           description: string
