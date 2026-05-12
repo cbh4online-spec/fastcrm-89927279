@@ -96,7 +96,7 @@ export function LeadChefConvertReferralSheet({ open, onOpenChange, referral, onC
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[92vh] overflow-y-auto">
         <SheetHeader className="text-left">
-          <SheetTitle>Converter referência em lead</SheetTitle>
+          <SheetTitle>Converter referência</SheetTitle>
         </SheetHeader>
         {!referral ? (
           <p className="text-sm text-slate-500 mt-4">Sem referência selecionada.</p>
@@ -172,7 +172,7 @@ export function LeadChefConvertReferralSheet({ open, onOpenChange, referral, onC
                 disabled={submitting || (needsConfirm && !form.watch("authConfirmed"))}
               >
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Converter em lead
+                Converter em referência
               </Button>
             </div>
           </form>

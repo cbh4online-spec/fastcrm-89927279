@@ -83,7 +83,7 @@ export default function LeadChefReferenciaDetailPage() {
           onClick={() => setConvertOpen(true)}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
         >
-          Converter em lead
+          Converter em referência
         </Button>
       )}
 
