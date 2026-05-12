@@ -15,6 +15,7 @@ import {
 } from "@/components/leadchef/constants";
 import type { LeadChefStage } from "@/types/leadchef";
 import { cn } from "@/lib/utils";
+import { L, LEADCHEF_COPY } from "@/config/leadchef/labels";
 
 const STAGE_OPTIONS: Array<{ value: LeadChefStage | "all"; label: string }> = [
   { value: "all", label: "Todos" },
