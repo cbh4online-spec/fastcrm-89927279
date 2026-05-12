@@ -48,8 +48,7 @@ export function LeadChefMobileShell({ title, subtitle, children, showFab = true 
   const role = currentWorkspace?.role;
   const canManage = isSuperAdmin || role === "owner" || role === "admin";
 
-  const goBack = () =>
-    window.history.length > 1 ? navigate(-1) : navigate("/dashboard");
+  const goBack = () => navigate("/dashboard");
 
   const navItems = canManage
     ? [...desktopNav, { to: "/dashboard/leadchef/admin", label: "Centro", icon: Sliders }]
