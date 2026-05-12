@@ -43,6 +43,7 @@ import { BuilderPropertiesPanel } from "@/modules/builder/components/BuilderProp
 import { BuilderExportDialog } from "@/modules/builder/components/BuilderExportDialog";
 import { BuilderAIPanel } from "@/modules/builder/components/BuilderAIPanel";
 import { BuilderVariantsPanel } from "@/modules/builder/components/BuilderVariantsPanel";
+import { BuilderClonedSiteWorkspace } from "@/modules/builder/components/BuilderClonedSiteWorkspace";
 import {
   ensureBids,
   applyPatch,
