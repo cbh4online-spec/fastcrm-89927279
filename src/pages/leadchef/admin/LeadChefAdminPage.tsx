@@ -1,14 +1,16 @@
 import { Helmet } from "react-helmet-async";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { LeadChefLandingEditor } from "@/components/leadchef/admin/LeadChefLandingEditor";
 import { LeadChefAccessManager } from "@/components/leadchef/admin/LeadChefAccessManager";
 import { LeadChefAppConfigEditor } from "@/components/leadchef/admin/LeadChefAppConfigEditor";
-import { ChefHat } from "lucide-react";
+import { ArrowLeft, ChefHat } from "lucide-react";
 
 export default function LeadChefAdminPage() {
   const { currentWorkspace, isSuperAdmin, loading } = useWorkspace();
+  const navigate = useNavigate();
 
   if (loading) return <div className="p-6 text-sm text-muted-foreground">A carregar…</div>;
   if (!currentWorkspace) return <div className="p-6 text-sm text-muted-foreground">Sem workspace ativo.</div>;
@@ -20,6 +22,15 @@ export default function LeadChefAdminPage() {
   return (
     <div className="container mx-auto max-w-5xl space-y-6 p-4 md:p-6">
       <Helmet><title>Centro LeadChef</title></Helmet>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="gap-2 -ml-2"
+        onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/dashboard/leadchef/today"))}
+      >
+        <ArrowLeft className="h-4 w-4" /> Voltar
+      </Button>
 
       <header className="flex items-center gap-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
