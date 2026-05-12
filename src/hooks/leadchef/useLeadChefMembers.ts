@@ -49,7 +49,7 @@ export function useUpdateLeadChefMemberRole() {
     mutationFn: async ({ workspaceId, userId, role }: { workspaceId: string; userId: string; role: string }) => {
       const { error } = await supabase
         .from("workspace_members")
-        .update({ role })
+        .update({ role: role as any })
         .eq("workspace_id", workspaceId)
         .eq("user_id", userId);
       if (error) throw error;
