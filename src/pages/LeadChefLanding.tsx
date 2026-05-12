@@ -116,33 +116,74 @@ export default function LeadChefLanding() {
     window.scrollTo(0, 0);
   }, []);
 
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const signupSchema = z.object({
+    name: z.string().trim().min(2, "Nome demasiado curto").max(120),
+    email: z.string().trim().email("Email inválido").max(160),
+    phone: z.string().trim().max(32).optional().or(z.literal("")),
+    password: z.string().min(8, "Mínimo 8 caracteres").max(72),
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim()) {
-      toast.error("Preencha nome e email.");
+    const parsed = signupSchema.safeParse(form);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
       return;
     }
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-public-lead", {
-        body: {
-          workspace_id: LEADCHEF_WORKSPACE_ID,
-          name: form.name.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim() || undefined,
-          source: "Landing LeadChef",
+      const redirectUrl = `${window.location.origin}/dashboard/leadchef/today`;
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: parsed.data.name,
+            phone: parsed.data.phone || null,
+            source: "leadchef-landing",
+          },
         },
       });
-      if (error || (data && (data as any).error)) {
-        throw new Error(error?.message || (data as any).error);
+      if (signUpError) {
+        if (/already registered|already exists/i.test(signUpError.message)) {
+          toast.error("Este email já tem conta. Faça login.");
+        } else {
+          toast.error(signUpError.message || "Não foi possível criar a conta.");
+        }
+        return;
       }
+
+      // Best-effort: registar também como lead para a equipa LeadChef
+      try {
+        await supabase.functions.invoke("create-public-lead", {
+          body: {
+            workspace_id: LEADCHEF_WORKSPACE_ID,
+            name: parsed.data.name,
+            email: parsed.data.email,
+            phone: parsed.data.phone || null,
+            source: "Landing LeadChef — Registo",
+          },
+        });
+      } catch (e) {
+        console.warn("[LeadChef] Falha a registar lead paralelo:", e);
+      }
+
+      // Se sessão já criada (auto-confirm), entra direto na app
+      if (signUpData.session) {
+        toast.success("Conta criada! A entrar...");
+        navigate("/dashboard/leadchef/today", { replace: true });
+        return;
+      }
+
       setSubmitted(true);
-      setForm({ name: "", email: "", phone: "", message: "" });
-      toast.success("Registo recebido. Entraremos em contacto em breve!");
+      setForm({ name: "", email: "", phone: "", password: "" });
+      toast.success("Conta criada! Confirme o seu email para entrar.");
     } catch (err: any) {
       console.error(err);
       toast.error("Não foi possível submeter. Tente novamente.");
