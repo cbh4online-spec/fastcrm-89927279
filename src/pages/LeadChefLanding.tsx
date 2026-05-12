@@ -383,6 +383,11 @@ export default function LeadChefLanding() {
                       <Sparkles className="h-5 w-5" /> Experimentar grátis
                     </Button>
                   </Link>
+                  <Link to="/dashboard/leadchef/today">
+                    <Button size="lg" variant="secondary" className="gap-2 px-8">
+                      <ChefHat className="h-5 w-5" /> Explorar a aplicação
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
