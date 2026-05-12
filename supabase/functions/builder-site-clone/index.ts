@@ -310,7 +310,9 @@ export async function handleClone(req: Request): Promise<Response> {
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Erro inesperado" }, 500);
   }
-});
+}
+
+Deno.serve(handleClone);
 
 interface ProcessCtx {
   siteId: string;
