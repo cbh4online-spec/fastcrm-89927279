@@ -96,8 +96,20 @@ export default function LeadChefProdutosPage() {
               key={p.id}
               className="rounded-2xl bg-white border border-slate-200 shadow-sm p-3 flex items-center gap-3"
             >
-              <div className="h-16 w-16 shrink-0 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
-                <Package className="h-6 w-6" />
+              <div className="h-16 w-16 shrink-0 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 overflow-hidden">
+                {p.image_url ? (
+                  <img
+                    src={p.image_url}
+                    alt={p.name}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <Package className="h-6 w-6" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-2 flex-wrap">
