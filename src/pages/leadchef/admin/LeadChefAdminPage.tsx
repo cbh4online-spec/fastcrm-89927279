@@ -23,6 +23,15 @@ export default function LeadChefAdminPage() {
     <div className="container mx-auto max-w-5xl space-y-6 p-4 md:p-6">
       <Helmet><title>Centro LeadChef</title></Helmet>
 
+      <Button
+        variant="ghost"
+        size="sm"
+        className="gap-2 -ml-2"
+        onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/dashboard/leadchef/today"))}
+      >
+        <ArrowLeft className="h-4 w-4" /> Voltar
+      </Button>
+
       <header className="flex items-center gap-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <ChefHat className="h-5 w-5" />
