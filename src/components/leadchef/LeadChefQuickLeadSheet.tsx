@@ -215,8 +215,19 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="lc-address">Morada</Label>
-            <Input id="lc-address" placeholder="Rua, número, andar" {...form.register("address")} />
+            <Label htmlFor="lc-address">Rua</Label>
+            <Input id="lc-address" placeholder="Rua / Avenida" {...form.register("address")} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="lc-address-number">Número</Label>
+              <Input id="lc-address-number" placeholder="Ex.: 123" {...form.register("addressNumber")} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="lc-address-floor">Andar / Fração</Label>
+              <Input id="lc-address-floor" placeholder="Ex.: 2º Dto" {...form.register("addressFloor")} />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
