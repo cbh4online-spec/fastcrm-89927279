@@ -97,16 +97,11 @@ export function LeadChefQuickLeadSheet({ open, onOpenChange, onCreated }: Props)
         nextActionNote: values.nextActionNote,
         temperature: values.temperature as LeadChefTemperature,
         notes: values.notes,
-        address:
-          [
-            values.address?.trim(),
-            values.addressNumber?.trim() && `nº ${values.addressNumber.trim()}`,
-            values.addressFloor?.trim(),
-          ]
-            .filter(Boolean)
-            .join(", ") || undefined,
-        city: values.city || undefined,
-        postalCode: values.postalCode || undefined,
+        address: values.address?.trim() || undefined,
+        addressNumber: values.addressNumber?.trim() || undefined,
+        addressFloor: values.addressFloor?.trim() || undefined,
+        city: values.city?.trim() || undefined,
+        postalCode: values.postalCode?.trim() || undefined,
       });
       form.reset();
       onOpenChange(false);

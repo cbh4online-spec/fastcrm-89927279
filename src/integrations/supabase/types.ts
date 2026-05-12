@@ -46112,6 +46112,8 @@ export type Database = {
           about: string | null
           activity_description: string | null
           address: string | null
+          address_floor: string | null
+          address_number: string | null
           ai_analyzed_at: string | null
           ai_insight: string | null
           ai_lead_type: string | null
@@ -46212,6 +46214,8 @@ export type Database = {
           about?: string | null
           activity_description?: string | null
           address?: string | null
+          address_floor?: string | null
+          address_number?: string | null
           ai_analyzed_at?: string | null
           ai_insight?: string | null
           ai_lead_type?: string | null
@@ -46312,6 +46316,8 @@ export type Database = {
           about?: string | null
           activity_description?: string | null
           address?: string | null
+          address_floor?: string | null
+          address_number?: string | null
           ai_analyzed_at?: string | null
           ai_insight?: string | null
           ai_lead_type?: string | null

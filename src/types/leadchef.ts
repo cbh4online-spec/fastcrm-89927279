@@ -154,6 +154,8 @@ export interface CreateLeadChefLeadInput {
   temperature: LeadChefTemperature;
   notes?: string;
   address?: string;
+  addressNumber?: string;
+  addressFloor?: string;
   city?: string;
   postalCode?: string;
 }
