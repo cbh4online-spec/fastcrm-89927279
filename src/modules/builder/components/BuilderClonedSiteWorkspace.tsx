@@ -405,6 +405,23 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
                     <Code2 className="h-3.5 w-3.5 mr-1" /> Código
                   </Button>
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    const htmlToPreview = selected?.html ?? "";
+                    if (!htmlToPreview.trim()) return;
+                    const blob = new Blob([htmlToPreview], { type: "text/html" });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, "_blank", "noopener,noreferrer");
+                    // Revogar após um tempo para não vazar memória
+                    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                  }}
+                  title="Abrir página numa nova aba"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ver site
+                </Button>
                 {lastSavedAt && (
                   <span className="text-[11px] text-muted-foreground hidden md:inline">
                     Guardado {lastSavedAt.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
