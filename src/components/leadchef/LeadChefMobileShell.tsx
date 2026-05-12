@@ -12,7 +12,9 @@ import {
   MessageSquare,
   Zap,
   Settings2,
+  Sliders,
 } from "lucide-react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { LeadChefBottomNav } from "./LeadChefBottomNav";
