@@ -30,6 +30,8 @@ export function useCreateLeadChefLead() {
           status: "new",
           ai_temperature: input.temperature,
           address: input.address?.trim() || null,
+          address_number: input.addressNumber?.trim() || null,
+          address_floor: input.addressFloor?.trim() || null,
           city: input.city?.trim() || null,
           postal_code: input.postalCode?.trim() || null,
           created_by: user.id,
