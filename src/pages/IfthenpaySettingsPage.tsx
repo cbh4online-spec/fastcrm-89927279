@@ -91,6 +91,7 @@ export default function IfthenpaySettingsPage() {
   // Empty state — no settings row yet
   if (!settings) {
     return (
+      <DashboardLayout>
       <div className="p-6 max-w-3xl mx-auto space-y-4">
         <Card>
           <CardHeader>
