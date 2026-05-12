@@ -62,6 +62,7 @@ export function useUpsertLeadChefProduct(workspaceId: string | undefined) {
         category: rest.category?.trim() || null,
         sort_order: Number(rest.sort_order) || 0,
         is_active: rest.is_active ?? true,
+        image_url: rest.image_url?.trim() || null,
       };
       if (id) {
         const { error } = await supabase
