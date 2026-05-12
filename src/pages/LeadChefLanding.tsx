@@ -431,7 +431,7 @@ export default function LeadChefLanding() {
             </div>
           </section>
 
-          {/* CTA final */}
+          {/* Formulário de registo */}
           <section id="contacto" className="border-t bg-gradient-to-b from-background to-primary/10 py-20">
             <div className="container mx-auto px-4">
               <div className="mx-auto max-w-3xl text-center">
@@ -439,26 +439,87 @@ export default function LeadChefLanding() {
                   Pronto para vender mais com a sua cozinha?
                 </h2>
                 <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-                  Agende uma demonstração de 30 minutos e veja o LeadChef a trabalhar com a sua operação. Ou comece já a experimentar, grátis.
+                  Deixe os seus dados — entramos em contacto para agendar uma demonstração e dar-lhe acesso ao LeadChef.
                 </p>
-                <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <a href="mailto:hello@metodopare.ai?subject=Demonstra%C3%A7%C3%A3o%20LeadChef">
-                    <Button size="lg" className="gap-2 px-8">
-                      <CalendarCheck className="h-5 w-5" /> Agendar demonstração
-                    </Button>
-                  </a>
-                  <Link to="/signup">
-                    <Button size="lg" variant="outline" className="gap-2 px-8">
-                      <Sparkles className="h-5 w-5" /> Experimentar grátis
-                    </Button>
-                  </Link>
-                  <Link to="/dashboard/leadchef/today">
-                    <Button size="lg" variant="secondary" className="gap-2 px-8">
-                      <ChefHat className="h-5 w-5" /> Explorar a aplicação
-                    </Button>
-                  </Link>
-                </div>
               </div>
+
+              <Card className="mx-auto mt-10 max-w-xl border-primary/20">
+                <CardContent className="p-6 md:p-8">
+                  {submitted ? (
+                    <div className="text-center space-y-4 py-6">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <CheckCircle2 className="h-6 w-6" />
+                      </div>
+                      <h3 className="text-xl font-semibold">Registo recebido!</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Obrigado. A equipa LeadChef entrará em contacto consigo brevemente.
+                      </p>
+                      <Button variant="outline" onClick={() => setSubmitted(false)}>
+                        Submeter novo pedido
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="lc-name">Nome *</Label>
+                          <Input
+                            id="lc-name"
+                            value={form.name}
+                            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                            placeholder="O seu nome"
+                            required
+                            maxLength={120}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lc-phone">Telemóvel</Label>
+                          <Input
+                            id="lc-phone"
+                            value={form.phone}
+                            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                            placeholder="+351 ..."
+                            maxLength={32}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lc-email">Email *</Label>
+                        <Input
+                          id="lc-email"
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                          placeholder="email@empresa.pt"
+                          required
+                          maxLength={160}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lc-msg">Mensagem (opcional)</Label>
+                        <Textarea
+                          id="lc-msg"
+                          value={form.message}
+                          onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+                          placeholder="Conte-nos brevemente sobre a sua equipa..."
+                          rows={3}
+                          maxLength={600}
+                        />
+                      </div>
+                      <Button type="submit" size="lg" className="w-full gap-2" disabled={submitting}>
+                        {submitting ? (
+                          <><Loader2 className="h-5 w-5 animate-spin" /> A enviar...</>
+                        ) : (
+                          <><CalendarCheck className="h-5 w-5" /> Quero conhecer o LeadChef</>
+                        )}
+                      </Button>
+                      <p className="text-center text-xs text-muted-foreground">
+                        Ao submeter aceita ser contactado pela equipa LeadChef.
+                      </p>
+                    </form>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </section>
         </main>
