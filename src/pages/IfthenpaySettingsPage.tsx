@@ -74,11 +74,13 @@ export default function IfthenpaySettingsPage() {
 
   if (!currentWorkspace) {
     return (
-      <div className="p-6">
-        <Alert>
-          <AlertDescription>Seleciona um workspace para configurar a ifthenpay.</AlertDescription>
-        </Alert>
-      </div>
+      <DashboardLayout>
+        <div className="p-6">
+          <Alert>
+            <AlertDescription>Seleciona um workspace para configurar a ifthenpay.</AlertDescription>
+          </Alert>
+        </div>
+      </DashboardLayout>
     );
   }
 
