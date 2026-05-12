@@ -55,57 +55,72 @@ export function LeadChefMobileShell({ title, subtitle, children, showFab = true 
     : desktopNav;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 md:pb-8">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 backdrop-blur-xl bg-white/90">
-        <div className="max-w-6xl mx-auto px-4 py-4 safe-area-pt">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <Badge className="bg-emerald-100 text-emerald-700 border-0 hover:bg-emerald-100">
-              <ChefHat className="h-3 w-3 mr-1" />
-              LeadChef CRM
-            </Badge>
-            <Button variant="outline" size="sm" className="h-8 gap-2" onClick={goBack}>
-              <ArrowLeft className="h-4 w-4" />
-              Menus FastCRM
-            </Button>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
-          {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
+    <div className="min-h-screen bg-slate-50 flex w-full">
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-slate-200 bg-white sticky top-0 h-screen"
+        aria-label="Navegação LeadChef"
+      >
+        <div className="px-4 py-4 border-b border-slate-200 flex items-center justify-between gap-2">
+          <Badge className="bg-emerald-100 text-emerald-700 border-0 hover:bg-emerald-100">
+            <ChefHat className="h-3 w-3 mr-1" />
+            LeadChef
+          </Badge>
         </div>
-        {/* Desktop nav */}
-        <nav
-          className="hidden md:block border-t border-slate-200 bg-white"
-          aria-label="Navegação LeadChef"
-        >
-          <div className="max-w-6xl mx-auto px-4">
-            <ul className="flex items-center gap-1 overflow-x-auto">
-              {navItems.map((it) => {
-                const Icon = it.icon;
-                return (
-                  <li key={it.to}>
-                    <NavLink
-                      to={it.to}
-                      end={it.to.endsWith("/today")}
-                      className={({ isActive }) =>
-                        cn(
-                          "flex items-center gap-2 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
-                          isActive
-                            ? "border-emerald-600 text-emerald-700"
-                            : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                        )
-                      }
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{it.label}</span>
-                    </NavLink>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+        <nav className="flex-1 overflow-y-auto p-2">
+          <ul className="flex flex-col gap-0.5">
+            {navItems.map((it) => {
+              const Icon = it.icon;
+              return (
+                <li key={it.to}>
+                  <NavLink
+                    to={it.to}
+                    end={it.to.endsWith("/today")}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      )
+                    }
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{it.label}</span>
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
-      </header>
+        <div className="p-2 border-t border-slate-200">
+          <Button variant="outline" size="sm" className="w-full gap-2" onClick={goBack}>
+            <ArrowLeft className="h-4 w-4" />
+            Menus FastCRM
+          </Button>
+        </div>
+      </aside>
 
-      <main className="max-w-3xl mx-auto px-4 py-5 space-y-4">{children}</main>
+      <div className="flex-1 min-w-0 pb-24 md:pb-8">
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-30 backdrop-blur-xl bg-white/90">
+          <div className="max-w-6xl mx-auto px-4 py-4 safe-area-pt">
+            <div className="mb-3 flex items-center justify-between gap-3 md:hidden">
+              <Badge className="bg-emerald-100 text-emerald-700 border-0 hover:bg-emerald-100">
+                <ChefHat className="h-3 w-3 mr-1" />
+                LeadChef CRM
+              </Badge>
+              <Button variant="outline" size="sm" className="h-8 gap-2" onClick={goBack}>
+                <ArrowLeft className="h-4 w-4" />
+                Menus FastCRM
+              </Button>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+            {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
+          </div>
+        </header>
+
+        <main className="max-w-3xl mx-auto px-4 py-5 space-y-4">{children}</main>
+      </div>
 
       {showFab && <LeadChefFloatingActionButton />}
       <LeadChefBottomNav />
