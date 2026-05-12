@@ -93,6 +93,7 @@ export default function LeadChefReferenciasPage() {
             <li key={r.id}>
               <LeadChefReferralCard
                 referral={r}
+                referrerName={(r as any).referred_by_lead_name ?? null}
                 onClick={() => navigate(`/dashboard/leadchef/referencias/${r.id}`)}
                 onConvert={() => setConverting(r)}
               />

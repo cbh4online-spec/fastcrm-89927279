@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,8 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown, Loader2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useCreateLeadChefReferral } from "@/hooks/leadchef/useCreateLeadChefReferral";
+import { useLeadChefClients } from "@/hooks/leadchef/useLeadChefClients";
 import { LEADCHEF_AUTHORIZATION_STATUSES, LEADCHEF_AUTHORIZATION_STATUS_LABELS } from "./constants";
 import type { LeadChefAuthorizationStatus } from "@/types/leadchef";
 
@@ -35,6 +39,19 @@ interface Props {
 export function LeadChefReferralFormSheet({ open, onOpenChange, referrerLeadId, referrerName, onCreated }: Props) {
   const create = useCreateLeadChefReferral();
   const [submitting, setSubmitting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedReferrerId, setSelectedReferrerId] = useState<string | null>(referrerLeadId ?? null);
+
+  // Carregar clientes (leads ganhos) para escolher quem indicou.
+  // Só ativa o fetch quando não há referrer pré-definido e o sheet está aberto.
+  const lockedReferrer = !!referrerLeadId;
+  const { data: clients, isLoading: loadingClients } = useLeadChefClients();
+
+  const selectedClient = useMemo(() => {
+    if (!selectedReferrerId) return null;
+    return clients?.find((c) => c.leadId === selectedReferrerId) ?? null;
+  }, [clients, selectedReferrerId]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -55,13 +72,14 @@ export function LeadChefReferralFormSheet({ open, onOpenChange, referrerLeadId, 
         name: v.name,
         phone: v.phone,
         email: v.email,
-        referred_by_lead_id: referrerLeadId || null,
+        referred_by_lead_id: selectedReferrerId || null,
         authorization_status: v.authorization_status as LeadChefAuthorizationStatus,
         context: v.context,
         interest: v.interest,
         notes: v.notes,
       });
       form.reset();
+      setSelectedReferrerId(referrerLeadId ?? null);
       onOpenChange(false);
       onCreated?.(r.id);
     } catch {} finally { setSubmitting(false); }
@@ -74,6 +92,87 @@ export function LeadChefReferralFormSheet({ open, onOpenChange, referrerLeadId, 
           <SheetTitle>Nova referência{referrerName ? ` · ${referrerName}` : ""}</SheetTitle>
         </SheetHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 mt-4 pb-4">
+          {/* Cliente que indicou */}
+          <div className="space-y-1">
+            <Label>Indicada por (cliente)</Label>
+            {lockedReferrer ? (
+              <div className="rounded-md border bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                {referrerName ?? "Cliente atual"}
+              </div>
+            ) : (
+              <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className={cn("truncate", !selectedClient && "text-muted-foreground")}>
+                      {selectedClient ? selectedClient.name : "Selecionar cliente que indicou…"}
+                    </span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {selectedClient && (
+                        <X
+                          className="h-3.5 w-3.5 text-slate-400 hover:text-slate-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedReferrerId(null);
+                          }}
+                        />
+                      )}
+                      <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                    </div>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Pesquisar cliente…" />
+                    <CommandList>
+                      {loadingClients ? (
+                        <div className="py-6 text-center text-xs text-muted-foreground">A carregar…</div>
+                      ) : (
+                        <>
+                          <CommandEmpty>Sem clientes encontrados.</CommandEmpty>
+                          <CommandGroup>
+                            {(clients ?? []).map((c) => (
+                              <CommandItem
+                                key={c.leadId}
+                                value={`${c.name} ${c.phone ?? ""} ${c.email ?? ""}`}
+                                onSelect={() => {
+                                  setSelectedReferrerId(c.leadId);
+                                  setPickerOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedReferrerId === c.leadId ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="min-w-0">
+                                  <div className="text-sm truncate">{c.name}</div>
+                                  {(c.phone || c.email) && (
+                                    <div className="text-[11px] text-muted-foreground truncate">
+                                      {c.phone || c.email}
+                                    </div>
+                                  )}
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Liga esta referência ao cliente que a indicou. Aparece no histórico do cliente.
+            </p>
+          </div>
+
           <div className="space-y-1">
             <Label htmlFor="ref-name">Nome *</Label>
             <Input id="ref-name" autoFocus {...form.register("name")} />
