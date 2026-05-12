@@ -1,9 +1,12 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Accordion,
   AccordionContent,
@@ -23,8 +26,13 @@ import {
   Users,
   Utensils,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { useLeadChefLandingContent } from "@/hooks/leadchef/useLeadChefLandingContent";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const LEADCHEF_WORKSPACE_ID = "5f6416cd-9ce1-4395-a427-cb31049542b1";
 
 const defaultModules = [
   {
