@@ -43,6 +43,7 @@ import { BuilderPropertiesPanel } from "@/modules/builder/components/BuilderProp
 import { BuilderExportDialog } from "@/modules/builder/components/BuilderExportDialog";
 import { BuilderAIPanel } from "@/modules/builder/components/BuilderAIPanel";
 import { BuilderVariantsPanel } from "@/modules/builder/components/BuilderVariantsPanel";
+import { BuilderClonedSiteWorkspace } from "@/modules/builder/components/BuilderClonedSiteWorkspace";
 import {
   ensureBids,
   applyPatch,
@@ -337,6 +338,8 @@ export default function BuilderAssetEditorPage() {
                 </p>
               </div>
             </div>
+          ) : (asset.metadata as Record<string, unknown> | null)?.is_cloned_site ? (
+            <BuilderClonedSiteWorkspace assetId={asset.id} workspaceId={asset.workspace_id} />
           ) : (
             <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
               <ResizablePanel defaultSize={40} minSize={25}>
