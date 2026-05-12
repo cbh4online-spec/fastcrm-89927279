@@ -74,7 +74,7 @@ const defaultJourney = [
   { step: "5", title: "Pós-venda e referência", desc: "Cliente fidelizado torna-se a próxima fonte de leads." },
 ];
 
-const faqs = [
+const defaultFaqs = [
   {
     q: "Para que tipo de equipas foi feito o LeadChef?",
     a: "Para equipas que vendem com demonstrações culinárias presenciais — chefs, consultores e representantes que precisam de organizar leads, agenda, referências e pós-venda num só lugar.",
