@@ -97,37 +97,37 @@ async function runScenario(s: Scenario): Promise<{ status: number; code?: string
   }
 }
 
-Deno.test("owner passa o gate de acesso (NO_PAGES, não USER_NOT_MEMBER)", async () => {
+Deno.test({ name: "owner passa o gate de acesso (NO_PAGES, não USER_NOT_MEMBER)", sanitizeOps: false, sanitizeResources: false }, async () => {
   const r = await runScenario({ userId: OWNER_ID });
   assertEquals(r.status, 400);
   assertEquals(r.code, "NO_PAGES");
 });
 
-Deno.test("membro com role 'member' passa o gate", async () => {
+Deno.test({ name: "membro com role 'member' passa o gate", sanitizeOps: false, sanitizeResources: false }, async () => {
   const r = await runScenario({ userId: MEMBER_ID, isMember: true, memberRole: "member" });
   assertEquals(r.status, 400);
   assertEquals(r.code, "NO_PAGES");
 });
 
-Deno.test("admin do workspace passa o gate", async () => {
+Deno.test({ name: "admin do workspace passa o gate", sanitizeOps: false, sanitizeResources: false }, async () => {
   const r = await runScenario({ userId: MEMBER_ID, isMember: true, memberRole: "admin" });
   assertEquals(r.status, 400);
   assertEquals(r.code, "NO_PAGES");
 });
 
-Deno.test("super_admin externo ao workspace passa o gate", async () => {
+Deno.test({ name: "super_admin externo ao workspace passa o gate", sanitizeOps: false, sanitizeResources: false }, async () => {
   const r = await runScenario({ userId: SUPER_ID, isSuper: true });
   assertEquals(r.status, 400);
   assertEquals(r.code, "NO_PAGES");
 });
 
-Deno.test("não-membro é bloqueado com USER_NOT_MEMBER", async () => {
+Deno.test({ name: "não-membro é bloqueado com USER_NOT_MEMBER", sanitizeOps: false, sanitizeResources: false }, async () => {
   const r = await runScenario({ userId: STRANGER_ID });
   assertEquals(r.status, 403);
   assertEquals(r.code, "USER_NOT_MEMBER");
 });
 
-Deno.test("sem Authorization devolve 401", async () => {
+Deno.test({ name: "sem Authorization devolve 401", sanitizeOps: false, sanitizeResources: false }, async () => {
   const restore = installFetchMock({ userId: STRANGER_ID });
   try {
     const req = new Request("https://stub.local/builder-site-clone", {
