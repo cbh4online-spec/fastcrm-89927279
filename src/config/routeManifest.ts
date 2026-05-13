@@ -173,6 +173,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("fastmatch",       "FastMatch",       "/dashboard/fastmatch",      Zap,           "comercial"),
  e("leadchef",        "LeadChef",        "/dashboard/leadchef/today", ChefHat,       "comercial", { isBeta: true }),
  e("leadchef-admin",  "Centro LeadChef", "/dashboard/leadchef/admin", Settings,      "comercial", { isBeta: true }),
+ e("leadchef-embaixador", "Embaixadores LeadChef", "/embaixador/dashboard", Trophy, "comercial", { isBeta: true }),
   // Search-only CRM routes
   e("crm-hub",         "CRM",             "/dashboard/crm",            Users,         "comercial", { visibleInSidebar: false }),
   e("google-local",    "Google Local",    "/dashboard/prospecting/google-local", MapPin, "comercial", { visibleInSidebar: false, moduleSlug: "google-local-services" }),

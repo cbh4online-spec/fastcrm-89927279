@@ -6821,6 +6821,259 @@ export type Database = {
           },
         ]
       }
+      ambassador_commissions: {
+        Row: {
+          ambassador_id: string
+          base_amount: number
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          id: string
+          notes: string | null
+          period_month: number
+          period_year: number
+          referral_id: string | null
+          tier_at_calculation: Database["public"]["Enums"]["ambassador_tier"]
+        }
+        Insert: {
+          ambassador_id: string
+          base_amount?: number
+          commission_amount: number
+          commission_rate: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_month: number
+          period_year: number
+          referral_id?: string | null
+          tier_at_calculation: Database["public"]["Enums"]["ambassador_tier"]
+        }
+        Update: {
+          ambassador_id?: string
+          base_amount?: number
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_month?: number
+          period_year?: number
+          referral_id?: string | null
+          tier_at_calculation?: Database["public"]["Enums"]["ambassador_tier"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_commissions_ambassador_id_fkey"
+            columns: ["ambassador_id"]
+            isOneToOne: false
+            referencedRelation: "ambassadors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassador_commissions_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "ambassador_referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ambassador_payouts: {
+        Row: {
+          ambassador_id: string
+          amount: number
+          created_at: string
+          iban_snapshot: string | null
+          id: string
+          notes: string | null
+          payment_reference: string | null
+          processed_at: string | null
+          processed_by: string | null
+          rejection_reason: string | null
+          requested_at: string
+          status: Database["public"]["Enums"]["ambassador_payout_status"]
+          updated_at: string
+        }
+        Insert: {
+          ambassador_id: string
+          amount: number
+          created_at?: string
+          iban_snapshot?: string | null
+          id?: string
+          notes?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          rejection_reason?: string | null
+          requested_at?: string
+          status?: Database["public"]["Enums"]["ambassador_payout_status"]
+          updated_at?: string
+        }
+        Update: {
+          ambassador_id?: string
+          amount?: number
+          created_at?: string
+          iban_snapshot?: string | null
+          id?: string
+          notes?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          rejection_reason?: string | null
+          requested_at?: string
+          status?: Database["public"]["Enums"]["ambassador_payout_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_payouts_ambassador_id_fkey"
+            columns: ["ambassador_id"]
+            isOneToOne: false
+            referencedRelation: "ambassadors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ambassador_referrals: {
+        Row: {
+          ambassador_id: string
+          annual_amount: number
+          cancelled_at: string | null
+          converted_at: string | null
+          created_at: string
+          id: string
+          ip_hash: string | null
+          monthly_amount: number
+          plan_code: string | null
+          referred_email: string | null
+          referred_name: string | null
+          referred_user_id: string | null
+          status: Database["public"]["Enums"]["ambassador_referral_status"]
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          whatsapp_addon: boolean
+        }
+        Insert: {
+          ambassador_id: string
+          annual_amount?: number
+          cancelled_at?: string | null
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          monthly_amount?: number
+          plan_code?: string | null
+          referred_email?: string | null
+          referred_name?: string | null
+          referred_user_id?: string | null
+          status?: Database["public"]["Enums"]["ambassador_referral_status"]
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp_addon?: boolean
+        }
+        Update: {
+          ambassador_id?: string
+          annual_amount?: number
+          cancelled_at?: string | null
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          monthly_amount?: number
+          plan_code?: string | null
+          referred_email?: string | null
+          referred_name?: string | null
+          referred_user_id?: string | null
+          status?: Database["public"]["Enums"]["ambassador_referral_status"]
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp_addon?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_referrals_ambassador_id_fkey"
+            columns: ["ambassador_id"]
+            isOneToOne: false
+            referencedRelation: "ambassadors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ambassadors: {
+        Row: {
+          active_referrals_count: number
+          available_balance: number
+          created_at: string
+          current_tier: Database["public"]["Enums"]["ambassador_tier"]
+          email: string
+          full_name: string
+          iban: string | null
+          id: string
+          is_active: boolean
+          lifetime_revenue_generated: number
+          monthly_revenue_generated: number
+          nif: string | null
+          notes: string | null
+          phone: string | null
+          slug: string
+          total_earned: number
+          total_paid: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          active_referrals_count?: number
+          available_balance?: number
+          created_at?: string
+          current_tier?: Database["public"]["Enums"]["ambassador_tier"]
+          email: string
+          full_name: string
+          iban?: string | null
+          id?: string
+          is_active?: boolean
+          lifetime_revenue_generated?: number
+          monthly_revenue_generated?: number
+          nif?: string | null
+          notes?: string | null
+          phone?: string | null
+          slug: string
+          total_earned?: number
+          total_paid?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          active_referrals_count?: number
+          available_balance?: number
+          created_at?: string
+          current_tier?: Database["public"]["Enums"]["ambassador_tier"]
+          email?: string
+          full_name?: string
+          iban?: string | null
+          id?: string
+          is_active?: boolean
+          lifetime_revenue_generated?: number
+          monthly_revenue_generated?: number
+          nif?: string | null
+          notes?: string | null
+          phone?: string | null
+          slug?: string
+          total_earned?: number
+          total_paid?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ask_fastcrm_query_logs: {
         Row: {
           action_executed: string | null
@@ -90883,6 +91136,22 @@ export type Database = {
         Returns: string
       }
       kernel_sanitize_payload: { Args: { p_payload: Json }; Returns: Json }
+      leadchef_calc_ambassador_tier: {
+        Args: { _monthly_revenue: number }
+        Returns: Database["public"]["Enums"]["ambassador_tier"]
+      }
+      leadchef_generate_ambassador_slug: {
+        Args: { _full_name: string }
+        Returns: string
+      }
+      leadchef_request_ambassador_payout: {
+        Args: { _amount: number }
+        Returns: string
+      }
+      leadchef_tier_rate: {
+        Args: { _tier: Database["public"]["Enums"]["ambassador_tier"] }
+        Returns: number
+      }
       list_assignable_agents: {
         Args: { p_workspace_id: string }
         Returns: {
@@ -91528,6 +91797,9 @@ export type Database = {
         | "status_changed"
         | "time_based"
         | "message_received"
+      ambassador_payout_status: "pending" | "paid" | "rejected"
+      ambassador_referral_status: "lead" | "active" | "cancelled"
+      ambassador_tier: "iniciante" | "bronze" | "prata" | "ouro" | "diamante"
       analytics_confidence: "low" | "medium" | "high"
       analytics_event_type:
         | "recommendation_generated"
@@ -92116,6 +92388,9 @@ export const Constants = {
         "time_based",
         "message_received",
       ],
+      ambassador_payout_status: ["pending", "paid", "rejected"],
+      ambassador_referral_status: ["lead", "active", "cancelled"],
+      ambassador_tier: ["iniciante", "bronze", "prata", "ouro", "diamante"],
       analytics_confidence: ["low", "medium", "high"],
       analytics_event_type: [
         "recommendation_generated",
