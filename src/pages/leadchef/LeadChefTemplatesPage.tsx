@@ -60,13 +60,18 @@ export default function LeadChefTemplatesPage() {
   };
 
   const onDuplicate = async (t: LeadChefMessageTemplate) => {
-    await create.mutateAsync({
+    const copy = await create.mutateAsync({
       name: `${t.name} (cópia)`,
       category: t.category,
       channel: t.channel,
       body: t.body,
       is_active: true,
     });
+    if (copy) {
+      setEditing(copy as LeadChefMessageTemplate);
+      (window as any).__lcLastTplId = null;
+      setEditorOpen(true);
+    }
   };
 
   return (
