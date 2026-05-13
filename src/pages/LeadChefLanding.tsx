@@ -31,6 +31,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useLeadChefLandingContent } from "@/hooks/leadchef/useLeadChefLandingContent";
+import { LeadChefPricingSection } from "@/components/leadchef/LeadChefPricingSection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
