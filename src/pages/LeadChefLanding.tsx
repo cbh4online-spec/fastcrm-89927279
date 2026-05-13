@@ -435,6 +435,9 @@ export default function LeadChefLanding() {
             </div>
           </section>
 
+          {/* Preços (Stripe) */}
+          <LeadChefPricingSection id="precos" className="border-y bg-muted/30" />
+
           {/* Testemunho */}
           <section className="border-y bg-primary/5 py-20">
             <div className="container mx-auto px-4">
