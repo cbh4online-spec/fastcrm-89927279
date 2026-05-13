@@ -227,6 +227,15 @@ export default function LeadChefLanding() {
         <meta property="og:type" content="website" />
         {cms?.images?.ogImage && <meta property="og:image" content={cms.images.ogImage} />}
         <link rel="canonical" href={canonical} />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground antialiased">

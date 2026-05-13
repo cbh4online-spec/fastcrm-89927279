@@ -151,6 +151,30 @@ export default function CareersPage() {
       <Helmet>
         <title>Carreiras — {companyName}</title>
         <meta name="description" content={`Vagas abertas em ${companyName}. Junte-se à nossa equipa!`} />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: `Carreiras — ${companyName}`,
+          description: `Vagas abertas em ${companyName}.`,
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: (filtered || []).slice(0, 50).map((j, idx) => ({
+              "@type": "ListItem",
+              position: idx + 1,
+              item: {
+                "@type": "JobPosting",
+                title: j.title,
+                description: j.description || j.title,
+                datePosted: j.created_at || j.published_at || new Date().toISOString(),
+                hiringOrganization: { "@type": "Organization", name: companyName },
+                jobLocation: j.location ? {
+                  "@type": "Place",
+                  address: { "@type": "PostalAddress", addressLocality: j.location },
+                } : undefined,
+              },
+            })),
+          },
+        })}</script>
       </Helmet>
 
       {/* Hero */}
