@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Plus, Trash2, Save, Sparkles } from "lucide-react";
+import { LEADCHEF_DEFAULT_CONTENT } from "@/config/leadchef/defaultLandingContent";
 import {
   useLeadChefLandingContent,
   useUpsertLeadChefLandingContent,
