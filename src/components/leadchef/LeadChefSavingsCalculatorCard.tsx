@@ -22,6 +22,13 @@ interface Props {
 }
 
 const storageKey = (leadId: string) => `leadchef:savings:${leadId}`;
+const namesStorageKey = (leadId: string) => `leadchef:savings-names:${leadId}`;
+const agentNameGlobalKey = "leadchef:savings:agent-name";
+
+interface NamesState {
+  agentName: string;
+  babyName: string;
+}
 
 function loadQuantities(leadId: string): SavingsQuantities {
   try {
@@ -38,12 +45,28 @@ function loadQuantities(leadId: string): SavingsQuantities {
   }
 }
 
+function loadNames(leadId: string): NamesState {
+  try {
+    const raw = localStorage.getItem(namesStorageKey(leadId));
+    const parsed = raw ? JSON.parse(raw) : {};
+    const agentFallback = localStorage.getItem(agentNameGlobalKey) ?? "";
+    return {
+      agentName: String(parsed.agentName ?? agentFallback ?? ""),
+      babyName: String(parsed.babyName ?? ""),
+    };
+  } catch {
+    return { agentName: "", babyName: "" };
+  }
+}
+
 export function LeadChefSavingsCalculatorCard({ leadId, phone }: Props) {
   const [qty, setQty] = useState<SavingsQuantities>(() => loadQuantities(leadId));
+  const [names, setNames] = useState<NamesState>(() => loadNames(leadId));
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     setQty(loadQuantities(leadId));
+    setNames(loadNames(leadId));
   }, [leadId]);
 
   useEffect(() => {
@@ -54,8 +77,23 @@ export function LeadChefSavingsCalculatorCard({ leadId, phone }: Props) {
     }
   }, [leadId, qty]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(namesStorageKey(leadId), JSON.stringify(names));
+      if (names.agentName.trim()) {
+        localStorage.setItem(agentNameGlobalKey, names.agentName.trim());
+      }
+    } catch {
+      // ignore
+    }
+  }, [leadId, names]);
+
   const result = useMemo(() => calcSavings(qty), [qty]);
-  const message = useMemo(() => renderSavingsMessage(result), [result]);
+  const message = useMemo(
+    () => renderSavingsMessage(result, { agentName: names.agentName, babyName: names.babyName }),
+    [result, names.agentName, names.babyName],
+  );
+
   const hasAny = result.totalMonthly > 0;
 
   const setItem = (k: keyof SavingsQuantities, v: string) => {
@@ -103,6 +141,32 @@ export function LeadChefSavingsCalculatorCard({ leadId, phone }: Props) {
         >
           <RotateCcw className="h-3 w-3 mr-1" /> Repor
         </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label htmlFor="sav-agent-name" className="text-xs">O meu primeiro nome</Label>
+          <Input
+            id="sav-agent-name"
+            type="text"
+            autoComplete="given-name"
+            placeholder="Ex: Ana"
+            value={names.agentName}
+            onChange={(e) => setNames((p) => ({ ...p, agentName: e.target.value }))}
+            className="mt-1 h-9 text-sm"
+          />
+        </div>
+        <div>
+          <Label htmlFor="sav-baby-name" className="text-xs">Nome do bebé</Label>
+          <Input
+            id="sav-baby-name"
+            type="text"
+            placeholder="Ex: Maria"
+            value={names.babyName}
+            onChange={(e) => setNames((p) => ({ ...p, babyName: e.target.value }))}
+            className="mt-1 h-9 text-sm"
+          />
+        </div>
       </div>
 
       <div className="space-y-3">
