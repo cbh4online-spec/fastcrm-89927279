@@ -63,10 +63,6 @@ export default function LeadChefAmbassadorDashboardPage() {
     ? Math.min(100, (Number(amb.monthly_revenue_generated || 0) / next.minMonthlyRevenue) * 100)
     : 100;
 
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(referralLink);
-    toast.success("Link copiado!");
-  };
 
   const requestPayout = async () => {
     const amt = Number(payoutAmount);
