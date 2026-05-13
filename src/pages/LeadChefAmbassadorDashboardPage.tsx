@@ -130,20 +130,13 @@ export default function LeadChefAmbassadorDashboardPage() {
           </CardContent></Card>
         </div>
 
-        {/* Link */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">O teu link de embaixador</CardTitle>
-            <CardDescription>Comissão atual: <strong>{formatPercent(tier.commissionRate)}</strong> recorrente vitalícia.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex gap-2">
-            <Input readOnly value={referralLink} />
-            <Button onClick={copyLink} variant="outline" className="gap-2"><Copy className="h-4 w-4" /> Copiar</Button>
-            <a href={referralLink} target="_blank" rel="noreferrer">
-              <Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button>
-            </a>
-          </CardContent>
-        </Card>
+        {/* Link de partilha */}
+        <LeadChefShareCard
+          url={referralLink}
+          title="O teu link de embaixador"
+          description={`Comissão atual: ${formatPercent(tier.commissionRate)} recorrente vitalícia.`}
+          message={`Conhece o LeadChef — o CRM que gera mais vendas para Consultoras Bimby. Usa o meu link:`}
+        />
 
         {/* Tier progress */}
         <Card>
