@@ -248,6 +248,17 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
       "Muito grata 🙏\n" +
       "Sandra Silva",
   },
+  {
+    category: "demo_reminder",
+    name: "Lembrete véspera de demonstração",
+    body:
+      "Olá {{firstName}} ☘️☘️☘️\n\n" +
+      "Quero relembrar que temos a nossa marcação amanhã, dia *{{demoDate}}* às *{{demoTime}}*.\n\n" +
+      "Espero que já tenha todos os ingredientes necessários para a demonstração. Caso haja alguma dúvida, pode sempre ligar-me.\n\n" +
+      "Até amanhã 🙌\n\n" +
+      "Da sua agente,\n" +
+      "Sandra Silva",
+  },
 ];
 
 // ─── Automations defaults ────────────────────────────────────────────────────
