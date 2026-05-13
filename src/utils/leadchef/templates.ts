@@ -259,6 +259,33 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
       "Da sua agente,\n" +
       "Sandra Silva",
   },
+  {
+    category: "post_demo_follow_up",
+    name: "Poupança mensal — Demo Bebé",
+    body:
+      "*POUPANÇA MENSAL — DEMO BEBÉ* 👶\n\n" +
+      "🍼 *30 Boiões de Maçã / mês*\n" +
+      "• Compra: 0,50€ cada\n" +
+      "• Bimby: 0,16€ cada\n" +
+      "• Poupança por boião: *0,34€*\n" +
+      "  ➡️ *Poupança mensal: 10,20€*\n\n" +
+      "🥣 *15 Papas de Farinha de Arroz / mês*\n" +
+      "• Compra: 0,53€ cada\n" +
+      "• Bimby: 0,19€ cada\n" +
+      "• Poupança por papa: *0,34€*\n" +
+      "  ➡️ *Poupança mensal: 5,10€*\n\n" +
+      "🥕 *4 Sopas fora de casa / mês*\n" +
+      "• Compra: 1,99€ cada\n" +
+      "• Bimby: 0,50€ cada\n" +
+      "• Poupança por dose: *1,49€*\n" +
+      "  ➡️ *Poupança mensal: 5,96€*\n\n" +
+      "*TOTAL POUPADO POR MÊS*\n" +
+      "💚 *21,26€*\n\n" +
+      "—\n\n" +
+      "_E isto sem contar com a restante família._\n\n" +
+      "Na receita _“boiões da semana”_ consegues preparar *13 refeições em apenas 30 minutos*.\n\n" +
+      "👉 Caro e cansativo é mesmo *não ter uma Bimby* numa fase que devia ser a melhor das nossas vidas.",
+  },
 ];
 
 // ─── Automations defaults ────────────────────────────────────────────────────
