@@ -35,7 +35,14 @@ export default function LeadChefGanhosPage() {
           />
           <GanhosSimulator currentSales={c.sales} />
           <ComissoesTable highlightSales={c.currentTier} />
-          <ExtrasCard />
+          <ExtrasCard
+            postSaleVisits={c.postSaleVisits}
+            visitsTotal={c.visitsTotal}
+            recruitmentEntries={c.recruitmentEntries}
+            recruitmentTotal={c.recruitmentTotal}
+            secondSaleBonus={c.secondSaleBonus}
+            extrasTotal={c.extrasTotal}
+          />
         </>
       )}
     </LeadChefMobileShell>
