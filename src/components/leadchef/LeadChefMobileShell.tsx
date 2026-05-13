@@ -15,6 +15,7 @@ import {
   Settings2,
   Sliders,
   Package,
+  Wallet,
 } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ const desktopNav = [
   { to: "/dashboard/leadchef/clientes", label: "Clientes", icon: UsersRound },
   { to: "/dashboard/leadchef/referencias", label: "Referências", icon: Sparkles },
   { to: "/dashboard/leadchef/objetivos", label: "Objetivos", icon: Target },
+  { to: "/dashboard/leadchef/ganhos", label: "Ganhos", icon: Wallet },
   { to: "/dashboard/leadchef/equipa", label: "Equipa", icon: Users },
   { to: "/dashboard/leadchef/produtos", label: "Produtos", icon: Package },
   { to: "/dashboard/leadchef/templates", label: "Templates", icon: MessageSquare },
