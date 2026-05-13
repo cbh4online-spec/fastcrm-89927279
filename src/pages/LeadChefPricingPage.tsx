@@ -20,6 +20,7 @@ import {
   effectiveMonthlyOnAnnual,
   formatEuro,
 } from "@/config/leadchef/pricing";
+import { LeadChefShareCard } from "@/components/leadchef/LeadChefShareCard";
 
 export default function LeadChefPricingPage() {
   const [annual, setAnnual] = useState(true);
