@@ -243,6 +243,7 @@ export default function LeadChefLanding() {
               <a href="#solucao" className="hover:text-foreground">Solução</a>
               <a href="#modulos" className="hover:text-foreground">Módulos</a>
               <a href="#fluxo" className="hover:text-foreground">Como funciona</a>
+              <a href="#precos" className="hover:text-foreground">Preços</a>
               <a href="#faq" className="hover:text-foreground">FAQ</a>
             </nav>
             <div className="flex items-center gap-2">
