@@ -18,6 +18,26 @@ export function useCreateLeadChefLead() {
       if (!workspaceId) throw new Error("Workspace não selecionado.");
       if (!user?.id) throw new Error("Sessão não encontrada.");
 
+      // Plano free: 1 cliente/lead. Após isso → upgrade.
+      try {
+        const { data: sub } = await supabase.functions.invoke("leadchef-check-subscription", { body: {} });
+        const subscribed = !!(sub as any)?.subscribed;
+        if (!subscribed) {
+          const { count } = await (supabase as any)
+            .from("leadchef_lead_profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("workspace_id", workspaceId);
+          if ((count ?? 0) >= 1) {
+            const err: any = new Error("Plano gratuito limitado a 1 cliente. Faz upgrade para registar mais.");
+            err.code = "LEADCHEF_FREE_LIMIT";
+            throw err;
+          }
+        }
+      } catch (e: any) {
+        if (e?.code === "LEADCHEF_FREE_LIMIT") throw e;
+        console.warn("[LeadChef] check sub falhou", e);
+      }
+
       // 1. Lead na tabela global
       const { data: lead, error: leadErr } = await supabase
         .from("leads")
@@ -103,6 +123,15 @@ export function useCreateLeadChefLead() {
       toast.success("Lead LeadChef criado.");
     },
     onError: (err: any) => {
+      if (err?.code === "LEADCHEF_FREE_LIMIT") {
+        toast.error(err.message, {
+          action: {
+            label: "Ver planos",
+            onClick: () => { window.location.href = "/dashboard/leadchef/billing"; },
+          },
+        });
+        return;
+      }
       toast.error(err?.message || "Não foi possível criar o lead.");
     },
   });
