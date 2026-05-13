@@ -43,6 +43,35 @@ export default function LeadChefBillingPage() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Auto-start checkout vindo da landing pública (?autostart=1 + sessionStorage)
+  useEffect(() => {
+    if (searchParams.get("autostart") !== "1") return;
+    let pending: PendingCheckout | null = null;
+    try {
+      const raw = sessionStorage.getItem(LEADCHEF_PENDING_CHECKOUT_KEY);
+      if (raw) pending = JSON.parse(raw) as PendingCheckout;
+    } catch {
+      /* noop */
+    }
+    if (!pending) {
+      const np = new URLSearchParams(searchParams);
+      np.delete("autostart");
+      setSearchParams(np, { replace: true });
+      return;
+    }
+    const plan = LEADCHEF_PLANS.find((p) => p.slug === pending!.plan);
+    if (!plan) return;
+    setInterval(pending.interval);
+    setWithWhatsapp(pending.withWhatsapp);
+    sessionStorage.removeItem(LEADCHEF_PENDING_CHECKOUT_KEY);
+    const np = new URLSearchParams(searchParams);
+    np.delete("autostart");
+    setSearchParams(np, { replace: true });
+    // Pequeno delay para garantir state aplicado
+    setTimeout(() => handleCheckout(plan), 200);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleCheckout = async (plan: LeadChefPlan) => {
     try {
       setLoadingPlan(plan.slug);
