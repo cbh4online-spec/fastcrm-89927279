@@ -22,6 +22,13 @@ interface Props {
 }
 
 const storageKey = (leadId: string) => `leadchef:savings:${leadId}`;
+const namesStorageKey = (leadId: string) => `leadchef:savings-names:${leadId}`;
+const agentNameGlobalKey = "leadchef:savings:agent-name";
+
+interface NamesState {
+  agentName: string;
+  babyName: string;
+}
 
 function loadQuantities(leadId: string): SavingsQuantities {
   try {
@@ -38,12 +45,28 @@ function loadQuantities(leadId: string): SavingsQuantities {
   }
 }
 
+function loadNames(leadId: string): NamesState {
+  try {
+    const raw = localStorage.getItem(namesStorageKey(leadId));
+    const parsed = raw ? JSON.parse(raw) : {};
+    const agentFallback = localStorage.getItem(agentNameGlobalKey) ?? "";
+    return {
+      agentName: String(parsed.agentName ?? agentFallback ?? ""),
+      babyName: String(parsed.babyName ?? ""),
+    };
+  } catch {
+    return { agentName: "", babyName: "" };
+  }
+}
+
 export function LeadChefSavingsCalculatorCard({ leadId, phone }: Props) {
   const [qty, setQty] = useState<SavingsQuantities>(() => loadQuantities(leadId));
+  const [names, setNames] = useState<NamesState>(() => loadNames(leadId));
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     setQty(loadQuantities(leadId));
+    setNames(loadNames(leadId));
   }, [leadId]);
 
   useEffect(() => {
@@ -54,8 +77,23 @@ export function LeadChefSavingsCalculatorCard({ leadId, phone }: Props) {
     }
   }, [leadId, qty]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(namesStorageKey(leadId), JSON.stringify(names));
+      if (names.agentName.trim()) {
+        localStorage.setItem(agentNameGlobalKey, names.agentName.trim());
+      }
+    } catch {
+      // ignore
+    }
+  }, [leadId, names]);
+
   const result = useMemo(() => calcSavings(qty), [qty]);
-  const message = useMemo(() => renderSavingsMessage(result), [result]);
+  const message = useMemo(
+    () => renderSavingsMessage(result, { agentName: names.agentName, babyName: names.babyName }),
+    [result, names.agentName, names.babyName],
+  );
+
   const hasAny = result.totalMonthly > 0;
 
   const setItem = (k: keyof SavingsQuantities, v: string) => {
