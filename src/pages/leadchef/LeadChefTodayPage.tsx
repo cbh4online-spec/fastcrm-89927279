@@ -97,6 +97,7 @@ export default function LeadChefTodayPage() {
           value={totalActionsToday}
           hint={data.overdueActions.length ? `${data.overdueActions.length} em atraso` : "Tudo em dia"}
           tone="emerald"
+          to="/dashboard/leadchef/agenda"
         />
         <LeadChefTodayCard
           icon={CalendarDays}
@@ -104,6 +105,7 @@ export default function LeadChefTodayPage() {
           value={data.scheduledDemos.length}
           hint="Agendadas"
           tone="sky"
+          to="/dashboard/leadchef/agenda"
         />
         <LeadChefTodayCard
           icon={Sparkles}
@@ -111,6 +113,7 @@ export default function LeadChefTodayPage() {
           value={data.newLeadsWithoutContact.length}
           hint="Sem primeiro contacto"
           tone="amber"
+          to="/dashboard/leadchef/leads"
         />
         <LeadChefTodayCard
           icon={Target}
@@ -122,6 +125,7 @@ export default function LeadChefTodayPage() {
               : "Sem objetivo definido"
           }
           tone="slate"
+          to="/dashboard/leadchef/objetivos"
         />
       </section>
 
