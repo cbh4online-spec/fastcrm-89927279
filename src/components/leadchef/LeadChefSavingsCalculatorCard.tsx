@@ -143,6 +143,32 @@ export function LeadChefSavingsCalculatorCard({ leadId, phone }: Props) {
         </Button>
       </div>
 
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label htmlFor="sav-agent-name" className="text-xs">O meu primeiro nome</Label>
+          <Input
+            id="sav-agent-name"
+            type="text"
+            autoComplete="given-name"
+            placeholder="Ex: Ana"
+            value={names.agentName}
+            onChange={(e) => setNames((p) => ({ ...p, agentName: e.target.value }))}
+            className="mt-1 h-9 text-sm"
+          />
+        </div>
+        <div>
+          <Label htmlFor="sav-baby-name" className="text-xs">Nome do bebé</Label>
+          <Input
+            id="sav-baby-name"
+            type="text"
+            placeholder="Ex: Maria"
+            value={names.babyName}
+            onChange={(e) => setNames((p) => ({ ...p, babyName: e.target.value }))}
+            className="mt-1 h-9 text-sm"
+          />
+        </div>
+      </div>
+
       <div className="space-y-3">
         {SAVINGS_ITEMS.map((item) => {
           const line = result.lines.find((l) => l.item.key === item.key)!;
