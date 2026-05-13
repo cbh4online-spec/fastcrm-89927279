@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChefHat, Wallet, Trophy, Users, TrendingUp, Loader2 } from "lucide-react";
 import { useAmbassadorProfile, useAmbassadorReferrals, useAmbassadorPayouts } from "@/hooks/leadchef/useAmbassadorProfile";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { LeadChefShareCard } from "@/components/leadchef/LeadChefShareCard";
 import { AMBASSADOR_TIERS, calcAmbassadorTier, nextAmbassadorTier, formatPercent, AMBASSADOR_MIN_PAYOUT } from "@/config/leadchef/ambassadorTiers";
 import { formatEuro } from "@/config/leadchef/pricing";
