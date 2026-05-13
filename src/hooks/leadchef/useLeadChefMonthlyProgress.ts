@@ -14,6 +14,8 @@ export interface LeadChefMonthlyProgressData {
   salesWon: number;
   referrals: number;
   recruitments: number;
+  postSaleVisits: number;
+  recruitmentEntries: number;
   incomeEstimated: number;
   pendingActions: number;
   overdueActions: number;
@@ -53,6 +55,8 @@ export function useLeadChefMonthlyProgress(periodMonth?: string) {
         salesWon: 0,
         referrals: 0,
         recruitments: 0,
+        postSaleVisits: 0,
+        recruitmentEntries: 0,
         incomeEstimated: 0,
         pendingActions: 0,
         overdueActions: 0,
@@ -127,6 +131,12 @@ export function useLeadChefMonthlyProgress(periodMonth?: string) {
         (a) => CONTACT_TYPES.has(a.type as string) && a.status === "completed"
       ).length;
       const recruitments = appts.filter((a) => a.type === "recruitment").length;
+      const recruitmentEntries = appts.filter(
+        (a) => a.type === "recruitment" && a.status === "completed"
+      ).length;
+      const postSaleVisits = appts.filter(
+        (a) => a.type === "post_sale_visit" && a.status === "completed"
+      ).length;
       const apptProposals = appts.filter((a) => a.type === "proposal").length;
       const apptWon = appts.filter((a) => a.outcome === "won").length;
 
@@ -154,6 +164,8 @@ export function useLeadChefMonthlyProgress(periodMonth?: string) {
         salesWon: Math.max(salesWon, apptWon),
         referrals,
         recruitments,
+        postSaleVisits,
+        recruitmentEntries,
         incomeEstimated: 0,
         pendingActions,
         overdueActions,
