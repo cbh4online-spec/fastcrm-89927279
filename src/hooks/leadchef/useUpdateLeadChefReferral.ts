@@ -12,6 +12,10 @@ export interface UpdateLeadChefReferralInput {
   status?: LeadChefReferralStatus;
   authorization_status?: LeadChefAuthorizationStatus;
   notes?: string | null;
+  instagram_handle?: string | null;
+  facebook_url?: string | null;
+  tiktok_handle?: string | null;
+  linkedin_url?: string | null;
 }
 
 export function useUpdateLeadChefReferral() {
@@ -25,6 +29,10 @@ export function useUpdateLeadChefReferral() {
       if (input.status) patch.status = input.status;
       if (input.authorization_status) patch.authorization_status = input.authorization_status;
       if (input.notes !== undefined) patch.notes = input.notes;
+      if (input.instagram_handle !== undefined) patch.instagram_handle = input.instagram_handle;
+      if (input.facebook_url !== undefined) patch.facebook_url = input.facebook_url;
+      if (input.tiktok_handle !== undefined) patch.tiktok_handle = input.tiktok_handle;
+      if (input.linkedin_url !== undefined) patch.linkedin_url = input.linkedin_url;
       const { data, error } = await (supabase as any)
         .from("leadchef_referrals")
         .update(patch)
