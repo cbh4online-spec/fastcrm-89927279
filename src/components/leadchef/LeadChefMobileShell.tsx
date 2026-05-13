@@ -15,6 +15,7 @@ import {
   Settings2,
   Sliders,
   Package,
+  Wallet,
 } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
