@@ -33,7 +33,11 @@ export default function LeadChefPricingPage() {
           name="description"
           content="Planos LeadChef: Starter 4,99€/mês até 50 clientes, Growth 6,99€/mês ilimitado. Pagamento anual com 2 meses grátis. Integração WhatsApp opcional 29,99€/mês."
         />
-        <link rel="canonical" href="/leadchef/precos" />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai/leadchef/precos" />
+        <meta property="og:title" content="Preços LeadChef — desde 4,99€/mês" />
+        <meta property="og:description" content="Starter 4,99€ até 50 clientes, Growth 6,99€ ilimitado. Anual com 2 meses grátis. Add-on WhatsApp 29,99€/mês." />
+        <meta property="og:url" content="https://fastcrm.metodopare.ai/leadchef/precos" />
+        <meta property="og:type" content="website" />
       </Helmet>
 
       {/* Header */}
