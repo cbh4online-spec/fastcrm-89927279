@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Plus, Trash2, Save, Sparkles } from "lucide-react";
+import { LEADCHEF_DEFAULT_CONTENT } from "@/config/leadchef/defaultLandingContent";
 import {
   useLeadChefLandingContent,
   useUpsertLeadChefLandingContent,
@@ -48,7 +49,9 @@ export function LeadChefLandingEditor({ workspaceId }: Props) {
     setForm({ ...empty, ...data, workspace_id: workspaceId });
     setHydrated(true);
   } else if (!hydrated && !isLoading) {
-    setForm({ ...empty, workspace_id: workspaceId });
+    // Sem registo ainda — pré-carrega o preset oficial para o admin
+    // só precisar de rever e guardar.
+    setForm({ ...empty, ...LEADCHEF_DEFAULT_CONTENT, workspace_id: workspaceId });
     setHydrated(true);
   }
 
@@ -65,13 +68,28 @@ export function LeadChefLandingEditor({ workspaceId }: Props) {
     }
   };
 
+  const handleAutoFill = () => {
+    setForm((f) => ({
+      ...f,
+      ...LEADCHEF_DEFAULT_CONTENT,
+      workspace_id: workspaceId,
+      is_canonical: f.is_canonical,
+    }));
+    toast.success("Conteúdos predefinidos aplicados — revê e guarda.");
+  };
+
   if (isLoading) return <div className="text-sm text-muted-foreground">A carregar conteúdos…</div>;
+
+  const isEmpty =
+    !form.hero?.title &&
+    (form.modules?.length ?? 0) === 0 &&
+    (form.faqs?.length ?? 0) === 0;
 
   return (
     <div className="space-y-6">
       <Helmet><title>Centro LeadChef · Conteúdos da Landing</title></Helmet>
 
-      <div className="flex items-center justify-between gap-4 rounded-lg border bg-card p-4">
+      <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Switch
             id="canonical"
@@ -82,9 +100,20 @@ export function LeadChefLandingEditor({ workspaceId }: Props) {
             Workspace canónico — serve a landing pública <code className="text-xs">/leadchef</code>
           </Label>
         </div>
-        <Button onClick={handleSave} disabled={upsert.isPending} className="gap-2">
-          <Save className="h-4 w-4" /> Guardar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleAutoFill}
+            variant="outline"
+            className="gap-2"
+            title="Preenche todos os campos com o preset oficial LeadChef"
+          >
+            <Sparkles className="h-4 w-4" />
+            {isEmpty ? "Auto-preencher conteúdos" : "Repor conteúdos predefinidos"}
+          </Button>
+          <Button onClick={handleSave} disabled={upsert.isPending} className="gap-2">
+            <Save className="h-4 w-4" /> Guardar
+          </Button>
+        </div>
       </div>
 
       <Card>
