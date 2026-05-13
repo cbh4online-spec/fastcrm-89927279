@@ -170,7 +170,18 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
       "🍺 *Bebidas*\n" +
       "☐ Cerveja\n\n" +
       "🧻 *Outros*\n" +
-      "☐ Papel vegetal",
+      "☐ Papel vegetal\n\n" +
+      "👥 *Porções sugeridas*\n" +
+      "• Base para 4 a 6 pessoas em formato degustação.\n" +
+      "• Para grupos maiores, multiplica as quantidades de charcutaria, queijo e pica-pau proporcionalmente.\n\n" +
+      "📝 *Instruções de preparação*\n" +
+      "1. Retira a charcutaria e o queijo do frigorífico cerca de 20 min antes de servir.\n" +
+      "2. Pica o alho e tempera a carne para o pica-pau com alho, mostarda, sal, pimenta e um fio de cerveja. Deixa marinar.\n" +
+      "3. Prepara a massa de pão na Bimby (farinha tipo 65, fermento, água morna, sal e azeite) e deixa levedar tapada.\n" +
+      "4. Faz o coulis de frutos vermelhos com o açúcar e o sumo dos limões na Bimby — reserva para o final.\n" +
+      "5. Forma os pães em papel vegetal e leva ao forno pré-aquecido a 200 °C até dourar.\n" +
+      "6. Saltea a carne do pica-pau bem quente, finaliza com cerveja e serve com pickles.\n" +
+      "7. Monta a tábua com charcutaria, queijo, pão quente e pickles. Sobremesa com o coulis de frutos vermelhos.",
   },
   {
     category: "demo_confirmation",
