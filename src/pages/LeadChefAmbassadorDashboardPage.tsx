@@ -29,8 +29,7 @@ export default function LeadChefAmbassadorDashboardPage() {
 
   const referralLink = useMemo(() => {
     if (!amb?.slug) return "";
-    const base = typeof window !== "undefined" ? window.location.origin : "https://fastcrm.lovable.app";
-    return `${base}/leadchef?ref=${amb.slug}`;
+    return `${getPublicBaseUrl()}/leadchef?ref=${amb.slug}`;
   }, [amb?.slug]);
 
   if (isLoading) {
