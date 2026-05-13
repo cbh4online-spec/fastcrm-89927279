@@ -12,7 +12,7 @@ export default function LeadChefGanhosPage() {
   return (
     <LeadChefMobileShell
       title="Os meus ganhos"
-      subtitle="Comissão do mês corrente, simulador e tabela oficial Bimby."
+      subtitle="Tudo calculado automaticamente a partir das tuas vendas, visitas e recrutamentos do mês."
       showFab={false}
     >
       {c.isLoading ? (
