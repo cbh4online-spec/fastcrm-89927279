@@ -204,6 +204,17 @@ export default function LeadChefPricingPage() {
           {" "}{ANNUAL_FREE_MONTHS} meses grátis (equivale a 10 meses pagos × valor mensal). Cancela
           quando quiseres.
         </p>
+        {/* Partilha */}
+        <section className="mt-12">
+          <div className="mx-auto max-w-2xl">
+            <LeadChefShareCard
+              url={typeof window !== "undefined" ? window.location.origin + "/leadchef/precos" : "https://fastcrm.lovable.app/leadchef/precos"}
+              title="Partilha estes preços"
+              description="Envia esta página a quem te perguntar quanto custa o LeadChef."
+              message="Os preços do LeadChef:"
+            />
+          </div>
+        </section>
       </main>
 
       <footer className="border-t py-8">
