@@ -20,6 +20,8 @@ import { LeadChefAISuggestionPanel } from "@/components/leadchef/LeadChefAISugge
 import { LeadChefEnrollSequencePanel } from "@/components/leadchef/LeadChefEnrollSequencePanel";
 import { LeadChefScheduledMessagesCard } from "@/components/leadchef/LeadChefScheduledMessagesCard";
 import { LeadChefSavingsCalculatorCard } from "@/components/leadchef/LeadChefSavingsCalculatorCard";
+import { LeadChefSocialLinksCard } from "@/components/leadchef/LeadChefSocialLinksCard";
+import { useUpdateLeadChefLeadSocials } from "@/hooks/leadchef/useUpdateLeadChefLeadSocials";
 import { LeadChefLeadScoreBadge } from "@/components/leadchef/LeadChefLeadScoreBadge";
 import { useLeadChefLeadScore } from "@/hooks/leadchef/useLeadChefLeadScore";
 import { getLeadChefNextActionSuggestions } from "@/hooks/leadchef/useLeadChefNextActionSuggestions";
@@ -33,6 +35,7 @@ export default function LeadChefLeadDetailPage() {
   const { data, isLoading } = useLeadChefLead(leadId);
   const updateStage = useUpdateLeadChefLeadStage();
   const updateNext = useUpdateLeadChefNextAction();
+  const updateSocials = useUpdateLeadChefLeadSocials();
   const { data: scoreData } = useLeadChefLeadScore(leadId);
 
   const [openCreate, setOpenCreate] = useState(false);
@@ -224,6 +227,17 @@ export default function LeadChefLeadDetailPage() {
           </li>
         </ul>
       </div>
+
+      <LeadChefSocialLinksCard
+        values={{
+          instagram_handle: (profile as any).instagram_handle ?? null,
+          facebook_url: (profile as any).facebook_url ?? null,
+          tiktok_handle: (profile as any).tiktok_handle ?? null,
+          linkedin_url: (profile as any).linkedin_url ?? null,
+        }}
+        isSaving={updateSocials.isPending}
+        onSave={(v) => updateSocials.mutate({ profileId: profile.id, values: v })}
+      />
 
       <LeadChefLeadAppointmentsSection leadId={lead.id} profileId={profile.id} />
 
