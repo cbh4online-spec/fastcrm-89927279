@@ -165,7 +165,7 @@ export default function CareersPage() {
                 "@type": "JobPosting",
                 title: j.title,
                 description: j.description || j.title,
-                datePosted: j.created_at || j.published_at || new Date().toISOString(),
+                datePosted: new Date().toISOString(),
                 hiringOrganization: { "@type": "Organization", name: companyName },
                 jobLocation: j.location ? {
                   "@type": "Place",
