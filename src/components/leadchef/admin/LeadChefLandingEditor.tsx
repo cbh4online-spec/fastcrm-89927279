@@ -49,7 +49,9 @@ export function LeadChefLandingEditor({ workspaceId }: Props) {
     setForm({ ...empty, ...data, workspace_id: workspaceId });
     setHydrated(true);
   } else if (!hydrated && !isLoading) {
-    setForm({ ...empty, workspace_id: workspaceId });
+    // Sem registo ainda — pré-carrega o preset oficial para o admin
+    // só precisar de rever e guardar.
+    setForm({ ...empty, ...LEADCHEF_DEFAULT_CONTENT, workspace_id: workspaceId });
     setHydrated(true);
   }
 
