@@ -46028,6 +46028,118 @@ export type Database = {
           },
         ]
       }
+      leadchef_scheduled_messages: {
+        Row: {
+          agent_id: string | null
+          attempts: number
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          channel: string
+          created_at: string
+          id: string
+          last_error: string | null
+          lead_id: string | null
+          metadata: Json
+          profile_id: string | null
+          rendered_body: string
+          scheduled_for: string
+          sent_at: string | null
+          source_appointment_id: string | null
+          status: string
+          template_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          attempts?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          metadata?: Json
+          profile_id?: string | null
+          rendered_body: string
+          scheduled_for: string
+          sent_at?: string | null
+          source_appointment_id?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          attempts?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          metadata?: Json
+          profile_id?: string | null
+          rendered_body?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          source_appointment_id?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadchef_scheduled_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadchef_scheduled_messages_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "leadchef_lead_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadchef_scheduled_messages_source_appointment_id_fkey"
+            columns: ["source_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "leadchef_appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadchef_scheduled_messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "leadchef_message_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadchef_scheduled_messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "leadchef_scheduled_messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leadchef_sequence_run_logs: {
         Row: {
           action_type: string | null

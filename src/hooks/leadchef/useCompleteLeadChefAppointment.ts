@@ -9,6 +9,110 @@ import type {
   LeadChefAppointmentType,
   LeadChefStage,
 } from "@/types/leadchef";
+import { readAutoPostDemoConfig, renderTemplateBody } from "@/utils/leadchef/autoPostDemo";
+
+async function enqueuePostDemoMessage(params: {
+  workspaceId: string;
+  appointment: LeadChefAppointment;
+  enrolledStage: LeadChefStage | null;
+  agentId: string | null;
+}) {
+  const { workspaceId, appointment, enrolledStage, agentId } = params;
+  try {
+    if (appointment.type !== "demo" || !appointment.lead_id) return;
+
+    // 1) Config
+    const { data: cfg } = await (supabase as any)
+      .from("leadchef_app_config")
+      .select("features")
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+    const auto = readAutoPostDemoConfig(cfg?.features);
+    if (!auto.enabled) return;
+
+    // 2) Template — preferir o configurado; fallback: post_demo_follow_up "Poupança"
+    let template:
+      | { id: string; body: string; name: string }
+      | null = null;
+    if (auto.template_id) {
+      const { data } = await (supabase as any)
+        .from("leadchef_message_templates")
+        .select("id, body, name")
+        .eq("workspace_id", workspaceId)
+        .eq("id", auto.template_id)
+        .eq("is_active", true)
+        .maybeSingle();
+      template = data ?? null;
+    }
+    if (!template) {
+      const { data } = await (supabase as any)
+        .from("leadchef_message_templates")
+        .select("id, body, name")
+        .eq("workspace_id", workspaceId)
+        .eq("category", "post_demo_follow_up")
+        .eq("is_active", true)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      template = data ?? null;
+    }
+    if (!template) return;
+
+    // 3) Lead + agente
+    const { data: lead } = await (supabase as any)
+      .from("leads")
+      .select("name, phone")
+      .eq("id", appointment.lead_id)
+      .maybeSingle();
+    if (!lead?.phone) return;
+
+    let agentName: string | null = null;
+    if (agentId) {
+      const { data: prof } = await (supabase as any)
+        .from("profiles")
+        .select("full_name")
+        .eq("id", agentId)
+        .maybeSingle();
+      agentName = prof?.full_name ?? null;
+    }
+
+    const completedAt = new Date();
+    const scheduledFor = new Date(
+      completedAt.getTime() + auto.delay_hours * 60 * 60 * 1000,
+    );
+
+    const rendered = renderTemplateBody(template.body, {
+      firstName: lead.name,
+      agentName,
+      appointmentDate: completedAt.toLocaleDateString("pt-PT"),
+      appointmentTime: completedAt.toLocaleTimeString("pt-PT", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    });
+
+    await (supabase as any).from("leadchef_scheduled_messages").insert({
+      workspace_id: workspaceId,
+      lead_id: appointment.lead_id,
+      profile_id: appointment.profile_id ?? null,
+      agent_id: agentId,
+      source_appointment_id: appointment.id,
+      template_id: template.id,
+      channel: "whatsapp",
+      rendered_body: rendered,
+      scheduled_for: scheduledFor.toISOString(),
+      metadata: {
+        source: "auto_post_demo",
+        enrolled_stage: enrolledStage,
+        delay_hours: auto.delay_hours,
+        template_name: template.name,
+      },
+    });
+  } catch (e) {
+    console.warn("[LeadChef] auto post-demo enqueue failed", e);
+  }
+}
 
 interface Input {
   appointment: LeadChefAppointment;
@@ -120,6 +224,14 @@ export function useCompleteLeadChefAppointment() {
           console.warn("[LeadChef] history insert failed", e);
         }
       }
+
+      // Auto pós-demo: agendar mensagem de poupança 24h depois
+      await enqueuePostDemoMessage({
+        workspaceId,
+        appointment,
+        enrolledStage: nextStage,
+        agentId: user?.id ?? null,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leadchef-agenda"] });
@@ -127,6 +239,8 @@ export function useCompleteLeadChefAppointment() {
       qc.invalidateQueries({ queryKey: ["leadchef-leads"] });
       qc.invalidateQueries({ queryKey: ["leadchef-lead"] });
       qc.invalidateQueries({ queryKey: ["leadchef-activities"] });
+      qc.invalidateQueries({ queryKey: ["leadchef-scheduled-messages"] });
+      qc.invalidateQueries({ queryKey: ["leadchef-scheduled-messages-pending"] });
       toast.success("Compromisso concluído.");
     },
     onError: (e: any) => toast.error(e?.message || "Falha ao concluir compromisso."),

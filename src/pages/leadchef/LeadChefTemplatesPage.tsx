@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { LeadChefMessageTemplateCard } from "@/components/leadchef/LeadChefMessageTemplateCard";
+import { LeadChefAutoPostDemoSettings } from "@/components/leadchef/LeadChefAutoPostDemoSettings";
 import { LeadChefMessageTemplateEditorSheet } from "@/components/leadchef/LeadChefMessageTemplateEditorSheet";
 import { LeadChefTemplatesEmptyState } from "@/components/leadchef/LeadChefTemplatesEmptyState";
 import { useLeadChefMessageTemplates } from "@/hooks/leadchef/useLeadChefMessageTemplates";
@@ -76,7 +77,10 @@ export default function LeadChefTemplatesPage() {
 
   return (
     <LeadChefMobileShell title="Templates" subtitle="Mensagens rápidas para WhatsApp e follow-up.">
+      <LeadChefAutoPostDemoSettings />
+
       <div className="flex gap-2">
+
         <div className="relative flex-1">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input

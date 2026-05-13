@@ -138,3 +138,6 @@ verify_jwt = false
 
 [functions.workspace-health-check]
 verify_jwt = false
+
+[functions.leadchef-scheduled-whatsapp-dispatcher]
+verify_jwt = false
