@@ -238,6 +238,16 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
       "💶 *Mensalidade escolhida*\n\n" +
       "Assim que tiveres tudo, envia-me por aqui que trato do envio para análise. Obrigada! 🙏",
   },
+  {
+    category: "demo_confirmation",
+    name: "Confirmação de momento Bimby agendado",
+    body:
+      "Olá {{firstName}}, conforme agendado telefonicamente.\n\n" +
+      "Fica marcado o vosso *momento Bimby* para *{{demoDate}}* às *{{demoTime}}*.\n\n" +
+      "Relembro que este é o meu trabalho e, caso desmarquem em cima da hora, fico sem trabalhar e sem possibilidade de marcar com outro cliente.\n\n" +
+      "Muito grata 🙏\n" +
+      "Sandra Silva",
+  },
 ];
 
 // ─── Automations defaults ────────────────────────────────────────────────────
