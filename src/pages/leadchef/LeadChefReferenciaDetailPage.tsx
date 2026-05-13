@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { LeadChefMobileShell } from "@/components/leadchef/LeadChefMobileShell";
 import { LeadChefReferralDetailHeader } from "@/components/leadchef/LeadChefReferralDetailHeader";
 import { LeadChefConvertReferralSheet } from "@/components/leadchef/LeadChefConvertReferralSheet";
+import { LeadChefSocialLinksCard } from "@/components/leadchef/LeadChefSocialLinksCard";
 import { Button } from "@/components/ui/button";
 import { useLeadChefReferral } from "@/hooks/leadchef/useLeadChefReferral";
 import { useUpdateLeadChefReferral } from "@/hooks/leadchef/useUpdateLeadChefReferral";
@@ -70,6 +71,17 @@ export default function LeadChefReferenciaDetailPage() {
           </SelectContent>
         </Select>
       </section>
+
+      <LeadChefSocialLinksCard
+        values={{
+          instagram_handle: (referral as any).instagram_handle ?? null,
+          facebook_url: (referral as any).facebook_url ?? null,
+          tiktok_handle: (referral as any).tiktok_handle ?? null,
+          linkedin_url: (referral as any).linkedin_url ?? null,
+        }}
+        isSaving={update.isPending}
+        onSave={(v) => update.mutate({ id: referral.id, ...v })}
+      />
 
       {referral.notes && (
         <section className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4 space-y-2">
