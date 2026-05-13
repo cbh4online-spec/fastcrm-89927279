@@ -93,14 +93,25 @@ export function LeadChefMessageTemplateEditorSheet({ open, onOpenChange, templat
 
           <div>
             <Label>Mensagem</Label>
-            <Textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={6}
-              placeholder="Olá {{firstName}}, …"
-            />
+            <Tabs defaultValue="sections" className="mt-1">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="sections">Secções</TabsTrigger>
+                <TabsTrigger value="raw">Texto</TabsTrigger>
+              </TabsList>
+              <TabsContent value="sections" className="mt-3">
+                <LeadChefTemplateSectionedEditor value={body} onChange={setBody} />
+              </TabsContent>
+              <TabsContent value="raw" className="mt-3">
+                <Textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  rows={8}
+                  placeholder="Olá {{firstName}}, …"
+                />
+              </TabsContent>
+            </Tabs>
             <p className="text-[11px] text-slate-500 mt-1">
-              Usa variáveis como {"{{firstName}}"} ou {"{{agentName}}"}.
+              Usa variáveis como {"{{firstName}}"} ou {"{{agentName}}"}. Cabeçalhos com *Título* tornam-se secções colapsáveis.
             </p>
           </div>
 
