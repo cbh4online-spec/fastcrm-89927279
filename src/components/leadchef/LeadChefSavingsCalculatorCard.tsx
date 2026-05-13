@@ -11,6 +11,9 @@ import {
   calcSavings,
   formatEuro,
   renderSavingsMessage,
+  sanitizeName,
+  validateName,
+  NAME_MAX_LENGTH,
   type SavingsQuantities,
 } from "@/utils/leadchef/savingsCalculator";
 import { buildWhatsAppHref } from "@/utils/leadchef/contact";
