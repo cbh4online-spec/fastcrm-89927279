@@ -224,6 +224,14 @@ export function useCompleteLeadChefAppointment() {
           console.warn("[LeadChef] history insert failed", e);
         }
       }
+
+      // Auto pós-demo: agendar mensagem de poupança 24h depois
+      await enqueuePostDemoMessage({
+        workspaceId,
+        appointment,
+        enrolledStage: nextStage,
+        agentId: user?.id ?? null,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leadchef-agenda"] });
@@ -231,6 +239,8 @@ export function useCompleteLeadChefAppointment() {
       qc.invalidateQueries({ queryKey: ["leadchef-leads"] });
       qc.invalidateQueries({ queryKey: ["leadchef-lead"] });
       qc.invalidateQueries({ queryKey: ["leadchef-activities"] });
+      qc.invalidateQueries({ queryKey: ["leadchef-scheduled-messages"] });
+      qc.invalidateQueries({ queryKey: ["leadchef-scheduled-messages-pending"] });
       toast.success("Compromisso concluído.");
     },
     onError: (e: any) => toast.error(e?.message || "Falha ao concluir compromisso."),
