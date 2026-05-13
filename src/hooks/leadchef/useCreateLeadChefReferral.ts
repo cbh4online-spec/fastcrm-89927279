@@ -31,6 +31,26 @@ export function useCreateLeadChefReferral() {
     mutationFn: async (input: CreateLeadChefReferralInput): Promise<LeadChefReferral> => {
       if (!currentWorkspace?.id) throw new Error("Workspace não selecionado.");
 
+      // Plano free: 1 referência. Após isso → upgrade.
+      try {
+        const { data: sub } = await supabase.functions.invoke("leadchef-check-subscription", { body: {} });
+        const subscribed = !!(sub as any)?.subscribed;
+        if (!subscribed) {
+          const { count } = await (supabase as any)
+            .from("leadchef_referrals")
+            .select("id", { count: "exact", head: true })
+            .eq("workspace_id", currentWorkspace.id);
+          if ((count ?? 0) >= 1) {
+            const err: any = new Error("Plano gratuito limitado a 1 referência. Faz upgrade para registar mais.");
+            err.code = "LEADCHEF_FREE_LIMIT";
+            throw err;
+          }
+        }
+      } catch (e: any) {
+        if (e?.code === "LEADCHEF_FREE_LIMIT") throw e;
+        console.warn("[LeadChef] check sub falhou", e);
+      }
+
       const noteParts: string[] = [];
       if (input.context) noteParts.push(`Contexto: ${input.context}`);
       if (input.interest) noteParts.push(`Interesse: ${input.interest}`);
@@ -91,6 +111,17 @@ export function useCreateLeadChefReferral() {
       qc.invalidateQueries({ queryKey: ["leadchef-dashboard"] });
       toast.success("Referência registada.");
     },
-    onError: (e: any) => toast.error(e?.message || "Não foi possível registar a referência."),
+    onError: (e: any) => {
+      if (e?.code === "LEADCHEF_FREE_LIMIT") {
+        toast.error(e.message, {
+          action: {
+            label: "Ver planos",
+            onClick: () => { window.location.href = "/dashboard/leadchef/billing"; },
+          },
+        });
+        return;
+      }
+      toast.error(e?.message || "Não foi possível registar a referência.");
+    },
   });
 }

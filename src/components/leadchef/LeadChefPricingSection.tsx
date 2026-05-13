@@ -143,7 +143,48 @@ export function LeadChefPricingSection({
           </div>
         </div>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+        <div className="mt-10 grid gap-6 md:grid-cols-3 max-w-6xl mx-auto">
+          {/* Plano Grátis */}
+          <Card className="relative">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold">LeadChef Grátis</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Experimenta sem cartão de crédito
+              </p>
+              <div className="mt-5 flex items-baseline gap-1">
+                <span className="text-4xl font-bold tabular-nums">{formatEuro(0)}</span>
+                <span className="text-sm text-muted-foreground">/ mês</span>
+              </div>
+              <p className="mt-2 text-xs font-medium text-muted-foreground">
+                Limite: 1 cliente + 1 referência
+              </p>
+              <ul className="mt-6 space-y-2 text-sm">
+                {[
+                  "1 cliente ativo",
+                  "1 referência registada",
+                  "Agenda e ciclo PARE básicos",
+                  "App mobile (PWA)",
+                  "Sem cartão de crédito",
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                className="mt-6 w-full"
+                variant="outline"
+                onClick={() => navigate("/auth?mode=signup&plan=leadchef-free")}
+              >
+                Começar grátis
+              </Button>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Faz upgrade quando precisares de mais.
+              </p>
+            </CardContent>
+          </Card>
+
           {LEADCHEF_PLANS.map((plan) => {
             const monthly = plan.monthlyPrice;
             const total =
