@@ -17,6 +17,7 @@ import {
   formatEuro,
   type LeadChefPlan,
 } from "@/config/leadchef/pricing";
+import { LEADCHEF_PENDING_CHECKOUT_KEY, type PendingCheckout } from "@/components/leadchef/LeadChefPricingSection";
 
 type Interval = "month" | "year";
 
