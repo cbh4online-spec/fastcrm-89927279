@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChefHat, Copy, Wallet, Trophy, Users, TrendingUp, Loader2, ExternalLink } from "lucide-react";
+import { ChefHat, Wallet, Trophy, Users, TrendingUp, Loader2 } from "lucide-react";
 import { useAmbassadorProfile, useAmbassadorReferrals, useAmbassadorPayouts } from "@/hooks/leadchef/useAmbassadorProfile";
+import { LeadChefShareCard } from "@/components/leadchef/LeadChefShareCard";
 import { AMBASSADOR_TIERS, calcAmbassadorTier, nextAmbassadorTier, formatPercent, AMBASSADOR_MIN_PAYOUT } from "@/config/leadchef/ambassadorTiers";
 import { formatEuro } from "@/config/leadchef/pricing";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,10 +63,6 @@ export default function LeadChefAmbassadorDashboardPage() {
     ? Math.min(100, (Number(amb.monthly_revenue_generated || 0) / next.minMonthlyRevenue) * 100)
     : 100;
 
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(referralLink);
-    toast.success("Link copiado!");
-  };
 
   const requestPayout = async () => {
     const amt = Number(payoutAmount);
@@ -130,20 +127,13 @@ export default function LeadChefAmbassadorDashboardPage() {
           </CardContent></Card>
         </div>
 
-        {/* Link */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">O teu link de embaixador</CardTitle>
-            <CardDescription>Comissão atual: <strong>{formatPercent(tier.commissionRate)}</strong> recorrente vitalícia.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex gap-2">
-            <Input readOnly value={referralLink} />
-            <Button onClick={copyLink} variant="outline" className="gap-2"><Copy className="h-4 w-4" /> Copiar</Button>
-            <a href={referralLink} target="_blank" rel="noreferrer">
-              <Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button>
-            </a>
-          </CardContent>
-        </Card>
+        {/* Link de partilha */}
+        <LeadChefShareCard
+          url={referralLink}
+          title="O teu link de embaixador"
+          description={`Comissão atual: ${formatPercent(tier.commissionRate)} recorrente vitalícia.`}
+          message={`Conhece o LeadChef — o CRM que gera mais vendas para Consultoras Bimby. Usa o meu link:`}
+        />
 
         {/* Tier progress */}
         <Card>

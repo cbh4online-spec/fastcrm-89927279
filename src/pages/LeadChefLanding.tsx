@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 import { Label } from "@/components/ui/label";
+import { LeadChefShareCard } from "@/components/leadchef/LeadChefShareCard";
 import {
   Accordion,
   AccordionContent,
@@ -577,6 +578,18 @@ export default function LeadChefLanding() {
             </div>
           </section>
         </main>
+
+        {/* Partilha pública */}
+        <section className="container mx-auto px-4 pb-12">
+          <div className="mx-auto max-w-2xl">
+            <LeadChefShareCard
+              url={typeof window !== "undefined" ? window.location.origin + "/leadchef" : "https://fastcrm.lovable.app/leadchef"}
+              title="Gostas? Partilha o LeadChef"
+              description="Mostra a outras Consultoras Bimby como organizar a agenda e vender mais."
+              message="Conhece o LeadChef — o CRM feito para Consultoras Bimby:"
+            />
+          </div>
+        </section>
 
         {/* Footer */}
         <footer className="border-t bg-background py-10">
