@@ -66,7 +66,16 @@ export function LeadChefLandingEditor({ workspaceId }: Props) {
     }
   };
 
-  if (isLoading) return <div className="text-sm text-muted-foreground">A carregar conteúdos…</div>;
+  const handleAutoFill = () => {
+    setForm((f) => ({
+      ...f,
+      ...LEADCHEF_DEFAULT_CONTENT,
+      workspace_id: workspaceId,
+      is_canonical: f.is_canonical,
+    }));
+    toast.success("Conteúdos predefinidos aplicados — revê e guarda.");
+  };
+
 
   return (
     <div className="space-y-6">
