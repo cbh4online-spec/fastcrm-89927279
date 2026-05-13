@@ -79,17 +79,40 @@ const fmt = (v: number) =>
 
 export const formatEuro = fmt;
 
+export const NAME_MAX_LENGTH = 40;
+// Letras (com acentos), espaços, hífens e apóstrofos.
+export const NAME_REGEX = /^[\p{L}][\p{L}\s'’-]*$/u;
+
+export function sanitizeName(raw: unknown): string {
+  if (raw === undefined || raw === null) return "";
+  const s = String(raw)
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return s.slice(0, NAME_MAX_LENGTH);
+}
+
+export function validateName(raw: unknown): { ok: true; value: string } | { ok: false; error: string } {
+  const value = sanitizeName(raw);
+  if (!value) return { ok: true, value: "" };
+  if (value.length < 2) return { ok: false, error: "Mínimo 2 caracteres." };
+  if (value.length > NAME_MAX_LENGTH) return { ok: false, error: `Máximo ${NAME_MAX_LENGTH} caracteres.` };
+  if (!NAME_REGEX.test(value)) return { ok: false, error: "Apenas letras, espaços, hífens e apóstrofos." };
+  return { ok: true, value };
+}
+
 export interface RenderSavingsOptions {
-  agentName?: string;
-  babyName?: string;
+  agentName?: string | null;
+  babyName?: string | null;
 }
 
 export function renderSavingsMessage(
   result: SavingsResult,
   options: RenderSavingsOptions = {},
 ): string {
-  const agentName = (options.agentName ?? "").trim();
-  const babyName = (options.babyName ?? "").trim();
+  const agentName = sanitizeName(options.agentName);
+  const babyName = sanitizeName(options.babyName);
+
 
   const blocks = result.lines
     .filter((l) => l.qty > 0)
