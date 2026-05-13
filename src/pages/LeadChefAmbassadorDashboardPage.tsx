@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChefHat, Copy, Wallet, Trophy, Users, TrendingUp, Loader2, ExternalLink } from "lucide-react";
+import { ChefHat, Wallet, Trophy, Users, TrendingUp, Loader2 } from "lucide-react";
 import { useAmbassadorProfile, useAmbassadorReferrals, useAmbassadorPayouts } from "@/hooks/leadchef/useAmbassadorProfile";
 import { LeadChefShareCard } from "@/components/leadchef/LeadChefShareCard";
 import { AMBASSADOR_TIERS, calcAmbassadorTier, nextAmbassadorTier, formatPercent, AMBASSADOR_MIN_PAYOUT } from "@/config/leadchef/ambassadorTiers";
