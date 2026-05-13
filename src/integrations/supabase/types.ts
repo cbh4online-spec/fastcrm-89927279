@@ -45833,9 +45833,12 @@ export type Database = {
           created_by: string | null
           customer_experience: Json
           cycle: Json
+          facebook_url: string | null
           id: string
+          instagram_handle: string | null
           interest: string | null
           lead_id: string
+          linkedin_url: string | null
           next_action_at: string | null
           next_action_note: string | null
           next_action_type: string | null
@@ -45843,6 +45846,7 @@ export type Database = {
           recruitment_potential: boolean
           stage: string
           temperature: string
+          tiktok_handle: string | null
           updated_at: string
           workspace_id: string
         }
@@ -45851,9 +45855,12 @@ export type Database = {
           created_by?: string | null
           customer_experience?: Json
           cycle?: Json
+          facebook_url?: string | null
           id?: string
+          instagram_handle?: string | null
           interest?: string | null
           lead_id: string
+          linkedin_url?: string | null
           next_action_at?: string | null
           next_action_note?: string | null
           next_action_type?: string | null
@@ -45861,6 +45868,7 @@ export type Database = {
           recruitment_potential?: boolean
           stage?: string
           temperature?: string
+          tiktok_handle?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -45869,9 +45877,12 @@ export type Database = {
           created_by?: string | null
           customer_experience?: Json
           cycle?: Json
+          facebook_url?: string | null
           id?: string
+          instagram_handle?: string | null
           interest?: string | null
           lead_id?: string
+          linkedin_url?: string | null
           next_action_at?: string | null
           next_action_note?: string | null
           next_action_type?: string | null
@@ -45879,6 +45890,7 @@ export type Database = {
           recruitment_potential?: boolean
           stage?: string
           temperature?: string
+          tiktok_handle?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -46218,13 +46230,17 @@ export type Database = {
           device_brand: string | null
           device_model: string | null
           email: string | null
+          facebook_url: string | null
           id: string
+          instagram_handle: string | null
+          linkedin_url: string | null
           name: string
           notes: string | null
           phone: string | null
           referred_by_contact_id: string | null
           referred_by_lead_id: string | null
           status: string
+          tiktok_handle: string | null
           updated_at: string
           workspace_id: string
         }
@@ -46236,13 +46252,17 @@ export type Database = {
           device_brand?: string | null
           device_model?: string | null
           email?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_handle?: string | null
+          linkedin_url?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           referred_by_contact_id?: string | null
           referred_by_lead_id?: string | null
           status?: string
+          tiktok_handle?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -46254,13 +46274,17 @@ export type Database = {
           device_brand?: string | null
           device_model?: string | null
           email?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_handle?: string | null
+          linkedin_url?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           referred_by_contact_id?: string | null
           referred_by_lead_id?: string | null
           status?: string
+          tiktok_handle?: string | null
           updated_at?: string
           workspace_id?: string
         }
