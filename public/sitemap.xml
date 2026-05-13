@@ -37,6 +37,18 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://fastcrm.metodopare.ai/install</loc>
+    <lastmod>2026-05-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://fastcrm.metodopare.ai/leadchef/precos</loc>
+    <lastmod>2026-05-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://fastcrm.metodopare.ai/llm.html</loc>
     <lastmod>2026-05-08</lastmod>
     <changefreq>monthly</changefreq>

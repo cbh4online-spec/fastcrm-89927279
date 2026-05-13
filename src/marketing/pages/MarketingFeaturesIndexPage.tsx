@@ -11,6 +11,11 @@ export default function MarketingFeaturesIndexPage() {
       <Helmet>
         <title>Funcionalidades · FastCRM</title>
         <meta name="description" content="CRM, AI SDR, Marketing e Comércio — tudo integrado numa única plataforma." />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai/funcionalidades" />
+        <meta property="og:title" content="Funcionalidades FastCRM — 4 pilares numa plataforma" />
+        <meta property="og:description" content="CRM, AI SDR, Marketing e Comércio integrados. Explore os módulos que automatizam a sua operação comercial." />
+        <meta property="og:url" content="https://fastcrm.metodopare.ai/funcionalidades" />
+        <meta property="og:type" content="website" />
       </Helmet>
       <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-3xl mx-auto text-center mb-16">
