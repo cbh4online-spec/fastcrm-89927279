@@ -31,6 +31,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useLeadChefLandingContent } from "@/hooks/leadchef/useLeadChefLandingContent";
+import { LeadChefPricingSection } from "@/components/leadchef/LeadChefPricingSection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -242,6 +243,7 @@ export default function LeadChefLanding() {
               <a href="#solucao" className="hover:text-foreground">Solução</a>
               <a href="#modulos" className="hover:text-foreground">Módulos</a>
               <a href="#fluxo" className="hover:text-foreground">Como funciona</a>
+              <a href="#precos" className="hover:text-foreground">Preços</a>
               <a href="#faq" className="hover:text-foreground">FAQ</a>
             </nav>
             <div className="flex items-center gap-2">
@@ -432,6 +434,9 @@ export default function LeadChefLanding() {
               </div>
             </div>
           </section>
+
+          {/* Preços (Stripe) */}
+          <LeadChefPricingSection id="precos" className="border-y bg-muted/30" />
 
           {/* Testemunho */}
           <section className="border-y bg-primary/5 py-20">
