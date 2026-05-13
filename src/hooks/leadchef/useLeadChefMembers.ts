@@ -28,14 +28,14 @@ export function useLeadChefMembers(workspaceId?: string | null) {
 
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, email, display_name, avatar_url")
-        .in("id", ids);
+        .select("user_id, email, full_name, avatar_url")
+        .in("user_id", ids);
 
-      const byId = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+      const byId = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
       return (members as any[]).map((m) => ({
         ...m,
         email: byId.get(m.user_id)?.email ?? null,
-        display_name: byId.get(m.user_id)?.display_name ?? null,
+        display_name: byId.get(m.user_id)?.full_name ?? null,
         avatar_url: byId.get(m.user_id)?.avatar_url ?? null,
       }));
     },
