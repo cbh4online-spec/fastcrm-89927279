@@ -186,6 +186,20 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
       "Olá {{firstName}}, passo só para lembrar do nosso momento Bimby marcado para {{appointmentDate}} às {{appointmentTime}}.\n\n" +
       "Mantém-se? Qualquer ajuste é só dizer. Até já! 👩‍🍳",
   },
+  {
+    category: "post_sale",
+    name: "Dados para contrato de pronto",
+    body:
+      "Olá {{firstName}}, para avançarmos com o contrato de pronto pagamento preciso dos seguintes dados:\n\n" +
+      "• Nome completo\n" +
+      "• Data de nascimento\n" +
+      "• Morada\n" +
+      "• NIF\n" +
+      "• Telemóvel\n" +
+      "• E-mail\n\n" +
+      "Depois de receber o contrato por e-mail da Vorwerk, assina e vai receber a referência para o pagamento.\n\n" +
+      "Após o pagamento, envie-me o comprovativo, por favor. 🙏",
+  },
 ];
 
 // ─── Automations defaults ────────────────────────────────────────────────────
