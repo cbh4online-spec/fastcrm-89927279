@@ -79,7 +79,18 @@ const fmt = (v: number) =>
 
 export const formatEuro = fmt;
 
-export function renderSavingsMessage(result: SavingsResult): string {
+export interface RenderSavingsOptions {
+  agentName?: string;
+  babyName?: string;
+}
+
+export function renderSavingsMessage(
+  result: SavingsResult,
+  options: RenderSavingsOptions = {},
+): string {
+  const agentName = (options.agentName ?? "").trim();
+  const babyName = (options.babyName ?? "").trim();
+
   const blocks = result.lines
     .filter((l) => l.qty > 0)
     .map(
@@ -91,8 +102,19 @@ export function renderSavingsMessage(result: SavingsResult): string {
         `  ➡️ *Poupança mensal: ${fmt(l.monthly)}*`,
     );
 
+  const title = babyName
+    ? `*POUPANÇA MENSAL — ${babyName.toUpperCase()}* 👶`
+    : "*POUPANÇA MENSAL — DEMO BEBÉ* 👶";
+
+  const intro = babyName
+    ? `Olá! Fiz as contas da poupança mensal para a/o *${babyName}* 👇\n\n`
+    : "";
+
+  const signature = agentName ? `\n\nUm abraço,\n*${agentName}* 💚` : "";
+
   return (
-    "*POUPANÇA MENSAL — DEMO BEBÉ* 👶\n\n" +
+    title + "\n\n" +
+    intro +
     (blocks.length ? blocks.join("\n\n") + "\n\n" : "") +
     "*TOTAL POUPADO POR MÊS*\n" +
     `💚 *${fmt(result.totalMonthly)}*\n\n` +
@@ -100,6 +122,8 @@ export function renderSavingsMessage(result: SavingsResult): string {
     "—\n\n" +
     "_E isto sem contar com a restante família._\n\n" +
     "Na receita _“boiões da semana”_ consegues preparar *13 refeições em apenas 30 minutos*.\n\n" +
-    "👉 Caro e cansativo é mesmo *não ter uma Bimby* numa fase que devia ser a melhor das nossas vidas."
+    "👉 Caro e cansativo é mesmo *não ter uma Bimby* numa fase que devia ser a melhor das nossas vidas." +
+    signature
   );
 }
+
