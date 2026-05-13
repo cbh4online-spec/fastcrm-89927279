@@ -82,7 +82,7 @@ export default function LeadChefTemplatesPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Pesquisar templates…"
+            placeholder="Pesquisar por nome ou conteúdo…"
             className="pl-9"
           />
         </div>
