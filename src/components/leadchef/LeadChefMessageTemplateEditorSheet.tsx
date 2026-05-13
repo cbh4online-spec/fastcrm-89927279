@@ -13,6 +13,8 @@ import {
   LEADCHEF_TEMPLATE_CATEGORY_LABELS,
   type LeadChefTemplateCategory,
 } from "@/utils/leadchef/templates";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { LeadChefTemplateSectionedEditor } from "./LeadChefTemplateSectionedEditor";
 import { useCreateLeadChefMessageTemplate } from "@/hooks/leadchef/useCreateLeadChefMessageTemplate";
 import { useUpdateLeadChefMessageTemplate } from "@/hooks/leadchef/useUpdateLeadChefMessageTemplate";
 import { LeadChefTemplateVariableHelper } from "./LeadChefTemplateVariableHelper";
