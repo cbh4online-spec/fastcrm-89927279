@@ -2,6 +2,7 @@ import { Activity, CalendarDays, Sparkles, Target, Phone, FileText, AlertCircle,
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LeadChefMobileShell } from "@/components/leadchef/LeadChefMobileShell";
+import { LeadChefPendingMessagesBlock } from "@/components/leadchef/LeadChefPendingMessagesBlock";
 import { LeadChefTodayCard } from "@/components/leadchef/LeadChefTodayCard";
 import { LeadChefLeadStageBadge } from "@/components/leadchef/LeadChefLeadStageBadge";
 import { LeadChefAlertActionCard } from "@/components/leadchef/LeadChefAlertActionCard";
@@ -123,6 +124,8 @@ export default function LeadChefTodayPage() {
           tone="slate"
         />
       </section>
+
+      <LeadChefPendingMessagesBlock />
 
       
       <section className="rounded-2xl bg-white border border-slate-200 shadow-sm">
