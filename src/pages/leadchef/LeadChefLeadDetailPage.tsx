@@ -18,6 +18,7 @@ import { LeadChefNextActionSuggestionCard } from "@/components/leadchef/LeadChef
 import { LeadChefPrintButton } from "@/components/leadchef/LeadChefPrintButton";
 import { LeadChefAISuggestionPanel } from "@/components/leadchef/LeadChefAISuggestionPanel";
 import { LeadChefEnrollSequencePanel } from "@/components/leadchef/LeadChefEnrollSequencePanel";
+import { LeadChefScheduledMessagesCard } from "@/components/leadchef/LeadChefScheduledMessagesCard";
 import { LeadChefLeadScoreBadge } from "@/components/leadchef/LeadChefLeadScoreBadge";
 import { useLeadChefLeadScore } from "@/hooks/leadchef/useLeadChefLeadScore";
 import { getLeadChefNextActionSuggestions } from "@/hooks/leadchef/useLeadChefNextActionSuggestions";
@@ -224,6 +225,8 @@ export default function LeadChefLeadDetailPage() {
       </div>
 
       <LeadChefLeadAppointmentsSection leadId={lead.id} profileId={profile.id} />
+
+      <LeadChefScheduledMessagesCard leadId={lead.id} />
 
       <LeadChefCycleChecklist
         profileId={profile.id}
