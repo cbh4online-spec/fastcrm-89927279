@@ -147,29 +147,41 @@ export function LeadChefSavingsCalculatorCard({ leadId, phone }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label htmlFor="sav-agent-name" className="text-xs">O meu primeiro nome</Label>
-          <Input
-            id="sav-agent-name"
-            type="text"
-            autoComplete="given-name"
-            placeholder="Ex: Ana"
-            value={names.agentName}
-            onChange={(e) => setNames((p) => ({ ...p, agentName: e.target.value }))}
-            className="mt-1 h-9 text-sm"
-          />
-        </div>
-        <div>
-          <Label htmlFor="sav-baby-name" className="text-xs">Nome do bebé</Label>
-          <Input
-            id="sav-baby-name"
-            type="text"
-            placeholder="Ex: Maria"
-            value={names.babyName}
-            onChange={(e) => setNames((p) => ({ ...p, babyName: e.target.value }))}
-            className="mt-1 h-9 text-sm"
-          />
-        </div>
+        {(["agentName", "babyName"] as const).map((field) => {
+          const isAgent = field === "agentName";
+          const id = isAgent ? "sav-agent-name" : "sav-baby-name";
+          const label = isAgent ? "O meu primeiro nome" : "Nome do bebé";
+          const placeholder = isAgent ? "Ex: Ana" : "Ex: Maria";
+          const value = names[field];
+          const validation = validateName(value);
+          const error = !validation.ok ? validation.error : null;
+          return (
+            <div key={field}>
+              <Label htmlFor={id} className="text-xs">{label}</Label>
+              <Input
+                id={id}
+                type="text"
+                autoComplete={isAgent ? "given-name" : "off"}
+                placeholder={placeholder}
+                value={value}
+                maxLength={NAME_MAX_LENGTH}
+                aria-invalid={!!error}
+                aria-describedby={error ? `${id}-error` : undefined}
+                onChange={(e) =>
+                  setNames((p) => ({ ...p, [field]: sanitizeName(e.target.value) }))
+                }
+                className="mt-1 h-9 text-sm"
+              />
+              {error ? (
+                <p id={`${id}-error`} className="mt-1 text-[10px] text-red-600">{error}</p>
+              ) : (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {value.length}/{NAME_MAX_LENGTH}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="space-y-3">
