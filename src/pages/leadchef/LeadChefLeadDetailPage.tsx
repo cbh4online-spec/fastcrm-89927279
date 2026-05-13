@@ -228,6 +228,17 @@ export default function LeadChefLeadDetailPage() {
         </ul>
       </div>
 
+      <LeadChefSocialLinksCard
+        values={{
+          instagram_handle: (profile as any).instagram_handle ?? null,
+          facebook_url: (profile as any).facebook_url ?? null,
+          tiktok_handle: (profile as any).tiktok_handle ?? null,
+          linkedin_url: (profile as any).linkedin_url ?? null,
+        }}
+        isSaving={updateSocials.isPending}
+        onSave={(v) => updateSocials.mutate({ profileId: profile.id, values: v })}
+      />
+
       <LeadChefLeadAppointmentsSection leadId={lead.id} profileId={profile.id} />
 
       <LeadChefSavingsCalculatorCard leadId={lead.id} phone={lead.phone} />
