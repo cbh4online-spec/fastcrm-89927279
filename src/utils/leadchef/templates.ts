@@ -143,6 +143,28 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
   },
   {
     category: "cooking_class_invite",
+    name: "Lista de Compras Demo Bebé 6–9 meses",
+    body:
+      "🛒 *Lista de Compras Demo Bebé 6–9 meses*\n\n" +
+      "🍗 *Carnes*\n" +
+      "☐ Frango — 120 g\n\n" +
+      "🍚 *Cereais e Legumes Secos*\n" +
+      "☐ Arroz — 200 g\n\n" +
+      "🍎 *Frutas*\n" +
+      "☐ Banana — 30 g\n" +
+      "☐ Maçã — 780 g\n\n" +
+      "🫒 *Gorduras*\n" +
+      "☐ Azeite extra virgem — 6 c. chá\n\n" +
+      "🍼 *Laticínios*\n" +
+      "☐ Leite em pó para lactentes — 150 g\n\n" +
+      "🥕 *Legumes e Ervas Aromáticas*\n" +
+      "☐ Cenoura — 250 g\n" +
+      "☐ Chuchu — 200 g\n" +
+      "☐ Curgete — 500 g\n" +
+      "☐ Nabiças — 100 g",
+  },
+  {
+    category: "cooking_class_invite",
     name: "Lista de Compras Degustação Carne",
     body:
       "🛒 *Lista de Compras Degustação Carne*\n\n" +
