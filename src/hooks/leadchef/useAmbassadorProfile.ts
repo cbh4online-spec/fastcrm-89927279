@@ -33,7 +33,7 @@ export function useAmbassadorProfile() {
         .limit(1)
         .maybeSingle();
       if (error && (error as any).code !== "PGRST116") throw error;
-      return (data as AmbassadorProfile | null) ?? null;
+      return (data as unknown as AmbassadorProfile | null) ?? null;
     },
   });
 }
