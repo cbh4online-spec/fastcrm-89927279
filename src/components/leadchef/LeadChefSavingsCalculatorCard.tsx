@@ -154,7 +154,7 @@ export function LeadChefSavingsCalculatorCard({ leadId, phone }: Props) {
           const placeholder = isAgent ? "Ex: Ana" : "Ex: Maria";
           const value = names[field];
           const validation = validateName(value);
-          const error = validation.ok ? null : validation.error;
+          const error = validation.ok === false ? validation.error : null;
           return (
             <div key={field}>
               <Label htmlFor={id} className="text-xs">{label}</Label>
