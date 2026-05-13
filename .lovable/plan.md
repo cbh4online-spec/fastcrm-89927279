@@ -1,93 +1,69 @@
 ## Diagnóstico
 
-O LeadChef já tem motor de sequências (`leadchef_sequences`, `leadchef_sequence_steps`, `leadchef_lead_sequence_runs`) e dispatcher (`leadchef-followup-dispatcher`) que corre via cron, com pausa automática se o lead responde ou muda de stage. Falta:
+Já existe um template estático "Poupança mensal — Demo Bebé" em `src/utils/leadchef/templates.ts` (linha 286) com valores fixos: 30 boiões, 15 papas, 4 sopas → 21,26€/mês. O agente quer poder ajustar as quantidades por lead e gerar o texto WhatsApp com o total recalculado, diretamente na página do lead.
 
-1. Um **trigger** que enrole o lead na sequência quando uma demo é concluída (`useCompleteLeadChefAppointment`).
-2. Um **action_type novo** `send_whatsapp` que envie via Z-API (`whatsapp-zapi-send`) com janela de cancelamento.
-3. Uma **fila de envios pendentes** com estado `scheduled → cancellable → sent/cancelled` para o agente poder cancelar a partir do detalhe do lead.
+## Decisões de produto/UX
 
-## Decisões de produto / UX
-
-- **Híbrido**: ao concluir uma demo, é criado um envio agendado para 24h depois. O agente recebe notificação e vê um cartão "Envios agendados" no lead com botão **Cancelar envio**. Se nada fizer, é enviado automaticamente.
-- **Âmbito**: todas as demos (qualquer outcome `done | proposal_sent | won | no_interest`).
-- **Pausa automática**: cancelado se o lead responder OU mudar de stage entre o agendamento e o envio.
-- **Template**: usa o template existente "Poupança Demo Bebé" (categoria `post_demo_follow_up`). O agente pode trocar o template por defeito nas Definições LeadChef.
+- **Localização**: novo cartão "Calculadora de poupança" na `LeadChefLeadDetailPage`, posicionado abaixo das ações rápidas e antes da timeline (zona de alta visibilidade durante a chamada/follow-up).
+- **Inputs ajustáveis** (3 linhas, defaults = template original):
+  - Boiões de maçã / mês — qtd (default 30)
+  - Papas de farinha de arroz / mês — qtd (default 15)
+  - Sopas fora de casa / mês — qtd (default 4)
+- **Preços por unidade** (compra vs Bimby) ficam numa constante editável em código (não na UI), para manter o cartão simples. Mostrados em texto pequeno por baixo de cada linha para o agente justificar ao lead.
+- **Outputs em tempo real**:
+  - Poupança mensal por categoria
+  - Total mensal destacado em verde
+  - Total anual (mensal × 12) como reforço
+- **Ações**:
+  - Botão "Copiar mensagem" → texto formatado idêntico ao template existente, mas com os valores do lead.
+  - Botão "Enviar por WhatsApp" → reutiliza `LeadChefWhatsAppActionSheet` com o texto pré-preenchido.
+- **Persistência**: as quantidades guardam-se em `localStorage` por `leadId` (chave `leadchef:savings:{leadId}`) para o agente não perder o ajuste se sair e voltar. Sem coluna nova na BD nesta fase.
+- **Reset**: botão pequeno "Repor valores padrão".
 
 ## Estrutura técnica
 
-### Nova tabela
+Novos ficheiros:
+- `src/utils/leadchef/savingsCalculator.ts` — constantes de preços, função `calcSavings({ boioes, papas, sopas })` devolvendo breakdown + totais, e `renderSavingsMessage(result, leadFirstName?)` para o texto WhatsApp.
+- `src/components/leadchef/LeadChefSavingsCalculatorCard.tsx` — UI do cartão (inputs número, breakdown, totais, copiar, enviar WhatsApp, reset). Persistência via `localStorage` com hook interno.
+
+Edição:
+- `src/pages/leadchef/LeadChefLeadDetailPage.tsx` — montar `<LeadChefSavingsCalculatorCard leadId={lead.id} firstName={...} phone={...} />` na zona acordada e ligar ao `LeadChefWhatsAppActionSheet` existente (passar `prefilledMessage`).
+
 ```text
-leadchef_scheduled_messages
-  id, workspace_id, lead_id, profile_id, agent_id (assigned_to)
-  template_id (FK leadchef_message_templates), rendered_body text
-  scheduled_for timestamptz   -- demo.completed_at + 24h
-  status text                 -- 'scheduled' | 'sent' | 'cancelled' | 'failed' | 'paused'
-  cancel_reason text          -- 'manual' | 'lead_replied' | 'stage_changed'
-  source_appointment_id uuid  -- FK leadchef_appointments
-  sent_at, cancelled_at, error
-  created_at, updated_at
-  UNIQUE (source_appointment_id, template_id)  -- evita duplicados
+LeadChefLeadDetailPage
+└─ LeadChefSavingsCalculatorCard
+   ├─ inputs (boiões / papas / sopas)
+   ├─ breakdown por categoria (mensal)
+   ├─ total mensal + total anual
+   └─ ações: Copiar | Enviar WhatsApp | Repor
 ```
-RLS: SELECT/UPDATE para membros do workspace (agente vê os seus); INSERT/dispatch via service_role.
 
-### Trigger no complete da demo
-Em `useCompleteLeadChefAppointment`, após gravar `completed_at`, inserir uma linha em `leadchef_scheduled_messages` com:
-- `scheduled_for = completed_at + interval '24 hours'`
-- `template_id` = template "Poupança Demo Bebé" (ID por defeito guardado em `leadchef_workspace_settings.post_demo_template_id`, com fallback para o template seed por `name`)
-
-### Edge function nova: `leadchef-scheduled-whatsapp-dispatcher`
-Cron de 5 em 5 minutos (pg_cron). Para cada `scheduled_messages.status='scheduled'` com `scheduled_for <= now()`:
-1. Re-verificar pausa: lead respondeu (`crm_activities` inbound após `created_at`) ou mudou de stage → marcar `cancelled` com `cancel_reason`.
-2. Renderizar template com `firstName/agentName/...` (reutilizar `messageTemplates.ts`).
-3. Chamar `whatsapp-zapi-send` com o número do lead.
-4. Marcar `sent` ou `failed` (com retry máx. 3).
-5. Logar em `crm_activities` (`activity_type='whatsapp_auto_sent'`).
-
-### UI (frontend)
-- **Detalhe do lead** (`LeadChefLeadDetailPage`): novo cartão "📩 Envio agendado" mostrando template + countdown + botão **Cancelar envio**.
-- **Hoje** (`LeadChefTodayPage`): secção "Envios pendentes (24h)" com contador.
-- **Definições LeadChef**: campo "Template pós-demo automático" (select dos templates da categoria `post_demo_follow_up`) + toggle global on/off.
-- **Notificação push**: aproveitar `leadchef_push_queue` para avisar o agente 1h antes do envio: "📩 Vou enviar a mensagem de poupança ao {nome} daqui a 1h. Cancelar?"
-
-### Cron
-```sql
-select cron.schedule(
-  'leadchef-scheduled-whatsapp',
-  '*/5 * * * *',
-  $$ select net.http_post(url:='…/leadchef-scheduled-whatsapp-dispatcher', …) $$
-);
-```
+Constantes (extraídas do template atual):
+- Boião: compra 0,50€ · Bimby 0,16€ · poupança 0,34€/un
+- Papa:  compra 0,53€ · Bimby 0,19€ · poupança 0,34€/un
+- Sopa:  compra 1,99€ · Bimby 0,50€ · poupança 1,49€/un
 
 ## Plano de implementação
 
-1. **Migração DB**: criar `leadchef_scheduled_messages`, RLS, índices (`workspace_id`, `status`, `scheduled_for`), `post_demo_template_id` em `leadchef_workspace_settings`, toggle `auto_post_demo_enabled`.
-2. **Edge function `leadchef-scheduled-whatsapp-dispatcher`**: implementar com pausa por reply/stage, render de template, chamada a `whatsapp-zapi-send`, logging.
-3. **Cron pg_cron**: agendar de 5/5 min via `supabase--insert`.
-4. **Hook `useCompleteLeadChefAppointment`**: ao completar demo, se `auto_post_demo_enabled=true` e `post_demo_template_id` definido, inserir scheduled_message.
-5. **Frontend**:
-   - `useScheduledMessages(leadId)` + `useCancelScheduledMessage`.
-   - `ScheduledMessageCard` no detalhe do lead.
-   - Bloco no Today.
-   - Configuração nas Settings.
-6. **Push 1h antes**: estender `leadchef-push-scheduler` para enfileirar aviso quando `scheduled_for - now() <= 1h`.
-7. **Backfill**: NÃO aplicar a demos passadas (apenas novas).
+1. Criar `savingsCalculator.ts` com tipos, constantes, `calcSavings` e `renderSavingsMessage` (formato exatamente igual ao template existente, valores recalculados, separadores de milhares pt-PT, 2 casas decimais).
+2. Criar `LeadChefSavingsCalculatorCard.tsx` (shadcn `Card`, `Input type=number`, `Button`). Usar tokens semânticos do design system (`text-emerald-600` apenas para o destaque do total, alinhado com `ExtrasCard`/`GanhosSimulator`).
+3. Implementar persistência por lead via `localStorage` com fallback para defaults.
+4. Integrar pré-visualização da mensagem reutilizando `LeadChefMessagePreview`.
+5. Inserir o cartão em `LeadChefLeadDetailPage.tsx` e ligar o botão "Enviar WhatsApp" ao sheet existente passando o texto.
+6. QA em mobile (LeadChef é mobile-first), validar inputs (mínimo 0, inteiros), estado vazio (0 em todas → totais 0€ + mensagem desativa botão de envio).
 
 ## Critérios de aceitação
 
-- Concluir uma demo cria 1 registo `scheduled_messages` com `scheduled_for = completed_at + 24h`.
-- Aos 23h, agente recebe push "Vou enviar daqui a 1h" com link para cancelar.
-- Botão **Cancelar** muda status para `cancelled (manual)` e nenhum WhatsApp é enviado.
-- Se o lead responder antes da hora, status passa a `cancelled (lead_replied)`.
-- Se o lead mudar de stage (ex.: won, lost), status passa a `cancelled (stage_changed)`.
-- À hora marcada, mensagem é entregue via Z-API e regista-se em `crm_activities`.
-- Falhas Z-API ficam em `failed` com retry até 3x.
-- Nenhum duplicado por demo (UNIQUE em `source_appointment_id + template_id`).
-- Toggle global desativa toda a automação sem perda de configuração.
+- Alterar uma quantidade recalcula breakdown + totais instantaneamente.
+- Texto gerado segue o mesmo layout/emoji do template "Poupança mensal — Demo Bebé".
+- "Copiar" coloca texto na clipboard com toast de confirmação.
+- "Enviar WhatsApp" abre o sheet existente com o texto pré-preenchido e telefone do lead.
+- Quantidades persistem ao recarregar a página do mesmo lead.
+- "Repor padrão" volta a 30/15/4.
+- Sem erros de consola; funciona em mobile (375px).
 
 ## Riscos e pontos por validar
 
-- **Template hardcoded**: o template "Poupança Demo Bebé" deve estar instalado em todos os workspaces — usar fallback por nome ou criar seed.
-- **Número do lead**: validar que `leads.phone` está em formato E.164 antes de enviar; se não, marcar `failed` com motivo "phone_invalid".
-- **Quiet hours**: confirmar se respeitamos quiet hours globais ou enviamos exatamente às 24h. Recomendação: empurrar para a próxima janela útil (ex.: 9h-21h).
-- **Z-API ligado**: se a sessão WhatsApp do agente estiver desligada, falhar elegantemente e notificar o agente.
-- **Privacidade**: o template inclui dados financeiros (poupança) — validar consentimento prévio do lead.
+- Confirmar que `LeadChefWhatsAppActionSheet` aceita `prefilledMessage` (caso contrário, adicionar prop opcional sem alterar comportamento atual).
+- Preços hardcoded — se quiser editáveis por workspace mais tarde, migrar para `leadchef_app_config.features.savings_calculator`.
+- Não há tracking de uso — se quiser contar quantos leads viram a calculadora, adicionar `crm_activities` log no envio (decidir antes de implementar).
