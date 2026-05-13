@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { LeadChefMessageTemplateCard } from "@/components/leadchef/LeadChefMessageTemplateCard";
+import { LeadChefAutoPostDemoSettings } from "@/components/leadchef/LeadChefAutoPostDemoSettings";
 import { LeadChefMessageTemplateEditorSheet } from "@/components/leadchef/LeadChefMessageTemplateEditorSheet";
 import { LeadChefTemplatesEmptyState } from "@/components/leadchef/LeadChefTemplatesEmptyState";
 import { useLeadChefMessageTemplates } from "@/hooks/leadchef/useLeadChefMessageTemplates";
