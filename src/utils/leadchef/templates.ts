@@ -172,6 +172,20 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
       "🧻 *Outros*\n" +
       "☐ Papel vegetal",
   },
+  {
+    category: "demo_confirmation",
+    name: "Confirmação momento Bimby",
+    body:
+      "Olá {{firstName}}, fica marcado o vosso momento Bimby para o dia {{appointmentDate}} às {{appointmentTime}}.\n\n" +
+      "Confirma, por favor, se está tudo de acordo com o combinado. Até já! 🙌",
+  },
+  {
+    category: "demo_reminder",
+    name: "Lembrete momento Bimby",
+    body:
+      "Olá {{firstName}}, passo só para lembrar do nosso momento Bimby marcado para {{appointmentDate}} às {{appointmentTime}}.\n\n" +
+      "Mantém-se? Qualquer ajuste é só dizer. Até já! 👩‍🍳",
+  },
 ];
 
 // ─── Automations defaults ────────────────────────────────────────────────────
