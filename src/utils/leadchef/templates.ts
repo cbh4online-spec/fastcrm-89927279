@@ -211,6 +211,33 @@ export const LEADCHEF_DEFAULT_TEMPLATES: LeadChefDefaultTemplate[] = [
       "Depois de receber o contrato por e-mail da Vorwerk, assina e vai receber a referência para o pagamento.\n\n" +
       "Após o pagamento, envie-me o comprovativo, por favor. 🙏",
   },
+  {
+    category: "proposal_follow_up",
+    name: "Documentos para aprovação de crédito",
+    body:
+      "Olá {{firstName}}, para avançarmos com a aprovação de crédito preciso dos seguintes documentos e informações:\n\n" +
+      "📄 *Documentos*\n" +
+      "• Cartão de Cidadão (PDF ou fotografia legível, sem cortes)\n" +
+      "• Comprovativo de morada\n" +
+      "• Comprovativo de IBAN\n\n" +
+      "📇 *Contactos*\n" +
+      "• E-mail\n" +
+      "• Telemóvel\n" +
+      "• Morada\n\n" +
+      "🏠 *Habitação*\n" +
+      "• Casa com empréstimo? Há quantos anos?\n\n" +
+      "🎓 *Formação académica*\n\n" +
+      "💼 *Situação profissional*\n" +
+      "• Nome da entidade patronal\n" +
+      "• Setor de atividade\n" +
+      "• Cargo que exerce\n" +
+      "• Há quantos anos\n" +
+      "• Telefone do emprego\n" +
+      "• Vencimento mensal\n\n" +
+      "💍 *Regime de casamento*\n\n" +
+      "💶 *Mensalidade escolhida*\n\n" +
+      "Assim que tiveres tudo, envia-me por aqui que trato do envio para análise. Obrigada! 🙏",
+  },
 ];
 
 // ─── Automations defaults ────────────────────────────────────────────────────
