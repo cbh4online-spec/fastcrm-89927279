@@ -324,13 +324,118 @@ export default function GscDashboardPage() {
           <KpiCard label="Erros" value={String(sitemapStats.err)} icon={XCircle} />
         </div>
 
-        <Tabs defaultValue="sitemaps" className="space-y-4">
+        <Tabs defaultValue={openCritical + openWarning > 0 ? "alerts" : "sitemaps"} className="space-y-4">
           <TabsList>
+            <TabsTrigger value="alerts" className="relative">
+              <Bell className="h-3.5 w-3.5 mr-1.5" />
+              Alertas
+              {(openCritical + openWarning) > 0 && (
+                <span className={`ml-2 inline-flex items-center justify-center text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 ${openCritical > 0 ? "bg-rose-500 text-white" : "bg-amber-500 text-white"}`}>
+                  {openCritical + openWarning}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="sitemaps">Sitemaps</TabsTrigger>
             <TabsTrigger value="pages">Top URLs</TabsTrigger>
             <TabsTrigger value="queries">Top Queries</TabsTrigger>
             <TabsTrigger value="inspect">Inspector de URL</TabsTrigger>
           </TabsList>
+
+          {/* ALERTS */}
+          <TabsContent value="alerts">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4 text-amber-600" />
+                    Alertas de indexação e rastreio
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Detetados automaticamente todos os dias às 05:30 UTC. {openCritical > 0 && <span className="text-rose-600 font-medium">{openCritical} crítico(s) abertos.</span>}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={alertFilter} onValueChange={(v) => setAlertFilter(v as typeof alertFilter)}>
+                    <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">Abertos</SelectItem>
+                      <SelectItem value="resolved">Resolvidos</SelectItem>
+                      <SelectItem value="all">Todos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => checkIssues.mutate()}
+                    disabled={checkIssues.isPending}
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 mr-2 ${checkIssues.isPending ? "animate-spin" : ""}`} />
+                    Verificar agora
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {alerts.isLoading ? (
+                  <Skeleton className="h-40" />
+                ) : alertList.length === 0 ? (
+                  <div className="text-center py-10 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                    Sem alertas {alertFilter === "open" ? "abertos" : alertFilter === "resolved" ? "resolvidos" : ""} para mostrar.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Severidade</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>URL / Sitemap</TableHead>
+                          <TableHead>Última deteção</TableHead>
+                          <TableHead className="text-right">Acção</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {alertList.map((a) => (
+                          <TableRow key={a.id} className={a.status === "resolved" ? "opacity-60" : ""}>
+                            <TableCell><SeverityBadge severity={a.severity} /></TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{ALERT_LABELS[a.alert_type] ?? a.alert_type}</TableCell>
+                            <TableCell className="text-sm">
+                              <div className="font-medium">{a.title}</div>
+                              {a.message && <div className="text-xs text-muted-foreground line-clamp-2">{a.message}</div>}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs max-w-[260px] truncate">
+                              {a.url ? <a href={a.url} target="_blank" rel="noreferrer" className="hover:underline">{a.url}</a> : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                              {formatDistanceToNow(new Date(a.last_seen_at), { addSuffix: true, locale: pt })}
+                            </TableCell>
+                            <TableCell className="text-right space-x-1">
+                              {a.url && (
+                                <Button size="sm" variant="ghost" onClick={() => { setInspectUrl(a.url!); inspect.mutate(a.url!); }}>
+                                  <Search className="h-3 w-3" />
+                                </Button>
+                              )}
+                              {a.status === "open" ? (
+                                <Button size="sm" variant="ghost" onClick={() => updateAlert.mutate({ id: a.id, status: "resolved" })}>
+                                  <CheckCircle2 className="h-3 w-3 mr-1" /> Resolver
+                                </Button>
+                              ) : (
+                                <Button size="sm" variant="ghost" onClick={() => updateAlert.mutate({ id: a.id, status: "open" })}>
+                                  Reabrir
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
 
           {/* SITEMAPS */}
           <TabsContent value="sitemaps">
