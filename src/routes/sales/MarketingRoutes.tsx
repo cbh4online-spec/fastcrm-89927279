@@ -28,6 +28,8 @@ export function SalesMarketingRoutes() {
       <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
       <Route path="/dashboard/marketing" element={<Marketing />} />
       <Route path="/dashboard/lifecycle" element={<CustomerLifecyclePage />} />
+      <Route path="/dashboard/seo/gsc" element={<GscDashboardPage />} />
+      <Route path="/dashboard/seo/search-console" element={<GscDashboardPage />} />
     </>
   );
 }
