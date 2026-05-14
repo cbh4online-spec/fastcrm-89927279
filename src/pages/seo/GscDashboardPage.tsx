@@ -263,7 +263,18 @@ export default function GscDashboardPage() {
           {/* SITEMAPS */}
           <TabsContent value="sitemaps">
             <Card>
-              <CardHeader><CardTitle>Sitemaps submetidos</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Sitemaps submetidos</CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => resubmit.mutate()}
+                  disabled={resubmit.isPending}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-2 ${resubmit.isPending ? "animate-spin" : ""}`} />
+                  Resubmeter ao Google
+                </Button>
+              </CardHeader>
               <CardContent>
                 {overview.isLoading ? (
                   <Skeleton className="h-40" />
