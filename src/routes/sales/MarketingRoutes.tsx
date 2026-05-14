@@ -11,6 +11,7 @@ const BioOS = lazy(() => import("@/pages/BioOS"));
 const FormStudioPage = lazy(() => import("@/pages/FormStudioPage"));
 const Marketing = lazy(() => import("@/pages/Marketing"));
 const CustomerLifecyclePage = lazy(() => import("@/pages/CustomerLifecyclePage"));
+const GscDashboardPage = lazy(() => import("@/pages/seo/GscDashboardPage"));
 
 export function SalesMarketingRoutes() {
   return (
@@ -27,6 +28,8 @@ export function SalesMarketingRoutes() {
       <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
       <Route path="/dashboard/marketing" element={<Marketing />} />
       <Route path="/dashboard/lifecycle" element={<CustomerLifecyclePage />} />
+      <Route path="/dashboard/seo/gsc" element={<GscDashboardPage />} />
+      <Route path="/dashboard/seo/search-console" element={<GscDashboardPage />} />
     </>
   );
 }
