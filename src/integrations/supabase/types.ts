@@ -35427,6 +35427,57 @@ export type Database = {
           },
         ]
       }
+      gsc_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          details: Json
+          fingerprint: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          message: string | null
+          resolved_at: string | null
+          severity: string
+          site: string
+          status: string
+          title: string
+          url: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          details?: Json
+          fingerprint: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          message?: string | null
+          resolved_at?: string | null
+          severity?: string
+          site: string
+          status?: string
+          title: string
+          url?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          details?: Json
+          fingerprint?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          message?: string | null
+          resolved_at?: string | null
+          severity?: string
+          site?: string
+          status?: string
+          title?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       health_engine_config: {
         Row: {
           created_at: string
