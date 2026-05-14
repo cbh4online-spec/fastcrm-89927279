@@ -37,6 +37,8 @@ import {
   Eye,
   MousePointerClick,
   Target,
+  Bell,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
