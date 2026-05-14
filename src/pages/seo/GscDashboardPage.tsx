@@ -167,6 +167,22 @@ export default function GscDashboardPage() {
     onError: (err: Error) => toast.error(err.message ?? "Erro ao inspeccionar URL"),
   });
 
+  const resubmit = useMutation({
+    mutationFn: () =>
+      callGsc<{ submitted: Array<{ feed: string; ok: boolean; error?: string }> }>({
+        action: "submit_sitemaps",
+        site: DEFAULT_SITE,
+      }),
+    onSuccess: (data) => {
+      const ok = data.submitted.filter((s) => s.ok).length;
+      const fail = data.submitted.length - ok;
+      if (fail === 0) toast.success(`${ok} sitemap(s) resubmetido(s) ao Google.`);
+      else toast.warning(`${ok} ok, ${fail} falharam.`);
+      overview.refetch();
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Erro ao resubmeter sitemaps"),
+  });
+
   const totals = overview.data?.totals?.rows?.[0];
   const sitemaps = overview.data?.sitemaps?.sitemap ?? [];
 
