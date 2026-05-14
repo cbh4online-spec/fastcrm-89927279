@@ -218,7 +218,44 @@ export default function GscDashboardPage() {
     onError: (err: Error) => toast.error(err.message ?? "Erro ao resubmeter sitemaps"),
   });
 
-  const totals = overview.data?.totals?.rows?.[0];
+  const queryClient = useQueryClient();
+  const [alertFilter, setAlertFilter] = useState<"open" | "all" | "resolved">("open");
+
+  const alerts = useQuery({
+    queryKey: ["gsc", "alerts", alertFilter],
+    queryFn: () => callGsc<{ alerts: GscAlert[] }>({ action: "list_alerts", status: alertFilter }),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  const checkIssues = useMutation({
+    mutationFn: () =>
+      callGsc<{ total?: number; persisted?: number; sitemaps?: number; urls?: number; error?: string }>({
+        action: "check_issues",
+      }),
+    onSuccess: (d) => {
+      if (d?.error) toast.error(d.error);
+      else toast.success(`Verificação concluída: ${d.total ?? 0} alerta(s) detetado(s).`);
+      queryClient.invalidateQueries({ queryKey: ["gsc", "alerts"] });
+    },
+    onError: (e: Error) => toast.error(e.message ?? "Erro ao verificar GSC"),
+  });
+
+  const updateAlert = useMutation({
+    mutationFn: (vars: { id: string; status: "resolved" | "open" }) =>
+      callGsc<{ ok: boolean }>({ action: "update_alert", id: vars.id, status: vars.status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gsc", "alerts"] });
+      toast.success("Alerta actualizado.");
+    },
+    onError: (e: Error) => toast.error(e.message ?? "Erro ao actualizar alerta"),
+  });
+
+  const alertList = alerts.data?.alerts ?? [];
+  const openCritical = alertList.filter((a) => a.status === "open" && a.severity === "critical").length;
+  const openWarning = alertList.filter((a) => a.status === "open" && a.severity === "warning").length;
+
+
   const sitemaps = overview.data?.sitemaps?.sitemap ?? [];
 
   const sitemapStats = useMemo(() => {
