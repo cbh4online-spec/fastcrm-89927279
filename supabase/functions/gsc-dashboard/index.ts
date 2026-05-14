@@ -163,6 +163,49 @@ Deno.serve(async (req) => {
       return json({ totals, byDate, sitemaps, range: { startDate, endDate, days } });
     }
 
+    if (action === "list_alerts") {
+      const status: string = body.status ?? "open";
+      const limit = Math.min(Math.max(Number(body.limit ?? 100), 1), 500);
+      const { data, error } = await userClient
+        .from("gsc_alerts")
+        .select("*")
+        .in("status", status === "all" ? ["open", "snoozed", "resolved"] : [status])
+        .order("severity", { ascending: false })
+        .order("last_seen_at", { ascending: false })
+        .limit(limit);
+      if (error) return json({ error: error.message }, 403);
+      return json({ alerts: data ?? [] });
+    }
+
+    if (action === "update_alert") {
+      const id: string | undefined = body.id;
+      const newStatus: string | undefined = body.status;
+      if (!id || !newStatus) return json({ error: "id and status required" }, 400);
+      if (!["open", "resolved", "snoozed"].includes(newStatus)) {
+        return json({ error: "invalid status" }, 400);
+      }
+      const patch: Record<string, unknown> = { status: newStatus };
+      if (newStatus === "resolved") patch.resolved_at = new Date().toISOString();
+      const { error } = await userClient.from("gsc_alerts").update(patch).eq("id", id);
+      if (error) return json({ error: error.message }, 403);
+      return json({ ok: true });
+    }
+
+    if (action === "check_issues") {
+      // Aciona o cron de deteção (autenticado por JWT do super admin)
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/gsc-cron-check-issues`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({ triggered_by: userId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      return json(data, res.status);
+    }
+
     return json({ error: `unknown action: ${action}` }, 400);
   } catch (err) {
     console.error("gsc-dashboard error", err);
