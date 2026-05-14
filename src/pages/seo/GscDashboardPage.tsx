@@ -96,6 +96,38 @@ interface InspectData {
   };
 }
 
+interface GscAlert {
+  id: string;
+  alert_type: string;
+  severity: "info" | "warning" | "critical";
+  url: string | null;
+  title: string;
+  message: string | null;
+  status: "open" | "resolved" | "snoozed";
+  first_seen_at: string;
+  last_seen_at: string;
+  details: Record<string, unknown>;
+}
+
+const ALERT_LABELS: Record<string, string> = {
+  sitemap_error: "Erro de sitemap",
+  sitemap_warning: "Aviso de sitemap",
+  sitemap_pending: "Sitemap pendente",
+  url_not_indexed: "Página não indexada",
+  canonical_mismatch: "Canonical divergente",
+  crawl_error: "Erro de rastreio",
+  robots_blocked: "Bloqueado por robots.txt",
+};
+
+function SeverityBadge({ severity }: { severity: string }) {
+  if (severity === "critical")
+    return <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30"><XCircle className="h-3 w-3 mr-1" />Crítico</Badge>;
+  if (severity === "warning")
+    return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"><AlertTriangle className="h-3 w-3 mr-1" />Aviso</Badge>;
+  return <Badge variant="outline">Info</Badge>;
+}
+
+
 function VerdictBadge({ verdict }: { verdict?: string }) {
   if (!verdict) return <Badge variant="outline">—</Badge>;
   const v = verdict.toUpperCase();
