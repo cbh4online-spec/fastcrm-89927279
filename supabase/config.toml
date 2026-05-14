@@ -141,3 +141,7 @@ verify_jwt = false
 
 [functions.leadchef-scheduled-whatsapp-dispatcher]
 verify_jwt = false
+
+[functions.gsc-cron-submit-sitemaps]
+verify_jwt = false
+

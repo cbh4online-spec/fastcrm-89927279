@@ -84,6 +84,28 @@ Deno.serve(async (req) => {
       return json(data);
     }
 
+    if (action === "submit_sitemaps") {
+      const feeds: string[] = Array.isArray(body.feeds) && body.feeds.length
+        ? body.feeds
+        : [
+            "https://fastcrm.metodopare.ai/sitemap.xml",
+            "https://fastcrm.metodopare.ai/sitemap-dynamic.xml",
+          ];
+      const results: Array<{ feed: string; ok: boolean; error?: string }> = [];
+      for (const feed of feeds) {
+        try {
+          await gscFetch(
+            `/webmasters/v3/sites/${siteEnc}/sitemaps/${encodeURIComponent(feed)}`,
+            { method: "PUT" },
+          );
+          results.push({ feed, ok: true });
+        } catch (e) {
+          results.push({ feed, ok: false, error: e instanceof Error ? e.message : String(e) });
+        }
+      }
+      return json({ submitted: results, site });
+    }
+
     if (action === "search_analytics") {
       const days: number = Math.min(Math.max(body.days ?? 28, 1), 90);
       const dimensions: string[] = body.dimensions ?? [];
