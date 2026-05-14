@@ -15,7 +15,7 @@ export function LegalPageLayout({ title, description, lastUpdated, children }: L
       <SEOHead
         title={`${title} | FastCRM`}
         description={description}
-        canonicalUrl={`https://fastcrm.lovable.app/${title.toLowerCase().replace(/\s+/g, '-')}`}
+        canonicalUrl={`https://fastcrm.metodopare.ai/${title.toLowerCase().replace(/\s+/g, '-')}`}
       />
       <div className="container max-w-4xl py-12 md:py-16">
         <header className="mb-10">

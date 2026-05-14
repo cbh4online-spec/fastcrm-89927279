@@ -43,7 +43,7 @@ export default function BlogListPage() {
       <SEOHead
         title="Blog FastCRM - Dicas de Vendas e CRM"
         description="Artigos, tutoriais e insights sobre CRM, vendas, marketing e produtividade. Aprenda com os melhores especialistas."
-        canonicalUrl="https://fastcrm.lovable.app/blog"
+        canonicalUrl="https://fastcrm.metodopare.ai/blog"
       />
       
       <div className="container py-8">

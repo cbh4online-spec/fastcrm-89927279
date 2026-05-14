@@ -25,7 +25,7 @@ export default function PricingPage() {
           content="Compare FastCRM plans: Starter (free), Growth and Scale. Flexible pricing with smart bundles for SaaS teams."
         />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://fastcrm.lovable.app/pricing" />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai/precos" />
       </Helmet>
 
       <div className="min-h-screen bg-[hsl(222,47%,4%)] text-[hsl(210,40%,98%)] overflow-x-hidden">
