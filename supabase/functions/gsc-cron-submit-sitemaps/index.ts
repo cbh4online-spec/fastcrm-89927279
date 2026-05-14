@@ -23,7 +23,7 @@ function json(b: unknown, s = 200) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const expected = Deno.env.get("GSC_CRON_SECRET");
+  const expected = Deno.env.get("GSC_CRON_SECRET") ?? Deno.env.get("CRON_SECRET");
   const provided = req.headers.get("x-cron-secret");
   if (!expected || provided !== expected) {
     return json({ error: "unauthorized" }, 401);
