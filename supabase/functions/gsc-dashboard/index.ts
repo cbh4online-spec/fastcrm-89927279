@@ -54,15 +54,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Auth: require a logged-in user (anti-abuso)
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const userClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  let userId: string | null = null;
   try {
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await userClient.auth.getUser();
     if (!user) return json({ error: "Unauthorized" }, 401);
+    userId = user.id;
   } catch {
     return json({ error: "Unauthorized" }, 401);
   }
@@ -73,6 +75,7 @@ Deno.serve(async (req) => {
     const site: string = body.site ?? DEFAULT_SITE;
     const inspectSite: string = body.inspectSite ?? DEFAULT_INSPECT_SITE;
     const siteEnc = encodeURIComponent(site);
+
 
     if (action === "list_sites") {
       const data = await gscFetch(`/webmasters/v3/sites`);
@@ -158,6 +161,49 @@ Deno.serve(async (req) => {
         gscFetch(`/webmasters/v3/sites/${siteEnc}/sitemaps`),
       ]);
       return json({ totals, byDate, sitemaps, range: { startDate, endDate, days } });
+    }
+
+    if (action === "list_alerts") {
+      const status: string = body.status ?? "open";
+      const limit = Math.min(Math.max(Number(body.limit ?? 100), 1), 500);
+      const { data, error } = await userClient
+        .from("gsc_alerts")
+        .select("*")
+        .in("status", status === "all" ? ["open", "snoozed", "resolved"] : [status])
+        .order("severity", { ascending: false })
+        .order("last_seen_at", { ascending: false })
+        .limit(limit);
+      if (error) return json({ error: error.message }, 403);
+      return json({ alerts: data ?? [] });
+    }
+
+    if (action === "update_alert") {
+      const id: string | undefined = body.id;
+      const newStatus: string | undefined = body.status;
+      if (!id || !newStatus) return json({ error: "id and status required" }, 400);
+      if (!["open", "resolved", "snoozed"].includes(newStatus)) {
+        return json({ error: "invalid status" }, 400);
+      }
+      const patch: Record<string, unknown> = { status: newStatus };
+      if (newStatus === "resolved") patch.resolved_at = new Date().toISOString();
+      const { error } = await userClient.from("gsc_alerts").update(patch).eq("id", id);
+      if (error) return json({ error: error.message }, 403);
+      return json({ ok: true });
+    }
+
+    if (action === "check_issues") {
+      // Aciona o cron de deteção (autenticado por JWT do super admin)
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/gsc-cron-check-issues`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({ triggered_by: userId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      return json(data, res.status);
     }
 
     return json({ error: `unknown action: ${action}` }, 400);

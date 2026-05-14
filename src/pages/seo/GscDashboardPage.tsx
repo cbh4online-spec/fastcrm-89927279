@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { Helmet } from "react-helmet-async";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -36,6 +37,8 @@ import {
   Eye,
   MousePointerClick,
   Target,
+  Bell,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
@@ -92,6 +95,38 @@ interface InspectData {
     inspectionResultLink?: string;
   };
 }
+
+interface GscAlert {
+  id: string;
+  alert_type: string;
+  severity: "info" | "warning" | "critical";
+  url: string | null;
+  title: string;
+  message: string | null;
+  status: "open" | "resolved" | "snoozed";
+  first_seen_at: string;
+  last_seen_at: string;
+  details: Record<string, unknown>;
+}
+
+const ALERT_LABELS: Record<string, string> = {
+  sitemap_error: "Erro de sitemap",
+  sitemap_warning: "Aviso de sitemap",
+  sitemap_pending: "Sitemap pendente",
+  url_not_indexed: "Página não indexada",
+  canonical_mismatch: "Canonical divergente",
+  crawl_error: "Erro de rastreio",
+  robots_blocked: "Bloqueado por robots.txt",
+};
+
+function SeverityBadge({ severity }: { severity: string }) {
+  if (severity === "critical")
+    return <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30"><XCircle className="h-3 w-3 mr-1" />Crítico</Badge>;
+  if (severity === "warning")
+    return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"><AlertTriangle className="h-3 w-3 mr-1" />Aviso</Badge>;
+  return <Badge variant="outline">Info</Badge>;
+}
+
 
 function VerdictBadge({ verdict }: { verdict?: string }) {
   if (!verdict) return <Badge variant="outline">—</Badge>;
@@ -183,6 +218,43 @@ export default function GscDashboardPage() {
     onError: (err: Error) => toast.error(err.message ?? "Erro ao resubmeter sitemaps"),
   });
 
+  const queryClient = useQueryClient();
+  const [alertFilter, setAlertFilter] = useState<"open" | "all" | "resolved">("open");
+
+  const alerts = useQuery({
+    queryKey: ["gsc", "alerts", alertFilter],
+    queryFn: () => callGsc<{ alerts: GscAlert[] }>({ action: "list_alerts", status: alertFilter }),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  const checkIssues = useMutation({
+    mutationFn: () =>
+      callGsc<{ total?: number; persisted?: number; sitemaps?: number; urls?: number; error?: string }>({
+        action: "check_issues",
+      }),
+    onSuccess: (d) => {
+      if (d?.error) toast.error(d.error);
+      else toast.success(`Verificação concluída: ${d.total ?? 0} alerta(s) detetado(s).`);
+      queryClient.invalidateQueries({ queryKey: ["gsc", "alerts"] });
+    },
+    onError: (e: Error) => toast.error(e.message ?? "Erro ao verificar GSC"),
+  });
+
+  const updateAlert = useMutation({
+    mutationFn: (vars: { id: string; status: "resolved" | "open" }) =>
+      callGsc<{ ok: boolean }>({ action: "update_alert", id: vars.id, status: vars.status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gsc", "alerts"] });
+      toast.success("Alerta actualizado.");
+    },
+    onError: (e: Error) => toast.error(e.message ?? "Erro ao actualizar alerta"),
+  });
+
+  const alertList = alerts.data?.alerts ?? [];
+  const openCritical = alertList.filter((a) => a.status === "open" && a.severity === "critical").length;
+  const openWarning = alertList.filter((a) => a.status === "open" && a.severity === "warning").length;
+
   const totals = overview.data?.totals?.rows?.[0];
   const sitemaps = overview.data?.sitemaps?.sitemap ?? [];
 
@@ -252,13 +324,118 @@ export default function GscDashboardPage() {
           <KpiCard label="Erros" value={String(sitemapStats.err)} icon={XCircle} />
         </div>
 
-        <Tabs defaultValue="sitemaps" className="space-y-4">
+        <Tabs defaultValue={openCritical + openWarning > 0 ? "alerts" : "sitemaps"} className="space-y-4">
           <TabsList>
+            <TabsTrigger value="alerts" className="relative">
+              <Bell className="h-3.5 w-3.5 mr-1.5" />
+              Alertas
+              {(openCritical + openWarning) > 0 && (
+                <span className={`ml-2 inline-flex items-center justify-center text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 ${openCritical > 0 ? "bg-rose-500 text-white" : "bg-amber-500 text-white"}`}>
+                  {openCritical + openWarning}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="sitemaps">Sitemaps</TabsTrigger>
             <TabsTrigger value="pages">Top URLs</TabsTrigger>
             <TabsTrigger value="queries">Top Queries</TabsTrigger>
             <TabsTrigger value="inspect">Inspector de URL</TabsTrigger>
           </TabsList>
+
+          {/* ALERTS */}
+          <TabsContent value="alerts">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4 text-amber-600" />
+                    Alertas de indexação e rastreio
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Detetados automaticamente todos os dias às 05:30 UTC. {openCritical > 0 && <span className="text-rose-600 font-medium">{openCritical} crítico(s) abertos.</span>}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={alertFilter} onValueChange={(v) => setAlertFilter(v as typeof alertFilter)}>
+                    <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">Abertos</SelectItem>
+                      <SelectItem value="resolved">Resolvidos</SelectItem>
+                      <SelectItem value="all">Todos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => checkIssues.mutate()}
+                    disabled={checkIssues.isPending}
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 mr-2 ${checkIssues.isPending ? "animate-spin" : ""}`} />
+                    Verificar agora
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {alerts.isLoading ? (
+                  <Skeleton className="h-40" />
+                ) : alertList.length === 0 ? (
+                  <div className="text-center py-10 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                    Sem alertas {alertFilter === "open" ? "abertos" : alertFilter === "resolved" ? "resolvidos" : ""} para mostrar.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Severidade</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>URL / Sitemap</TableHead>
+                          <TableHead>Última deteção</TableHead>
+                          <TableHead className="text-right">Acção</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {alertList.map((a) => (
+                          <TableRow key={a.id} className={a.status === "resolved" ? "opacity-60" : ""}>
+                            <TableCell><SeverityBadge severity={a.severity} /></TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{ALERT_LABELS[a.alert_type] ?? a.alert_type}</TableCell>
+                            <TableCell className="text-sm">
+                              <div className="font-medium">{a.title}</div>
+                              {a.message && <div className="text-xs text-muted-foreground line-clamp-2">{a.message}</div>}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs max-w-[260px] truncate">
+                              {a.url ? <a href={a.url} target="_blank" rel="noreferrer" className="hover:underline">{a.url}</a> : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                              {formatDistanceToNow(new Date(a.last_seen_at), { addSuffix: true, locale: pt })}
+                            </TableCell>
+                            <TableCell className="text-right space-x-1">
+                              {a.url && (
+                                <Button size="sm" variant="ghost" onClick={() => { setInspectUrl(a.url!); inspect.mutate(a.url!); }}>
+                                  <Search className="h-3 w-3" />
+                                </Button>
+                              )}
+                              {a.status === "open" ? (
+                                <Button size="sm" variant="ghost" onClick={() => updateAlert.mutate({ id: a.id, status: "resolved" })}>
+                                  <CheckCircle2 className="h-3 w-3 mr-1" /> Resolver
+                                </Button>
+                              ) : (
+                                <Button size="sm" variant="ghost" onClick={() => updateAlert.mutate({ id: a.id, status: "open" })}>
+                                  Reabrir
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
 
           {/* SITEMAPS */}
           <TabsContent value="sitemaps">

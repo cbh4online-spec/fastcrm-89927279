@@ -145,3 +145,6 @@ verify_jwt = false
 [functions.gsc-cron-submit-sitemaps]
 verify_jwt = false
 
+[functions.gsc-cron-check-issues]
+verify_jwt = false
+
