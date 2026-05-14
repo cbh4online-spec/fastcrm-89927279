@@ -120,7 +120,7 @@ export const LEADCHEF_DEFAULT_CONTENT: Omit<LeadChefLandingContent, "workspace_i
     ogTitle: "LeadChef — Vende mais Bimby com menos esforço",
     ogDescription:
       "Organiza leads, demos e follow-ups num CRM mobile-first feito para Consultoras Bimby.",
-    canonical: "https://fastcrm.lovable.app/leadchef",
+    canonical: "https://fastcrm.metodopare.ai/leadchef",
   },
 
   images: {

@@ -45,7 +45,7 @@ export default function ToolsListPage() {
       <SEOHead
         title="Ferramentas de CRM Grátis - Calculadoras e Utilitários"
         description="Experimente ferramentas gratuitas de CRM: calculadoras de ROI, geradores de emails, analisadores de leads e muito mais."
-        canonicalUrl="https://fastcrm.lovable.app/tools"
+        canonicalUrl="https://fastcrm.metodopare.ai/tools"
       />
       
       <div className="container py-8">

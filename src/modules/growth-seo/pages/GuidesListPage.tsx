@@ -43,7 +43,7 @@ export default function GuidesListPage() {
       <SEOHead
         title="Guias FastCRM - Tutoriais e Passo a Passo"
         description="Guias completos sobre CRM, vendas, automação e produtividade. Aprenda a tirar o máximo partido do FastCRM."
-        canonicalUrl="https://fastcrm.lovable.app/guides"
+        canonicalUrl="https://fastcrm.metodopare.ai/guides"
       />
       
       <div className="container py-8">

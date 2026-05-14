@@ -45,7 +45,7 @@ export default function KeywordsListPage() {
       <SEOHead
         title="Keywords de CRM - Encontre as Melhores Palavras-Chave"
         description="Explore as principais keywords de CRM para otimizar a sua estratégia de marketing. Descubra palavras-chave com alto potencial de conversão."
-        canonicalUrl="https://fastcrm.lovable.app/keywords"
+        canonicalUrl="https://fastcrm.metodopare.ai/keywords"
       />
       
       <div className="container py-8">

@@ -76,7 +76,7 @@ export default function KeywordIdeasToolPage() {
       <SEOHead
         title="Gerador de Keyword Ideas Grátis - Descubra Keywords com IA"
         description="Gere dezenas de keyword ideas instantaneamente com IA. Descubra long-tail keywords, perguntas populares e estimativas de volume para SEO e Google Ads."
-        canonicalUrl="https://fastcrm.lovable.app/tools/keyword-ideas"
+        canonicalUrl="https://fastcrm.metodopare.ai/tools/keyword-ideas"
       />
 
       <div className="container py-8">

@@ -13,7 +13,7 @@ interface SEOHeadProps {
   additionalSchema?: SchemaOrg[];
 }
 
-const BASE_URL = 'https://fastcrm.lovable.app';
+const BASE_URL = 'https://fastcrm.metodopare.ai';
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.png`;
 const SITE_NAME = 'FastCRM';
 

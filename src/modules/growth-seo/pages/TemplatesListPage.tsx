@@ -45,7 +45,7 @@ export default function TemplatesListPage() {
       <SEOHead
         title="Templates de CRM - Modelos Prontos para Usar"
         description="Aceda a templates profissionais de CRM prontos a usar. Propostas, emails, contratos e muito mais para acelerar o seu processo de vendas."
-        canonicalUrl="https://fastcrm.lovable.app/templates"
+        canonicalUrl="https://fastcrm.metodopare.ai/templates"
       />
       
       <div className="container py-8">

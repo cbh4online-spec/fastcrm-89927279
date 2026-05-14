@@ -43,7 +43,7 @@ export default function CategoriesListPage() {
       <SEOHead
         title="Categorias de CRM - Explore por Tema"
         description="Explore conteúdos de CRM organizados por categoria: vendas, marketing, automação, gestão de leads e muito mais."
-        canonicalUrl="https://fastcrm.lovable.app/categories"
+        canonicalUrl="https://fastcrm.metodopare.ai/categories"
       />
       
       <div className="container py-8">

@@ -96,7 +96,7 @@ export default function ChangelogPage() {
           content="Latest product updates, new features and improvements in FastCRM."
         />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://fastcrm.lovable.app/changelog" />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai/changelog" />
       </Helmet>
 
       <div className="min-h-screen bg-[hsl(222,47%,4%)] text-[hsl(210,40%,98%)] overflow-x-hidden">
