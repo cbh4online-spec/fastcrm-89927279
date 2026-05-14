@@ -255,7 +255,7 @@ export default function GscDashboardPage() {
   const openCritical = alertList.filter((a) => a.status === "open" && a.severity === "critical").length;
   const openWarning = alertList.filter((a) => a.status === "open" && a.severity === "warning").length;
 
-
+  const totals = overview.data?.totals?.rows?.[0];
   const sitemaps = overview.data?.sitemaps?.sitemap ?? [];
 
   const sitemapStats = useMemo(() => {
