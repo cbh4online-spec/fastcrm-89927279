@@ -54,15 +54,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Auth: require a logged-in user (anti-abuso)
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const userClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  let userId: string | null = null;
   try {
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await userClient.auth.getUser();
     if (!user) return json({ error: "Unauthorized" }, 401);
+    userId = user.id;
   } catch {
     return json({ error: "Unauthorized" }, 401);
   }
@@ -73,6 +75,7 @@ Deno.serve(async (req) => {
     const site: string = body.site ?? DEFAULT_SITE;
     const inspectSite: string = body.inspectSite ?? DEFAULT_INSPECT_SITE;
     const siteEnc = encodeURIComponent(site);
+
 
     if (action === "list_sites") {
       const data = await gscFetch(`/webmasters/v3/sites`);
