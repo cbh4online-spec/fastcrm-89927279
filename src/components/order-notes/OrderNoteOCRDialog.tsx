@@ -751,7 +751,9 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                     ) : (
                       <p className="text-sm text-amber-900">
                         {headerInfo?.client_name
-                          ? `Sem correspondência automática para "${String(headerInfo.client_name)}". Seleciona o cliente.`
+                          ? clientSuggestions.length > 0
+                            ? `Sem correspondência exata para "${String(headerInfo.client_name)}". Confirma uma sugestão abaixo ou seleciona/cria.`
+                            : `Sem correspondência para "${String(headerInfo.client_name)}". Seleciona ou cria o cliente.`
                           : "Seleciona o cliente B2B desta encomenda."}
                       </p>
                     )}
