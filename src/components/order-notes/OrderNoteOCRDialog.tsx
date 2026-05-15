@@ -261,7 +261,7 @@ function levenshtein(a: string, b: string): number {
 
 export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const { currentWorkspace } = useWorkspace();
-  const { clients } = useClientUsers();
+  const { clients, refetch: refetchClients } = useClientUsers();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -271,6 +271,9 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const [selectedClient, setSelectedClient] = useState<ClientUser | null>(null);
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [clientAutoMatched, setClientAutoMatched] = useState(false);
+  const [createClientOpen, setCreateClientOpen] = useState(false);
+  const [newClient, setNewClient] = useState({ name: "", email: "", tax_id: "", phone: "" });
+  const [creatingClient, setCreatingClient] = useState(false);
 
   // catálogo do workspace para auto-match
   const { data: catalog = [] } = useQuery({
