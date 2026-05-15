@@ -493,32 +493,21 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
       setHeaderInfo(header);
       setWarnings(data.warnings ?? []);
 
-      // Auto-match cliente a partir do cabeçalho (NIF tem prioridade, depois nome)
+      // Auto-match fuzzy do cliente: top-3 sugestões; auto-seleciona só se score >= 0.95
       if (header && clients.length > 0) {
-        const nif = String(header.client_tax_id ?? "").replace(/\s+/g, "");
-        const name = normalize(String(header.client_name ?? ""));
-        let match: ClientUser | null = null;
-        if (nif) {
-          match = clients.find((c) => (c.tax_id ?? "").replace(/\s+/g, "") === nif) ?? null;
-        }
-        if (!match && name) {
-          match = clients.find((c) => normalize(c.name ?? "") === name) ?? null;
-          if (!match) {
-            // fallback: contém todos os tokens
-            const tokens = name.split(" ").filter((t) => t.length > 2);
-            match = clients.find((c) => {
-              const cn = normalize(c.name ?? "");
-              return tokens.length > 0 && tokens.every((t) => cn.includes(t));
-            }) ?? null;
-          }
-        }
-        if (match) {
-          setSelectedClient(match);
+        const headerName = String(header.client_name ?? "");
+        const headerNif = String(header.client_tax_id ?? "");
+        const sugg = findClientSuggestions(headerName, headerNif, clients, 3);
+        setClientSuggestions(sugg);
+        if (sugg.length > 0 && sugg[0].score >= 0.95) {
+          setSelectedClient(sugg[0].client);
           setClientAutoMatched(true);
         } else {
           setSelectedClient(null);
           setClientAutoMatched(false);
         }
+      } else {
+        setClientSuggestions([]);
       }
 
       if (parsedItems.length === 0) {
