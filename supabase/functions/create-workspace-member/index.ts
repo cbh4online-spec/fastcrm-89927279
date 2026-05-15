@@ -15,6 +15,27 @@ interface CreateMemberRequest {
   password?: string;
 }
 
+const workspaceRoles = new Set(["owner", "admin", "agent", "viewer", "agency", "hr"]);
+const commercialProfiles = new Set(["vendedor", "gestor", "diretor", "ceo"]);
+
+const jsonResponse = (payload: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+const safeCreateUserError = (message?: string) => {
+  const raw = message || "Erro ao criar utilizador";
+  const lower = raw.toLowerCase();
+  if (lower.includes("password") || lower.includes("weak") || lower.includes("pwned") || lower.includes("breach")) {
+    return "A palavra-passe foi rejeitada pela política de segurança. Deixa o campo vazio para gerar automaticamente ou escolhe uma palavra-passe mais forte e única.";
+  }
+  if (lower.includes("already") || lower.includes("registered")) {
+    return "Este email já existe no sistema, mas não foi possível associá-lo automaticamente. Tenta novamente ou usa o fluxo de convite.";
+  }
+  return raw;
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -28,10 +49,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Validate caller JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: false, error: "Não autenticado", code: "missing_auth" });
     }
 
     const userClient = createClient(supabaseUrl, anonKey, {
@@ -39,20 +57,27 @@ const handler = async (req: Request): Promise<Response> => {
     });
     const { data: { user }, error: authErr } = await userClient.auth.getUser();
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: "Sessão inválida" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: false, error: "Sessão inválida", code: "invalid_session" });
     }
 
     const body = (await req.json()) as CreateMemberRequest;
     const { email, role, commercial_profile, workspaceId, fullName, password } = body;
 
     if (!email || !workspaceId || !role) {
-      return new Response(JSON.stringify({ error: "Campos obrigatórios em falta" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: false, error: "Campos obrigatórios em falta", code: "missing_fields" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return jsonResponse({ success: false, error: "Email inválido", code: "invalid_email" });
+    }
+
+    if (!workspaceRoles.has(role)) {
+      return jsonResponse({ success: false, error: "Cargo inválido", code: "invalid_role" });
+    }
+
+    if (commercial_profile && !commercialProfiles.has(commercial_profile)) {
+      return jsonResponse({ success: false, error: "Perfil comercial inválido", code: "invalid_commercial_profile" });
     }
 
     const admin = createClient(supabaseUrl, serviceKey, {
@@ -67,14 +92,9 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!callerMembership || !["owner", "admin"].includes(callerMembership.role)) {
-      return new Response(JSON.stringify({ error: "Sem permissão para adicionar membros" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!callerMembership || !["owner", "admin", "agency"].includes(callerMembership.role)) {
+      return jsonResponse({ success: false, error: "Sem permissão para adicionar membros", code: "permission_denied" });
     }
-
-    const cleanEmail = email.trim().toLowerCase();
 
     // Try to find existing user by email
     let targetUserId: string | null = null;
