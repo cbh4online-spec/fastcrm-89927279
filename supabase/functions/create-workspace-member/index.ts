@@ -84,15 +84,26 @@ const handler = async (req: Request): Promise<Response> => {
       auth: { persistSession: false },
     });
 
-    // Check caller is owner/admin in this workspace
-    const { data: callerMembership } = await admin
-      .from("workspace_members")
-      .select("role")
-      .eq("workspace_id", workspaceId)
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // Check caller is owner/admin/agency in this workspace OR global super admin.
+    const [{ data: callerMembership }, { data: isSuperAdmin, error: superAdminErr }] = await Promise.all([
+      admin
+        .from("workspace_members")
+        .select("role")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      admin.rpc("is_super_admin", { _user_id: user.id }),
+    ]);
 
-    if (!callerMembership || !["owner", "admin", "agency"].includes(callerMembership.role)) {
+    if (superAdminErr) {
+      console.error("[create-workspace-member] super admin check error", superAdminErr);
+    }
+
+    const canManageWorkspaceMembers =
+      !!isSuperAdmin ||
+      (!!callerMembership && ["owner", "admin", "agency"].includes(callerMembership.role));
+
+    if (!canManageWorkspaceMembers) {
       return jsonResponse({ success: false, error: "Sem permissão para adicionar membros", code: "permission_denied" });
     }
 
