@@ -1,7 +1,6 @@
 import { Component, ReactNode } from "react";
 
 const RELOAD_KEY = "__chunk_boundary_reloaded_at";
-const RELOAD_COOLDOWN_MS = 10_000;
 
 const isStaleChunkError = (err: unknown): boolean => {
   const message =
@@ -27,9 +26,8 @@ export class ChunkErrorBoundary extends Component<Props, State> {
     if (isStaleChunkError(error)) {
       let reloading = false;
       try {
-        const last = Number(sessionStorage.getItem(RELOAD_KEY) || "0");
-        if (Date.now() - last > RELOAD_COOLDOWN_MS) {
-          sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+        if (sessionStorage.getItem(RELOAD_KEY) !== "1") {
+          sessionStorage.setItem(RELOAD_KEY, "1");
           reloading = true;
           // Defer reload so React can paint the fallback first
           setTimeout(() => window.location.reload(), 50);
