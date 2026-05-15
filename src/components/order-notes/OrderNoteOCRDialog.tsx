@@ -816,6 +816,42 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                 </div>
               </div>
 
+              {/* Top-3 sugestões fuzzy quando o auto-match exato falhou */}
+              {!selectedClient && clientSuggestions.length > 0 && (
+                <div className="mt-3 border-t pt-3 space-y-1.5">
+                  <p className="text-[11px] font-medium text-amber-900 uppercase tracking-wide">
+                    Clientes mais prováveis
+                  </p>
+                  {clientSuggestions.map((s) => (
+                    <div
+                      key={s.client.id}
+                      className="flex items-center gap-2 rounded-md border border-amber-200 bg-white p-2"
+                    >
+                      <UserIcon className="h-4 w-4 text-amber-700 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{s.client.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {s.client.email}
+                          {s.client.tax_id ? ` · NIF ${s.client.tax_id}` : ""}
+                          {" · "}
+                          <span className="text-amber-700">{s.reason} ({Math.round(s.score * 100)}%)</span>
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px]"
+                        onClick={() => {
+                          setSelectedClient(s.client);
+                          setClientAutoMatched(false);
+                        }}
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1" /> Confirmar
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {createClientOpen && (
                 <div className="mt-3 border-t pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div className="sm:col-span-2 flex items-center justify-between">
