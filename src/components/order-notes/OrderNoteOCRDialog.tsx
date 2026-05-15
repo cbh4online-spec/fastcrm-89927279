@@ -494,7 +494,7 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                     <TableHead className="w-20">Qtd</TableHead>
                     <TableHead className="w-28">Preço (líq.)</TableHead>
                     <TableHead className="w-20">IVA %</TableHead>
-                    <TableHead className="w-24">Match</TableHead>
+                    <TableHead className="w-64">Sugestão do catálogo</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
