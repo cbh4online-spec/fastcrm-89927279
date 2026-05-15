@@ -295,6 +295,8 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     setItems([]);
     setWarnings([]);
     setHeaderInfo(null);
+    setSelectedClient(null);
+    setClientAutoMatched(false);
     setIsProcessing(false);
   }, []);
 
