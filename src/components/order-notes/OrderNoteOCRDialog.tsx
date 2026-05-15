@@ -736,8 +736,68 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-8"
+                    onClick={openCreateClientForm}
+                  >
+                    + Novo cliente
+                  </Button>
                 </div>
               </div>
+
+              {createClientOpen && (
+                <div className="mt-3 border-t pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="sm:col-span-2 flex items-center justify-between">
+                    <p className="text-xs font-medium text-muted-foreground">Criar novo cliente B2B</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => setCreateClientOpen(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                  <Input
+                    value={newClient.name}
+                    onChange={(e) => setNewClient((p) => ({ ...p, name: e.target.value }))}
+                    placeholder="Nome *"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={newClient.email}
+                    onChange={(e) => setNewClient((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="Email *"
+                    type="email"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={newClient.tax_id}
+                    onChange={(e) => setNewClient((p) => ({ ...p, tax_id: e.target.value }))}
+                    placeholder="NIF"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={newClient.phone}
+                    onChange={(e) => setNewClient((p) => ({ ...p, phone: e.target.value }))}
+                    placeholder="Telefone"
+                    className="h-8 text-sm"
+                  />
+                  <div className="sm:col-span-2 flex justify-end">
+                    <Button
+                      size="sm"
+                      className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={handleCreateClient}
+                      disabled={creatingClient}
+                    >
+                      {creatingClient ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
+                      Criar e selecionar
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Card>
 
             <div className="border rounded-md overflow-hidden">
