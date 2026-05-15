@@ -192,8 +192,12 @@ export function MobileProductDetailSheet({
                   {tab === "pricing" && (
                     <>
                       <KVRow label="Preço base" value={formatCurrency((product as any).base_price ?? 0)} />
-                      <KVRow label="Custo direto" value={(product as any).direct_cost != null ? formatCurrency((product as any).direct_cost) : "—"} />
-                      <KVRow label="Custo operacional" value={(product as any).operational_cost != null ? formatCurrency((product as any).operational_cost) : "—"} />
+                      {canViewCostMargin && (
+                        <>
+                          <KVRow label="Custo direto" value={(product as any).direct_cost != null ? formatCurrency((product as any).direct_cost) : "—"} />
+                          <KVRow label="Custo operacional" value={(product as any).operational_cost != null ? formatCurrency((product as any).operational_cost) : "—"} />
+                        </>
+                      )}
                       <KVRow label="IVA estimado" value={(product as any).tax_rate_estimate_pct != null ? `${(product as any).tax_rate_estimate_pct}%` : "—"} />
                       <KVRow label="Comissão" value={(product as any).commission_default != null ? `${(product as any).commission_default}%` : "—"} />
                     </>
