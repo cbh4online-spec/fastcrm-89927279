@@ -15,8 +15,17 @@ import {
 import {
   ScanText, Upload, Camera, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Image as ImageIcon, Sparkles, Check, X as XIcon,
+  User as UserIcon, Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import { useClientUsers } from "@/hooks/useClientUsers";
+import type { ClientUser } from "@/types/client-user";
 
 export interface OCRLineItemDraft {
   product_id: string | null;
