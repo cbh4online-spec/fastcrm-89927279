@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/popover";
 import {
   ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, Copy,
-  Save, Send, Search, Package, User,
+  Save, Send, Search, Package, User, ScanText,
 } from "lucide-react";
 import type { ClientUser, AddressData } from "@/types/client-user";
 import type { OrderNoteStatus } from "@/types/order-note";
