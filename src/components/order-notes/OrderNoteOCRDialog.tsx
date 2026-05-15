@@ -490,16 +490,21 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8"></TableHead>
-                    <TableHead>Produto</TableHead>
+                    <TableHead className="w-32">SKU</TableHead>
+                    <TableHead>Nome</TableHead>
                     <TableHead className="w-20">Qtd</TableHead>
                     <TableHead className="w-28">Preço (líq.)</TableHead>
                     <TableHead className="w-20">IVA %</TableHead>
-                    <TableHead className="w-64">Sugestão do catálogo</TableHead>
+                    <TableHead className="w-56">Sugestão</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item, idx) => (
+                  {items.map((item, idx) => {
+                    const displaySku = item.matched_sku ?? item.sku ?? "";
+                    const displayName = item.matched_name ?? item.product_name;
+                    const isMatched = !!item.matched_product_id;
+                    return (
                     <TableRow key={idx} className={item.include ? "" : "opacity-40"}>
                       <TableCell>
                         <input
@@ -511,13 +516,23 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                       </TableCell>
                       <TableCell>
                         <Input
-                          value={item.product_name}
-                          onChange={(e) => updateItem(idx, { product_name: e.target.value })}
-                          className="h-8 text-sm"
+                          value={displaySku}
+                          onChange={(e) => updateItem(idx, isMatched ? { matched_sku: e.target.value } : { sku: e.target.value })}
+                          className="h-8 text-sm font-mono"
+                          placeholder="SKU"
                         />
-                        {item.sku && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5">SKU: {item.sku}</p>
-                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {isMatched && item.matched_image_url && (
+                            <img src={item.matched_image_url} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0" />
+                          )}
+                          <Input
+                            value={displayName}
+                            onChange={(e) => updateItem(idx, isMatched ? { matched_name: e.target.value } : { product_name: e.target.value })}
+                            className={`h-8 text-sm ${isMatched ? "border-emerald-300 bg-emerald-50/40" : ""}`}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Input
@@ -550,34 +565,21 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                         />
                       </TableCell>
                       <TableCell>
-                        {item.matched_product_id ? (
-                          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-1.5">
-                            {item.matched_image_url && (
-                              <img src={item.matched_image_url} alt="" className="h-8 w-8 rounded object-cover" />
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium truncate text-emerald-900">{item.matched_name}</p>
-                              {item.matched_sku && <p className="text-[10px] text-emerald-700">SKU: {item.matched_sku}</p>}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              title="Remover associação"
-                              onClick={() => rejectSuggestion(idx)}
-                            >
-                              <XIcon className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
+                        {isMatched ? (
+                          <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Confirmado
+                          </Badge>
                         ) : (item.suggestions && item.suggestions.length > 0) ? (
-                          <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-1.5">
+                          <div className="flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 p-1.5">
                             {item.suggestions[0].image_url && (
-                              <img src={item.suggestions[0].image_url} alt="" className="h-8 w-8 rounded object-cover" />
+                              <img src={item.suggestions[0].image_url} alt="" className="h-7 w-7 rounded object-cover flex-shrink-0" />
                             )}
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium truncate text-amber-900">{item.suggestions[0].name}</p>
-                              <p className="text-[10px] text-amber-700">
-                                {item.suggestions[0].sku ? `SKU: ${item.suggestions[0].sku} · ` : ""}{item.suggestions[0].reason}
+                              <p className="text-[11px] font-medium truncate text-amber-900" title={item.suggestions[0].name}>
+                                {item.suggestions[0].name}
+                              </p>
+                              <p className="text-[10px] text-amber-700 truncate">
+                                {item.suggestions[0].sku ? `${item.suggestions[0].sku} · ` : ""}{item.suggestions[0].reason}
                               </p>
                             </div>
                             <Button
@@ -614,7 +616,8 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
