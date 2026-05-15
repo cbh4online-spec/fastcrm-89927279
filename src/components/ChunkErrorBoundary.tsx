@@ -1,7 +1,5 @@
 import { Component, ReactNode } from "react";
 
-const RELOAD_KEY = "__chunk_boundary_reloaded_at";
-
 const isStaleChunkError = (err: unknown): boolean => {
   const message =
     (typeof err === "string" ? err : (err as Error)?.message) || "";
@@ -24,30 +22,13 @@ export class ChunkErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State | null {
     if (isStaleChunkError(error)) {
-      let reloading = false;
-      try {
-        if (sessionStorage.getItem(RELOAD_KEY) !== "1") {
-          sessionStorage.setItem(RELOAD_KEY, "1");
-          reloading = true;
-          // Defer reload so React can paint the fallback first
-          setTimeout(() => window.location.reload(), 50);
-        }
-      } catch {
-        reloading = true;
-        setTimeout(() => window.location.reload(), 50);
-      }
-      return { hasError: true, reloading };
+      return { hasError: true, reloading: false };
     }
     // Not a chunk error — don't claim it; let it bubble.
     return null;
   }
 
   handleManualReload = () => {
-    try {
-      sessionStorage.removeItem(RELOAD_KEY);
-    } catch {
-      /* ignore */
-    }
     window.location.reload();
   };
 
