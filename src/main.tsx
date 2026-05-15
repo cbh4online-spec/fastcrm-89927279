@@ -44,18 +44,16 @@ if (isPreviewHost || isInIframe) {
 }
 
 // Auto-recover from stale dynamic-import chunks after a redeploy.
-// When Vite rebuilds, hashed chunk filenames change; cached index.js still
-// references the old URLs and throws "Failed to fetch dynamically imported module".
-// We force a one-time hard reload to fetch the fresh manifest.
-const STALE_RELOAD_KEY = "__stale_chunk_reloaded_at";
+// Keep this strictly one-shot per tab: repeated hard reloads look like the
+// app is “rebooting” forever when the chunk error persists.
+const STALE_RELOAD_KEY = "__stale_chunk_reloaded";
 const handleStaleChunk = (message: string) => {
   if (!/Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(message)) {
     return;
   }
   try {
-    const last = Number(sessionStorage.getItem(STALE_RELOAD_KEY) || "0");
-    if (Date.now() - last < 10_000) return; // avoid reload loops
-    sessionStorage.setItem(STALE_RELOAD_KEY, String(Date.now()));
+    if (sessionStorage.getItem(STALE_RELOAD_KEY) === "1") return;
+    sessionStorage.setItem(STALE_RELOAD_KEY, "1");
   } catch {
     // ignore storage errors
   }
