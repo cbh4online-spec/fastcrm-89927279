@@ -74,6 +74,34 @@ function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
   });
 }
 
+// Reduz imagens grandes antes de enviar para a IA: acelera muito a OCR.
+async function compressImage(file: File, maxDim = 1600, quality = 0.82): Promise<{ base64: string; mime: string }> {
+  if (!file.type.startsWith("image/")) return fileToBase64(file);
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return fileToBase64(file);
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    const blob: Blob | null = await new Promise((res) =>
+      canvas.toBlob((b) => res(b), "image/jpeg", quality)
+    );
+    if (!blob) return fileToBase64(file);
+    const buf = await blob.arrayBuffer();
+    let bin = "";
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return { base64: btoa(bin), mime: "image/jpeg" };
+  } catch {
+    return fileToBase64(file);
+  }
+}
+
 function normalize(s: string): string {
   return s
     .toLowerCase()
