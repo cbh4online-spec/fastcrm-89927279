@@ -42,6 +42,10 @@ interface ParsedItem {
   // matching state
   matched_product_id?: string | null;
   matched_image_url?: string | null;
+  matched_name?: string | null;
+  matched_sku?: string | null;
+  suggestions?: Array<{ id: string; name: string; sku: string | null; image_url: string | null; base_price: number | null; reason: string }>;
+  confirmed?: boolean;
   include: boolean;
 }
 
