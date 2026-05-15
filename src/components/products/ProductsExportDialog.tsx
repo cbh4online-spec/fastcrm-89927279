@@ -14,6 +14,7 @@ import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import { PRODUCT_COLUMNS } from "./hooks/useProductsListState";
+import { useCanViewCostMargin, COST_MARGIN_FIELDS } from "@/hooks/useCanViewCostMargin";
 import type { Product } from "@/types/product";
 
 interface ProductsExportDialogProps {
