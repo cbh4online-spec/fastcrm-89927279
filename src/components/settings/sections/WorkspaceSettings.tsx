@@ -242,7 +242,12 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const message = error.message?.includes("non-2xx")
+          ? "Não foi possível criar o utilizador. Verifica se a palavra-passe cumpre a política de segurança ou deixa o campo vazio para gerar automaticamente."
+          : error.message;
+        throw new Error(message || "Erro ao adicionar membro");
+      }
       if (data?.error) {
         toast.error(data.error);
         return;
