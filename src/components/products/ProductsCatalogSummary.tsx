@@ -110,9 +110,11 @@ export function ProductsCatalogSummary({
   // Quick-filter chips with issue counts
   const issueChips = [
     { id: "smart_no_price", label: "Sem preço", count: productIndicators.noPrice, icon: <DollarSign className="h-3 w-3" />, color: "text-destructive" },
-    { id: "smart_no_cost", label: "Sem custo", count: productIndicators.noCost, icon: <AlertTriangle className="h-3 w-3" />, color: "text-yellow-600" },
-    { id: "smart_negative_margin", label: "Margem −", count: productIndicators.negativeMargin, icon: <TrendingDown className="h-3 w-3" />, color: "text-destructive" },
-    { id: "smart_low_margin", label: "Margem ↓", count: productIndicators.lowMargin, icon: <AlertTriangle className="h-3 w-3" />, color: "text-yellow-600" },
+    ...(canViewCostMargin ? [
+      { id: "smart_no_cost", label: "Sem custo", count: productIndicators.noCost, icon: <AlertTriangle className="h-3 w-3" />, color: "text-yellow-600" },
+      { id: "smart_negative_margin", label: "Margem −", count: productIndicators.negativeMargin, icon: <TrendingDown className="h-3 w-3" />, color: "text-destructive" },
+      { id: "smart_low_margin", label: "Margem ↓", count: productIndicators.lowMargin, icon: <AlertTriangle className="h-3 w-3" />, color: "text-yellow-600" },
+    ] : []),
     { id: "smart_no_image", label: "S/ imagem", count: productIndicators.noImage, icon: <ImageOff className="h-3 w-3" />, color: "text-muted-foreground" },
   ].filter(c => c.count > 0);
 
