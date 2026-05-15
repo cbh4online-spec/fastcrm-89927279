@@ -615,6 +615,83 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
               </Card>
             )}
 
+            {/* Seleção / confirmação de cliente — obrigatório antes de adicionar */}
+            <Card className={`p-3 border ${selectedClient ? "border-emerald-300 bg-emerald-50/40" : "border-amber-300 bg-amber-50/40"}`}>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 min-w-0">
+                  <UserIcon className={`h-4 w-4 ${selectedClient ? "text-emerald-700" : "text-amber-700"}`} />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground leading-tight">
+                      {selectedClient
+                        ? clientAutoMatched ? "Cliente sugerido (confirma ou troca)" : "Cliente selecionado"
+                        : "Cliente por confirmar"}
+                    </p>
+                    {selectedClient ? (
+                      <p className="text-sm font-medium truncate">
+                        {selectedClient.name}
+                        {selectedClient.tax_id && (
+                          <span className="text-muted-foreground font-normal ml-2">NIF: {selectedClient.tax_id}</span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-amber-900">
+                        {headerInfo?.client_name
+                          ? `Sem correspondência automática para "${String(headerInfo.client_name)}". Seleciona o cliente.`
+                          : "Seleciona o cliente B2B desta encomenda."}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="ml-auto flex items-center gap-2">
+                  {selectedClient && clientAutoMatched && (
+                    <Button
+                      size="sm"
+                      className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => setClientAutoMatched(false)}
+                    >
+                      <Check className="h-4 w-4 mr-1" /> Confirmar cliente
+                    </Button>
+                  )}
+                  <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8">
+                        <Search className="h-4 w-4 mr-1" />
+                        {selectedClient ? "Trocar cliente" : "Selecionar cliente"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[360px] p-0" align="end">
+                      <Command>
+                        <CommandInput placeholder="Pesquisar por nome, email ou NIF..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum cliente encontrado</CommandEmpty>
+                          <CommandGroup>
+                            {clients.map((c) => (
+                              <CommandItem
+                                key={c.id}
+                                value={`${c.name} ${c.email ?? ""} ${c.tax_id ?? ""}`}
+                                onSelect={() => {
+                                  setSelectedClient(c);
+                                  setClientAutoMatched(false);
+                                  setClientPickerOpen(false);
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{c.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {c.email}{c.tax_id ? ` · NIF ${c.tax_id}` : ""}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </Card>
+
             <div className="border rounded-md overflow-hidden">
               <Table>
                 <TableHeader>
