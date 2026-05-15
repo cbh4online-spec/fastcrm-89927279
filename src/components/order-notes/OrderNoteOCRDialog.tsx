@@ -850,7 +850,8 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
           <Button variant="outline" onClick={handleClose}>Cancelar</Button>
           <Button
             onClick={handleConfirm}
-            disabled={isProcessing || includedCount === 0}
+            disabled={isProcessing || includedCount === 0 || !selectedClient}
+            title={!selectedClient ? "Confirma ou seleciona o cliente primeiro" : undefined}
           >
             Adicionar {includedCount > 0 ? `${includedCount} linha(s)` : ""}
           </Button>
