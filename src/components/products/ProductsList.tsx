@@ -354,7 +354,7 @@ export function ProductsList() {
                   <Button variant="ghost" size="sm" onClick={() => state.setShowFilterSidebar(!state.showFilterSidebar)} className="gap-2">
                     {state.showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
                   </Button>
-                  {state.productIndicators.noCost > 0 && (
+                  {canViewCostMargin && state.productIndicators.noCost > 0 && (
                     <Button
                       variant={state.activeFilterId === "smart_no_cost" ? "outline" : "ghost"}
                       size="sm"
