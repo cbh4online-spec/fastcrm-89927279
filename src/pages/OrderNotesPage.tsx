@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { OrderNotesList } from "@/components/order-notes/OrderNotesList";
 import { Button } from "@/components/ui/button";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Zap } from "lucide-react";
 
 export default function OrderNotesPage() {
   const navigate = useNavigate();
@@ -20,9 +20,14 @@ export default function OrderNotesPage() {
               Gerir e processar encomendas de clientes B2B
             </p>
           </div>
-          <Button onClick={() => navigate("/dashboard/order-notes/create")}>
-            <Plus className="h-4 w-4 mr-1" /> Nova Encomenda
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/dashboard/order-notes/quick")}>
+              <Zap className="h-4 w-4 mr-1" /> Encomenda Rápida
+            </Button>
+            <Button onClick={() => navigate("/dashboard/order-notes/create")}>
+              <Plus className="h-4 w-4 mr-1" /> Nova Encomenda
+            </Button>
+          </div>
         </div>
 
         <OrderNotesList />
