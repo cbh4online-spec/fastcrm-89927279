@@ -199,7 +199,7 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     setPreviewUrl(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
 
     try {
-      const { base64, mime } = await fileToBase64(file);
+      const { base64, mime } = await compressImage(file);
       const { data, error } = await supabase.functions.invoke("order-note-ocr-parse", {
         body: { image_base64: base64, mime, file_name: file.name },
       });
