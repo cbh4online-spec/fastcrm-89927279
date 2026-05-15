@@ -44,7 +44,7 @@ interface ParsedItem {
   matched_image_url?: string | null;
   matched_name?: string | null;
   matched_sku?: string | null;
-  suggestions?: Array<{ id: string; name: string; sku: string | null; image_url: string | null; base_price: number | null; reason: string }>;
+  suggestions?: Array<{ id: string; name: string; sku: string | null; image_url: string | null; base_price: number | null; reason: string; score: number }>;
   confirmed?: boolean;
   include: boolean;
 }
