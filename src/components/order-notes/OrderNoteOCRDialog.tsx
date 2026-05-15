@@ -259,6 +259,82 @@ function levenshtein(a: string, b: string): number {
   return prev[b.length];
 }
 
+interface ClientSuggestion {
+  client: ClientUser;
+  score: number;
+  reason: string;
+}
+
+// Fuzzy match de cliente a partir do cabeçalho OCR. Devolve top-N por score.
+// Score 1.0 = NIF exato; 0.9+ = nome igual; 0.6-0.9 = parcial; <0.5 descartado.
+function findClientSuggestions(
+  headerName: string,
+  headerNif: string,
+  clients: ClientUser[],
+  limit = 3,
+): ClientSuggestion[] {
+  if (!clients.length) return [];
+  const nif = headerNif.replace(/\s+/g, "");
+  const nifDigits = nif.replace(/\D/g, "");
+  const targetName = normalize(headerName);
+  const targetTokens = new Set(targetName.split(" ").filter((t) => t.length > 2));
+
+  const out = new Map<string, ClientSuggestion>();
+  const add = (client: ClientUser, score: number, reason: string) => {
+    const cur = out.get(client.id);
+    if (!cur || score > cur.score) out.set(client.id, { client, score, reason });
+  };
+
+  for (const c of clients) {
+    const cNif = (c.tax_id ?? "").replace(/\s+/g, "");
+    const cNifDigits = cNif.replace(/\D/g, "");
+
+    // 1) NIF exato
+    if (nif && cNif && cNif === nif) { add(c, 1.0, "NIF exato"); continue; }
+    // 2) NIF dígitos iguais (ignora prefixo PT)
+    if (nifDigits.length >= 6 && cNifDigits === nifDigits) { add(c, 0.98, "NIF coincide"); continue; }
+    // 3) NIF parcial (últimos 6+ dígitos iguais)
+    if (nifDigits.length >= 6 && cNifDigits.length >= 6) {
+      const tail = nifDigits.slice(-Math.min(nifDigits.length, cNifDigits.length, 9));
+      if (tail.length >= 6 && cNifDigits.endsWith(tail)) {
+        add(c, 0.85, `NIF parcial (…${tail.slice(-6)})`);
+      }
+    }
+
+    // 4) Nome — vários níveis
+    if (targetName) {
+      const cName = normalize(c.name ?? "");
+      if (!cName) continue;
+      if (cName === targetName) { add(c, 0.95, "Nome igual"); continue; }
+      // Jaccard tokens
+      if (targetTokens.size > 0) {
+        const cTokens = new Set(cName.split(" ").filter((t) => t.length > 2));
+        if (cTokens.size > 0) {
+          let inter = 0;
+          targetTokens.forEach((t) => { if (cTokens.has(t)) inter++; });
+          const union = new Set([...targetTokens, ...cTokens]).size;
+          const jacc = inter / union;
+          if (jacc >= 0.34) {
+            add(c, 0.5 + jacc * 0.4, `Nome ~${Math.round(jacc * 100)}%`);
+            continue;
+          }
+        }
+      }
+      // Levenshtein normalizado
+      if (targetName.length >= 4 && cName.length >= 4) {
+        const dist = levenshtein(targetName.slice(0, 50), cName.slice(0, 50));
+        const maxLen = Math.max(targetName.length, cName.length, 1);
+        const sim = 1 - dist / maxLen;
+        if (sim >= 0.55) add(c, 0.4 + sim * 0.4, `Nome aprox. ${Math.round(sim * 100)}%`);
+      }
+    }
+  }
+
+  return Array.from(out.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
 export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const { currentWorkspace } = useWorkspace();
   const { clients, refetch: refetchClients } = useClientUsers();
@@ -271,6 +347,7 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const [selectedClient, setSelectedClient] = useState<ClientUser | null>(null);
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [clientAutoMatched, setClientAutoMatched] = useState(false);
+  const [clientSuggestions, setClientSuggestions] = useState<ClientSuggestion[]>([]);
   const [createClientOpen, setCreateClientOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", email: "", tax_id: "", phone: "" });
   const [creatingClient, setCreatingClient] = useState(false);
@@ -300,6 +377,7 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     setHeaderInfo(null);
     setSelectedClient(null);
     setClientAutoMatched(false);
+    setClientSuggestions([]);
     setIsProcessing(false);
   }, []);
 
@@ -415,32 +493,21 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
       setHeaderInfo(header);
       setWarnings(data.warnings ?? []);
 
-      // Auto-match cliente a partir do cabeçalho (NIF tem prioridade, depois nome)
+      // Auto-match fuzzy do cliente: top-3 sugestões; auto-seleciona só se score >= 0.95
       if (header && clients.length > 0) {
-        const nif = String(header.client_tax_id ?? "").replace(/\s+/g, "");
-        const name = normalize(String(header.client_name ?? ""));
-        let match: ClientUser | null = null;
-        if (nif) {
-          match = clients.find((c) => (c.tax_id ?? "").replace(/\s+/g, "") === nif) ?? null;
-        }
-        if (!match && name) {
-          match = clients.find((c) => normalize(c.name ?? "") === name) ?? null;
-          if (!match) {
-            // fallback: contém todos os tokens
-            const tokens = name.split(" ").filter((t) => t.length > 2);
-            match = clients.find((c) => {
-              const cn = normalize(c.name ?? "");
-              return tokens.length > 0 && tokens.every((t) => cn.includes(t));
-            }) ?? null;
-          }
-        }
-        if (match) {
-          setSelectedClient(match);
+        const headerName = String(header.client_name ?? "");
+        const headerNif = String(header.client_tax_id ?? "");
+        const sugg = findClientSuggestions(headerName, headerNif, clients, 3);
+        setClientSuggestions(sugg);
+        if (sugg.length > 0 && sugg[0].score >= 0.95) {
+          setSelectedClient(sugg[0].client);
           setClientAutoMatched(true);
         } else {
           setSelectedClient(null);
           setClientAutoMatched(false);
         }
+      } else {
+        setClientSuggestions([]);
       }
 
       if (parsedItems.length === 0) {
@@ -684,7 +751,9 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                     ) : (
                       <p className="text-sm text-amber-900">
                         {headerInfo?.client_name
-                          ? `Sem correspondência automática para "${String(headerInfo.client_name)}". Seleciona o cliente.`
+                          ? clientSuggestions.length > 0
+                            ? `Sem correspondência exata para "${String(headerInfo.client_name)}". Confirma uma sugestão abaixo ou seleciona/cria.`
+                            : `Sem correspondência para "${String(headerInfo.client_name)}". Seleciona ou cria o cliente.`
                           : "Seleciona o cliente B2B desta encomenda."}
                       </p>
                     )}
@@ -746,6 +815,42 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                   </Button>
                 </div>
               </div>
+
+              {/* Top-3 sugestões fuzzy quando o auto-match exato falhou */}
+              {!selectedClient && clientSuggestions.length > 0 && (
+                <div className="mt-3 border-t pt-3 space-y-1.5">
+                  <p className="text-[11px] font-medium text-amber-900 uppercase tracking-wide">
+                    Clientes mais prováveis
+                  </p>
+                  {clientSuggestions.map((s) => (
+                    <div
+                      key={s.client.id}
+                      className="flex items-center gap-2 rounded-md border border-amber-200 bg-white p-2"
+                    >
+                      <UserIcon className="h-4 w-4 text-amber-700 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{s.client.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {s.client.email}
+                          {s.client.tax_id ? ` · NIF ${s.client.tax_id}` : ""}
+                          {" · "}
+                          <span className="text-amber-700">{s.reason} ({Math.round(s.score * 100)}%)</span>
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px]"
+                        onClick={() => {
+                          setSelectedClient(s.client);
+                          setClientAutoMatched(false);
+                        }}
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1" /> Confirmar
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {createClientOpen && (
                 <div className="mt-3 border-t pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
