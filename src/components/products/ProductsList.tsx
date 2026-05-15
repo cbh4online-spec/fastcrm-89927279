@@ -53,6 +53,7 @@ import { ProductReportsTab } from "./ProductReportsTab";
 import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
 import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
+import { useCanViewCostMargin, COST_MARGIN_FIELDS } from "@/hooks/useCanViewCostMargin";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileProductsView } from "./mobile/MobileProductsView";
