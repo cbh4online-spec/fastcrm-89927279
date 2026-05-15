@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useClientUsers } from "@/hooks/useClientUsers";
 import { useCreateOrderNote } from "@/hooks/useCreateOrderNote";
 import { ProductSearchDialog } from "./ProductSearchDialog";
+import { OrderNoteOCRDialog, type OCRLineItemDraft } from "./OrderNoteOCRDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
