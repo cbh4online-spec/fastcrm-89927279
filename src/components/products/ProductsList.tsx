@@ -67,6 +67,27 @@ export function ProductsList() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const isMobile = useIsMobile();
+  const canViewCostMargin = useCanViewCostMargin();
+
+  // Colunas e filtros sensíveis (custo/margem) ocultos para roles sem permissão
+  const visibleProductColumns = useMemo(
+    () => canViewCostMargin
+      ? PRODUCT_COLUMNS
+      : PRODUCT_COLUMNS.filter((c) => !COST_MARGIN_FIELDS.has(c.id)),
+    [canViewCostMargin]
+  );
+  const effectiveVisibleColumnsSet = useMemo(() => {
+    if (canViewCostMargin) return state.visibleColumns;
+    const next = new Set(state.visibleColumns);
+    COST_MARGIN_FIELDS.forEach((f) => next.delete(f));
+    return next;
+  }, [canViewCostMargin, state.visibleColumns]);
+  const effectiveColumnOrder = useMemo(
+    () => canViewCostMargin
+      ? state.columnOrder
+      : state.columnOrder.filter((c) => !COST_MARGIN_FIELDS.has(c)),
+    [canViewCostMargin, state.columnOrder]
+  );
 
   const goToMobileQuickCreate = useCallback((barcode?: string) => {
     const path = barcode
