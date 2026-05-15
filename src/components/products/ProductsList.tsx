@@ -412,6 +412,7 @@ export function ProductsList() {
                 productIndicators={state.productIndicators}
                 activeFilterId={state.activeFilterId}
                 onFilterSelect={state.handleFilterSelect}
+                canViewCostMargin={canViewCostMargin}
               />
             )}
 
