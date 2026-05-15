@@ -94,6 +94,7 @@ const handler = async (req: Request): Promise<Response> => {
           ? password
           : `${crypto.randomUUID().replace(/-/g, "")}Aa1!`;
 
+      console.log("[create-workspace-member] creating auth user", cleanEmail);
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email: cleanEmail,
         password: generatedPassword,
@@ -102,14 +103,19 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       if (createErr || !created.user) {
-        // If user already exists in auth but no profile, try to fetch
-        if (createErr?.message?.toLowerCase().includes("already")) {
-          const { data: list } = await admin.auth.admin.listUsers();
-          const found = list?.users?.find((u) => u.email?.toLowerCase() === cleanEmail);
-          if (found) {
-            targetUserId = found.id;
-          } else {
-            return new Response(JSON.stringify({ error: createErr.message }), {
+        console.error("[create-workspace-member] createUser error", createErr);
+        // If user already exists in auth but no profile, try to fetch via paginated listUsers
+        if (createErr?.message?.toLowerCase().includes("already") || createErr?.message?.toLowerCase().includes("registered")) {
+          let page = 1;
+          while (page <= 20 && !targetUserId) {
+            const { data: list } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+            const found = list?.users?.find((u) => u.email?.toLowerCase() === cleanEmail);
+            if (found) { targetUserId = found.id; break; }
+            if (!list?.users?.length || list.users.length < 200) break;
+            page++;
+          }
+          if (!targetUserId) {
+            return new Response(JSON.stringify({ error: createErr.message || "Utilizador já existe mas não foi encontrado" }), {
               status: 400,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
