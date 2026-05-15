@@ -119,6 +119,40 @@ function findBestMatch(item: ParsedItem, products: CatalogProduct[]): CatalogPro
     const skuNorm = item.sku.trim().toLowerCase();
     const bySku = products.find((p) => p.sku?.trim().toLowerCase() === skuNorm);
     if (bySku) return bySku;
+
+    // 1b) Sufixo: muitas folhas manuscritas só têm os últimos dígitos do SKU.
+    // Tenta encontrar produtos cujo SKU completo termina com o SKU lido (ou últimos 3+ dígitos).
+    const digitsOnly = skuNorm.replace(/\D/g, "");
+    const suffixCandidates: string[] = [];
+    if (skuNorm.length >= 3) suffixCandidates.push(skuNorm);
+    if (digitsOnly.length >= 3) {
+      suffixCandidates.push(digitsOnly);
+      suffixCandidates.push(digitsOnly.slice(-3));
+      if (digitsOnly.length >= 4) suffixCandidates.push(digitsOnly.slice(-4));
+    }
+    for (const suffix of suffixCandidates) {
+      const matches = products.filter((p) => {
+        const ps = p.sku?.trim().toLowerCase();
+        if (!ps) return false;
+        return ps.endsWith(suffix) || ps.replace(/\D/g, "").endsWith(suffix);
+      });
+      if (matches.length === 1) return matches[0];
+      if (matches.length > 1 && item.product_name) {
+        // desambigua pelo nome
+        const target = normalize(item.product_name);
+        const targetTokens = new Set(target.split(" ").filter((t) => t.length > 2));
+        let best: { p: CatalogProduct; score: number } | null = null;
+        for (const p of matches) {
+          const candTokens = new Set(normalize(p.name).split(" ").filter((t) => t.length > 2));
+          let inter = 0;
+          targetTokens.forEach((t) => { if (candTokens.has(t)) inter++; });
+          const union = new Set([...targetTokens, ...candTokens]).size || 1;
+          const score = inter / union;
+          if (!best || score > best.score) best = { p, score };
+        }
+        if (best) return best.p;
+      }
+    }
   }
   // 2) match por nome (Jaccard simples sobre tokens)
   const target = normalize(item.product_name);
