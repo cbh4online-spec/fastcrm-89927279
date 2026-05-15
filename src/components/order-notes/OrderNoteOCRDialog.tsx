@@ -549,9 +549,14 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                             <img src={item.matched_image_url} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0" />
                           )}
                           <Input
-                            value={displayName}
-                            onChange={(e) => updateItem(idx, isMatched ? { matched_name: e.target.value } : { product_name: e.target.value })}
-                            className={`h-8 text-sm ${isMatched ? "border-emerald-300 bg-emerald-50/40" : ""}`}
+                            value={isMatched ? (item.matched_name ?? "") : item.product_name}
+                            onChange={(e) => {
+                              if (isMatched) return; // bloqueado quando confirmado
+                              updateItem(idx, { product_name: e.target.value });
+                            }}
+                            readOnly={isMatched}
+                            title={isMatched ? "Nome do catálogo (bloqueado). Edita o SKU ou rejeita a sugestão para alterar." : undefined}
+                            className={`h-8 text-sm ${isMatched ? "border-emerald-300 bg-emerald-50/60 text-emerald-900 cursor-not-allowed" : ""}`}
                           />
                         </div>
                       </TableCell>
