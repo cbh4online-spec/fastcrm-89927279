@@ -135,16 +135,18 @@ const handler = async (req: Request): Promise<Response> => {
             page++;
           }
           if (!targetUserId) {
-            return new Response(JSON.stringify({ error: createErr.message || "Utilizador já existe mas não foi encontrado" }), {
-              status: 400,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            return jsonResponse({
+              success: false,
+              error: safeCreateUserError(createErr.message),
+              code: "auth_user_lookup_failed",
             });
           }
         } else {
-          return new Response(
-            JSON.stringify({ error: createErr?.message || "Erro ao criar utilizador" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          return jsonResponse({
+            success: false,
+            error: safeCreateUserError(createErr?.message),
+            code: "auth_user_create_failed",
+          });
         }
       } else {
         targetUserId = created.user.id;
@@ -152,7 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Ensure profile row exists
       if (targetUserId) {
-        await admin.from("profiles").upsert(
+        const { error: profileErr } = await admin.from("profiles").upsert(
           {
             user_id: targetUserId,
             email: cleanEmail,
@@ -160,14 +162,20 @@ const handler = async (req: Request): Promise<Response> => {
           },
           { onConflict: "user_id" }
         );
+
+        if (profileErr) {
+          console.error("[create-workspace-member] profile upsert error", profileErr);
+          return jsonResponse({
+            success: false,
+            error: "Utilizador criado, mas falhou a criação do perfil. Tenta novamente.",
+            code: "profile_upsert_failed",
+          });
+        }
       }
     }
 
     if (!targetUserId) {
-      return new Response(JSON.stringify({ error: "Não foi possível obter utilizador" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: false, error: "Não foi possível obter utilizador", code: "missing_target_user" });
     }
 
     // Insert workspace member
@@ -180,27 +188,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (memberErr) {
       if (memberErr.code === "23505") {
-        return new Response(
-          JSON.stringify({ error: "Este utilizador já é membro do workspace" }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse({ success: false, error: "Este utilizador já é membro do workspace", code: "already_member" });
       }
-      return new Response(JSON.stringify({ error: memberErr.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: false, error: memberErr.message, code: "member_insert_failed" });
     }
 
-    return new Response(
-      JSON.stringify({ success: true, user_id: targetUserId, email: cleanEmail }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ success: true, user_id: targetUserId, email: cleanEmail });
   } catch (err) {
     console.error("[create-workspace-member] fatal error", err, (err as Error)?.stack);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message || "Erro interno", stack: (err as Error)?.stack }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ success: false, error: "Erro interno ao adicionar membro", code: "internal_error" });
   }
 };
 
