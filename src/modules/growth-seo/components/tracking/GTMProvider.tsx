@@ -28,11 +28,12 @@ export function GTMProvider({ children, containerId }: GTMProviderProps) {
     if (!containerId) return;
 
     // Check if GTM is already loaded
+    const gtmKey = `__gtm_loaded_${containerId}`;
     const existingScript = document.querySelector(`script[src*="googletagmanager.com/gtm.js?id=${containerId}"]`);
-    if (existingScript) {
-      console.log('[GTM] Already loaded, skipping...');
+    if (existingScript || sessionStorage.getItem(gtmKey) === '1') {
       return;
     }
+    sessionStorage.setItem(gtmKey, '1');
 
     // Initialize dataLayer using Google's exact implementation
     (function(w: Window, d: Document, s: string, l: string, i: string) {
@@ -48,8 +49,6 @@ export function GTMProvider({ children, containerId }: GTMProviderProps) {
       j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
       f?.parentNode?.insertBefore(j, f);
     })(window, document, 'script', 'dataLayer', containerId);
-
-    console.log('[GTM] Initialized with ID:', containerId);
 
     // Push default consent state (Consent Mode v2)
     window.dataLayer.push({
