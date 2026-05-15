@@ -317,8 +317,9 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
       .filter((it) => it.include && it.product_name.trim() && it.quantity > 0)
       .map((it) => ({
         product_id: it.matched_product_id ?? null,
-        product_name: it.product_name.trim(),
-        product_sku: it.sku,
+        // se o utilizador confirmou a sugestão, usa nome/sku do catálogo; senão mantém o que foi lido
+        product_name: (it.matched_product_id && it.matched_name ? it.matched_name : it.product_name).trim(),
+        product_sku: it.matched_product_id && it.matched_sku ? it.matched_sku : it.sku,
         product_image_url: it.matched_image_url ?? null,
         quantity: it.quantity,
         unit_price_net: Number(it.unit_price_net ?? 0),
@@ -333,7 +334,33 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     handleClose();
   }, [items, onConfirm, handleClose]);
 
+  const confirmSuggestion = useCallback((idx: number, s: Suggestion) => {
+    setItems((prev) => prev.map((it, i) => i === idx ? {
+      ...it,
+      matched_product_id: s.id,
+      matched_name: s.name,
+      matched_sku: s.sku,
+      matched_image_url: s.image_url,
+      unit_price_net: it.unit_price_net ?? (s.base_price ?? null),
+      confirmed: true,
+    } : it));
+  }, []);
+
+  const rejectSuggestion = useCallback((idx: number) => {
+    setItems((prev) => prev.map((it, i) => i === idx ? {
+      ...it,
+      matched_product_id: null,
+      matched_name: null,
+      matched_sku: null,
+      matched_image_url: null,
+      confirmed: false,
+      // remove primeira sugestão para mostrar a próxima
+      suggestions: (it.suggestions ?? []).slice(1),
+    } : it));
+  }, []);
+
   const matchedCount = items.filter((i) => i.matched_product_id).length;
+  const pendingSuggestions = items.filter((i) => !i.matched_product_id && (i.suggestions?.length ?? 0) > 0).length;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
