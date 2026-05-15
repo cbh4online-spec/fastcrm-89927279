@@ -308,6 +308,51 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     onOpenChange(false);
   }, [reset, onOpenChange]);
 
+  // Pré-preenche o formulário "novo cliente" com o cabeçalho OCR e abre-o
+  const openCreateClientForm = useCallback(() => {
+    setNewClient({
+      name: String(headerInfo?.client_name ?? ""),
+      email: "",
+      tax_id: String(headerInfo?.client_tax_id ?? ""),
+      phone: "",
+    });
+    setClientPickerOpen(false);
+    setCreateClientOpen(true);
+  }, [headerInfo]);
+
+  const handleCreateClient = useCallback(async () => {
+    if (!currentWorkspace?.id) return;
+    const name = newClient.name.trim();
+    const email = newClient.email.trim();
+    if (!name) { toast.error("Nome obrigatório"); return; }
+    if (!email) { toast.error("Email obrigatório"); return; }
+    setCreatingClient(true);
+    try {
+      const { data, error } = await supabase
+        .from("client_users")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          name,
+          email,
+          tax_id: newClient.tax_id.trim() || null,
+          phone: newClient.phone.trim() || null,
+          status: "active",
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      await refetchClients();
+      setSelectedClient(data as unknown as ClientUser);
+      setClientAutoMatched(false);
+      setCreateClientOpen(false);
+      toast.success("Cliente criado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao criar cliente");
+    } finally {
+      setCreatingClient(false);
+    }
+  }, [currentWorkspace?.id, newClient, refetchClients]);
+
   const processFile = useCallback(async (file: File) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
