@@ -551,7 +551,54 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                       </TableCell>
                       <TableCell>
                         {item.matched_product_id ? (
-                          <Badge variant="default" className="text-[10px]">Catálogo</Badge>
+                          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-1.5">
+                            {item.matched_image_url && (
+                              <img src={item.matched_image_url} alt="" className="h-8 w-8 rounded object-cover" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium truncate text-emerald-900">{item.matched_name}</p>
+                              {item.matched_sku && <p className="text-[10px] text-emerald-700">SKU: {item.matched_sku}</p>}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              title="Remover associação"
+                              onClick={() => rejectSuggestion(idx)}
+                            >
+                              <XIcon className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ) : (item.suggestions && item.suggestions.length > 0) ? (
+                          <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-1.5">
+                            {item.suggestions[0].image_url && (
+                              <img src={item.suggestions[0].image_url} alt="" className="h-8 w-8 rounded object-cover" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium truncate text-amber-900">{item.suggestions[0].name}</p>
+                              <p className="text-[10px] text-amber-700">
+                                {item.suggestions[0].sku ? `SKU: ${item.suggestions[0].sku} · ` : ""}{item.suggestions[0].reason}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-emerald-700 hover:bg-emerald-100"
+                              title="Confirmar sugestão"
+                              onClick={() => confirmSuggestion(idx, item.suggestions![0])}
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              title="Rejeitar e ver próxima"
+                              onClick={() => rejectSuggestion(idx)}
+                            >
+                              <XIcon className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         ) : (
                           <Badge variant="outline" className="text-[10px]">Manual</Badge>
                         )}
