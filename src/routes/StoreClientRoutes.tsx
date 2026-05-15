@@ -62,6 +62,7 @@ const ClientSecurityPage = lazy(() => import("@/pages/client/ClientSecurityPage"
 // B2B admin pages
 const OrderNotesPage = lazy(() => import("@/pages/OrderNotesPage"));
 const CreateOrderNotePage = lazy(() => import("@/pages/CreateOrderNotePage"));
+const QuickOrderPage = lazy(() => import("@/pages/QuickOrderPage"));
 const OrderNoteDetailPage = lazy(() => import("@/pages/OrderNoteDetailPage"));
 const OrderApprovalsPage = lazy(() => import("@/pages/OrderApprovalsPage"));
 const B2BOrderApprovalsPage = lazy(() => import("@/pages/B2BOrderApprovalsPage"));
@@ -153,6 +154,7 @@ export function B2BAdminRoutes() {
     <>
       <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />
       <Route path="/dashboard/order-notes/create" element={<CreateOrderNotePage />} />
+      <Route path="/dashboard/order-notes/quick" element={<QuickOrderPage />} />
       <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
       <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
       <Route path="/dashboard/b2b/approvals" element={<B2BOrderApprovalsPage />} />
