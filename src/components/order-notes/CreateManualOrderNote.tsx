@@ -116,7 +116,23 @@ export function CreateManualOrderNote() {
     ]);
   }, []);
 
-  // Add manual line
+  // Adicionar várias linhas vindas do OCR
+  const handleAddOCRItems = useCallback((drafts: OCRLineItemDraft[]) => {
+    setItems((prev) => [
+      ...prev,
+      ...drafts.map((d) => ({
+        id: uid(),
+        product_id: d.product_id,
+        product_name: d.product_name,
+        product_sku: d.product_sku,
+        product_image_url: d.product_image_url,
+        quantity: d.quantity,
+        unit_price_net: d.unit_price_net,
+        vat_rate: d.vat_rate,
+        notes: d.notes,
+      })),
+    ]);
+  }, []);
   const handleAddManualLine = useCallback(() => {
     setItems((prev) => [
       ...prev,
