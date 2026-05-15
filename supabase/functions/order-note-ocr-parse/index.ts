@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const aiModel = "google/gemini-2.5-pro";
+    const aiModel = "google/gemini-2.5-flash";
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
