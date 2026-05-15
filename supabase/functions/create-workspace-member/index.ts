@@ -170,9 +170,9 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("[create-workspace-member] error", err);
+    console.error("[create-workspace-member] fatal error", err, (err as Error)?.stack);
     return new Response(
-      JSON.stringify({ error: (err as Error).message || "Erro interno" }),
+      JSON.stringify({ error: (err as Error).message || "Erro interno", stack: (err as Error)?.stack }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
