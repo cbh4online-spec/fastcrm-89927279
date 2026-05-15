@@ -383,16 +383,16 @@ export function ProductsList() {
                   </DropdownMenuContent>
                   </DropdownMenu>
                   <LayoutPresetsManager
-                    visibleColumns={state.visibleColumns}
-                    columnOrder={state.columnOrder}
+                    visibleColumns={effectiveVisibleColumnsSet}
+                    columnOrder={effectiveColumnOrder}
                     columnWidths={state.colWidths.widths}
                     onApplyPreset={handleApplyPreset}
                     storageKey="products-table-columns"
                   />
                   <ColumnSelector
-                    columns={PRODUCT_COLUMNS}
-                    visibleColumns={state.visibleColumns}
-                    columnOrder={state.columnOrder}
+                    columns={visibleProductColumns}
+                    visibleColumns={effectiveVisibleColumnsSet}
+                    columnOrder={effectiveColumnOrder}
                     onVisibleColumnsChange={state.setVisibleColumns}
                     onColumnOrderChange={state.setColumnOrder}
                     onResetWidths={state.colWidths.resetWidths}
