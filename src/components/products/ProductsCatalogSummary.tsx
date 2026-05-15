@@ -32,6 +32,8 @@ interface Props {
   };
   activeFilterId?: string;
   onFilterSelect: (filterId: string) => void;
+  /** Quando false, oculta KPIs/chips/gráficos de custo e margem (ex.: agentes). */
+  canViewCostMargin?: boolean;
 }
 
 const CHART_COLORS = [
