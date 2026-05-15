@@ -450,7 +450,12 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
               </Badge>
               {matchedCount > 0 && (
                 <Badge variant="default" className="gap-1">
-                  {matchedCount} produto(s) do catálogo identificado(s)
+                  {matchedCount} confirmado(s)
+                </Badge>
+              )}
+              {pendingSuggestions > 0 && (
+                <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-900 hover:bg-amber-100">
+                  {pendingSuggestions} sugestão(ões) por confirmar
                 </Badge>
               )}
               {warnings.map((w, i) => (
