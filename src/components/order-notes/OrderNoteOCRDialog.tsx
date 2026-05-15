@@ -538,7 +538,7 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                       <TableCell>
                         <Input
                           value={displaySku}
-                          onChange={(e) => updateItem(idx, isMatched ? { matched_sku: e.target.value } : { sku: e.target.value })}
+                          onChange={(e) => handleSkuChange(idx, e.target.value)}
                           className="h-8 text-sm font-mono"
                           placeholder="SKU"
                         />
