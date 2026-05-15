@@ -43,21 +43,13 @@ if (isPreviewHost || isInIframe) {
   });
 }
 
-// Auto-recover from stale dynamic-import chunks after a redeploy.
-// Keep this strictly one-shot per tab: repeated hard reloads look like the
-// app is “rebooting” forever when the chunk error persists.
-const STALE_RELOAD_KEY = "__stale_chunk_reloaded";
+// Do not auto-reload on stale dynamic-import chunks. In preview this can turn
+// into an apparent infinite reboot when Vite is rebuilding or cache is stale.
 const handleStaleChunk = (message: string) => {
   if (!/Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(message)) {
     return;
   }
-  try {
-    if (sessionStorage.getItem(STALE_RELOAD_KEY) === "1") return;
-    sessionStorage.setItem(STALE_RELOAD_KEY, "1");
-  } catch {
-    // ignore storage errors
-  }
-  window.location.reload();
+  console.warn("[App] Stale chunk detected; waiting for user retry instead of auto-reloading.");
 };
 
 window.addEventListener("error", (e) => {
