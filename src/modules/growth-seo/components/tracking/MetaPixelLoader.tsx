@@ -21,9 +21,11 @@ export function MetaPixelLoader() {
 
   useEffect(() => {
     // Only initialize once when we have marketing consent
-    if (!pixelInitialized.current && hasConsented && consent.marketing && sessionStorage.getItem(META_PIXEL_SESSION_KEY) !== '1') {
-      initializeMetaPixel(DEFAULT_META_PIXEL_ID, true);
-      sessionStorage.setItem(META_PIXEL_SESSION_KEY, '1');
+    if (!pixelInitialized.current && hasConsented && consent.marketing) {
+      if (sessionStorage.getItem(META_PIXEL_SESSION_KEY) !== '1') {
+        initializeMetaPixel(DEFAULT_META_PIXEL_ID, true);
+        sessionStorage.setItem(META_PIXEL_SESSION_KEY, '1');
+      }
       pixelInitialized.current = true;
     }
   }, [consent.marketing, hasConsented]);
