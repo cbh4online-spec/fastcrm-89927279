@@ -456,9 +456,13 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
       toast.error("Sem linhas válidas para adicionar");
       return;
     }
-    onConfirm(drafts);
+    if (!selectedClient) {
+      toast.error("Confirma ou seleciona o cliente antes de adicionar.");
+      return;
+    }
+    onConfirm(drafts, { clientUserId: selectedClient.id });
     handleClose();
-  }, [items, onConfirm, handleClose]);
+  }, [items, onConfirm, handleClose, selectedClient]);
 
   const confirmSuggestion = useCallback((idx: number, s: Suggestion) => {
     setItems((prev) => prev.map((it, i) => i === idx ? {
