@@ -56,6 +56,7 @@ export function CreateManualOrderNote() {
   // Items
   const [items, setItems] = useState<LineItem[]>([]);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const [ocrDialogOpen, setOcrDialogOpen] = useState(false);
 
   // Addresses
   const [billingAddress, setBillingAddress] = useState<AddressData>({});
