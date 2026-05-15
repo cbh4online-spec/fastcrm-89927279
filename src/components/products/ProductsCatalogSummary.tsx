@@ -223,25 +223,21 @@ export function ProductsCatalogSummary({
             </Card>
 
             {/* Top Margin */}
-            <Card>
-              <CardHeader className="pb-2 pt-3 px-4">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Top 10 Margem</CardTitle>
-              </CardHeader>
-              <CardContent className="h-48 px-4 pb-3">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats.topMargin} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis type="number" tick={{ fontSize: 10 }} unit="%" />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} width={100} />
-                    <RTooltip formatter={(v: number) => [`${v}%`, "Margem"]} />
-                    <Bar dataKey="margin" fill="hsl(150 60% 45%)" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
-  );
-}
+            {canViewCostMargin && (
+              <Card>
+                <CardHeader className="pb-2 pt-3 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Top 10 Margem</CardTitle>
+                </CardHeader>
+                <CardContent className="h-48 px-4 pb-3">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.topMargin} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis type="number" tick={{ fontSize: 10 }} unit="%" />
+                      <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} width={100} />
+                      <RTooltip formatter={(v: number) => [`${v}%`, "Margem"]} />
+                      <Bar dataKey="margin" fill="hsl(150 60% 45%)" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
