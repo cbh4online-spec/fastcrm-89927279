@@ -405,7 +405,7 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     } finally {
       setIsProcessing(false);
     }
-  }, [catalog, previewUrl]);
+  }, [catalog, previewUrl, clients]);
 
   const updateItem = useCallback((idx: number, patch: Partial<ParsedItem>) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
