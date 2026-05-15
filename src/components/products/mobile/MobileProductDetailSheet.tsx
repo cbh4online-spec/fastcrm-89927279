@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useProduct } from "@/hooks/useProducts";
 import { haptics } from "@/hooks/useHaptics";
 import { ProductDetailDialog } from "../ProductDetailDialog";
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
 
 interface MobileProductDetailSheetProps {
   productId: string | null;
