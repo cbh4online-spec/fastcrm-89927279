@@ -153,12 +153,14 @@ export function ProductsCatalogSummary({
           <DollarSign className="h-3 w-3 text-muted-foreground" />
           <span className="font-semibold">{formatCurrency(stats.totalValue)}</span>
         </div>
-        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-card border text-xs">
-          <TrendingUp className="h-3 w-3 text-muted-foreground" />
-          <span className={`font-semibold ${stats.avgMargin >= 30 ? "text-green-600" : stats.avgMargin >= 15 ? "text-yellow-600" : "text-destructive"}`}>
-            {stats.avgMargin.toFixed(1)}%
-          </span>
-        </div>
+        {canViewCostMargin && (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-card border text-xs">
+            <TrendingUp className="h-3 w-3 text-muted-foreground" />
+            <span className={`font-semibold ${stats.avgMargin >= 30 ? "text-green-600" : stats.avgMargin >= 15 ? "text-yellow-600" : "text-destructive"}`}>
+              {stats.avgMargin.toFixed(1)}%
+            </span>
+          </div>
+        )}
         <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-card border text-xs">
           <Package className="h-3 w-3 text-muted-foreground" />
           <span className="font-semibold">{stats.total}</span>
