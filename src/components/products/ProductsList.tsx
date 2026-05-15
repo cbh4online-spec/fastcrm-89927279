@@ -53,6 +53,7 @@ import { ProductReportsTab } from "./ProductReportsTab";
 import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
 import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
+import { useCanViewCostMargin, COST_MARGIN_FIELDS } from "@/hooks/useCanViewCostMargin";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileProductsView } from "./mobile/MobileProductsView";
@@ -66,6 +67,27 @@ export function ProductsList() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const isMobile = useIsMobile();
+  const canViewCostMargin = useCanViewCostMargin();
+
+  // Colunas e filtros sensíveis (custo/margem) ocultos para roles sem permissão
+  const visibleProductColumns = useMemo(
+    () => canViewCostMargin
+      ? PRODUCT_COLUMNS
+      : PRODUCT_COLUMNS.filter((c) => !COST_MARGIN_FIELDS.has(c.id)),
+    [canViewCostMargin]
+  );
+  const effectiveVisibleColumnsSet = useMemo(() => {
+    if (canViewCostMargin) return state.visibleColumns;
+    const next = new Set(state.visibleColumns);
+    COST_MARGIN_FIELDS.forEach((f) => next.delete(f));
+    return next;
+  }, [canViewCostMargin, state.visibleColumns]);
+  const effectiveColumnOrder = useMemo(
+    () => canViewCostMargin
+      ? state.columnOrder
+      : state.columnOrder.filter((c) => !COST_MARGIN_FIELDS.has(c)),
+    [canViewCostMargin, state.columnOrder]
+  );
 
   const goToMobileQuickCreate = useCallback((barcode?: string) => {
     const path = barcode
@@ -166,9 +188,11 @@ export function ProductsList() {
           { id: "smart_low_price", label: "Preço baixo (<50€)" },
           { id: "smart_invalid_sku", label: "⚠️ SKUs inválidos" },
           { id: "smart_no_price", label: "🔴 Sem preço definido" },
-          { id: "smart_no_cost", label: "🟡 Sem custo definido" },
-          { id: "smart_negative_margin", label: "🔴 Margem negativa" },
-          { id: "smart_low_margin", label: "🟡 Margem baixa (<15%)" },
+          ...(canViewCostMargin ? [
+            { id: "smart_no_cost", label: "🟡 Sem custo definido" },
+            { id: "smart_negative_margin", label: "🔴 Margem negativa" },
+            { id: "smart_low_margin", label: "🟡 Margem baixa (<15%)" },
+          ] : []),
           { id: "smart_no_image", label: "📷 Sem imagem" },
           { id: "smart_no_sku", label: "Sem SKU" },
           { id: "smart_no_category", label: "Sem categoria" },
@@ -178,7 +202,7 @@ export function ProductsList() {
     );
 
     return groups;
-  }, [state.productTypesConfig, state.billingTypesConfig, state.categories, state.workspaceTags]);
+  }, [state.productTypesConfig, state.billingTypesConfig, state.categories, state.workspaceTags, canViewCostMargin]);
 
   // Mobile: vista dedicada para a tab "Produtos"
   if (isMobile && state.activeTab === "products") {
@@ -330,7 +354,7 @@ export function ProductsList() {
                   <Button variant="ghost" size="sm" onClick={() => state.setShowFilterSidebar(!state.showFilterSidebar)} className="gap-2">
                     {state.showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
                   </Button>
-                  {state.productIndicators.noCost > 0 && (
+                  {canViewCostMargin && state.productIndicators.noCost > 0 && (
                     <Button
                       variant={state.activeFilterId === "smart_no_cost" ? "outline" : "ghost"}
                       size="sm"
@@ -359,16 +383,16 @@ export function ProductsList() {
                   </DropdownMenuContent>
                   </DropdownMenu>
                   <LayoutPresetsManager
-                    visibleColumns={state.visibleColumns}
-                    columnOrder={state.columnOrder}
+                    visibleColumns={effectiveVisibleColumnsSet}
+                    columnOrder={effectiveColumnOrder}
                     columnWidths={state.colWidths.widths}
                     onApplyPreset={handleApplyPreset}
                     storageKey="products-table-columns"
                   />
                   <ColumnSelector
-                    columns={PRODUCT_COLUMNS}
-                    visibleColumns={state.visibleColumns}
-                    columnOrder={state.columnOrder}
+                    columns={visibleProductColumns}
+                    visibleColumns={effectiveVisibleColumnsSet}
+                    columnOrder={effectiveColumnOrder}
                     onVisibleColumnsChange={state.setVisibleColumns}
                     onColumnOrderChange={state.setColumnOrder}
                     onResetWidths={state.colWidths.resetWidths}
@@ -388,6 +412,7 @@ export function ProductsList() {
                 productIndicators={state.productIndicators}
                 activeFilterId={state.activeFilterId}
                 onFilterSelect={state.handleFilterSelect}
+                canViewCostMargin={canViewCostMargin}
               />
             )}
 
@@ -417,8 +442,8 @@ export function ProductsList() {
               onArchive={state.handleArchive}
               onDelete={state.setDeleteConfirmProduct}
               onCreate={() => state.setCreateOpen(true)}
-              columnOrder={state.columnOrder}
-              visibleColumns={state.visibleColumns}
+              columnOrder={effectiveColumnOrder}
+              visibleColumns={effectiveVisibleColumnsSet}
               colWidths={state.colWidths}
               tableRef={state.tableRef}
               getProductTypeLabel={state.getProductTypeLabel}

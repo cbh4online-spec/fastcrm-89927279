@@ -32,6 +32,8 @@ interface Props {
   };
   activeFilterId?: string;
   onFilterSelect: (filterId: string) => void;
+  /** Quando false, oculta KPIs/chips/gráficos de custo e margem (ex.: agentes). */
+  canViewCostMargin?: boolean;
 }
 
 const CHART_COLORS = [
@@ -51,6 +53,7 @@ export function ProductsCatalogSummary({
   productIndicators,
   activeFilterId,
   onFilterSelect,
+  canViewCostMargin = true,
 }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -107,9 +110,11 @@ export function ProductsCatalogSummary({
   // Quick-filter chips with issue counts
   const issueChips = [
     { id: "smart_no_price", label: "Sem preço", count: productIndicators.noPrice, icon: <DollarSign className="h-3 w-3" />, color: "text-destructive" },
-    { id: "smart_no_cost", label: "Sem custo", count: productIndicators.noCost, icon: <AlertTriangle className="h-3 w-3" />, color: "text-yellow-600" },
-    { id: "smart_negative_margin", label: "Margem −", count: productIndicators.negativeMargin, icon: <TrendingDown className="h-3 w-3" />, color: "text-destructive" },
-    { id: "smart_low_margin", label: "Margem ↓", count: productIndicators.lowMargin, icon: <AlertTriangle className="h-3 w-3" />, color: "text-yellow-600" },
+    ...(canViewCostMargin ? [
+      { id: "smart_no_cost", label: "Sem custo", count: productIndicators.noCost, icon: <AlertTriangle className="h-3 w-3" />, color: "text-yellow-600" },
+      { id: "smart_negative_margin", label: "Margem −", count: productIndicators.negativeMargin, icon: <TrendingDown className="h-3 w-3" />, color: "text-destructive" },
+      { id: "smart_low_margin", label: "Margem ↓", count: productIndicators.lowMargin, icon: <AlertTriangle className="h-3 w-3" />, color: "text-yellow-600" },
+    ] : []),
     { id: "smart_no_image", label: "S/ imagem", count: productIndicators.noImage, icon: <ImageOff className="h-3 w-3" />, color: "text-muted-foreground" },
   ].filter(c => c.count > 0);
 
@@ -148,12 +153,14 @@ export function ProductsCatalogSummary({
           <DollarSign className="h-3 w-3 text-muted-foreground" />
           <span className="font-semibold">{formatCurrency(stats.totalValue)}</span>
         </div>
-        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-card border text-xs">
-          <TrendingUp className="h-3 w-3 text-muted-foreground" />
-          <span className={`font-semibold ${stats.avgMargin >= 30 ? "text-green-600" : stats.avgMargin >= 15 ? "text-yellow-600" : "text-destructive"}`}>
-            {stats.avgMargin.toFixed(1)}%
-          </span>
-        </div>
+        {canViewCostMargin && (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-card border text-xs">
+            <TrendingUp className="h-3 w-3 text-muted-foreground" />
+            <span className={`font-semibold ${stats.avgMargin >= 30 ? "text-green-600" : stats.avgMargin >= 15 ? "text-yellow-600" : "text-destructive"}`}>
+              {stats.avgMargin.toFixed(1)}%
+            </span>
+          </div>
+        )}
         <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-card border text-xs">
           <Package className="h-3 w-3 text-muted-foreground" />
           <span className="font-semibold">{stats.total}</span>
@@ -216,22 +223,24 @@ export function ProductsCatalogSummary({
             </Card>
 
             {/* Top Margin */}
-            <Card>
-              <CardHeader className="pb-2 pt-3 px-4">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Top 10 Margem</CardTitle>
-              </CardHeader>
-              <CardContent className="h-48 px-4 pb-3">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats.topMargin} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis type="number" tick={{ fontSize: 10 }} unit="%" />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} width={100} />
-                    <RTooltip formatter={(v: number) => [`${v}%`, "Margem"]} />
-                    <Bar dataKey="margin" fill="hsl(150 60% 45%)" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+            {canViewCostMargin && (
+              <Card>
+                <CardHeader className="pb-2 pt-3 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Top 10 Margem</CardTitle>
+                </CardHeader>
+                <CardContent className="h-48 px-4 pb-3">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.topMargin} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis type="number" tick={{ fontSize: 10 }} unit="%" />
+                      <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} width={100} />
+                      <RTooltip formatter={(v: number) => [`${v}%`, "Margem"]} />
+                      <Bar dataKey="margin" fill="hsl(150 60% 45%)" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>

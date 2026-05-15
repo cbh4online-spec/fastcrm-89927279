@@ -14,6 +14,7 @@ import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import { PRODUCT_COLUMNS } from "./hooks/useProductsListState";
+import { useCanViewCostMargin, COST_MARGIN_FIELDS } from "@/hooks/useCanViewCostMargin";
 import type { Product } from "@/types/product";
 
 interface ProductsExportDialogProps {
@@ -43,10 +44,18 @@ export function ProductsExportDialog({
   getProductTypeLabel,
   getBillingTypeLabel,
 }: ProductsExportDialogProps) {
+  const canViewCostMargin = useCanViewCostMargin();
+  const exportableColumns = useMemo(
+    () => canViewCostMargin
+      ? PRODUCT_COLUMNS
+      : PRODUCT_COLUMNS.filter(c => !COST_MARGIN_FIELDS.has(c.id)),
+    [canViewCostMargin]
+  );
+
   const [format, setFormat] = useState<"xlsx" | "csv">("xlsx");
   const [scope, setScope] = useState<"filtered" | "all">("filtered");
   const [selectedCols, setSelectedCols] = useState<Set<string>>(() =>
-    new Set(PRODUCT_COLUMNS.filter(c => c.defaultVisible).map(c => c.id))
+    new Set(exportableColumns.filter(c => c.defaultVisible).map(c => c.id))
   );
   const [exporting, setExporting] = useState(false);
 
@@ -124,7 +133,7 @@ export function ProductsExportDialog({
   };
 
   const handleExport = async () => {
-    const cols = PRODUCT_COLUMNS.filter(c => selectedCols.has(c.id));
+    const cols = exportableColumns.filter(c => selectedCols.has(c.id));
     if (cols.length === 0) {
       toast.error("Seleciona pelo menos uma coluna");
       return;
@@ -246,16 +255,16 @@ export function ProductsExportDialog({
             <div className="flex items-center justify-between mb-2">
               <Label className="text-sm font-medium">Colunas ({selectedCols.size})</Label>
               <div className="flex gap-1">
-                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setSelectedCols(new Set(PRODUCT_COLUMNS.map(c => c.id)))}>
+                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setSelectedCols(new Set(exportableColumns.map(c => c.id)))}>
                   Todas
                 </Button>
-                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setSelectedCols(new Set(PRODUCT_COLUMNS.filter(c => c.defaultVisible).map(c => c.id)))}>
+                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setSelectedCols(new Set(exportableColumns.filter(c => c.defaultVisible).map(c => c.id)))}>
                   Predefinidas
                 </Button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto border rounded-md p-2">
-              {PRODUCT_COLUMNS.map(col => (
+              {exportableColumns.map(col => (
                 <label key={col.id} className="flex items-center gap-1.5 text-sm cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded">
                   <Checkbox
                     checked={selectedCols.has(col.id)}

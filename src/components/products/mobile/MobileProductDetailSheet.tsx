@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useProduct } from "@/hooks/useProducts";
 import { haptics } from "@/hooks/useHaptics";
 import { ProductDetailDialog } from "../ProductDetailDialog";
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
 
 interface MobileProductDetailSheetProps {
   productId: string | null;
@@ -38,6 +39,7 @@ export function MobileProductDetailSheet({
   const [tab, setTab] = useState<MobileTab>("overview");
   const [fullDialogOpen, setFullDialogOpen] = useState(false);
   const { data: product, isLoading } = useProduct(productId ?? undefined);
+  const canViewCostMargin = useCanViewCostMargin();
 
   const handleShare = async () => {
     if (!product) return;
@@ -117,7 +119,7 @@ export function MobileProductDetailSheet({
                       <div className="text-xl font-bold tabular-nums">
                         {formatCurrency((product as any).base_price ?? 0)}
                       </div>
-                      {(product as any).direct_cost != null && (
+                      {canViewCostMargin && (product as any).direct_cost != null && (
                         <div className="text-[11px] text-muted-foreground">
                           Custo: {formatCurrency((product as any).direct_cost)}
                         </div>
@@ -190,8 +192,12 @@ export function MobileProductDetailSheet({
                   {tab === "pricing" && (
                     <>
                       <KVRow label="Preço base" value={formatCurrency((product as any).base_price ?? 0)} />
-                      <KVRow label="Custo direto" value={(product as any).direct_cost != null ? formatCurrency((product as any).direct_cost) : "—"} />
-                      <KVRow label="Custo operacional" value={(product as any).operational_cost != null ? formatCurrency((product as any).operational_cost) : "—"} />
+                      {canViewCostMargin && (
+                        <>
+                          <KVRow label="Custo direto" value={(product as any).direct_cost != null ? formatCurrency((product as any).direct_cost) : "—"} />
+                          <KVRow label="Custo operacional" value={(product as any).operational_cost != null ? formatCurrency((product as any).operational_cost) : "—"} />
+                        </>
+                      )}
                       <KVRow label="IVA estimado" value={(product as any).tax_rate_estimate_pct != null ? `${(product as any).tax_rate_estimate_pct}%` : "—"} />
                       <KVRow label="Comissão" value={(product as any).commission_default != null ? `${(product as any).commission_default}%` : "—"} />
                     </>
