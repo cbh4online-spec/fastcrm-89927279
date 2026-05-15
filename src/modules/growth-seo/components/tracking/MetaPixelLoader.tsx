@@ -5,6 +5,7 @@ import { initializeMetaPixel
 
 // Default Meta Pixel ID - can be overridden via settings
 const DEFAULT_META_PIXEL_ID = '909068581793930';
+const META_PIXEL_SESSION_KEY = `__meta_pixel_loaded_${DEFAULT_META_PIXEL_ID}`;
 
 /**
  * MetaPixelLoader - Loads Meta Pixel respecting GDPR consent
@@ -20,10 +21,10 @@ export function MetaPixelLoader() {
 
   useEffect(() => {
     // Only initialize once when we have marketing consent
-    if (!pixelInitialized.current && hasConsented && consent.marketing) {
+    if (!pixelInitialized.current && hasConsented && consent.marketing && sessionStorage.getItem(META_PIXEL_SESSION_KEY) !== '1') {
       initializeMetaPixel(DEFAULT_META_PIXEL_ID, true);
+      sessionStorage.setItem(META_PIXEL_SESSION_KEY, '1');
       pixelInitialized.current = true;
-      console.log('[MetaPixel] Initialized with ID:', DEFAULT_META_PIXEL_ID);
     }
   }, [consent.marketing, hasConsented]);
 
