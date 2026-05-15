@@ -569,6 +569,13 @@ export function CreateManualOrderNote() {
         onClose={() => setProductDialogOpen(false)}
         onSelect={handleAddProduct}
       />
+
+      {/* OCR Dialog */}
+      <OrderNoteOCRDialog
+        open={ocrDialogOpen}
+        onOpenChange={setOcrDialogOpen}
+        onConfirm={handleAddOCRItems}
+      />
     </div>
   );
 }
