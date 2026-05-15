@@ -15,8 +15,17 @@ import {
 import {
   ScanText, Upload, Camera, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Image as ImageIcon, Sparkles, Check, X as XIcon,
+  User as UserIcon, Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import { useClientUsers } from "@/hooks/useClientUsers";
+import type { ClientUser } from "@/types/client-user";
 
 export interface OCRLineItemDraft {
   product_id: string | null;
@@ -61,7 +70,7 @@ interface CatalogProduct {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onConfirm: (items: OCRLineItemDraft[]) => void;
+  onConfirm: (items: OCRLineItemDraft[], opts?: { clientUserId?: string }) => void;
 }
 
 function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
@@ -252,12 +261,16 @@ function levenshtein(a: string, b: string): number {
 
 export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const { currentWorkspace } = useWorkspace();
+  const { clients } = useClientUsers();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [items, setItems] = useState<ParsedItem[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [headerInfo, setHeaderInfo] = useState<Record<string, unknown> | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientUser | null>(null);
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [clientAutoMatched, setClientAutoMatched] = useState(false);
 
   // catálogo do workspace para auto-match
   const { data: catalog = [] } = useQuery({
@@ -282,6 +295,8 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     setItems([]);
     setWarnings([]);
     setHeaderInfo(null);
+    setSelectedClient(null);
+    setClientAutoMatched(false);
     setIsProcessing(false);
   }, []);
 
@@ -348,8 +363,38 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
       });
 
       setItems(parsedItems);
-      setHeaderInfo(data.header ?? null);
+      const header = (data.header ?? null) as Record<string, unknown> | null;
+      setHeaderInfo(header);
       setWarnings(data.warnings ?? []);
+
+      // Auto-match cliente a partir do cabeçalho (NIF tem prioridade, depois nome)
+      if (header && clients.length > 0) {
+        const nif = String(header.client_tax_id ?? "").replace(/\s+/g, "");
+        const name = normalize(String(header.client_name ?? ""));
+        let match: ClientUser | null = null;
+        if (nif) {
+          match = clients.find((c) => (c.tax_id ?? "").replace(/\s+/g, "") === nif) ?? null;
+        }
+        if (!match && name) {
+          match = clients.find((c) => normalize(c.name ?? "") === name) ?? null;
+          if (!match) {
+            // fallback: contém todos os tokens
+            const tokens = name.split(" ").filter((t) => t.length > 2);
+            match = clients.find((c) => {
+              const cn = normalize(c.name ?? "");
+              return tokens.length > 0 && tokens.every((t) => cn.includes(t));
+            }) ?? null;
+          }
+        }
+        if (match) {
+          setSelectedClient(match);
+          setClientAutoMatched(true);
+        } else {
+          setSelectedClient(null);
+          setClientAutoMatched(false);
+        }
+      }
+
       if (parsedItems.length === 0) {
         toast.warning("Não foi possível identificar produtos. Tenta uma foto mais nítida.");
       } else {
@@ -360,7 +405,7 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     } finally {
       setIsProcessing(false);
     }
-  }, [catalog, previewUrl]);
+  }, [catalog, previewUrl, clients]);
 
   const updateItem = useCallback((idx: number, patch: Partial<ParsedItem>) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
@@ -411,9 +456,13 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
       toast.error("Sem linhas válidas para adicionar");
       return;
     }
-    onConfirm(drafts);
+    if (!selectedClient) {
+      toast.error("Confirma ou seleciona o cliente antes de adicionar.");
+      return;
+    }
+    onConfirm(drafts, { clientUserId: selectedClient.id });
     handleClose();
-  }, [items, onConfirm, handleClose]);
+  }, [items, onConfirm, handleClose, selectedClient]);
 
   const confirmSuggestion = useCallback((idx: number, s: Suggestion) => {
     setItems((prev) => prev.map((it, i) => i === idx ? {
@@ -565,6 +614,83 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                 </div>
               </Card>
             )}
+
+            {/* Seleção / confirmação de cliente — obrigatório antes de adicionar */}
+            <Card className={`p-3 border ${selectedClient ? "border-emerald-300 bg-emerald-50/40" : "border-amber-300 bg-amber-50/40"}`}>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 min-w-0">
+                  <UserIcon className={`h-4 w-4 ${selectedClient ? "text-emerald-700" : "text-amber-700"}`} />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground leading-tight">
+                      {selectedClient
+                        ? clientAutoMatched ? "Cliente sugerido (confirma ou troca)" : "Cliente selecionado"
+                        : "Cliente por confirmar"}
+                    </p>
+                    {selectedClient ? (
+                      <p className="text-sm font-medium truncate">
+                        {selectedClient.name}
+                        {selectedClient.tax_id && (
+                          <span className="text-muted-foreground font-normal ml-2">NIF: {selectedClient.tax_id}</span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-amber-900">
+                        {headerInfo?.client_name
+                          ? `Sem correspondência automática para "${String(headerInfo.client_name)}". Seleciona o cliente.`
+                          : "Seleciona o cliente B2B desta encomenda."}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="ml-auto flex items-center gap-2">
+                  {selectedClient && clientAutoMatched && (
+                    <Button
+                      size="sm"
+                      className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => setClientAutoMatched(false)}
+                    >
+                      <Check className="h-4 w-4 mr-1" /> Confirmar cliente
+                    </Button>
+                  )}
+                  <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8">
+                        <Search className="h-4 w-4 mr-1" />
+                        {selectedClient ? "Trocar cliente" : "Selecionar cliente"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[360px] p-0" align="end">
+                      <Command>
+                        <CommandInput placeholder="Pesquisar por nome, email ou NIF..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum cliente encontrado</CommandEmpty>
+                          <CommandGroup>
+                            {clients.map((c) => (
+                              <CommandItem
+                                key={c.id}
+                                value={`${c.name} ${c.email ?? ""} ${c.tax_id ?? ""}`}
+                                onSelect={() => {
+                                  setSelectedClient(c);
+                                  setClientAutoMatched(false);
+                                  setClientPickerOpen(false);
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{c.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {c.email}{c.tax_id ? ` · NIF ${c.tax_id}` : ""}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </Card>
 
             <div className="border rounded-md overflow-hidden">
               <Table>
@@ -724,7 +850,8 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
           <Button variant="outline" onClick={handleClose}>Cancelar</Button>
           <Button
             onClick={handleConfirm}
-            disabled={isProcessing || includedCount === 0}
+            disabled={isProcessing || includedCount === 0 || !selectedClient}
+            title={!selectedClient ? "Confirma ou seleciona o cliente primeiro" : undefined}
           >
             Adicionar {includedCount > 0 ? `${includedCount} linha(s)` : ""}
           </Button>

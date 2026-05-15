@@ -117,7 +117,11 @@ export function CreateManualOrderNote() {
   }, []);
 
   // Adicionar várias linhas vindas do OCR
-  const handleAddOCRItems = useCallback((drafts: OCRLineItemDraft[]) => {
+  const handleAddOCRItems = useCallback((drafts: OCRLineItemDraft[], opts?: { clientUserId?: string }) => {
+    if (opts?.clientUserId) {
+      const c = clients.find((x) => x.id === opts.clientUserId);
+      if (c) handleSelectClient(c);
+    }
     setItems((prev) => [
       ...prev,
       ...drafts.map((d) => ({
@@ -132,7 +136,7 @@ export function CreateManualOrderNote() {
         notes: d.notes,
       })),
     ]);
-  }, []);
+  }, [clients, handleSelectClient]);
   const handleAddManualLine = useCallback(() => {
     setItems((prev) => [
       ...prev,
