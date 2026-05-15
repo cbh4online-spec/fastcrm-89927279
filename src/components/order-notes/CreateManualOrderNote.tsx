@@ -281,7 +281,10 @@ export function CreateManualOrderNote() {
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-4 w-4" /> Produtos
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" variant="default" onClick={() => setOcrDialogOpen(true)}>
+                <ScanText className="h-4 w-4 mr-1" /> OCR Encomenda
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setProductDialogOpen(true)}>
                 <Search className="h-4 w-4 mr-1" /> Catálogo
               </Button>
