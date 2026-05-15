@@ -570,36 +570,39 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                             <CheckCircle2 className="h-3 w-3 mr-1" /> Confirmado
                           </Badge>
                         ) : (item.suggestions && item.suggestions.length > 0) ? (
-                          <div className="flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 p-1.5">
-                            {item.suggestions[0].image_url && (
-                              <img src={item.suggestions[0].image_url} alt="" className="h-7 w-7 rounded object-cover flex-shrink-0" />
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[11px] font-medium truncate text-amber-900" title={item.suggestions[0].name}>
-                                {item.suggestions[0].name}
-                              </p>
-                              <p className="text-[10px] text-amber-700 truncate">
-                                {item.suggestions[0].sku ? `${item.suggestions[0].sku} · ` : ""}{item.suggestions[0].reason}
-                              </p>
+                          <div className="flex flex-col gap-1.5 rounded-md border border-amber-200 bg-amber-50 p-1.5">
+                            <div className="flex items-center gap-1.5">
+                              {item.suggestions[0].image_url && (
+                                <img src={item.suggestions[0].image_url} alt="" className="h-7 w-7 rounded object-cover flex-shrink-0" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11px] font-medium truncate text-amber-900" title={item.suggestions[0].name}>
+                                  {item.suggestions[0].name}
+                                </p>
+                                <p className="text-[10px] text-amber-700 truncate">
+                                  {item.suggestions[0].sku ? `${item.suggestions[0].sku} · ` : ""}{item.suggestions[0].reason}
+                                </p>
+                              </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-emerald-700 hover:bg-emerald-100"
-                              title="Confirmar sugestão"
-                              onClick={() => confirmSuggestion(idx, item.suggestions![0])}
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              title="Rejeitar e ver próxima"
-                              onClick={() => rejectSuggestion(idx)}
-                            >
-                              <XIcon className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                className="h-7 px-2 flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px]"
+                                title="Preencher SKU e Nome do catálogo"
+                                onClick={() => confirmSuggestion(idx, item.suggestions![0])}
+                              >
+                                <Check className="h-3.5 w-3.5 mr-1" /> Confirmar SKU
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title="Rejeitar e ver próxima"
+                                onClick={() => rejectSuggestion(idx)}
+                              >
+                                <XIcon className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
                         ) : (
                           <Badge variant="outline" className="text-[10px]">Manual</Badge>
