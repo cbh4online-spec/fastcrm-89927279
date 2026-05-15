@@ -259,6 +259,82 @@ function levenshtein(a: string, b: string): number {
   return prev[b.length];
 }
 
+interface ClientSuggestion {
+  client: ClientUser;
+  score: number;
+  reason: string;
+}
+
+// Fuzzy match de cliente a partir do cabeçalho OCR. Devolve top-N por score.
+// Score 1.0 = NIF exato; 0.9+ = nome igual; 0.6-0.9 = parcial; <0.5 descartado.
+function findClientSuggestions(
+  headerName: string,
+  headerNif: string,
+  clients: ClientUser[],
+  limit = 3,
+): ClientSuggestion[] {
+  if (!clients.length) return [];
+  const nif = headerNif.replace(/\s+/g, "");
+  const nifDigits = nif.replace(/\D/g, "");
+  const targetName = normalize(headerName);
+  const targetTokens = new Set(targetName.split(" ").filter((t) => t.length > 2));
+
+  const out = new Map<string, ClientSuggestion>();
+  const add = (client: ClientUser, score: number, reason: string) => {
+    const cur = out.get(client.id);
+    if (!cur || score > cur.score) out.set(client.id, { client, score, reason });
+  };
+
+  for (const c of clients) {
+    const cNif = (c.tax_id ?? "").replace(/\s+/g, "");
+    const cNifDigits = cNif.replace(/\D/g, "");
+
+    // 1) NIF exato
+    if (nif && cNif && cNif === nif) { add(c, 1.0, "NIF exato"); continue; }
+    // 2) NIF dígitos iguais (ignora prefixo PT)
+    if (nifDigits.length >= 6 && cNifDigits === nifDigits) { add(c, 0.98, "NIF coincide"); continue; }
+    // 3) NIF parcial (últimos 6+ dígitos iguais)
+    if (nifDigits.length >= 6 && cNifDigits.length >= 6) {
+      const tail = nifDigits.slice(-Math.min(nifDigits.length, cNifDigits.length, 9));
+      if (tail.length >= 6 && cNifDigits.endsWith(tail)) {
+        add(c, 0.85, `NIF parcial (…${tail.slice(-6)})`);
+      }
+    }
+
+    // 4) Nome — vários níveis
+    if (targetName) {
+      const cName = normalize(c.name ?? "");
+      if (!cName) continue;
+      if (cName === targetName) { add(c, 0.95, "Nome igual"); continue; }
+      // Jaccard tokens
+      if (targetTokens.size > 0) {
+        const cTokens = new Set(cName.split(" ").filter((t) => t.length > 2));
+        if (cTokens.size > 0) {
+          let inter = 0;
+          targetTokens.forEach((t) => { if (cTokens.has(t)) inter++; });
+          const union = new Set([...targetTokens, ...cTokens]).size;
+          const jacc = inter / union;
+          if (jacc >= 0.34) {
+            add(c, 0.5 + jacc * 0.4, `Nome ~${Math.round(jacc * 100)}%`);
+            continue;
+          }
+        }
+      }
+      // Levenshtein normalizado
+      if (targetName.length >= 4 && cName.length >= 4) {
+        const dist = levenshtein(targetName.slice(0, 50), cName.slice(0, 50));
+        const maxLen = Math.max(targetName.length, cName.length, 1);
+        const sim = 1 - dist / maxLen;
+        if (sim >= 0.55) add(c, 0.4 + sim * 0.4, `Nome aprox. ${Math.round(sim * 100)}%`);
+      }
+    }
+  }
+
+  return Array.from(out.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
 export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const { currentWorkspace } = useWorkspace();
   const { clients, refetch: refetchClients } = useClientUsers();
