@@ -261,26 +261,28 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
       }
 
       const parsedItems: ParsedItem[] = (data.items ?? []).map((it: ParsedItem) => {
-        const match = findBestMatch(it, catalog);
-        const matchedImage = match
-          ? (match.images?.[match.primary_image_index ?? 0] ?? match.images?.[0] ?? null)
-          : null;
-        // se temos preço unitário com IVA incluído, converter para líquido
+        const suggestions = findSuggestions(it, catalog);
+        // converter preço c/IVA para líquido se aplicável
         let unitNet = it.unit_price_net;
         const vat = it.vat_rate ?? 23;
         if (unitNet != null && it.price_includes_vat) {
           unitNet = Math.round((unitNet / (1 + vat / 100)) * 100) / 100;
         }
-        // se IA não devolveu preço mas temos match, usar preço de catálogo
-        if (unitNet == null && match?.base_price != null) {
-          unitNet = Number(match.base_price);
+        // se IA não devolveu preço mas a melhor sugestão tem preço, usar como hint
+        const top = suggestions[0];
+        if (unitNet == null && top?.base_price != null) {
+          unitNet = Number(top.base_price);
         }
         return {
           ...it,
           unit_price_net: unitNet,
           vat_rate: it.vat_rate,
-          matched_product_id: match?.id ?? null,
-          matched_image_url: matchedImage,
+          matched_product_id: null,
+          matched_image_url: null,
+          matched_name: null,
+          matched_sku: null,
+          suggestions,
+          confirmed: false,
           include: true,
         };
       });
