@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import {
   ScanText, Upload, Camera, Loader2, AlertTriangle, CheckCircle2,
-  Trash2, Image as ImageIcon, Sparkles,
+  Trash2, Image as ImageIcon, Sparkles, Check, X as XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
