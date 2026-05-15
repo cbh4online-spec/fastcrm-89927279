@@ -17,6 +17,8 @@ export default function Onboarding() {
   const [workspaceName, setWorkspaceName] = useState("");
   const [creating, setCreating] = useState(false);
   const [showIntelligentOnboarding, setShowIntelligentOnboarding] = useState(false);
+  const hasReadyWorkspace = workspaces.length > 0 && !!currentWorkspace?.id;
+  const isSettlingExistingWorkspace = workspaces.length > 0 && !currentWorkspace?.id;
 
   // Redirect side-effects (NEVER call navigate() during render)
   useEffect(() => {
@@ -25,13 +27,13 @@ export default function Onboarding() {
       navigate("/login", { replace: true });
       return;
     }
-    if (workspaces.length > 0 && !showIntelligentOnboarding) {
+    if (hasReadyWorkspace && !showIntelligentOnboarding) {
       navigate("/dashboard", { replace: true });
     }
-  }, [authLoading, workspaceLoading, user, workspaces.length, showIntelligentOnboarding, navigate]);
+  }, [authLoading, workspaceLoading, user, hasReadyWorkspace, showIntelligentOnboarding, navigate]);
 
   // Loading / pre-redirect state — render a friendly placeholder instead of a blank screen
-  if (authLoading || workspaceLoading || !user || (workspaces.length > 0 && !showIntelligentOnboarding)) {
+  if (authLoading || workspaceLoading || !user || isSettlingExistingWorkspace || (hasReadyWorkspace && !showIntelligentOnboarding)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
