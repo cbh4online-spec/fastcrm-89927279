@@ -39,6 +39,7 @@ export function MobileProductDetailSheet({
   const [tab, setTab] = useState<MobileTab>("overview");
   const [fullDialogOpen, setFullDialogOpen] = useState(false);
   const { data: product, isLoading } = useProduct(productId ?? undefined);
+  const canViewCostMargin = useCanViewCostMargin();
 
   const handleShare = async () => {
     if (!product) return;
