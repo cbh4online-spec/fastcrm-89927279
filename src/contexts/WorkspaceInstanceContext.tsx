@@ -146,6 +146,7 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
           .from("workspace_instances")
           .select("*")
           .eq("workspace_id", workspaceId)
+          .limit(1)
           .maybeSingle();
 
         if (error) {
@@ -276,12 +277,27 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
 
   // Resolve workspace instance when workspace changes
   useEffect(() => {
+    let cancelled = false;
+
     if (user && currentWorkspace?.id) {
-      resolveWorkspaceInstance();
+      const timeoutId = window.setTimeout(() => {
+        if (cancelled || hasResolved.current) return;
+        hasResolved.current = true;
+        setWorkspaceStatus("active");
+        setWorkspaceClient(mainSupabase);
+        setIsLoading(false);
+        setError(null);
+      }, 8000);
+
+      resolveWorkspaceInstance().finally(() => window.clearTimeout(timeoutId));
     } else {
       setIsLoading(false);
       setWorkspaceClient(mainSupabase);
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [user, currentWorkspace?.id, resolveWorkspaceInstance]);
 
   const refreshInstance = useCallback(async () => {
