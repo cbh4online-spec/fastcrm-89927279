@@ -363,8 +363,38 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
       });
 
       setItems(parsedItems);
-      setHeaderInfo(data.header ?? null);
+      const header = (data.header ?? null) as Record<string, unknown> | null;
+      setHeaderInfo(header);
       setWarnings(data.warnings ?? []);
+
+      // Auto-match cliente a partir do cabeçalho (NIF tem prioridade, depois nome)
+      if (header && clients.length > 0) {
+        const nif = String(header.client_tax_id ?? "").replace(/\s+/g, "");
+        const name = normalize(String(header.client_name ?? ""));
+        let match: ClientUser | null = null;
+        if (nif) {
+          match = clients.find((c) => (c.tax_id ?? "").replace(/\s+/g, "") === nif) ?? null;
+        }
+        if (!match && name) {
+          match = clients.find((c) => normalize(c.name ?? "") === name) ?? null;
+          if (!match) {
+            // fallback: contém todos os tokens
+            const tokens = name.split(" ").filter((t) => t.length > 2);
+            match = clients.find((c) => {
+              const cn = normalize(c.name ?? "");
+              return tokens.length > 0 && tokens.every((t) => cn.includes(t));
+            }) ?? null;
+          }
+        }
+        if (match) {
+          setSelectedClient(match);
+          setClientAutoMatched(true);
+        } else {
+          setSelectedClient(null);
+          setClientAutoMatched(false);
+        }
+      }
+
       if (parsedItems.length === 0) {
         toast.warning("Não foi possível identificar produtos. Tenta uma foto mais nítida.");
       } else {
