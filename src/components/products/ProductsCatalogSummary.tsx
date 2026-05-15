@@ -53,6 +53,7 @@ export function ProductsCatalogSummary({
   productIndicators,
   activeFilterId,
   onFilterSelect,
+  canViewCostMargin = true,
 }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
 
