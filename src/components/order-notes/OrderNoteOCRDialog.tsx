@@ -347,6 +347,7 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const [selectedClient, setSelectedClient] = useState<ClientUser | null>(null);
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [clientAutoMatched, setClientAutoMatched] = useState(false);
+  const [clientSuggestions, setClientSuggestions] = useState<ClientSuggestion[]>([]);
   const [createClientOpen, setCreateClientOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", email: "", tax_id: "", phone: "" });
   const [creatingClient, setCreatingClient] = useState(false);
