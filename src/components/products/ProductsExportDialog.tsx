@@ -44,10 +44,18 @@ export function ProductsExportDialog({
   getProductTypeLabel,
   getBillingTypeLabel,
 }: ProductsExportDialogProps) {
+  const canViewCostMargin = useCanViewCostMargin();
+  const exportableColumns = useMemo(
+    () => canViewCostMargin
+      ? PRODUCT_COLUMNS
+      : PRODUCT_COLUMNS.filter(c => !COST_MARGIN_FIELDS.has(c.id)),
+    [canViewCostMargin]
+  );
+
   const [format, setFormat] = useState<"xlsx" | "csv">("xlsx");
   const [scope, setScope] = useState<"filtered" | "all">("filtered");
   const [selectedCols, setSelectedCols] = useState<Set<string>>(() =>
-    new Set(PRODUCT_COLUMNS.filter(c => c.defaultVisible).map(c => c.id))
+    new Set(exportableColumns.filter(c => c.defaultVisible).map(c => c.id))
   );
   const [exporting, setExporting] = useState(false);
 
