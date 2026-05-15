@@ -119,7 +119,7 @@ export function MobileProductDetailSheet({
                       <div className="text-xl font-bold tabular-nums">
                         {formatCurrency((product as any).base_price ?? 0)}
                       </div>
-                      {(product as any).direct_cost != null && (
+                      {canViewCostMargin && (product as any).direct_cost != null && (
                         <div className="text-[11px] text-muted-foreground">
                           Custo: {formatCurrency((product as any).direct_cost)}
                         </div>
