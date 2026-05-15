@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useClientUsers } from "@/hooks/useClientUsers";
 import { useCreateOrderNote } from "@/hooks/useCreateOrderNote";
 import { ProductSearchDialog } from "./ProductSearchDialog";
+import { OrderNoteOCRDialog, type OCRLineItemDraft } from "./OrderNoteOCRDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/popover";
 import {
   ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, Copy,
-  Save, Send, Search, Package, User,
+  Save, Send, Search, Package, User, ScanText,
 } from "lucide-react";
 import type { ClientUser, AddressData } from "@/types/client-user";
 import type { OrderNoteStatus } from "@/types/order-note";
@@ -55,6 +56,7 @@ export function CreateManualOrderNote() {
   // Items
   const [items, setItems] = useState<LineItem[]>([]);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const [ocrDialogOpen, setOcrDialogOpen] = useState(false);
 
   // Addresses
   const [billingAddress, setBillingAddress] = useState<AddressData>({});
@@ -114,7 +116,23 @@ export function CreateManualOrderNote() {
     ]);
   }, []);
 
-  // Add manual line
+  // Adicionar várias linhas vindas do OCR
+  const handleAddOCRItems = useCallback((drafts: OCRLineItemDraft[]) => {
+    setItems((prev) => [
+      ...prev,
+      ...drafts.map((d) => ({
+        id: uid(),
+        product_id: d.product_id,
+        product_name: d.product_name,
+        product_sku: d.product_sku,
+        product_image_url: d.product_image_url,
+        quantity: d.quantity,
+        unit_price_net: d.unit_price_net,
+        vat_rate: d.vat_rate,
+        notes: d.notes,
+      })),
+    ]);
+  }, []);
   const handleAddManualLine = useCallback(() => {
     setItems((prev) => [
       ...prev,
@@ -263,7 +281,10 @@ export function CreateManualOrderNote() {
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-4 w-4" /> Produtos
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" variant="default" onClick={() => setOcrDialogOpen(true)}>
+                <ScanText className="h-4 w-4 mr-1" /> OCR Encomenda
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setProductDialogOpen(true)}>
                 <Search className="h-4 w-4 mr-1" /> Catálogo
               </Button>
@@ -547,6 +568,13 @@ export function CreateManualOrderNote() {
         open={productDialogOpen}
         onClose={() => setProductDialogOpen(false)}
         onSelect={handleAddProduct}
+      />
+
+      {/* OCR Dialog */}
+      <OrderNoteOCRDialog
+        open={ocrDialogOpen}
+        onOpenChange={setOcrDialogOpen}
+        onConfirm={handleAddOCRItems}
       />
     </div>
   );
