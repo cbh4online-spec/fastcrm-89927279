@@ -70,7 +70,7 @@ interface CatalogProduct {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onConfirm: (items: OCRLineItemDraft[]) => void;
+  onConfirm: (items: OCRLineItemDraft[], opts?: { clientUserId?: string }) => void;
 }
 
 function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
