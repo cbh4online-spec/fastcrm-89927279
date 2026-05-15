@@ -202,7 +202,7 @@ export function ProductsList() {
     );
 
     return groups;
-  }, [state.productTypesConfig, state.billingTypesConfig, state.categories, state.workspaceTags]);
+  }, [state.productTypesConfig, state.billingTypesConfig, state.categories, state.workspaceTags, canViewCostMargin]);
 
   // Mobile: vista dedicada para a tab "Produtos"
   if (isMobile && state.activeTab === "products") {
