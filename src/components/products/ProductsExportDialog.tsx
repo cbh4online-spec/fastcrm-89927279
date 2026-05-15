@@ -133,7 +133,7 @@ export function ProductsExportDialog({
   };
 
   const handleExport = async () => {
-    const cols = PRODUCT_COLUMNS.filter(c => selectedCols.has(c.id));
+    const cols = exportableColumns.filter(c => selectedCols.has(c.id));
     if (cols.length === 0) {
       toast.error("Seleciona pelo menos uma coluna");
       return;
