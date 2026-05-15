@@ -261,7 +261,7 @@ function levenshtein(a: string, b: string): number {
 
 export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const { currentWorkspace } = useWorkspace();
-  const { clients } = useClientUsers();
+  const { clients, refetch: refetchClients } = useClientUsers();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -271,6 +271,9 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const [selectedClient, setSelectedClient] = useState<ClientUser | null>(null);
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [clientAutoMatched, setClientAutoMatched] = useState(false);
+  const [createClientOpen, setCreateClientOpen] = useState(false);
+  const [newClient, setNewClient] = useState({ name: "", email: "", tax_id: "", phone: "" });
+  const [creatingClient, setCreatingClient] = useState(false);
 
   // catálogo do workspace para auto-match
   const { data: catalog = [] } = useQuery({
@@ -304,6 +307,51 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     reset();
     onOpenChange(false);
   }, [reset, onOpenChange]);
+
+  // Pré-preenche o formulário "novo cliente" com o cabeçalho OCR e abre-o
+  const openCreateClientForm = useCallback(() => {
+    setNewClient({
+      name: String(headerInfo?.client_name ?? ""),
+      email: "",
+      tax_id: String(headerInfo?.client_tax_id ?? ""),
+      phone: "",
+    });
+    setClientPickerOpen(false);
+    setCreateClientOpen(true);
+  }, [headerInfo]);
+
+  const handleCreateClient = useCallback(async () => {
+    if (!currentWorkspace?.id) return;
+    const name = newClient.name.trim();
+    const email = newClient.email.trim();
+    if (!name) { toast.error("Nome obrigatório"); return; }
+    if (!email) { toast.error("Email obrigatório"); return; }
+    setCreatingClient(true);
+    try {
+      const { data, error } = await supabase
+        .from("client_users")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          name,
+          email,
+          tax_id: newClient.tax_id.trim() || null,
+          phone: newClient.phone.trim() || null,
+          status: "active",
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      await refetchClients();
+      setSelectedClient(data as unknown as ClientUser);
+      setClientAutoMatched(false);
+      setCreateClientOpen(false);
+      toast.success("Cliente criado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao criar cliente");
+    } finally {
+      setCreatingClient(false);
+    }
+  }, [currentWorkspace?.id, newClient, refetchClients]);
 
   const processFile = useCallback(async (file: File) => {
     if (!file) return;
@@ -688,8 +736,68 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-8"
+                    onClick={openCreateClientForm}
+                  >
+                    + Novo cliente
+                  </Button>
                 </div>
               </div>
+
+              {createClientOpen && (
+                <div className="mt-3 border-t pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="sm:col-span-2 flex items-center justify-between">
+                    <p className="text-xs font-medium text-muted-foreground">Criar novo cliente B2B</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => setCreateClientOpen(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                  <Input
+                    value={newClient.name}
+                    onChange={(e) => setNewClient((p) => ({ ...p, name: e.target.value }))}
+                    placeholder="Nome *"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={newClient.email}
+                    onChange={(e) => setNewClient((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="Email *"
+                    type="email"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={newClient.tax_id}
+                    onChange={(e) => setNewClient((p) => ({ ...p, tax_id: e.target.value }))}
+                    placeholder="NIF"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={newClient.phone}
+                    onChange={(e) => setNewClient((p) => ({ ...p, phone: e.target.value }))}
+                    placeholder="Telefone"
+                    className="h-8 text-sm"
+                  />
+                  <div className="sm:col-span-2 flex justify-end">
+                    <Button
+                      size="sm"
+                      className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={handleCreateClient}
+                      disabled={creatingClient}
+                    >
+                      {creatingClient ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
+                      Criar e selecionar
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Card>
 
             <div className="border rounded-md overflow-hidden">
