@@ -261,12 +261,16 @@ function levenshtein(a: string, b: string): number {
 
 export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
   const { currentWorkspace } = useWorkspace();
+  const { clients } = useClientUsers();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [items, setItems] = useState<ParsedItem[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [headerInfo, setHeaderInfo] = useState<Record<string, unknown> | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientUser | null>(null);
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [clientAutoMatched, setClientAutoMatched] = useState(false);
 
   // catálogo do workspace para auto-match
   const { data: catalog = [] } = useQuery({
