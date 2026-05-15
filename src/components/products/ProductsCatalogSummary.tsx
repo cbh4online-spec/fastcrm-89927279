@@ -241,3 +241,9 @@ export function ProductsCatalogSummary({
                 </CardContent>
               </Card>
             )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
+}
