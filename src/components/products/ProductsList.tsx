@@ -442,8 +442,8 @@ export function ProductsList() {
               onArchive={state.handleArchive}
               onDelete={state.setDeleteConfirmProduct}
               onCreate={() => state.setCreateOpen(true)}
-              columnOrder={state.columnOrder}
-              visibleColumns={state.visibleColumns}
+              columnOrder={effectiveColumnOrder}
+              visibleColumns={effectiveVisibleColumnsSet}
               colWidths={state.colWidths}
               tableRef={state.tableRef}
               getProductTypeLabel={state.getProductTypeLabel}
