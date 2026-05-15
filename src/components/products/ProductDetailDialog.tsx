@@ -104,6 +104,7 @@ import { MarketResearchPanel } from "./pricing/MarketResearchPanel";
 import { ProductWeightAIPanel } from "./ProductWeightAIPanel";
 import { Search as SearchIcon } from "lucide-react";
 import { useFieldPermissions } from "@/hooks/useFieldPermissions";
+import { useAdaptiveDashboard } from "@/contexts/AdaptiveDashboardContext";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -129,8 +130,11 @@ export function ProductDetailDialog({
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
   const { canSeeField } = useFieldPermissions();
-  const showCost = canSeeField("products", "direct_cost");
-  const showMargin = canSeeField("products", "gross_margin");
+  const { salesFunction } = useAdaptiveDashboard();
+  // Apenas Diretor e CEO têm acesso a custo e margem do produto
+  const isLeadership = salesFunction === "diretor" || salesFunction === "ceo";
+  const showCost = isLeadership && canSeeField("products", "direct_cost");
+  const showMargin = isLeadership && canSeeField("products", "gross_margin");
 
   const [heroIdx, setHeroIdx] = useState(0);
   const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
