@@ -306,6 +306,27 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   }, []);
 
+  // Quando o utilizador edita o SKU manualmente: limpa o match anterior e
+  // recalcula sugestões com base no novo SKU. NÃO altera o nome — só
+  // confirmSuggestion() preenche o nome do catálogo.
+  const handleSkuChange = useCallback((idx: number, newSku: string) => {
+    setItems((prev) => prev.map((it, i) => {
+      if (i !== idx) return it;
+      const probe: ParsedItem = { ...it, sku: newSku };
+      const suggestions = findSuggestions(probe, catalog);
+      return {
+        ...it,
+        sku: newSku,
+        matched_product_id: null,
+        matched_name: null,
+        matched_sku: null,
+        matched_image_url: null,
+        confirmed: false,
+        suggestions,
+      };
+    }));
+  }, [catalog]);
+
   const removeItem = useCallback((idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
   }, []);
@@ -517,7 +538,7 @@ export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
                       <TableCell>
                         <Input
                           value={displaySku}
-                          onChange={(e) => updateItem(idx, isMatched ? { matched_sku: e.target.value } : { sku: e.target.value })}
+                          onChange={(e) => handleSkuChange(idx, e.target.value)}
                           className="h-8 text-sm font-mono"
                           placeholder="SKU"
                         />
