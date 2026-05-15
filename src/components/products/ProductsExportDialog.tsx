@@ -255,16 +255,16 @@ export function ProductsExportDialog({
             <div className="flex items-center justify-between mb-2">
               <Label className="text-sm font-medium">Colunas ({selectedCols.size})</Label>
               <div className="flex gap-1">
-                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setSelectedCols(new Set(PRODUCT_COLUMNS.map(c => c.id)))}>
+                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setSelectedCols(new Set(exportableColumns.map(c => c.id)))}>
                   Todas
                 </Button>
-                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setSelectedCols(new Set(PRODUCT_COLUMNS.filter(c => c.defaultVisible).map(c => c.id)))}>
+                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setSelectedCols(new Set(exportableColumns.filter(c => c.defaultVisible).map(c => c.id)))}>
                   Predefinidas
                 </Button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto border rounded-md p-2">
-              {PRODUCT_COLUMNS.map(col => (
+              {exportableColumns.map(col => (
                 <label key={col.id} className="flex items-center gap-1.5 text-sm cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded">
                   <Checkbox
                     checked={selectedCols.has(col.id)}
