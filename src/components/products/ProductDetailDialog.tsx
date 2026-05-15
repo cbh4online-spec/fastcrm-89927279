@@ -129,8 +129,11 @@ export function ProductDetailDialog({
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
   const { canSeeField } = useFieldPermissions();
-  const showCost = canSeeField("products", "direct_cost");
-  const showMargin = canSeeField("products", "gross_margin");
+  const { salesFunction } = useAdaptiveDashboard();
+  // Apenas Diretor e CEO têm acesso a custo e margem do produto
+  const isLeadership = salesFunction === "diretor" || salesFunction === "ceo";
+  const showCost = isLeadership && canSeeField("products", "direct_cost");
+  const showMargin = isLeadership && canSeeField("products", "gross_margin");
 
   const [heroIdx, setHeroIdx] = useState(0);
   const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
