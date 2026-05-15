@@ -187,7 +187,67 @@ function findSuggestions(item: ParsedItem, products: CatalogProduct[]): Suggesti
     }
   }
 
+  // 4) Aproximação numérica — quando não há match exato/sufixo, sugerir SKUs com dígitos próximos
+  //    (ex.: OCR lê "448" mas catálogo só tem "442" → distância 6, sugere como "SKU próximo")
+  if (out.size === 0 && uniqueDigits.length > 0) {
+    const targetNum = uniqueDigits.find((d) => d.length >= 3) ?? uniqueDigits[0];
+    const targetInt = parseInt(targetNum, 10);
+    if (Number.isFinite(targetInt)) {
+      const candidates: Array<{ p: CatalogProduct; dist: number; numStr: string }> = [];
+      for (const p of products) {
+        const psDigits = (p.sku ?? "").replace(/\D/g, "");
+        if (!psDigits) continue;
+        // Comparar pelos últimos N dígitos do SKU vs targetNum
+        const tail = psDigits.slice(-targetNum.length);
+        const tailInt = parseInt(tail, 10);
+        if (!Number.isFinite(tailInt)) continue;
+        const dist = Math.abs(tailInt - targetInt);
+        // Tolerância: até 20 unidades de diferença para SKUs sequenciais
+        if (dist > 0 && dist <= 20) {
+          candidates.push({ p, dist, numStr: tail });
+        }
+      }
+      candidates.sort((a, b) => a.dist - b.dist);
+      for (const c of candidates.slice(0, 5)) {
+        // Score decresce com a distância: dist=1 → 0.7, dist=20 → 0.32
+        const score = Math.max(0.3, 0.72 - c.dist * 0.02);
+        add(c.p, `SKU próximo (${c.numStr}, ±${c.dist})`, score);
+      }
+    }
+  }
+
+  // 5) Levenshtein no nome — fallback quando Jaccard falha (typos OCR)
+  if (out.size === 0 && target && target.length >= 4) {
+    for (const p of products) {
+      const cand = normalize(p.name);
+      if (!cand) continue;
+      const dist = levenshtein(target.slice(0, 40), cand.slice(0, 40));
+      const maxLen = Math.max(target.length, cand.length, 1);
+      const sim = 1 - dist / maxLen;
+      if (sim >= 0.5) add(p, `Nome aprox. ${Math.round(sim * 100)}%`, 0.3 + sim * 0.3);
+    }
+  }
+
   return Array.from(out.values()).sort((a, b) => b.score - a.score).slice(0, 5);
+}
+
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const prev = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    let curr = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const next = Math.min(prev[j] + 1, curr + 1, prev[j - 1] + cost);
+      prev[j - 1] = curr;
+      curr = next;
+    }
+    prev[b.length] = curr;
+  }
+  return prev[b.length];
 }
 
 export function OrderNoteOCRDialog({ open, onOpenChange, onConfirm }: Props) {
