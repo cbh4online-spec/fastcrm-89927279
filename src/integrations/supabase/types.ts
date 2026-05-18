@@ -18747,6 +18747,330 @@ export type Database = {
           },
         ]
       }
+      collection_actions: {
+        Row: {
+          action_type: Database["public"]["Enums"]["collection_action_type"]
+          body: string | null
+          case_id: string
+          channel: Database["public"]["Enums"]["collection_channel"] | null
+          created_at: string
+          id: string
+          is_automated: boolean
+          metadata: Json
+          outcome: string | null
+          performed_by: string | null
+          step_id: string | null
+          subject: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["collection_action_type"]
+          body?: string | null
+          case_id: string
+          channel?: Database["public"]["Enums"]["collection_channel"] | null
+          created_at?: string
+          id?: string
+          is_automated?: boolean
+          metadata?: Json
+          outcome?: string | null
+          performed_by?: string | null
+          step_id?: string | null
+          subject?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["collection_action_type"]
+          body?: string | null
+          case_id?: string
+          channel?: Database["public"]["Enums"]["collection_channel"] | null
+          created_at?: string
+          id?: string
+          is_automated?: boolean
+          metadata?: Json
+          outcome?: string | null
+          performed_by?: string | null
+          step_id?: string | null
+          subject?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_actions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_actions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "dunning_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_actions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "collection_actions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_case_invoices: {
+        Row: {
+          added_at: string
+          case_id: string
+          id: string
+          invoice_id: string
+          removed_at: string | null
+          snapshot_amount_paid: number
+          snapshot_due_date: string | null
+          snapshot_total: number
+          workspace_id: string
+        }
+        Insert: {
+          added_at?: string
+          case_id: string
+          id?: string
+          invoice_id: string
+          removed_at?: string | null
+          snapshot_amount_paid?: number
+          snapshot_due_date?: string | null
+          snapshot_total?: number
+          workspace_id: string
+        }
+        Update: {
+          added_at?: string
+          case_id?: string
+          id?: string
+          invoice_id?: string
+          removed_at?: string | null
+          snapshot_amount_paid?: number
+          snapshot_due_date?: string | null
+          snapshot_total?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_case_invoices_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_case_invoices_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_case_invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "collection_case_invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_cases: {
+        Row: {
+          ai_last_scored_at: string | null
+          ai_risk_label: string | null
+          ai_risk_score: number | null
+          assigned_to: string | null
+          closed_at: string | null
+          closed_reason: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          current_step_order: number | null
+          days_overdue: number
+          debtor_email: string | null
+          debtor_name: string
+          debtor_phone: string | null
+          debtor_tax_id: string | null
+          debtor_type: string
+          deleted_at: string | null
+          id: string
+          invoices_count: number
+          last_action_at: string | null
+          metadata: Json
+          next_action_at: string | null
+          notes: string | null
+          oldest_due_date: string | null
+          priority: string
+          sequence_id: string | null
+          status: Database["public"]["Enums"]["collection_case_status"]
+          total_due: number
+          total_paid: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_last_scored_at?: string | null
+          ai_risk_label?: string | null
+          ai_risk_score?: number | null
+          assigned_to?: string | null
+          closed_at?: string | null
+          closed_reason?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          current_step_order?: number | null
+          days_overdue?: number
+          debtor_email?: string | null
+          debtor_name: string
+          debtor_phone?: string | null
+          debtor_tax_id?: string | null
+          debtor_type: string
+          deleted_at?: string | null
+          id?: string
+          invoices_count?: number
+          last_action_at?: string | null
+          metadata?: Json
+          next_action_at?: string | null
+          notes?: string | null
+          oldest_due_date?: string | null
+          priority?: string
+          sequence_id?: string | null
+          status?: Database["public"]["Enums"]["collection_case_status"]
+          total_due?: number
+          total_paid?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_last_scored_at?: string | null
+          ai_risk_label?: string | null
+          ai_risk_score?: number | null
+          assigned_to?: string | null
+          closed_at?: string | null
+          closed_reason?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          current_step_order?: number | null
+          days_overdue?: number
+          debtor_email?: string | null
+          debtor_name?: string
+          debtor_phone?: string | null
+          debtor_tax_id?: string | null
+          debtor_type?: string
+          deleted_at?: string | null
+          id?: string
+          invoices_count?: number
+          last_action_at?: string | null
+          metadata?: Json
+          next_action_at?: string | null
+          notes?: string | null
+          oldest_due_date?: string | null
+          priority?: string
+          sequence_id?: string | null
+          status?: Database["public"]["Enums"]["collection_case_status"]
+          total_due?: number
+          total_paid?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_cases_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "dunning_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_cases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "collection_cases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_portal_tokens: {
+        Row: {
+          case_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          last_used_at: string | null
+          revoked_at: string | null
+          token: string
+          use_count: number
+          workspace_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token: string
+          use_count?: number
+          workspace_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token?: string
+          use_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_portal_tokens_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_portal_tokens_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "collection_portal_tokens_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       command_actions: {
         Row: {
           action_config: Json | null
@@ -29001,6 +29325,136 @@ export type Database = {
           },
           {
             foreignKeyName: "drift_scores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dunning_sequences: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          max_amount: number | null
+          min_amount: number | null
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dunning_sequences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "dunning_sequences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dunning_steps: {
+        Row: {
+          action_type: Database["public"]["Enums"]["collection_action_type"]
+          channel: Database["public"]["Enums"]["collection_channel"]
+          created_at: string
+          days_after_due: number
+          id: string
+          is_active: boolean
+          metadata: Json
+          sequence_id: string
+          step_order: number
+          template_body: string | null
+          template_subject: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type?: Database["public"]["Enums"]["collection_action_type"]
+          channel: Database["public"]["Enums"]["collection_channel"]
+          created_at?: string
+          days_after_due: number
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          sequence_id: string
+          step_order: number
+          template_body?: string | null
+          template_subject?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["collection_action_type"]
+          channel?: Database["public"]["Enums"]["collection_channel"]
+          created_at?: string
+          days_after_due?: number
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          sequence_id?: string
+          step_order?: number
+          template_body?: string | null
+          template_subject?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dunning_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "dunning_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dunning_steps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "dunning_steps_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -56599,6 +57053,201 @@ export type Database = {
           },
           {
             foreignKeyName: "payment_methods_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_plan_installments: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          id: string
+          installment_number: number
+          paid_amount: number | null
+          paid_at: string | null
+          plan_id: string
+          status: Database["public"]["Enums"]["payment_installment_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          id?: string
+          installment_number: number
+          paid_amount?: number | null
+          paid_at?: string | null
+          plan_id: string
+          status?: Database["public"]["Enums"]["payment_installment_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          paid_amount?: number | null
+          paid_at?: string | null
+          plan_id?: string
+          status?: Database["public"]["Enums"]["payment_installment_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_plan_installments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "payment_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_plan_installments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "payment_plan_installments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_plans: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string | null
+          first_installment_date: string
+          frequency: string
+          id: string
+          installments_count: number
+          notes: string | null
+          status: Database["public"]["Enums"]["payment_plan_status"]
+          total_amount: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          first_installment_date: string
+          frequency?: string
+          id?: string
+          installments_count: number
+          notes?: string | null
+          status?: Database["public"]["Enums"]["payment_plan_status"]
+          total_amount: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          first_installment_date?: string
+          frequency?: string
+          id?: string
+          installments_count?: number
+          notes?: string | null
+          status?: Database["public"]["Enums"]["payment_plan_status"]
+          total_amount?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_plans_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "payment_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_promises: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          promised_amount: number
+          promised_date: string
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["payment_promise_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          promised_amount: number
+          promised_date: string
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["payment_promise_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          promised_amount?: number
+          promised_date?: string
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["payment_promise_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_promises_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_promises_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "payment_promises_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -91462,6 +92111,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_case_totals: { Args: { p_case_id: string }; Returns: undefined }
       redeem_partner_coupon: {
         Args: {
           p_code: string
@@ -92048,6 +92698,34 @@ export type Database = {
         | "client_operational"
         | "client_viewer"
       client_user_status: "active" | "suspended" | "pending"
+      collection_action_type:
+        | "email_sent"
+        | "whatsapp_sent"
+        | "sms_sent"
+        | "call_logged"
+        | "note"
+        | "promise_created"
+        | "plan_created"
+        | "payment_received"
+        | "escalation"
+        | "portal_view"
+        | "system"
+      collection_case_status:
+        | "new"
+        | "in_progress"
+        | "promise"
+        | "plan"
+        | "paid"
+        | "partially_paid"
+        | "escalated"
+        | "closed"
+      collection_channel:
+        | "email"
+        | "whatsapp"
+        | "sms"
+        | "phone"
+        | "portal"
+        | "system"
       commercial_profile: "vendedor" | "gestor" | "diretor" | "ceo"
       condition_operator:
         | "equals"
@@ -92161,12 +92839,15 @@ export type Database = {
         | "partner_finance"
         | "partner_approver"
         | "partner_viewer"
+      payment_installment_status: "pending" | "paid" | "overdue" | "cancelled"
       payment_method_type:
         | "stripe"
         | "bank_transfer"
         | "check"
         | "cash"
         | "other"
+      payment_plan_status: "active" | "completed" | "defaulted" | "cancelled"
+      payment_promise_status: "pending" | "kept" | "broken" | "cancelled"
       payment_provider: "stripe" | "manual" | "other"
       pipeline_alert_channel: "in_app" | "email" | "webhook"
       pipeline_metric_formula:
@@ -92651,6 +93332,37 @@ export const Constants = {
         "client_viewer",
       ],
       client_user_status: ["active", "suspended", "pending"],
+      collection_action_type: [
+        "email_sent",
+        "whatsapp_sent",
+        "sms_sent",
+        "call_logged",
+        "note",
+        "promise_created",
+        "plan_created",
+        "payment_received",
+        "escalation",
+        "portal_view",
+        "system",
+      ],
+      collection_case_status: [
+        "new",
+        "in_progress",
+        "promise",
+        "plan",
+        "paid",
+        "partially_paid",
+        "escalated",
+        "closed",
+      ],
+      collection_channel: [
+        "email",
+        "whatsapp",
+        "sms",
+        "phone",
+        "portal",
+        "system",
+      ],
       commercial_profile: ["vendedor", "gestor", "diretor", "ceo"],
       condition_operator: [
         "equals",
@@ -92776,6 +93488,7 @@ export const Constants = {
         "partner_approver",
         "partner_viewer",
       ],
+      payment_installment_status: ["pending", "paid", "overdue", "cancelled"],
       payment_method_type: [
         "stripe",
         "bank_transfer",
@@ -92783,6 +93496,8 @@ export const Constants = {
         "cash",
         "other",
       ],
+      payment_plan_status: ["active", "completed", "defaulted", "cancelled"],
+      payment_promise_status: ["pending", "kept", "broken", "cancelled"],
       payment_provider: ["stripe", "manual", "other"],
       pipeline_alert_channel: ["in_app", "email", "webhook"],
       pipeline_metric_formula: [
