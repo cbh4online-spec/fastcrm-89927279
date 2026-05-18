@@ -41,7 +41,7 @@ import {
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
   Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
   Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat, Heart, Repeat,
-  Wand2,
+  Wand2, HandCoins,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -249,6 +249,8 @@ e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Pac
   e("proposals",    "Propostas",        "/dashboard/proposals",         FileText,    "vendas", { moduleSlug: "proposals", menuKey: "proposals" }),
   e("pitch",        "Apresentação",     "/dashboard/pitch",             Presentation,"vendas"),
   e("invoices",     "Faturas",          "/dashboard/invoices",          Receipt,     "vendas", { moduleSlug: "invoices", menuKey: "invoices" }),
+  e("collections",  "Cobranças",        "/dashboard/collections",       HandCoins,   "vendas"),
+  e("collection-detail", "Detalhe de cobrança", "/dashboard/collections/:id", HandCoins, "vendas", { visibleInSidebar: false }),
   e("products",     "Produtos",         "/dashboard/products",          Package,     "vendas", { menuKey: "products" }),
   e("products-ocr", "Criar por OCR",    "/dashboard/products/ocr-create", ScanText,  "vendas", { menuKey: "products" }),
   e("products-ocr-drafts", "Rascunhos OCR", "/dashboard/products/ocr-drafts", ScanText, "vendas", { menuKey: "products", visibleInSidebar: false }),

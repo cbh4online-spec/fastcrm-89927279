@@ -6,6 +6,8 @@ const InvoiceDetail = lazy(() => import("@/pages/InvoiceDetail"));
 const Payments = lazy(() => import("@/pages/Payments"));
 const RenewalsPage = lazy(() => import("@/pages/RenewalsPage"));
 const RenewalDetailPage = lazy(() => import("@/pages/RenewalDetailPage"));
+const CollectionsInboxPage = lazy(() => import("@/modules/collections/pages/CollectionsInboxPage"));
+const CollectionCaseDetailPage = lazy(() => import("@/modules/collections/pages/CollectionCaseDetailPage"));
 
 export function RevenueOpsRoutes() {
   return (
@@ -15,6 +17,8 @@ export function RevenueOpsRoutes() {
       <Route path="/dashboard/payments" element={<Payments />} />
       <Route path="/dashboard/renewals" element={<RenewalsPage />} />
       <Route path="/dashboard/renewals/:id" element={<RenewalDetailPage />} />
+      <Route path="/dashboard/collections" element={<CollectionsInboxPage />} />
+      <Route path="/dashboard/collections/:id" element={<CollectionCaseDetailPage />} />
     </>
   );
 }
