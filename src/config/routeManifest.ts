@@ -250,6 +250,7 @@ e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Pac
   e("pitch",        "Apresentação",     "/dashboard/pitch",             Presentation,"vendas"),
   e("invoices",     "Faturas",          "/dashboard/invoices",          Receipt,     "vendas", { moduleSlug: "invoices", menuKey: "invoices" }),
   e("collections",  "Cobranças",        "/dashboard/collections",       HandCoins,   "vendas"),
+  e("collections-sequences", "Sequências de cobrança", "/dashboard/collections/sequences", HandCoins, "vendas", { visibleInSidebar: false }),
   e("collection-detail", "Detalhe de cobrança", "/dashboard/collections/:id", HandCoins, "vendas", { visibleInSidebar: false }),
   e("products",     "Produtos",         "/dashboard/products",          Package,     "vendas", { menuKey: "products" }),
   e("products-ocr", "Criar por OCR",    "/dashboard/products/ocr-create", ScanText,  "vendas", { menuKey: "products" }),
