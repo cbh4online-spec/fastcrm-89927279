@@ -30,18 +30,20 @@ export function useRegisterAction() {
 
       const { data, error } = await supabase
         .from("collection_actions")
-        .insert({
-          workspace_id: currentWorkspace.id,
-          case_id: input.caseId,
-          action_type: input.actionType,
-          channel: input.channel ?? null,
-          subject: input.subject ?? null,
-          body: input.body ?? null,
-          outcome: input.outcome ?? null,
-          performed_by: user?.id ?? null,
-          is_automated: false,
-          metadata: input.metadata ?? {},
-        })
+        .insert([
+          {
+            workspace_id: currentWorkspace.id,
+            case_id: input.caseId,
+            action_type: input.actionType,
+            channel: input.channel ?? null,
+            subject: input.subject ?? null,
+            body: input.body ?? null,
+            outcome: input.outcome ?? null,
+            performed_by: user?.id ?? null,
+            is_automated: false,
+            metadata: input.metadata ?? {},
+          },
+        ])
         .select()
         .single();
       if (error) throw error;
