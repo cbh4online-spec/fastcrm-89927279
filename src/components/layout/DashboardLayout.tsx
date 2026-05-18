@@ -1,4 +1,9 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
+
+// Persiste entre remounts do DashboardLayout (e mesmo entre navegações para /onboarding e volta).
+// Evita o loop /dashboard ↔ /onboarding causado por estados transitórios de workspaces vazios
+// durante refetch/auth refresh.
+let hadWorkspacesEver = false;
 import { AdaptiveDashboardProvider } from "@/contexts/AdaptiveDashboardContext";
 import { Sidebar } from "./Sidebar";
 import { SidebarV1 } from "./SidebarV1";
