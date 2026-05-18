@@ -91007,6 +91007,16 @@ export type Database = {
       cleanup_ghost_livestreams: { Args: never; Returns: number }
       cleanup_old_activity_logs: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: { p_max_age_ms?: number }; Returns: number }
+      collections_advance_step: { Args: { p_case_id: string }; Returns: Json }
+      collections_assign_sequence: {
+        Args: { p_case_id: string; p_sequence_id: string }
+        Returns: string
+      }
+      collections_check_payment_promises: { Args: never; Returns: number }
+      collections_evaluate_next_action: {
+        Args: { p_case_id: string }
+        Returns: string
+      }
       commit_partner_variant_stock: {
         Args: {
           p_allow_backorder?: boolean

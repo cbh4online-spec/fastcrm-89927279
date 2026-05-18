@@ -4,13 +4,15 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Send, StickyNote, AlertTriangle, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Send, StickyNote, AlertTriangle, Mail, Phone, Workflow } from "lucide-react";
 import { useCollectionCase } from "../hooks/useCollectionCase";
 import { useCaseActions } from "../hooks/useCaseActions";
 import { StatusBadge } from "../components/StatusBadge";
 import { CaseTimeline } from "../components/CaseTimeline";
 import { SendActionDialog } from "../components/SendActionDialog";
 import { AddNoteDialog } from "../components/AddNoteDialog";
+import { PromisesPanel } from "../components/PromisesPanel";
+import { AssignSequenceDialog } from "../components/AssignSequenceDialog";
 import { formatEur } from "../lib/collectionsFormat";
 
 export default function CollectionCaseDetailPage() {
@@ -20,6 +22,7 @@ export default function CollectionCaseDetailPage() {
   const { data: actions, isLoading: actionsLoading } = useCaseActions(id);
   const [sendOpen, setSendOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -71,6 +74,9 @@ export default function CollectionCaseDetailPage() {
             </Button>
             <Button variant="outline" onClick={() => setNoteOpen(true)}>
               <StickyNote className="h-4 w-4 mr-1" /> Adicionar nota
+            </Button>
+            <Button variant="outline" onClick={() => setAssignOpen(true)}>
+              <Workflow className="h-4 w-4 mr-1" /> Sequência
             </Button>
             <Button variant="outline" disabled>
               <AlertTriangle className="h-4 w-4 mr-1" /> Escalar
@@ -153,17 +159,26 @@ export default function CollectionCaseDetailPage() {
             <Card>
               <CardHeader><CardTitle className="text-base">Configuração</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <div>Sequência: <span className="text-foreground">{caseData.sequence_id ? "atribuída" : "—"}</span></div>
+                <div>Sequência: <span className="text-foreground">{caseData.sequence_id ? `passo ${caseData.current_step_order ?? 0}` : "—"}</span></div>
+                <div>Próxima ação: <span className="text-foreground">{caseData.next_action_at ? new Date(caseData.next_action_at).toLocaleString("pt-PT") : "—"}</span></div>
                 <div>Prioridade: <span className="text-foreground">{caseData.priority}</span></div>
                 <div>Responsável: <span className="text-foreground">{caseData.assigned_to ?? "—"}</span></div>
               </CardContent>
             </Card>
+
+            <PromisesPanel caseId={caseData.id} outstanding={outstanding} />
           </div>
         </div>
       </div>
 
       <SendActionDialog open={sendOpen} onOpenChange={setSendOpen} caseId={caseData.id} />
       <AddNoteDialog open={noteOpen} onOpenChange={setNoteOpen} caseId={caseData.id} />
+      <AssignSequenceDialog
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        caseId={caseData.id}
+        currentSequenceId={caseData.sequence_id}
+      />
     </DashboardLayout>
   );
 }
