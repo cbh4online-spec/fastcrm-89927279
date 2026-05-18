@@ -47,6 +47,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Marcar loading apenas se ainda não temos workspaces — evita "flash" de vazio
+    // durante refetch (que faria DashboardLayout pensar que não há workspaces).
+    setLoading((prev) => (workspaces.length === 0 ? true : prev));
+
+
     try {
       // Check if user is super admin
       const { data: superAdminCheck } = await supabase.rpc('is_super_admin', { _user_id: user.id });
