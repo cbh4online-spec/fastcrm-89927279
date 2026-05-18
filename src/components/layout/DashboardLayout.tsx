@@ -49,11 +49,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const isMobile = useIsMobile();
   useSessionTracker();
 
-  // Lembrar se já vimos workspaces nesta sessão para não cair em onboarding
-  // por estados transitórios (refetch, remount após câmara/scanner, etc.)
-  const hadWorkspacesRef = useRef(false);
+  // Lembrar (entre remounts) se já vimos workspaces para não cair em onboarding
+  // por estados transitórios (refetch, remount após câmara/scanner, refresh do token, etc.)
   useEffect(() => {
-    if (workspaces.length > 0) hadWorkspacesRef.current = true;
+    if (workspaces.length > 0) hadWorkspacesEver = true;
   }, [workspaces.length]);
 
   if (authLoading || workspaceLoading) {
@@ -69,7 +68,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   // Só redirecionar para onboarding se nunca chegámos a ter workspaces nesta sessão.
-  if (workspaces.length === 0 && !hadWorkspacesRef.current) {
+  if (workspaces.length === 0 && !hadWorkspacesEver) {
     return <Navigate to="/onboarding" replace />;
   }
 
