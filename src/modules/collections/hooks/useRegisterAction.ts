@@ -41,7 +41,7 @@ export function useRegisterAction() {
             outcome: input.outcome ?? null,
             performed_by: user?.id ?? null,
             is_automated: false,
-            metadata: input.metadata ?? {},
+            metadata: (input.metadata ?? {}) as never,
           },
         ])
         .select()
