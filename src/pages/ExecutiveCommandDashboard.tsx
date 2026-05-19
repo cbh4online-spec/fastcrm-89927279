@@ -287,14 +287,18 @@ export default function ExecutiveCommandDashboard() {
           </Card>
         </TabsContent>
 
-        {/* LEAKS */}
-        <TabsContent value="leaks" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Fugas de Receita</CardTitle>
-              <CardDescription>Conversas, chamadas e produtos sem follow-up</CardDescription>
+        {/* RISK — Fugas + Recomendações lado-a-lado */}
+        <TabsContent value="risk" className="space-y-6 mt-0">
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingDown className="h-4 w-4 text-amber-600" /> Fugas de Receita
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Conversas, chamadas e produtos sem follow-up
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {leaks.isLoading ? (
                 <Skeleton className="h-48" />
               ) : (leaks.data ?? []).length === 0 ? (
@@ -303,24 +307,25 @@ export default function ExecutiveCommandDashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Tipo</TableHead>
                       <TableHead>Título</TableHead>
                       <TableHead>Severidade</TableHead>
                       <TableHead className="text-right">Valor estimado</TableHead>
                       <TableHead>Idade</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="text-right">Acções</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(leaks.data ?? []).map((l: any) => (
                       <TableRow key={l.id}>
-                        <TableCell className="text-xs text-muted-foreground">{l.leak_type}</TableCell>
-                        <TableCell className="font-medium max-w-[300px] truncate">{l.title}</TableCell>
+                        <TableCell className="max-w-[360px]">
+                          <div className="font-medium truncate">{l.title}</div>
+                          <div className="text-xs text-muted-foreground">{l.leak_type}</div>
+                        </TableCell>
                         <TableCell>
                           <Badge variant={severityVariant(l.severity)}>{l.severity}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">{formatEur(l.estimated_value)}</TableCell>
-                        <TableCell className="text-xs">{ageOf(l.created_at)}</TableCell>
+                        <TableCell className="text-right font-medium tabular-nums">{formatEur(l.estimated_value)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{ageOf(l.created_at)}</TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button size="sm" variant="outline" onClick={() => resolveLeak.mutate({ id: l.id, status: "resolved" })}>
                             Resolver
@@ -336,87 +341,42 @@ export default function ExecutiveCommandDashboard() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* TEAM (consolidates from existing hooks if any) */}
-        <TabsContent value="team">
-          <ConsolidatedTab
-            title="Performance da Equipa"
-            description="Carga, resposta e contribuição comercial por agente"
-            link="/dashboard/inbox/ops"
-            linkLabel="Ver Inbox Ops"
-          />
-        </TabsContent>
-
-        <TabsContent value="quality">
-          <ConsolidatedTab
-            title="Qualidade & Coaching"
-            description="Quality score, objeções frequentes e tarefas de coaching"
-            link="/dashboard/inbox/ops"
-            linkLabel="Ver Coaching"
-          />
-        </TabsContent>
-
-        <TabsContent value="support">
-          <ConsolidatedTab
-            title="Suporte & SLA"
-            description="Tickets críticos, SLA breaches e impacto comercial"
-            link="/dashboard/helpdesk"
-            linkLabel="Abrir Helpdesk"
-          />
-        </TabsContent>
-
-        <TabsContent value="voice">
-          <ConsolidatedTab
-            title="Voz & Chamadas"
-            description="Chamadas perdidas, callbacks vencidos, sinais de compra"
-            link="/dashboard/voicehub"
-            linkLabel="Abrir VoiceHub"
-          />
-        </TabsContent>
-
-        <TabsContent value="products">
-          <ConsolidatedTab
-            title="Produtos & Oportunidades"
-            description="Produtos mais enviados, com maior conversão e sem follow-up"
-            link="/dashboard/products"
-            linkLabel="Abrir Produtos"
-          />
-        </TabsContent>
-
-        {/* RECOMMENDATIONS */}
-        <TabsContent value="recommendations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recomendações Executivas</CardTitle>
-              <CardDescription>Geradas por IA com base em risco, receita e operação</CardDescription>
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Brain className="h-4 w-4 text-primary" /> Recomendações Executivas
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Geradas por IA com base em risco, receita e operação
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {recs.isLoading ? (
                 <Skeleton className="h-48" />
               ) : (recs.data ?? []).length === 0 ? (
-                <EmptyState message="Não existem recomendações críticas neste período." />
+                <EmptyState message="Não existem recomendações neste período." />
               ) : (
-                <div className="space-y-3">
+                <div className="divide-y divide-border/60">
                   {(recs.data ?? []).map((r: any) => (
-                    <div key={r.id} className="flex items-start justify-between gap-3 rounded-lg border p-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={r.priority === "critical" || r.priority === "high" ? "destructive" : "default"}>
+                    <div key={r.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant={r.priority === "critical" || r.priority === "high" ? "destructive" : "secondary"} className="text-[10px]">
                             {r.priority}
                           </Badge>
                           <span className="text-xs text-muted-foreground">{r.recommendation_type}</span>
                           {r.confidence != null && (
-                            <span className="text-xs text-muted-foreground">· conf. {Math.round(r.confidence * 100)}%</span>
+                            <span className="text-xs text-muted-foreground">· {Math.round(r.confidence * 100)}% conf.</span>
                           )}
                         </div>
-                        <p className="mt-1 font-medium">{r.title}</p>
-                        {r.description && <p className="text-sm text-muted-foreground">{r.description}</p>}
+                        <p className="mt-1.5 font-medium text-sm">{r.title}</p>
+                        {r.description && <p className="text-xs text-muted-foreground mt-0.5">{r.description}</p>}
                         {r.expected_impact && (
-                          <p className="mt-1 text-xs text-primary">Impacto: {r.expected_impact}</p>
+                          <p className="mt-1 text-xs text-primary font-medium">Impacto: {r.expected_impact}</p>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <Button size="sm" variant="outline" onClick={() => updateRec.mutate({ id: r.id, status: "in_progress" })}>
                           Em curso
                         </Button>
@@ -434,6 +394,18 @@ export default function ExecutiveCommandDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* MODULES — atalhos para módulos operacionais consolidados */}
+        <TabsContent value="modules" className="mt-0">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <ModuleCard icon={Users} title="Performance da Equipa" description="Carga, resposta e contribuição comercial por agente" link="/dashboard/inbox/ops" linkLabel="Inbox Ops" />
+            <ModuleCard icon={CheckCircle2} title="Qualidade & Coaching" description="Quality score, objeções frequentes, tarefas de coaching" link="/dashboard/inbox/ops" linkLabel="Coaching" />
+            <ModuleCard icon={HeadphonesIcon} title="Suporte & SLA" description="Tickets críticos, SLA breaches e impacto comercial" link="/dashboard/helpdesk" linkLabel="Helpdesk" />
+            <ModuleCard icon={Phone} title="Voz & Chamadas" description="Chamadas perdidas, callbacks vencidos, sinais de compra" link="/dashboard/voicehub" linkLabel="VoiceHub" />
+            <ModuleCard icon={Briefcase} title="Produtos & Oportunidades" description="Mais enviados, com maior conversão, sem follow-up" link="/dashboard/products" linkLabel="Produtos" />
+          </div>
+        </TabsContent>
+
 
         {/* ACTIONS */}
         <TabsContent value="actions" className="space-y-4">
