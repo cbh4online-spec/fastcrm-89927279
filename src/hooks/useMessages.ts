@@ -246,9 +246,9 @@ export function useSendMessage() {
         }
         if (data?.error) throw new Error(data.error);
 
-        // Z-API edge function already persisted the outbound message and updated conversation preview.
+        // whatsapp-pro-send já persistiu a mensagem outbound e atualizou preview.
         return {
-          id: data?.externalMessageId || crypto.randomUUID(),
+          id: data?.providerMessageId || data?.externalMessageId || crypto.randomUUID(),
           conversation_id: conversationId,
           workspace_id: currentWorkspace.id,
           direction: "outbound" as MessageDirection,
