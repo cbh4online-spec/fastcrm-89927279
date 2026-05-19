@@ -157,6 +157,45 @@ export default function WhatsAppPro() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
+            {/* Atalhos para sub-páginas */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold">Atalhos do módulo</h3>
+                <span className="text-[11px] text-muted-foreground">Sub-páginas WhatsApp</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  { label: "Inbox WhatsApp", to: "/dashboard/whatsapp-pro/inbox" },
+                  { label: "Campanhas", to: "/dashboard/whatsapp-pro/campaigns" },
+                  { label: "Métricas", to: "/dashboard/whatsapp-pro/analytics" },
+                  { label: "Templates", to: "/dashboard/whatsapp-pro/templates" },
+                  { label: "Sequências", to: "/dashboard/whatsapp-pro/sequences" },
+                  { label: "Mensagens agendadas", to: "/dashboard/whatsapp-pro/scheduled" },
+                  { label: "Campanhas recorrentes", to: "/dashboard/whatsapp-pro/recurring" },
+                  { label: "Quick replies", to: "/dashboard/whatsapp-pro/quick-replies" },
+                  { label: "Templates rápidos", to: "/dashboard/whatsapp-pro/quick-templates" },
+                  { label: "Catálogo", to: "/dashboard/whatsapp-pro/catalog" },
+                  { label: "Bot rules", to: "/dashboard/whatsapp-pro/bot-rules" },
+                  { label: "Segmentos", to: "/dashboard/whatsapp-pro/segments" },
+                  { label: "Consentimento", to: "/dashboard/whatsapp-pro/consent" },
+                  { label: "Importar contactos", to: "/dashboard/whatsapp-pro/contacts-import" },
+                  { label: "Anti-spam & throttling", to: "/dashboard/whatsapp-pro/throttle" },
+                  { label: "Operações", to: "/dashboard/whatsapp/ops" },
+                ].map((s) => (
+                  <Button
+                    key={s.to}
+                    variant="outline"
+                    size="sm"
+                    className="justify-between"
+                    onClick={() => navigate(s.to)}
+                  >
+                    <span className="truncate">{s.label}</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </Button>
+                ))}
+              </div>
+            </Card>
+
             <Card className="p-4">
               <h3 className="text-sm font-semibold mb-3">Atividade recente</h3>
               {!events || events.length === 0 ? (
@@ -180,6 +219,7 @@ export default function WhatsAppPro() {
               )}
             </Card>
           </TabsContent>
+
 
           <TabsContent value="shares">
             <Card className="p-4">

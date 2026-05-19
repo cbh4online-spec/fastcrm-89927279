@@ -1,69 +1,132 @@
-## Diagnóstico
 
-Já existe um template estático "Poupança mensal — Demo Bebé" em `src/utils/leadchef/templates.ts` (linha 286) com valores fixos: 30 boiões, 15 papas, 4 sopas → 21,26€/mês. O agente quer poder ajustar as quantidades por lead e gerar o texto WhatsApp com o total recalculado, diretamente na página do lead.
+# Arrumar módulo WhatsApp — Diagnóstico e Plano
 
-## Decisões de produto/UX
+## 1. Diagnóstico (estado actual)
 
-- **Localização**: novo cartão "Calculadora de poupança" na `LeadChefLeadDetailPage`, posicionado abaixo das ações rápidas e antes da timeline (zona de alta visibilidade durante a chamada/follow-up).
-- **Inputs ajustáveis** (3 linhas, defaults = template original):
-  - Boiões de maçã / mês — qtd (default 30)
-  - Papas de farinha de arroz / mês — qtd (default 15)
-  - Sopas fora de casa / mês — qtd (default 4)
-- **Preços por unidade** (compra vs Bimby) ficam numa constante editável em código (não na UI), para manter o cartão simples. Mostrados em texto pequeno por baixo de cada linha para o agente justificar ao lead.
-- **Outputs em tempo real**:
-  - Poupança mensal por categoria
-  - Total mensal destacado em verde
-  - Total anual (mensal × 12) como reforço
-- **Ações**:
-  - Botão "Copiar mensagem" → texto formatado idêntico ao template existente, mas com os valores do lead.
-  - Botão "Enviar por WhatsApp" → reutiliza `LeadChefWhatsAppActionSheet` com o texto pré-preenchido.
-- **Persistência**: as quantidades guardam-se em `localStorage` por `leadId` (chave `leadchef:savings:{leadId}`) para o agente não perder o ajuste se sair e voltar. Sem coluna nova na BD nesta fase.
-- **Reset**: botão pequeno "Repor valores padrão".
+### 1.1 Código — `src/integrations/whatsapp/`
+Bem estruturado em `providers/`, `normalize/`, `utils/`. **Não é aqui o problema.** O adapter Z-API delega tudo para `whatsapp-pro-send` (bom). O `zapyAdapter` é um alias do `zapiAdapter`.
 
-## Estrutura técnica
+### 1.2 Hooks — 44 ficheiros, fragmentação clara
+Há **duas gerações** sobrepostas:
+- **Legacy Z-API directa**: `useWhatsAppZapi.ts`, `useWhatsAppZapiConnection.ts`, `useSendVoiceNote.ts` → ainda invocam `whatsapp-zapi-send`.
+- **Pro / unificada**: `useWhatsAppPro.ts`, `useWhatsAppProOps.ts`, `useWhatsAppHealth.ts`, `useWhatsAppConnection.ts` → invocam `whatsapp-pro-send`.
 
-Novos ficheiros:
-- `src/utils/leadchef/savingsCalculator.ts` — constantes de preços, função `calcSavings({ boioes, papas, sopas })` devolvendo breakdown + totais, e `renderSavingsMessage(result, leadFirstName?)` para o texto WhatsApp.
-- `src/components/leadchef/LeadChefSavingsCalculatorCard.tsx` — UI do cartão (inputs número, breakdown, totais, copiar, enviar WhatsApp, reset). Persistência via `localStorage` com hook interno.
+Hooks de Inbox (`useConversation*`, `useInbox*`, `useWhatsAppInbox`) estão dispersos entre `src/hooks/` raiz sem agrupamento por domínio.
 
-Edição:
-- `src/pages/leadchef/LeadChefLeadDetailPage.tsx` — montar `<LeadChefSavingsCalculatorCard leadId={lead.id} firstName={...} phone={...} />` na zona acordada e ligar ao `LeadChefWhatsAppActionSheet` existente (passar `prefilledMessage`).
+### 1.3 Páginas — 21 páginas WhatsApp + `Inbox.tsx` + `ConversationalEngine.tsx`
+- Hub principal: `WhatsAppPro.tsx` (`/dashboard/whatsapp-pro`)
+- 16 sub-páginas com URLs `/whatsapp-pro/*` listadas individualmente no sidebar (sidebar inundado com 17 entradas “WhatsApp”).
+- `WhatsAppOpsDashboard` exposto em **duas rotas** (`/whatsapp/ops` e `/inbox/ops`).
+- `WhatsAppInboxPage` coexiste com `Inbox.tsx` (omnichannel) — sobreposição funcional.
+
+### 1.4 Edge Functions — 37 funções `whatsapp-*`
+Sobreposições críticas:
+| Domínio | Funções duplicadas | Recomendação |
+|---|---|---|
+| Envio | `whatsapp-pro-send`, `whatsapp-zapi-send`, `whatsapp-send-message` | Manter só `whatsapp-pro-send` |
+| Webhook inbound | `whatsapp-pro-webhook`, `whatsapp-webhook`, `whatsapp-zapi-webhook` | Consolidar em `whatsapp-pro-webhook` |
+| Reminders | `whatsapp-send-scheduled-reminders` vs `whatsapp-pro-scheduled-dispatch` | Manter `pro-scheduled-dispatch` |
+| Connect | `whatsapp-zapi-connect`/`disconnect`/`status`/`configure-webhook` | Manter (são fluxo de provisioning Z-API; renomear para `whatsapp-provider-*`) |
+
+### 1.5 Conectores / instâncias
+SSoT é `whatsapp_provider_instances` (já documentado em memory). Há componentes UI antigos a falar directamente com Z-API (`WhatsAppZapiConnectionCard`, `WhatsAppZapiQRDialog`, `QuickWhatsAppZapiDialog`) — devem passar a usar a camada genérica de “provider instance”.
+
+### 1.6 Navegação
+17 entradas individuais de WhatsApp no grupo “comunicação” do `routeManifest.ts`. Não há sub-menu — tudo plano. Causa o tal “sidebar confuso”.
+
+---
+
+## 2. Decisões de produto/UX
+
+1. **Hub único** `/dashboard/whatsapp-pro` com tabs internas (Inbox, Campanhas, Templates, Sequências, Bot, Catálogo, Agendamentos, Configurações). Sub-rotas continuam a existir para deep-link e SEO interno, mas no **sidebar** aparece só:
+   - **WhatsApp** (hub) — abre o overview/health
+   - **WhatsApp Inbox** (atalho)
+   - **WhatsApp Campanhas** (atalho)
+   - Restantes ficam acessíveis via tabs do hub e do command palette (⌘K).
+2. **Inbox omnichannel** (`/dashboard/inbox`) continua a ser o local canónico de conversas. `WhatsAppInboxPage` passa a ser **vista filtrada** do inbox geral (`?channel=whatsapp`) em vez de página paralela. Mantém URL com redirect.
+3. **Conectores**: uma só página `/dashboard/whatsapp-pro/connections` que lista `whatsapp_provider_instances`, com fluxo unificado de Z-API (e futuros providers). Cards/diálogos antigos deprecados.
+4. **Edge functions legacy** (`whatsapp-send-message`, `whatsapp-zapi-send`, `whatsapp-webhook`, `whatsapp-send-scheduled-reminders`) entram em modo *deprecated*: redirecionam internamente para as versões `pro-*` e logam aviso. Removidas numa fase 2 após confirmar zero invocações em produção (via logs).
+
+---
+
+## 3. Estrutura técnica alvo
 
 ```text
-LeadChefLeadDetailPage
-└─ LeadChefSavingsCalculatorCard
-   ├─ inputs (boiões / papas / sopas)
-   ├─ breakdown por categoria (mensal)
-   ├─ total mensal + total anual
-   └─ ações: Copiar | Enviar WhatsApp | Repor
+src/
+  modules/whatsapp/                ← novo módulo (mover gradualmente)
+    hooks/
+      inbox/        (useWhatsAppInbox, useConversation*)
+      ops/          (useWhatsAppHealth, useWhatsAppOps, useWhatsAppProOps)
+      campaigns/    (useWhatsAppCampaigns, useWhatsAppRecurring, useWhatsAppScheduled)
+      sequences/    (useWhatsAppSequences)
+      templates/    (useWhatsAppTemplates, useWhatsAppQuickReplies)
+      bot/          (useWhatsAppBotRules)
+      connection/   (useWhatsAppConnection, useWhatsAppProvider)
+      send/         (useSendWhatsApp — wrapper único sobre whatsapp-pro-send)
+    components/     (mover de src/components/whatsapp-pro)
+    pages/          (WhatsAppHub + sub-páginas, com tabs)
+    lib/            (formatters, channel helpers)
+    types/
+
+src/integrations/whatsapp/         ← mantém-se (camada de adapters/providers)
+
+supabase/functions/
+  whatsapp-pro-*                   ← canónicas (mantêm)
+  whatsapp-provider-{connect,disconnect,status,webhook-config}  ← renomeadas de whatsapp-zapi-*
+  whatsapp-{send-message,zapi-send,webhook,send-scheduled-reminders}  ← stubs deprecated
 ```
 
-Constantes (extraídas do template atual):
-- Boião: compra 0,50€ · Bimby 0,16€ · poupança 0,34€/un
-- Papa:  compra 0,53€ · Bimby 0,19€ · poupança 0,34€/un
-- Sopa:  compra 1,99€ · Bimby 0,50€ · poupança 1,49€/un
+`useSendWhatsApp` torna-se o único ponto de envio do frontend. Substitui chamadas directas em `useQuickProposal`, `WhatsAppTemplateDialog`, `useSendVoiceNote`, `useWhatsAppZapi`.
 
-## Plano de implementação
+---
 
-1. Criar `savingsCalculator.ts` com tipos, constantes, `calcSavings` e `renderSavingsMessage` (formato exatamente igual ao template existente, valores recalculados, separadores de milhares pt-PT, 2 casas decimais).
-2. Criar `LeadChefSavingsCalculatorCard.tsx` (shadcn `Card`, `Input type=number`, `Button`). Usar tokens semânticos do design system (`text-emerald-600` apenas para o destaque do total, alinhado com `ExtrasCard`/`GanhosSimulator`).
-3. Implementar persistência por lead via `localStorage` com fallback para defaults.
-4. Integrar pré-visualização da mensagem reutilizando `LeadChefMessagePreview`.
-5. Inserir o cartão em `LeadChefLeadDetailPage.tsx` e ligar o botão "Enviar WhatsApp" ao sheet existente passando o texto.
-6. QA em mobile (LeadChef é mobile-first), validar inputs (mínimo 0, inteiros), estado vazio (0 em todas → totais 0€ + mensagem desativa botão de envio).
+## 4. Plano de implementação (por fases)
 
-## Critérios de aceitação
+**Fase A — Reorganização lógica (zero breaking change)**
+1. Criar `src/modules/whatsapp/` com sub-pastas e mover apenas *re-exports* (ficheiros antigos passam a re-exportar do novo local).
+2. Introduzir `useSendWhatsApp` unificado e refactor de 3 calls directas para usá-lo.
+3. Marcar hooks legacy (`useWhatsAppZapi`, `useWhatsAppZapiConnection`) com `@deprecated` + console.warn em dev.
 
-- Alterar uma quantidade recalcula breakdown + totais instantaneamente.
-- Texto gerado segue o mesmo layout/emoji do template "Poupança mensal — Demo Bebé".
-- "Copiar" coloca texto na clipboard com toast de confirmação.
-- "Enviar WhatsApp" abre o sheet existente com o texto pré-preenchido e telefone do lead.
-- Quantidades persistem ao recarregar a página do mesmo lead.
-- "Repor padrão" volta a 30/15/4.
-- Sem erros de consola; funciona em mobile (375px).
+**Fase B — UI consolidada**
+4. Refazer `WhatsAppPro.tsx` como **hub com tabs** (Visão geral, Inbox, Campanhas, Templates, Sequências, Bot, Catálogo, Agendamentos, Conectores).
+5. Reduzir sidebar a 3 entradas (hub + Inbox + Campanhas). Restantes ficam ocultas mas com rotas activas.
+6. Tornar `WhatsAppInboxPage` redirect → `/dashboard/inbox?channel=whatsapp`.
+7. Remover rota duplicada `/dashboard/inbox/ops`.
 
-## Riscos e pontos por validar
+**Fase C — Conectores**
+8. Criar página `/dashboard/whatsapp-pro/connections` com listagem de `whatsapp_provider_instances` e CRUD unificado.
+9. Deprecar `WhatsAppZapiConnectionCard`, `WhatsAppZapiQRDialog`, `QuickWhatsAppZapiDialog` (redirect/import para os novos).
+10. Renomear edge functions `whatsapp-zapi-{connect,disconnect,status,configure-webhook}` para `whatsapp-provider-*` (mantendo as antigas como proxy 6 meses).
 
-- Confirmar que `LeadChefWhatsAppActionSheet` aceita `prefilledMessage` (caso contrário, adicionar prop opcional sem alterar comportamento atual).
-- Preços hardcoded — se quiser editáveis por workspace mais tarde, migrar para `leadchef_app_config.features.savings_calculator`.
-- Não há tracking de uso — se quiser contar quantos leads viram a calculadora, adicionar `crm_activities` log no envio (decidir antes de implementar).
+**Fase D — Limpeza**
+11. Auditar logs (30 dias) das funções `whatsapp-send-message`, `whatsapp-zapi-send`, `whatsapp-webhook`, `whatsapp-send-scheduled-reminders`. Se zero invocações fora dos stubs → eliminar.
+12. Remover hooks/componentes não referenciados.
+13. Atualizar memory `mem://architecture/integrations/whatsapp-comprehensive-infrastructure`.
+
+---
+
+## 5. Critérios de aceitação
+
+- Sidebar tem ≤ 3 entradas WhatsApp; restantes acessíveis via hub.
+- Todos os envios passam por `useSendWhatsApp` → `whatsapp-pro-send`.
+- Uma única página de conectores; sem duplicação Z-API.
+- Edge functions canónicas documentadas; legacy marcadas como deprecated com proxy funcional.
+- Zero regressões em: enviar mensagem, receber webhook, campanha, sequência, agendamento, bot rule, importar contactos.
+- `npm run typecheck` e build limpos.
+
+---
+
+## 6. Riscos / pontos por validar
+
+- **R1**: Refactor da Inbox WhatsApp pode partir filtros guardados pelos utilizadores → mitigar com redirect que preserva query params.
+- **R2**: Renomear edge functions pode partir webhooks já configurados na Z-API → manter URLs antigos como proxy durante 90 dias.
+- **R3**: Decidir se hub é tabs (SPA, mais rápido) ou continua multi-rota com layout partilhado (melhor para deep-link). **Por validar contigo.**
+- **R4**: Confirmar contigo se queres já eliminar `WhatsAppOpsDashboard` ou mantê-lo como tab “Operações” do hub.
+
+---
+
+## 7. Ordem sugerida
+
+Começar pela **Fase A** (segura, invisível ao utilizador) + **Fase B passos 4-6** (impacto UX imediato, resolve “sidebar confuso”). Fase C e D em iterações seguintes.
+
+Confirma se avanço directo com Fase A+B ou queres ajustar âmbito.

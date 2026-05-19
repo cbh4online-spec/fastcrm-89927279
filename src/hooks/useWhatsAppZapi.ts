@@ -1,7 +1,14 @@
+/**
+ * @deprecated Usa `useSendWhatsApp` de `@/modules/whatsapp` (chama `whatsapp-pro-send`).
+ * Este hook chama directamente a edge legacy `whatsapp-zapi-send` e será removido.
+ * Mantido apenas para envio de notas de voz/grupos enquanto o payload do
+ * `whatsapp-pro-send` não cobre esses casos.
+ */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 export interface SendZapiMessagePayload {
   phone?: string;
