@@ -87036,6 +87036,57 @@ export type Database = {
           },
         ]
       }
+      workspace_department_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_slug: string
+          enabled: boolean
+          id: string
+          locked_by_plan: boolean
+          reason: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_slug: string
+          enabled?: boolean
+          id?: string
+          locked_by_plan?: boolean
+          reason?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_slug?: string
+          enabled?: boolean
+          id?: string
+          locked_by_plan?: boolean
+          reason?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_department_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_department_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_email_templates: {
         Row: {
           body_template: string | null
