@@ -49,6 +49,7 @@ import {
 export type NavGroup =
   | "inicio"
   | "comercial"
+  | "agenda"
   | "comunicacao"
   | "marketing"
   | "vendas"
