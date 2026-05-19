@@ -216,12 +216,14 @@ export function useSendMessage() {
           throw new Error("ID do grupo não encontrado para esta conversa");
         }
 
-        const { data, error } = await mainClient.functions.invoke("whatsapp-zapi-send", {
+        // Fase D: canónico via whatsapp-pro-send
+        const { data, error } = await mainClient.functions.invoke("whatsapp-pro-send", {
           body: {
             workspaceId: currentWorkspace.id,
             conversationId,
             ...(isGroup ? { groupId } : { phone: recipientPhone }),
-            message: content,
+            messageType: "text",
+            text: content,
           },
         });
 
