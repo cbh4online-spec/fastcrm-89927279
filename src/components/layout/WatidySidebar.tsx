@@ -225,11 +225,12 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           onClick={onClose}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "relative flex items-center gap-2.5 pl-3 pr-7 py-1.5 rounded-md text-sm font-medium transition-all duration-150",
+            "relative flex items-center gap-2.5 pl-3 pr-7 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ease-out",
             "border-l-2",
             active
               ? "bg-[hsl(var(--mega-fg)/0.14)] text-[hsl(var(--mega-fg))] border-[hsl(var(--mega-fg))] font-semibold"
-              : "border-transparent text-sidebar-foreground/75 hover:bg-[hsl(var(--mega-fg)/0.10)] hover:text-[hsl(var(--mega-fg))] hover:border-[hsl(var(--mega-fg)/0.6)]",
+              : "border-transparent text-sidebar-foreground/75 hover:bg-[hsl(var(--mega-fg)/0.12)] hover:text-[hsl(var(--mega-fg))] hover:border-[hsl(var(--mega-fg)/0.7)] hover:pl-4 [&_svg]:hover:scale-110",
+
 
           )}
         >
