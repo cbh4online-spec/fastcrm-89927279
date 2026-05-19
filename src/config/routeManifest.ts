@@ -528,7 +528,7 @@ export interface MegaGroupMeta {
 }
 
 export const MEGA_GROUPS: MegaGroupMeta[] = [
-  { key: "core",            label: "Core",              icon: LayoutDashboard, navGroups: ["inicio", "ai-strategy", "comunicacao", "operacoes", "inteligencia"] },
+  { key: "core",            label: "Core",              icon: LayoutDashboard, navGroups: ["inicio", "ai-strategy", "agenda", "comunicacao", "operacoes", "inteligencia"] },
   { key: "crm",             label: "CRM",               icon: Users,           navGroups: ["comercial", "performance"] },
   { key: "sales-marketing", label: "Vendas & Marketing",icon: TrendingUp,      navGroups: ["vendas", "compras", "marketing"] },
   { key: "enterprise",      label: "Enterprise",        icon: Building2,       navGroups: ["loja-online", "marketplace-c2c", "portal-b2b", "suporte", "rh", "seguranca", "administracao"] },
