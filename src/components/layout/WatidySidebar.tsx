@@ -443,12 +443,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                               {sec.label}
                             </div>
                             <div className="space-y-0.5">
-                              {sec.items.slice(0, 8).map((it) => renderCompactLink(it, color.fg))}
-                              {sec.items.length > 8 && (
-                                <div className="px-2.5 pt-0.5 text-[10px] text-sidebar-foreground/40">
-                                  +{sec.items.length - 8} mais…
-                                </div>
-                              )}
+                              {sec.items.map((it) => renderCompactLink(it, color.fg))}
                             </div>
                           </div>
                         ))}
