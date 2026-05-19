@@ -109,18 +109,18 @@ export default function ExecutiveCommandDashboard() {
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-8 p-4 md:p-6 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Executive Command Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            O painel que mostra receita, risco, equipa e próximas ações em tempo real.
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Executive Command</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Receita, risco, equipa e próximas acções — em tempo real.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={periodPreset} onValueChange={setPeriodPreset}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[150px] h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -134,7 +134,7 @@ export default function ExecutiveCommandDashboard() {
             </SelectContent>
           </Select>
           <Select value={model} onValueChange={(v) => setModel(v as AttributionModel)}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[140px] h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -145,68 +145,86 @@ export default function ExecutiveCommandDashboard() {
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={exportSummary}>
-            <Download className="mr-2 h-4 w-4" /> Exportar
+            <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar
           </Button>
           <Button size="sm" onClick={() => generate.mutate({ period, model })} disabled={generate.isPending}>
-            <Sparkles className="mr-2 h-4 w-4" />
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
             {generate.isPending ? "A gerar…" : "Gerar resumo IA"}
           </Button>
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex w-full flex-wrap justify-start gap-1 h-auto">
-          <TabsTrigger value="overview"><Activity className="mr-1 h-4 w-4" />Visão Geral</TabsTrigger>
-          <TabsTrigger value="revenue"><Wallet className="mr-1 h-4 w-4" />Receita</TabsTrigger>
-          <TabsTrigger value="leaks"><TrendingDown className="mr-1 h-4 w-4" />Fugas</TabsTrigger>
-          <TabsTrigger value="team"><Users className="mr-1 h-4 w-4" />Equipa</TabsTrigger>
-          <TabsTrigger value="quality"><CheckCircle2 className="mr-1 h-4 w-4" />Qualidade</TabsTrigger>
-          <TabsTrigger value="support"><HeadphonesIcon className="mr-1 h-4 w-4" />Suporte</TabsTrigger>
-          <TabsTrigger value="voice"><Phone className="mr-1 h-4 w-4" />Voz</TabsTrigger>
-          <TabsTrigger value="products"><Briefcase className="mr-1 h-4 w-4" />Produtos</TabsTrigger>
-          <TabsTrigger value="recommendations"><Brain className="mr-1 h-4 w-4" />Recomendações</TabsTrigger>
-          <TabsTrigger value="actions"><ListChecks className="mr-1 h-4 w-4" />Plano de Ação</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+        <TabsList className="bg-muted/50 p-1 h-auto flex flex-wrap gap-0.5">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-background">
+            <Activity className="mr-1.5 h-3.5 w-3.5" />Visão Geral
+          </TabsTrigger>
+          <TabsTrigger value="revenue" className="data-[state=active]:bg-background">
+            <Wallet className="mr-1.5 h-3.5 w-3.5" />Receita
+          </TabsTrigger>
+          <TabsTrigger value="risk" className="data-[state=active]:bg-background">
+            <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />Risco
+          </TabsTrigger>
+          <TabsTrigger value="actions" className="data-[state=active]:bg-background">
+            <ListChecks className="mr-1.5 h-3.5 w-3.5" />Plano de Acção
+          </TabsTrigger>
+          <TabsTrigger value="modules" className="data-[state=active]:bg-background">
+            <Brain className="mr-1.5 h-3.5 w-3.5" />Operação
+          </TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW */}
-        <TabsContent value="overview" className="space-y-4">
+        <TabsContent value="overview" className="space-y-6 mt-0">
           {overview.isLoading ? (
-            <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {Array.from({ length: 8 }).map((_, i) => (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-24" />
               ))}
             </div>
           ) : (
             <>
-              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-                <KPI title="Receita atribuída" value={formatEur(ov.revenue)} icon={<Target />} accent="primary" />
-                <KPI title="Margem estimada" value={formatEur(ov.margin)} icon={<TrendingUp />} />
-                <KPI title="Leads" value={ov.leads ?? 0} icon={<Users />} />
-                <KPI title="Oportunidades" value={ov.opportunities ?? 0} icon={<Briefcase />} />
-                <KPI title="Conversões" value={ov.conversions ?? 0} icon={<CheckCircle2 />} accent="success" />
-                <KPI title="Taxa conversão" value={`${ov.conversion_rate ?? 0}%`} icon={<BarChart3 />} />
-                <KPI
-                  title="Fugas abertas"
-                  value={ov.open_leaks ?? 0}
-                  icon={<TrendingDown />}
-                  accent={(ov.open_leaks ?? 0) > 0 ? "warning" : undefined}
-                />
-                <KPI
-                  title="Recomendações críticas"
-                  value={ov.critical_recommendations ?? 0}
-                  icon={<AlertTriangle />}
-                  accent={(ov.critical_recommendations ?? 0) > 0 ? "destructive" : undefined}
-                />
-              </div>
+              {/* KPIs principais — apenas 4, com hierarquia clara */}
+              <section className="space-y-3">
+                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Resultado do período
+                </h2>
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                  <KPI title="Receita atribuída" value={formatEur(ov.revenue)} icon={<Target />} accent="primary" />
+                  <KPI title="Margem estimada" value={formatEur(ov.margin)} icon={<TrendingUp />} />
+                  <KPI title="Taxa conversão" value={`${ov.conversion_rate ?? 0}%`} icon={<BarChart3 />} accent="success" />
+                  <KPI
+                    title="Recomendações críticas"
+                    value={ov.critical_recommendations ?? 0}
+                    icon={<AlertTriangle />}
+                    accent={(ov.critical_recommendations ?? 0) > 0 ? "destructive" : undefined}
+                  />
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" /> O que fazer agora
+                {/* Chips secundários — funil & risco operacional */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <StatChip icon={Users} label="Leads" value={ov.leads ?? 0} />
+                  <StatChip icon={Briefcase} label="Oportunidades" value={ov.opportunities ?? 0} />
+                  <StatChip icon={CheckCircle2} label="Conversões" value={ov.conversions ?? 0} />
+                  <StatChip
+                    icon={TrendingDown}
+                    label="Fugas abertas"
+                    value={ov.open_leaks ?? 0}
+                    tone={(ov.open_leaks ?? 0) > 0 ? "warning" : undefined}
+                  />
+                </div>
+              </section>
+
+              {/* O que fazer agora */}
+              <Card className="border-border/60">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Sparkles className="h-4 w-4 text-primary" /> O que fazer agora
                   </CardTitle>
-                  <CardDescription>Ações prioritárias para as próximas 24–72h</CardDescription>
+                  <CardDescription className="text-xs">
+                    Acções prioritárias para as próximas 24–72h
+                  </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   <PriorityActions
                     recs={recs.data ?? []}
                     onUpdate={(id, status) => updateRec.mutate({ id, status })}
@@ -216,6 +234,7 @@ export default function ExecutiveCommandDashboard() {
             </>
           )}
         </TabsContent>
+
 
         {/* REVENUE */}
         <TabsContent value="revenue" className="space-y-4">
@@ -268,14 +287,18 @@ export default function ExecutiveCommandDashboard() {
           </Card>
         </TabsContent>
 
-        {/* LEAKS */}
-        <TabsContent value="leaks" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Fugas de Receita</CardTitle>
-              <CardDescription>Conversas, chamadas e produtos sem follow-up</CardDescription>
+        {/* RISK — Fugas + Recomendações lado-a-lado */}
+        <TabsContent value="risk" className="space-y-6 mt-0">
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingDown className="h-4 w-4 text-amber-600" /> Fugas de Receita
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Conversas, chamadas e produtos sem follow-up
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {leaks.isLoading ? (
                 <Skeleton className="h-48" />
               ) : (leaks.data ?? []).length === 0 ? (
@@ -284,24 +307,25 @@ export default function ExecutiveCommandDashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Tipo</TableHead>
                       <TableHead>Título</TableHead>
                       <TableHead>Severidade</TableHead>
                       <TableHead className="text-right">Valor estimado</TableHead>
                       <TableHead>Idade</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="text-right">Acções</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(leaks.data ?? []).map((l: any) => (
                       <TableRow key={l.id}>
-                        <TableCell className="text-xs text-muted-foreground">{l.leak_type}</TableCell>
-                        <TableCell className="font-medium max-w-[300px] truncate">{l.title}</TableCell>
+                        <TableCell className="max-w-[360px]">
+                          <div className="font-medium truncate">{l.title}</div>
+                          <div className="text-xs text-muted-foreground">{l.leak_type}</div>
+                        </TableCell>
                         <TableCell>
                           <Badge variant={severityVariant(l.severity)}>{l.severity}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">{formatEur(l.estimated_value)}</TableCell>
-                        <TableCell className="text-xs">{ageOf(l.created_at)}</TableCell>
+                        <TableCell className="text-right font-medium tabular-nums">{formatEur(l.estimated_value)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{ageOf(l.created_at)}</TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button size="sm" variant="outline" onClick={() => resolveLeak.mutate({ id: l.id, status: "resolved" })}>
                             Resolver
@@ -317,87 +341,42 @@ export default function ExecutiveCommandDashboard() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* TEAM (consolidates from existing hooks if any) */}
-        <TabsContent value="team">
-          <ConsolidatedTab
-            title="Performance da Equipa"
-            description="Carga, resposta e contribuição comercial por agente"
-            link="/dashboard/inbox/ops"
-            linkLabel="Ver Inbox Ops"
-          />
-        </TabsContent>
-
-        <TabsContent value="quality">
-          <ConsolidatedTab
-            title="Qualidade & Coaching"
-            description="Quality score, objeções frequentes e tarefas de coaching"
-            link="/dashboard/inbox/ops"
-            linkLabel="Ver Coaching"
-          />
-        </TabsContent>
-
-        <TabsContent value="support">
-          <ConsolidatedTab
-            title="Suporte & SLA"
-            description="Tickets críticos, SLA breaches e impacto comercial"
-            link="/dashboard/helpdesk"
-            linkLabel="Abrir Helpdesk"
-          />
-        </TabsContent>
-
-        <TabsContent value="voice">
-          <ConsolidatedTab
-            title="Voz & Chamadas"
-            description="Chamadas perdidas, callbacks vencidos, sinais de compra"
-            link="/dashboard/voicehub"
-            linkLabel="Abrir VoiceHub"
-          />
-        </TabsContent>
-
-        <TabsContent value="products">
-          <ConsolidatedTab
-            title="Produtos & Oportunidades"
-            description="Produtos mais enviados, com maior conversão e sem follow-up"
-            link="/dashboard/products"
-            linkLabel="Abrir Produtos"
-          />
-        </TabsContent>
-
-        {/* RECOMMENDATIONS */}
-        <TabsContent value="recommendations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recomendações Executivas</CardTitle>
-              <CardDescription>Geradas por IA com base em risco, receita e operação</CardDescription>
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Brain className="h-4 w-4 text-primary" /> Recomendações Executivas
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Geradas por IA com base em risco, receita e operação
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {recs.isLoading ? (
                 <Skeleton className="h-48" />
               ) : (recs.data ?? []).length === 0 ? (
-                <EmptyState message="Não existem recomendações críticas neste período." />
+                <EmptyState message="Não existem recomendações neste período." />
               ) : (
-                <div className="space-y-3">
+                <div className="divide-y divide-border/60">
                   {(recs.data ?? []).map((r: any) => (
-                    <div key={r.id} className="flex items-start justify-between gap-3 rounded-lg border p-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={r.priority === "critical" || r.priority === "high" ? "destructive" : "default"}>
+                    <div key={r.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant={r.priority === "critical" || r.priority === "high" ? "destructive" : "secondary"} className="text-[10px]">
                             {r.priority}
                           </Badge>
                           <span className="text-xs text-muted-foreground">{r.recommendation_type}</span>
                           {r.confidence != null && (
-                            <span className="text-xs text-muted-foreground">· conf. {Math.round(r.confidence * 100)}%</span>
+                            <span className="text-xs text-muted-foreground">· {Math.round(r.confidence * 100)}% conf.</span>
                           )}
                         </div>
-                        <p className="mt-1 font-medium">{r.title}</p>
-                        {r.description && <p className="text-sm text-muted-foreground">{r.description}</p>}
+                        <p className="mt-1.5 font-medium text-sm">{r.title}</p>
+                        {r.description && <p className="text-xs text-muted-foreground mt-0.5">{r.description}</p>}
                         {r.expected_impact && (
-                          <p className="mt-1 text-xs text-primary">Impacto: {r.expected_impact}</p>
+                          <p className="mt-1 text-xs text-primary font-medium">Impacto: {r.expected_impact}</p>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <Button size="sm" variant="outline" onClick={() => updateRec.mutate({ id: r.id, status: "in_progress" })}>
                           Em curso
                         </Button>
@@ -415,6 +394,18 @@ export default function ExecutiveCommandDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* MODULES — atalhos para módulos operacionais consolidados */}
+        <TabsContent value="modules" className="mt-0">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <ModuleCard icon={Users} title="Performance da Equipa" description="Carga, resposta e contribuição comercial por agente" link="/dashboard/inbox/ops" linkLabel="Inbox Ops" />
+            <ModuleCard icon={CheckCircle2} title="Qualidade & Coaching" description="Quality score, objeções frequentes, tarefas de coaching" link="/dashboard/inbox/ops" linkLabel="Coaching" />
+            <ModuleCard icon={HeadphonesIcon} title="Suporte & SLA" description="Tickets críticos, SLA breaches e impacto comercial" link="/dashboard/helpdesk" linkLabel="Helpdesk" />
+            <ModuleCard icon={Phone} title="Voz & Chamadas" description="Chamadas perdidas, callbacks vencidos, sinais de compra" link="/dashboard/voicehub" linkLabel="VoiceHub" />
+            <ModuleCard icon={Briefcase} title="Produtos & Oportunidades" description="Mais enviados, com maior conversão, sem follow-up" link="/dashboard/products" linkLabel="Produtos" />
+          </div>
+        </TabsContent>
+
 
         {/* ACTIONS */}
         <TabsContent value="actions" className="space-y-4">
@@ -486,28 +477,66 @@ function KPI({
   icon?: React.ReactNode;
   accent?: "primary" | "success" | "warning" | "destructive";
 }) {
-  const accentClass =
-    accent === "primary"
-      ? "border-primary/30 bg-primary/5"
-      : accent === "success"
-      ? "border-emerald-500/30 bg-emerald-500/5"
-      : accent === "warning"
-      ? "border-amber-500/30 bg-amber-500/5"
-      : accent === "destructive"
-      ? "border-destructive/30 bg-destructive/5"
-      : "";
+  const accentMap = {
+    primary: { bg: "bg-primary/10", text: "text-primary" },
+    success: { bg: "bg-emerald-500/10", text: "text-emerald-600" },
+    warning: { bg: "bg-amber-500/10", text: "text-amber-600" },
+    destructive: { bg: "bg-destructive/10", text: "text-destructive" },
+  };
+  const a = accent ? accentMap[accent] : { bg: "bg-muted", text: "text-muted-foreground" };
   return (
-    <Card className={accentClass}>
+    <Card className="border-border/60">
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-muted-foreground">{title}</p>
-          {icon && <div className="h-4 w-4 text-muted-foreground">{icon}</div>}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+          </div>
+          {icon && (
+            <div className={`p-2 rounded-md ${a.bg}`}>
+              <div className={`h-4 w-4 ${a.text}`}>{icon}</div>
+            </div>
+          )}
         </div>
-        <p className="mt-2 text-2xl font-bold tracking-tight">{value}</p>
       </CardContent>
     </Card>
   );
 }
+
+function StatChip({
+  icon: Icon, label, value, tone,
+}: { icon: any; label: string; value: number | string; tone?: "warning" }) {
+  const toneClass = tone === "warning" ? "text-amber-600" : "";
+  return (
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/60 bg-card text-sm">
+      <Icon className={`w-3.5 h-3.5 text-muted-foreground ${toneClass}`} />
+      <span className="text-muted-foreground">{label}</span>
+      <span className={`font-semibold tabular-nums ${toneClass}`}>{value}</span>
+    </div>
+  );
+}
+
+function ModuleCard({
+  icon: Icon, title, description, link, linkLabel,
+}: { icon: any; title: string; description: string; link: string; linkLabel: string }) {
+  return (
+    <Card className="border-border/60 hover:border-border transition-colors">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-md bg-muted">
+            <Icon className="w-4 h-4 text-foreground" />
+          </div>
+          <h3 className="font-medium text-sm">{title}</h3>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+        <Button asChild variant="outline" size="sm" className="w-full">
+          <a href={link}>Abrir {linkLabel}</a>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function PriorityActions({ recs, onUpdate }: { recs: any[]; onUpdate: (id: string, status: string) => void }) {
   const top = recs.slice(0, 7);
@@ -562,34 +591,6 @@ function FunnelView({ ov }: { ov: any }) {
   );
 }
 
-function ConsolidatedTab({
-  title,
-  description,
-  link,
-  linkLabel,
-}: {
-  title: string;
-  description: string;
-  link: string;
-  linkLabel: string;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">
-          Esta secção consolida métricas detalhadas do módulo dedicado. Para análise completa, abra o módulo abaixo.
-        </p>
-        <Button asChild variant="outline">
-          <a href={link}>{linkLabel}</a>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
 
 function EmptyState({ message }: { message: string }) {
   return (
