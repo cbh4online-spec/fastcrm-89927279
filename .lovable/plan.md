@@ -1,132 +1,92 @@
+# Reorganização do FastCRM por Departamentos
 
-# Arrumar módulo WhatsApp — Diagnóstico e Plano
+## Diagnóstico
 
-## 1. Diagnóstico (estado actual)
+Hoje o sidebar usa NavGroups técnicos (`comunicacao`, `agenda`, `core`, `ai-strategy`, etc.) definidos em `src/config/routeManifest.ts`. O utilizador quer uma estrutura **departamental** — espelhando como uma empresa real está organizada — que sirva também como **alavanca comercial**: cada plano/assinatura ativa apenas os departamentos contratados.
 
-### 1.1 Código — `src/integrations/whatsapp/`
-Bem estruturado em `providers/`, `normalize/`, `utils/`. **Não é aqui o problema.** O adapter Z-API delega tudo para `whatsapp-pro-send` (bom). O `zapyAdapter` é um alias do `zapiAdapter`.
+## Decisões de Produto
 
-### 1.2 Hooks — 44 ficheiros, fragmentação clara
-Há **duas gerações** sobrepostas:
-- **Legacy Z-API directa**: `useWhatsAppZapi.ts`, `useWhatsAppZapiConnection.ts`, `useSendVoiceNote.ts` → ainda invocam `whatsapp-zapi-send`.
-- **Pro / unificada**: `useWhatsAppPro.ts`, `useWhatsAppProOps.ts`, `useWhatsAppHealth.ts`, `useWhatsAppConnection.ts` → invocam `whatsapp-pro-send`.
+### Departamentos propostos (SSoT)
+1. **Administração** — workspace, equipa, permissões, billing, integrações, super-admin
+2. **Comercial / Vendas** — CRM, leads, contactos, empresas, pipeline, propostas, deal intelligence, AI SDR
+3. **Marketing** — campanhas, automações, funis, landing pages, SEO, growth insights, lead enrichment
+4. **Comunicação** — inbox, WhatsApp, telegram, voicehub, groups, templates, sequences
+5. **Agenda & Produtividade** — calendário, follow-ups, agendamentos, tarefas
+6. **Financeiro** — faturas, recibos, pagamentos, cobranças (collections), renewals, KPIs financeiros
+7. **Compras & Procurement** — fornecedores, ordens de compra, importação de produtos, staging
+8. **Logística & Stock** — armazéns, inventário, movimentos, expedição
+9. **Catálogo & Produtos** — produtos, categorias, atributos, pricing rules
+10. **Loja Online (B2C/B2B/C2C)** — storefronts, marketplace, lives, partner center
+11. **Recursos Humanos** — colaboradores, departamentos HR, candidatos, onboarding, leave
+12. **Helpdesk & Suporte** — tickets, helpdesk, base de conhecimento
+13. **Inteligência & IA** — exec command, account brief, AI agents, assistants, RAG, automações IA
+14. **Relatórios & Analytics** — reports, KPIs, revenue flight control, performance
 
-Hooks de Inbox (`useConversation*`, `useInbox*`, `useWhatsAppInbox`) estão dispersos entre `src/hooks/` raiz sem agrupamento por domínio.
+### Configurabilidade por assinatura
+- Cada departamento é uma **entidade declarativa** com `slug`, `nome`, `ícone`, `ordem`, `módulos[]` (slugs do `moduleNavRegistry`).
+- Visibilidade depende de:
+  1. **Plano/assinatura** (subscription tier do workspace)
+  2. **Módulos instalados** (`workspace_modules`)
+  3. **Permissões do perfil** (`profile_menu_permissions`)
+  4. **Override de Super Admin** (toggle manual por workspace)
+- Departamento sem módulos visíveis → oculto automaticamente
+- Departamento bloqueado por plano → mostra com cadeado + CTA "Fazer upgrade"
 
-### 1.3 Páginas — 21 páginas WhatsApp + `Inbox.tsx` + `ConversationalEngine.tsx`
-- Hub principal: `WhatsAppPro.tsx` (`/dashboard/whatsapp-pro`)
-- 16 sub-páginas com URLs `/whatsapp-pro/*` listadas individualmente no sidebar (sidebar inundado com 17 entradas “WhatsApp”).
-- `WhatsAppOpsDashboard` exposto em **duas rotas** (`/whatsapp/ops` e `/inbox/ops`).
-- `WhatsAppInboxPage` coexiste com `Inbox.tsx` (omnichannel) — sobreposição funcional.
+## Estrutura Técnica
 
-### 1.4 Edge Functions — 37 funções `whatsapp-*`
-Sobreposições críticas:
-| Domínio | Funções duplicadas | Recomendação |
-|---|---|---|
-| Envio | `whatsapp-pro-send`, `whatsapp-zapi-send`, `whatsapp-send-message` | Manter só `whatsapp-pro-send` |
-| Webhook inbound | `whatsapp-pro-webhook`, `whatsapp-webhook`, `whatsapp-zapi-webhook` | Consolidar em `whatsapp-pro-webhook` |
-| Reminders | `whatsapp-send-scheduled-reminders` vs `whatsapp-pro-scheduled-dispatch` | Manter `pro-scheduled-dispatch` |
-| Connect | `whatsapp-zapi-connect`/`disconnect`/`status`/`configure-webhook` | Manter (são fluxo de provisioning Z-API; renomear para `whatsapp-provider-*`) |
+### Novos ficheiros
+- `src/config/departments.ts` — SSoT dos departamentos (DEPARTMENT_REGISTRY)
+- `src/hooks/useDepartmentVisibility.ts` — calcula departamentos visíveis cruzando plano + módulos + permissões
+- `src/components/sidebar/DepartmentSidebar.tsx` — novo componente que renderiza por departamento (substitui agrupamento atual)
 
-### 1.5 Conectores / instâncias
-SSoT é `whatsapp_provider_instances` (já documentado em memory). Há componentes UI antigos a falar directamente com Z-API (`WhatsAppZapiConnectionCard`, `WhatsAppZapiQRDialog`, `QuickWhatsAppZapiDialog`) — devem passar a usar a camada genérica de “provider instance”.
+### Alterações
+- `src/config/routeManifest.ts` — adicionar campo opcional `department: DepartmentSlug` em cada RouteEntry
+- Migration: nova tabela `workspace_department_overrides` (workspace_id, department_slug, enabled, locked_by_plan)
+- Página `/settings/departments` (super admin + owner) — toggle visual por departamento, mostra módulos contidos e estado de assinatura
 
-### 1.6 Navegação
-17 entradas individuais de WhatsApp no grupo “comunicação” do `routeManifest.ts`. Não há sub-menu — tudo plano. Causa o tal “sidebar confuso”.
-
----
-
-## 2. Decisões de produto/UX
-
-1. **Hub único** `/dashboard/whatsapp-pro` com tabs internas (Inbox, Campanhas, Templates, Sequências, Bot, Catálogo, Agendamentos, Configurações). Sub-rotas continuam a existir para deep-link e SEO interno, mas no **sidebar** aparece só:
-   - **WhatsApp** (hub) — abre o overview/health
-   - **WhatsApp Inbox** (atalho)
-   - **WhatsApp Campanhas** (atalho)
-   - Restantes ficam acessíveis via tabs do hub e do command palette (⌘K).
-2. **Inbox omnichannel** (`/dashboard/inbox`) continua a ser o local canónico de conversas. `WhatsAppInboxPage` passa a ser **vista filtrada** do inbox geral (`?channel=whatsapp`) em vez de página paralela. Mantém URL com redirect.
-3. **Conectores**: uma só página `/dashboard/whatsapp-pro/connections` que lista `whatsapp_provider_instances`, com fluxo unificado de Z-API (e futuros providers). Cards/diálogos antigos deprecados.
-4. **Edge functions legacy** (`whatsapp-send-message`, `whatsapp-zapi-send`, `whatsapp-webhook`, `whatsapp-send-scheduled-reminders`) entram em modo *deprecated*: redirecionam internamente para as versões `pro-*` e logam aviso. Removidas numa fase 2 após confirmar zero invocações em produção (via logs).
-
----
-
-## 3. Estrutura técnica alvo
-
+### Mapeamento Plano → Departamentos (proposta inicial)
 ```text
-src/
-  modules/whatsapp/                ← novo módulo (mover gradualmente)
-    hooks/
-      inbox/        (useWhatsAppInbox, useConversation*)
-      ops/          (useWhatsAppHealth, useWhatsAppOps, useWhatsAppProOps)
-      campaigns/    (useWhatsAppCampaigns, useWhatsAppRecurring, useWhatsAppScheduled)
-      sequences/    (useWhatsAppSequences)
-      templates/    (useWhatsAppTemplates, useWhatsAppQuickReplies)
-      bot/          (useWhatsAppBotRules)
-      connection/   (useWhatsAppConnection, useWhatsAppProvider)
-      send/         (useSendWhatsApp — wrapper único sobre whatsapp-pro-send)
-    components/     (mover de src/components/whatsapp-pro)
-    pages/          (WhatsAppHub + sub-páginas, com tabs)
-    lib/            (formatters, channel helpers)
-    types/
-
-src/integrations/whatsapp/         ← mantém-se (camada de adapters/providers)
-
-supabase/functions/
-  whatsapp-pro-*                   ← canónicas (mantêm)
-  whatsapp-provider-{connect,disconnect,status,webhook-config}  ← renomeadas de whatsapp-zapi-*
-  whatsapp-{send-message,zapi-send,webhook,send-scheduled-reminders}  ← stubs deprecated
+START   → Administração, Comercial, Comunicação, Agenda
+GROW    → + Marketing, Financeiro, Helpdesk, Relatórios
+PRO     → + Compras, Logística, Catálogo, Loja, HR, IA
+ENTERPRISE → todos + overrides custom
 ```
 
-`useSendWhatsApp` torna-se o único ponto de envio do frontend. Substitui chamadas directas em `useQuickProposal`, `WhatsAppTemplateDialog`, `useSendVoiceNote`, `useWhatsAppZapi`.
+## Plano de Implementação (faseado)
 
----
+**Fase 1 — Fundação (esta entrega)**
+1. Criar `DEPARTMENT_REGISTRY` com os 14 departamentos
+2. Anotar cada RouteEntry do `routeManifest.ts` com `department`
+3. Refactor do sidebar para agrupar por departamento (collapsible, ícone próprio)
+4. Hook `useDepartmentVisibility` (versão inicial: só esconde departamentos sem rotas visíveis)
 
-## 4. Plano de implementação (por fases)
+**Fase 2 — Configurabilidade**
+5. Migration `workspace_department_overrides` + RLS
+6. Página `/settings/departments` (toggle por workspace)
+7. Mapping plano → departamentos no `SubscriptionContext`
+8. Estado "bloqueado por plano" com CTA de upgrade
 
-**Fase A — Reorganização lógica (zero breaking change)**
-1. Criar `src/modules/whatsapp/` com sub-pastas e mover apenas *re-exports* (ficheiros antigos passam a re-exportar do novo local).
-2. Introduzir `useSendWhatsApp` unificado e refactor de 3 calls directas para usá-lo.
-3. Marcar hooks legacy (`useWhatsAppZapi`, `useWhatsAppZapiConnection`) com `@deprecated` + console.warn em dev.
+**Fase 3 — Comercial**
+9. Pricing page por departamento (marketing)
+10. Bundles ("Pack Vendas", "Pack Operações")
+11. Telemetria de cliques em departamentos bloqueados
 
-**Fase B — UI consolidada**
-4. Refazer `WhatsAppPro.tsx` como **hub com tabs** (Visão geral, Inbox, Campanhas, Templates, Sequências, Bot, Catálogo, Agendamentos, Conectores).
-5. Reduzir sidebar a 3 entradas (hub + Inbox + Campanhas). Restantes ficam ocultas mas com rotas activas.
-6. Tornar `WhatsAppInboxPage` redirect → `/dashboard/inbox?channel=whatsapp`.
-7. Remover rota duplicada `/dashboard/inbox/ops`.
+## Critérios de Aceitação (Fase 1)
 
-**Fase C — Conectores**
-8. Criar página `/dashboard/whatsapp-pro/connections` com listagem de `whatsapp_provider_instances` e CRUD unificado.
-9. Deprecar `WhatsAppZapiConnectionCard`, `WhatsAppZapiQRDialog`, `QuickWhatsAppZapiDialog` (redirect/import para os novos).
-10. Renomear edge functions `whatsapp-zapi-{connect,disconnect,status,configure-webhook}` para `whatsapp-provider-*` (mantendo as antigas como proxy 6 meses).
+- Sidebar agrupa 100% das rotas ativas por um dos 14 departamentos
+- Nenhuma rota órfã (teste automático)
+- Departamento sem rotas visíveis fica oculto
+- Estado collapsed/expanded persiste por departamento
+- Departamento que contém a rota ativa abre automaticamente
+- Sem regressão em `routeManifest` tests existentes
 
-**Fase D — Limpeza**
-11. Auditar logs (30 dias) das funções `whatsapp-send-message`, `whatsapp-zapi-send`, `whatsapp-webhook`, `whatsapp-send-scheduled-reminders`. Se zero invocações fora dos stubs → eliminar.
-12. Remover hooks/componentes não referenciados.
-13. Atualizar memory `mem://architecture/integrations/whatsapp-comprehensive-infrastructure`.
+## Riscos / Pontos por Validar
 
----
+- **Sobreposição**: algumas rotas servem >1 departamento (ex.: WhatsApp serve Comunicação E Comercial). Decisão: 1 rota = 1 departamento "primário"; restantes acedem via search/shortcuts.
+- **Naming**: confirmar nomes PT-PT exactos antes de implementar
+- **Plano atual**: preciso confirmar como o workspace expõe o tier de subscrição (já há `SubscriptionContext`?)
+- **HR Departments ≠ Departamentos do Produto**: o conceito "departamento" no UI será o do PRODUTO; os `hr_departments` continuam isolados no módulo HR
 
-## 5. Critérios de aceitação
+## Dúvida crítica antes de avançar
 
-- Sidebar tem ≤ 3 entradas WhatsApp; restantes acessíveis via hub.
-- Todos os envios passam por `useSendWhatsApp` → `whatsapp-pro-send`.
-- Uma única página de conectores; sem duplicação Z-API.
-- Edge functions canónicas documentadas; legacy marcadas como deprecated com proxy funcional.
-- Zero regressões em: enviar mensagem, receber webhook, campanha, sequência, agendamento, bot rule, importar contactos.
-- `npm run typecheck` e build limpos.
-
----
-
-## 6. Riscos / pontos por validar
-
-- **R1**: Refactor da Inbox WhatsApp pode partir filtros guardados pelos utilizadores → mitigar com redirect que preserva query params.
-- **R2**: Renomear edge functions pode partir webhooks já configurados na Z-API → manter URLs antigos como proxy durante 90 dias.
-- **R3**: Decidir se hub é tabs (SPA, mais rápido) ou continua multi-rota com layout partilhado (melhor para deep-link). **Por validar contigo.**
-- **R4**: Confirmar contigo se queres já eliminar `WhatsAppOpsDashboard` ou mantê-lo como tab “Operações” do hub.
-
----
-
-## 7. Ordem sugerida
-
-Começar pela **Fase A** (segura, invisível ao utilizador) + **Fase B passos 4-6** (impacto UX imediato, resolve “sidebar confuso”). Fase C e D em iterações seguintes.
-
-Confirma se avanço directo com Fase A+B ou queres ajustar âmbito.
+Avanço já com a **Fase 1** (estrutura visual no sidebar pelos 14 departamentos) e deixo a Fase 2 (toggle por assinatura + página de configuração) para entrega seguinte? Ou prefere que prepare também a migration e a página de configuração no mesmo passo?
