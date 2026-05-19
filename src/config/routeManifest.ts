@@ -48,7 +48,10 @@ import {
 
 export type NavGroup =
   | "inicio"
-  | "comercial"
+  | "comercial-crm"
+  | "comercial-pipeline"
+  | "comercial-prospecting"
+  | "comercial-leadchef"
   | "agenda"
   | "comunicacao"
   | "marketing"
@@ -104,7 +107,10 @@ export interface RouteEntry {
 export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "inicio",        label: "Início",        icon: LayoutDashboard, order: 1, collapsible: false },
   { key: "ai-strategy",   label: "Estratégia IA",   icon: Crown,           order: 2, collapsible: false },
-  { key: "comercial",     label: "Comercial",     icon: Users,           order: 3, collapsible: true },
+  { key: "comercial-crm",         label: "CRM",                icon: Users,           order: 3,  collapsible: true },
+  { key: "comercial-pipeline",    label: "Pipeline & Contas",  icon: TrendingUp,      order: 31, collapsible: true },
+  { key: "comercial-prospecting", label: "Prospecção",         icon: UserPlus,        order: 32, collapsible: true },
+  { key: "comercial-leadchef",    label: "LeadChef",           icon: ChefHat,         order: 33, collapsible: true },
   { key: "agenda",        label: "Agenda",        icon: Calendar,        order: 35, collapsible: true },
   { key: "comunicacao",   label: "Comunicação",   icon: Radio,           order: 4, collapsible: true },
   { key: "performance",   label: "Performance",   icon: Trophy,          order: 5, collapsible: true },
@@ -160,26 +166,30 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   // COMERCIAL
   // ══════════════════════════════════════════════════════════════
-  e("leads",           "Leads",           "/dashboard/leads",          Users,         "comercial", { badgeKey: "new_leads", menuKey: "leads" }),
-  e("contacts",        "Contactos",       "/dashboard/contacts",       UserCheck,     "comercial", { menuKey: "contacts" }),
-  e("companies",       "Empresas",        "/dashboard/companies",      Building2,     "comercial", { menuKey: "companies" }),
-  e("gestores",        "Gestores",        "/dashboard/gestores",       UsersRound,    "comercial"),
-  e("opportunities",   "Pipeline",        "/dashboard/opportunities",  TrendingUp,    "comercial", { menuKey: "pipeline" }),
-  e("renewals",        "Renovações",      "/dashboard/renewals",       ArrowUpDown,   "comercial"),
-  e("lifecycle",       "Ciclo de Vida",   "/dashboard/lifecycle",      GitBranch,     "comercial"),
-  e("sequences",       "Sequências",      "/dashboard/sequences",      MessageSquare, "comercial"),
-  e("account-brief",   "Briefing Conta",  "/dashboard/account-brief",  Briefcase,     "comercial", { moduleSlug: "account-brief", isPro: true }),
-  e("prospecting",     "Prospecção",      "/dashboard/prospecting",    UserPlus,      "comercial", { moduleSlug: "prospecting-pro" }),
-  e("lead-enricher",   "Enriquecimento de Leads", "/dashboard/lead-enricher",  Search,        "comercial", { moduleSlug: "lead-enricher", isPro: true }),
-  e("fastmatch",       "FastMatch",       "/dashboard/fastmatch",      Zap,           "comercial"),
- e("leadchef",        "LeadChef",        "/dashboard/leadchef/today", ChefHat,       "comercial", { isBeta: true }),
- e("leadchef-admin",  "Centro LeadChef", "/dashboard/leadchef/admin", Settings,      "comercial", { isBeta: true }),
- e("leadchef-embaixador", "Embaixadores LeadChef", "/embaixador/dashboard", Trophy, "comercial", { isBeta: true }),
+  // CRM
+  e("leads",           "Leads",           "/dashboard/leads",          Users,         "comercial-crm", { badgeKey: "new_leads", menuKey: "leads" }),
+  e("contacts",        "Contactos",       "/dashboard/contacts",       UserCheck,     "comercial-crm", { menuKey: "contacts" }),
+  e("companies",       "Empresas",        "/dashboard/companies",      Building2,     "comercial-crm", { menuKey: "companies" }),
+  e("gestores",        "Gestores",        "/dashboard/gestores",       UsersRound,    "comercial-crm"),
+  // Pipeline & Contas
+  e("opportunities",   "Pipeline",        "/dashboard/opportunities",  TrendingUp,    "comercial-pipeline", { menuKey: "pipeline" }),
+  e("renewals",        "Renovações",      "/dashboard/renewals",       ArrowUpDown,   "comercial-pipeline"),
+  e("lifecycle",       "Ciclo de Vida",   "/dashboard/lifecycle",      GitBranch,     "comercial-pipeline"),
+  e("sequences",       "Sequências",      "/dashboard/sequences",      MessageSquare, "comercial-pipeline"),
+  e("account-brief",   "Briefing Conta",  "/dashboard/account-brief",  Briefcase,     "comercial-pipeline", { moduleSlug: "account-brief", isPro: true }),
+  // Prospecção
+  e("prospecting",     "Prospecção",      "/dashboard/prospecting",    UserPlus,      "comercial-prospecting", { moduleSlug: "prospecting-pro" }),
+  e("lead-enricher",   "Enriquecimento de Leads", "/dashboard/lead-enricher",  Search, "comercial-prospecting", { moduleSlug: "lead-enricher", isPro: true }),
+  e("fastmatch",       "FastMatch",       "/dashboard/fastmatch",      Zap,           "comercial-prospecting"),
+  e("google-local",    "Google Local",    "/dashboard/prospecting/google-local", MapPin, "comercial-prospecting", { moduleSlug: "google-local-services" }),
+  // LeadChef (programa beta)
+  e("leadchef",        "LeadChef",        "/dashboard/leadchef/today", ChefHat,       "comercial-leadchef", { isBeta: true }),
+  e("leadchef-admin",  "Centro LeadChef", "/dashboard/leadchef/admin", Settings,      "comercial-leadchef", { isBeta: true }),
+  e("leadchef-embaixador", "Embaixadores LeadChef", "/embaixador/dashboard", Trophy, "comercial-leadchef", { isBeta: true }),
   // Search-only CRM routes
-  e("crm-hub",         "CRM",             "/dashboard/crm",            Users,         "comercial", { visibleInSidebar: false }),
-  e("google-local",    "Google Local",    "/dashboard/prospecting/google-local", MapPin, "comercial", { moduleSlug: "google-local-services" }),
-  e("web-search-prosp","Pesquisa Web",    "/dashboard/prospecting/web-search",  Search, "comercial", { visibleInSidebar: false }),
-  e("professional-prosp","Profissionais", "/dashboard/prospecting/professionals", Users, "comercial", { visibleInSidebar: false }),
+  e("crm-hub",         "CRM",             "/dashboard/crm",            Users,         "comercial-crm", { visibleInSidebar: false }),
+  e("web-search-prosp","Pesquisa Web",    "/dashboard/prospecting/web-search",  Search, "comercial-prospecting", { visibleInSidebar: false }),
+  e("professional-prosp","Profissionais", "/dashboard/prospecting/professionals", Users, "comercial-prospecting", { visibleInSidebar: false }),
 
   // ══════════════════════════════════════════════════════════════
   // AGENDA (Departamento: planeamento e seguimentos)
@@ -546,7 +556,7 @@ export interface MegaGroupMeta {
 export const MEGA_GROUPS: MegaGroupMeta[] = [
   { key: "inicio",             label: "Início",              icon: LayoutDashboard, navGroups: ["inicio"],
     description: "Visão geral, alertas e produtividade diária." },
-  { key: "comercial",          label: "Comercial",           icon: Users,           navGroups: ["comercial", "performance"],
+  { key: "comercial",          label: "Comercial",           icon: Users,           navGroups: ["comercial-crm", "comercial-pipeline", "comercial-prospecting", "comercial-leadchef", "performance"],
     description: "Leads, contactos, pipeline, propostas e gestão de equipa comercial." },
   { key: "marketing",          label: "Marketing",           icon: Megaphone,       navGroups: ["marketing"],
     description: "Campanhas, funis, landing pages, SEO e geração de procura." },
