@@ -206,12 +206,12 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("whatsapp-throttle","Anti-spam &amp; Throttling","/dashboard/whatsapp-pro/throttle", Gauge, "comunicacao", { moduleSlug: "whatsapp-business" }),
 
   e("voicehub",    "VoiceHub",    "/dashboard/voicehub",                 Headphones, "comunicacao"),
- e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "comunicacao"),
- e("plan-mgmt",   "Plan Management","/admin/plan-management",                Crown,     "comunicacao"),
- e("workspace-plan","Plano Atual",  "/dashboard/settings/workspace-plan",   CreditCard,"comunicacao"),
- e("onboarding-projects","Onboarding","/dashboard/onboarding",               Briefcase, "comunicacao"),
- e("delivery-projects","Implementação","/dashboard/delivery/projects",       Rocket,    "comunicacao"),
- e("customer-success","Customer Success","/dashboard/customer-success",        Heart,     "comunicacao"),
+ e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "ai-strategy"),
+ e("plan-mgmt",   "Plan Management","/admin/plan-management",                Crown,     "administracao"),
+ e("workspace-plan","Plano Atual",  "/dashboard/settings/workspace-plan",   CreditCard,"administracao"),
+ e("onboarding-projects","Onboarding","/dashboard/onboarding",               Briefcase, "operacoes"),
+ e("delivery-projects","Implementação","/dashboard/delivery/projects",       Rocket,    "operacoes"),
+ e("customer-success","Customer Success","/dashboard/customer-success",        Heart,     "operacoes"),
  e("templates",   "Modelos",     "/dashboard/communication/templates",  FileText,  "comunicacao"),
 
   // ══════════════════════════════════════════════════════════════
