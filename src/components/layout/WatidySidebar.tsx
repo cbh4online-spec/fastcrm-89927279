@@ -225,13 +225,14 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           onClick={onClose}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "flex items-center gap-2.5 pl-2.5 pr-7 py-1.5 rounded-md text-sm font-medium transition-colors",
+            "relative flex items-center gap-2.5 pl-3 pr-7 py-1.5 rounded-md text-sm font-medium transition-all duration-150",
+            "border-l-2",
             active
-              ? "bg-sidebar-accent text-sidebar-primary"
-              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              ? "bg-[hsl(var(--mega-fg)/0.14)] text-[hsl(var(--mega-fg))] border-[hsl(var(--mega-fg))]"
+              : "border-transparent text-sidebar-foreground/70 hover:bg-[hsl(var(--mega-fg)/0.10)] hover:text-[hsl(var(--mega-fg))] hover:border-[hsl(var(--mega-fg)/0.6)] hover:translate-x-0.5",
           )}
         >
-          <Icon className={cn("w-4 h-4 shrink-0", active && "text-sidebar-primary")} />
+          <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active && "text-[hsl(var(--mega-fg))]")} />
           <span className="flex-1 truncate">{item.label}</span>
           {hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
           <NavBadge count={badgeCount} />
