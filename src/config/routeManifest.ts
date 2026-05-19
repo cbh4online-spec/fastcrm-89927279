@@ -48,7 +48,10 @@ import {
 
 export type NavGroup =
   | "inicio"
-  | "comercial"
+  | "comercial-crm"
+  | "comercial-pipeline"
+  | "comercial-prospecting"
+  | "comercial-leadchef"
   | "agenda"
   | "comunicacao"
   | "marketing"
