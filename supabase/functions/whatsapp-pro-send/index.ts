@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as SendPayload;
 
-    if (!body.workspaceId || !body.phone || !body.messageType) {
-      return json({ error: "workspace_id, phone e messageType são obrigatórios" }, 400);
+    if (!body.workspaceId || !body.messageType || (!body.phone && !body.groupId && !body.conversationId)) {
+      return json({ error: "workspace_id, messageType e (phone | groupId | conversationId) são obrigatórios" }, 400);
     }
 
     // Verificar membership
