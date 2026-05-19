@@ -8,6 +8,7 @@ interface SendVoiceNotePayload {
   conversationId: string;
   channel: string;
   recording: VoiceRecording;
+  phone?: string;
 }
 
 function extFromMime(mime: string): string {
@@ -24,7 +25,7 @@ export function useSendVoiceNote() {
   const { currentWorkspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: async ({ conversationId, channel, recording }: SendVoiceNotePayload) => {
+    mutationFn: async ({ conversationId, channel, recording, phone }: SendVoiceNotePayload) => {
       if (!currentWorkspace) throw new Error("Workspace não selecionado");
 
       // 1. Upload to storage (path = workspaceId/conversationId/<ts>.ext)
@@ -45,17 +46,17 @@ export function useSendVoiceNote() {
       const { data: pub } = supabase.storage.from("inbox-voice-notes").getPublicUrl(path);
       const audioUrl = pub.publicUrl;
 
-      // 2. Send via channel-specific edge function
+      // 2. Send via canonical whatsapp-pro-send (suporta ptt desde Fase C)
       if (channel === "whatsapp") {
-        const { data, error } = await supabase.functions.invoke("whatsapp-zapi-send", {
+        const { data, error } = await supabase.functions.invoke("whatsapp-pro-send", {
           body: {
             workspaceId: currentWorkspace.id,
             conversationId,
-            media: {
-              type: "audio",
-              url: audioUrl,
-              ptt: true,
-            },
+            phone: phone ?? "",
+            messageType: "audio",
+            mediaUrl: audioUrl,
+            mediaMimeType: recording.mimeType,
+            ptt: true,
           },
         });
         if (error) throw new Error(error.message || "Falha ao enviar nota de voz");
