@@ -71,7 +71,7 @@ const MODULES: ModuleAudit[] = [
   { key: "wa-provider", module: "WhatsApp ZAPI/Zapy Provider", status: "Functional",
     routes: [], tables: ["whatsapp_provider_instances"],
     components: ["zapiAdapter", "zapyAdapter", "providerAdapter"],
-    edgeFunctions: ["whatsapp-zapi-send", "whatsapp-zapi-status"], lastError: "",
+    edgeFunctions: ["whatsapp-pro-send", "whatsapp-zapi-status"], lastError: "",
     priority: "P3", nextStep: "OK." },
   { key: "wa-webhooks", module: "WhatsApp Webhooks", status: "Partial",
     routes: [], tables: ["whatsapp_webhook_logs"],
