@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle, XCircle, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { LEADCHEF_HOME_PATH } from "@/config/appModes";
+
 
 interface InviteData {
   id: string;
@@ -131,7 +131,7 @@ export default function AcceptWorkspaceInvite() {
         toast.info("Já é membro deste workspace.");
         localStorage.setItem("currentWorkspaceId", invite.workspace_id);
         await refreshWorkspaces();
-        navigate(invite.workspace_ui_mode === "leadchef" ? LEADCHEF_HOME_PATH : "/dashboard", { replace: true });
+        navigate("/dashboard", { replace: true });
         return;
       }
 
@@ -155,7 +155,7 @@ export default function AcceptWorkspaceInvite() {
       toast.success(`Bem-vindo à equipa ${invite.workspace_name}!`);
       localStorage.setItem("currentWorkspaceId", invite.workspace_id);
       await refreshWorkspaces();
-      navigate(invite.workspace_ui_mode === "leadchef" ? LEADCHEF_HOME_PATH : "/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err: any) {
       console.error("Error accepting invite:", err);
       toast.error(err.message || "Erro ao aceitar convite");

@@ -4,7 +4,7 @@ import { useAuth } from "./AuthContext";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type WorkspaceRole = "owner" | "admin" | "agent" | "viewer" | "agency" | "hr";
-export type WorkspaceUiMode = "auto" | "fastcrm" | "leadchef";
+export type WorkspaceUiMode = "auto" | "fastcrm";
 
 export interface Workspace {
   id: string;

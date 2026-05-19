@@ -482,14 +482,3 @@
   }
 }
 
-
-/* ─── App Mode: LeadChef ─────────────────────────────────────────
-   Aplicado via [data-app-mode="leadchef"] no AppModeGuard.
-   Substitui apenas tokens de marca (primary/ring) — mantém todo
-   o resto do design system intacto.
-─────────────────────────────────────────────────────────────────*/
-[data-app-mode="leadchef"] {
-  --primary: 158 64% 40%;          /* emerald-600 */
-  --primary-foreground: 0 0% 100%;
-  --ring: 158 64% 40%;
-}

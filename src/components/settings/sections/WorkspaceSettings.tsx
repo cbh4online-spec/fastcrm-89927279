@@ -468,36 +468,6 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
         </SettingsSection>
       )}
 
-      {/* UI Mode (LeadChef-only override) */}
-      {shouldShow("workspace-ui-mode") && canManageMembers && (
-        <SettingsSection
-          title="Modo de interface"
-          description="Controla se este workspace mostra o FastCRM completo ou apenas o LeadChef."
-          icon={<LayoutGrid className="h-5 w-5" />}
-        >
-          <div className="space-y-3 max-w-md">
-            <Label>Modo</Label>
-            <Select
-              value={uiMode}
-              onValueChange={(v) => handleSaveUiMode(v as WorkspaceUiMode)}
-              disabled={savingUiMode}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">Automático (decidido pelos módulos instalados)</SelectItem>
-                <SelectItem value="fastcrm">FastCRM completo</SelectItem>
-                <SelectItem value="leadchef">Apenas LeadChef</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Em modo <strong>Apenas LeadChef</strong>, o workspace mostra só o módulo LeadChef
-              (mais Inbox, Calendário e Definições) com branding LeadChef. Recarregue a página para aplicar.
-            </p>
-          </div>
-        </SettingsSection>
-      )}
 
       {/* Team Members */}
       {shouldShow("workspace-users") && (

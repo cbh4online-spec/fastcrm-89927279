@@ -2,14 +2,14 @@ import { lazy } from "react";
 import { Route, Navigate } from "react-router-dom";
 
 const FastCRMLanding = lazy(() => import("@/pages/FastCRMLanding"));
-const LeadChefLanding = lazy(() => import("@/pages/LeadChefLanding"));
+
 const Login = lazy(() => import("@/pages/Login"));
 const Signup = lazy(() => import("@/pages/Signup"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const OnboardingHubPage = lazy(() => import("@/pages/OnboardingHubPage"));
-const LeadChefOnboardingWizard = lazy(() => import("@/pages/onboarding/LeadChefOnboardingWizard"));
+
 const ActivationAdminPage = lazy(() => import("@/pages/ActivationAdminPage"));
 const WeeklyDashboard = lazy(() => import("@/pages/WeeklyDashboard"));
 const CommandCenter = lazy(() => import("@/pages/CommandCenter"));
@@ -51,8 +51,6 @@ export function DashboardCoreRoutes() {
       {/* Main Routes */}
       <Route path="/" element={<FastCRMLanding />} />
       <Route path="/fastcrm" element={<FastCRMLanding />} />
-      <Route path="/leadchef-landing" element={<LeadChefLanding />} />
-      <Route path="/leadchef" element={<LeadChefLanding />} />
       <Route path="/admin/generate-landing-images" element={<GenerateLandingImages />} />
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/changelog" element={<ChangelogPage />} />
@@ -62,7 +60,7 @@ export function DashboardCoreRoutes() {
       <Route path="/auth" element={<Auth />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/onboarding" element={<Onboarding />} />
-      <Route path="/onboarding/leadchef" element={<LeadChefOnboardingWizard />} />
+      
       <Route path="/dashboard/onboarding" element={<OnboardingHubPage />} />
       <Route path="/dashboard/admin/activation" element={<ActivationAdminPage />} />
       <Route path="/dashboards" element={<Navigate to="/dashboard" replace />} />

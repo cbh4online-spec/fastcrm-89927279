@@ -156,7 +156,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "pipeline", name: t("pipeline"), href: "/dashboard/opportunities", icon: TrendingUp, iconColor: "text-emerald-500" },
         { nameKey: "lifecycle", name: t("lifecycle"), href: "/dashboard/lifecycle", icon: GitBranch, iconColor: "text-emerald-500" },
         { nameKey: "fastmatch", name: t("fastmatch"), href: "/dashboard/fastmatch", icon: Star, iconColor: "text-emerald-500" },
-        { nameKey: "leadchef", name: "LeadChef", href: "/dashboard/leadchef/today", icon: ChefHat, iconColor: "text-emerald-500" },
+        
         { nameKey: "scheduling", name: t("scheduling"), href: "/dashboard/scheduling", icon: Calendar, iconColor: "text-emerald-500" },
       ],
     },
