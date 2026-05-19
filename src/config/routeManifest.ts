@@ -175,7 +175,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
  e("leadchef-embaixador", "Embaixadores LeadChef", "/embaixador/dashboard", Trophy, "comercial", { isBeta: true }),
   // Search-only CRM routes
   e("crm-hub",         "CRM",             "/dashboard/crm",            Users,         "comercial", { visibleInSidebar: false }),
-  e("google-local",    "Google Local",    "/dashboard/prospecting/google-local", MapPin, "comercial", { visibleInSidebar: false, moduleSlug: "google-local-services" }),
+  e("google-local",    "Google Local",    "/dashboard/prospecting/google-local", MapPin, "comercial", { moduleSlug: "google-local-services" }),
   e("web-search-prosp","Pesquisa Web",    "/dashboard/prospecting/web-search",  Search, "comercial", { visibleInSidebar: false }),
   e("professional-prosp","Profissionais", "/dashboard/prospecting/professionals", Users, "comercial", { visibleInSidebar: false }),
 
