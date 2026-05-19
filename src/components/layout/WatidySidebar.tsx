@@ -591,8 +591,11 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                     return (
                       <div key={section.key} className="pt-1">
                         <div className="px-2.5 pb-1 flex items-center gap-1.5">
-                          <SectionIcon className="w-3 h-3 text-sidebar-foreground/30" />
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/30">
+                          <SectionIcon className="w-3 h-3" style={{ color: `hsl(${color.fg})` }} />
+                          <span
+                            className="text-[10px] font-bold uppercase tracking-wider"
+                            style={{ color: `hsl(${color.fg})` }}
+                          >
                             {section.label}
                           </span>
                         </div>
