@@ -153,8 +153,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("daily-brief",            "Briefing Diário",         "/dashboard/daily-brief",           Newspaper,       "ai-strategy"),
   e("revenue-flight-control", "Controlo de Receita",     "/dashboard/revenue-flight-control", Gauge,          "ai-strategy"),
   e("alerts",                 "Alertas",                 "/dashboard/alerts",                Bell,            "inicio"),
-  e("feed",                   "Feed",                    "/dashboard/feed",                  Newspaper,       "inicio", { visibleInSidebar: false, menuKey: "feed" }),
-  e("productivity",           "Produtividade",           "/dashboard/productivity",          Target,          "inicio", { visibleInSidebar: false, menuKey: "productivity" }),
+  e("feed",                   "Feed",                    "/dashboard/feed",                  Newspaper,       "inicio", { menuKey: "feed" }),
+  e("productivity",           "Produtividade",           "/dashboard/productivity",          Target,          "inicio", { menuKey: "productivity" }),
 
   // ══════════════════════════════════════════════════════════════
   // COMERCIAL
@@ -189,24 +189,22 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("groups",      "Grupos",      "/dashboard/groups",                   Users,     "comunicacao"),
   e("telegram",    "Telegram",    "/dashboard/telegram",                 Send,      "comunicacao"),
   e("whatsapp-pro","WhatsApp Pro","/dashboard/whatsapp-pro",             MessageSquare, "comunicacao", { moduleSlug: "whatsapp-business" }),
-  // WhatsApp — hub único no sidebar; sub-páginas acessíveis via tabs do hub e ⌘K
-  e("whatsapp-pro","WhatsApp Pro","/dashboard/whatsapp-pro",             MessageSquare, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("whatsapp-inbox","Inbox WhatsApp","/dashboard/whatsapp-pro/inbox",   Inbox, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("whatsapp-campaigns","Campanhas WhatsApp","/dashboard/whatsapp-pro/campaigns", Send, "comunicacao", { moduleSlug: "whatsapp-business" }),
   // Restantes mantêm rota activa mas saem do sidebar (acessíveis via hub/atalhos)
-  e("whatsapp-analytics","Métricas WhatsApp","/dashboard/whatsapp-pro/analytics", BarChart3, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-templates","Templates WhatsApp","/dashboard/whatsapp-pro/templates", FileText, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-sequences","Sequências WhatsApp","/dashboard/whatsapp-pro/sequences", Workflow, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-scheduled","Mensagens Agendadas","/dashboard/whatsapp-pro/scheduled", Calendar, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-quick-replies","Quick Replies WhatsApp","/dashboard/whatsapp-pro/quick-replies", Zap, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Package, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-bot-rules","Bot WhatsApp","/dashboard/whatsapp-pro/bot-rules", Bot, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-contacts-import","Importar Contactos WhatsApp","/dashboard/whatsapp-pro/contacts-import", Upload, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-segments","Segmentos WhatsApp","/dashboard/whatsapp-pro/segments", Target, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-consent","Consentimento WhatsApp","/dashboard/whatsapp-pro/consent", ShieldCheck, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-quick-templates","Templates Rápidos WhatsApp","/dashboard/whatsapp-pro/quick-templates", Sparkles, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-recurring","Campanhas Recorrentes WhatsApp","/dashboard/whatsapp-pro/recurring", Repeat, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-throttle","Anti-spam &amp; Throttling","/dashboard/whatsapp-pro/throttle", Gauge, "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-analytics","Métricas WhatsApp","/dashboard/whatsapp-pro/analytics", BarChart3, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-templates","Templates WhatsApp","/dashboard/whatsapp-pro/templates", FileText, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-sequences","Sequências WhatsApp","/dashboard/whatsapp-pro/sequences", Workflow, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-scheduled","Mensagens Agendadas","/dashboard/whatsapp-pro/scheduled", Calendar, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-quick-replies","Quick Replies WhatsApp","/dashboard/whatsapp-pro/quick-replies", Zap, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-catalog","Catálogo WhatsApp","/dashboard/whatsapp-pro/catalog", Package, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-bot-rules","Bot WhatsApp","/dashboard/whatsapp-pro/bot-rules", Bot, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-contacts-import","Importar Contactos WhatsApp","/dashboard/whatsapp-pro/contacts-import", Upload, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-segments","Segmentos WhatsApp","/dashboard/whatsapp-pro/segments", Target, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-consent","Consentimento WhatsApp","/dashboard/whatsapp-pro/consent", ShieldCheck, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-quick-templates","Templates Rápidos WhatsApp","/dashboard/whatsapp-pro/quick-templates", Sparkles, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-recurring","Campanhas Recorrentes WhatsApp","/dashboard/whatsapp-pro/recurring", Repeat, "comunicacao", { moduleSlug: "whatsapp-business" }),
+  e("whatsapp-throttle","Anti-spam &amp; Throttling","/dashboard/whatsapp-pro/throttle", Gauge, "comunicacao", { moduleSlug: "whatsapp-business" }),
 
   e("voicehub",    "VoiceHub",    "/dashboard/voicehub",                 Headphones, "comunicacao"),
  e("exec-command","Dashboard Executivo","/dashboard/communication/executive", BarChart3, "comunicacao"),
@@ -235,11 +233,11 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("marketing-hub",   "Marketing",        "/dashboard/marketing",        Megaphone, "marketing", { visibleInSidebar: false }),
   e("conversion-hub",  "Funis & Landing Pages", "/dashboard/conversion", Workflow, "marketing"),
   e("builder",         "HTML Builder",     "/dashboard/builder",          Wand2,     "marketing"),
-  e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing", { visibleInSidebar: false }),
-  e("landing-pages",   "Landing Pages",    "/dashboard/landing-pages",    Globe,     "marketing", { visibleInSidebar: false }),
+  e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing", ),
+  e("landing-pages",   "Landing Pages",    "/dashboard/landing-pages",    Globe,     "marketing", ),
   e("ebooks",          "eBooks",           "/dashboard/ebooks",           BookOpen,  "marketing"),
-  e("ebook-templates", "Templates eBooks", "/dashboard/ebooks/templates",  LayoutGrid, "marketing", { visibleInSidebar: false }),
-  e("ebook-templates-admin", "Gerir Templates", "/dashboard/ebooks/templates/admin", LayoutGrid, "marketing", { visibleInSidebar: false }),
+  e("ebook-templates", "Templates eBooks", "/dashboard/ebooks/templates",  LayoutGrid, "marketing", ),
+  e("ebook-templates-admin", "Gerir Templates", "/dashboard/ebooks/templates/admin", LayoutGrid, "marketing", ),
   e("form-studio",     "Formulários",      "/dashboard/form-studio",      PenTool,   "marketing"),
   e("seo",             "SEO",              "/dashboard/seo",              Globe,     "marketing", { moduleSlug: "seo-growth" }),
   e("bio-os",          "Bio OS",           "/dashboard/bio",              Link2,     "marketing", { moduleSlug: "bio-os" }),
@@ -254,11 +252,11 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("pitch",        "Apresentação",     "/dashboard/pitch",             Presentation,"vendas"),
   e("invoices",     "Faturas",          "/dashboard/invoices",          Receipt,     "vendas", { moduleSlug: "invoices", menuKey: "invoices" }),
   e("collections",  "Cobranças",        "/dashboard/collections",       HandCoins,   "vendas"),
-  e("collections-sequences", "Sequências de cobrança", "/dashboard/collections/sequences", HandCoins, "vendas", { visibleInSidebar: false }),
+  e("collections-sequences", "Sequências de cobrança", "/dashboard/collections/sequences", HandCoins, "vendas", ),
   e("collection-detail", "Detalhe de cobrança", "/dashboard/collections/:id", HandCoins, "vendas", { visibleInSidebar: false }),
   e("products",     "Produtos",         "/dashboard/products",          Package,     "vendas", { menuKey: "products" }),
   e("products-ocr", "Criar por OCR",    "/dashboard/products/ocr-create", ScanText,  "vendas", { menuKey: "products" }),
-  e("products-ocr-drafts", "Rascunhos OCR", "/dashboard/products/ocr-drafts", ScanText, "vendas", { menuKey: "products", visibleInSidebar: false }),
+  e("products-ocr-drafts", "Rascunhos OCR", "/dashboard/products/ocr-drafts", ScanText, "vendas", { menuKey: "products" }),
   e("order-notes",  "Notas Encomenda",  "/dashboard/order-notes",       ClipboardList,"vendas"),
   e("bundles",      "Pacotes",          "/dashboard/bundles",           Layers,      "vendas"),
   e("composite-products", "Produtos Compostos", "/dashboard/composite-products", Boxes, "vendas", { menuKey: "products" }),
@@ -267,9 +265,9 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("packages",     "Pacotes",          "/dashboard/packages",          Package,     "vendas", { visibleInSidebar: false }),
   e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
   e("reports",      "Relatórios",       "/dashboard/reports",           BarChart3,   "vendas", { menuKey: "reports" }),
-  e("strategy",     "Estratégia",       "/dashboard/strategy",          Brain,       "vendas", { visibleInSidebar: false }),
-  e("checkout-admin","Admin Checkout",  "/dashboard/checkout-admin",    ShoppingCart, "vendas", { visibleInSidebar: false }),
-  e("checkout",     "Checkout",         "/dashboard/checkout",          ShoppingCart, "vendas", { visibleInSidebar: false }),
+  e("strategy",     "Estratégia",       "/dashboard/strategy",          Brain,       "vendas", ),
+  e("checkout-admin","Admin Checkout",  "/dashboard/checkout-admin",    ShoppingCart, "vendas", ),
+  e("checkout",     "Checkout",         "/dashboard/checkout",          ShoppingCart, "vendas", ),
 
   // ══════════════════════════════════════════════════════════════
   // LOJA ONLINE (B2C)
@@ -308,8 +306,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("b2b-clients",      "Clientes",            "/dashboard/b2b/clients",      Users,        "portal-b2b", { moduleSlug: "b2b-portal" }),
   e("b2b-users",        "Utilizadores",        "/dashboard/b2b/users",        UserCheck,    "portal-b2b", { moduleSlug: "b2b-portal" }),
   e("b2b-plans",        "Planos",              "/dashboard/b2b/plans",        Package,      "portal-b2b", { moduleSlug: "b2b-portal" }),
-  e("order-approvals",  "Aprovações Encomenda","/dashboard/order-approvals",  CheckSquare,  "portal-b2b", { visibleInSidebar: false }),
-  e("client-users",     "Utilizadores Cliente","/dashboard/client-users",     Users,        "portal-b2b", { visibleInSidebar: false }),
+  e("order-approvals",  "Aprovações Encomenda","/dashboard/order-approvals",  CheckSquare,  "portal-b2b", ),
+  e("client-users",     "Utilizadores Cliente","/dashboard/client-users",     Users,        "portal-b2b", ),
 
   // ══════════════════════════════════════════════════════════════
   // SUPORTE (Helpdesk)
@@ -324,8 +322,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
 
   // Client Tickets (B2B Portal)
   e("client-tickets",          "Tickets Clientes",     "/dashboard/tickets",                    Headphones,  "portal-b2b"),
-  e("client-tickets-dashboard","Dashboard Tickets",    "/dashboard/tickets/dashboard",           Gauge,       "portal-b2b", { visibleInSidebar: false }),
-  e("client-tickets-settings", "Config. Tickets",      "/dashboard/tickets/settings",            Settings,    "portal-b2b", { visibleInSidebar: false }),
+  e("client-tickets-dashboard","Dashboard Tickets",    "/dashboard/tickets/dashboard",           Gauge,       "portal-b2b", ),
+  e("client-tickets-settings", "Config. Tickets",      "/dashboard/tickets/settings",            Settings,    "portal-b2b", ),
 
   // ══════════════════════════════════════════════════════════════
   // RH (Recursos Humanos)
@@ -358,7 +356,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   e("tasks",                   "Tarefas",                "/dashboard/tasks",                        CheckSquare,   "operacoes"),
   e("events",                  "Eventos",                "/dashboard/events",                       CalendarDays,  "operacoes"),
-  e("imports",                 "Importações",            "/dashboard/imports",                       Upload,      "operacoes", { visibleInSidebar: false }),
+  e("imports",                 "Importações",            "/dashboard/imports",                       Upload,      "operacoes", ),
 
   // ══════════════════════════════════════════════════════════════
   // COMPRAS
@@ -371,8 +369,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("procurement-receipts",    "Receções",               "/dashboard/procurement/receipts",          Warehouse,   "compras", { moduleSlug: "procurement" }),
   e("procurement-rfqs",        "RFQs",                   "/dashboard/procurement/rfqs",              FileQuestion,"compras", { moduleSlug: "procurement" }),
   e("procurement-rfqs-dash",   "Dashboard RFQs",         "/dashboard/procurement/rfqs-dashboard",    BarChart3,   "compras", { moduleSlug: "procurement" }),
-  e("procurement-price-import","Import. Preços",         "/dashboard/procurement/price-import",      Upload,      "compras", { moduleSlug: "procurement", visibleInSidebar: false }),
-  e("procurement-supplier-import","Import. Fornecedores","/dashboard/procurement/supplier-import",   Upload,      "compras", { moduleSlug: "procurement", visibleInSidebar: false }),
+  e("procurement-price-import","Import. Preços",         "/dashboard/procurement/price-import",      Upload,      "compras", { moduleSlug: "procurement" }),
+  e("procurement-supplier-import","Import. Fornecedores","/dashboard/procurement/supplier-import",   Upload,      "compras", { moduleSlug: "procurement" }),
   e("student-journey",         "Jornada do Aluno",       "/dashboard/student-journey",               Briefcase,   "operacoes", { moduleSlug: "student-journey" }),
   e("automations",             "Automações",             "/dashboard/automations",                   Zap,         "operacoes"),
   e("metodo-vision",           "Método Vision",          "/dashboard/metodo-vision",                 Target,      "operacoes", { moduleSlug: "metodo-vision" }),
@@ -412,9 +410,9 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("context-os",          "Context OS",          "/dashboard/context-os",             Brain,          "ai-strategy"),
   e("impact-map",          "Mapa de Impacto",     "/dashboard/impact-map",             Activity,       "inteligencia"),
   e("kernel",              "FastCRM Kernel",      "/dashboard/kernel",                 Cpu,            "inteligencia"),
-  e("ai-operations",       "Operações IA",        "/dashboard/ai-operations",          Activity,       "inteligencia", { visibleInSidebar: false }),
-  e("ai-settings",         "Definições IA",       "/dashboard/ai-settings",            Settings,       "inteligencia", { visibleInSidebar: false }),
-  e("ai-usage",            "Utilização IA",       "/dashboard/ai-usage",               BarChart3,      "inteligencia", { visibleInSidebar: false }),
+  e("ai-operations",       "Operações IA",        "/dashboard/ai-operations",          Activity,       "inteligencia", ),
+  e("ai-settings",         "Definições IA",       "/dashboard/ai-settings",            Settings,       "inteligencia", ),
+  e("ai-usage",            "Utilização IA",       "/dashboard/ai-usage",               BarChart3,      "inteligencia", ),
   e("imo-ai",              "IMO AI",               "/dashboard/imo-ai",                 Home,           "inteligencia", { moduleSlug: "imo-ai" }),
 
   // ══════════════════════════════════════════════════════════════
@@ -425,7 +423,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("settings-billing",      "Faturação",       "/settings/billing",           CreditCard,   "administracao"),
   e("credits-history",       "Histórico de Créditos", "/dashboard/credits",     Coins,        "administracao"),
   e("settings-integrations", "Integrações & API",     "/settings/integrations",      Plug,         "administracao", { menuKey: "integrations" }),
-  e("settings-billing-integrations", "Programas de Faturação", "/settings/billing-integrations", Receipt, "administracao", { visibleInSidebar: false, menuKey: "integrations" }),
+  e("settings-billing-integrations", "Programas de Faturação", "/settings/billing-integrations", Receipt, "administracao", { menuKey: "integrations" }),
   e("settings-payment-gateways", "Gateways de Pagamento", "/settings/payment-gateways", CreditCard, "administracao", { menuKey: "billing" }),
   e("settings-workspace",    "Workspace",       "/settings/workspace",         FolderCog,    "administracao"),
   e("settings-roles",        "Papéis",          "/settings/roles",             ShieldCheck,  "administracao"),
