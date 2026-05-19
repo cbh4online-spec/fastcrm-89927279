@@ -130,8 +130,7 @@ const e = (
   href: string,
   icon: LucideIcon,
   group: NavGroup,
-  opts?: Partial<Omit<RouteEntry, "key" | "label" | "href" | "icon" | "group">>,
-): RouteEntry => ({
+  opts?: Partial<Omit<RouteEntry, "key" | "label" | "href" | "icon" | "group">>): RouteEntry => ({
   key,
   label,
   href,
@@ -233,11 +232,11 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("marketing-hub",   "Marketing",        "/dashboard/marketing",        Megaphone, "marketing", { visibleInSidebar: false }),
   e("conversion-hub",  "Funis & Landing Pages", "/dashboard/conversion", Workflow, "marketing"),
   e("builder",         "HTML Builder",     "/dashboard/builder",          Wand2,     "marketing"),
-  e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing", ),
-  e("landing-pages",   "Landing Pages",    "/dashboard/landing-pages",    Globe,     "marketing", ),
+  e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing"),
+  e("landing-pages",   "Landing Pages",    "/dashboard/landing-pages",    Globe,     "marketing"),
   e("ebooks",          "eBooks",           "/dashboard/ebooks",           BookOpen,  "marketing"),
-  e("ebook-templates", "Templates eBooks", "/dashboard/ebooks/templates",  LayoutGrid, "marketing", ),
-  e("ebook-templates-admin", "Gerir Templates", "/dashboard/ebooks/templates/admin", LayoutGrid, "marketing", ),
+  e("ebook-templates", "Templates eBooks", "/dashboard/ebooks/templates",  LayoutGrid, "marketing"),
+  e("ebook-templates-admin", "Gerir Templates", "/dashboard/ebooks/templates/admin", LayoutGrid, "marketing"),
   e("form-studio",     "Formulários",      "/dashboard/form-studio",      PenTool,   "marketing"),
   e("seo",             "SEO",              "/dashboard/seo",              Globe,     "marketing", { moduleSlug: "seo-growth" }),
   e("bio-os",          "Bio OS",           "/dashboard/bio",              Link2,     "marketing", { moduleSlug: "bio-os" }),
@@ -252,7 +251,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("pitch",        "Apresentação",     "/dashboard/pitch",             Presentation,"vendas"),
   e("invoices",     "Faturas",          "/dashboard/invoices",          Receipt,     "vendas", { moduleSlug: "invoices", menuKey: "invoices" }),
   e("collections",  "Cobranças",        "/dashboard/collections",       HandCoins,   "vendas"),
-  e("collections-sequences", "Sequências de cobrança", "/dashboard/collections/sequences", HandCoins, "vendas", ),
+  e("collections-sequences", "Sequências de cobrança", "/dashboard/collections/sequences", HandCoins, "vendas"),
   e("collection-detail", "Detalhe de cobrança", "/dashboard/collections/:id", HandCoins, "vendas", { visibleInSidebar: false }),
   e("products",     "Produtos",         "/dashboard/products",          Package,     "vendas", { menuKey: "products" }),
   e("products-ocr", "Criar por OCR",    "/dashboard/products/ocr-create", ScanText,  "vendas", { menuKey: "products" }),
@@ -265,9 +264,9 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("packages",     "Pacotes",          "/dashboard/packages",          Package,     "vendas", { visibleInSidebar: false }),
   e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
   e("reports",      "Relatórios",       "/dashboard/reports",           BarChart3,   "vendas", { menuKey: "reports" }),
-  e("strategy",     "Estratégia",       "/dashboard/strategy",          Brain,       "vendas", ),
-  e("checkout-admin","Admin Checkout",  "/dashboard/checkout-admin",    ShoppingCart, "vendas", ),
-  e("checkout",     "Checkout",         "/dashboard/checkout",          ShoppingCart, "vendas", ),
+  e("strategy",     "Estratégia",       "/dashboard/strategy",          Brain,       "vendas"),
+  e("checkout-admin","Admin Checkout",  "/dashboard/checkout-admin",    ShoppingCart, "vendas"),
+  e("checkout",     "Checkout",         "/dashboard/checkout",          ShoppingCart, "vendas"),
 
   // ══════════════════════════════════════════════════════════════
   // LOJA ONLINE (B2C)
@@ -306,8 +305,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("b2b-clients",      "Clientes",            "/dashboard/b2b/clients",      Users,        "portal-b2b", { moduleSlug: "b2b-portal" }),
   e("b2b-users",        "Utilizadores",        "/dashboard/b2b/users",        UserCheck,    "portal-b2b", { moduleSlug: "b2b-portal" }),
   e("b2b-plans",        "Planos",              "/dashboard/b2b/plans",        Package,      "portal-b2b", { moduleSlug: "b2b-portal" }),
-  e("order-approvals",  "Aprovações Encomenda","/dashboard/order-approvals",  CheckSquare,  "portal-b2b", ),
-  e("client-users",     "Utilizadores Cliente","/dashboard/client-users",     Users,        "portal-b2b", ),
+  e("order-approvals",  "Aprovações Encomenda","/dashboard/order-approvals",  CheckSquare,  "portal-b2b"),
+  e("client-users",     "Utilizadores Cliente","/dashboard/client-users",     Users,        "portal-b2b"),
 
   // ══════════════════════════════════════════════════════════════
   // SUPORTE (Helpdesk)
@@ -322,8 +321,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
 
   // Client Tickets (B2B Portal)
   e("client-tickets",          "Tickets Clientes",     "/dashboard/tickets",                    Headphones,  "portal-b2b"),
-  e("client-tickets-dashboard","Dashboard Tickets",    "/dashboard/tickets/dashboard",           Gauge,       "portal-b2b", ),
-  e("client-tickets-settings", "Config. Tickets",      "/dashboard/tickets/settings",            Settings,    "portal-b2b", ),
+  e("client-tickets-dashboard","Dashboard Tickets",    "/dashboard/tickets/dashboard",           Gauge,       "portal-b2b"),
+  e("client-tickets-settings", "Config. Tickets",      "/dashboard/tickets/settings",            Settings,    "portal-b2b"),
 
   // ══════════════════════════════════════════════════════════════
   // RH (Recursos Humanos)
@@ -356,7 +355,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   e("tasks",                   "Tarefas",                "/dashboard/tasks",                        CheckSquare,   "operacoes"),
   e("events",                  "Eventos",                "/dashboard/events",                       CalendarDays,  "operacoes"),
-  e("imports",                 "Importações",            "/dashboard/imports",                       Upload,      "operacoes", ),
+  e("imports",                 "Importações",            "/dashboard/imports",                       Upload,      "operacoes"),
 
   // ══════════════════════════════════════════════════════════════
   // COMPRAS
@@ -410,9 +409,9 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("context-os",          "Context OS",          "/dashboard/context-os",             Brain,          "ai-strategy"),
   e("impact-map",          "Mapa de Impacto",     "/dashboard/impact-map",             Activity,       "inteligencia"),
   e("kernel",              "FastCRM Kernel",      "/dashboard/kernel",                 Cpu,            "inteligencia"),
-  e("ai-operations",       "Operações IA",        "/dashboard/ai-operations",          Activity,       "inteligencia", ),
-  e("ai-settings",         "Definições IA",       "/dashboard/ai-settings",            Settings,       "inteligencia", ),
-  e("ai-usage",            "Utilização IA",       "/dashboard/ai-usage",               BarChart3,      "inteligencia", ),
+  e("ai-operations",       "Operações IA",        "/dashboard/ai-operations",          Activity,       "inteligencia"),
+  e("ai-settings",         "Definições IA",       "/dashboard/ai-settings",            Settings,       "inteligencia"),
+  e("ai-usage",            "Utilização IA",       "/dashboard/ai-usage",               BarChart3,      "inteligencia"),
   e("imo-ai",              "IMO AI",               "/dashboard/imo-ai",                 Home,           "inteligencia", { moduleSlug: "imo-ai" }),
 
   // ══════════════════════════════════════════════════════════════
@@ -455,8 +454,7 @@ export function getSidebarItems(
   group: NavGroup,
   installedModuleSlugs: string[],
   canAccess: (menuKey: string) => boolean,
-  mode: AppMode = "fastcrm",
-): RouteEntry[] {
+  mode: AppMode = "fastcrm"): RouteEntry[] {
   const installed = new Set(installedModuleSlugs);
   return ROUTE_MANIFEST.filter((r) => {
     if (r.group !== group) return false;
@@ -474,8 +472,7 @@ export function getSidebarItems(
 export function getSearchableRoutes(
   installedModuleSlugs: string[],
   canAccess: (menuKey: string) => boolean,
-  mode: AppMode = "fastcrm",
-): RouteEntry[] {
+  mode: AppMode = "fastcrm"): RouteEntry[] {
   const installed = new Set(installedModuleSlugs);
   return ROUTE_MANIFEST.filter((r) => {
     if (!r.visibleInSearch) return false;
@@ -499,8 +496,7 @@ export function getAllSearchablePages(): { path: string; label: string; icon: Lu
 export function buildSidebarSections(
   installedModuleSlugs: string[],
   canAccess: (menuKey: string) => boolean,
-  mode: AppMode = "fastcrm",
-): Array<NavGroupMeta & { items: RouteEntry[] }> {
+  mode: AppMode = "fastcrm"): Array<NavGroupMeta & { items: RouteEntry[] }> {
   return NAV_GROUPS
     .map((g) => ({
       ...g,
@@ -533,8 +529,7 @@ export const MEGA_GROUPS: MegaGroupMeta[] = [
 /** Build mega-group sidebar sections */
 export function buildMegaGroupSections(
   installedModuleSlugs: string[],
-  canAccess: (menuKey: string) => boolean,
-): Array<MegaGroupMeta & { sections: Array<NavGroupMeta & { items: RouteEntry[] }> }> {
+  canAccess: (menuKey: string) => boolean): Array<MegaGroupMeta & { sections: Array<NavGroupMeta & { items: RouteEntry[] }> }> {
   const allSections = buildSidebarSections(installedModuleSlugs, canAccess);
   return MEGA_GROUPS.map((mg) => ({
     ...mg,
