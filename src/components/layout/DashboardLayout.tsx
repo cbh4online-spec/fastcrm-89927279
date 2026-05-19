@@ -40,7 +40,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { enabled: watidySidebar } = useFeatureFlag("ui.watidy_sidebar_enabled");
   // Default to Watidy unless explicitly forced to Adaptive (legacy SidebarV1/Sidebar removidos na Fase 2)
   const useWatidy = watidySidebar || !adaptiveSidebar;
-  const useAdaptive = !useWatidy;
+  // (AdaptiveSidebar é o fallback automático quando Watidy está desligado)
   const { collapsed } = useSidebarCollapse();
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
   const isMobile = useIsMobile();
