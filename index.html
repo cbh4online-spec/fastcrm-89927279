@@ -100,7 +100,75 @@
 </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- SEO fallback content — substituído pelo React após hidratação.
+           Garante que crawlers que não executam JS (Bingbot legacy, LinkedIn, scrapers IA)
+           vêem conteúdo real em vez de uma div vazia. -->
+      <div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;" aria-hidden="true">
+        <header>
+          <h1>FastCRM — CRM com Inteligência Artificial para Equipas de Vendas em Portugal</h1>
+          <p>
+            FastCRM é a plataforma portuguesa de CRM com IA que ajuda PMEs e equipas comerciais
+            a gerir leads, contactos, oportunidades e pipeline de vendas, automatizar comunicação
+            multicanal (WhatsApp, Email, SMS, Voz) e fechar mais negócios. Solução completa para
+            vendas B2B e B2C, gestão de propostas, faturação, cobranças, marketing automation,
+            loja online, marketplace C2C e portal B2B.
+          </p>
+        </header>
+
+        <nav aria-label="Páginas principais">
+          <ul>
+            <li><a href="/">Início</a></li>
+            <li><a href="/funcionalidades">Funcionalidades</a></li>
+            <li><a href="/precos">Preços e Planos</a></li>
+            <li><a href="/casos">Casos de Sucesso</a></li>
+            <li><a href="/sobre">Sobre Nós</a></li>
+            <li><a href="/contacto">Contacto</a></li>
+            <li><a href="/auth">Entrar / Criar Conta</a></li>
+          </ul>
+        </nav>
+
+        <section>
+          <h2>Funcionalidades Principais</h2>
+          <ul>
+            <li><strong>CRM Inteligente:</strong> Gestão de leads, contactos, empresas, oportunidades e pipeline visual.</li>
+            <li><strong>WhatsApp Pro:</strong> Inbox unificada, campanhas, sequências, bot, templates e analytics WhatsApp Business.</li>
+            <li><strong>IA Generativa:</strong> Assistentes de vendas, copilot CEO, sugestões de próximas ações, autofill de atributos.</li>
+            <li><strong>Automações:</strong> Workflows multicanal, sequências de cobrança, follow-ups automáticos, lifecycle.</li>
+            <li><strong>Vendas &amp; Faturação:</strong> Propostas, encomendas, faturas, pagamentos, integração InvoiceXpress.</li>
+            <li><strong>Marketing:</strong> Email campaigns, funis, landing pages, ebooks, SEO, formulários, Instagram.</li>
+            <li><strong>Compras:</strong> Fornecedores, encomendas, RFQs, recepções, importação de preços e produtos.</li>
+            <li><strong>Loja Online &amp; Marketplace:</strong> E-commerce B2C, marketplace C2C, portal B2B com pricing customizado.</li>
+            <li><strong>Recursos Humanos:</strong> Colaboradores, departamentos, recrutamento, férias, onboarding.</li>
+            <li><strong>Suporte:</strong> Helpdesk, tickets, knowledge base com RAG vetorial, customer success.</li>
+            <li><strong>Performance:</strong> Gamificação, leaderboards, desafios, modo TV para equipas de vendas.</li>
+            <li><strong>Conformidade PT:</strong> NIF, IVA, faturação certificada, RGPD, Lei Omnibus.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Planos Disponíveis</h2>
+          <ul>
+            <li><strong>FASTCRM START</strong> — Grátis até 3 utilizadores. CRM core, 1 pipeline, health scores básicos.</li>
+            <li><strong>FASTCRM GROW</strong> — 149€/mês. Para equipas em crescimento com automação e IA.</li>
+            <li><strong>FASTCRM PRO</strong> — 299€/mês. Operações avançadas com inteligência de receita completa.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Para Quem É o FastCRM</h2>
+          <p>
+            PMEs portuguesas, equipas de vendas B2B e B2C, agências, e-commerce, consultoras,
+            empresas de serviços, distribuidores, retalho, formação, saúde e qualquer organização
+            que precise centralizar relação com clientes, automatizar comunicação e medir performance comercial.
+          </p>
+        </section>
+
+        <footer>
+          <p>FastCRM © Método Pare. Lisboa, Portugal. CRM com IA construído para o mercado português.</p>
+        </footer>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
     <noscript><img height="1" width="1" style="display:none"
       src="https://www.facebook.com/tr?id=909068581793930&ev=PageView&noscript=1"
