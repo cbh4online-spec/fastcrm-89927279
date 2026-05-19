@@ -607,7 +607,10 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   return (
                     <Collapsible key={section.key} open={groupOpen} onOpenChange={() => toggleGroup(section.key)}>
                       <CollapsibleTrigger className="w-full">
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 transition-colors">
+                        <div
+                          className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider hover:bg-sidebar-accent/40 transition-colors"
+                          style={{ color: `hsl(${color.fg})` }}
+                        >
                           <SectionIcon className="w-3 h-3 shrink-0" />
                           <span className="flex-1 text-left truncate">{section.label}</span>
                           <ChevronRight className={cn("w-3 h-3 transition-transform duration-200", groupOpen && "rotate-90")} />
