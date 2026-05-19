@@ -591,34 +591,6 @@ function FunnelView({ ov }: { ov: any }) {
   );
 }
 
-function ConsolidatedTab({
-  title,
-  description,
-  link,
-  linkLabel,
-}: {
-  title: string;
-  description: string;
-  link: string;
-  linkLabel: string;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">
-          Esta secção consolida métricas detalhadas do módulo dedicado. Para análise completa, abra o módulo abaixo.
-        </p>
-        <Button asChild variant="outline">
-          <a href={link}>{linkLabel}</a>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
 
 function EmptyState({ message }: { message: string }) {
   return (
