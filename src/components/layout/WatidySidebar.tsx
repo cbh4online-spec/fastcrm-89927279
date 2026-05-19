@@ -620,12 +620,13 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                           <span className="text-[10px] font-medium opacity-50">
                             {section.items.length}
                           </span>
-                          <ChevronRight className={cn("w-3 h-3 opacity-50 transition-transform duration-200", groupOpen && "rotate-90")} />
+                          <ChevronRight className={cn("w-3 h-3 opacity-50 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]", groupOpen && "rotate-90")} />
                         </div>
                       </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-px mt-1">
+                      <CollapsibleContent className="space-y-px mt-1 overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
                         {section.items.map(renderItem)}
                       </CollapsibleContent>
+
 
 
                     </Collapsible>
