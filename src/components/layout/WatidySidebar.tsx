@@ -369,6 +369,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
               const fromRoute = activeMegaFromRoute === mg.key;
               const count = megaBadge(mg.key);
               const color = megaGroupColor(mg.key);
+              const locked = (mg as { _visibility?: { lockedByPlan: boolean } })._visibility?.lockedByPlan ?? false;
               return (
                 <HoverCard key={mg.key} openDelay={120} closeDelay={80}>
                   <HoverCardTrigger asChild>
@@ -378,12 +379,13 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                         if (!panelOpen) togglePanel();
                       }}
                       aria-current={fromRoute ? "page" : undefined}
-                      aria-label={mg.label}
+                      aria-label={locked ? `${mg.label} (bloqueado pelo plano)` : mg.label}
                       className={cn(
                         "relative w-full flex items-center justify-center h-10 rounded-lg transition-colors",
                         isActiveMega
                           ? "text-sidebar-foreground"
                           : "text-sidebar-foreground/55 hover:text-sidebar-foreground",
+                        locked && "opacity-60",
                       )}
                       style={
                         isActiveMega
@@ -398,11 +400,15 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                           style={{ backgroundColor: `hsl(${color.fg})` }}
                         />
                       )}
-                      {count > 0 && (
+                      {locked ? (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-sidebar-border text-sidebar-foreground/70">
+                          <Lock className="w-2.5 h-2.5" />
+                        </span>
+                      ) : count > 0 ? (
                         <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
                           {count > 99 ? "99+" : count}
                         </span>
-                      )}
+                      ) : null}
                     </button>
                   </HoverCardTrigger>
                   <HoverCardContent
@@ -413,29 +419,46 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   >
                     <div className="px-2 pb-2 mb-1 border-b border-sidebar-border flex items-center gap-2">
                       <Icon className="w-4 h-4" style={{ color: `hsl(${color.fg})` }} />
-                      <span className="text-sm font-bold text-sidebar-foreground">{mg.label}</span>
+                      <span className="text-sm font-bold text-sidebar-foreground flex-1">{mg.label}</span>
+                      {locked && <Lock className="w-3 h-3 text-sidebar-foreground/50" />}
                     </div>
-                    <div className="max-h-[60vh] overflow-y-auto space-y-2 scrollbar-thin">
-                      {mg.sections.map((sec) => (
-                        <div key={`hover-${mg.key}-${sec.key}`}>
-                          <div className="px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
-                            {sec.label}
+                    {locked ? (
+                      <div className="px-2 py-3 space-y-2">
+                        <p className="text-xs text-sidebar-foreground/70">
+                          {mg.description || "Departamento não incluído no seu plano actual."}
+                        </p>
+                        <Link
+                          to="/settings/billing"
+                          onClick={onClose}
+                          className="block w-full text-center px-3 py-1.5 text-xs font-semibold rounded-md bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 transition-colors"
+                        >
+                          Fazer upgrade do plano
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="max-h-[60vh] overflow-y-auto space-y-2 scrollbar-thin">
+                        {mg.sections.map((sec) => (
+                          <div key={`hover-${mg.key}-${sec.key}`}>
+                            <div className="px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                              {sec.label}
+                            </div>
+                            <div className="space-y-0.5">
+                              {sec.items.slice(0, 8).map((it) => renderCompactLink(it, color.fg))}
+                              {sec.items.length > 8 && (
+                                <div className="px-2.5 pt-0.5 text-[10px] text-sidebar-foreground/40">
+                                  +{sec.items.length - 8} mais…
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="space-y-0.5">
-                            {sec.items.slice(0, 8).map((it) => renderCompactLink(it, color.fg))}
-                            {sec.items.length > 8 && (
-                              <div className="px-2.5 pt-0.5 text-[10px] text-sidebar-foreground/40">
-                                +{sec.items.length - 8} mais…
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </HoverCardContent>
                 </HoverCard>
               );
             })}
+
 
             {/* ─ Recents ─ */}
             {recentItems.length > 0 && (
