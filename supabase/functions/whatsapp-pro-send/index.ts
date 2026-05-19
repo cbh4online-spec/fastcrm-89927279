@@ -17,17 +17,22 @@ interface SendPayload {
   conversationId?: string | null;
   contactId?: string | null;
   phone: string;
+  groupId?: string | null;
   messageType: string;
   text?: string;
   mediaUrl?: string;
   mediaMimeType?: string;
   fileName?: string;
+  ptt?: boolean;
   ctaUrl?: string | null;
   ctaLabel?: string | null;
   ctaPrompt?: string | null;
   productId?: string;
   templateId?: string;
   templateVariables?: Record<string, string | number>;
+  buttons?: { id?: string; type?: string; label: string; url?: string }[];
+  buttonHeader?: string;
+  buttonFooter?: string;
   metadata?: Record<string, unknown>;
 }
 
