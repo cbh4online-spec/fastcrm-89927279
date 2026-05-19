@@ -118,8 +118,9 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
 
   const [activeMega, setActiveMega] = useState<MegaGroup>(() => {
     const stored = typeof window !== "undefined" ? (localStorage.getItem(STORAGE_KEY_GROUP) as MegaGroup | null) : null;
-    return stored || megaGroups[0]?.key || "core";
+    return stored || megaGroups[0]?.key || "inicio";
   });
+
 
   useEffect(() => {
     if (activeMegaFromRoute && activeMegaFromRoute !== activeMega) setActiveMega(activeMegaFromRoute);
