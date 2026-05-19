@@ -105,6 +105,7 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "inicio",        label: "Início",        icon: LayoutDashboard, order: 1, collapsible: false },
   { key: "ai-strategy",   label: "Estratégia IA",   icon: Crown,           order: 2, collapsible: false },
   { key: "comercial",     label: "Comercial",     icon: Users,           order: 3, collapsible: true },
+  { key: "agenda",        label: "Agenda",        icon: Calendar,        order: 35, collapsible: true },
   { key: "comunicacao",   label: "Comunicação",   icon: Radio,           order: 4, collapsible: true },
   { key: "performance",   label: "Performance",   icon: Trophy,          order: 5, collapsible: true },
   { key: "marketing",     label: "Marketing",     icon: Megaphone,       order: 6, collapsible: true },
