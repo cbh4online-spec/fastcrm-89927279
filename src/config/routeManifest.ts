@@ -556,7 +556,7 @@ export interface MegaGroupMeta {
 export const MEGA_GROUPS: MegaGroupMeta[] = [
   { key: "inicio",             label: "Início",              icon: LayoutDashboard, navGroups: ["inicio"],
     description: "Visão geral, alertas e produtividade diária." },
-  { key: "comercial",          label: "Comercial",           icon: Users,           navGroups: ["comercial", "performance"],
+  { key: "comercial",          label: "Comercial",           icon: Users,           navGroups: ["comercial-crm", "comercial-pipeline", "comercial-prospecting", "comercial-leadchef", "performance"],
     description: "Leads, contactos, pipeline, propostas e gestão de equipa comercial." },
   { key: "marketing",          label: "Marketing",           icon: Megaphone,       navGroups: ["marketing"],
     description: "Campanhas, funis, landing pages, SEO e geração de procura." },
