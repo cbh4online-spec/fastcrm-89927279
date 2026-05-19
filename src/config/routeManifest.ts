@@ -190,7 +190,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("whatsapp-pro","WhatsApp Pro","/dashboard/whatsapp-pro",             MessageSquare, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("whatsapp-inbox","Inbox WhatsApp","/dashboard/whatsapp-pro/inbox",   Inbox, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("whatsapp-campaigns","Campanhas WhatsApp","/dashboard/whatsapp-pro/campaigns", Send, "comunicacao", { moduleSlug: "whatsapp-business" }),
-  // Restantes mantêm rota activa mas saem do sidebar (acessíveis via hub/atalhos)
+  // Sub-páginas WhatsApp — visíveis para acesso directo (também acessíveis via hub)
   e("whatsapp-analytics","Métricas WhatsApp","/dashboard/whatsapp-pro/analytics", BarChart3, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("whatsapp-templates","Templates WhatsApp","/dashboard/whatsapp-pro/templates", FileText, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("whatsapp-sequences","Sequências WhatsApp","/dashboard/whatsapp-pro/sequences", Workflow, "comunicacao", { moduleSlug: "whatsapp-business" }),
