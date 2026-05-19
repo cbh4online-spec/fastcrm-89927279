@@ -109,18 +109,18 @@ export default function ExecutiveCommandDashboard() {
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-8 p-4 md:p-6 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Executive Command Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            O painel que mostra receita, risco, equipa e próximas ações em tempo real.
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Executive Command</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Receita, risco, equipa e próximas acções — em tempo real.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={periodPreset} onValueChange={setPeriodPreset}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[150px] h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -134,7 +134,7 @@ export default function ExecutiveCommandDashboard() {
             </SelectContent>
           </Select>
           <Select value={model} onValueChange={(v) => setModel(v as AttributionModel)}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[140px] h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -145,68 +145,86 @@ export default function ExecutiveCommandDashboard() {
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={exportSummary}>
-            <Download className="mr-2 h-4 w-4" /> Exportar
+            <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar
           </Button>
           <Button size="sm" onClick={() => generate.mutate({ period, model })} disabled={generate.isPending}>
-            <Sparkles className="mr-2 h-4 w-4" />
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
             {generate.isPending ? "A gerar…" : "Gerar resumo IA"}
           </Button>
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex w-full flex-wrap justify-start gap-1 h-auto">
-          <TabsTrigger value="overview"><Activity className="mr-1 h-4 w-4" />Visão Geral</TabsTrigger>
-          <TabsTrigger value="revenue"><Wallet className="mr-1 h-4 w-4" />Receita</TabsTrigger>
-          <TabsTrigger value="leaks"><TrendingDown className="mr-1 h-4 w-4" />Fugas</TabsTrigger>
-          <TabsTrigger value="team"><Users className="mr-1 h-4 w-4" />Equipa</TabsTrigger>
-          <TabsTrigger value="quality"><CheckCircle2 className="mr-1 h-4 w-4" />Qualidade</TabsTrigger>
-          <TabsTrigger value="support"><HeadphonesIcon className="mr-1 h-4 w-4" />Suporte</TabsTrigger>
-          <TabsTrigger value="voice"><Phone className="mr-1 h-4 w-4" />Voz</TabsTrigger>
-          <TabsTrigger value="products"><Briefcase className="mr-1 h-4 w-4" />Produtos</TabsTrigger>
-          <TabsTrigger value="recommendations"><Brain className="mr-1 h-4 w-4" />Recomendações</TabsTrigger>
-          <TabsTrigger value="actions"><ListChecks className="mr-1 h-4 w-4" />Plano de Ação</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+        <TabsList className="bg-muted/50 p-1 h-auto flex flex-wrap gap-0.5">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-background">
+            <Activity className="mr-1.5 h-3.5 w-3.5" />Visão Geral
+          </TabsTrigger>
+          <TabsTrigger value="revenue" className="data-[state=active]:bg-background">
+            <Wallet className="mr-1.5 h-3.5 w-3.5" />Receita
+          </TabsTrigger>
+          <TabsTrigger value="risk" className="data-[state=active]:bg-background">
+            <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />Risco
+          </TabsTrigger>
+          <TabsTrigger value="actions" className="data-[state=active]:bg-background">
+            <ListChecks className="mr-1.5 h-3.5 w-3.5" />Plano de Acção
+          </TabsTrigger>
+          <TabsTrigger value="modules" className="data-[state=active]:bg-background">
+            <Brain className="mr-1.5 h-3.5 w-3.5" />Operação
+          </TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW */}
-        <TabsContent value="overview" className="space-y-4">
+        <TabsContent value="overview" className="space-y-6 mt-0">
           {overview.isLoading ? (
-            <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {Array.from({ length: 8 }).map((_, i) => (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-24" />
               ))}
             </div>
           ) : (
             <>
-              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-                <KPI title="Receita atribuída" value={formatEur(ov.revenue)} icon={<Target />} accent="primary" />
-                <KPI title="Margem estimada" value={formatEur(ov.margin)} icon={<TrendingUp />} />
-                <KPI title="Leads" value={ov.leads ?? 0} icon={<Users />} />
-                <KPI title="Oportunidades" value={ov.opportunities ?? 0} icon={<Briefcase />} />
-                <KPI title="Conversões" value={ov.conversions ?? 0} icon={<CheckCircle2 />} accent="success" />
-                <KPI title="Taxa conversão" value={`${ov.conversion_rate ?? 0}%`} icon={<BarChart3 />} />
-                <KPI
-                  title="Fugas abertas"
-                  value={ov.open_leaks ?? 0}
-                  icon={<TrendingDown />}
-                  accent={(ov.open_leaks ?? 0) > 0 ? "warning" : undefined}
-                />
-                <KPI
-                  title="Recomendações críticas"
-                  value={ov.critical_recommendations ?? 0}
-                  icon={<AlertTriangle />}
-                  accent={(ov.critical_recommendations ?? 0) > 0 ? "destructive" : undefined}
-                />
-              </div>
+              {/* KPIs principais — apenas 4, com hierarquia clara */}
+              <section className="space-y-3">
+                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Resultado do período
+                </h2>
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                  <KPI title="Receita atribuída" value={formatEur(ov.revenue)} icon={<Target />} accent="primary" />
+                  <KPI title="Margem estimada" value={formatEur(ov.margin)} icon={<TrendingUp />} />
+                  <KPI title="Taxa conversão" value={`${ov.conversion_rate ?? 0}%`} icon={<BarChart3 />} accent="success" />
+                  <KPI
+                    title="Recomendações críticas"
+                    value={ov.critical_recommendations ?? 0}
+                    icon={<AlertTriangle />}
+                    accent={(ov.critical_recommendations ?? 0) > 0 ? "destructive" : undefined}
+                  />
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" /> O que fazer agora
+                {/* Chips secundários — funil & risco operacional */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <StatChip icon={Users} label="Leads" value={ov.leads ?? 0} />
+                  <StatChip icon={Briefcase} label="Oportunidades" value={ov.opportunities ?? 0} />
+                  <StatChip icon={CheckCircle2} label="Conversões" value={ov.conversions ?? 0} />
+                  <StatChip
+                    icon={TrendingDown}
+                    label="Fugas abertas"
+                    value={ov.open_leaks ?? 0}
+                    tone={(ov.open_leaks ?? 0) > 0 ? "warning" : undefined}
+                  />
+                </div>
+              </section>
+
+              {/* O que fazer agora */}
+              <Card className="border-border/60">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Sparkles className="h-4 w-4 text-primary" /> O que fazer agora
                   </CardTitle>
-                  <CardDescription>Ações prioritárias para as próximas 24–72h</CardDescription>
+                  <CardDescription className="text-xs">
+                    Acções prioritárias para as próximas 24–72h
+                  </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   <PriorityActions
                     recs={recs.data ?? []}
                     onUpdate={(id, status) => updateRec.mutate({ id, status })}
@@ -216,6 +234,7 @@ export default function ExecutiveCommandDashboard() {
             </>
           )}
         </TabsContent>
+
 
         {/* REVENUE */}
         <TabsContent value="revenue" className="space-y-4">
