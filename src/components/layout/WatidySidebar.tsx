@@ -225,11 +225,12 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           onClick={onClose}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "relative flex items-center gap-2.5 pl-3 pr-7 py-2 rounded-md text-sm font-medium transition-all duration-150",
-            "border-l-[3px]",
+            "relative flex items-center gap-2.5 pl-3 pr-7 py-1.5 rounded-md text-sm font-medium transition-all duration-150",
+            "border-l-2",
             active
-              ? "bg-[hsl(var(--mega-fg)/0.22)] text-[hsl(var(--mega-fg))] border-[hsl(var(--mega-fg))] font-semibold shadow-sm"
-              : "border-transparent text-sidebar-foreground/75 hover:bg-[hsl(var(--mega-fg)/0.18)] hover:text-[hsl(var(--mega-fg))] hover:border-[hsl(var(--mega-fg))] hover:translate-x-1 hover:font-semibold hover:shadow-[0_2px_8px_-2px_hsl(var(--mega-fg)/0.45)]",
+              ? "bg-[hsl(var(--mega-fg)/0.14)] text-[hsl(var(--mega-fg))] border-[hsl(var(--mega-fg))] font-semibold"
+              : "border-transparent text-sidebar-foreground/75 hover:bg-[hsl(var(--mega-fg)/0.10)] hover:text-[hsl(var(--mega-fg))] hover:border-[hsl(var(--mega-fg)/0.6)]",
+
           )}
         >
           <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active && "text-[hsl(var(--mega-fg))]")} />
@@ -608,26 +609,23 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   const groupOpen = isGroupOpen(section.key, section.items);
                   return (
                     <Collapsible key={section.key} open={groupOpen} onOpenChange={() => toggleGroup(section.key)}>
-                      <CollapsibleTrigger className="w-full mt-3 group">
+                      <CollapsibleTrigger className="w-full mt-4 group">
                         <div
-                          className="flex items-center gap-2 px-2 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] transition-colors"
+                          className="flex items-center gap-2 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] transition-colors"
                           style={{ color: `hsl(${color.fg})` }}
                         >
-                          <span
-                            className="h-3 w-[3px] rounded-full shrink-0"
-                            style={{ backgroundColor: `hsl(${color.fg})` }}
-                          />
-                          <SectionIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                          <SectionIcon className="w-3 h-3 shrink-0 opacity-70" />
                           <span className="flex-1 text-left truncate">{section.label}</span>
-                          <span className="text-[10px] font-semibold opacity-60">
+                          <span className="text-[10px] font-medium opacity-50">
                             {section.items.length}
                           </span>
-                          <ChevronRight className={cn("w-3 h-3 opacity-60 transition-transform duration-200", groupOpen && "rotate-90")} />
+                          <ChevronRight className={cn("w-3 h-3 opacity-50 transition-transform duration-200", groupOpen && "rotate-90")} />
                         </div>
                       </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-0.5 mt-0.5">
+                      <CollapsibleContent className="space-y-px mt-1">
                         {section.items.map(renderItem)}
                       </CollapsibleContent>
+
 
                     </Collapsible>
                   );
