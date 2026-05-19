@@ -82,10 +82,24 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
   const { recents } = useSidebarRecents();
   const panelOpen = !collapsed;
 
-  const megaGroups = useMemo(
+  const { getState: getDepartmentState, isVisible: isDepartmentVisible } = useDepartmentVisibility();
+
+  const megaGroupsAll = useMemo(
     () => buildMegaGroupSections(installedModuleIds, canAccessMenu),
     [installedModuleIds, canAccessMenu],
   );
+
+  /**
+   * Filtra os mega-groups pela visibilidade do plano:
+   *  - visible       → mostra normalmente
+   *  - lockedByPlan  → mostra com cadeado (CTA upgrade)
+   *  - outros        → escondidos
+   */
+  const megaGroups = useMemo(() => {
+    return megaGroupsAll
+      .map((mg) => ({ ...mg, _visibility: getDepartmentState(mg.key) }))
+      .filter((mg) => mg._visibility.visible || mg._visibility.lockedByPlan);
+  }, [megaGroupsAll, getDepartmentState]);
 
   // Lookup map: key → RouteEntry (only entries visible in some mega-group)
   const itemByKey = useMemo(() => {
@@ -95,6 +109,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
     for (const r of ROUTE_MANIFEST) if (!map.has(r.key)) map.set(r.key, r);
     return map;
   }, [megaGroups]);
+
 
   const isActive = useCallback(
     (href: string, end?: boolean) => {
