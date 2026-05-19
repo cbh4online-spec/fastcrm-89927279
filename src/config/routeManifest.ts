@@ -506,9 +506,11 @@ export function buildSidebarSections(
 }
 
 // ─── Mega-Group Mapping ─────────────────────────────────────────────────────
-// Maps fine-grained NavGroups into 6 high-level mega-groups for the App Shell
+// Maps fine-grained NavGroups into 4 high-level mega-groups for the App Shell.
+// Fase 2: consolidação 6 → 4 (Início+IA dentro de Core; Marketing junto a Vendas;
+// RH/Suporte/Lojas/Segurança/Admin agrupados em Enterprise).
 
-export type MegaGroup = "core" | "crm" | "sales" | "marketing" | "ai-ops" | "enterprise";
+export type MegaGroup = "core" | "crm" | "sales-marketing" | "enterprise";
 
 export interface MegaGroupMeta {
   key: MegaGroup;
@@ -518,12 +520,10 @@ export interface MegaGroupMeta {
 }
 
 export const MEGA_GROUPS: MegaGroupMeta[] = [
-  { key: "core",       label: "Core",       icon: LayoutDashboard, navGroups: ["inicio", "comunicacao", "operacoes"] },
-  { key: "crm",        label: "CRM",        icon: Users,           navGroups: ["comercial", "performance"] },
-  { key: "sales",      label: "Sales",      icon: TrendingUp,      navGroups: ["vendas", "compras"] },
-  { key: "marketing",  label: "Marketing",  icon: Megaphone,       navGroups: ["marketing"] },
-  { key: "ai-ops",     label: "AI Ops",     icon: Crown,           navGroups: ["ai-strategy", "inteligencia"] },
-  { key: "enterprise", label: "Enterprise", icon: Building2,       navGroups: ["loja-online", "marketplace-c2c", "portal-b2b", "seguranca", "suporte", "rh", "administracao"] },
+  { key: "core",            label: "Core",              icon: LayoutDashboard, navGroups: ["inicio", "ai-strategy", "comunicacao", "operacoes", "inteligencia"] },
+  { key: "crm",             label: "CRM",               icon: Users,           navGroups: ["comercial", "performance"] },
+  { key: "sales-marketing", label: "Vendas & Marketing",icon: TrendingUp,      navGroups: ["vendas", "compras", "marketing"] },
+  { key: "enterprise",      label: "Enterprise",        icon: Building2,       navGroups: ["loja-online", "marketplace-c2c", "portal-b2b", "suporte", "rh", "seguranca", "administracao"] },
 ];
 
 /** Build mega-group sidebar sections */

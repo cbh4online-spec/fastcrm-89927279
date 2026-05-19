@@ -5,8 +5,6 @@ import { ReactNode, useEffect, useState } from "react";
 // durante refetch/auth refresh.
 let hadWorkspacesEver = false;
 import { AdaptiveDashboardProvider } from "@/contexts/AdaptiveDashboardContext";
-import { Sidebar } from "./Sidebar";
-import { SidebarV1 } from "./SidebarV1";
 import { AdaptiveSidebar } from "./AdaptiveSidebar";
 import { WatidySidebar } from "./WatidySidebar";
 import { TopBar } from "./TopBar";
@@ -38,12 +36,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { loading: workspaceLoading, workspaces } = useWorkspace();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { enabled: shellV2 } = useFeatureFlag("ui.shell_v2_enabled");
   const { enabled: adaptiveSidebar } = useFeatureFlag("ui.adaptive_sidebar_enabled");
   const { enabled: watidySidebar } = useFeatureFlag("ui.watidy_sidebar_enabled");
-  // Default to watidy when no other flag is forced
-  const useWatidy = watidySidebar || (!adaptiveSidebar && !shellV2);
-  const useAdaptive = !useWatidy && (adaptiveSidebar || !shellV2);
+  // Default to Watidy unless explicitly forced to Adaptive (legacy SidebarV1/Sidebar removidos na Fase 2)
+  const useWatidy = watidySidebar || !adaptiveSidebar;
+  // (AdaptiveSidebar é o fallback automático quando Watidy está desligado)
   const { collapsed } = useSidebarCollapse();
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
   const isMobile = useIsMobile();
@@ -80,14 +77,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="h-screen flex bg-background overflow-hidden">
               {useWatidy ? (
                 <WatidySidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
-              ) : useAdaptive ? (
-                <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
-              ) : shellV2 ? (
-                <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
               ) : (
-                <SidebarV1 open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
               )}
-              <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useWatidy ? (collapsed ? "lg:pl-14" : "lg:pl-[304px]") : useAdaptive ? (collapsed ? "lg:pl-16" : "lg:pl-[280px]") : collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
+              <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useWatidy ? (collapsed ? "lg:pl-14" : "lg:pl-[304px]") : (collapsed ? "lg:pl-16" : "lg:pl-[280px]")}`}>
+
                 <TopBar onMenuClick={() => setSidebarOpen(true)} />
                 <AIUsageBanner />
                 <WhatsAppHealthBanner />
