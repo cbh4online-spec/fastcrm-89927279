@@ -513,25 +513,61 @@ export function buildSidebarSections(
     .filter((g) => g.items.length > 0);
 }
 
-// ─── Mega-Group Mapping ─────────────────────────────────────────────────────
-// Maps fine-grained NavGroups into 4 high-level mega-groups for the App Shell.
-// Fase 2: consolidação 6 → 4 (Início+IA dentro de Core; Marketing junto a Vendas;
-// RH/Suporte/Lojas/Segurança/Admin agrupados em Enterprise).
+// ─── Department Mapping (SSoT) ──────────────────────────────────────────────
+// Cada NavGroup mapeia para exactamente um departamento.
+// Os departamentos são as "secções da empresa" expostas no sidebar e
+// servem também de unidade comercial (visibilidade por plano/assinatura — Fase 2).
+//
+// Princípio: 1 NavGroup → 1 Departamento. Nenhuma rota órfã.
 
-export type MegaGroup = "core" | "crm" | "sales-marketing" | "enterprise";
+export type MegaGroup =
+  | "inicio"
+  | "comercial"
+  | "marketing"
+  | "comunicacao"
+  | "vendas-financeiro"
+  | "compras-logistica"
+  | "loja-marketplace"
+  | "suporte"
+  | "rh"
+  | "seguranca"
+  | "inteligencia"
+  | "administracao";
 
 export interface MegaGroupMeta {
   key: MegaGroup;
   label: string;
   icon: LucideIcon;
   navGroups: NavGroup[];
+  /** Descrição curta (UX/Settings) */
+  description?: string;
 }
 
 export const MEGA_GROUPS: MegaGroupMeta[] = [
-  { key: "core",            label: "Core",              icon: LayoutDashboard, navGroups: ["inicio", "ai-strategy", "agenda", "comunicacao", "operacoes", "inteligencia"] },
-  { key: "crm",             label: "CRM",               icon: Users,           navGroups: ["comercial", "performance"] },
-  { key: "sales-marketing", label: "Vendas & Marketing",icon: TrendingUp,      navGroups: ["vendas", "compras", "marketing"] },
-  { key: "enterprise",      label: "Enterprise",        icon: Building2,       navGroups: ["loja-online", "marketplace-c2c", "portal-b2b", "suporte", "rh", "seguranca", "administracao"] },
+  { key: "inicio",             label: "Início",              icon: LayoutDashboard, navGroups: ["inicio"],
+    description: "Visão geral, alertas e produtividade diária." },
+  { key: "comercial",          label: "Comercial",           icon: Users,           navGroups: ["comercial", "performance"],
+    description: "Leads, contactos, pipeline, propostas e gestão de equipa comercial." },
+  { key: "marketing",          label: "Marketing",           icon: Megaphone,       navGroups: ["marketing"],
+    description: "Campanhas, funis, landing pages, SEO e geração de procura." },
+  { key: "comunicacao",        label: "Comunicação",         icon: Radio,           navGroups: ["comunicacao", "agenda"],
+    description: "Inbox unificada, WhatsApp, voz, agenda e seguimentos." },
+  { key: "vendas-financeiro",  label: "Vendas & Financeiro", icon: Receipt,         navGroups: ["vendas"],
+    description: "Faturação, pagamentos, cobranças, produtos e relatórios financeiros." },
+  { key: "compras-logistica",  label: "Compras & Logística", icon: ShoppingCart,    navGroups: ["compras", "operacoes"],
+    description: "Fornecedores, ordens de compra, receção, stock e operações internas." },
+  { key: "loja-marketplace",   label: "Loja & Marketplace",  icon: Store,           navGroups: ["loja-online", "marketplace-c2c", "portal-b2b"],
+    description: "Loja online B2C, marketplace C2C, lives e portal B2B." },
+  { key: "suporte",            label: "Suporte",             icon: Headphones,      navGroups: ["suporte"],
+    description: "Helpdesk, tickets, SLAs e base de conhecimento." },
+  { key: "rh",                 label: "Recursos Humanos",    icon: UserCheck,       navGroups: ["rh"],
+    description: "Funcionários, recrutamento, ponto, ausências e desempenho." },
+  { key: "seguranca",          label: "Segurança",           icon: Shield,          navGroups: ["seguranca"],
+    description: "Operações de segurança, contratos, equipamentos e manutenção." },
+  { key: "inteligencia",       label: "Inteligência & IA",   icon: Brain,           navGroups: ["ai-strategy", "inteligencia"],
+    description: "Copilotos, agentes IA, briefings executivos e analítica avançada." },
+  { key: "administracao",      label: "Administração",       icon: Settings,        navGroups: ["administracao"],
+    description: "Workspace, equipa, permissões, integrações, faturação e super-admin." },
 ];
 
 /** Build mega-group sidebar sections */
@@ -544,3 +580,4 @@ export function buildMegaGroupSections(
     sections: allSections.filter((s) => mg.navGroups.includes(s.key)),
   })).filter((mg) => mg.sections.some((s) => s.items.length > 0));
 }
+
