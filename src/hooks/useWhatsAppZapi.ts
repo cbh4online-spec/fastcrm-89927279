@@ -45,12 +45,44 @@ export function useSendWhatsAppZapi() {
   return useMutation({
     mutationFn: async (payload: SendZapiMessagePayload) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
-      const { data, error } = await supabase.functions.invoke("whatsapp-zapi-send", {
-        body: { workspaceId: currentWorkspace.id, ...payload },
+      // Migrado para whatsapp-pro-send (Fase C). Mantém o tipo público
+      // do payload (legacy) mas converte para o formato canónico.
+      const media = payload.media;
+      const messageType: string = media
+        ? (media.type === "image"
+            ? "image"
+            : media.type === "audio"
+            ? "audio"
+            : media.type === "video"
+            ? "video"
+            : "document")
+        : "text";
+
+      const { data, error } = await supabase.functions.invoke("whatsapp-pro-send", {
+        body: {
+          workspaceId: currentWorkspace.id,
+          conversationId: payload.conversationId ?? null,
+          phone: payload.phone ?? "",
+          groupId: payload.groupId ?? null,
+          messageType,
+          text: payload.message ?? media?.caption,
+          mediaUrl: media?.url,
+          fileName: media?.fileName,
+          buttons: payload.buttons?.map((b) => ({
+            id: b.id,
+            label: b.label,
+          })),
+          buttonHeader: payload.buttonHeader,
+          buttonFooter: payload.buttonFooter,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return data as { success: boolean; conversationId: string | null; externalMessageId: string | null };
+      return {
+        success: !!data?.success,
+        conversationId: payload.conversationId ?? null,
+        externalMessageId: data?.providerMessageId ?? null,
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
