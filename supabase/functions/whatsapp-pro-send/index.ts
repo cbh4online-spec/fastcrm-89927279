@@ -100,12 +100,17 @@ Deno.serve(async (req) => {
     if (provider === "zapi" || provider === "zapy") {
       // Reutiliza a função existente, mas em formato adaptado.
       const invokePayload: Record<string, unknown> = {
-        phone: body.phone,
+        phone: body.phone || undefined,
+        groupId: body.groupId || undefined,
         conversationId: body.conversationId ?? undefined,
         message: body.text,
       };
       const validCtaUrl = body.ctaUrl && /^https?:\/\//i.test(body.ctaUrl) ? body.ctaUrl : null;
-      if (!body.mediaUrl && validCtaUrl) {
+      if (body.buttons?.length) {
+        invokePayload.buttons = body.buttons;
+        if (body.buttonHeader) invokePayload.buttonHeader = body.buttonHeader;
+        if (body.buttonFooter) invokePayload.buttonFooter = body.buttonFooter;
+      } else if (!body.mediaUrl && validCtaUrl) {
         invokePayload.buttons = [{ id: "buy_now", type: "URL", label: body.ctaLabel || "Comprar Agora", url: validCtaUrl }];
         invokePayload.buttonHeader = body.messageType === "product" ? "Produto" : undefined;
       }
@@ -125,8 +130,9 @@ Deno.serve(async (req) => {
           url: body.mediaUrl,
           caption: body.text,
           fileName: body.fileName,
+          ...(mediaType === "audio" && body.ptt ? { ptt: true } : {}),
         };
-        if (validCtaUrl) {
+        if (validCtaUrl && !body.buttons?.length) {
           invokePayload.buttons = [{ id: "buy_now", type: "URL", label: body.ctaLabel || "Comprar Agora", url: validCtaUrl }];
           invokePayload.buttonHeader = body.text;
         }
