@@ -107,7 +107,10 @@ export interface RouteEntry {
 export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "inicio",        label: "Início",        icon: LayoutDashboard, order: 1, collapsible: false },
   { key: "ai-strategy",   label: "Estratégia IA",   icon: Crown,           order: 2, collapsible: false },
-  { key: "comercial",     label: "Comercial",     icon: Users,           order: 3, collapsible: true },
+  { key: "comercial-crm",         label: "CRM",                icon: Users,           order: 3,  collapsible: true },
+  { key: "comercial-pipeline",    label: "Pipeline & Contas",  icon: TrendingUp,      order: 31, collapsible: true },
+  { key: "comercial-prospecting", label: "Prospecção",         icon: UserPlus,        order: 32, collapsible: true },
+  { key: "comercial-leadchef",    label: "LeadChef",           icon: ChefHat,         order: 33, collapsible: true },
   { key: "agenda",        label: "Agenda",        icon: Calendar,        order: 35, collapsible: true },
   { key: "comunicacao",   label: "Comunicação",   icon: Radio,           order: 4, collapsible: true },
   { key: "performance",   label: "Performance",   icon: Trophy,          order: 5, collapsible: true },
