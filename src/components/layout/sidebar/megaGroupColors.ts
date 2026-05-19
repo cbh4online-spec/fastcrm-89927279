@@ -7,18 +7,19 @@ import type { MegaGroup } from "@/config/routeManifest";
  * Scoped to the sidebar — não polui o tema global.
  */
 export const MEGA_GROUP_COLORS: Record<MegaGroup, { fg: string; bg: string; border: string }> = {
-  inicio:              { fg: "210 95% 60%", bg: "210 95% 60% / 0.12", border: "210 95% 60% / 0.35" }, // azul
-  comercial:           { fg: "260 85% 65%", bg: "260 85% 65% / 0.12", border: "260 85% 65% / 0.35" }, // roxo
-  marketing:           { fg: "330 80% 60%", bg: "330 80% 60% / 0.12", border: "330 80% 60% / 0.35" }, // rosa
-  comunicacao:         { fg: "190 80% 50%", bg: "190 80% 50% / 0.12", border: "190 80% 50% / 0.35" }, // ciano
-  "vendas-financeiro": { fg: "20 90% 60%",  bg: "20 90% 60% / 0.13",  border: "20 90% 60% / 0.35" },  // laranja
-  "compras-logistica": { fg: "35 90% 55%",  bg: "35 90% 55% / 0.13",  border: "35 90% 55% / 0.35" },  // âmbar
-  "loja-marketplace":  { fg: "150 70% 45%", bg: "150 70% 45% / 0.13", border: "150 70% 45% / 0.35" }, // verde
-  suporte:             { fg: "175 75% 45%", bg: "175 75% 45% / 0.13", border: "175 75% 45% / 0.35" }, // turquesa
-  rh:                  { fg: "280 70% 60%", bg: "280 70% 60% / 0.12", border: "280 70% 60% / 0.35" }, // violeta
-  seguranca:           { fg: "0 75% 55%",   bg: "0 75% 55% / 0.13",   border: "0 75% 55% / 0.35" },   // vermelho
-  inteligencia:        { fg: "240 85% 65%", bg: "240 85% 65% / 0.12", border: "240 85% 65% / 0.35" }, // índigo
-  administracao:       { fg: "220 15% 55%", bg: "220 15% 55% / 0.13", border: "220 15% 55% / 0.35" }, // cinza
+  inicio:              { fg: "210 90% 45%", bg: "210 90% 45% / 0.10", border: "210 90% 45% / 0.30" }, // azul
+  comercial:           { fg: "260 70% 50%", bg: "260 70% 50% / 0.10", border: "260 70% 50% / 0.30" }, // roxo
+  marketing:           { fg: "330 75% 45%", bg: "330 75% 45% / 0.10", border: "330 75% 45% / 0.30" }, // rosa
+  comunicacao:         { fg: "190 85% 38%", bg: "190 85% 38% / 0.10", border: "190 85% 38% / 0.30" }, // ciano
+  "vendas-financeiro": { fg: "20 85% 48%",  bg: "20 85% 48% / 0.10",  border: "20 85% 48% / 0.30" },  // laranja
+  "compras-logistica": { fg: "35 90% 42%",  bg: "35 90% 42% / 0.10",  border: "35 90% 42% / 0.30" },  // âmbar
+  "loja-marketplace":  { fg: "150 70% 35%", bg: "150 70% 35% / 0.10", border: "150 70% 35% / 0.30" }, // verde
+  suporte:             { fg: "175 80% 32%", bg: "175 80% 32% / 0.10", border: "175 80% 32% / 0.30" }, // turquesa
+  rh:                  { fg: "280 65% 50%", bg: "280 65% 50% / 0.10", border: "280 65% 50% / 0.30" }, // violeta
+  seguranca:           { fg: "0 75% 48%",   bg: "0 75% 48% / 0.10",   border: "0 75% 48% / 0.30" },   // vermelho
+  inteligencia:        { fg: "240 75% 55%", bg: "240 75% 55% / 0.10", border: "240 75% 55% / 0.30" }, // índigo
+  administracao:       { fg: "220 15% 40%", bg: "220 15% 40% / 0.10", border: "220 15% 40% / 0.30" }, // cinza
+
 };
 
 export function megaGroupColor(key: MegaGroup) {
