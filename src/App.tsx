@@ -69,11 +69,6 @@ const PortalDashboardPage = lazy(() => import("@/pages/public/PortalDashboardPag
 const WorkerRegisterPage = lazy(() => import("@/pages/public/WorkerRegisterPage"));
 const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPage"));
 const PublicInvoicePayPage = lazy(() => import("@/pages/public/PublicInvoicePayPage"));
-const LeadChefLanding = lazy(() => import("@/pages/LeadChefLanding"));
-const LeadChefPricingPage = lazy(() => import("@/pages/LeadChefPricingPage"));
-const LeadChefAmbassadorPublicPage = lazy(() => import("@/pages/LeadChefAmbassadorPublicPage"));
-const LeadChefAmbassadorRegistroPage = lazy(() => import("@/pages/LeadChefAmbassadorRegistroPage"));
-const LeadChefAmbassadorDashboardPage = lazy(() => import("@/pages/LeadChefAmbassadorDashboardPage"));
 
 // FastCRM V2 — premium app shell preview
 const DashboardV2Page = lazy(() => import("@/pages/app-v2/DashboardV2Page"));
@@ -202,15 +197,6 @@ const App = () => (
                 <Route path="/fastclub" element={<FastClubLandingPage />} />
                 <Route path="/club/fastclub/apply" element={<FastClubApplyPage />} />
 
-                {/* Public LeadChef Landing */}
-                <Route path="/leadchef" element={<LeadChefLanding />} />
-                <Route path="/leadchef-landing" element={<LeadChefLanding />} />
-                <Route path="/leadchef/precos" element={<LeadChefPricingPage />} />
-                <Route path="/leadchef/pricing" element={<LeadChefPricingPage />} />
-                <Route path="/embaixador-programa" element={<LeadChefAmbassadorPublicPage />} />
-                <Route path="/embaixador" element={<LeadChefAmbassadorPublicPage />} />
-                <Route path="/embaixador/registo" element={<LeadChefAmbassadorRegistroPage />} />
-                <Route path="/embaixador/dashboard" element={<LeadChefAmbassadorDashboardPage />} />
                 
                 {/* FastClub Portal Routes */}
                 {FastClubPortalRoutes()}

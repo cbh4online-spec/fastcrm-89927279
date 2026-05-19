@@ -29,7 +29,7 @@ import { AIRoutes } from "@/routes/AIRoutes";
 import { SalesCRMRoutes } from "@/routes/SalesCRMRoutes";
 import { MetaModuleRoutes } from "@/routes/MetaModuleRoutes";
 import { StoreAdminRoutes, B2BAdminRoutes } from "@/routes/StoreClientRoutes";
-import { LeadChefRoutes } from "@/routes/LeadChefRoutes";
+
 
 // CRM sub-modules
 import { PublicSeoRoutes } from "@/routes/crm/PublicSeoRoutes";
@@ -85,7 +85,7 @@ export default function CRMRoutesV2() {
                     {HRRoutes()}
                     {RevenueCommerceRoutes()}
                     {VerticalOpsRoutes()}
-                    {LeadChefRoutes()}
+                    
                   </Routes>
                 </Suspense>
                 <EnrichmentFloatingIndicator />

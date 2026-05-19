@@ -51,7 +51,7 @@ export type NavGroup =
   | "comercial-crm"
   | "comercial-pipeline"
   | "comercial-prospecting"
-  | "comercial-leadchef"
+  
   | "agenda"
   | "comunicacao"
   | "marketing"
@@ -110,7 +110,7 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "comercial-crm",         label: "CRM",                icon: Users,           order: 3,  collapsible: true },
   { key: "comercial-pipeline",    label: "Pipeline & Contas",  icon: TrendingUp,      order: 31, collapsible: true },
   { key: "comercial-prospecting", label: "Prospecção",         icon: UserPlus,        order: 32, collapsible: true },
-  { key: "comercial-leadchef",    label: "LeadChef",           icon: ChefHat,         order: 33, collapsible: true },
+  
   { key: "agenda",        label: "Agenda",        icon: Calendar,        order: 35, collapsible: true },
   { key: "comunicacao",   label: "Comunicação",   icon: Radio,           order: 4, collapsible: true },
   { key: "performance",   label: "Performance",   icon: Trophy,          order: 5, collapsible: true },
@@ -182,10 +182,6 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("lead-enricher",   "Enriquecimento de Leads", "/dashboard/lead-enricher",  Search, "comercial-prospecting", { moduleSlug: "lead-enricher", isPro: true }),
   e("fastmatch",       "FastMatch",       "/dashboard/fastmatch",      Zap,           "comercial-prospecting"),
   e("google-local",    "Google Local",    "/dashboard/prospecting/google-local", MapPin, "comercial-prospecting", { moduleSlug: "google-local-services" }),
-  // LeadChef (programa beta)
-  e("leadchef",        "LeadChef",        "/dashboard/leadchef/today", ChefHat,       "comercial-leadchef", { isBeta: true }),
-  e("leadchef-admin",  "Centro LeadChef", "/dashboard/leadchef/admin", Settings,      "comercial-leadchef", { isBeta: true }),
-  e("leadchef-embaixador", "Embaixadores LeadChef", "/embaixador/dashboard", Trophy, "comercial-leadchef", { isBeta: true }),
   // Search-only CRM routes
   e("crm-hub",         "CRM",             "/dashboard/crm",            Users,         "comercial-crm", { visibleInSidebar: false }),
   e("web-search-prosp","Pesquisa Web",    "/dashboard/prospecting/web-search",  Search, "comercial-prospecting", { visibleInSidebar: false }),
@@ -459,12 +455,11 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-import { type AppMode, LEADCHEF_MODE_WHITELIST } from "@/config/appModes";
+import { type AppMode } from "@/config/appModes";
 
-/** Aplica filtro de modo (LeadChef-only mostra só whitelist) */
-function passesModeFilter(r: RouteEntry, mode: AppMode): boolean {
-  if (mode !== "leadchef") return true;
-  return LEADCHEF_MODE_WHITELIST.keys.has(r.key);
+/** Filtro de modo (apenas fastcrm está disponível). */
+function passesModeFilter(_r: RouteEntry, _mode: AppMode): boolean {
+  return true;
 }
 
 /** Get sidebar-visible entries for a specific group, filtered by installed modules & permissions */
@@ -556,7 +551,7 @@ export interface MegaGroupMeta {
 export const MEGA_GROUPS: MegaGroupMeta[] = [
   { key: "inicio",             label: "Início",              icon: LayoutDashboard, navGroups: ["inicio"],
     description: "Visão geral, alertas e produtividade diária." },
-  { key: "comercial",          label: "Comercial",           icon: Users,           navGroups: ["comercial-crm", "comercial-pipeline", "comercial-prospecting", "comercial-leadchef", "performance"],
+  { key: "comercial",          label: "Comercial",           icon: Users,           navGroups: ["comercial-crm", "comercial-pipeline", "comercial-prospecting", "performance"],
     description: "Leads, contactos, pipeline, propostas e gestão de equipa comercial." },
   { key: "marketing",          label: "Marketing",           icon: Megaphone,       navGroups: ["marketing"],
     description: "Campanhas, funis, landing pages, SEO e geração de procura." },

@@ -22,7 +22,6 @@ FastCRM é um CRM inteligente com IA, automação e dados, desenhado para PMEs e
 ## Módulos principais
 - CRM core: leads, contactos, contas, deals, pipelines, tarefas
 - Comunicações: WhatsApp (Evolution API), Email, SMS (Twilio), Voz (3CX/SIP), Telegram
-- LeadChef: motor de prospecção com IA, sequências, scoring e relatórios executivos
 - Faturação: faturas, recibos, recorrências, integração e-Fatura
 - Store/Marketplace: B2C, B2B com preços por cliente, C2C com leilões e lives
 - IA: assistentes conversacionais, scoring preditivo, autofill de atributos, SDR outbound

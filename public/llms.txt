@@ -14,10 +14,7 @@ FastCRM unifica CRM, AI SDR, Marketing e Comércio numa única plataforma, alinh
 - [Contacto](/contacto): Pedir demonstração ou falar com vendas.
 - [Blog](/blog): Conteúdos sobre vendas, IA e operação comercial.
 
-## LeadChef
 
-- [LeadChef](/leadchef): Plataforma para embaixadoras e revendedoras.
-- [Preços LeadChef](/leadchef/precos): Starter 4,99€, Growth 6,99€, add-on WhatsApp.
 
 ## Optional
 
