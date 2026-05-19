@@ -51,7 +51,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/inbox" element={<Inbox />} />
       <Route path="/dashboard/inbox/snippets" element={<InboxSnippets />} />
       <Route path="/dashboard/whatsapp/ops" element={<WhatsAppOpsDashboard />} />
-      <Route path="/dashboard/inbox/ops" element={<WhatsAppOpsDashboard />} />
+      <Route path="/dashboard/inbox/ops" element={<Navigate to="/dashboard/whatsapp/ops" replace />} />
+
       <Route path="/dashboard/whatsapp-pro" element={<WhatsAppPro />} />
       <Route path="/dashboard/whatsapp-pro/campaigns" element={<WhatsAppCampaignsPage />} />
       <Route path="/dashboard/whatsapp-pro/analytics" element={<WhatsAppAnalyticsPage />} />
