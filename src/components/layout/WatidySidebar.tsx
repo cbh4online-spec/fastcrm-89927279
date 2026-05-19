@@ -17,10 +17,12 @@ import {
   type MegaGroup,
 } from "@/config/routeManifest";
 import { megaGroupColor } from "./sidebar/megaGroupColors";
+import { useDepartmentVisibility } from "@/hooks/useDepartmentVisibility";
 import {
   X, ChevronRight, Search, PanelLeftClose, PanelLeftOpen,
-  Star, Clock, Pin,
+  Star, Clock, Pin, Lock,
 } from "lucide-react";
+
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
