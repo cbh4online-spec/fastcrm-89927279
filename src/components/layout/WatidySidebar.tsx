@@ -608,29 +608,27 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   const groupOpen = isGroupOpen(section.key, section.items);
                   return (
                     <Collapsible key={section.key} open={groupOpen} onOpenChange={() => toggleGroup(section.key)}>
-                      <CollapsibleTrigger className="w-full mt-2">
+                      <CollapsibleTrigger className="w-full mt-3 group">
                         <div
-                          className="flex items-center gap-2 px-2.5 py-2 rounded-md text-[11px] font-extrabold uppercase tracking-[0.12em] border-l-[3px] hover:brightness-110 transition-all"
-                          style={{
-                            color: `hsl(${color.fg})`,
-                            backgroundColor: `hsl(${color.fg} / 0.12)`,
-                            borderLeftColor: `hsl(${color.fg})`,
-                          }}
+                          className="flex items-center gap-2 px-2 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] transition-colors"
+                          style={{ color: `hsl(${color.fg})` }}
                         >
-                          <SectionIcon className="w-3.5 h-3.5 shrink-0" />
-                          <span className="flex-1 text-left truncate">{section.label}</span>
                           <span
-                            className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                            style={{ backgroundColor: `hsl(${color.fg} / 0.18)` }}
-                          >
+                            className="h-3 w-[3px] rounded-full shrink-0"
+                            style={{ backgroundColor: `hsl(${color.fg})` }}
+                          />
+                          <SectionIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                          <span className="flex-1 text-left truncate">{section.label}</span>
+                          <span className="text-[10px] font-semibold opacity-60">
                             {section.items.length}
                           </span>
-                          <ChevronRight className={cn("w-3.5 h-3.5 transition-transform duration-200", groupOpen && "rotate-90")} />
+                          <ChevronRight className={cn("w-3 h-3 opacity-60 transition-transform duration-200", groupOpen && "rotate-90")} />
                         </div>
                       </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-0.5 mt-1 ml-1 pl-2 border-l border-dashed" style={{ borderColor: `hsl(${color.fg} / 0.25)` }}>
+                      <CollapsibleContent className="space-y-0.5 mt-0.5">
                         {section.items.map(renderItem)}
                       </CollapsibleContent>
+
                     </Collapsible>
                   );
                 })}
