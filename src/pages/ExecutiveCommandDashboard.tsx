@@ -477,28 +477,66 @@ function KPI({
   icon?: React.ReactNode;
   accent?: "primary" | "success" | "warning" | "destructive";
 }) {
-  const accentClass =
-    accent === "primary"
-      ? "border-primary/30 bg-primary/5"
-      : accent === "success"
-      ? "border-emerald-500/30 bg-emerald-500/5"
-      : accent === "warning"
-      ? "border-amber-500/30 bg-amber-500/5"
-      : accent === "destructive"
-      ? "border-destructive/30 bg-destructive/5"
-      : "";
+  const accentMap = {
+    primary: { bg: "bg-primary/10", text: "text-primary" },
+    success: { bg: "bg-emerald-500/10", text: "text-emerald-600" },
+    warning: { bg: "bg-amber-500/10", text: "text-amber-600" },
+    destructive: { bg: "bg-destructive/10", text: "text-destructive" },
+  };
+  const a = accent ? accentMap[accent] : { bg: "bg-muted", text: "text-muted-foreground" };
   return (
-    <Card className={accentClass}>
+    <Card className="border-border/60">
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-muted-foreground">{title}</p>
-          {icon && <div className="h-4 w-4 text-muted-foreground">{icon}</div>}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <p className="mt-1.5 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+          </div>
+          {icon && (
+            <div className={`p-2 rounded-md ${a.bg}`}>
+              <div className={`h-4 w-4 ${a.text}`}>{icon}</div>
+            </div>
+          )}
         </div>
-        <p className="mt-2 text-2xl font-bold tracking-tight">{value}</p>
       </CardContent>
     </Card>
   );
 }
+
+function StatChip({
+  icon: Icon, label, value, tone,
+}: { icon: any; label: string; value: number | string; tone?: "warning" }) {
+  const toneClass = tone === "warning" ? "text-amber-600" : "";
+  return (
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/60 bg-card text-sm">
+      <Icon className={`w-3.5 h-3.5 text-muted-foreground ${toneClass}`} />
+      <span className="text-muted-foreground">{label}</span>
+      <span className={`font-semibold tabular-nums ${toneClass}`}>{value}</span>
+    </div>
+  );
+}
+
+function ModuleCard({
+  icon: Icon, title, description, link, linkLabel,
+}: { icon: any; title: string; description: string; link: string; linkLabel: string }) {
+  return (
+    <Card className="border-border/60 hover:border-border transition-colors">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-md bg-muted">
+            <Icon className="w-4 h-4 text-foreground" />
+          </div>
+          <h3 className="font-medium text-sm">{title}</h3>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+        <Button asChild variant="outline" size="sm" className="w-full">
+          <a href={link}>Abrir {linkLabel}</a>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function PriorityActions({ recs, onUpdate }: { recs: any[]; onUpdate: (id: string, status: string) => void }) {
   const top = recs.slice(0, 7);
