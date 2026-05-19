@@ -8,12 +8,10 @@ import type { MegaGroup } from "@/config/routeManifest";
  * global theme.
  */
 export const MEGA_GROUP_COLORS: Record<MegaGroup, { fg: string; bg: string; border: string }> = {
-  core:       { fg: "210 95% 60%",  bg: "210 95% 60% / 0.12", border: "210 95% 60% / 0.35" }, // azul
-  crm:        { fg: "260 85% 65%",  bg: "260 85% 65% / 0.12", border: "260 85% 65% / 0.35" }, // roxo
-  sales:      { fg: "150 75% 45%",  bg: "150 75% 45% / 0.14", border: "150 75% 45% / 0.35" }, // verde
-  marketing:  { fg: "20 90% 60%",   bg: "20 90% 60% / 0.13",  border: "20 90% 60% / 0.35" },  // laranja
-  "ai-ops":   { fg: "45 95% 55%",   bg: "45 95% 55% / 0.14",  border: "45 95% 55% / 0.35" },  // dourado
-  enterprise: { fg: "190 80% 50%",  bg: "190 80% 50% / 0.13", border: "190 80% 50% / 0.35" }, // ciano
+  core:              { fg: "210 95% 60%", bg: "210 95% 60% / 0.12", border: "210 95% 60% / 0.35" }, // azul
+  crm:               { fg: "260 85% 65%", bg: "260 85% 65% / 0.12", border: "260 85% 65% / 0.35" }, // roxo
+  "sales-marketing": { fg: "20 90% 60%",  bg: "20 90% 60% / 0.13",  border: "20 90% 60% / 0.35" },  // laranja
+  enterprise:        { fg: "190 80% 50%", bg: "190 80% 50% / 0.13", border: "190 80% 50% / 0.35" }, // ciano
 };
 
 export function megaGroupColor(key: MegaGroup) {
