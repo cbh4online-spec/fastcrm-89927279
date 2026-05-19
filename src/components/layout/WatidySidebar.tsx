@@ -225,11 +225,12 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           onClick={onClose}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "relative flex items-center gap-2.5 pl-3 pr-7 py-2 rounded-md text-sm font-medium transition-all duration-150",
-            "border-l-[3px]",
+            "relative flex items-center gap-2.5 pl-3 pr-7 py-1.5 rounded-md text-sm font-medium transition-all duration-150",
+            "border-l-2",
             active
-              ? "bg-[hsl(var(--mega-fg)/0.22)] text-[hsl(var(--mega-fg))] border-[hsl(var(--mega-fg))] font-semibold shadow-sm"
-              : "border-transparent text-sidebar-foreground/75 hover:bg-[hsl(var(--mega-fg)/0.18)] hover:text-[hsl(var(--mega-fg))] hover:border-[hsl(var(--mega-fg))] hover:translate-x-1 hover:font-semibold hover:shadow-[0_2px_8px_-2px_hsl(var(--mega-fg)/0.45)]",
+              ? "bg-[hsl(var(--mega-fg)/0.14)] text-[hsl(var(--mega-fg))] border-[hsl(var(--mega-fg))] font-semibold"
+              : "border-transparent text-sidebar-foreground/75 hover:bg-[hsl(var(--mega-fg)/0.10)] hover:text-[hsl(var(--mega-fg))] hover:border-[hsl(var(--mega-fg)/0.6)]",
+
           )}
         >
           <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active && "text-[hsl(var(--mega-fg))]")} />
