@@ -264,6 +264,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("proposals",    "Propostas",        "/dashboard/proposals",         FileText,    "vendas", { moduleSlug: "proposals", menuKey: "proposals" }),
   e("pitch",        "Apresentação",     "/dashboard/pitch",             Presentation,"vendas"),
   e("invoices",     "Faturas",          "/dashboard/invoices",          Receipt,     "vendas", { moduleSlug: "invoices", menuKey: "invoices" }),
+  e("imports-saft", "Importar SAF-T PT","/dashboard/imports/saft",      Upload,      "vendas", { menuKey: "invoices" }),
   e("collections",  "Cobranças",        "/dashboard/collections",       HandCoins,   "vendas"),
   e("collections-sequences", "Sequências de cobrança", "/dashboard/collections/sequences", HandCoins, "vendas"),
   e("collection-detail", "Detalhe de cobrança", "/dashboard/collections/:id", HandCoins, "vendas", { visibleInSidebar: false }),
