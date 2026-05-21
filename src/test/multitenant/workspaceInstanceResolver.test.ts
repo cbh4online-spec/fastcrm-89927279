@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   resolveWorkspaceTarget,
   type ControlPlaneConfig,
+  type ControlPlaneResponse,
   type ResolveTargetDeps,
   type WorkspaceInstanceData,
 } from "@/lib/workspaceInstanceResolver";
