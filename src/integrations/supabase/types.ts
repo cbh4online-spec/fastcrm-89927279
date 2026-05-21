@@ -86687,6 +86687,7 @@ export type Database = {
           created_at: string
           id: string
           role: Database["public"]["Enums"]["workspace_role"]
+          title: string | null
           updated_at: string
           user_id: string
           workspace_id: string
@@ -86696,6 +86697,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["workspace_role"]
+          title?: string | null
           updated_at?: string
           user_id: string
           workspace_id: string
@@ -86705,6 +86707,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["workspace_role"]
+          title?: string | null
           updated_at?: string
           user_id?: string
           workspace_id?: string
@@ -89733,6 +89736,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_workspace_invite: { Args: { p_token: string }; Returns: Json }
       acquire_agent_lock:
         | {
             Args: {
@@ -90163,6 +90167,19 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: undefined
       }
+      create_workspace_b2b: {
+        Args: {
+          p_business_type?: string
+          p_company_name?: string
+          p_my_title?: string
+          p_name: string
+          p_primary_objective?: string
+          p_slug: string
+          p_tax_id?: string
+          p_team_size?: string
+        }
+        Returns: Json
+      }
       create_workspace_for_user: {
         Args: {
           p_name: string
@@ -90542,6 +90559,18 @@ export type Database = {
         }[]
       }
       get_payment_gateway_workspace_id: { Args: never; Returns: string }
+      get_pending_invites_for_user: {
+        Args: never
+        Returns: {
+          expires_at: string
+          id: string
+          invite_token: string
+          invited_by_email: string
+          role: string
+          workspace_id: string
+          workspace_name: string
+        }[]
+      }
       get_persona_decision_config: {
         Args: { p_persona_id: string }
         Returns: Json

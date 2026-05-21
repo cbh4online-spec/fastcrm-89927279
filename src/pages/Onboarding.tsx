@@ -1,173 +1,219 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { supabase } from "@/integrations/supabase/client";
+import { Building2, Loader2, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Building2, Loader2, ArrowRight, Check, Sparkles } from "lucide-react";
-import { toast } from "sonner";
-import { ConversationalOnboarding } from "@/components/onboarding/ConversationalOnboarding";
+import { Separator } from "@/components/ui/separator";
+import { OnboardingStepper } from "@/components/onboarding/b2b/OnboardingStepper";
+import { PendingInvitesList } from "@/components/onboarding/b2b/PendingInvitesList";
+import { ExistingWorkspacesList } from "@/components/onboarding/b2b/ExistingWorkspacesList";
+import { B2BDetailsForm, type B2BDetails } from "@/components/onboarding/b2b/B2BDetailsForm";
+import { ConfirmStep } from "@/components/onboarding/b2b/ConfirmStep";
+import { usePendingInvites } from "@/hooks/onboarding/usePendingInvites";
+import { useOnboardingActions } from "@/hooks/onboarding/useOnboardingActions";
+
+type Step = "choose" | "details" | "confirm";
+
+const EMPTY: B2BDetails = {
+  name: "",
+  company_name: "",
+  tax_id: "",
+  team_size: "",
+  business_type: "",
+  primary_objective: "",
+  my_title: "",
+};
 
 export default function Onboarding() {
   const { user, loading: authLoading } = useAuth();
-  const { createWorkspace, workspaces, currentWorkspace, loading: workspaceLoading } = useWorkspace();
+  const { workspaces, currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const navigate = useNavigate();
-  const [workspaceName, setWorkspaceName] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [showIntelligentOnboarding, setShowIntelligentOnboarding] = useState(false);
-  const hasReadyWorkspace = workspaces.length > 0 && !!currentWorkspace?.id;
-  const isSettlingExistingWorkspace = workspaces.length > 0 && !currentWorkspace?.id;
+  const { data: invites = [], isLoading: invitesLoading } = usePendingInvites();
+  const { createB2B, acceptInvite, selectExisting, submitting } = useOnboardingActions();
 
-  // Redirect side-effects (NEVER call navigate() during render)
+  const [step, setStep] = useState<Step>("choose");
+  const [details, setDetails] = useState<B2BDetails>(EMPTY);
+
+  const hasWorkspaces = workspaces.length > 0;
+
+  // Auto-redirect: utilizador já com workspace ativo e fora do wizard
   useEffect(() => {
     if (authLoading || workspaceLoading) return;
     if (!user) {
       navigate("/login", { replace: true });
       return;
     }
-    if (hasReadyWorkspace && !showIntelligentOnboarding) {
+    if (hasWorkspaces && currentWorkspace?.id && step === "choose") {
+      // Se já tem workspace selecionado, vai direto para o dashboard
       navigate("/dashboard", { replace: true });
     }
-  }, [authLoading, workspaceLoading, user, hasReadyWorkspace, showIntelligentOnboarding, navigate]);
+  }, [authLoading, workspaceLoading, user, hasWorkspaces, currentWorkspace?.id, step, navigate]);
 
-  // Loading / pre-redirect state — render a friendly placeholder instead of a blank screen
-  if (authLoading || workspaceLoading || !user || isSettlingExistingWorkspace || (hasReadyWorkspace && !showIntelligentOnboarding)) {
+  const steps = useMemo(
+    () => [
+      { id: "choose", label: "Começar" },
+      { id: "details", label: "Organização" },
+      { id: "confirm", label: "Confirmar" },
+    ],
+    []
+  );
+  const currentStepIndex = steps.findIndex((s) => s.id === step);
+
+  if (authLoading || workspaceLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm">A preparar o teu espaço de trabalho…</p>
-        </div>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!workspaceName.trim()) return;
+  const firstName = user.user_metadata?.full_name?.split(" ")[0] || user.email?.split("@")[0] || "";
 
-    setCreating(true);
-    const { error } = await createWorkspace(workspaceName);
-
-    if (error) {
-      toast.error("Failed to create workspace");
-      setCreating(false);
-      return;
-    }
-
-
-    toast.success("Workspace criado!");
-    setShowIntelligentOnboarding(true);
+  const handleAcceptInvite = async (token: string) => {
+    try {
+      await acceptInvite(token);
+      navigate("/dashboard", { replace: true });
+    } catch {/* toast já tratado */}
   };
 
-  const handleComplete = () => {
-    navigate("/dashboard?onboarding=complete");
+  const handleConfirm = async () => {
+    try {
+      await createB2B({
+        name: details.name.trim(),
+        company_name: details.company_name.trim() || undefined,
+        tax_id: details.tax_id.replace(/\s/g, "") || undefined,
+        team_size: details.team_size || undefined,
+        business_type: details.business_type || undefined,
+        primary_objective: details.primary_objective || undefined,
+        my_title: details.my_title.trim() || undefined,
+      });
+      navigate("/dashboard?onboarding=complete", { replace: true });
+    } catch {/* toast já tratado */}
   };
-
-  const handleSkip = async () => {
-    // Record that onboarding was skipped
-    if (currentWorkspace) {
-      await supabase.from("workspace_onboarding").upsert({
-        workspace_id: currentWorkspace.id,
-        skipped: true,
-        completed_at: new Date().toISOString(),
-      }, { onConflict: 'workspace_id' });
-    }
-    navigate("/dashboard");
-  };
-
-  if (showIntelligentOnboarding) {
-    return (
-      <ConversationalOnboarding
-        workspaceName={workspaceName}
-        onComplete={handleComplete}
-        onSkip={handleSkip}
-      />
-    );
-  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-lg space-y-8 animate-fade-in">
-        {/* Logo */}
+    <div className="min-h-screen bg-background p-4 sm:p-8">
+      <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
+        {/* Header */}
         <div className="flex items-center gap-3 justify-center">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-            <Building2 className="w-7 h-7 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+            <Building2 className="w-6 h-6 text-primary-foreground" />
           </div>
-          <span className="text-2xl font-bold text-foreground">FastCRM</span>
+          <span className="text-xl font-bold text-foreground">FastCRM</span>
         </div>
 
-        {/* Welcome message */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">
-            Bem-vindo, {user?.user_metadata?.full_name?.split(" ")[0] || ""}! 👋
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Vamos configurar o teu espaço de trabalho
-          </p>
-        </div>
+        <OnboardingStepper steps={steps} currentIndex={Math.max(currentStepIndex, 0)} />
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="p-6 rounded-xl border border-border bg-card space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="workspaceName" className="text-base">
-                Nome do Workspace
-              </Label>
-              <Input
-                id="workspaceName"
-                placeholder="O nome da tua empresa ou equipa"
-                value={workspaceName}
-                onChange={(e) => setWorkspaceName(e.target.value)}
-                className="h-12 text-lg"
-                autoFocus
-              />
-              <p className="text-sm text-muted-foreground">
-                Tipicamente o nome da tua empresa, equipa ou projeto.
+        {step === "choose" && (
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                Bem-vindo{firstName ? `, ${firstName}` : ""}!
+              </h1>
+              <p className="text-muted-foreground">
+                Para começar, escolhe ou cria a tua organização.
               </p>
             </div>
 
-            {/* Features preview */}
-            <div className="pt-4 border-t border-border space-y-3">
+            {invitesLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <PendingInvitesList
+                invites={invites}
+                onAccept={handleAcceptInvite}
+                submitting={submitting}
+              />
+            )}
+
+            {hasWorkspaces && (
+              <ExistingWorkspacesList
+                workspaces={workspaces}
+                onSelect={(id) => {
+                  selectExisting(id);
+                  navigate("/dashboard", { replace: true });
+                }}
+              />
+            )}
+
+            {(invites.length > 0 || hasWorkspaces) && <Separator />}
+
+            <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Sparkles className="w-4 h-4 text-primary" />
-                O que vamos configurar:
+                Criar nova organização
               </div>
-              <div className="space-y-2">
-                {[
-                  "Pipeline personalizado para o teu negócio",
-                  "Campos adaptados ao teu setor",
-                  "Formulários de captura de leads",
-                  "Automações sugeridas por IA",
-                ].map((feature) => (
-                  <div key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                      <Check className="w-3 h-3 text-green-600" />
-                    </div>
-                    {feature}
-                  </div>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => setStep("details")}
+                className="w-full p-5 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-accent/40 transition-colors text-left flex items-center gap-4"
+              >
+                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                  <Plus className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-medium text-foreground">Criar uma nova organização B2B</div>
+                  <p className="text-sm text-muted-foreground">
+                    Empresa, NIF, equipa — ficas como Owner.
+                  </p>
+                </div>
+              </button>
             </div>
           </div>
+        )}
 
+        {step === "details" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Dados da organização</h2>
+              <p className="text-muted-foreground mt-1">
+                Vamos personalizar o teu FastCRM em função do teu negócio.
+              </p>
+            </div>
+            <B2BDetailsForm
+              initial={details}
+              onBack={() => setStep("choose")}
+              onNext={(v) => {
+                setDetails(v);
+                setStep("confirm");
+              }}
+            />
+          </div>
+        )}
+
+        {step === "confirm" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Confirma os detalhes</h2>
+              <p className="text-muted-foreground mt-1">
+                Podes alterar tudo depois nas definições da organização.
+              </p>
+            </div>
+            <ConfirmStep
+              details={details}
+              onBack={() => setStep("details")}
+              onConfirm={handleConfirm}
+              submitting={submitting}
+            />
+          </div>
+        )}
+
+        <div className="pt-4">
           <Button
-            type="submit"
-            className="w-full h-12 text-lg"
-            disabled={creating || !workspaceName.trim()}
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground"
+            onClick={async () => {
+              const { supabase } = await import("@/integrations/supabase/client");
+              await supabase.auth.signOut();
+              navigate("/login", { replace: true });
+            }}
           >
-            {creating ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <>
-                Continuar
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </>
-            )}
+            Terminar sessão
           </Button>
-        </form>
+        </div>
       </div>
     </div>
   );
