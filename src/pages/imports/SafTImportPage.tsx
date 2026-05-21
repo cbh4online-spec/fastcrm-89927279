@@ -19,6 +19,7 @@ import {
 
 export default function SafTImportPage() {
   const [currentId, setCurrentId] = useState<string | null>(null);
+  const [autoAnalyzeId, setAutoAnalyzeId] = useState<string | null>(null);
   const [opts, setOpts] = useState<SafTImportOpts>({
     create_customers: true,
     create_products: true,
@@ -31,10 +32,11 @@ export default function SafTImportPage() {
   const { data: imp } = useSaftImport(currentId ?? undefined);
 
   useEffect(() => {
-    if (imp?.status === "uploaded" && !analyze.isPending) {
+    if (imp?.status === "uploaded" && autoAnalyzeId !== imp.id && !analyze.isPending) {
+      setAutoAnalyzeId(imp.id);
       analyze.mutate(imp.id);
     }
-  }, [imp?.id, imp?.status, analyze.isPending]);
+  }, [imp?.id, imp?.status, autoAnalyzeId, analyze.isPending]);
 
   const phase = !currentId
     ? "upload"
