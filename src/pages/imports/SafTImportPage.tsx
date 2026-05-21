@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Loader2 } from "lucide-react";
 import { SafTUploader } from "@/components/imports/saft/SafTUploader";
 import { SafTPreviewPanel } from "@/components/imports/saft/SafTPreviewPanel";
 import { SafTMappingPanel, type SafTImportOpts } from "@/components/imports/saft/SafTMappingPanel";
@@ -57,10 +59,7 @@ export default function SafTImportPage() {
         )}
 
         {phase === "analyzing" && (
-          <Card className="p-8 text-center">
-            <p className="font-medium">A analisar o ficheiro…</p>
-            <p className="text-sm text-muted-foreground">Validação do header AT e contagem de documentos.</p>
-          </Card>
+          <AnalyzingCard startedAt={imp?.created_at} />
         )}
 
         {phase === "preview" && imp && (
@@ -98,5 +97,35 @@ export default function SafTImportPage() {
         </section>
       </div>
     </DashboardLayout>
+  );
+}
+
+function AnalyzingCard({ startedAt }: { startedAt?: string }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const t0 = startedAt ? new Date(startedAt).getTime() : Date.now();
+    const tick = () => setElapsed(Math.max(0, Math.round((Date.now() - t0) / 1000)));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [startedAt]);
+
+  // Progresso estimado: análise dura tipicamente 5–60s. Subida assintótica até 95%.
+  const pct = Math.min(95, Math.round((1 - Math.exp(-elapsed / 15)) * 100));
+
+  return (
+    <Card className="p-8 space-y-4">
+      <div className="flex items-center gap-3">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <div className="flex-1">
+          <p className="font-medium">A analisar o ficheiro…</p>
+          <p className="text-sm text-muted-foreground">
+            Validação do header AT e contagem de documentos. Decorrido: {elapsed}s
+          </p>
+        </div>
+        <span className="font-mono text-sm text-muted-foreground">{pct}%</span>
+      </div>
+      <Progress value={pct} className="h-2" />
+    </Card>
   );
 }

@@ -85,7 +85,7 @@ export function useSaftImport(id: string | undefined) {
   });
 }
 
-export function useSaftImportItems(importId: string | undefined) {
+export function useSaftImportItems(importId: string | undefined, isLive = false) {
   return useQuery({
     queryKey: ["saft-import-items", importId],
     enabled: !!importId,
@@ -99,6 +99,7 @@ export function useSaftImportItems(importId: string | undefined) {
       if (error) throw error;
       return data ?? [];
     },
+    refetchInterval: isLive ? 2000 : false,
   });
 }
 
