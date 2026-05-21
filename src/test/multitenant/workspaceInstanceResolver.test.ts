@@ -36,7 +36,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
 
   it("usa a URL/key devolvida pelo Control Plane para o workspace pedido", async () => {
     const deps = makeDeps({
-      callControlPlane: vi.fn(async (_cfg, _wsId) => ({
+      callControlPlane: vi.fn(async (_cfg, _wsId): Promise<ControlPlaneResponse> => ({
         success: true,
         workspace: {
           id: "inst-1",
@@ -87,7 +87,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
 
   it("workspace SUSPENSO via Control Plane NUNCA recebe cliente do tenant — devolve mainClient", async () => {
     const deps = makeDeps({
-      callControlPlane: vi.fn(async () => ({
+      callControlPlane: vi.fn(async (): Promise<ControlPlaneResponse> => ({
         success: true,
         workspace: {
           id: "inst-x",
@@ -109,7 +109,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
 
   it("workspace INACTIVO via Control Plane também cai para mainClient", async () => {
     const deps = makeDeps({
-      callControlPlane: vi.fn(async () => ({
+      callControlPlane: vi.fn(async (): Promise<ControlPlaneResponse> => ({
         success: true,
         workspace: {
           id: "inst-x",
@@ -135,7 +135,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
       metadata: {},
     }));
     const deps = makeDeps({
-      callControlPlane: vi.fn(async () => ({ success: false, error: "boom" })),
+      callControlPlane: vi.fn(async (): Promise<ControlPlaneResponse> => ({ success: false, error: "boom" })),
       fetchLocalInstance: localSpy,
     });
 
@@ -208,7 +208,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
   it("troca de workspace recria o cliente apropriado em cada chamada (sem memória cruzada)", async () => {
     let i = 0;
     const deps = makeDeps({
-      callControlPlane: vi.fn(async (_c, wsId) => ({
+      callControlPlane: vi.fn(async (_c, wsId): Promise<ControlPlaneResponse> => ({
         success: true,
         workspace: {
           id: `inst-${++i}`,
