@@ -51,12 +51,19 @@ export default function SafTImportPage() {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6 max-w-5xl mx-auto">
-        <header>
-          <h1 className="text-2xl font-semibold">Importar histórico de vendas (SAF-T PT)</h1>
-          <p className="text-sm text-muted-foreground">
-            Importa o ficheiro SAF-T PT do teu software de gestão (PHC, Primavera, Sage, Moloni, InvoiceXpress, Toconline, …).
-            Os documentos são desduplicados por número de fatura e ficam disponíveis em Faturas e KPIs financeiros.
-          </p>
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold">Importar histórico de vendas (SAF-T PT)</h1>
+            <p className="text-sm text-muted-foreground">
+              Importa o ficheiro SAF-T PT do teu software de gestão (PHC, Primavera, Sage, Moloni, InvoiceXpress, Toconline, …).
+              Os documentos são desduplicados por número de fatura e ficam disponíveis em Faturas e KPIs financeiros.
+            </p>
+          </div>
+          {currentId && (
+            <Button onClick={() => setCurrentId(null)} className="shrink-0">
+              Nova importação
+            </Button>
+          )}
         </header>
 
         {phase === "upload" && (
