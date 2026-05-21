@@ -275,9 +275,10 @@ export default function StockValuationPage() {
                     return (
                       <TableRow key={r.product_id}>
                         <TableCell>
-                          <div className="font-medium leading-tight line-clamp-2">{r.product_name}</div>
-                          {r.sku && <div className="text-[10px] text-muted-foreground mt-0.5">{r.sku}</div>}
+                          <div className="font-medium leading-snug line-clamp-2 break-words whitespace-normal" title={r.product_name}>{r.product_name}</div>
+                          {r.sku && <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
                         </TableCell>
+
                         <TableCell className="text-right">
                           {r.current_stock <= 0 ? (
                             <Badge variant="destructive" className="text-[10px] px-1.5">0</Badge>
