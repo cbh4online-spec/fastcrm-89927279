@@ -1,5 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useSaftImportItems } from "@/hooks/imports/useSaftImport";
 import type { SaftImport } from "@/hooks/imports/useSaftImport";
 
@@ -11,25 +13,70 @@ const actionVariant: Record<string, "default" | "secondary" | "destructive" | "o
   failed: "destructive",
 };
 
-export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
-  const { data: items = [] } = useSaftImportItems(imp.id);
+const STATUS_LABEL: Record<string, string> = {
+  uploaded: "Carregado",
+  analyzing: "A analisar",
+  preview_ready: "Pré-visualização pronta",
+  importing: "A importar",
+  completed: "Concluída",
+  failed: "Falhou",
+  cancelled: "Cancelada",
+};
 
-  const summary = imp.stats?.summary ?? {};
+export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
+  const isLive = imp.status === "importing" || imp.status === "analyzing";
+  const { data: items = [] } = useSaftImportItems(imp.id, isLive);
+
+  const s = imp.stats ?? {};
+  const summary = s.summary ?? {};
+
+  // Total esperado = clientes + produtos + faturas + pagamentos detectados na análise
+  const expected =
+    (s.customers ?? 0) +
+    (s.products ?? 0) +
+    (s.new_invoices ?? s.invoices ?? 0) +
+    (s.payments ?? 0);
+
+  const processed = items.length;
+  const isCompleted = imp.status === "completed";
+  const isFailed = imp.status === "failed";
+
+  let pct = 0;
+  if (isCompleted) pct = 100;
+  else if (expected > 0) pct = Math.min(99, Math.round((processed / expected) * 100));
+  else if (isLive) pct = 5;
 
   return (
     <div className="space-y-4">
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="font-semibold">Estado: {imp.status}</p>
-            {imp.error_message && (
-              <p className="text-sm text-destructive">{imp.error_message}</p>
-            )}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            {isLive && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+            {isCompleted && <CheckCircle2 className="h-4 w-4 text-primary" />}
+            {isFailed && <AlertCircle className="h-4 w-4 text-destructive" />}
+            <p className="font-semibold">
+              {STATUS_LABEL[imp.status] ?? imp.status}
+            </p>
           </div>
+          <span className="text-sm font-mono text-muted-foreground">
+            {processed}{expected > 0 ? ` / ${expected}` : ""} · {pct}%
+          </span>
         </div>
 
+        <Progress value={pct} className="h-2" />
+
+        {imp.error_message && (
+          <p className="text-sm text-destructive">{imp.error_message}</p>
+        )}
+
+        {isLive && (
+          <p className="text-xs text-muted-foreground">
+            A processar registos em segundo plano. Esta janela actualiza automaticamente.
+          </p>
+        )}
+
         {Object.keys(summary).length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             {Object.entries(summary).map(([entity, counts]: any) => (
               <div key={entity} className="rounded-lg border p-3">
                 <p className="text-xs text-muted-foreground capitalize">{entity}</p>
