@@ -13,6 +13,7 @@ import { SafTHistoryTable } from "@/components/imports/saft/SafTHistoryTable";
 import {
   useUploadSaft,
   useSaftImport,
+  useAnalyzeSaft,
   useRunSaftImport,
 } from "@/hooks/imports/useSaftImport";
 
@@ -25,8 +26,15 @@ export default function SafTImportPage() {
   });
 
   const upload = useUploadSaft();
+  const analyze = useAnalyzeSaft();
   const run = useRunSaftImport();
   const { data: imp } = useSaftImport(currentId ?? undefined);
+
+  useEffect(() => {
+    if (imp?.status === "uploaded" && !analyze.isPending) {
+      analyze.mutate(imp.id);
+    }
+  }, [imp?.id, imp?.status, analyze.isPending]);
 
   const phase = !currentId
     ? "upload"
@@ -59,7 +67,7 @@ export default function SafTImportPage() {
         )}
 
         {phase === "analyzing" && (
-          <AnalyzingCard startedAt={imp?.created_at} />
+          <AnalyzingCard startedAt={imp?.started_at ?? imp?.created_at} status={imp?.status} />
         )}
 
         {phase === "preview" && imp && (
@@ -100,7 +108,7 @@ export default function SafTImportPage() {
   );
 }
 
-function AnalyzingCard({ startedAt }: { startedAt?: string }) {
+function AnalyzingCard({ startedAt, status }: { startedAt?: string; status?: string }) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const t0 = startedAt ? new Date(startedAt).getTime() : Date.now();
@@ -118,7 +126,7 @@ function AnalyzingCard({ startedAt }: { startedAt?: string }) {
       <div className="flex items-center gap-3">
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
         <div className="flex-1">
-          <p className="font-medium">A analisar o ficheiro…</p>
+          <p className="font-medium">{status === "uploaded" ? "A iniciar análise…" : "A analisar o ficheiro…"}</p>
           <p className="text-sm text-muted-foreground">
             Validação do header AT e contagem de documentos. Decorrido: {elapsed}s
           </p>
