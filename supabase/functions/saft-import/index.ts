@@ -31,7 +31,7 @@ function mapStatus(s: string): string {
   return "issued";
 }
 
-async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: SaftParsed) {
+async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: SaftParsed, userId: string) {
   const ws = imp.workspace_id;
   const importId = imp.id;
 
@@ -67,7 +67,8 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
           .from("contacts")
           .insert({
             workspace_id: ws,
-            name: c.name,
+            created_by: userId,
+            name: c.name || c.customer_id,
             tax_id: c.tax_id,
             email: c.email,
             phone: c.phone,
@@ -75,6 +76,8 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
             city: c.city,
             postal_code: c.postal_code,
             country: c.country,
+            emails: c.email ? [{ value: c.email, primary: true }] : [],
+            phones: c.phone ? [{ value: c.phone, primary: true }] : [],
             saft_import_id: importId,
           })
           .select("id")
@@ -121,7 +124,9 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
         .from("products")
         .insert({
           workspace_id: ws,
+          created_by: userId,
           name: p.product_description || p.product_code,
+          sku: p.product_code,
           saft_product_code: p.product_code,
           saft_import_id: importId,
         })
@@ -164,15 +169,18 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     }
 
     const cust = customerMap.get(inv.customer_id);
+    const custName = parsed.customers.find(c => c.customer_id === inv.customer_id)?.name ?? "Consumidor final";
     const { data: insertedInv, error } = await admin
       .from("invoices")
       .insert({
         workspace_id: ws,
+        created_by: userId,
         invoice_number: inv.invoice_no,
         document_type: mapInvoiceType(inv.invoice_type),
         status: mapStatus(inv.invoice_status),
         issue_date: inv.invoice_date,
-        due_date: inv.due_date,
+        due_date: inv.due_date ?? inv.invoice_date,
+        client_name: custName,
         contact_id: cust?.contact_id ?? null,
         company_id: cust?.company_id ?? null,
         subtotal: inv.net_total,
@@ -201,19 +209,21 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
       source_key: inv.invoice_no, source_hash: inv.hash, action: "created", target_id: insertedInv.id,
     });
 
-    // Invoice lines - try insert into invoice_items if table exists
+    // Invoice lines
     if (inv.lines.length) {
-      const lineRows = inv.lines.map(l => ({
+      const lineRows = inv.lines.map((l, idx) => ({
         invoice_id: insertedInv.id,
         product_id: l.product_code ? productMap.get(l.product_code) ?? null : null,
-        description: l.description,
+        description: l.description || "—",
         quantity: l.quantity,
         unit_price: l.unit_price,
         tax_rate: l.tax_percentage,
         tax_amount: l.tax_amount,
-        line_total: l.line_total,
+        net_total: l.line_total - l.tax_amount,
+        gross_total: l.line_total,
+        total: l.line_total,
+        position: l.line_number ?? idx + 1,
       }));
-      // Best-effort; ignore if schema differs
       const { error: linesErr } = await admin.from("invoice_items").insert(lineRows);
       if (linesErr) console.warn("[saft-import] invoice_items insert failed", linesErr.message);
     }
@@ -247,9 +257,11 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
         .insert({
           invoice_id: invoiceId,
           workspace_id: ws,
+          created_by: userId,
           amount: p.amount,
-          payment_date: p.payment_date,
+          payment_date: p.payment_date || new Date().toISOString().slice(0, 10),
           payment_method: p.payment_method,
+          reference: p.payment_ref,
           saft_import_id: importId,
           saft_payment_ref: p.payment_ref,
         })
