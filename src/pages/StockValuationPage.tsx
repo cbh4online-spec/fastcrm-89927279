@@ -221,14 +221,14 @@ export default function StockValuationPage() {
             </Select>
           </div>
 
-          <div className="rounded-md border overflow-x-auto">
+          {/* Desktop / tablet: tabela completa */}
+          <div className="rounded-md border overflow-x-auto hidden md:block">
             <Table className="text-xs [&_th]:h-9 [&_th]:px-2 [&_td]:p-2 [&_td]:align-top table-fixed w-full min-w-0">
               <TableHeader>
                 <TableRow>
                   <TableHead className="cursor-pointer w-[34%]" onClick={() => toggleSort("name")}>
                     Produto / SKU
                   </TableHead>
-
                   <TableHead className="text-right cursor-pointer w-[90px]" onClick={() => toggleSort("stock")} title="Stock actual / mínimo">
                     Stock
                   </TableHead>
@@ -322,6 +322,84 @@ export default function StockValuationPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Mobile: cards */}
+          <div className="md:hidden space-y-2">
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="rounded-md border p-3"><Skeleton className="h-16 w-full" /></div>
+              ))
+            ) : filtered.length === 0 ? (
+              <div className="text-center text-muted-foreground py-10 border rounded-md text-sm">
+                Sem produtos para mostrar
+              </div>
+            ) : (
+              filtered.map((r) => {
+                const suggested = r.suggested_base_price;
+                const delta = suggested != null ? r.unit_sale_price - suggested : null;
+                const belowMin = r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold;
+                return (
+                  <div key={r.product_id} className="rounded-md border p-3 bg-card">
+                    <div className="font-medium text-sm leading-snug break-words" title={r.product_name}>
+                      {r.product_name}
+                    </div>
+                    {r.sku && <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
+
+                    <div className="mt-2 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Stock</span>
+                      <span className="flex items-center gap-2">
+                        {r.current_stock <= 0 ? (
+                          <Badge variant="destructive" className="text-[10px] px-1.5">0</Badge>
+                        ) : (
+                          <span className={belowMin ? "text-amber-600 font-medium" : "font-medium"}>
+                            {fmt(r.current_stock, false)}
+                          </span>
+                        )}
+                        {r.low_stock_threshold > 0 && (
+                          <span className="text-[10px] text-muted-foreground">min {fmt(r.low_stock_threshold, false)}</span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded bg-amber-50/60 dark:bg-amber-950/20 p-2">
+                        <div className="text-[10px] text-muted-foreground">Custo un.</div>
+                        <div className="font-medium">{fmt(r.total_unit_cost)}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">Valor: {fmt(r.total_cost_value)}</div>
+                      </div>
+                      <div className="rounded bg-blue-50/60 dark:bg-blue-950/20 p-2">
+                        <div className="text-[10px] text-muted-foreground">PVP un.</div>
+                        <div className="font-medium">{fmt(r.unit_sale_price)}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">Valor: {fmt(r.total_sale_value)}</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 flex items-center justify-between text-xs pt-2 border-t">
+                      <span className="text-muted-foreground">Lucro</span>
+                      <span className="flex items-center gap-2">
+                        <span className={`font-medium ${r.latent_margin < 0 ? "text-destructive" : "text-emerald-600"}`}>
+                          {fmt(r.latent_margin)}
+                        </span>
+                        <Badge
+                          variant={r.markup_pct < 0 ? "destructive" : r.markup_pct < 15 ? "secondary" : "default"}
+                          className="text-[10px] px-1.5"
+                        >
+                          {r.markup_pct.toFixed(1)}%
+                        </Badge>
+                      </span>
+                    </div>
+
+                    {suggested != null && delta != null && Math.abs(delta) >= 0.01 && (
+                      <div className={`mt-1 text-[10px] text-right ${delta < 0 ? "text-destructive" : "text-emerald-600"}`}>
+                        PVP sugerido: {fmt(suggested)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
 
 
           {!isLoading && filtered.length > 0 && (
