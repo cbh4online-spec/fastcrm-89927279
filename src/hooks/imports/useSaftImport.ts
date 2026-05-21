@@ -124,6 +124,13 @@ export function useUploadSaft() {
         .maybeSingle();
       if (existing) {
         toast.info("Este ficheiro SAF-T já foi importado anteriormente.");
+        if (["uploaded", "failed"].includes(existing.status)) {
+          const { data: analyzeData, error: fnErr } = await supabase.functions.invoke("saft-analyze", {
+            body: { import_id: existing.id },
+          });
+          if (fnErr) throw fnErr;
+          if (analyzeData?.ok === false) throw new Error(analyzeData.error || "Falha na análise SAF-T");
+        }
         return existing.id;
       }
 
