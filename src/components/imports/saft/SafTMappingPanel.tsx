@@ -17,7 +17,7 @@ export function SafTMappingPanel({
         <div>
           <Label className="text-base">Criar clientes em falta</Label>
           <p className="text-sm text-muted-foreground">
-            Clientes do SAF-T sem correspondência por NIF são criados em Contactos.
+            Clientes do SAF-T são criados como Empresas (NIFs 5/6/8/9 ou sem NIF) ou como Contactos (NIFs particulares 1/2/3), com dedupe por NIF dentro de cada tabela.
           </p>
         </div>
         <Switch checked={value.create_customers} onCheckedChange={(v) => onChange({ ...value, create_customers: v })} />
