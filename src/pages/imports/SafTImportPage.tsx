@@ -13,11 +13,13 @@ import { SafTHistoryTable } from "@/components/imports/saft/SafTHistoryTable";
 import {
   useUploadSaft,
   useSaftImport,
+  useAnalyzeSaft,
   useRunSaftImport,
 } from "@/hooks/imports/useSaftImport";
 
 export default function SafTImportPage() {
   const [currentId, setCurrentId] = useState<string | null>(null);
+  const [autoAnalyzeId, setAutoAnalyzeId] = useState<string | null>(null);
   const [opts, setOpts] = useState<SafTImportOpts>({
     create_customers: true,
     create_products: true,
@@ -25,8 +27,16 @@ export default function SafTImportPage() {
   });
 
   const upload = useUploadSaft();
+  const analyze = useAnalyzeSaft();
   const run = useRunSaftImport();
   const { data: imp } = useSaftImport(currentId ?? undefined);
+
+  useEffect(() => {
+    if (imp?.status === "uploaded" && autoAnalyzeId !== imp.id && !analyze.isPending) {
+      setAutoAnalyzeId(imp.id);
+      analyze.mutate(imp.id);
+    }
+  }, [imp?.id, imp?.status, autoAnalyzeId, analyze.isPending]);
 
   const phase = !currentId
     ? "upload"
@@ -59,7 +69,16 @@ export default function SafTImportPage() {
         )}
 
         {phase === "analyzing" && (
-          <AnalyzingCard startedAt={imp?.created_at} />
+          <AnalyzingCard
+            startedAt={imp?.started_at ?? imp?.created_at}
+            status={imp?.status}
+            error={analyze.error instanceof Error ? analyze.error.message : undefined}
+            onRetry={() => {
+              if (!imp) return;
+              setAutoAnalyzeId(null);
+              analyze.mutate(imp.id);
+            }}
+          />
         )}
 
         {phase === "preview" && imp && (
@@ -100,7 +119,17 @@ export default function SafTImportPage() {
   );
 }
 
-function AnalyzingCard({ startedAt }: { startedAt?: string }) {
+function AnalyzingCard({
+  startedAt,
+  status,
+  error,
+  onRetry,
+}: {
+  startedAt?: string;
+  status?: string;
+  error?: string;
+  onRetry?: () => void;
+}) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const t0 = startedAt ? new Date(startedAt).getTime() : Date.now();
@@ -111,21 +140,30 @@ function AnalyzingCard({ startedAt }: { startedAt?: string }) {
   }, [startedAt]);
 
   // Progresso estimado: análise dura tipicamente 5–60s. Subida assintótica até 95%.
-  const pct = Math.min(95, Math.round((1 - Math.exp(-elapsed / 15)) * 100));
+  const pct = error
+    ? 0
+    : status === "uploaded"
+    ? Math.min(25, Math.round((1 - Math.exp(-elapsed / 10)) * 100))
+    : Math.min(95, Math.round((1 - Math.exp(-elapsed / 15)) * 100));
 
   return (
     <Card className="p-8 space-y-4">
       <div className="flex items-center gap-3">
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
         <div className="flex-1">
-          <p className="font-medium">A analisar o ficheiro…</p>
+          <p className="font-medium">{error ? "Não foi possível analisar o ficheiro" : status === "uploaded" ? "A iniciar análise…" : "A analisar o ficheiro…"}</p>
           <p className="text-sm text-muted-foreground">
-            Validação do header AT e contagem de documentos. Decorrido: {elapsed}s
+            {error ? error : `Validação do header AT e contagem de documentos. Decorrido: ${elapsed}s`}
           </p>
         </div>
         <span className="font-mono text-sm text-muted-foreground">{pct}%</span>
       </div>
       <Progress value={pct} className="h-2" />
+      {error && onRetry && (
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          Repetir análise
+        </Button>
+      )}
     </Card>
   );
 }

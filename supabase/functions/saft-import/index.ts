@@ -11,6 +11,32 @@ function ok(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
+async function canAccessWorkspace(admin: any, workspaceId: string, userId: string) {
+  const { data: direct } = await admin
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (direct) return true;
+
+  const { data: workspace } = await admin
+    .from("workspaces")
+    .select("managed_by_workspace_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  if (!workspace?.managed_by_workspace_id) return false;
+
+  const { data: managerMember } = await admin
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", workspace.managed_by_workspace_id)
+    .eq("user_id", userId)
+    .in("role", ["owner", "admin"])
+    .maybeSingle();
+  return !!managerMember;
+}
+
 interface ImportOptions {
   create_customers?: boolean;
   create_products?: boolean;
@@ -426,10 +452,8 @@ Deno.serve(async (req) => {
     const { data: imp } = await admin.from("saft_imports").select("*").eq("id", import_id).maybeSingle();
     if (!imp) return ok({ ok: false, error: "not found" }, 200);
 
-    const { data: member } = await admin
-      .from("workspace_members").select("user_id")
-      .eq("workspace_id", imp.workspace_id).eq("user_id", user.id).maybeSingle();
-    if (!member) return ok({ ok: false, error: "forbidden" }, 200);
+    const allowed = await canAccessWorkspace(admin, imp.workspace_id, user.id);
+    if (!allowed) return ok({ ok: false, error: "Sem permissão para importar SAF-T neste workspace" }, 200);
 
     if (imp.status === "completed") return ok({ ok: false, error: "já importado" }, 200);
 

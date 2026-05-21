@@ -124,6 +124,13 @@ export function useUploadSaft() {
         .maybeSingle();
       if (existing) {
         toast.info("Este ficheiro SAF-T já foi importado anteriormente.");
+        if (["uploaded", "failed"].includes(existing.status)) {
+          const { data: analyzeData, error: fnErr } = await supabase.functions.invoke("saft-analyze", {
+            body: { import_id: existing.id },
+          });
+          if (fnErr) throw fnErr;
+          if (analyzeData?.ok === false) throw new Error(analyzeData.error || "Falha na análise SAF-T");
+        }
         return existing.id;
       }
 
@@ -149,15 +156,35 @@ export function useUploadSaft() {
       if (insErr) throw insErr;
 
       // Disparar análise
-      const { error: fnErr } = await supabase.functions.invoke("saft-analyze", {
+      const { data: analyzeData, error: fnErr } = await supabase.functions.invoke("saft-analyze", {
         body: { import_id: importId },
       });
-      if (fnErr) console.warn("saft-analyze invoke error", fnErr);
+      if (fnErr) throw fnErr;
+      if (analyzeData?.ok === false) throw new Error(analyzeData.error || "Falha na análise SAF-T");
 
       return importId;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["saft-imports"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useAnalyzeSaft() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (importId: string) => {
+      const { data, error } = await supabase.functions.invoke("saft-analyze", {
+        body: { import_id: importId },
+      });
+      if (error) throw error;
+      if (data?.ok === false) throw new Error(data.error || "Falha na análise SAF-T");
+      return data;
+    },
+    onSuccess: (_d, importId) => {
+      qc.invalidateQueries({ queryKey: ["saft-imports"] });
+      qc.invalidateQueries({ queryKey: ["saft-import", importId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

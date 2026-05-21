@@ -14,6 +14,32 @@ function ok(body: unknown, status = 200) {
   });
 }
 
+async function canAccessWorkspace(admin: any, workspaceId: string, userId: string) {
+  const { data: direct } = await admin
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (direct) return true;
+
+  const { data: workspace } = await admin
+    .from("workspaces")
+    .select("managed_by_workspace_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  if (!workspace?.managed_by_workspace_id) return false;
+
+  const { data: managerMember } = await admin
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", workspace.managed_by_workspace_id)
+    .eq("user_id", userId)
+    .in("role", ["owner", "admin"])
+    .maybeSingle();
+  return !!managerMember;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -43,14 +69,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (impErr || !imp) return ok({ ok: false, error: "import not found" }, 200);
 
-    // membership check
-    const { data: member } = await admin
-      .from("workspace_members")
-      .select("user_id")
-      .eq("workspace_id", imp.workspace_id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (!member) return ok({ ok: false, error: "forbidden" }, 200);
+    const allowed = await canAccessWorkspace(admin, imp.workspace_id, user.id);
+    if (!allowed) return ok({ ok: false, error: "Sem permissão para analisar SAF-T neste workspace" }, 200);
 
     await admin.from("saft_imports").update({ status: "analyzing", started_at: new Date().toISOString() }).eq("id", import_id);
 
