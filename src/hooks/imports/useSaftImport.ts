@@ -149,10 +149,11 @@ export function useUploadSaft() {
       if (insErr) throw insErr;
 
       // Disparar análise
-      const { error: fnErr } = await supabase.functions.invoke("saft-analyze", {
+      const { data: analyzeData, error: fnErr } = await supabase.functions.invoke("saft-analyze", {
         body: { import_id: importId },
       });
-      if (fnErr) console.warn("saft-analyze invoke error", fnErr);
+      if (fnErr) throw fnErr;
+      if (analyzeData?.ok === false) throw new Error(analyzeData.error || "Falha na análise SAF-T");
 
       return importId;
     },
