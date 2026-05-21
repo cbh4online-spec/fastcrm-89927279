@@ -154,7 +154,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
       workspace_id: "ws-1",
       supabase_url: "https://t1.supabase.co",
       supabase_anon_key: "anon-t1",
-      status: "active",
+      status: "active" as const,
       metadata: {},
     };
     const deps = makeDeps({
@@ -189,7 +189,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
       workspace_id: "ws-1",
       supabase_url: "https://t1.supabase.co",
       supabase_anon_key: "anon-t1",
-      status: "active",
+      status: "active" as const,
       metadata: {},
     };
     const deps = makeDeps({
@@ -211,7 +211,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
         success: true,
         workspace: {
           id: `inst-${++i}`,
-          status: "active",
+          status: "active" as const,
           supabase_url: wsId === "ws-A" ? "https://t1.supabase.co" : "https://t2.supabase.co",
           supabase_anon_key: wsId === "ws-A" ? "anon-t1" : "anon-t2",
         },
