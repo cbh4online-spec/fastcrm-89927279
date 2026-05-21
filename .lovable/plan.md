@@ -1,143 +1,91 @@
-# Controlo de Permissões por Função — Workspace
+## Onboarding B2B pós-login
 
-## Diagnóstico
+### Diagnóstico
 
-Estado atual:
-- `WorkspaceContext` já expõe `role: WorkspaceRole` (`owner | admin | agent | viewer | agency | hr`).
-- Permissões estão **dispersas e inconsistentes**:
-  - `useCanViewCostMargin` (custo/margem) faz check manual.
-  - `useDashboardRole` mapeia roles para "comercial/gestor/admin/suporte".
-  - `useProfileMenuPermissions` / `useFieldPermissions` lêem de tabelas DB.
-  - Várias rotas (`AIRoutes`, `HRRoutes`, `SecurityRoutes`, `PartnerRoutes`, etc.) **não validam role** — qualquer membro do workspace acede.
-- Edge functions do Control Plane (`admin-user-action`, `cloud_status`, etc.) validam super_admin caso a caso, sem helper partilhado para `owner/admin`.
-- Sem matriz canónica documentada — cada PR adivinha.
+Já existe infraestrutura sólida:
 
-Resultado: privilege creep latente. Um `viewer` consegue navegar a páginas administrativas; um `agent` vê dados financeiros que não devia.
+- `Onboarding.tsx` em `/onboarding`, com redirect automático no `DashboardLayout` quando o utilizador não tem workspaces.
+- RPC `create_workspace_with_owner(p_name, p_slug)` que cria workspace e `workspace_members` com `role='owner'` atomicamente.
+- Tabela `workspaces` já tem colunas B2B (`company_name`, `tax_id`, `billing_email`, `cae_codes`, `phone`, `website`, etc.).
+- Tabela `workspace_onboarding` cobre `team_size`, `business_type`, `primary_objective`, `revenue_model`, `sales_complexity`.
+- Tabela `workspace_invites` com `email`, `role`, `invite_token`, `status`, `expires_at` — existe página `/accept-invite/:token` mas **não há descoberta automática** de convites pendentes pelo email do utilizador.
 
-## Decisões de Produto
+Lacunas para um fluxo B2B completo:
 
-**Matriz canónica (SSoT)** das 4 funções:
+1. Onboarding atual só cobre "criar workspace" e ignora convites pendentes e workspaces existentes (caso o utilizador tenha sido adicionado por outra via).
+2. Não recolhe campos B2B essenciais (NIF, setor, dimensão da equipa) num único passo.
+3. Não há seleção quando o utilizador já pertence a múltiplos workspaces (raro mas possível para colaboradores B2B).
+4. O papel "owner" é atribuído implicitamente pela RPC — falta confirmação visual ao utilizador.
 
-| Capacidade | owner | admin | agent | viewer |
-|---|---|---|---|---|
-| Gerir workspace (settings, billing, members) | ✅ | ✅ | ❌ | ❌ |
-| Configurar integrações / canais / IA | ✅ | ✅ | ❌ | ❌ |
-| Ver custos, margens, financeiros (P&L, SAF-T) | ✅ | ✅ | ❌ | 👁️ leitura |
-| CRUD em leads, contactos, deals, tarefas | ✅ | ✅ | ✅ | ❌ |
-| Inbox, mensagens, atividades | ✅ | ✅ | ✅ | 👁️ leitura |
-| Reports operacionais | ✅ | ✅ | ✅ | 👁️ leitura |
-| Apagar / bulk / export | ✅ | ✅ | ❌ | ❌ |
-| Catálogo (produtos, preços) | ✅ | ✅ | 👁️ leitura | 👁️ leitura |
-| HR, Security, Audit Logs | ✅ | ✅ | ❌ | ❌ |
+### Decisões de produto / UX
 
-`agency` herda de `admin`; `hr` herda de `agent` + acesso total ao módulo HR. `super_admin` faz bypass global.
+- **Wizard de 3 passos** com indicador de progresso no topo:
+  1. **Acolhimento + escolha de caminho** — mostra convites pendentes (se houver), workspaces existentes do utilizador (se houver) e opção "Criar nova organização".
+  2. **Detalhes da organização** (apenas no caminho "criar") — nome, NIF (PT 9 dígitos, opcional), setor, dimensão da equipa, o meu cargo.
+  3. **Confirmação** — resumo + badge "Vais ser o **Owner** desta organização" + CTA "Entrar".
+- Se o utilizador tiver **convites pendentes** para o seu email, são listados em destaque com botão "Aceitar" inline (sem precisar do link por email).
+- Se já tiver **workspaces**, mostrar lista para selecionar — útil quando regressa após ser convidado.
+- "Skip" indisponível: B2B exige sempre um workspace ativo para entrar no dashboard.
+- Validação de NIF PT (algoritmo módulo 11) usando `src/utils/nif.ts` (já existente).
+- Persistência B2B em `workspaces` (company_name, tax_id) + `workspace_onboarding` (team_size, business_type, primary_objective).
+- Após criar/selecionar, redirect para `/dashboard` com `?onboarding=complete` (mantém integração com o ConversationalOnboarding existente, que pode disparar depois se desejado).
 
-## Estrutura Técnica
+### Estrutura técnica
 
-### 1. SSoT de capabilities — `src/lib/permissions/capabilities.ts`
+**Backend (1 migração)**
 
-```ts
-export const CAPABILITIES = [
-  "workspace.manage", "workspace.billing", "members.manage",
-  "integrations.manage", "ai.configure",
-  "finance.view", "finance.manage",
-  "crm.read", "crm.write", "crm.delete", "crm.bulk_export",
-  "inbox.read", "inbox.reply",
-  "catalog.read", "catalog.write",
-  "reports.operational", "reports.executive",
-  "hr.access", "security.access", "audit.view",
-] as const;
-export type Capability = typeof CAPABILITIES[number];
+- Nova RPC `create_workspace_b2b(p_name, p_slug, p_company_name, p_tax_id, p_team_size, p_business_type, p_primary_objective, p_my_title)`:
+  - `SECURITY DEFINER`, `search_path = public`.
+  - Insere `workspaces` com campos B2B preenchidos.
+  - Insere `workspace_members` com `role='owner'` + `title = p_my_title`.
+  - Insere `workspace_onboarding` com os campos opcionais.
+  - Devolve `jsonb` com o workspace criado.
+  - `GRANT EXECUTE … TO authenticated`.
+- Função `get_pending_invites_for_user()` que devolve convites com `email = (auth.jwt() ->> 'email')`, `status='pending'`, `expires_at > now()`, com nome do workspace via join.
+- RPC `accept_workspace_invite(p_token)` (caso ainda não exista) que valida token+email, cria `workspace_members`, marca convite `accepted`.
 
-export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
-  owner:  [/* todas */],
-  admin:  [/* todas exceto workspace.billing irreversível */],
-  agent:  ["crm.read","crm.write","inbox.read","inbox.reply","catalog.read","reports.operational"],
-  viewer: ["crm.read","inbox.read","catalog.read","reports.operational","finance.view"],
-  agency: /* mesmo que admin */,
-  hr:     /* agent + hr.access */,
-};
-```
+**Frontend**
 
-### 2. Hook canónico — `src/hooks/useCapability.ts`
-```ts
-export function useCapability(cap: Capability): boolean
-export function useCapabilities(): { can: (c: Capability) => boolean, role }
-```
-Substitui progressivamente `useCanViewCostMargin`, checks ad-hoc.
+- Refactor de `src/pages/Onboarding.tsx`:
+  - Wizard com `step: "choose" | "details" | "confirm"`.
+  - Reutiliza `useWorkspace().refreshWorkspaces`.
+  - Mantém compatibilidade: se chegar com `workspaces.length > 0` mas sem `currentWorkspace`, mostra apenas o seletor (sem forçar criação).
+- Novos componentes em `src/components/onboarding/b2b/`:
+  - `OnboardingHeader.tsx` — stepper visual.
+  - `PendingInvitesList.tsx` — lista de convites + ação aceitar.
+  - `ExistingWorkspacesList.tsx` — cartões com workspaces já existentes.
+  - `B2BDetailsForm.tsx` — formulário passo 2 (com validação NIF).
+  - `ConfirmStep.tsx` — resumo + badge de papel.
+- Novo hook `usePendingInvites.ts` (React Query).
+- Novo hook `useCreateB2BWorkspace.ts` que chama a RPC e refaz `refreshWorkspaces`.
 
-### 3. Guard de rota — `src/components/guards/CapabilityGuard.tsx`
-```tsx
-<CapabilityGuard need="finance.manage" fallback={<AccessDenied/>}>
-  <BillingPage/>
-</CapabilityGuard>
-```
-Wrapper aplicado nos `*Routes.tsx` por grupo (não rota a rota).
+**Routing**
 
-### 4. Backend — `supabase/functions/_shared/capabilities.ts`
-Mesma matriz, função `requireCapability(req, workspaceId, cap)` que:
-- Valida JWT (`auth.getUser`)
-- Lê `workspace_members.role`
-- Verifica `is_super_admin` (bypass)
-- Devolve 403 estruturado se falhar
-- Loga em `admin_audit_logs` quando ação é sensível
+- Mantém `/onboarding` em `DashboardCoreRoutes.tsx`.
+- `DashboardLayout` mantém o redirect quando `workspaces.length === 0`.
 
-### 5. RLS — função SQL `has_capability(uid, ws, cap)`
-Migration cria função SECURITY DEFINER que espelha a matriz. Políticas críticas (ex.: `invoices`, `products`, `workspace_members`) passam a usar `has_capability(auth.uid(), workspace_id, 'finance.manage')` em vez de checks ad-hoc.
+### Plano de implementação
 
-### 6. UI de "Access Denied"
-Componente `<AccessDenied capability="..." />` consistente: ícone, mensagem PT-pt, botão "Voltar ao dashboard", link "Pedir acesso ao admin".
+1. Migração: RPC `create_workspace_b2b`, `get_pending_invites_for_user`, `accept_workspace_invite` (verificar antes se já existe).
+2. Hooks: `usePendingInvites`, `useCreateB2BWorkspace`, `useAcceptInvite`.
+3. Componentes do wizard em `src/components/onboarding/b2b/`.
+4. Refactor `Onboarding.tsx` para orquestrar passos + manter o atalho para `ConversationalOnboarding` opcional no final.
+5. Validação NIF (reutilizar `src/utils/nif.ts`).
+6. Toasts e estados (loading, erro, vazio).
 
-## Plano de Implementação (faseado)
+### Critérios de aceitação
 
-**Fase 1 — Fundação (sem breaking changes)**
-1. Criar `capabilities.ts` (matriz SSoT) + `useCapability` + `CapabilityGuard` + `AccessDenied`.
-2. Criar `supabase/functions/_shared/capabilities.ts`.
-3. Migration: função `has_capability(uuid, uuid, text)`.
-4. Documentar matriz em `docs/permissions.md` + memory.
+- Utilizador novo sem workspaces e sem convites: vê apenas "Criar organização" → wizard de 3 passos → fica `owner` confirmado.
+- Utilizador com convite pendente: vê o convite no topo, aceita com 1 clique e entra no workspace correspondente.
+- Utilizador com workspaces existentes: vê seletor e escolhe um → entra no dashboard.
+- NIF inválido (PT) bloqueia avanço com mensagem clara; NIF vazio é permitido.
+- Após criar, `workspaces` tem `company_name` + `tax_id` preenchidos e `workspace_members` tem `role='owner'`.
+- Pressionar voltar entre passos preserva estado do formulário.
+- Funciona em mobile (≤375px) e desktop.
 
-**Fase 2 — Aplicação no Frontend**
-5. Envolver grupos de rotas críticas com `CapabilityGuard`:
-   - `SecurityRoutes` → `security.access`
-   - `HRRoutes` → `hr.access`
-   - `RevenueFlightControlRoutes` (billing/finance) → `finance.manage`
-   - `PartnerRoutes` (admin areas) → `workspace.manage`
-   - Settings de workspace, integrações, IA → `integrations.manage`
-6. Esconder itens de menu via `useCapability` no `routeManifest`.
-7. Migrar `useCanViewCostMargin` → `useCapability("finance.view")` (mantém shim para retrocompat).
+### Riscos e pontos por validar
 
-**Fase 3 — Backend / Control Plane**
-8. Edge functions sensíveis adoptam `requireCapability`:
-   - `admin-user-action`, `workspace-*`, `billing-*`, `saft-import`, `saft-analyze`.
-9. Reforçar RLS em tabelas: `invoices`, `invoice_payments`, `workspace_members`, `user_roles`.
-
-**Fase 4 — Testes & QA**
-10. Vitest: `src/test/permissions/capability-matrix.test.ts` valida cada par (role, cap).
-11. Smoke E2E manual: login com cada role, verificar matriz acima.
-12. Linter Supabase + corrida de testes.
-
-## Critérios de Aceitação
-
-- [ ] Matriz canónica única em `capabilities.ts` (frontend) e `_shared/capabilities.ts` (backend) — valores espelhados.
-- [ ] `CapabilityGuard` aplicado a todos os grupos de rotas listados na Fase 2.
-- [ ] `viewer` não consegue navegar para `/dashboard/security`, `/dashboard/hr`, `/dashboard/billing` (vê `AccessDenied`).
-- [ ] `agent` não vê coluna de custo/margem em produtos nem rotas financeiras.
-- [ ] Edge functions sensíveis devolvem 403 estruturado quando capability falha + log em `admin_audit_logs`.
-- [ ] Itens de menu escondidos quando o user não tem capability.
-- [ ] Super admin continua a fazer bypass de tudo.
-- [ ] Testes vitest verdes para a matriz.
-- [ ] Zero regressões: utilizadores existentes (owner/admin) mantêm acesso a tudo o que já tinham.
-
-## Riscos
-
-- **Rotura silenciosa**: aplicar guards em rotas que `agent` usava no dia-a-dia → mitigar com QA por role antes de merge.
-- **Drift frontend/backend**: matriz duplicada pode divergir → mitigar com teste partilhado e comentário "SSoT mirror".
-- **RLS apertada demais**: queries existentes podem falhar → fase 3 vai atrás da 2 com dataset de teste.
-- **Agency/hr roles**: pouco usados, fácil esquecer → matriz cobre explicitamente.
-
-## Pontos por Validar (antes de avançar)
-
-1. **Âmbito desta primeira PR**: faço só a Fase 1 + 2 (frontend + fundação), ou incluo já Fase 3 (edge functions) e Fase 4 (RLS) na mesma entrega? Recomendo entregar **Fases 1+2** primeiro, validar em preview com diferentes contas, e só depois mexer em RLS/edge functions (mais arriscado).
-2. **`viewer` vê finance ou não?** Na matriz acima coloquei `finance.view` (leitura de KPIs/faturas) mas sem export. Confirma?
-3. **`agency` = `admin`?** No `WorkspaceContext` defaults para `agency` quando não há membership explícito. Mantém igual a admin ou trato como role separado mais restrito?
-4. **Itens de menu**: esconder completamente quando sem capability, ou mostrar disabled com tooltip "Sem permissão"?
+- Confirmar se `accept_workspace_invite` já existe (a página `AcceptWorkspaceInvite.tsx` faz `INSERT` direto via RLS) — se sim, reutilizar; se não, criar.
+- Coluna `title` em `workspace_members` existe? Validar antes da migração; se não existir, adicionar.
+- Email do utilizador em `auth.jwt()` está sempre populado em B2B (Google + Email/Password): confirmado por construção do AuthContext.
+- Não criar duplicação com `ConversationalOnboarding`: este wizard fica antes (estrutura/papel) e o conversacional pode ser convidado opcionalmente depois.
