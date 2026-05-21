@@ -222,12 +222,13 @@ export default function StockValuationPage() {
           </div>
 
           <div className="rounded-md border overflow-x-auto">
-            <Table className="text-xs [&_th]:h-9 [&_th]:px-2 [&_td]:p-2 [&_td]:align-top">
+            <Table className="text-xs [&_th]:h-9 [&_th]:px-2 [&_td]:p-2 [&_td]:align-top table-fixed w-full min-w-0">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="cursor-pointer min-w-[220px]" onClick={() => toggleSort("name")}>
+                  <TableHead className="cursor-pointer w-[34%]" onClick={() => toggleSort("name")}>
                     Produto / SKU
                   </TableHead>
+
                   <TableHead className="text-right cursor-pointer w-[90px]" onClick={() => toggleSort("stock")} title="Stock actual / mínimo">
                     Stock
                   </TableHead>
@@ -274,9 +275,10 @@ export default function StockValuationPage() {
                     return (
                       <TableRow key={r.product_id}>
                         <TableCell>
-                          <div className="font-medium leading-tight line-clamp-2">{r.product_name}</div>
-                          {r.sku && <div className="text-[10px] text-muted-foreground mt-0.5">{r.sku}</div>}
+                          <div className="font-medium leading-snug line-clamp-2 break-words whitespace-normal" title={r.product_name}>{r.product_name}</div>
+                          {r.sku && <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
                         </TableCell>
+
                         <TableCell className="text-right">
                           {r.current_stock <= 0 ? (
                             <Badge variant="destructive" className="text-[10px] px-1.5">0</Badge>
