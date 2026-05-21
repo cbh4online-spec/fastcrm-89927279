@@ -1,145 +1,143 @@
-
-# Importador SAF-T PT — Histórico de Vendas
+# Controlo de Permissões por Função — Workspace
 
 ## Diagnóstico
 
-O SAF-T PT é um XML normalizado pela Portaria 302/2016 emitido por qualquer software certificado pela AT (PHC, Primavera, Sage, Moloni, Toconline, InvoiceXpress, etc.). Suporta três tipos relevantes:
+Estado atual:
+- `WorkspaceContext` já expõe `role: WorkspaceRole` (`owner | admin | agent | viewer | agency | hr`).
+- Permissões estão **dispersas e inconsistentes**:
+  - `useCanViewCostMargin` (custo/margem) faz check manual.
+  - `useDashboardRole` mapeia roles para "comercial/gestor/admin/suporte".
+  - `useProfileMenuPermissions` / `useFieldPermissions` lêem de tabelas DB.
+  - Várias rotas (`AIRoutes`, `HRRoutes`, `SecurityRoutes`, `PartnerRoutes`, etc.) **não validam role** — qualquer membro do workspace acede.
+- Edge functions do Control Plane (`admin-user-action`, `cloud_status`, etc.) validam super_admin caso a caso, sem helper partilhado para `owner/admin`.
+- Sem matriz canónica documentada — cada PR adivinha.
 
-- **Faturação** (mensal): `SourceDocuments` com `SalesInvoices`, `MovementOfGoods`, `WorkingDocuments`, `Payments`
-- **Contabilidade** (anual): inclui `MasterFiles` completo + `GeneralLedgerEntries`
-- **Autofaturação**: documentos emitidos pelo adquirente em nome do fornecedor
+Resultado: privilege creep latente. Um `viewer` consegue navegar a páginas administrativas; um `agent` vê dados financeiros que não devia.
 
-A app já tem `invoices`, `invoice_payments`, `contacts`, `companies`, `products` com regras de dedupe estritas por NIF (memória CRM) e KPIs financeiros baseados em `amount_paid` (memória Finance). O importador encaixa neste ecossistema sem criar tabelas paralelas.
+## Decisões de Produto
 
-## Decisões de Produto/UX
+**Matriz canónica (SSoT)** das 4 funções:
 
-1. **Página dedicada** em `Definições → Importações → SAF-T PT` (e atalho em `Financeiro → Importar histórico`).
-2. **Fluxo em 4 passos**: Upload → Análise (preview) → Mapeamento → Importação com progresso.
-3. **Preview obrigatório** antes de confirmar: mostra período fiscal detectado, nº de docs novos vs já existentes, nº de clientes/produtos a criar vs merge, totais por tipo de documento.
-4. **Dry-run** opcional: parsing completo sem escrita, só relatório.
-5. **Histórico de importações** com possibilidade de ver log detalhado e (futuramente) reverter.
-6. **Documentos importados marcados visualmente** com badge "SAF-T" e origem (nome do ficheiro + período).
+| Capacidade | owner | admin | agent | viewer |
+|---|---|---|---|---|
+| Gerir workspace (settings, billing, members) | ✅ | ✅ | ❌ | ❌ |
+| Configurar integrações / canais / IA | ✅ | ✅ | ❌ | ❌ |
+| Ver custos, margens, financeiros (P&L, SAF-T) | ✅ | ✅ | ❌ | 👁️ leitura |
+| CRUD em leads, contactos, deals, tarefas | ✅ | ✅ | ✅ | ❌ |
+| Inbox, mensagens, atividades | ✅ | ✅ | ✅ | 👁️ leitura |
+| Reports operacionais | ✅ | ✅ | ✅ | 👁️ leitura |
+| Apagar / bulk / export | ✅ | ✅ | ❌ | ❌ |
+| Catálogo (produtos, preços) | ✅ | ✅ | 👁️ leitura | 👁️ leitura |
+| HR, Security, Audit Logs | ✅ | ✅ | ❌ | ❌ |
+
+`agency` herda de `admin`; `hr` herda de `agent` + acesso total ao módulo HR. `super_admin` faz bypass global.
 
 ## Estrutura Técnica
 
-### Novas tabelas
+### 1. SSoT de capabilities — `src/lib/permissions/capabilities.ts`
 
-```text
-saft_imports
-  ├─ id, workspace_id, uploaded_by
-  ├─ file_name, file_hash (SHA-256 — dedupe global do ficheiro)
-  ├─ file_size, storage_path
-  ├─ saft_type ('billing' | 'accounting' | 'self_billing')
-  ├─ saft_version, software_company, software_id
-  ├─ tax_registration_number (NIF emissor)
-  ├─ fiscal_year, period_start, period_end
-  ├─ status ('uploaded'|'analyzing'|'preview_ready'|'importing'|'completed'|'failed')
-  ├─ stats jsonb (counts por entidade)
-  ├─ error_message, started_at, completed_at
+```ts
+export const CAPABILITIES = [
+  "workspace.manage", "workspace.billing", "members.manage",
+  "integrations.manage", "ai.configure",
+  "finance.view", "finance.manage",
+  "crm.read", "crm.write", "crm.delete", "crm.bulk_export",
+  "inbox.read", "inbox.reply",
+  "catalog.read", "catalog.write",
+  "reports.operational", "reports.executive",
+  "hr.access", "security.access", "audit.view",
+] as const;
+export type Capability = typeof CAPABILITIES[number];
 
-saft_import_items
-  ├─ id, import_id, workspace_id
-  ├─ entity_type ('invoice'|'customer'|'product'|'payment')
-  ├─ source_key (InvoiceNo, CustomerID, ProductCode, PaymentRefNo)
-  ├─ source_hash (hash linha SAF-T para detectar mudanças)
-  ├─ action ('created'|'updated'|'skipped_duplicate'|'merged'|'failed')
-  ├─ target_id (FK polimórfica para invoices/contacts/companies/products)
-  ├─ error_message, raw_payload jsonb
+export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
+  owner:  [/* todas */],
+  admin:  [/* todas exceto workspace.billing irreversível */],
+  agent:  ["crm.read","crm.write","inbox.read","inbox.reply","catalog.read","reports.operational"],
+  viewer: ["crm.read","inbox.read","catalog.read","reports.operational","finance.view"],
+  agency: /* mesmo que admin */,
+  hr:     /* agent + hr.access */,
+};
 ```
 
-### Extensões a tabelas existentes (não-destrutivas)
-
-```text
-invoices
-  + saft_import_id uuid null
-  + saft_invoice_no text null      -- ex: "FT 2024/123"
-  + saft_atcud text null            -- código único AT
-  + saft_hash text null             -- hash do doc (idempotência)
-  + UNIQUE (workspace_id, saft_invoice_no) WHERE saft_invoice_no IS NOT NULL
-
-invoice_payments  + saft_import_id, saft_payment_ref
-contacts          + saft_import_id
-companies         + saft_import_id
-products          + saft_import_id, saft_product_code
+### 2. Hook canónico — `src/hooks/useCapability.ts`
+```ts
+export function useCapability(cap: Capability): boolean
+export function useCapabilities(): { can: (c: Capability) => boolean, role }
 ```
+Substitui progressivamente `useCanViewCostMargin`, checks ad-hoc.
 
-### Storage
-
-Bucket privado `saft-imports/` (RLS por workspace). Ficheiros guardados para auditoria e re-processamento.
-
-### Edge Functions
-
-1. **`saft-analyze`** — recebe `import_id`, faz streaming parse do XML (sax-style para suportar 50 MB sem OOM), valida schema mínimo, extrai header + counts, popula preview em `saft_imports.stats`. Não escreve dados de negócio.
-2. **`saft-import`** — recebe `import_id` + opções (criar produtos sim/não, etc.), executa importação em transações por bloco (clientes → produtos → faturas → pagamentos), com dedupe e logging por item em `saft_import_items`.
-
-Ambas com CORS, JWT validation, workspace membership check, e padrão de resposta 200 OK com `{ ok, fallback?, error? }` (memória Edge Functions resilient).
-
-### Parsing
-
-Lib `fast-xml-parser` (Deno-compatible via npm:) com `parseAttributeValue` e streaming por nó para SAF-T grandes. Schema-aware: mapeia `InvoiceType` → `document_type` (FT, FS, FR, NC, ND, etc.), `PaymentMechanism` → `payment_method`.
-
-### Dedupe (conforme escolhido)
-
-- **Faturas**: chave única `(workspace_id, saft_invoice_no)` + `saft_hash`. Se hash igual → skip. Se diferente → reimporta apenas campos seguros (estado, valor pago) preservando histórico.
-- **Clientes**: NIF é chave primária de dedupe (regra existente). Email como fallback. Sem NIF → procura por nome+email; senão cria.
-- **Produtos**: `saft_product_code` por workspace. Fallback por nome exato.
-- **Pagamentos**: `(workspace_id, saft_payment_ref)` único.
-
-### Frontend
-
-```text
-src/pages/imports/SafTImportPage.tsx          (wizard 4 passos)
-src/components/imports/saft/
-  ├─ SafTUploader.tsx          (drag&drop, validação .xml, hash client-side)
-  ├─ SafTPreviewPanel.tsx      (cards com contadores + tabela amostra)
-  ├─ SafTMappingPanel.tsx      (opções: criar produtos, criar clientes, importar pagamentos)
-  ├─ SafTProgressPanel.tsx     (polling status + log em tempo real)
-  └─ SafTHistoryTable.tsx      (importações anteriores)
-src/hooks/imports/
-  ├─ useSafTUpload.ts
-  ├─ useSafTAnalyze.ts
-  ├─ useSafTImport.ts
-  └─ useSafTImports.ts         (listagem)
+### 3. Guard de rota — `src/components/guards/CapabilityGuard.tsx`
+```tsx
+<CapabilityGuard need="finance.manage" fallback={<AccessDenied/>}>
+  <BillingPage/>
+</CapabilityGuard>
 ```
+Wrapper aplicado nos `*Routes.tsx` por grupo (não rota a rota).
 
-Entrada no `routeManifest.ts` (SSoT) sob departamento Financeiro.
+### 4. Backend — `supabase/functions/_shared/capabilities.ts`
+Mesma matriz, função `requireCapability(req, workspaceId, cap)` que:
+- Valida JWT (`auth.getUser`)
+- Lê `workspace_members.role`
+- Verifica `is_super_admin` (bypass)
+- Devolve 403 estruturado se falhar
+- Loga em `admin_audit_logs` quando ação é sensível
 
-## Plano de Implementação
+### 5. RLS — função SQL `has_capability(uid, ws, cap)`
+Migration cria função SECURITY DEFINER que espelha a matriz. Políticas críticas (ex.: `invoices`, `products`, `workspace_members`) passam a usar `has_capability(auth.uid(), workspace_id, 'finance.manage')` em vez de checks ad-hoc.
 
-1. **Migração DB**: tabelas `saft_imports`, `saft_import_items`, colunas SAF-T nas tabelas existentes, índices únicos, RLS por workspace, bucket `saft-imports` + policies.
-2. **Edge function `saft-analyze`** com streaming parser e validação de header AT.
-3. **Edge function `saft-import`** com dedupe idempotente e logging por item.
-4. **Frontend wizard** (upload → preview → mapping → progresso).
-5. **Página de histórico** com drill-down para `saft_import_items`.
-6. **Badge "SAF-T" + tooltip** nas faturas importadas (lista e detalhe).
-7. **Integração no menu** (Financeiro + Definições/Importações).
-8. **Memória do projecto**: criar `mem://features/imports/saft-pt` com regras de dedupe e mapeamento de tipos.
+### 6. UI de "Access Denied"
+Componente `<AccessDenied capability="..." />` consistente: ícone, mensagem PT-pt, botão "Voltar ao dashboard", link "Pedir acesso ao admin".
+
+## Plano de Implementação (faseado)
+
+**Fase 1 — Fundação (sem breaking changes)**
+1. Criar `capabilities.ts` (matriz SSoT) + `useCapability` + `CapabilityGuard` + `AccessDenied`.
+2. Criar `supabase/functions/_shared/capabilities.ts`.
+3. Migration: função `has_capability(uuid, uuid, text)`.
+4. Documentar matriz em `docs/permissions.md` + memory.
+
+**Fase 2 — Aplicação no Frontend**
+5. Envolver grupos de rotas críticas com `CapabilityGuard`:
+   - `SecurityRoutes` → `security.access`
+   - `HRRoutes` → `hr.access`
+   - `RevenueFlightControlRoutes` (billing/finance) → `finance.manage`
+   - `PartnerRoutes` (admin areas) → `workspace.manage`
+   - Settings de workspace, integrações, IA → `integrations.manage`
+6. Esconder itens de menu via `useCapability` no `routeManifest`.
+7. Migrar `useCanViewCostMargin` → `useCapability("finance.view")` (mantém shim para retrocompat).
+
+**Fase 3 — Backend / Control Plane**
+8. Edge functions sensíveis adoptam `requireCapability`:
+   - `admin-user-action`, `workspace-*`, `billing-*`, `saft-import`, `saft-analyze`.
+9. Reforçar RLS em tabelas: `invoices`, `invoice_payments`, `workspace_members`, `user_roles`.
+
+**Fase 4 — Testes & QA**
+10. Vitest: `src/test/permissions/capability-matrix.test.ts` valida cada par (role, cap).
+11. Smoke E2E manual: login com cada role, verificar matriz acima.
+12. Linter Supabase + corrida de testes.
 
 ## Critérios de Aceitação
 
-- Upload de SAF-T Faturação de 12 meses (PHC, Moloni, InvoiceXpress) é processado sem OOM até 50 MB.
-- Re-upload do mesmo ficheiro: 0 docs criados, todos marcados `skipped_duplicate`.
-- Upload de mês seguinte com 2 NCs sobre faturas anteriores: NCs criadas, faturas originais inalteradas.
-- Clientes com mesmo NIF de contactos já existentes fazem merge sem duplicar.
-- KPIs financeiros (`useFinancialKPIs`) refletem corretamente os valores importados (via `invoice_payments`).
-- SAF-T Contabilidade detectado e parseado (mesmo que só importe `SalesInvoices`+`Payments` na v1 — `GeneralLedger` fica como TODO explícito).
-- SAF-T mal formado devolve erro claro no preview (não rebenta a função).
-- Importação cancelável durante o `importing` (flag em `saft_imports.status`).
+- [ ] Matriz canónica única em `capabilities.ts` (frontend) e `_shared/capabilities.ts` (backend) — valores espelhados.
+- [ ] `CapabilityGuard` aplicado a todos os grupos de rotas listados na Fase 2.
+- [ ] `viewer` não consegue navegar para `/dashboard/security`, `/dashboard/hr`, `/dashboard/billing` (vê `AccessDenied`).
+- [ ] `agent` não vê coluna de custo/margem em produtos nem rotas financeiras.
+- [ ] Edge functions sensíveis devolvem 403 estruturado quando capability falha + log em `admin_audit_logs`.
+- [ ] Itens de menu escondidos quando o user não tem capability.
+- [ ] Super admin continua a fazer bypass de tudo.
+- [ ] Testes vitest verdes para a matriz.
+- [ ] Zero regressões: utilizadores existentes (owner/admin) mantêm acesso a tudo o que já tinham.
 
-## Riscos e Pontos a Validar
+## Riscos
 
-- **Encoding**: SAF-T pode vir em ISO-8859-1; garantir conversão para UTF-8 no upload.
-- **Documentos anulados** (`InvoiceStatus = A`): importar como `status='cancelled'`, não somar a KPIs.
-- **Documentos sem cliente** (vendas a "Consumidor Final" com NIF `999999990`): criar contacto genérico único por workspace.
-- **NIFs estrangeiros** (prefixo país): manter como string, sem validação PT.
-- **IVA isento** (motivos M01–M99): mapear `TaxExemptionReason` para campo dedicado.
-- **Multi-empresa num único SAF-T**: validar `TaxRegistrationNumber` do header contra workspace; recusar se não bater certo.
-- **Faturas de período já encerrado**: aviso visual mas permitir (caso de migração).
-- **50 MB no Deno edge**: confirmar limite de memória; se preciso, fazer fallback para chunked parse em duas passagens (header primeiro, depois corpo).
+- **Rotura silenciosa**: aplicar guards em rotas que `agent` usava no dia-a-dia → mitigar com QA por role antes de merge.
+- **Drift frontend/backend**: matriz duplicada pode divergir → mitigar com teste partilhado e comentário "SSoT mirror".
+- **RLS apertada demais**: queries existentes podem falhar → fase 3 vai atrás da 2 com dataset de teste.
+- **Agency/hr roles**: pouco usados, fácil esquecer → matriz cobre explicitamente.
 
-## Fora de Âmbito (v1)
+## Pontos por Validar (antes de avançar)
 
-- `GeneralLedgerEntries` (movimentos contabilísticos analíticos)
-- Reversão automática de uma importação (manual via SQL no início)
-- Importação recorrente agendada (escolha do utilizador foi "manual ocasional")
-- Background processing via Trigger.dev (não necessário ≤50 MB)
+1. **Âmbito desta primeira PR**: faço só a Fase 1 + 2 (frontend + fundação), ou incluo já Fase 3 (edge functions) e Fase 4 (RLS) na mesma entrega? Recomendo entregar **Fases 1+2** primeiro, validar em preview com diferentes contas, e só depois mexer em RLS/edge functions (mais arriscado).
+2. **`viewer` vê finance ou não?** Na matriz acima coloquei `finance.view` (leitura de KPIs/faturas) mas sem export. Confirma?
+3. **`agency` = `admin`?** No `WorkspaceContext` defaults para `agency` quando não há membership explícito. Mantém igual a admin ou trato como role separado mais restrito?
+4. **Itens de menu**: esconder completamente quando sem capability, ou mostrar disabled com tooltip "Sem permissão"?
