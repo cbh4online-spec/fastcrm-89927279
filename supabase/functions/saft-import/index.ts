@@ -38,8 +38,17 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   const ws = imp.workspace_id;
   const importId = imp.id;
 
-  // 1) Customers: dedupe by tax_id (NIF), then email; map to contacts
+  // 1) Customers: SAF-T PT customers são tipicamente entidades comerciais (B2B).
+  //    Roteamos por heurística do NIF PT:
+  //      - NIF começa por 1/2/3 → particular  → contacts
+  //      - NIF começa por 5/6/8/9 (ou sem NIF) → empresa → companies
+  //    Dedupe por tax_id (NIF) dentro de cada tabela, com fallback por email.
   const customerMap = new Map<string, { contact_id: string | null; company_id: string | null }>();
+
+  const isPersonalNif = (nif?: string | null) => {
+    const d = (nif ?? "").replace(/\D/g, "");
+    return d.length > 0 && /^[123]/.test(d);
+  };
 
   if (opts.create_customers !== false) {
     for (const c of parsed.customers) {
@@ -47,56 +56,115 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
       let contactId: string | null = null;
       let companyId: string | null = null;
 
-      // Try NIF lookup in contacts
-      if (c.tax_id) {
-        const { data: existing } = await admin
-          .from("contacts")
-          .select("id")
-          .eq("workspace_id", ws)
-          .eq("tax_id", c.tax_id)
-          .limit(1)
-          .maybeSingle();
-        if (existing) {
-          contactId = existing.id;
+      const routeToContacts = isPersonalNif(c.tax_id);
+
+      if (routeToContacts) {
+        // ---- CONTACTS branch (particulares) ----
+        if (c.tax_id) {
+          const { data: existing } = await admin
+            .from("contacts").select("id")
+            .eq("workspace_id", ws).eq("tax_id", c.tax_id)
+            .limit(1).maybeSingle();
+          if (existing) contactId = existing.id;
+        }
+        if (!contactId && c.email) {
+          const { data: existing } = await admin
+            .from("contacts").select("id")
+            .eq("workspace_id", ws).eq("email", c.email)
+            .limit(1).maybeSingle();
+          if (existing) contactId = existing.id;
+        }
+        if (contactId) {
           await admin.from("saft_import_items").insert({
             import_id: importId, workspace_id: ws, entity_type: "customer",
             source_key: c.customer_id, action: "skipped_duplicate", target_id: contactId,
           });
-        }
-      }
-
-      if (!contactId) {
-        const { data: inserted, error } = await admin
-          .from("contacts")
-          .insert({
-            workspace_id: ws,
-            created_by: userId,
-            name: c.name || c.customer_id,
-            tax_id: c.tax_id,
-            email: c.email,
-            phone: c.phone,
-            address: c.address,
-            city: c.city,
-            postal_code: c.postal_code,
-            country: c.country,
-            emails: c.email ? [{ value: c.email, primary: true }] : [],
-            phones: c.phone ? [{ value: c.phone, primary: true }] : [],
-            saft_import_id: importId,
-          })
-          .select("id")
-          .single();
-        if (error) {
+        } else {
+          const { data: inserted, error } = await admin
+            .from("contacts")
+            .insert({
+              workspace_id: ws,
+              created_by: userId,
+              name: c.name || c.customer_id,
+              tax_id: c.tax_id,
+              email: c.email,
+              phone: c.phone,
+              address: c.address,
+              city: c.city,
+              postal_code: c.postal_code,
+              country: c.country,
+              emails: c.email ? [{ value: c.email, primary: true }] : [],
+              phones: c.phone ? [{ value: c.phone, primary: true }] : [],
+              saft_import_id: importId,
+            })
+            .select("id").single();
+          if (error) {
+            await admin.from("saft_import_items").insert({
+              import_id: importId, workspace_id: ws, entity_type: "customer",
+              source_key: c.customer_id, action: "failed", error_message: error.message,
+            });
+            continue;
+          }
+          contactId = inserted.id;
           await admin.from("saft_import_items").insert({
             import_id: importId, workspace_id: ws, entity_type: "customer",
-            source_key: c.customer_id, action: "failed", error_message: error.message,
+            source_key: c.customer_id, action: "created", target_id: contactId,
           });
-          continue;
         }
-        contactId = inserted.id;
-        await admin.from("saft_import_items").insert({
-          import_id: importId, workspace_id: ws, entity_type: "customer",
-          source_key: c.customer_id, action: "created", target_id: contactId,
-        });
+      } else {
+        // ---- COMPANIES branch (empresas / default) ----
+        if (c.tax_id) {
+          const { data: existing } = await admin
+            .from("companies").select("id")
+            .eq("workspace_id", ws).eq("tax_id", c.tax_id)
+            .is("deleted_at", null)
+            .limit(1).maybeSingle();
+          if (existing) companyId = existing.id;
+        }
+        if (!companyId && c.email) {
+          const { data: existing } = await admin
+            .from("companies").select("id")
+            .eq("workspace_id", ws).eq("email", c.email)
+            .is("deleted_at", null)
+            .limit(1).maybeSingle();
+          if (existing) companyId = existing.id;
+        }
+        if (companyId) {
+          await admin.from("saft_import_items").insert({
+            import_id: importId, workspace_id: ws, entity_type: "customer",
+            source_key: c.customer_id, action: "skipped_duplicate", target_id: companyId,
+          });
+        } else {
+          const { data: inserted, error } = await admin
+            .from("companies")
+            .insert({
+              workspace_id: ws,
+              created_by: userId,
+              name: c.name || c.customer_id,
+              tax_id: c.tax_id,
+              email: c.email,
+              phone: c.phone,
+              address: c.address,
+              city: c.city,
+              postal_code: c.postal_code,
+              country: c.country,
+              source: "saft_import",
+              saft_import_id: importId,
+            })
+            .select("id").single();
+          if (error) {
+            await admin.from("saft_import_items").insert({
+              import_id: importId, workspace_id: ws, entity_type: "customer",
+              source_key: c.customer_id, action: "failed", error_message: error.message,
+            });
+            continue;
+          }
+          companyId = inserted.id;
+          await admin.from("saft_import_items").insert({
+            import_id: importId, workspace_id: ws, entity_type: "customer",
+            source_key: c.customer_id, action: "created", target_id: companyId,
+          });
+        }
       }
 
       customerMap.set(c.customer_id, { contact_id: contactId, company_id: companyId });
