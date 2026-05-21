@@ -69,7 +69,16 @@ export default function SafTImportPage() {
         )}
 
         {phase === "analyzing" && (
-          <AnalyzingCard startedAt={imp?.started_at ?? imp?.created_at} status={imp?.status} />
+          <AnalyzingCard
+            startedAt={imp?.started_at ?? imp?.created_at}
+            status={imp?.status}
+            error={analyze.error instanceof Error ? analyze.error.message : undefined}
+            onRetry={() => {
+              if (!imp) return;
+              setAutoAnalyzeId(null);
+              analyze.mutate(imp.id);
+            }}
+          />
         )}
 
         {phase === "preview" && imp && (
@@ -110,7 +119,17 @@ export default function SafTImportPage() {
   );
 }
 
-function AnalyzingCard({ startedAt, status }: { startedAt?: string; status?: string }) {
+function AnalyzingCard({
+  startedAt,
+  status,
+  error,
+  onRetry,
+}: {
+  startedAt?: string;
+  status?: string;
+  error?: string;
+  onRetry?: () => void;
+}) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const t0 = startedAt ? new Date(startedAt).getTime() : Date.now();
@@ -121,21 +140,30 @@ function AnalyzingCard({ startedAt, status }: { startedAt?: string; status?: str
   }, [startedAt]);
 
   // Progresso estimado: análise dura tipicamente 5–60s. Subida assintótica até 95%.
-  const pct = Math.min(95, Math.round((1 - Math.exp(-elapsed / 15)) * 100));
+  const pct = error
+    ? 0
+    : status === "uploaded"
+    ? Math.min(25, Math.round((1 - Math.exp(-elapsed / 10)) * 100))
+    : Math.min(95, Math.round((1 - Math.exp(-elapsed / 15)) * 100));
 
   return (
     <Card className="p-8 space-y-4">
       <div className="flex items-center gap-3">
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
         <div className="flex-1">
-          <p className="font-medium">{status === "uploaded" ? "A iniciar análise…" : "A analisar o ficheiro…"}</p>
+          <p className="font-medium">{error ? "Não foi possível analisar o ficheiro" : status === "uploaded" ? "A iniciar análise…" : "A analisar o ficheiro…"}</p>
           <p className="text-sm text-muted-foreground">
-            Validação do header AT e contagem de documentos. Decorrido: {elapsed}s
+            {error ? error : `Validação do header AT e contagem de documentos. Decorrido: ${elapsed}s`}
           </p>
         </div>
         <span className="font-mono text-sm text-muted-foreground">{pct}%</span>
       </div>
       <Progress value={pct} className="h-2" />
+      {error && onRetry && (
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          Repetir análise
+        </Button>
+      )}
     </Card>
   );
 }
