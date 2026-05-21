@@ -476,33 +476,41 @@ Deno.serve(async (req) => {
     const xml = new TextDecoder(useEnc).decode(bytes);
     const parsed = parseSaftXml(xml);
 
-    try {
-      await processImport(admin, imp, options, parsed, user.id);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "import error";
-      await admin.from("saft_imports").update({ status: "failed", error_message: msg, completed_at: new Date().toISOString() }).eq("id", import_id);
-      return ok({ ok: false, error: msg, internal_error: true }, 200);
-    }
+    // Run heavy work in background so we don't hit WORKER_RESOURCE_LIMIT on the request.
+    // Frontend polls saft_imports.status + saft_import_items for progress.
+    // @ts-ignore EdgeRuntime is a Deno deploy global
+    EdgeRuntime.waitUntil((async () => {
+      try {
+        await processImport(admin, imp, options, parsed, user.id);
 
-    // Aggregate counts
-    const { data: itemCounts } = await admin
-      .from("saft_import_items")
-      .select("entity_type, action")
-      .eq("import_id", import_id);
+        const { data: itemCounts } = await admin
+          .from("saft_import_items")
+          .select("entity_type, action")
+          .eq("import_id", import_id);
 
-    const summary: Record<string, Record<string, number>> = {};
-    for (const r of itemCounts ?? []) {
-      summary[r.entity_type] ??= {};
-      summary[r.entity_type][r.action] = (summary[r.entity_type][r.action] ?? 0) + 1;
-    }
+        const summary: Record<string, Record<string, number>> = {};
+        for (const r of itemCounts ?? []) {
+          summary[r.entity_type] ??= {};
+          summary[r.entity_type][r.action] = (summary[r.entity_type][r.action] ?? 0) + 1;
+        }
 
-    await admin.from("saft_imports").update({
-      status: "completed",
-      completed_at: new Date().toISOString(),
-      stats: { ...(imp.stats ?? {}), summary },
-    }).eq("id", import_id);
+        await admin.from("saft_imports").update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          stats: { ...(imp.stats ?? {}), summary },
+        }).eq("id", import_id);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "import error";
+        console.error("[saft-import] background error", msg);
+        await admin.from("saft_imports").update({
+          status: "failed",
+          error_message: msg,
+          completed_at: new Date().toISOString(),
+        }).eq("id", import_id);
+      }
+    })());
 
-    return ok({ ok: true, summary });
+    return ok({ ok: true, status: "running", message: "Importação iniciada em background" });
   } catch (e) {
     console.error("[saft-import] error", e);
     const msg = e instanceof Error ? e.message : "internal error";
