@@ -327,7 +327,7 @@ Deno.serve(async (req) => {
     const parsed = parseSaftXml(xml);
 
     try {
-      await processImport(admin, imp, options, parsed);
+      await processImport(admin, imp, options, parsed, user.id);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "import error";
       await admin.from("saft_imports").update({ status: "failed", error_message: msg, completed_at: new Date().toISOString() }).eq("id", import_id);
