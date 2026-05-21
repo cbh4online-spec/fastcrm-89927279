@@ -59,10 +59,7 @@ export default function SafTImportPage() {
         )}
 
         {phase === "analyzing" && (
-          <Card className="p-8 text-center">
-            <p className="font-medium">A analisar o ficheiro…</p>
-            <p className="text-sm text-muted-foreground">Validação do header AT e contagem de documentos.</p>
-          </Card>
+          <AnalyzingCard startedAt={imp?.created_at} />
         )}
 
         {phase === "preview" && imp && (
