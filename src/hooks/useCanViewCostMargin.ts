@@ -1,18 +1,12 @@
-import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useCapability } from "@/hooks/useCapability";
 
 /**
- * Determina se o utilizador pode ver dados sensíveis de custos e margens
- * de produtos. Agentes e viewers ficam restritos. Super admins veem sempre.
+ * @deprecated Usar `useCapability("finance.view")` directamente.
+ * Mantido como shim de retrocompatibilidade — encaminha para a SSoT em
+ * `src/lib/permissions/capabilities.ts`.
  */
 export function useCanViewCostMargin(): boolean {
-  const { currentWorkspace } = useWorkspace();
-  const { isSuperAdmin } = useUserRole();
-
-  if (isSuperAdmin) return true;
-  const role = currentWorkspace?.role;
-  if (!role) return false;
-  return role === "owner" || role === "admin" || role === "agency" || role === "hr";
+  return useCapability("finance.view");
 }
 
 /** Lista canónica de IDs de colunas/campos sensíveis de custo e margem. */
