@@ -185,16 +185,41 @@ export function parseSaftXml(xml: string): SaftParsed {
     };
   });
 
-  // Payments
-  const pays = audit.SourceDocuments?.Payments?.Payment ?? [];
-  const payments: SaftPayment[] = (Array.isArray(pays) ? pays : [pays]).filter(Boolean).map((p: any) => ({
-    payment_ref: String(p.PaymentRefNo ?? ""),
-    payment_date: p.TransactionDate ?? p.SystemEntryDate?.slice(0, 10) ?? "",
-    payment_method: p.PaymentMethod?.PaymentMechanism ?? null,
-    amount: toNum(p.DocumentTotals?.GrossTotal),
-    invoice_no: p.Line?.SourceDocumentID?.OriginatingON ?? null,
-    customer_id: p.CustomerID ? String(p.CustomerID) : null,
-  }));
+  // Payments — um recibo SAF-T pode ter várias Lines (uma por fatura liquidada).
+  // Achatamos: 1 SaftPayment por Line, com o método/mecanismo no nível do Payment.
+  const paysRaw = audit.SourceDocuments?.Payments?.Payment ?? [];
+  const paysArr = Array.isArray(paysRaw) ? paysRaw : [paysRaw];
+  const payments: SaftPayment[] = [];
+  for (const p of paysArr.filter(Boolean)) {
+    const ref = String(p.PaymentRefNo ?? "");
+    const date = p.TransactionDate ?? p.SystemEntryDate?.slice(0, 10) ?? "";
+    // PaymentMethod pode ser objeto ou array no SAF-T PT.
+    const pmRaw = p.PaymentMethod;
+    const pmFirst = Array.isArray(pmRaw) ? pmRaw[0] : pmRaw;
+    const method = pmFirst?.PaymentMechanism ?? null;
+    const custId = p.CustomerID ? String(p.CustomerID) : null;
+    const linesRaw = p.Line ?? [];
+    const linesArr = Array.isArray(linesRaw) ? linesRaw : [linesRaw];
+    if (linesArr.length === 0) continue;
+    for (const ln of linesArr.filter(Boolean)) {
+      const src = ln.SourceDocumentID;
+      const srcArr = Array.isArray(src) ? src : src ? [src] : [];
+      const invoiceNo = srcArr[0]?.OriginatingON ?? null;
+      // Valor da linha (CreditAmount = recebimento, DebitAmount = estorno).
+      const credit = toNum(ln.CreditAmount);
+      const debit = toNum(ln.DebitAmount);
+      const amount = credit - debit;
+      if (!invoiceNo || amount === 0) continue;
+      payments.push({
+        payment_ref: ref,
+        payment_date: date,
+        payment_method: method,
+        amount,
+        invoice_no: String(invoiceNo),
+        customer_id: custId,
+      });
+    }
+  }
 
   return { header, customers, products, invoices, payments };
 }
