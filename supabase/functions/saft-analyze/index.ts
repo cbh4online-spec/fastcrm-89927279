@@ -61,12 +61,15 @@ Deno.serve(async (req) => {
       return ok({ ok: false, error: dlErr?.message ?? "download failed" }, 200);
     }
 
-    let xml = await file.text();
-    // Handle ISO-8859-1
-    if (xml.includes("ISO-8859-1") || xml.includes("iso-8859-1")) {
-      const bytes = new Uint8Array(await (await admin.storage.from("saft-imports").download(imp.storage_path)).data!.arrayBuffer());
-      xml = new TextDecoder("iso-8859-1").decode(bytes);
-    }
+    // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const header = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
+    const encMatch = header.match(/encoding=["']([^"']+)["']/);
+    const declared = (encMatch?.[1] ?? "utf-8").toLowerCase();
+    const useEnc = declared.includes("8859") || declared.includes("1252") || declared.includes("windows")
+      ? "windows-1252"
+      : "utf-8";
+    const xml = new TextDecoder(useEnc).decode(bytes);
 
     let parsed;
     try {
