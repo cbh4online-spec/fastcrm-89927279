@@ -90,7 +90,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
         success: true,
         workspace: {
           id: "inst-x",
-          status: "suspended",
+          status: "suspended" as const,
           supabase_url: "https://t1.supabase.co",
           supabase_anon_key: "anon-t1",
         },
@@ -112,7 +112,7 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
         success: true,
         workspace: {
           id: "inst-x",
-          status: "inactive",
+          status: "inactive" as const,
           supabase_url: "https://t1.supabase.co",
           supabase_anon_key: "anon-t1",
         },
