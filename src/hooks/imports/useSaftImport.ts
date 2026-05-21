@@ -171,6 +171,25 @@ export function useUploadSaft() {
   });
 }
 
+export function useAnalyzeSaft() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (importId: string) => {
+      const { data, error } = await supabase.functions.invoke("saft-analyze", {
+        body: { import_id: importId },
+      });
+      if (error) throw error;
+      if (data?.ok === false) throw new Error(data.error || "Falha na análise SAF-T");
+      return data;
+    },
+    onSuccess: (_d, importId) => {
+      qc.invalidateQueries({ queryKey: ["saft-imports"] });
+      qc.invalidateQueries({ queryKey: ["saft-import", importId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
 export function useRunSaftImport() {
   const qc = useQueryClient();
   return useMutation({
