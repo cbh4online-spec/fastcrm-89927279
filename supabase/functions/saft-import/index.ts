@@ -26,9 +26,12 @@ function mapInvoiceType(t: string): string {
 }
 
 function mapStatus(s: string): string {
+  // SAF-T PT InvoiceStatus → invoices.status (check constraint:
+  // draft | sent | paid | partially_paid | overdue | cancelled)
+  // N=Normal, S=Self-billing, A=Anulado, R=Resumo doc, F=Faturado
   if (s === "A") return "cancelled";
-  if (s === "F") return "paid"; // self-billed/final
-  return "issued";
+  if (s === "F") return "paid";
+  return "sent";
 }
 
 async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: SaftParsed, userId: string) {
