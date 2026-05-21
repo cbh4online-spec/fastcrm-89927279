@@ -1,92 +1,145 @@
-# Reorganização do FastCRM por Departamentos
+
+# Importador SAF-T PT — Histórico de Vendas
 
 ## Diagnóstico
 
-Hoje o sidebar usa NavGroups técnicos (`comunicacao`, `agenda`, `core`, `ai-strategy`, etc.) definidos em `src/config/routeManifest.ts`. O utilizador quer uma estrutura **departamental** — espelhando como uma empresa real está organizada — que sirva também como **alavanca comercial**: cada plano/assinatura ativa apenas os departamentos contratados.
+O SAF-T PT é um XML normalizado pela Portaria 302/2016 emitido por qualquer software certificado pela AT (PHC, Primavera, Sage, Moloni, Toconline, InvoiceXpress, etc.). Suporta três tipos relevantes:
 
-## Decisões de Produto
+- **Faturação** (mensal): `SourceDocuments` com `SalesInvoices`, `MovementOfGoods`, `WorkingDocuments`, `Payments`
+- **Contabilidade** (anual): inclui `MasterFiles` completo + `GeneralLedgerEntries`
+- **Autofaturação**: documentos emitidos pelo adquirente em nome do fornecedor
 
-### Departamentos propostos (SSoT)
-1. **Administração** — workspace, equipa, permissões, billing, integrações, super-admin
-2. **Comercial / Vendas** — CRM, leads, contactos, empresas, pipeline, propostas, deal intelligence, AI SDR
-3. **Marketing** — campanhas, automações, funis, landing pages, SEO, growth insights, lead enrichment
-4. **Comunicação** — inbox, WhatsApp, telegram, voicehub, groups, templates, sequences
-5. **Agenda & Produtividade** — calendário, follow-ups, agendamentos, tarefas
-6. **Financeiro** — faturas, recibos, pagamentos, cobranças (collections), renewals, KPIs financeiros
-7. **Compras & Procurement** — fornecedores, ordens de compra, importação de produtos, staging
-8. **Logística & Stock** — armazéns, inventário, movimentos, expedição
-9. **Catálogo & Produtos** — produtos, categorias, atributos, pricing rules
-10. **Loja Online (B2C/B2B/C2C)** — storefronts, marketplace, lives, partner center
-11. **Recursos Humanos** — colaboradores, departamentos HR, candidatos, onboarding, leave
-12. **Helpdesk & Suporte** — tickets, helpdesk, base de conhecimento
-13. **Inteligência & IA** — exec command, account brief, AI agents, assistants, RAG, automações IA
-14. **Relatórios & Analytics** — reports, KPIs, revenue flight control, performance
+A app já tem `invoices`, `invoice_payments`, `contacts`, `companies`, `products` com regras de dedupe estritas por NIF (memória CRM) e KPIs financeiros baseados em `amount_paid` (memória Finance). O importador encaixa neste ecossistema sem criar tabelas paralelas.
 
-### Configurabilidade por assinatura
-- Cada departamento é uma **entidade declarativa** com `slug`, `nome`, `ícone`, `ordem`, `módulos[]` (slugs do `moduleNavRegistry`).
-- Visibilidade depende de:
-  1. **Plano/assinatura** (subscription tier do workspace)
-  2. **Módulos instalados** (`workspace_modules`)
-  3. **Permissões do perfil** (`profile_menu_permissions`)
-  4. **Override de Super Admin** (toggle manual por workspace)
-- Departamento sem módulos visíveis → oculto automaticamente
-- Departamento bloqueado por plano → mostra com cadeado + CTA "Fazer upgrade"
+## Decisões de Produto/UX
+
+1. **Página dedicada** em `Definições → Importações → SAF-T PT` (e atalho em `Financeiro → Importar histórico`).
+2. **Fluxo em 4 passos**: Upload → Análise (preview) → Mapeamento → Importação com progresso.
+3. **Preview obrigatório** antes de confirmar: mostra período fiscal detectado, nº de docs novos vs já existentes, nº de clientes/produtos a criar vs merge, totais por tipo de documento.
+4. **Dry-run** opcional: parsing completo sem escrita, só relatório.
+5. **Histórico de importações** com possibilidade de ver log detalhado e (futuramente) reverter.
+6. **Documentos importados marcados visualmente** com badge "SAF-T" e origem (nome do ficheiro + período).
 
 ## Estrutura Técnica
 
-### Novos ficheiros
-- `src/config/departments.ts` — SSoT dos departamentos (DEPARTMENT_REGISTRY)
-- `src/hooks/useDepartmentVisibility.ts` — calcula departamentos visíveis cruzando plano + módulos + permissões
-- `src/components/sidebar/DepartmentSidebar.tsx` — novo componente que renderiza por departamento (substitui agrupamento atual)
+### Novas tabelas
 
-### Alterações
-- `src/config/routeManifest.ts` — adicionar campo opcional `department: DepartmentSlug` em cada RouteEntry
-- Migration: nova tabela `workspace_department_overrides` (workspace_id, department_slug, enabled, locked_by_plan)
-- Página `/settings/departments` (super admin + owner) — toggle visual por departamento, mostra módulos contidos e estado de assinatura
-
-### Mapeamento Plano → Departamentos (proposta inicial)
 ```text
-START   → Administração, Comercial, Comunicação, Agenda
-GROW    → + Marketing, Financeiro, Helpdesk, Relatórios
-PRO     → + Compras, Logística, Catálogo, Loja, HR, IA
-ENTERPRISE → todos + overrides custom
+saft_imports
+  ├─ id, workspace_id, uploaded_by
+  ├─ file_name, file_hash (SHA-256 — dedupe global do ficheiro)
+  ├─ file_size, storage_path
+  ├─ saft_type ('billing' | 'accounting' | 'self_billing')
+  ├─ saft_version, software_company, software_id
+  ├─ tax_registration_number (NIF emissor)
+  ├─ fiscal_year, period_start, period_end
+  ├─ status ('uploaded'|'analyzing'|'preview_ready'|'importing'|'completed'|'failed')
+  ├─ stats jsonb (counts por entidade)
+  ├─ error_message, started_at, completed_at
+
+saft_import_items
+  ├─ id, import_id, workspace_id
+  ├─ entity_type ('invoice'|'customer'|'product'|'payment')
+  ├─ source_key (InvoiceNo, CustomerID, ProductCode, PaymentRefNo)
+  ├─ source_hash (hash linha SAF-T para detectar mudanças)
+  ├─ action ('created'|'updated'|'skipped_duplicate'|'merged'|'failed')
+  ├─ target_id (FK polimórfica para invoices/contacts/companies/products)
+  ├─ error_message, raw_payload jsonb
 ```
 
-## Plano de Implementação (faseado)
+### Extensões a tabelas existentes (não-destrutivas)
 
-**Fase 1 — Fundação (esta entrega)**
-1. Criar `DEPARTMENT_REGISTRY` com os 14 departamentos
-2. Anotar cada RouteEntry do `routeManifest.ts` com `department`
-3. Refactor do sidebar para agrupar por departamento (collapsible, ícone próprio)
-4. Hook `useDepartmentVisibility` (versão inicial: só esconde departamentos sem rotas visíveis)
+```text
+invoices
+  + saft_import_id uuid null
+  + saft_invoice_no text null      -- ex: "FT 2024/123"
+  + saft_atcud text null            -- código único AT
+  + saft_hash text null             -- hash do doc (idempotência)
+  + UNIQUE (workspace_id, saft_invoice_no) WHERE saft_invoice_no IS NOT NULL
 
-**Fase 2 — Configurabilidade**
-5. Migration `workspace_department_overrides` + RLS
-6. Página `/settings/departments` (toggle por workspace)
-7. Mapping plano → departamentos no `SubscriptionContext`
-8. Estado "bloqueado por plano" com CTA de upgrade
+invoice_payments  + saft_import_id, saft_payment_ref
+contacts          + saft_import_id
+companies         + saft_import_id
+products          + saft_import_id, saft_product_code
+```
 
-**Fase 3 — Comercial**
-9. Pricing page por departamento (marketing)
-10. Bundles ("Pack Vendas", "Pack Operações")
-11. Telemetria de cliques em departamentos bloqueados
+### Storage
 
-## Critérios de Aceitação (Fase 1)
+Bucket privado `saft-imports/` (RLS por workspace). Ficheiros guardados para auditoria e re-processamento.
 
-- Sidebar agrupa 100% das rotas ativas por um dos 14 departamentos
-- Nenhuma rota órfã (teste automático)
-- Departamento sem rotas visíveis fica oculto
-- Estado collapsed/expanded persiste por departamento
-- Departamento que contém a rota ativa abre automaticamente
-- Sem regressão em `routeManifest` tests existentes
+### Edge Functions
 
-## Riscos / Pontos por Validar
+1. **`saft-analyze`** — recebe `import_id`, faz streaming parse do XML (sax-style para suportar 50 MB sem OOM), valida schema mínimo, extrai header + counts, popula preview em `saft_imports.stats`. Não escreve dados de negócio.
+2. **`saft-import`** — recebe `import_id` + opções (criar produtos sim/não, etc.), executa importação em transações por bloco (clientes → produtos → faturas → pagamentos), com dedupe e logging por item em `saft_import_items`.
 
-- **Sobreposição**: algumas rotas servem >1 departamento (ex.: WhatsApp serve Comunicação E Comercial). Decisão: 1 rota = 1 departamento "primário"; restantes acedem via search/shortcuts.
-- **Naming**: confirmar nomes PT-PT exactos antes de implementar
-- **Plano atual**: preciso confirmar como o workspace expõe o tier de subscrição (já há `SubscriptionContext`?)
-- **HR Departments ≠ Departamentos do Produto**: o conceito "departamento" no UI será o do PRODUTO; os `hr_departments` continuam isolados no módulo HR
+Ambas com CORS, JWT validation, workspace membership check, e padrão de resposta 200 OK com `{ ok, fallback?, error? }` (memória Edge Functions resilient).
 
-## Dúvida crítica antes de avançar
+### Parsing
 
-Avanço já com a **Fase 1** (estrutura visual no sidebar pelos 14 departamentos) e deixo a Fase 2 (toggle por assinatura + página de configuração) para entrega seguinte? Ou prefere que prepare também a migration e a página de configuração no mesmo passo?
+Lib `fast-xml-parser` (Deno-compatible via npm:) com `parseAttributeValue` e streaming por nó para SAF-T grandes. Schema-aware: mapeia `InvoiceType` → `document_type` (FT, FS, FR, NC, ND, etc.), `PaymentMechanism` → `payment_method`.
+
+### Dedupe (conforme escolhido)
+
+- **Faturas**: chave única `(workspace_id, saft_invoice_no)` + `saft_hash`. Se hash igual → skip. Se diferente → reimporta apenas campos seguros (estado, valor pago) preservando histórico.
+- **Clientes**: NIF é chave primária de dedupe (regra existente). Email como fallback. Sem NIF → procura por nome+email; senão cria.
+- **Produtos**: `saft_product_code` por workspace. Fallback por nome exato.
+- **Pagamentos**: `(workspace_id, saft_payment_ref)` único.
+
+### Frontend
+
+```text
+src/pages/imports/SafTImportPage.tsx          (wizard 4 passos)
+src/components/imports/saft/
+  ├─ SafTUploader.tsx          (drag&drop, validação .xml, hash client-side)
+  ├─ SafTPreviewPanel.tsx      (cards com contadores + tabela amostra)
+  ├─ SafTMappingPanel.tsx      (opções: criar produtos, criar clientes, importar pagamentos)
+  ├─ SafTProgressPanel.tsx     (polling status + log em tempo real)
+  └─ SafTHistoryTable.tsx      (importações anteriores)
+src/hooks/imports/
+  ├─ useSafTUpload.ts
+  ├─ useSafTAnalyze.ts
+  ├─ useSafTImport.ts
+  └─ useSafTImports.ts         (listagem)
+```
+
+Entrada no `routeManifest.ts` (SSoT) sob departamento Financeiro.
+
+## Plano de Implementação
+
+1. **Migração DB**: tabelas `saft_imports`, `saft_import_items`, colunas SAF-T nas tabelas existentes, índices únicos, RLS por workspace, bucket `saft-imports` + policies.
+2. **Edge function `saft-analyze`** com streaming parser e validação de header AT.
+3. **Edge function `saft-import`** com dedupe idempotente e logging por item.
+4. **Frontend wizard** (upload → preview → mapping → progresso).
+5. **Página de histórico** com drill-down para `saft_import_items`.
+6. **Badge "SAF-T" + tooltip** nas faturas importadas (lista e detalhe).
+7. **Integração no menu** (Financeiro + Definições/Importações).
+8. **Memória do projecto**: criar `mem://features/imports/saft-pt` com regras de dedupe e mapeamento de tipos.
+
+## Critérios de Aceitação
+
+- Upload de SAF-T Faturação de 12 meses (PHC, Moloni, InvoiceXpress) é processado sem OOM até 50 MB.
+- Re-upload do mesmo ficheiro: 0 docs criados, todos marcados `skipped_duplicate`.
+- Upload de mês seguinte com 2 NCs sobre faturas anteriores: NCs criadas, faturas originais inalteradas.
+- Clientes com mesmo NIF de contactos já existentes fazem merge sem duplicar.
+- KPIs financeiros (`useFinancialKPIs`) refletem corretamente os valores importados (via `invoice_payments`).
+- SAF-T Contabilidade detectado e parseado (mesmo que só importe `SalesInvoices`+`Payments` na v1 — `GeneralLedger` fica como TODO explícito).
+- SAF-T mal formado devolve erro claro no preview (não rebenta a função).
+- Importação cancelável durante o `importing` (flag em `saft_imports.status`).
+
+## Riscos e Pontos a Validar
+
+- **Encoding**: SAF-T pode vir em ISO-8859-1; garantir conversão para UTF-8 no upload.
+- **Documentos anulados** (`InvoiceStatus = A`): importar como `status='cancelled'`, não somar a KPIs.
+- **Documentos sem cliente** (vendas a "Consumidor Final" com NIF `999999990`): criar contacto genérico único por workspace.
+- **NIFs estrangeiros** (prefixo país): manter como string, sem validação PT.
+- **IVA isento** (motivos M01–M99): mapear `TaxExemptionReason` para campo dedicado.
+- **Multi-empresa num único SAF-T**: validar `TaxRegistrationNumber` do header contra workspace; recusar se não bater certo.
+- **Faturas de período já encerrado**: aviso visual mas permitir (caso de migração).
+- **50 MB no Deno edge**: confirmar limite de memória; se preciso, fazer fallback para chunked parse em duas passagens (header primeiro, depois corpo).
+
+## Fora de Âmbito (v1)
+
+- `GeneralLedgerEntries` (movimentos contabilísticos analíticos)
+- Reversão automática de uma importação (manual via SQL no início)
+- Importação recorrente agendada (escolha do utilizador foi "manual ocasional")
+- Background processing via Trigger.dev (não necessário ≤50 MB)

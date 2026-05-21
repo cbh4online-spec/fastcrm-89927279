@@ -9,11 +9,13 @@ const RenewalDetailPage = lazy(() => import("@/pages/RenewalDetailPage"));
 const CollectionsInboxPage = lazy(() => import("@/modules/collections/pages/CollectionsInboxPage"));
 const CollectionCaseDetailPage = lazy(() => import("@/modules/collections/pages/CollectionCaseDetailPage"));
 const DunningSequencesPage = lazy(() => import("@/modules/collections/pages/DunningSequencesPage"));
+const SafTImportPage = lazy(() => import("@/pages/imports/SafTImportPage"));
 
 export function RevenueOpsRoutes() {
   return (
     <>
       <Route path="/dashboard/invoices" element={<Invoices />} />
+      <Route path="/dashboard/imports/saft" element={<SafTImportPage />} />
       <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
       <Route path="/dashboard/payments" element={<Payments />} />
       <Route path="/dashboard/renewals" element={<RenewalsPage />} />
