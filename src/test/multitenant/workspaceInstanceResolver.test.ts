@@ -35,11 +35,11 @@ describe("resolveWorkspaceTarget — routing multi-tenant via Control Plane", ()
 
   it("usa a URL/key devolvida pelo Control Plane para o workspace pedido", async () => {
     const deps = makeDeps({
-      callControlPlane: vi.fn(async (_cfg, wsId) => ({
+      callControlPlane: vi.fn(async (_cfg, _wsId) => ({
         success: true,
         workspace: {
           id: "inst-1",
-          status: "active",
+          status: "active" as const,
           supabase_url: "https://t1.supabase.co",
           supabase_anon_key: "anon-t1",
         },
