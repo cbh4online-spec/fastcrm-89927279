@@ -101,8 +101,7 @@ export default function StockValuationPage() {
   };
 
   const handleBack = () => {
-    if (window.history.length > 1) navigate(-1);
-    else navigate("/dashboard/products");
+    navigate("/dashboard/products");
   };
 
   const categories = useMemo(() => {
