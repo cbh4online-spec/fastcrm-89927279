@@ -108,13 +108,36 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   if (opts.create_products !== false) {
     for (const p of parsed.products) {
       if (!p.product_code) continue;
-      const { data: existing } = await admin
+
+      // 1) Look up by saft_product_code first
+      let { data: existing } = await admin
         .from("products")
         .select("id")
         .eq("workspace_id", ws)
         .eq("saft_product_code", p.product_code)
         .limit(1)
         .maybeSingle();
+
+      // 2) Fallback: look up by SKU (avoids unique constraint violation
+      //    when product already exists imported through other channels)
+      if (!existing) {
+        const { data: bySku } = await admin
+          .from("products")
+          .select("id")
+          .eq("workspace_id", ws)
+          .eq("sku", p.product_code)
+          .limit(1)
+          .maybeSingle();
+        if (bySku) {
+          existing = bySku;
+          // Backfill saft_product_code so future imports match directly
+          await admin
+            .from("products")
+            .update({ saft_product_code: p.product_code, saft_import_id: importId })
+            .eq("id", bySku.id);
+        }
+      }
+
       if (existing) {
         productMap.set(p.product_code, existing.id);
         await admin.from("saft_import_items").insert({
@@ -123,6 +146,7 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
         });
         continue;
       }
+
       const { data: inserted, error } = await admin
         .from("products")
         .insert({
@@ -148,6 +172,7 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
         source_key: p.product_code, action: "created", target_id: inserted.id,
       });
     }
+
   }
 
   // 3) Invoices
