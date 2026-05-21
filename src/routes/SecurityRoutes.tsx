@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import { Route } from "react-router-dom";
+import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
 
 const SecurityDashboardPage = lazy(() => import("@/pages/security/SecurityDashboardPage"));
 const SecurityPartnerRequestsPage = lazy(() => import("@/pages/security/SecurityPartnerRequestsPage"));
@@ -31,32 +32,32 @@ const SecurityManagementPage = lazy(() => import("@/pages/security/SecurityManag
 export function SecurityRoutes() {
   return (
     <>
-      <Route path="/dashboard/security" element={<SecurityDashboardPage />} />
-      <Route path="/dashboard/security/partner-requests" element={<SecurityPartnerRequestsPage />} />
-      <Route path="/dashboard/security/partner-requests/:id" element={<SecurityPartnerRequestDetailPage />} />
-      <Route path="/dashboard/security/sites" element={<SecuritySitesPage />} />
-      <Route path="/dashboard/security/sites/:id" element={<SecuritySiteDetailPage />} />
-      <Route path="/dashboard/security/systems" element={<SecuritySystemsPage />} />
-      <Route path="/dashboard/security/systems/:id" element={<SecuritySystemDetailPage />} />
-      <Route path="/dashboard/security/equipment" element={<SecurityEquipmentPage />} />
-      <Route path="/dashboard/security/equipment/:id" element={<SecurityEquipmentDetailPage />} />
-      <Route path="/dashboard/security/clients" element={<SecurityClientsPage />} />
-      <Route path="/dashboard/security/clients/:id" element={<SecurityClientDetailPage />} />
-      <Route path="/dashboard/security/contracts" element={<SecurityContractsPage />} />
-      <Route path="/dashboard/security/contracts/:id" element={<SecurityContractDetailPage />} />
-      <Route path="/dashboard/security/proposals" element={<SecurityProposalsPage />} />
-      <Route path="/dashboard/security/proposals/:id" element={<SecurityProposalDetailPage />} />
-      <Route path="/dashboard/security/leads" element={<SecurityLeadsPage />} />
-      <Route path="/dashboard/security/leads/:id" element={<SecurityLeadDetailPage />} />
-      <Route path="/dashboard/security/documents" element={<SecurityDocumentsPage />} />
-      <Route path="/dashboard/security/documents/:id" element={<SecurityDocumentDetailPage />} />
-      <Route path="/dashboard/security/maintenance" element={<SecurityMaintenancePage />} />
-      <Route path="/dashboard/security/maintenance/:id" element={<SecurityMaintenanceVisitDetailPage />} />
-      <Route path="/dashboard/security/occurrences" element={<SecurityOccurrencesPage />} />
-      <Route path="/dashboard/security/occurrences/:id" element={<SecurityOccurrenceDetailPage />} />
-      <Route path="/dashboard/security/renewals" element={<SecurityRenewalsPage />} />
-      <Route path="/dashboard/security/renewals/:id" element={<SecurityRenewalDetailPage />} />
-      <Route path="/dashboard/security/management" element={<SecurityManagementPage />} />
+      <Route path="/dashboard/security" element={<CapabilityGuard need="security.access"><SecurityDashboardPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/partner-requests" element={<CapabilityGuard need="security.access"><SecurityPartnerRequestsPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/partner-requests/:id" element={<CapabilityGuard need="security.access"><SecurityPartnerRequestDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/sites" element={<CapabilityGuard need="security.access"><SecuritySitesPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/sites/:id" element={<CapabilityGuard need="security.access"><SecuritySiteDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/systems" element={<CapabilityGuard need="security.access"><SecuritySystemsPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/systems/:id" element={<CapabilityGuard need="security.access"><SecuritySystemDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/equipment" element={<CapabilityGuard need="security.access"><SecurityEquipmentPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/equipment/:id" element={<CapabilityGuard need="security.access"><SecurityEquipmentDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/clients" element={<CapabilityGuard need="security.access"><SecurityClientsPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/clients/:id" element={<CapabilityGuard need="security.access"><SecurityClientDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/contracts" element={<CapabilityGuard need="security.access"><SecurityContractsPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/contracts/:id" element={<CapabilityGuard need="security.access"><SecurityContractDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/proposals" element={<CapabilityGuard need="security.access"><SecurityProposalsPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/proposals/:id" element={<CapabilityGuard need="security.access"><SecurityProposalDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/leads" element={<CapabilityGuard need="security.access"><SecurityLeadsPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/leads/:id" element={<CapabilityGuard need="security.access"><SecurityLeadDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/documents" element={<CapabilityGuard need="security.access"><SecurityDocumentsPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/documents/:id" element={<CapabilityGuard need="security.access"><SecurityDocumentDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/maintenance" element={<CapabilityGuard need="security.access"><SecurityMaintenancePage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/maintenance/:id" element={<CapabilityGuard need="security.access"><SecurityMaintenanceVisitDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/occurrences" element={<CapabilityGuard need="security.access"><SecurityOccurrencesPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/occurrences/:id" element={<CapabilityGuard need="security.access"><SecurityOccurrenceDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/renewals" element={<CapabilityGuard need="security.access"><SecurityRenewalsPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/renewals/:id" element={<CapabilityGuard need="security.access"><SecurityRenewalDetailPage /></CapabilityGuard>} />
+      <Route path="/dashboard/security/management" element={<CapabilityGuard need="security.access"><SecurityManagementPage /></CapabilityGuard>} />
     </>
   );
 }
