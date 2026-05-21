@@ -377,6 +377,28 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
       });
     }
   }
+
+  // 5) Recompute invoice amount_paid + status a partir dos invoice_payments importados
+  const touched = new Set<string>();
+  for (const p of parsed.payments) {
+    const invId = invoiceIdByNo.get(p.invoice_no ?? "");
+    if (invId) touched.add(invId);
+  }
+  for (const invId of touched) {
+    const { data: pays } = await admin
+      .from("invoice_payments").select("amount").eq("invoice_id", invId);
+    const paid = (pays ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const { data: inv } = await admin
+      .from("invoices").select("total, status").eq("id", invId).maybeSingle();
+    if (!inv) continue;
+    const total = Number(inv.total || 0);
+    let status = inv.status as string;
+    if (status !== "cancelled") {
+      if (paid >= total - 0.005) status = "paid";
+      else if (paid > 0) status = "partially_paid";
+    }
+    await admin.from("invoices").update({ amount_paid: paid, status }).eq("id", invId);
+  }
 }
 
 Deno.serve(async (req) => {
