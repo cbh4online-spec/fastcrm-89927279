@@ -222,42 +222,32 @@ export default function StockValuationPage() {
           </div>
 
           <div className="rounded-md border overflow-x-auto">
-            <Table>
+            <Table className="text-xs [&_th]:h-9 [&_th]:px-2 [&_td]:p-2 [&_td]:align-top">
               <TableHeader>
-                {/* Linha 1: grupos */}
-                <TableRow className="bg-muted/40">
-                  <TableHead colSpan={2} className="border-r">Produto</TableHead>
-                  <TableHead colSpan={2} className="text-center border-r">Stock</TableHead>
-                  <TableHead colSpan={4} className="text-center border-r bg-amber-50/50 dark:bg-amber-950/20">
-                    Custos (s/IVA)
-                  </TableHead>
-                  <TableHead colSpan={3} className="text-center border-r bg-blue-50/50 dark:bg-blue-950/20">
-                    Preços de venda
-                  </TableHead>
-                  <TableHead colSpan={2} className="text-center bg-emerald-50/50 dark:bg-emerald-950/20">
-                    Margem
-                  </TableHead>
-                </TableRow>
-                {/* Linha 2: colunas detalhadas */}
                 <TableRow>
-                  <TableHead className="cursor-pointer" onClick={() => toggleSort("name")}>Produto</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("stock")}>Un.</TableHead>
-                  <TableHead className="text-right border-r" title="Nível mínimo de stock configurado para alerta (indicativo)">Mínimo</TableHead>
-                  <TableHead className="text-right" title="Custo médio FIFO do produto">P.Custo</TableHead>
-                  <TableHead className="text-right" title="Custo operacional unitário (logística, overhead, etc.)">Custo Op.</TableHead>
-                  <TableHead className="text-right font-semibold" title="P.Custo + Custo Operacional">Custo Total</TableHead>
-                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("cost_value")} title="Stock × Custo Total">
-                    Valor stock
+                  <TableHead className="cursor-pointer min-w-[220px]" onClick={() => toggleSort("name")}>
+                    Produto / SKU
                   </TableHead>
-                  <TableHead className="text-right">Base s/IVA actual</TableHead>
-                  <TableHead className="text-right" title="Preço sugerido com base na margem alvo do produto">Base s/IVA sugerido</TableHead>
-                  <TableHead className="text-right cursor-pointer border-r" onClick={() => toggleSort("sale_value")}>
-                    Valor a PVP
+                  <TableHead className="text-right cursor-pointer w-[90px]" onClick={() => toggleSort("stock")} title="Stock actual / mínimo">
+                    Stock
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin")} title="Stock × (PVP − Custo Total)">€ lucro</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => toggleSort("margin_pct")} title="(PVP − Custo Total) ÷ Custo Total — markup s/Custo">
-                    % s/Custo
+                  <TableHead className="text-right w-[110px] bg-amber-50/40 dark:bg-amber-950/20" title="Custo Total = P.Custo FIFO + Custo Operacional">
+                    Custo un.
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer w-[110px] bg-amber-50/40 dark:bg-amber-950/20 border-r" onClick={() => toggleSort("cost_value")} title="Stock × Custo Total">
+                    Valor custo
+                  </TableHead>
+                  <TableHead className="text-right w-[120px] bg-blue-50/40 dark:bg-blue-950/20" title="Preço actual e sugerido (s/IVA)">
+                    PVP un.
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer w-[110px] bg-blue-50/40 dark:bg-blue-950/20 border-r" onClick={() => toggleSort("sale_value")}>
+                    Valor PVP
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer w-[100px] bg-emerald-50/40 dark:bg-emerald-950/20" onClick={() => toggleSort("margin")} title="Stock × (PVP − Custo Total)">
+                    € lucro
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer w-[80px] bg-emerald-50/40 dark:bg-emerald-950/20" onClick={() => toggleSort("margin_pct")} title="(PVP − Custo) ÷ Custo">
+                    Markup
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -265,14 +255,14 @@ export default function StockValuationPage() {
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 13 }).map((_, j) => (
+                      {Array.from({ length: 8 }).map((_, j) => (
                         <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                       Sem produtos para mostrar
                     </TableCell>
                   </TableRow>
@@ -280,41 +270,38 @@ export default function StockValuationPage() {
                   filtered.map((r) => {
                     const suggested = r.suggested_base_price;
                     const delta = suggested != null ? r.unit_sale_price - suggested : null;
+                    const belowMin = r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold;
                     return (
                       <TableRow key={r.product_id}>
-                        <TableCell className="font-medium">{r.product_name}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{r.sku || "—"}</TableCell>
+                        <TableCell>
+                          <div className="font-medium leading-tight line-clamp-2">{r.product_name}</div>
+                          {r.sku && <div className="text-[10px] text-muted-foreground mt-0.5">{r.sku}</div>}
+                        </TableCell>
                         <TableCell className="text-right">
                           {r.current_stock <= 0 ? (
-                            <Badge variant="destructive">0</Badge>
+                            <Badge variant="destructive" className="text-[10px] px-1.5">0</Badge>
                           ) : (
-                            <span className={r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold ? "text-amber-600 font-medium" : ""}>
+                            <span className={belowMin ? "text-amber-600 font-medium" : ""}>
                               {fmt(r.current_stock, false)}
                             </span>
                           )}
+                          {r.low_stock_threshold > 0 && (
+                            <div className="text-[10px] text-muted-foreground">min {fmt(r.low_stock_threshold, false)}</div>
+                          )}
                         </TableCell>
-                        <TableCell className="text-right border-r text-muted-foreground text-sm">
-                          {r.low_stock_threshold > 0 ? fmt(r.low_stock_threshold, false) : "—"}
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">{fmt(r.fifo_avg_cost)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {r.operational_cost_unit > 0 ? fmt(r.operational_cost_unit) : "—"}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">{fmt(r.total_unit_cost)}</TableCell>
-                        <TableCell className="text-right font-medium border-r">{fmt(r.total_cost_value)}</TableCell>
-                        <TableCell className="text-right">{fmt(r.unit_sale_price)}</TableCell>
                         <TableCell className="text-right">
-                          {suggested != null ? (
-                            <div className="flex flex-col items-end leading-tight">
-                              <span className="font-medium">{fmt(suggested)}</span>
-                              {delta != null && Math.abs(delta) >= 0.01 && (
-                                <span className={`text-[10px] ${delta < 0 ? "text-destructive" : "text-emerald-600"}`}>
-                                  {delta > 0 ? "+" : ""}{fmt(delta)}
-                                </span>
-                              )}
+                          <div className="font-medium">{fmt(r.total_unit_cost)}</div>
+                          {r.operational_cost_unit > 0 && (
+                            <div className="text-[10px] text-muted-foreground">+{fmt(r.operational_cost_unit)} op.</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium border-r">{fmt(r.total_cost_value)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="font-medium">{fmt(r.unit_sale_price)}</div>
+                          {suggested != null && delta != null && Math.abs(delta) >= 0.01 && (
+                            <div className={`text-[10px] ${delta < 0 ? "text-destructive" : "text-emerald-600"}`}>
+                              sug. {fmt(suggested)}
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">sem margem alvo</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium border-r">{fmt(r.total_sale_value)}</TableCell>
@@ -322,7 +309,7 @@ export default function StockValuationPage() {
                           {fmt(r.latent_margin)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant={r.markup_pct < 0 ? "destructive" : r.markup_pct < 15 ? "secondary" : "default"}>
+                          <Badge variant={r.markup_pct < 0 ? "destructive" : r.markup_pct < 15 ? "secondary" : "default"} className="text-[10px] px-1.5">
                             {r.markup_pct.toFixed(1)}%
                           </Badge>
                         </TableCell>
@@ -333,6 +320,7 @@ export default function StockValuationPage() {
               </TableBody>
             </Table>
           </div>
+
 
           {!isLoading && filtered.length > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground pt-2 border-t">
