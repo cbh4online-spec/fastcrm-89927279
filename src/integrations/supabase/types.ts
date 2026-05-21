@@ -20408,6 +20408,7 @@ export type Database = {
           primary_use_case: string | null
           priority_level: string | null
           region: string | null
+          saft_import_id: string | null
           sales_2023: number | null
           sales_2024: number | null
           sales_2025: number | null
@@ -20527,6 +20528,7 @@ export type Database = {
           primary_use_case?: string | null
           priority_level?: string | null
           region?: string | null
+          saft_import_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
           sales_2025?: number | null
@@ -20646,6 +20648,7 @@ export type Database = {
           primary_use_case?: string | null
           priority_level?: string | null
           region?: string | null
+          saft_import_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
           sales_2025?: number | null
@@ -22476,6 +22479,7 @@ export type Database = {
           preferred_payment_method: string | null
           price_list_id: string | null
           price_tier_id: string | null
+          saft_import_id: string | null
           sales_2023: number | null
           sales_2024: number | null
           sales_2025: number | null
@@ -22582,6 +22586,7 @@ export type Database = {
           preferred_payment_method?: string | null
           price_list_id?: string | null
           price_tier_id?: string | null
+          saft_import_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
           sales_2025?: number | null
@@ -22688,6 +22693,7 @@ export type Database = {
           preferred_payment_method?: string | null
           price_list_id?: string | null
           price_tier_id?: string | null
+          saft_import_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
           sales_2025?: number | null
@@ -41748,6 +41754,8 @@ export type Database = {
           payment_date: string
           payment_method: string | null
           reference: string | null
+          saft_import_id: string | null
+          saft_payment_ref: string | null
           workspace_id: string
         }
         Insert: {
@@ -41760,6 +41768,8 @@ export type Database = {
           payment_date?: string
           payment_method?: string | null
           reference?: string | null
+          saft_import_id?: string | null
+          saft_payment_ref?: string | null
           workspace_id: string
         }
         Update: {
@@ -41772,6 +41782,8 @@ export type Database = {
           payment_date?: string
           payment_method?: string | null
           reference?: string | null
+          saft_import_id?: string | null
+          saft_payment_ref?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -42027,6 +42039,10 @@ export type Database = {
           public_url: string | null
           related_invoice_id: string | null
           renewal_contract_id: string | null
+          saft_atcud: string | null
+          saft_hash: string | null
+          saft_import_id: string | null
+          saft_invoice_no: string | null
           sent_at: string | null
           series_id: string | null
           status: string
@@ -42078,6 +42094,10 @@ export type Database = {
           public_url?: string | null
           related_invoice_id?: string | null
           renewal_contract_id?: string | null
+          saft_atcud?: string | null
+          saft_hash?: string | null
+          saft_import_id?: string | null
+          saft_invoice_no?: string | null
           sent_at?: string | null
           series_id?: string | null
           status?: string
@@ -42129,6 +42149,10 @@ export type Database = {
           public_url?: string | null
           related_invoice_id?: string | null
           renewal_contract_id?: string | null
+          saft_atcud?: string | null
+          saft_hash?: string | null
+          saft_import_id?: string | null
+          saft_invoice_no?: string | null
           sent_at?: string | null
           series_id?: string | null
           status?: string
@@ -63621,6 +63645,8 @@ export type Database = {
           reorder_qty: number | null
           reviewed_at: string | null
           reviewed_by: string | null
+          saft_import_id: string | null
+          saft_product_code: string | null
           sales_playbook: Json
           search_keywords: string | null
           setup_fee: number | null
@@ -63762,6 +63788,8 @@ export type Database = {
           reorder_qty?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          saft_import_id?: string | null
+          saft_product_code?: string | null
           sales_playbook?: Json
           search_keywords?: string | null
           setup_fee?: number | null
@@ -63903,6 +63931,8 @@ export type Database = {
           reorder_qty?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          saft_import_id?: string | null
+          saft_product_code?: string | null
           sales_playbook?: Json
           search_keywords?: string | null
           setup_fee?: number | null
@@ -68704,6 +68734,134 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saft_import_items: {
+        Row: {
+          action: Database["public"]["Enums"]["saft_item_action"]
+          created_at: string
+          entity_type: Database["public"]["Enums"]["saft_entity_type"]
+          error_message: string | null
+          id: string
+          import_id: string
+          raw_payload: Json | null
+          source_hash: string | null
+          source_key: string
+          target_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["saft_item_action"]
+          created_at?: string
+          entity_type: Database["public"]["Enums"]["saft_entity_type"]
+          error_message?: string | null
+          id?: string
+          import_id: string
+          raw_payload?: Json | null
+          source_hash?: string | null
+          source_key: string
+          target_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["saft_item_action"]
+          created_at?: string
+          entity_type?: Database["public"]["Enums"]["saft_entity_type"]
+          error_message?: string | null
+          id?: string
+          import_id?: string
+          raw_payload?: Json | null
+          source_hash?: string | null
+          source_key?: string
+          target_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saft_import_items_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "saft_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saft_imports: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          file_hash: string
+          file_name: string
+          file_size: number
+          fiscal_year: number | null
+          id: string
+          options: Json
+          period_end: string | null
+          period_start: string | null
+          saft_type: Database["public"]["Enums"]["saft_type"] | null
+          saft_version: string | null
+          software_company: string | null
+          software_id: string | null
+          started_at: string | null
+          stats: Json
+          status: Database["public"]["Enums"]["saft_import_status"]
+          storage_path: string
+          tax_registration_number: string | null
+          updated_at: string
+          uploaded_by: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_hash: string
+          file_name: string
+          file_size?: number
+          fiscal_year?: number | null
+          id?: string
+          options?: Json
+          period_end?: string | null
+          period_start?: string | null
+          saft_type?: Database["public"]["Enums"]["saft_type"] | null
+          saft_version?: string | null
+          software_company?: string | null
+          software_id?: string | null
+          started_at?: string | null
+          stats?: Json
+          status?: Database["public"]["Enums"]["saft_import_status"]
+          storage_path: string
+          tax_registration_number?: string | null
+          updated_at?: string
+          uploaded_by: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_hash?: string
+          file_name?: string
+          file_size?: number
+          fiscal_year?: number | null
+          id?: string
+          options?: Json
+          period_end?: string | null
+          period_start?: string | null
+          saft_type?: Database["public"]["Enums"]["saft_type"] | null
+          saft_version?: string | null
+          software_company?: string | null
+          software_id?: string | null
+          started_at?: string | null
+          stats?: Json
+          status?: Database["public"]["Enums"]["saft_import_status"]
+          storage_path?: string
+          tax_registration_number?: string | null
+          updated_at?: string
+          uploaded_by?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       sales_goals: {
         Row: {
@@ -91723,6 +91881,22 @@ export type Database = {
       renewal_risk_level: "low" | "medium" | "high"
       renewal_source_type: "proposal" | "order" | "opportunity" | "manual"
       renewal_usage_type: "hours" | "credits" | "seats_addon"
+      saft_entity_type: "invoice" | "customer" | "product" | "payment"
+      saft_import_status:
+        | "uploaded"
+        | "analyzing"
+        | "preview_ready"
+        | "importing"
+        | "completed"
+        | "failed"
+        | "cancelled"
+      saft_item_action:
+        | "created"
+        | "updated"
+        | "skipped_duplicate"
+        | "merged"
+        | "failed"
+      saft_type: "billing" | "accounting" | "self_billing"
       session_status: "active" | "completed" | "abandoned" | "handed_off"
       sso_token_status: "pending" | "active" | "used" | "expired" | "revoked"
       stock_status: "available" | "limited" | "backorder" | "out_of_stock"
@@ -92383,6 +92557,24 @@ export const Constants = {
       renewal_risk_level: ["low", "medium", "high"],
       renewal_source_type: ["proposal", "order", "opportunity", "manual"],
       renewal_usage_type: ["hours", "credits", "seats_addon"],
+      saft_entity_type: ["invoice", "customer", "product", "payment"],
+      saft_import_status: [
+        "uploaded",
+        "analyzing",
+        "preview_ready",
+        "importing",
+        "completed",
+        "failed",
+        "cancelled",
+      ],
+      saft_item_action: [
+        "created",
+        "updated",
+        "skipped_duplicate",
+        "merged",
+        "failed",
+      ],
+      saft_type: ["billing", "accounting", "self_billing"],
       session_status: ["active", "completed", "abandoned", "handed_off"],
       sso_token_status: ["pending", "active", "used", "expired", "revoked"],
       stock_status: ["available", "limited", "backorder", "out_of_stock"],
