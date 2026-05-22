@@ -43,6 +43,33 @@ export function CompaniesList() {
   const [editCompany, setEditCompany] = useState<Company | null>(null);
   const [deleteCompanyId, setDeleteCompanyId] = useState<string | null>(null);
 
+  const [financing, setFinancing] = useState<Record<string, { plafond: number | null; rating: string | null }>>({});
+
+  const companyIds = useMemo(() => companies.map((c) => c.id), [companies]);
+
+  useEffect(() => {
+    if (companyIds.length === 0) {
+      setFinancing({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("company_financing")
+        .select("company_id, plafond_amount, rating")
+        .in("company_id", companyIds);
+      if (cancelled || error || !data) return;
+      const map: Record<string, { plafond: number | null; rating: string | null }> = {};
+      for (const row of data as any[]) {
+        map[row.company_id] = { plafond: row.plafond_amount, rating: row.rating };
+      }
+      setFinancing(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [companyIds]);
+
   const filteredCompanies = companies.filter((company) => {
     const query = searchQuery.toLowerCase();
     return (
@@ -51,6 +78,21 @@ export function CompaniesList() {
       company.website?.toLowerCase().includes(query)
     );
   });
+
+  const fmtEUR = (v: number | null | undefined) =>
+    v == null
+      ? null
+      : new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
+
+  const ratingVariant = (r: string | null): "default" | "secondary" | "destructive" | "outline" => {
+    switch (r) {
+      case "A": return "default";
+      case "B": return "secondary";
+      case "C": return "outline";
+      case "D": return "destructive";
+      default: return "outline";
+    }
+  };
 
   const handleDelete = async () => {
     if (deleteCompanyId) {
