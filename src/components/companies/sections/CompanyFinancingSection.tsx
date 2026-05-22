@@ -1,4 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// Resolve taxa anual (%) a partir de PV, PMT, n períodos e periods/ano via Newton-Raphson
+function solveAnnualRate(pv: number, pmt: number, nPeriods: number, periodsPerYear: number): number | null {
+  if (!(pv > 0) || !(pmt > 0) || !(nPeriods > 0)) return null;
+  const totalPaid = pmt * nPeriods;
+  if (totalPaid <= pv) return 0; // sem juro ou negativo
+  let i = 0.01; // chute inicial (1% por período)
+  for (let k = 0; k < 100; k++) {
+    const f = pmt * (1 - Math.pow(1 + i, -nPeriods)) / i - pv;
+    const df =
+      pmt *
+      ((nPeriods * Math.pow(1 + i, -nPeriods - 1)) / i -
+        (1 - Math.pow(1 + i, -nPeriods)) / (i * i));
+    if (Math.abs(df) < 1e-12) break;
+    const next = i - f / df;
+    if (!isFinite(next) || next <= 0) {
+      i = i / 2;
+      continue;
+    }
+    if (Math.abs(next - i) < 1e-8) {
+      i = next;
+      break;
+    }
+    i = next;
+  }
+  const annual = i * periodsPerYear * 100;
+  if (!isFinite(annual) || annual < 0 || annual > 200) return null;
+  return Math.round(annual * 100) / 100;
+}
+
+function addMonthsISO(startISO: string, months: number): string {
+  const d = new Date(startISO);
+  if (isNaN(d.getTime())) return "";
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
