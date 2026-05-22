@@ -142,6 +142,34 @@ export function SmartCompaniesTable() {
   const { deleteCompany, updateCompany, addTagsToCompanies, bulkUpdateCompanies } = useCompanies();
   const { data: workspaceTags } = useWorkspaceTags();
   const syncTags = useSyncLeadTagsToWorkspace();
+  const { currentWorkspace } = useWorkspace();
+
+  const handleSaveFinancing = useCallback(async (companyId: string, patch: { plafond?: number | null; rating?: string | null }) => {
+    if (!currentWorkspace) { toast.error("Sem workspace ativo"); return; }
+    // Optimistic UI
+    setFinancingMap(prev => {
+      const next = { ...prev };
+      const cur = next[companyId] || { plafond: null, rating: null };
+      next[companyId] = {
+        plafond: patch.plafond !== undefined ? patch.plafond : cur.plafond,
+        rating: patch.rating !== undefined ? patch.rating : cur.rating,
+      };
+      return next;
+    });
+    const payload: any = { workspace_id: currentWorkspace.id, company_id: companyId };
+    if (patch.plafond !== undefined) payload.plafond_amount = patch.plafond;
+    if (patch.rating !== undefined) payload.rating = patch.rating;
+    const { error } = await supabase
+      .from("company_financing")
+      .upsert(payload, { onConflict: "company_id" });
+    if (error) {
+      toast.error("Erro a gravar financiamento");
+      console.error(error);
+    } else {
+      toast.success("Financiamento atualizado");
+    }
+  }, [currentWorkspace]);
+
 
   const availableTags = useMemo(() => {
     const fromCompanies = [...new Set((companies || []).flatMap((c: any) => c.tags || []))];
