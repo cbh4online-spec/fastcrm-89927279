@@ -322,6 +322,9 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
     client_number: () => (
       <TableCell key="client_number"><span className="text-sm font-mono">{(company as any).client_number || "—"}</span></TableCell>
     ),
+    tax_id: () => (
+      <TableCell key="tax_id"><span className="text-sm font-mono">{(company as any).tax_id || <span className="text-xs text-muted-foreground">—</span>}</span></TableCell>
+    ),
     plafond: () => (
       <TableCell key="plafond" className="text-right tabular-nums">
         {financing?.plafond != null
