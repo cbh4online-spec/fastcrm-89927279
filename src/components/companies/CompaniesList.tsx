@@ -193,6 +193,20 @@ export function CompaniesList() {
                   <TableCell>
                     {company.industry || <span className="text-muted-foreground">—</span>}
                   </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {fmtEUR(financing[company.id]?.plafond) ?? (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {financing[company.id]?.rating ? (
+                      <Badge variant={ratingVariant(financing[company.id].rating)}>
+                        {financing[company.id].rating}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     {company.website ? (
                       <div className="flex items-center gap-2">
