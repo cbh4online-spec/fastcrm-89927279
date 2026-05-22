@@ -20886,6 +20886,124 @@ export type Database = {
           },
         ]
       }
+      company_financing: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          documentation_notes: string | null
+          documentation_status: string
+          id: string
+          notes: string | null
+          plafond_amount: number | null
+          rating: string | null
+          request_date: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          documentation_notes?: string | null
+          documentation_status?: string
+          id?: string
+          notes?: string | null
+          plafond_amount?: number | null
+          rating?: string | null
+          request_date?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          documentation_notes?: string | null
+          documentation_status?: string
+          id?: string
+          notes?: string | null
+          plafond_amount?: number | null
+          rating?: string | null
+          request_date?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_financing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_financing_simulations: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          duration_months: number
+          end_date: string | null
+          id: string
+          installment_value: number
+          interest_rate: number | null
+          label: string | null
+          notes: string | null
+          operation_value: number
+          payment_frequency: string
+          start_date: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          duration_months: number
+          end_date?: string | null
+          id?: string
+          installment_value: number
+          interest_rate?: number | null
+          label?: string | null
+          notes?: string | null
+          operation_value: number
+          payment_frequency?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          duration_months?: number
+          end_date?: string | null
+          id?: string
+          installment_value?: number
+          interest_rate?: number | null
+          label?: string | null
+          notes?: string | null
+          operation_value?: number
+          payment_frequency?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_financing_simulations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_instagram_data: {
         Row: {
           activity_level: string | null
