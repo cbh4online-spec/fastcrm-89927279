@@ -57,6 +57,7 @@ interface SmartCompanyRowProps {
   isAnalyzing?: boolean;
   columnOrder: string[];
   onUpdate?: (entityId: string, field: string, value: unknown) => void;
+  financing?: { plafond: number | null; rating: string | null };
 }
 
 const sourceColors: Record<string, string> = {
