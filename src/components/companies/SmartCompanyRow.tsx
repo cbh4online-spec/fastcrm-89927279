@@ -110,7 +110,12 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
   columnOrder,
   onUpdate,
   financing,
+  onSaveFinancing,
 }: SmartCompanyRowProps) {
+  const [editPlafond, setEditPlafond] = useState(false);
+  const [plafondDraft, setPlafondDraft] = useState("");
+  const plafondRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editPlafond && plafondRef.current) { plafondRef.current.focus(); plafondRef.current.select(); } }, [editPlafond]);
   const { t } = useTranslation("crm");
 
   const temperatureConfig: Record<string, { label: string; emoji: string; color: string; bg: string }> = {
