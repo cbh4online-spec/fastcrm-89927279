@@ -57,6 +57,7 @@ const MOBILE_TAB_LABELS: Partial<Record<MenuSection, string>> = {
   files: 'Fich.',
   business: 'Neg.',
   financial: 'Fin.',
+  financing: 'Financ.',
   relationships: 'Relaç.',
   data: 'Dados',
   contacts: 'Cont.',
