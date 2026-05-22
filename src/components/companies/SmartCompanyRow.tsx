@@ -116,6 +116,10 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
   const [plafondDraft, setPlafondDraft] = useState("");
   const plafondRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (editPlafond && plafondRef.current) { plafondRef.current.focus(); plafondRef.current.select(); } }, [editPlafond]);
+  const [editNotes, setEditNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+  const notesRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editNotes && notesRef.current) { notesRef.current.focus(); notesRef.current.select(); } }, [editNotes]);
   const { t } = useTranslation("crm");
 
   const temperatureConfig: Record<string, { label: string; emoji: string; color: string; bg: string }> = {
