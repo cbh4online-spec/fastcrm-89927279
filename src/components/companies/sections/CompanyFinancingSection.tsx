@@ -172,8 +172,16 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
     notes: "",
   });
 
+  // Flags para não sobrescrever edições manuais
+  const [manualRate, setManualRate] = useState(false);
+  const [manualStart, setManualStart] = useState(false);
+  const [manualEnd, setManualEnd] = useState(false);
+
   const openNewSim = () => {
     setEditingSim(null);
+    setManualRate(false);
+    setManualStart(false);
+    setManualEnd(false);
     setSimDraft({
       label: "",
       operation_value: "",
@@ -182,7 +190,7 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
       installment_value: "",
       interest_rate: "",
       status: "simulacao",
-      start_date: "",
+      start_date: todayISO(),
       end_date: "",
       notes: "",
     });
@@ -191,6 +199,9 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
 
   const openEditSim = (sim: FinancingSimulation) => {
     setEditingSim(sim);
+    setManualRate(!!sim.interest_rate);
+    setManualStart(!!sim.start_date);
+    setManualEnd(!!sim.end_date);
     setSimDraft({
       label: sim.label ?? "",
       operation_value: sim.operation_value.toString(),
@@ -205,6 +216,41 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
     });
     setSimDialogOpen(true);
   };
+
+  // Auto-calc taxa sempre que valor da operação / renda / duração / frequência mudam
+  useEffect(() => {
+    if (manualRate) return;
+    const pv = Number(simDraft.operation_value);
+    const pmt = Number(simDraft.installment_value);
+    const months = Number(simDraft.duration_months);
+    if (!(pv > 0) || !(pmt > 0) || !(months > 0)) return;
+    const periodsPerYear = simDraft.payment_frequency === "trimestral" ? 4 : 12;
+    const nPeriods = simDraft.payment_frequency === "trimestral" ? months / 3 : months;
+    const rate = solveAnnualRate(pv, pmt, nPeriods, periodsPerYear);
+    if (rate != null) {
+      const str = rate.toFixed(2);
+      setSimDraft((p) => (p.interest_rate === str ? p : { ...p, interest_rate: str }));
+    }
+  }, [
+    simDraft.operation_value,
+    simDraft.installment_value,
+    simDraft.duration_months,
+    simDraft.payment_frequency,
+    manualRate,
+  ]);
+
+  // Auto-calc fim quando início + duração existem
+  useEffect(() => {
+    if (manualEnd) return;
+    const months = Number(simDraft.duration_months);
+    if (!simDraft.start_date || !(months > 0)) return;
+    const end = addMonthsISO(simDraft.start_date, months);
+    if (end) {
+      setSimDraft((p) => (p.end_date === end ? p : { ...p, end_date: end }));
+    }
+  }, [simDraft.start_date, simDraft.duration_months, manualEnd]);
+
+
 
   const saveSim = async () => {
     const payload = {
