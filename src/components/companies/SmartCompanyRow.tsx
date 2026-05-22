@@ -57,7 +57,7 @@ interface SmartCompanyRowProps {
   isAnalyzing?: boolean;
   columnOrder: string[];
   onUpdate?: (entityId: string, field: string, value: unknown) => void;
-  financing?: { plafond: number | null; rating: string | null };
+  financing?: { plafond: number | null; rating: string | null; documentation_status?: string | null; documentation_notes?: string | null };
   onSaveFinancing?: (companyId: string, patch: { plafond?: number | null; rating?: string | null }) => void;
 }
 
@@ -334,7 +334,12 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
     plafond: () => {
       const v = financing?.plafond;
       const r = financing?.rating;
+      const docStatus = financing?.documentation_status;
+      const docNotes = financing?.documentation_notes;
       const canEdit = !!onSaveFinancing;
+      const hasFinancing = v != null || !!r;
+      const isPending = !hasFinancing && (docStatus === "pendente" || !docStatus);
+      const defaultPendingNote = "Submeter último IRC (Anexo B ou C), IRS ou relatório e contas.";
       const ratingCircleCls: Record<string, string> = {
         A: "bg-emerald-500 text-white",
         B: "bg-teal-500 text-white",
@@ -348,7 +353,7 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
         if ((num ?? null) !== (v ?? null)) onSaveFinancing?.(company.id, { plafond: num });
       };
       return (
-        <TableCell key="plafond" className="tabular-nums">
+        <TableCell key="plafond" className="tabular-nums min-w-[260px]">
           {editPlafond ? (
             <div onClick={e => e.stopPropagation()}>
               <input
@@ -365,7 +370,7 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
                 }}
               />
             </div>
-          ) : (
+          ) : hasFinancing ? (
             <div
               className={cn("group/ec inline-flex items-center gap-2 rounded px-1 -mx-1 min-h-[28px]", canEdit && "cursor-pointer hover:bg-muted/60 transition-colors")}
               onClick={e => {
@@ -386,6 +391,26 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
                 : <span className="text-xs text-muted-foreground">—</span>}
               {canEdit && <Pencil className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover/ec:opacity-100 transition-opacity shrink-0" />}
             </div>
+          ) : isPending ? (
+            <div className="flex items-start gap-2 min-h-[28px]">
+              <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-muted-foreground/20 shrink-0 mt-0.5">
+                Pendente
+              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs text-muted-foreground line-clamp-2 max-w-[200px] leading-tight">
+                      {docNotes || defaultPendingNote}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs max-w-[260px]">{docNotes || defaultPendingNote}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
           )}
         </TableCell>
       );

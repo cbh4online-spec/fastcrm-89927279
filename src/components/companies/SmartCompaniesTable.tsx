@@ -149,10 +149,12 @@ export function SmartCompaniesTable() {
     // Optimistic UI
     setFinancingMap(prev => {
       const next = { ...prev };
-      const cur = next[companyId] || { plafond: null, rating: null };
+      const cur = next[companyId] || { plafond: null, rating: null, documentation_status: null, documentation_notes: null };
       next[companyId] = {
         plafond: patch.plafond !== undefined ? patch.plafond : cur.plafond,
         rating: patch.rating !== undefined ? patch.rating : cur.rating,
+        documentation_status: cur.documentation_status,
+        documentation_notes: cur.documentation_notes,
       };
       return next;
     });
@@ -234,7 +236,7 @@ export function SmartCompaniesTable() {
   const paginatedCompanies = useMemo(() => { const s = (currentPage - 1) * pageSize; return filteredCompanies.slice(s, s + pageSize); }, [filteredCompanies, currentPage, pageSize]);
 
   // Fetch financing (plafond/rating) for visible companies
-  const [financingMap, setFinancingMap] = useState<Record<string, { plafond: number | null; rating: string | null }>>({});
+  const [financingMap, setFinancingMap] = useState<Record<string, { plafond: number | null; rating: string | null; documentation_status: string | null; documentation_notes: string | null }>>({});
   const visibleCompanyIds = useMemo(() => paginatedCompanies.map(c => c.id), [paginatedCompanies]);
   useEffect(() => {
     if (visibleCompanyIds.length === 0) return;
@@ -242,13 +244,18 @@ export function SmartCompaniesTable() {
     (async () => {
       const { data, error } = await supabase
         .from("company_financing")
-        .select("company_id, plafond_amount, rating")
+        .select("company_id, plafond_amount, rating, documentation_status, documentation_notes")
         .in("company_id", visibleCompanyIds);
       if (cancelled || error || !data) return;
       setFinancingMap(prev => {
         const next = { ...prev };
         for (const row of data as any[]) {
-          next[row.company_id] = { plafond: row.plafond_amount, rating: row.rating };
+          next[row.company_id] = {
+            plafond: row.plafond_amount,
+            rating: row.rating,
+            documentation_status: row.documentation_status,
+            documentation_notes: row.documentation_notes,
+          };
         }
         return next;
       });
