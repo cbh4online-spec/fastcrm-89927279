@@ -202,6 +202,30 @@ export function SmartCompaniesTable() {
   const totalCompanies = filteredCompanies.length;
   const totalPages = Math.ceil(totalCompanies / pageSize);
   const paginatedCompanies = useMemo(() => { const s = (currentPage - 1) * pageSize; return filteredCompanies.slice(s, s + pageSize); }, [filteredCompanies, currentPage, pageSize]);
+
+  // Fetch financing (plafond/rating) for visible companies
+  const [financingMap, setFinancingMap] = useState<Record<string, { plafond: number | null; rating: string | null }>>({});
+  const visibleCompanyIds = useMemo(() => paginatedCompanies.map(c => c.id), [paginatedCompanies]);
+  useEffect(() => {
+    if (visibleCompanyIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("company_financing")
+        .select("company_id, plafond_amount, rating")
+        .in("company_id", visibleCompanyIds);
+      if (cancelled || error || !data) return;
+      setFinancingMap(prev => {
+        const next = { ...prev };
+        for (const row of data as any[]) {
+          next[row.company_id] = { plafond: row.plafond_amount, rating: row.rating };
+        }
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [visibleCompanyIds]);
+
   const handlePageSizeChange = (newSize: string) => { setPageSize(Number(newSize)); setCurrentPage(1); };
   const handleFilterSelect = (filterId: string) => { setActiveFilterId(filterId === activeFilterId ? undefined : filterId); };
 
