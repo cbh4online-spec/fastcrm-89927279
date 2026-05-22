@@ -71,6 +71,7 @@ export type MenuSection =
   | 'team'
   | 'business'
   | 'financial'
+  | 'financing'
   | 'data'
   | 'contacts'
   | 'student-journey'

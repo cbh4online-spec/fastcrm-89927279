@@ -228,6 +228,13 @@ const SECTION_CONFIG: Record<MenuSection, {
     suggestion: 'Crie um ticket para registar pedidos de suporte.',
     actionLabel: 'Novo Ticket',
   },
+  financing: {
+    icon: FileText,
+    title: 'Sem financiamento',
+    description: 'Esta empresa ainda não tem plafond aprovado ou simulações.',
+    suggestion: 'Defina o plafond e crie uma simulação de contrato.',
+    actionLabel: 'Definir Plafond',
+  },
 };
 
 export function EntityEmptyState({

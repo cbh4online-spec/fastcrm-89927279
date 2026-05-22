@@ -96,6 +96,7 @@ import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
 import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSummaryCard";
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
 import { InvoiceHistorySection } from "@/components/contacts/eni/sections/InvoiceHistorySection";
+import { CompanyFinancingSection } from "./sections/CompanyFinancingSection";
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -461,6 +462,8 @@ export function CompanyDetailWithSidebar() {
             </EntitySubTabs>
           </div>
         );
+      case 'financing':
+        return <CompanyFinancingSection companyId={id!} companyName={company.name} />;
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
