@@ -322,6 +322,29 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
     client_number: () => (
       <TableCell key="client_number"><span className="text-sm font-mono">{(company as any).client_number || "—"}</span></TableCell>
     ),
+    plafond: () => (
+      <TableCell key="plafond" className="text-right tabular-nums">
+        {financing?.plafond != null
+          ? <span className="text-sm font-medium">{new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(financing.plafond)}</span>
+          : <span className="text-xs text-muted-foreground">—</span>}
+      </TableCell>
+    ),
+    credit_rating: () => {
+      const r = financing?.rating;
+      const cls: Record<string, string> = {
+        A: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+        B: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+        C: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+        D: "bg-destructive/10 text-destructive border-destructive/20",
+      };
+      return (
+        <TableCell key="credit_rating">
+          {r ? (
+            <span className={cn("inline-flex items-center justify-center w-7 h-6 rounded border text-xs font-semibold", cls[r] || "bg-muted text-muted-foreground")}>{r}</span>
+          ) : <span className="text-xs text-muted-foreground">—</span>}
+        </TableCell>
+      );
+    },
     // AI Revenue Engine columns
     icp_fit: () => (
       <TableCell key="icp_fit">
