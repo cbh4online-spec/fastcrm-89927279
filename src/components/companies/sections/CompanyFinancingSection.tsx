@@ -515,7 +515,8 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="ok">OK</SelectItem>
+                    <SelectItem value="aprovado">Aprovado</SelectItem>
+                    <SelectItem value="recusado">Recusado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
