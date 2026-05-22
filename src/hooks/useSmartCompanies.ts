@@ -86,6 +86,7 @@ export interface SmartCompaniesResult {
 const COMPANIES_SELECT_COLUMNS = `
   id, workspace_id, name, email, phone, website, industry, size,
   address, city, notes, tags, source, created_at, updated_at,
+  tax_id, client_number,
   last_contact_at, ai_temperature, company_score,
   ai_next_action, ai_next_action_type, ai_insight, ai_company_type,
   estimated_value, conversion_probability, ai_analyzed_at,
