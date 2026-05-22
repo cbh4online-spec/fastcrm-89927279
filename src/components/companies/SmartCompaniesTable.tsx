@@ -144,7 +144,7 @@ export function SmartCompaniesTable() {
   const syncTags = useSyncLeadTagsToWorkspace();
   const { currentWorkspace } = useWorkspace();
 
-  const handleSaveFinancing = useCallback(async (companyId: string, patch: { plafond?: number | null; rating?: string | null }) => {
+  const handleSaveFinancing = useCallback(async (companyId: string, patch: { plafond?: number | null; rating?: string | null; documentation_status?: string | null; documentation_notes?: string | null }) => {
     if (!currentWorkspace) { toast.error("Sem workspace ativo"); return; }
     // Optimistic UI
     setFinancingMap(prev => {
@@ -153,14 +153,16 @@ export function SmartCompaniesTable() {
       next[companyId] = {
         plafond: patch.plafond !== undefined ? patch.plafond : cur.plafond,
         rating: patch.rating !== undefined ? patch.rating : cur.rating,
-        documentation_status: cur.documentation_status,
-        documentation_notes: cur.documentation_notes,
+        documentation_status: patch.documentation_status !== undefined ? patch.documentation_status : cur.documentation_status,
+        documentation_notes: patch.documentation_notes !== undefined ? patch.documentation_notes : cur.documentation_notes,
       };
       return next;
     });
     const payload: any = { workspace_id: currentWorkspace.id, company_id: companyId };
     if (patch.plafond !== undefined) payload.plafond_amount = patch.plafond;
     if (patch.rating !== undefined) payload.rating = patch.rating;
+    if (patch.documentation_status !== undefined) payload.documentation_status = patch.documentation_status;
+    if (patch.documentation_notes !== undefined) payload.documentation_notes = patch.documentation_notes;
     const { error } = await supabase
       .from("company_financing")
       .upsert(payload, { onConflict: "company_id" });

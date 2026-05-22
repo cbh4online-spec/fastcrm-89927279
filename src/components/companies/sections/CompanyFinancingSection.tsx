@@ -332,9 +332,13 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
               <div>
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Documentação</div>
                 <div className="mt-1">
-                  {financing?.documentation_status === "ok" ? (
+                  {financing?.documentation_status === "aprovado" ? (
                     <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
-                      <FileCheck2 className="w-3 h-3 mr-1" /> OK
+                      <FileCheck2 className="w-3 h-3 mr-1" /> Aprovado
+                    </Badge>
+                  ) : financing?.documentation_status === "recusado" ? (
+                    <Badge className="bg-destructive/15 text-destructive border-destructive/30">
+                      <FileWarning className="w-3 h-3 mr-1" /> Recusado
                     </Badge>
                   ) : (
                     <Badge variant="secondary">
@@ -511,7 +515,8 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="ok">OK</SelectItem>
+                    <SelectItem value="aprovado">Aprovado</SelectItem>
+                    <SelectItem value="recusado">Recusado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

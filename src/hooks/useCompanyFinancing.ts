@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export type FinancingRating = "A" | "B" | "C" | "D";
-export type DocumentationStatus = "pendente" | "ok";
+export type DocumentationStatus = "pendente" | "aprovado" | "recusado";
 export type PaymentFrequency = "mensal" | "trimestral";
 export type SimulationStatus = "simulacao" | "activo" | "concluido" | "cancelado";
 

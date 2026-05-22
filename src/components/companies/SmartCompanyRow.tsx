@@ -58,7 +58,7 @@ interface SmartCompanyRowProps {
   columnOrder: string[];
   onUpdate?: (entityId: string, field: string, value: unknown) => void;
   financing?: { plafond: number | null; rating: string | null; documentation_status?: string | null; documentation_notes?: string | null };
-  onSaveFinancing?: (companyId: string, patch: { plafond?: number | null; rating?: string | null }) => void;
+  onSaveFinancing?: (companyId: string, patch: { plafond?: number | null; rating?: string | null; documentation_status?: string | null; documentation_notes?: string | null }) => void;
 }
 
 const sourceColors: Record<string, string> = {
@@ -116,6 +116,10 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
   const [plafondDraft, setPlafondDraft] = useState("");
   const plafondRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (editPlafond && plafondRef.current) { plafondRef.current.focus(); plafondRef.current.select(); } }, [editPlafond]);
+  const [editNotes, setEditNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+  const notesRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editNotes && notesRef.current) { notesRef.current.focus(); notesRef.current.select(); } }, [editNotes]);
   const { t } = useTranslation("crm");
 
   const temperatureConfig: Record<string, { label: string; emoji: string; color: string; bg: string }> = {
@@ -334,11 +338,9 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
     plafond: () => {
       const v = financing?.plafond;
       const r = financing?.rating;
-      const docStatus = financing?.documentation_status;
+      const docStatus = (financing?.documentation_status || "pendente") as "pendente" | "aprovado" | "recusado";
       const docNotes = financing?.documentation_notes;
       const canEdit = !!onSaveFinancing;
-      const hasFinancing = v != null || !!r;
-      const isPending = !hasFinancing && (docStatus === "pendente" || !docStatus);
       const defaultPendingNote = "Submeter último IRC (Anexo B ou C), IRS ou relatório e contas.";
       const ratingCircleCls: Record<string, string> = {
         A: "bg-emerald-500 text-white",
@@ -346,72 +348,144 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
         C: "bg-amber-500 text-white",
         D: "bg-yellow-400 text-yellow-950",
       };
-      const commit = () => {
+      const statusCls: Record<string, string> = {
+        pendente: "bg-muted text-muted-foreground border-muted-foreground/20",
+        aprovado: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+        recusado: "bg-destructive/15 text-destructive border-destructive/30",
+      };
+      const statusLabel: Record<string, string> = {
+        pendente: "Pendente",
+        aprovado: "Aprovado",
+        recusado: "Recusado",
+      };
+      const commitPlafond = () => {
         setEditPlafond(false);
         const num = plafondDraft.trim() === "" ? null : Number(plafondDraft.replace(",", "."));
         if (num !== null && !isFinite(num)) return;
         if ((num ?? null) !== (v ?? null)) onSaveFinancing?.(company.id, { plafond: num });
       };
+      const commitNotes = () => {
+        setEditNotes(false);
+        const next = notesDraft.trim() === "" ? null : notesDraft.trim();
+        if (next !== (docNotes ?? null)) onSaveFinancing?.(company.id, { documentation_notes: next });
+      };
       return (
-        <TableCell key="plafond" className="tabular-nums min-w-[260px]">
-          {editPlafond ? (
-            <div onClick={e => e.stopPropagation()}>
-              <input
-                ref={plafondRef}
-                type="number"
-                inputMode="decimal"
-                className="h-7 w-28 rounded border border-primary/40 bg-background px-2 text-right text-xs outline-none focus:ring-1 focus:ring-primary/50"
-                value={plafondDraft}
-                onChange={e => setPlafondDraft(e.target.value)}
-                onBlur={commit}
-                onKeyDown={e => {
-                  if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
-                  if (e.key === "Escape") { setEditPlafond(false); }
-                }}
-              />
-            </div>
-          ) : hasFinancing ? (
-            <div
-              className={cn("group/ec inline-flex items-center gap-2 rounded px-1 -mx-1 min-h-[28px]", canEdit && "cursor-pointer hover:bg-muted/60 transition-colors")}
-              onClick={e => {
-                if (!canEdit) return;
-                e.stopPropagation();
-                setPlafondDraft(v != null ? String(v) : "");
-                setEditPlafond(true);
-              }}
-              title={canEdit ? "Clique para editar plafond" : undefined}
-            >
-              {r && (
+        <TableCell key="plafond" className="tabular-nums min-w-[280px]">
+          <div className="flex flex-col gap-1">
+            {/* Linha 1: rating + plafond */}
+            <div className="flex items-center gap-2 min-h-[28px]">
+              {r ? (
                 <span className={cn("inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold shrink-0", ratingCircleCls[r] || "bg-muted text-muted-foreground")}>
                   {r}
                 </span>
+              ) : (
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold shrink-0 bg-muted text-muted-foreground/60 border border-dashed border-muted-foreground/30">
+                  —
+                </span>
               )}
-              {v != null
-                ? <span className="text-sm font-semibold">{new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v)}</span>
-                : <span className="text-xs text-muted-foreground">—</span>}
-              {canEdit && <Pencil className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover/ec:opacity-100 transition-opacity shrink-0" />}
+              {editPlafond ? (
+                <div onClick={e => e.stopPropagation()}>
+                  <input
+                    ref={plafondRef}
+                    type="number"
+                    inputMode="decimal"
+                    className="h-7 w-32 rounded border border-primary/40 bg-background px-2 text-right text-xs outline-none focus:ring-1 focus:ring-primary/50"
+                    value={plafondDraft}
+                    onChange={e => setPlafondDraft(e.target.value)}
+                    onBlur={commitPlafond}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                      if (e.key === "Escape") { setEditPlafond(false); }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div
+                  className={cn("group/ec inline-flex items-center gap-1 rounded px-1 -mx-1 min-h-[24px]", canEdit && "cursor-pointer hover:bg-muted/60 transition-colors")}
+                  onClick={e => {
+                    if (!canEdit) return;
+                    e.stopPropagation();
+                    setPlafondDraft(v != null ? String(v) : "");
+                    setEditPlafond(true);
+                  }}
+                  title={canEdit ? "Clique para definir plafond" : undefined}
+                >
+                  {v != null
+                    ? <span className="text-sm font-semibold">{new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v)}</span>
+                    : <span className="text-xs text-muted-foreground italic">Definir plafond</span>}
+                  {canEdit && <Pencil className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover/ec:opacity-100 transition-opacity shrink-0" />}
+                </div>
+              )}
             </div>
-          ) : isPending ? (
-            <div className="flex items-start gap-2 min-h-[28px]">
-              <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-muted-foreground/20 shrink-0 mt-0.5">
-                Pendente
-              </Badge>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-xs text-muted-foreground line-clamp-2 max-w-[200px] leading-tight">
-                      {docNotes || defaultPendingNote}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-[260px]">{docNotes || defaultPendingNote}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+
+            {/* Linha 2: estado documentação + observações */}
+            <div className="flex items-start gap-2">
+              {canEdit ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                    <button className="shrink-0">
+                      <Badge variant="outline" className={cn("text-[10px] cursor-pointer hover:opacity-80 transition-opacity", statusCls[docStatus])}>
+                        {statusLabel[docStatus]}
+                      </Badge>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" onClick={e => e.stopPropagation()}>
+                    {(["pendente","aprovado","recusado"] as const).map(opt => (
+                      <DropdownMenuItem key={opt} onClick={() => { if (opt !== docStatus) onSaveFinancing?.(company.id, { documentation_status: opt }); }}>
+                        <Badge variant="outline" className={cn("text-[10px] mr-2", statusCls[opt])}>{statusLabel[opt]}</Badge>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Badge variant="outline" className={cn("text-[10px] shrink-0", statusCls[docStatus])}>{statusLabel[docStatus]}</Badge>
+              )}
+
+              {editNotes ? (
+                <div className="flex-1" onClick={e => e.stopPropagation()}>
+                  <input
+                    ref={notesRef}
+                    type="text"
+                    className="h-6 w-full rounded border border-primary/40 bg-background px-2 text-xs outline-none focus:ring-1 focus:ring-primary/50"
+                    value={notesDraft}
+                    onChange={e => setNotesDraft(e.target.value)}
+                    onBlur={commitNotes}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                      if (e.key === "Escape") { setEditNotes(false); }
+                    }}
+                    placeholder={defaultPendingNote}
+                  />
+                </div>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={cn(
+                          "text-[11px] leading-tight line-clamp-2 max-w-[200px]",
+                          docNotes ? "text-muted-foreground" : "text-muted-foreground/60 italic",
+                          canEdit && "cursor-pointer hover:text-foreground transition-colors"
+                        )}
+                        onClick={e => {
+                          if (!canEdit) return;
+                          e.stopPropagation();
+                          setNotesDraft(docNotes || "");
+                          setEditNotes(true);
+                        }}
+                        title={canEdit ? "Clique para editar observações" : undefined}
+                      >
+                        {docNotes || (docStatus === "pendente" ? defaultPendingNote : "Sem observações")}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs max-w-[260px]">{docNotes || defaultPendingNote}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
-          ) : (
-            <span className="text-xs text-muted-foreground">—</span>
-          )}
+          </div>
         </TableCell>
       );
     },
