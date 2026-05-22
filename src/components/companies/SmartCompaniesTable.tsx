@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
 import { useSmartCompanies, useAnalyzeCompany, useBulkAnalyzeCompanies, SmartCompaniesFilters } from "@/hooks/useSmartCompanies";
 import { useBulkAnalyzeRevenue } from "@/hooks/useAIRevenueEngine";
@@ -53,6 +54,8 @@ export function SmartCompaniesTable() {
     { id: "annual_revenue", label: t("col_annualRevenue"), category: "business", defaultVisible: false },
     { id: "automation", label: t("col_automation"), category: "business", defaultVisible: false },
     { id: "google_rating", label: t("col_googleRating"), category: "business", defaultVisible: false },
+    { id: "plafond", label: "Plafond", category: "business", defaultVisible: true, description: "Plafond aprovado de financiamento" },
+    { id: "credit_rating", label: "Rating", category: "business", defaultVisible: true, description: "Rating de risco (A/B/C/D)" },
     { id: "contacts_count", label: t("col_contactsCount"), category: "relations", defaultVisible: true, description: t("col_contactsCountDesc") },
     { id: "opportunities_count", label: t("col_opportunitiesCount"), category: "relations", defaultVisible: true, description: t("col_opportunitiesCountDesc") },
     { id: "social_presence", label: t("col_socialPresence"), category: "relations", defaultVisible: false },
@@ -199,6 +202,30 @@ export function SmartCompaniesTable() {
   const totalCompanies = filteredCompanies.length;
   const totalPages = Math.ceil(totalCompanies / pageSize);
   const paginatedCompanies = useMemo(() => { const s = (currentPage - 1) * pageSize; return filteredCompanies.slice(s, s + pageSize); }, [filteredCompanies, currentPage, pageSize]);
+
+  // Fetch financing (plafond/rating) for visible companies
+  const [financingMap, setFinancingMap] = useState<Record<string, { plafond: number | null; rating: string | null }>>({});
+  const visibleCompanyIds = useMemo(() => paginatedCompanies.map(c => c.id), [paginatedCompanies]);
+  useEffect(() => {
+    if (visibleCompanyIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("company_financing")
+        .select("company_id, plafond_amount, rating")
+        .in("company_id", visibleCompanyIds);
+      if (cancelled || error || !data) return;
+      setFinancingMap(prev => {
+        const next = { ...prev };
+        for (const row of data as any[]) {
+          next[row.company_id] = { plafond: row.plafond_amount, rating: row.rating };
+        }
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [visibleCompanyIds]);
+
   const handlePageSizeChange = (newSize: string) => { setPageSize(Number(newSize)); setCurrentPage(1); };
   const handleFilterSelect = (filterId: string) => { setActiveFilterId(filterId === activeFilterId ? undefined : filterId); };
 
@@ -355,7 +382,7 @@ export function SmartCompaniesTable() {
                 </TableCell></TableRow>
               ) : (
                 paginatedCompanies.map(c => (
-                  <SmartCompanyRow key={c.id} company={c} isSelected={selectedIds.has(c.id)} onToggleSelect={() => toggleSelect(c.id)} onAnalyze={() => handleAnalyze(c.id)} isAnalyzing={analyzingId === c.id} columnOrder={orderedVisibleColumns.map(col => col.id)} onUpdate={handleInlineUpdate} />
+                  <SmartCompanyRow key={c.id} company={c} isSelected={selectedIds.has(c.id)} onToggleSelect={() => toggleSelect(c.id)} onAnalyze={() => handleAnalyze(c.id)} isAnalyzing={analyzingId === c.id} columnOrder={orderedVisibleColumns.map(col => col.id)} onUpdate={handleInlineUpdate} financing={financingMap[c.id]} />
                 ))
               )}
             </TableBody>
