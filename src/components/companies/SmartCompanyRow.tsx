@@ -107,7 +107,8 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
   onAnalyze,
   isAnalyzing,
   columnOrder,
-  onUpdate
+  onUpdate,
+  financing,
 }: SmartCompanyRowProps) {
   const { t } = useTranslation("crm");
 
