@@ -58,6 +58,7 @@ interface SmartCompanyRowProps {
   columnOrder: string[];
   onUpdate?: (entityId: string, field: string, value: unknown) => void;
   financing?: { plafond: number | null; rating: string | null };
+  onSaveFinancing?: (companyId: string, patch: { plafond?: number | null; rating?: string | null }) => void;
 }
 
 const sourceColors: Record<string, string> = {
@@ -109,7 +110,12 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
   columnOrder,
   onUpdate,
   financing,
+  onSaveFinancing,
 }: SmartCompanyRowProps) {
+  const [editPlafond, setEditPlafond] = useState(false);
+  const [plafondDraft, setPlafondDraft] = useState("");
+  const plafondRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editPlafond && plafondRef.current) { plafondRef.current.focus(); plafondRef.current.select(); } }, [editPlafond]);
   const { t } = useTranslation("crm");
 
   const temperatureConfig: Record<string, { label: string; emoji: string; color: string; bg: string }> = {
@@ -325,13 +331,53 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
     tax_id: () => (
       <TableCell key="tax_id"><span className="text-sm font-mono">{(company as any).tax_id || <span className="text-xs text-muted-foreground">—</span>}</span></TableCell>
     ),
-    plafond: () => (
-      <TableCell key="plafond" className="text-right tabular-nums">
-        {financing?.plafond != null
-          ? <span className="text-sm font-medium">{new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(financing.plafond)}</span>
-          : <span className="text-xs text-muted-foreground">—</span>}
-      </TableCell>
-    ),
+    plafond: () => {
+      const v = financing?.plafond;
+      const canEdit = !!onSaveFinancing;
+      const commit = () => {
+        setEditPlafond(false);
+        const num = plafondDraft.trim() === "" ? null : Number(plafondDraft.replace(",", "."));
+        if (num !== null && !isFinite(num)) return;
+        if ((num ?? null) !== (v ?? null)) onSaveFinancing?.(company.id, { plafond: num });
+      };
+      return (
+        <TableCell key="plafond" className="text-right tabular-nums">
+          {editPlafond ? (
+            <div onClick={e => e.stopPropagation()}>
+              <input
+                ref={plafondRef}
+                type="number"
+                inputMode="decimal"
+                className="h-7 w-28 rounded border border-primary/40 bg-background px-2 text-right text-xs outline-none focus:ring-1 focus:ring-primary/50"
+                value={plafondDraft}
+                onChange={e => setPlafondDraft(e.target.value)}
+                onBlur={commit}
+                onKeyDown={e => {
+                  if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                  if (e.key === "Escape") { setEditPlafond(false); }
+                }}
+              />
+            </div>
+          ) : (
+            <div
+              className={cn("group/ec inline-flex items-center gap-1 rounded px-1 -mx-1 min-h-[28px]", canEdit && "cursor-pointer hover:bg-muted/60 transition-colors")}
+              onClick={e => {
+                if (!canEdit) return;
+                e.stopPropagation();
+                setPlafondDraft(v != null ? String(v) : "");
+                setEditPlafond(true);
+              }}
+              title={canEdit ? "Clique para editar" : undefined}
+            >
+              {v != null
+                ? <span className="text-sm font-medium">{new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v)}</span>
+                : <span className="text-xs text-muted-foreground">—</span>}
+              {canEdit && <Pencil className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover/ec:opacity-100 transition-opacity shrink-0" />}
+            </div>
+          )}
+        </TableCell>
+      );
+    },
     credit_rating: () => {
       const r = financing?.rating;
       const cls: Record<string, string> = {
@@ -340,9 +386,38 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
         C: "bg-amber-500/10 text-amber-600 border-amber-500/20",
         D: "bg-destructive/10 text-destructive border-destructive/20",
       };
+      const canEdit = !!onSaveFinancing;
       return (
         <TableCell key="credit_rating">
-          {r ? (
+          {canEdit ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                <button className="inline-flex items-center justify-center min-w-[28px] h-6 rounded border text-xs font-semibold hover:opacity-80 transition-opacity cursor-pointer">
+                  {r ? (
+                    <span className={cn("inline-flex items-center justify-center w-7 h-6 rounded border text-xs font-semibold", cls[r] || "bg-muted text-muted-foreground")}>{r}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground border border-dashed border-muted-foreground/30 rounded px-2 py-0.5">—</span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+                {(["A","B","C","D"] as const).map(opt => (
+                  <DropdownMenuItem key={opt} onClick={() => { if (opt !== r) onSaveFinancing?.(company.id, { rating: opt }); }}>
+                    <span className={cn("inline-flex items-center justify-center w-7 h-6 rounded border text-xs font-semibold mr-2", cls[opt])}>{opt}</span>
+                    Rating {opt}
+                  </DropdownMenuItem>
+                ))}
+                {r && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onSaveFinancing?.(company.id, { rating: null })} className="text-muted-foreground">
+                      Limpar rating
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : r ? (
             <span className={cn("inline-flex items-center justify-center w-7 h-6 rounded border text-xs font-semibold", cls[r] || "bg-muted text-muted-foreground")}>{r}</span>
           ) : <span className="text-xs text-muted-foreground">—</span>}
         </TableCell>
