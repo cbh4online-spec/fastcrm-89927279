@@ -619,16 +619,35 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
                 </Select>
               </div>
               <div>
-                <Label>Taxa (%)</Label>
+                <Label className="flex items-center justify-between">
+                  <span>Taxa (%)</span>
+                  {!manualRate && simDraft.interest_rate && (
+                    <span className="text-[10px] text-muted-foreground">auto</span>
+                  )}
+                </Label>
                 <Input
                   type="number"
                   inputMode="decimal"
                   step="0.01"
+                  placeholder="auto"
                   value={simDraft.interest_rate}
-                  onChange={(e) =>
-                    setSimDraft((p) => ({ ...p, interest_rate: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    setManualRate(true);
+                    setSimDraft((p) => ({ ...p, interest_rate: e.target.value }));
+                  }}
                 />
+                {manualRate && (
+                  <button
+                    type="button"
+                    className="text-[10px] text-primary hover:underline mt-1"
+                    onClick={() => {
+                      setManualRate(false);
+                      setSimDraft((p) => ({ ...p, interest_rate: "" }));
+                    }}
+                  >
+                    Recalcular automaticamente
+                  </button>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -652,15 +671,26 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
                 <Input
                   type="date"
                   value={simDraft.start_date}
-                  onChange={(e) => setSimDraft((p) => ({ ...p, start_date: e.target.value }))}
+                  onChange={(e) => {
+                    setManualStart(true);
+                    setSimDraft((p) => ({ ...p, start_date: e.target.value }));
+                  }}
                 />
               </div>
               <div>
-                <Label>Fim</Label>
+                <Label className="flex items-center justify-between">
+                  <span>Fim</span>
+                  {!manualEnd && simDraft.end_date && (
+                    <span className="text-[10px] text-muted-foreground">auto</span>
+                  )}
+                </Label>
                 <Input
                   type="date"
                   value={simDraft.end_date}
-                  onChange={(e) => setSimDraft((p) => ({ ...p, end_date: e.target.value }))}
+                  onChange={(e) => {
+                    setManualEnd(true);
+                    setSimDraft((p) => ({ ...p, end_date: e.target.value }));
+                  }}
                 />
               </div>
             </div>
