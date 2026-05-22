@@ -462,6 +462,8 @@ export function CompanyDetailWithSidebar() {
             </EntitySubTabs>
           </div>
         );
+      case 'financing':
+        return <CompanyFinancingSection companyId={id!} companyName={company.name} />;
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
