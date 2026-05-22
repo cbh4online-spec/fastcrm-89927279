@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 function solveAnnualRate(pv: number, pmt: number, nPeriods: number, periodsPerYear: number): number | null {
   if (!(pv > 0) || !(pmt > 0) || !(nPeriods > 0)) return null;
   const totalPaid = pmt * nPeriods;
-  if (totalPaid <= pv) return 0; // sem juro ou negativo
+  // Se a soma das rendas é inferior ao PV, taxa seria negativa → não auto-preencher
+  if (totalPaid < pv) return null;
+  if (totalPaid === pv) return 0;
   let i = 0.01; // chute inicial (1% por período)
   for (let k = 0; k < 100; k++) {
     const f = pmt * (1 - Math.pow(1 + i, -nPeriods)) / i - pv;
