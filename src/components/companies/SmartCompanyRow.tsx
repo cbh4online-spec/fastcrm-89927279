@@ -333,7 +333,14 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
     ),
     plafond: () => {
       const v = financing?.plafond;
+      const r = financing?.rating;
       const canEdit = !!onSaveFinancing;
+      const ratingCircleCls: Record<string, string> = {
+        A: "bg-emerald-500 text-white",
+        B: "bg-teal-500 text-white",
+        C: "bg-amber-500 text-white",
+        D: "bg-yellow-400 text-yellow-950",
+      };
       const commit = () => {
         setEditPlafond(false);
         const num = plafondDraft.trim() === "" ? null : Number(plafondDraft.replace(",", "."));
@@ -341,7 +348,7 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
         if ((num ?? null) !== (v ?? null)) onSaveFinancing?.(company.id, { plafond: num });
       };
       return (
-        <TableCell key="plafond" className="text-right tabular-nums">
+        <TableCell key="plafond" className="tabular-nums">
           {editPlafond ? (
             <div onClick={e => e.stopPropagation()}>
               <input
@@ -360,17 +367,22 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
             </div>
           ) : (
             <div
-              className={cn("group/ec inline-flex items-center gap-1 rounded px-1 -mx-1 min-h-[28px]", canEdit && "cursor-pointer hover:bg-muted/60 transition-colors")}
+              className={cn("group/ec inline-flex items-center gap-2 rounded px-1 -mx-1 min-h-[28px]", canEdit && "cursor-pointer hover:bg-muted/60 transition-colors")}
               onClick={e => {
                 if (!canEdit) return;
                 e.stopPropagation();
                 setPlafondDraft(v != null ? String(v) : "");
                 setEditPlafond(true);
               }}
-              title={canEdit ? "Clique para editar" : undefined}
+              title={canEdit ? "Clique para editar plafond" : undefined}
             >
+              {r && (
+                <span className={cn("inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold shrink-0", ratingCircleCls[r] || "bg-muted text-muted-foreground")}>
+                  {r}
+                </span>
+              )}
               {v != null
-                ? <span className="text-sm font-medium">{new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v)}</span>
+                ? <span className="text-sm font-semibold">{new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v)}</span>
                 : <span className="text-xs text-muted-foreground">—</span>}
               {canEdit && <Pencil className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover/ec:opacity-100 transition-opacity shrink-0" />}
             </div>
