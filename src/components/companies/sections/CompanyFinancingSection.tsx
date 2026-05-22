@@ -1,4 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// Resolve taxa anual (%) a partir de PV, PMT, n períodos e periods/ano via Newton-Raphson
+function solveAnnualRate(pv: number, pmt: number, nPeriods: number, periodsPerYear: number): number | null {
+  if (!(pv > 0) || !(pmt > 0) || !(nPeriods > 0)) return null;
+  const totalPaid = pmt * nPeriods;
+  if (totalPaid <= pv) return 0; // sem juro ou negativo
+  let i = 0.01; // chute inicial (1% por período)
+  for (let k = 0; k < 100; k++) {
+    const f = pmt * (1 - Math.pow(1 + i, -nPeriods)) / i - pv;
+    const df =
+      pmt *
+      ((nPeriods * Math.pow(1 + i, -nPeriods - 1)) / i -
+        (1 - Math.pow(1 + i, -nPeriods)) / (i * i));
+    if (Math.abs(df) < 1e-12) break;
+    const next = i - f / df;
+    if (!isFinite(next) || next <= 0) {
+      i = i / 2;
+      continue;
+    }
+    if (Math.abs(next - i) < 1e-8) {
+      i = next;
+      break;
+    }
+    i = next;
+  }
+  const annual = i * periodsPerYear * 100;
+  if (!isFinite(annual) || annual < 0 || annual > 200) return null;
+  return Math.round(annual * 100) / 100;
+}
+
+function addMonthsISO(startISO: string, months: number): string {
+  const d = new Date(startISO);
+  if (isNaN(d.getTime())) return "";
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,8 +172,16 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
     notes: "",
   });
 
+  // Flags para não sobrescrever edições manuais
+  const [manualRate, setManualRate] = useState(false);
+  const [manualStart, setManualStart] = useState(false);
+  const [manualEnd, setManualEnd] = useState(false);
+
   const openNewSim = () => {
     setEditingSim(null);
+    setManualRate(false);
+    setManualStart(false);
+    setManualEnd(false);
     setSimDraft({
       label: "",
       operation_value: "",
@@ -142,7 +190,7 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
       installment_value: "",
       interest_rate: "",
       status: "simulacao",
-      start_date: "",
+      start_date: todayISO(),
       end_date: "",
       notes: "",
     });
@@ -151,6 +199,9 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
 
   const openEditSim = (sim: FinancingSimulation) => {
     setEditingSim(sim);
+    setManualRate(!!sim.interest_rate);
+    setManualStart(!!sim.start_date);
+    setManualEnd(!!sim.end_date);
     setSimDraft({
       label: sim.label ?? "",
       operation_value: sim.operation_value.toString(),
@@ -165,6 +216,41 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
     });
     setSimDialogOpen(true);
   };
+
+  // Auto-calc taxa sempre que valor da operação / renda / duração / frequência mudam
+  useEffect(() => {
+    if (manualRate) return;
+    const pv = Number(simDraft.operation_value);
+    const pmt = Number(simDraft.installment_value);
+    const months = Number(simDraft.duration_months);
+    if (!(pv > 0) || !(pmt > 0) || !(months > 0)) return;
+    const periodsPerYear = simDraft.payment_frequency === "trimestral" ? 4 : 12;
+    const nPeriods = simDraft.payment_frequency === "trimestral" ? months / 3 : months;
+    const rate = solveAnnualRate(pv, pmt, nPeriods, periodsPerYear);
+    if (rate != null) {
+      const str = rate.toFixed(2);
+      setSimDraft((p) => (p.interest_rate === str ? p : { ...p, interest_rate: str }));
+    }
+  }, [
+    simDraft.operation_value,
+    simDraft.installment_value,
+    simDraft.duration_months,
+    simDraft.payment_frequency,
+    manualRate,
+  ]);
+
+  // Auto-calc fim quando início + duração existem
+  useEffect(() => {
+    if (manualEnd) return;
+    const months = Number(simDraft.duration_months);
+    if (!simDraft.start_date || !(months > 0)) return;
+    const end = addMonthsISO(simDraft.start_date, months);
+    if (end) {
+      setSimDraft((p) => (p.end_date === end ? p : { ...p, end_date: end }));
+    }
+  }, [simDraft.start_date, simDraft.duration_months, manualEnd]);
+
+
 
   const saveSim = async () => {
     const payload = {
@@ -533,16 +619,35 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
                 </Select>
               </div>
               <div>
-                <Label>Taxa (%)</Label>
+                <Label className="flex items-center justify-between">
+                  <span>Taxa (%)</span>
+                  {!manualRate && simDraft.interest_rate && (
+                    <span className="text-[10px] text-muted-foreground">auto</span>
+                  )}
+                </Label>
                 <Input
                   type="number"
                   inputMode="decimal"
                   step="0.01"
+                  placeholder="auto"
                   value={simDraft.interest_rate}
-                  onChange={(e) =>
-                    setSimDraft((p) => ({ ...p, interest_rate: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    setManualRate(true);
+                    setSimDraft((p) => ({ ...p, interest_rate: e.target.value }));
+                  }}
                 />
+                {manualRate && (
+                  <button
+                    type="button"
+                    className="text-[10px] text-primary hover:underline mt-1"
+                    onClick={() => {
+                      setManualRate(false);
+                      setSimDraft((p) => ({ ...p, interest_rate: "" }));
+                    }}
+                  >
+                    Recalcular automaticamente
+                  </button>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -566,15 +671,26 @@ export function CompanyFinancingSection({ companyId, companyName }: Props) {
                 <Input
                   type="date"
                   value={simDraft.start_date}
-                  onChange={(e) => setSimDraft((p) => ({ ...p, start_date: e.target.value }))}
+                  onChange={(e) => {
+                    setManualStart(true);
+                    setSimDraft((p) => ({ ...p, start_date: e.target.value }));
+                  }}
                 />
               </div>
               <div>
-                <Label>Fim</Label>
+                <Label className="flex items-center justify-between">
+                  <span>Fim</span>
+                  {!manualEnd && simDraft.end_date && (
+                    <span className="text-[10px] text-muted-foreground">auto</span>
+                  )}
+                </Label>
                 <Input
                   type="date"
                   value={simDraft.end_date}
-                  onChange={(e) => setSimDraft((p) => ({ ...p, end_date: e.target.value }))}
+                  onChange={(e) => {
+                    setManualEnd(true);
+                    setSimDraft((p) => ({ ...p, end_date: e.target.value }));
+                  }}
                 />
               </div>
             </div>
