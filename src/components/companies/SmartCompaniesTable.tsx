@@ -56,6 +56,7 @@ export function SmartCompaniesTable() {
     { id: "google_rating", label: t("col_googleRating"), category: "business", defaultVisible: false },
     { id: "plafond", label: "Plafond", category: "business", defaultVisible: true, description: "Plafond aprovado de financiamento" },
     { id: "credit_rating", label: "Rating", category: "business", defaultVisible: true, description: "Rating de risco (A/B/C/D)" },
+    { id: "tax_id", label: "NIF", category: "basic", defaultVisible: true, description: "Número de Identificação Fiscal" },
     { id: "contacts_count", label: t("col_contactsCount"), category: "relations", defaultVisible: true, description: t("col_contactsCountDesc") },
     { id: "opportunities_count", label: t("col_opportunitiesCount"), category: "relations", defaultVisible: true, description: t("col_opportunitiesCountDesc") },
     { id: "social_presence", label: t("col_socialPresence"), category: "relations", defaultVisible: false },
