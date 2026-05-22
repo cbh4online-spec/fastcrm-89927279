@@ -149,10 +149,12 @@ export function SmartCompaniesTable() {
     // Optimistic UI
     setFinancingMap(prev => {
       const next = { ...prev };
-      const cur = next[companyId] || { plafond: null, rating: null };
+      const cur = next[companyId] || { plafond: null, rating: null, documentation_status: null, documentation_notes: null };
       next[companyId] = {
         plafond: patch.plafond !== undefined ? patch.plafond : cur.plafond,
         rating: patch.rating !== undefined ? patch.rating : cur.rating,
+        documentation_status: cur.documentation_status,
+        documentation_notes: cur.documentation_notes,
       };
       return next;
     });
