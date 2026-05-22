@@ -22,6 +22,7 @@ const SECTION_LABELS: Record<MenuSection, string> = {
   'activity': 'Atividade',
   'business': 'Negócios',
   'financial': 'Financeiro',
+  'financing': 'Financiamento',
   'team': 'Equipa',
   'data': 'Dados',
   'contacts': 'Contactos',
