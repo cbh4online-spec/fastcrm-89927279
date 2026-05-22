@@ -161,6 +161,8 @@ export function CompaniesList() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Indústria</TableHead>
+                <TableHead className="text-right">Plafond</TableHead>
+                <TableHead className="text-center">Rating</TableHead>
                 <TableHead>Website</TableHead>
                 <TableHead>Contacto</TableHead>
                 <TableHead>Tags</TableHead>
