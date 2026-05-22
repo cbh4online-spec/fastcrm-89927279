@@ -10,6 +10,7 @@ import { CreateCompanyDialog } from "./CreateCompanyDialog";
 import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
 import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { useWorkspaceTags, useSyncLeadTagsToWorkspace } from "@/hooks/useWorkspaceTags";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
