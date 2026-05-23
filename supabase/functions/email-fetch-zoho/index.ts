@@ -42,16 +42,11 @@ async function getAccessToken(): Promise<string> {
   const clientSecret = Deno.env.get("ZOHO_CLIENT_SECRET");
   const refreshToken = Deno.env.get("ZOHO_REFRESH_TOKEN");
 
-  console.log("OAuth Debug - Client ID exists:", !!clientId, "length:", clientId?.length);
-  console.log("OAuth Debug - Client Secret exists:", !!clientSecret, "length:", clientSecret?.length);
-  console.log("OAuth Debug - Refresh Token exists:", !!refreshToken, "starts with 1000.:", refreshToken?.startsWith("1000."));
-
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error("Missing Zoho OAuth credentials");
   }
 
   const tokenUrl = `${ZOHO_AUTH_BASE}/oauth/v2/token`;
-  console.log("OAuth Debug - Token URL:", tokenUrl);
 
   const response = await fetch(tokenUrl, {
     method: "POST",
