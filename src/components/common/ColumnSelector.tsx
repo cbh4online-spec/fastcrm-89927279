@@ -50,6 +50,7 @@ export function ColumnSelector({
   const [open, setOpen] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
 
   // Get ordered columns based on columnOrder
   const orderedColumns = [...columns].sort((a, b) => {
@@ -99,7 +100,25 @@ export function ColumnSelector({
     onVisibleColumnsChange(newSet);
   };
 
-  // Drag handlers
+  // Move column up/down within its category (one click reorder)
+  const moveColumn = (columnId: string, direction: "up" | "down") => {
+    const col = columns.find((c) => c.id === columnId);
+    if (!col) return;
+    const siblings = groupedColumns[col.category] ?? [];
+    const localIdx = siblings.findIndex((c) => c.id === columnId);
+    if (localIdx === -1) return;
+    const swapWith = direction === "up" ? siblings[localIdx - 1] : siblings[localIdx + 1];
+    if (!swapWith) return;
+
+    const newOrder = [...columnOrder];
+    const a = newOrder.indexOf(columnId);
+    const b = newOrder.indexOf(swapWith.id);
+    if (a === -1 || b === -1) return;
+    [newOrder[a], newOrder[b]] = [newOrder[b], newOrder[a]];
+    onColumnOrderChange(newOrder);
+  };
+
+  // Drag handlers (only triggered by the grip handle)
   const handleDragStart = (e: React.DragEvent, columnId: string) => {
     setDraggedId(columnId);
     e.dataTransfer.effectAllowed = "move";
@@ -108,40 +127,51 @@ export function ColumnSelector({
 
   const handleDragOver = (e: React.DragEvent, columnId: string) => {
     e.preventDefault();
-    if (draggedId && draggedId !== columnId) {
-      setDragOverId(columnId);
-    }
+    e.dataTransfer.dropEffect = "move";
+    if (!draggedId || draggedId === columnId) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const isBefore = e.clientY < rect.top + rect.height / 2;
+    setDragOverId(columnId);
+    setDropPosition(isBefore ? "before" : "after");
   };
 
   const handleDragLeave = () => {
     setDragOverId(null);
+    setDropPosition(null);
   };
 
   const handleDrop = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
+    const position = dropPosition;
     if (!draggedId || draggedId === targetId) {
       setDraggedId(null);
       setDragOverId(null);
+      setDropPosition(null);
       return;
     }
 
     const newOrder = [...columnOrder];
     const draggedIndex = newOrder.indexOf(draggedId);
-    const targetIndex = newOrder.indexOf(targetId);
+    let targetIndex = newOrder.indexOf(targetId);
 
     if (draggedIndex !== -1 && targetIndex !== -1) {
       newOrder.splice(draggedIndex, 1);
-      newOrder.splice(targetIndex, 0, draggedId);
+      // Recompute target index after removal
+      targetIndex = newOrder.indexOf(targetId);
+      const insertAt = position === "after" ? targetIndex + 1 : targetIndex;
+      newOrder.splice(insertAt, 0, draggedId);
       onColumnOrderChange(newOrder);
     }
 
     setDraggedId(null);
     setDragOverId(null);
+    setDropPosition(null);
   };
 
   const handleDragEnd = () => {
     setDraggedId(null);
     setDragOverId(null);
+    setDropPosition(null);
   };
 
   return (
