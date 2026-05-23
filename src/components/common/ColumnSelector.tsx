@@ -305,17 +305,6 @@ export function ColumnSelector({
                 </div>
                 <Separator className="mt-3" />
               </div>
-                        {column.description && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            {column.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Separator className="mt-3" />
-              </div>
             ))}
           </div>
         </ScrollArea>
