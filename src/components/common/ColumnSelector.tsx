@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Columns3, GripVertical, RotateCcw } from "lucide-react";
+import { Columns3, GripVertical, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ColumnConfig {
@@ -50,6 +50,7 @@ export function ColumnSelector({
   const [open, setOpen] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
 
   // Get ordered columns based on columnOrder
   const orderedColumns = [...columns].sort((a, b) => {
@@ -99,7 +100,25 @@ export function ColumnSelector({
     onVisibleColumnsChange(newSet);
   };
 
-  // Drag handlers
+  // Move column up/down within its category (one click reorder)
+  const moveColumn = (columnId: string, direction: "up" | "down") => {
+    const col = columns.find((c) => c.id === columnId);
+    if (!col) return;
+    const siblings = groupedColumns[col.category] ?? [];
+    const localIdx = siblings.findIndex((c) => c.id === columnId);
+    if (localIdx === -1) return;
+    const swapWith = direction === "up" ? siblings[localIdx - 1] : siblings[localIdx + 1];
+    if (!swapWith) return;
+
+    const newOrder = [...columnOrder];
+    const a = newOrder.indexOf(columnId);
+    const b = newOrder.indexOf(swapWith.id);
+    if (a === -1 || b === -1) return;
+    [newOrder[a], newOrder[b]] = [newOrder[b], newOrder[a]];
+    onColumnOrderChange(newOrder);
+  };
+
+  // Drag handlers (only triggered by the grip handle)
   const handleDragStart = (e: React.DragEvent, columnId: string) => {
     setDraggedId(columnId);
     e.dataTransfer.effectAllowed = "move";
@@ -108,40 +127,51 @@ export function ColumnSelector({
 
   const handleDragOver = (e: React.DragEvent, columnId: string) => {
     e.preventDefault();
-    if (draggedId && draggedId !== columnId) {
-      setDragOverId(columnId);
-    }
+    e.dataTransfer.dropEffect = "move";
+    if (!draggedId || draggedId === columnId) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const isBefore = e.clientY < rect.top + rect.height / 2;
+    setDragOverId(columnId);
+    setDropPosition(isBefore ? "before" : "after");
   };
 
   const handleDragLeave = () => {
     setDragOverId(null);
+    setDropPosition(null);
   };
 
   const handleDrop = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
+    const position = dropPosition;
     if (!draggedId || draggedId === targetId) {
       setDraggedId(null);
       setDragOverId(null);
+      setDropPosition(null);
       return;
     }
 
     const newOrder = [...columnOrder];
     const draggedIndex = newOrder.indexOf(draggedId);
-    const targetIndex = newOrder.indexOf(targetId);
+    let targetIndex = newOrder.indexOf(targetId);
 
     if (draggedIndex !== -1 && targetIndex !== -1) {
       newOrder.splice(draggedIndex, 1);
-      newOrder.splice(targetIndex, 0, draggedId);
+      // Recompute target index after removal
+      targetIndex = newOrder.indexOf(targetId);
+      const insertAt = position === "after" ? targetIndex + 1 : targetIndex;
+      newOrder.splice(insertAt, 0, draggedId);
       onColumnOrderChange(newOrder);
     }
 
     setDraggedId(null);
     setDragOverId(null);
+    setDropPosition(null);
   };
 
   const handleDragEnd = () => {
     setDraggedId(null);
     setDragOverId(null);
+    setDropPosition(null);
   };
 
   return (
@@ -195,42 +225,80 @@ export function ColumnSelector({
                       : "Selecionar"}
                   </Button>
                 </div>
-                <div className="space-y-1">
-                  {cols.map((column) => (
+                <div className="space-y-0.5">
+                  {cols.map((column, idx) => (
                     <div
                       key={column.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, column.id)}
                       onDragOver={(e) => handleDragOver(e, column.id)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, column.id)}
-                      onDragEnd={handleDragEnd}
                       className={cn(
-                        "flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors",
-                        draggedId === column.id && "opacity-50",
-                        dragOverId === column.id && "bg-primary/10 border border-primary/30"
+                        "group relative flex items-center gap-2 px-1.5 py-1.5 rounded-md hover:bg-muted/50 transition-colors",
+                        draggedId === column.id && "opacity-40",
+                        dragOverId === column.id && dropPosition === "before" &&
+                          "before:absolute before:left-1 before:right-1 before:-top-px before:h-0.5 before:bg-primary before:rounded-full",
+                        dragOverId === column.id && dropPosition === "after" &&
+                          "after:absolute after:left-1 after:right-1 after:-bottom-px after:h-0.5 after:bg-primary after:rounded-full"
                       )}
-                      onClick={() => handleToggle(column.id)}
                     >
-                      <GripVertical className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
+                      <button
+                        type="button"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, column.id)}
+                        onDragEnd={handleDragEnd}
+                        className="flex items-center justify-center h-6 w-5 -ml-0.5 text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing"
+                        title="Arrastar para reordenar"
+                        aria-label="Arrastar para reordenar"
+                      >
+                        <GripVertical className="h-3.5 w-3.5" />
+                      </button>
                       <Checkbox
                         id={column.id}
                         checked={visibleColumns.has(column.id)}
                         onCheckedChange={() => handleToggle(column.id)}
-                        onClick={(e) => e.stopPropagation()}
                       />
-                      <div className="flex-1 min-w-0">
-                        <Label
-                          htmlFor={column.id}
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          {column.label}
-                        </Label>
+                      <Label
+                        htmlFor={column.id}
+                        className="flex-1 min-w-0 text-sm font-normal cursor-pointer"
+                      >
+                        <span className="block truncate">{column.label}</span>
                         {column.description && (
-                          <p className="text-xs text-muted-foreground truncate">
+                          <span className="block text-xs text-muted-foreground truncate">
                             {column.description}
-                          </p>
+                          </span>
                         )}
+                      </Label>
+                      <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={idx === 0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveColumn(column.id, "up");
+                          }}
+                          title="Mover para cima"
+                          aria-label="Mover para cima"
+                        >
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={idx === cols.length - 1}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveColumn(column.id, "down");
+                          }}
+                          title="Mover para baixo"
+                          aria-label="Mover para baixo"
+                        >
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
                   ))}
