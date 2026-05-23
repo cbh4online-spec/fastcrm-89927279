@@ -85,35 +85,29 @@ export function ColumnSelector({
     onResetWidths?.();
   };
 
-  const handleSelectAll = (category: string, selected: boolean) => {
-    const newSet = new Set(visibleColumns);
-    groupedColumns[category]?.forEach((col) => {
-      if (selected) {
-        newSet.add(col.id);
-      } else {
-        newSet.delete(col.id);
-      }
-    });
-    onVisibleColumnsChange(newSet);
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      onVisibleColumnsChange(new Set(columns.map((c) => c.id)));
+    } else {
+      onVisibleColumnsChange(new Set());
+    }
   };
 
-  // Move column up/down within its category (one click reorder)
+  // Move column up/down globally (one click reorder)
   const moveColumn = (columnId: string, direction: "up" | "down") => {
-    const col = columns.find((c) => c.id === columnId);
-    if (!col) return;
-    const siblings = groupedColumns[col.category] ?? [];
-    const localIdx = siblings.findIndex((c) => c.id === columnId);
-    if (localIdx === -1) return;
-    const swapWith = direction === "up" ? siblings[localIdx - 1] : siblings[localIdx + 1];
-    if (!swapWith) return;
+    const idx = flatColumns.findIndex((c) => c.id === columnId);
+    if (idx === -1) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= flatColumns.length) return;
 
     const newOrder = [...columnOrder];
     const a = newOrder.indexOf(columnId);
-    const b = newOrder.indexOf(swapWith.id);
+    const b = newOrder.indexOf(flatColumns[swapIdx].id);
     if (a === -1 || b === -1) return;
     [newOrder[a], newOrder[b]] = [newOrder[b], newOrder[a]];
     onColumnOrderChange(newOrder);
   };
+
 
   // Drag handlers (only triggered by the grip handle)
   const handleDragStart = (e: React.DragEvent, columnId: string) => {
