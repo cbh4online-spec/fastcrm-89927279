@@ -192,113 +192,109 @@ export function ColumnSelector({
           </Button>
         </div>
 
+        <div className="flex items-center justify-between px-3 py-1.5 border-b bg-muted/30">
+          <span className="text-xs text-muted-foreground">Ordem real da tabela</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs px-2"
+            onClick={() => {
+              const allSelected = flatColumns.every((c) => visibleColumns.has(c.id));
+              handleSelectAll(!allSelected);
+            }}
+          >
+            {flatColumns.every((c) => visibleColumns.has(c.id)) ? "Desmarcar todas" : "Selecionar todas"}
+          </Button>
+        </div>
         <ScrollArea className="h-[350px]">
-          <div className="p-2 space-y-4">
-            {Object.entries(groupedColumns).map(([category, cols]) => (
-              <div key={category}>
-                <div className="flex items-center justify-between px-2 py-1">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    {categoryLabels[category] || category}
+          <div className="p-2 space-y-0.5">
+            {flatColumns.map((column, idx) => (
+              <div
+                key={column.id}
+                onDragOver={(e) => handleDragOver(e, column.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, column.id)}
+                className={cn(
+                  "group relative flex items-center gap-2 px-1.5 py-1.5 rounded-md hover:bg-muted/50 transition-colors",
+                  draggedId === column.id && "opacity-40",
+                  dragOverId === column.id && dropPosition === "before" &&
+                    "before:absolute before:left-1 before:right-1 before:-top-px before:h-0.5 before:bg-primary before:rounded-full",
+                  dragOverId === column.id && dropPosition === "after" &&
+                    "after:absolute after:left-1 after:right-1 after:-bottom-px after:h-0.5 after:bg-primary after:rounded-full"
+                )}
+              >
+                <span className="w-6 text-center text-[10px] tabular-nums text-muted-foreground/70 select-none">
+                  {idx + 1}
+                </span>
+                <button
+                  type="button"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, column.id)}
+                  onDragEnd={handleDragEnd}
+                  className="flex items-center justify-center h-6 w-5 -ml-0.5 text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing"
+                  title="Arrastar para reordenar"
+                  aria-label="Arrastar para reordenar"
+                >
+                  <GripVertical className="h-3.5 w-3.5" />
+                </button>
+                <Checkbox
+                  id={column.id}
+                  checked={visibleColumns.has(column.id)}
+                  onCheckedChange={() => handleToggle(column.id)}
+                />
+                <Label
+                  htmlFor={column.id}
+                  className="flex-1 min-w-0 text-sm font-normal cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate">{column.label}</span>
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60 shrink-0">
+                      {categoryLabels[column.category] || column.category}
+                    </span>
                   </span>
+                  {column.description && (
+                    <span className="block text-xs text-muted-foreground truncate">
+                      {column.description}
+                    </span>
+                  )}
+                </Label>
+                <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                   <Button
+                    type="button"
                     variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs px-2"
-                    onClick={() => {
-                      const allSelected = cols.every((c) =>
-                        visibleColumns.has(c.id)
-                      );
-                      handleSelectAll(category, !allSelected);
+                    size="icon"
+                    className="h-6 w-6"
+                    disabled={idx === 0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveColumn(column.id, "up");
                     }}
+                    title="Mover para cima"
+                    aria-label="Mover para cima"
                   >
-                    {cols.every((c) => visibleColumns.has(c.id))
-                      ? "Desmarcar"
-                      : "Selecionar"}
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    disabled={idx === flatColumns.length - 1}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveColumn(column.id, "down");
+                    }}
+                    title="Mover para baixo"
+                    aria-label="Mover para baixo"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <div className="space-y-0.5">
-                  {cols.map((column, idx) => (
-                    <div
-                      key={column.id}
-                      onDragOver={(e) => handleDragOver(e, column.id)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, column.id)}
-                      className={cn(
-                        "group relative flex items-center gap-2 px-1.5 py-1.5 rounded-md hover:bg-muted/50 transition-colors",
-                        draggedId === column.id && "opacity-40",
-                        dragOverId === column.id && dropPosition === "before" &&
-                          "before:absolute before:left-1 before:right-1 before:-top-px before:h-0.5 before:bg-primary before:rounded-full",
-                        dragOverId === column.id && dropPosition === "after" &&
-                          "after:absolute after:left-1 after:right-1 after:-bottom-px after:h-0.5 after:bg-primary after:rounded-full"
-                      )}
-                    >
-                      <button
-                        type="button"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, column.id)}
-                        onDragEnd={handleDragEnd}
-                        className="flex items-center justify-center h-6 w-5 -ml-0.5 text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing"
-                        title="Arrastar para reordenar"
-                        aria-label="Arrastar para reordenar"
-                      >
-                        <GripVertical className="h-3.5 w-3.5" />
-                      </button>
-                      <Checkbox
-                        id={column.id}
-                        checked={visibleColumns.has(column.id)}
-                        onCheckedChange={() => handleToggle(column.id)}
-                      />
-                      <Label
-                        htmlFor={column.id}
-                        className="flex-1 min-w-0 text-sm font-normal cursor-pointer"
-                      >
-                        <span className="block truncate">{column.label}</span>
-                        {column.description && (
-                          <span className="block text-xs text-muted-foreground truncate">
-                            {column.description}
-                          </span>
-                        )}
-                      </Label>
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          disabled={idx === 0}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveColumn(column.id, "up");
-                          }}
-                          title="Mover para cima"
-                          aria-label="Mover para cima"
-                        >
-                          <ArrowUp className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          disabled={idx === cols.length - 1}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveColumn(column.id, "down");
-                          }}
-                          title="Mover para baixo"
-                          aria-label="Mover para baixo"
-                        >
-                          <ArrowDown className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Separator className="mt-3" />
               </div>
             ))}
           </div>
         </ScrollArea>
+
       </PopoverContent>
     </Popover>
   );
