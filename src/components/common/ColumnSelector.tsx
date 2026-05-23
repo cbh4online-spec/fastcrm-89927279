@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Columns3, GripVertical, RotateCcw } from "lucide-react";
+import { Columns3, GripVertical, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ColumnConfig {
