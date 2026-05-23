@@ -62,12 +62,9 @@ export function ColumnSelector({
     return indexA - indexB;
   });
 
-  // Group columns by category for display
-  const groupedColumns = orderedColumns.reduce((acc, col) => {
-    if (!acc[col.category]) acc[col.category] = [];
-    acc[col.category].push(col);
-    return acc;
-  }, {} as Record<string, ColumnConfig[]>);
+  // Flat list of columns by actual user order (no category grouping)
+  const flatColumns = orderedColumns;
+
 
   const handleToggle = (columnId: string) => {
     const newSet = new Set(visibleColumns);
