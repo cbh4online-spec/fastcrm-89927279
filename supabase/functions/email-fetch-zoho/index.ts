@@ -62,11 +62,9 @@ async function getAccessToken(): Promise<string> {
   });
 
   const data = await response.json();
-  console.log("OAuth Debug - Response status:", response.status);
-  console.log("OAuth Debug - Response data:", JSON.stringify(data));
-  
+
   if (data.error) {
-    console.error("Zoho OAuth error:", data);
+    console.error("Zoho OAuth error code:", data.error);
     throw new Error(`Zoho OAuth error: ${data.error}`);
   }
 
