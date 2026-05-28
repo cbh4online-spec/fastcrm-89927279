@@ -128,47 +128,42 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     const newContactKeys: string[] = [];
     const newCompanyKeys: string[] = [];
 
+    // Todos os clientes SAF-T são tratados como Empresas (inclui ENI com NIF 1/2/3).
+    // Mantém-se a deteção de particular apenas para enriquecimento futuro (tag/observação).
     for (const c of parsed.customers) {
       if (!c.customer_id) continue;
-      const routeToContacts = isPersonalNif(c.tax_id);
 
-      if (routeToContacts) {
-        const id =
-          (c.tax_id && contactsIdx.byNif.get(c.tax_id)) ||
-          (c.email && contactsIdx.byEmail.get(c.email)) ||
-          null;
-        if (id) {
-          customerMap.set(c.customer_id, { contact_id: id, company_id: null });
-          pushLog({ entity_type: "customer", source_key: c.customer_id, action: "skipped_duplicate", target_id: id });
-        } else {
-          newContacts.push({
-            workspace_id: ws, created_by: userId,
-            name: c.name || c.customer_id, tax_id: c.tax_id, email: c.email, phone: c.phone,
-            address: c.address, city: c.city, postal_code: c.postal_code, country: c.country,
-            emails: c.email ? [{ value: c.email, primary: true }] : [],
-            phones: c.phone ? [{ value: c.phone, primary: true }] : [],
-            saft_import_id: importId,
-          });
-          newContactKeys.push(c.customer_id);
-        }
-      } else {
-        const id =
-          (c.tax_id && companiesIdx.byNif.get(c.tax_id)) ||
-          (c.email && companiesIdx.byEmail.get(c.email)) ||
-          null;
-        if (id) {
-          customerMap.set(c.customer_id, { contact_id: null, company_id: id });
-          pushLog({ entity_type: "customer", source_key: c.customer_id, action: "skipped_duplicate", target_id: id });
-        } else {
-          newCompanies.push({
-            workspace_id: ws, created_by: userId,
-            name: c.name || c.customer_id, tax_id: c.tax_id, email: c.email, phone: c.phone,
-            address: c.address, city: c.city, postal_code: c.postal_code, country: c.country,
-            source: "saft_import", saft_import_id: importId,
-          });
-          newCompanyKeys.push(c.customer_id);
-        }
+      // 1) match por NIF/email em companies, 2) fallback: match em contacts já existentes (legado)
+      const existingCompanyId =
+        (c.tax_id && companiesIdx.byNif.get(c.tax_id)) ||
+        (c.email && companiesIdx.byEmail.get(c.email)) ||
+        null;
+
+      if (existingCompanyId) {
+        customerMap.set(c.customer_id, { contact_id: null, company_id: existingCompanyId });
+        pushLog({ entity_type: "customer", source_key: c.customer_id, action: "skipped_duplicate", target_id: existingCompanyId });
+        continue;
       }
+
+      // Reaproveita contacto legado (de imports antigos) para não duplicar entidades comerciais
+      const legacyContactId =
+        (c.tax_id && contactsIdx.byNif.get(c.tax_id)) ||
+        (c.email && contactsIdx.byEmail.get(c.email)) ||
+        null;
+      if (legacyContactId) {
+        customerMap.set(c.customer_id, { contact_id: legacyContactId, company_id: null });
+        pushLog({ entity_type: "customer", source_key: c.customer_id, action: "skipped_duplicate", target_id: legacyContactId });
+        continue;
+      }
+
+      newCompanies.push({
+        workspace_id: ws, created_by: userId,
+        name: c.name || c.customer_id, tax_id: c.tax_id, email: c.email, phone: c.phone,
+        address: c.address, city: c.city, postal_code: c.postal_code, country: c.country,
+        source: "saft_import", saft_import_id: importId,
+        notes: isPersonalNif(c.tax_id) ? "Empresário em Nome Individual (ENI)" : null,
+      });
+      newCompanyKeys.push(c.customer_id);
     }
 
     const bulkInsertCustomers = async (table: string, rows: any[], keys: string[]) => {
