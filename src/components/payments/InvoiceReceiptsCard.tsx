@@ -51,7 +51,7 @@ export function InvoiceReceiptsCard() {
         saft_import_id: r.saft_import_id,
         invoice_id: r.invoice_id,
         invoice_no: r.invoices?.invoice_number ?? null,
-        customer_name: r.invoices?.customer_name ?? null,
+        customer_name: r.invoices?.client_name ?? null,
       })) as Row[];
     },
   });
