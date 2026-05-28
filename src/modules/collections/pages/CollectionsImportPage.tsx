@@ -40,6 +40,7 @@ export default function CollectionsImportPage() {
   const { data: imports = [], isLoading } = useCollectionImports();
   const upload = useUploadAndAnalyze();
   const apply = useApplyImport();
+  const autoApply = useAutoCreateAndApply();
   const del = useDeleteImport();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = imports.find((i) => i.id === selectedId) || null;
