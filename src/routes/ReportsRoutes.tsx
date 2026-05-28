@@ -23,6 +23,7 @@ export function ReportsRoutes() {
       <Route path="/dashboard/reports/kpis" element={<ReportsKPIs />} />
       <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
       <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
+      <Route path="/dashboard/reports/financial" element={<ReportsFinancial />} />
       <Route path="/dashboard/reports/goals" element={<ReportsGoals />} />
       <Route path="/dashboard/reports/dashboards" element={<ReportsDashboards />} />
       <Route path="/dashboard/reports/dashboards/:id" element={<ReportDashboardView />} />
