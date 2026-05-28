@@ -44,18 +44,17 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!imp) return ok({ error: "import not found" }, 200);
 
-    const { data: member } = await admin
-      .from("workspace_members")
-      .select("user_id")
-      .eq("workspace_id", imp.workspace_id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    let allowed = !!member;
-    if (!allowed) {
-      // Super admin bypass
-      const { data: superCheck } = await admin.rpc("is_super_admin", { _user_id: user.id });
-      allowed = !!superCheck;
+    const { data: allowed, error: allowedError } = await admin.rpc("is_workspace_member", {
+      _user_id: user.id,
+      _workspace_id: imp.workspace_id,
+    });
+    if (allowedError) {
+      console.error("[collections-import-apply] workspace permission check failed", {
+        user_id: user.id,
+        workspace_id: imp.workspace_id,
+        import_id,
+        error: allowedError.message,
+      });
     }
     if (!allowed) {
       console.warn("[collections-import-apply] forbidden", { user_id: user.id, workspace_id: imp.workspace_id, import_id });
