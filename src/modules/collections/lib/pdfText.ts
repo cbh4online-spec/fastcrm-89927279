@@ -2,10 +2,9 @@
  * Extracts plain text from a PDF File using pdfjs-dist (already shipped via react-pdf).
  * Returns a single string with line breaks between text items to feed the ARTSOFT parser.
  */
-// @ts-ignore - pdfjs-dist legacy build ships with its own types
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
-// @ts-ignore - worker entry
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
+
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
 
