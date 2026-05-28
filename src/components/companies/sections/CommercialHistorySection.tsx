@@ -51,8 +51,8 @@ function formatDate(dateString: string | null | undefined): string {
 }
 
 export function CommercialHistorySection({ company, onFieldChange }: CommercialHistorySectionProps) {
-  // Fetch invoices for this company
-  const { data: companyInvoices = [] } = useInvoices({ company_id: company.id });
+  // Fetch invoices for this company AND for all contacts that belong to it
+  const { data: companyInvoices = [] } = useCompanyAggregatedInvoices(company.id);
 
   // Filter to only count sent, paid, overdue invoices
   const countableInvoices = useMemo(() => {
