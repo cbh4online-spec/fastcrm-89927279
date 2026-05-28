@@ -41,7 +41,7 @@ import {
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
   Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
   Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat, Heart, Repeat,
-  Wand2, HandCoins,
+  Wand2, HandCoins, Euro,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -279,6 +279,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("packages",     "Pacotes",          "/dashboard/packages",          Package,     "vendas", { visibleInSidebar: false }),
   e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
   e("reports",      "Relatórios",       "/dashboard/reports",           BarChart3,   "vendas", { menuKey: "reports" }),
+  e("reports-financial", "Financeiro",  "/dashboard/reports/financial", Euro,        "vendas", { menuKey: "reports" }),
   e("strategy",     "Estratégia",       "/dashboard/strategy",          Brain,       "vendas"),
   e("checkout-admin","Admin Checkout",  "/dashboard/checkout-admin",    ShoppingCart, "vendas"),
   e("checkout",     "Checkout",         "/dashboard/checkout",          ShoppingCart, "vendas"),

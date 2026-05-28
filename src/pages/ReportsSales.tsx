@@ -72,6 +72,22 @@ export default function ReportsSales() {
         {/* KPI Strip */}
         <SalesKPIStrip kpis={data?.kpis} isLoading={isLoading} />
 
+        {/* Link to financial deep-dive */}
+        <a href="/dashboard/reports/financial" className="block">
+          <div className="rounded-lg border bg-gradient-to-r from-primary/5 to-emerald-500/5 hover:from-primary/10 hover:to-emerald-500/10 transition-colors p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center">
+                <FileSpreadsheet className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Relatório Financeiro completo</p>
+                <p className="text-xs text-muted-foreground">Faturação, recebimentos, aging, top clientes e produtos com filtros avançados</p>
+              </div>
+            </div>
+            <span className="text-xs text-primary font-medium">Ver →</span>
+          </div>
+        </a>
+
         {/* Charts Row 1: Lead Flow + Won Revenue + ARR */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <LeadFlowChart data={data?.leadFlow} sources={data?.sources} isLoading={isLoading} />
