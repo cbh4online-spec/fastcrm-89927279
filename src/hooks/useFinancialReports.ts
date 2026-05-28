@@ -190,19 +190,25 @@ export function useFinancialReports(filters: FinancialReportFilters = {}) {
           if (pt) pt.invoiced += Number(inv.total) || 0;
         }
       }
-      // Received: fetch payments for invoices in scope
+      // Received: fetch payments for invoices in scope (chunked + paginated)
       if (invoiceIds.length) {
-        const { data: payments } = await workspaceClient
-          .from("invoice_payments")
-          .select("invoice_id, amount, payment_date")
-          .in("invoice_id", invoiceIds);
-        for (const p of payments || []) {
-          if (!p.payment_date) continue;
-          const key = monthKey(new Date(p.payment_date));
-          const pt = monthsMap.get(key);
-          if (pt) pt.received += Number(p.amount) || 0;
+        for (const ids of chunk(invoiceIds, 200)) {
+          const payments = await fetchAllPaginated((from, to) =>
+            workspaceClient
+              .from("invoice_payments")
+              .select("invoice_id, amount, payment_date")
+              .in("invoice_id", ids)
+              .range(from, to)
+          );
+          for (const p of payments || []) {
+            if (!p.payment_date) continue;
+            const key = monthKey(new Date(p.payment_date));
+            const pt = monthsMap.get(key);
+            if (pt) pt.received += Number(p.amount) || 0;
+          }
         }
       }
+
       const monthly = Array.from(monthsMap.values());
 
       // 5) Top clients
