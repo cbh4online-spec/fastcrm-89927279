@@ -9,6 +9,7 @@ const RenewalDetailPage = lazy(() => import("@/pages/RenewalDetailPage"));
 const CollectionsInboxPage = lazy(() => import("@/modules/collections/pages/CollectionsInboxPage"));
 const CollectionCaseDetailPage = lazy(() => import("@/modules/collections/pages/CollectionCaseDetailPage"));
 const DunningSequencesPage = lazy(() => import("@/modules/collections/pages/DunningSequencesPage"));
+const CollectionsImportPage = lazy(() => import("@/modules/collections/pages/CollectionsImportPage"));
 const SafTImportPage = lazy(() => import("@/pages/imports/SafTImportPage"));
 
 export function RevenueOpsRoutes() {
@@ -21,6 +22,7 @@ export function RevenueOpsRoutes() {
       <Route path="/dashboard/renewals" element={<RenewalsPage />} />
       <Route path="/dashboard/renewals/:id" element={<RenewalDetailPage />} />
       <Route path="/dashboard/collections" element={<CollectionsInboxPage />} />
+      <Route path="/dashboard/collections/import" element={<CollectionsImportPage />} />
       <Route path="/dashboard/collections/sequences" element={<DunningSequencesPage />} />
       <Route path="/dashboard/collections/:id" element={<CollectionCaseDetailPage />} />
     </>

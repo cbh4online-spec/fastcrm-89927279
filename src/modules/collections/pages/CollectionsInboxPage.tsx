@@ -7,7 +7,7 @@ import { useRunAutoExecutor } from "../hooks/useDunningSequences";
 import { CollectionsFilters } from "../components/CollectionsFilters";
 import { CollectionsTable } from "../components/CollectionsTable";
 import type { CollectionCaseListFilters } from "../types/collections";
-import { HandCoins, Workflow, Play } from "lucide-react";
+import { HandCoins, Workflow, Play, Upload } from "lucide-react";
 
 export default function CollectionsInboxPage() {
   const [filters, setFilters] = useState<CollectionCaseListFilters>({ orderBy: "total_due" });
@@ -30,6 +30,11 @@ export default function CollectionsInboxPage() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link to="/dashboard/collections/import">
+                <Upload className="h-4 w-4 mr-1" /> Importar extrato
+              </Link>
+            </Button>
             <Button variant="outline" onClick={() => runExecutor.mutate()} disabled={runExecutor.isPending}>
               <Play className="h-4 w-4 mr-1" /> Executar dunning
             </Button>
