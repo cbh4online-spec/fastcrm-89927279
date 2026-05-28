@@ -49,10 +49,15 @@ function formatDate(dateString: string | null | undefined): string {
 }
 
 export function CommercialHistorySection({ contact, onFieldChange }: CommercialHistorySectionProps) {
-  // Fetch invoices for this contact (and their company)
-  const { data: contactInvoices = [] as any[]} = useInvoices({ contact_id: contact.id });
-  const { data: companyInvoices = [] as any[]} = useInvoices({ company_id: contact.company_id || undefined });
-  
+  // Fetch invoices for this contact
+  const { data: contactInvoices = [] as any[]} = useInvoices(
+    contact.id ? { contact_id: contact.id } : { contact_id: "__none__" }
+  );
+  // Only fetch company invoices if the contact actually has a company
+  const { data: companyInvoices = [] as any[]} = useInvoices(
+    contact.company_id ? { company_id: contact.company_id } : { company_id: "__none__" }
+  );
+
   // Combine and deduplicate invoices
   const allInvoices = useMemo(() => {
     const invoiceMap = new Map();
