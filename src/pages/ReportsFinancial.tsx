@@ -93,6 +93,7 @@ export default function ReportsFinancial() {
 
   const { data, isLoading, refetch, isFetching } = useFinancialReports(filters);
   const { companies } = useCompanies();
+  const { data: verifyData, isFetching: verifyLoading, refetch: refetchVerify } = useFinancialReportsVerify(filters, verifyMode);
 
   // Trends: compare last full month vs previous (from monthly evolution)
   const trend = useMemo(() => {
