@@ -234,7 +234,7 @@ export function useFinancialReports(filters: FinancialReportFilters = {}) {
         const name = it.product?.name || it.description || "—";
         const category = it.product?.category || null;
         const qty = Number(it.quantity) || 0;
-        const total = Number(it.total) || 0;
+        const total = Number(it.total) || Number(it.net_total) || 0;
         const ex = productMap.get(id);
         if (ex) { ex.qty += qty; ex.total += total; }
         else productMap.set(id, { id, name, category, qty, total });
