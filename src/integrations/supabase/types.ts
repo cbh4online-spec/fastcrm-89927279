@@ -91591,6 +91591,10 @@ export type Database = {
         }
         Returns: number
       }
+      saft_imports_append_log: {
+        Args: { p_entry: Json; p_id: string; p_step: string }
+        Returns: undefined
+      }
       saft_imports_watchdog: { Args: never; Returns: undefined }
       search_b2b_catalog: {
         Args: {
