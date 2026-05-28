@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { InvoiceReceiptsCard } from "@/components/payments/InvoiceReceiptsCard";
 
 export default function Payments() {
   const { data: payments, isLoading } = usePayments();
@@ -271,7 +272,11 @@ export default function Payments() {
             )}
           </CardContent>
         </Card>
+
+        {/* Recibos de Faturas (inclui SAF-T) */}
+        <InvoiceReceiptsCard />
       </div>
+
 
       {/* Register Payment Dialog */}
       <Dialog open={registerOpen} onOpenChange={setRegisterOpen}>
