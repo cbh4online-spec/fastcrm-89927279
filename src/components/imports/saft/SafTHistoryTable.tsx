@@ -45,7 +45,21 @@ export function SafTHistoryTable({ onSelect }: { onSelect: (id: string) => void 
 
   const handleRetry = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    analyze.mutate(id, { onSuccess: () => toast.success("A reanalisar…") });
+    // Clear previous error and reset status before re-queuing, so the UI
+    // does not keep showing the stale failure while the new run starts.
+    const { error: resetErr } = await (supabase as any)
+      .from("saft_imports")
+      .update({ status: "uploaded", error_message: null, started_at: null })
+      .eq("id", id);
+    if (resetErr) {
+      toast.error("Não foi possível limpar o erro anterior: " + resetErr.message);
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["saft-imports"] });
+    analyze.mutate(id, {
+      onSuccess: () => toast.success("Importação recolocada em fila"),
+      onError: (err: any) => toast.error("Falha ao recolocar: " + (err?.message ?? "erro")),
+    });
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
