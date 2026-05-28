@@ -235,11 +235,11 @@ export function useFinancialReports(filters: FinancialReportFilters = {}) {
       if (ownerIds.size) {
         const { data: profiles } = await workspaceClient
           .from("profiles")
-          .select("id, display_name, full_name, email")
-          .in("id", Array.from(ownerIds));
+          .select("user_id, full_name, email")
+          .in("user_id", Array.from(ownerIds));
         owners = (profiles || []).map((p: any) => ({
-          id: p.id,
-          label: p.display_name || p.full_name || p.email || p.id.slice(0, 8),
+          id: p.user_id,
+          label: p.full_name || p.email || p.user_id.slice(0, 8),
         }));
       }
 
