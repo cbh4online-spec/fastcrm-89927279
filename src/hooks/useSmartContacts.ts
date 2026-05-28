@@ -80,8 +80,9 @@ export function useSmartContacts(filters?: SmartContactsFilters): ReturnType<typ
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
 
-  const page = filters?.page ?? 0;
-  const pageSize = filters?.pageSize ?? 50;
+  const page = filters?.page;
+  const pageSize = filters?.pageSize;
+  const paginate = typeof page === "number" && typeof pageSize === "number";
 
   return useQuery({
     queryKey: ["smart-contacts", currentWorkspace?.id, filters],
@@ -147,10 +148,14 @@ export function useSmartContacts(filters?: SmartContactsFilters): ReturnType<typ
         }
       }
 
-      // Server-side pagination
-      const from = page * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
+      // Server-side pagination (only when explicitly requested; otherwise fetch all up to 10k)
+      if (paginate) {
+        const from = (page as number) * (pageSize as number);
+        const to = from + (pageSize as number) - 1;
+        query = query.range(from, to);
+      } else {
+        query = query.range(0, 9999);
+      }
 
       const { data, error, count } = await query;
       if (error) throw error;
