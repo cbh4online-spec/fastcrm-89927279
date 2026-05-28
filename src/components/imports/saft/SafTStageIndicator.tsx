@@ -28,15 +28,16 @@ function mapStatus(status?: string): Stage {
 export function SafTStageIndicator({ status, errorMessage }: { status?: string; errorMessage?: string | null }) {
   const current = mapStatus(status);
   const failed = current === "failed";
+  const completed = current === "completed";
   const currentIdx = failed ? -1 : ORDER.indexOf(current);
 
   return (
     <div className="rounded-lg border bg-card p-4">
       <ol className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
         {STAGES.map((s, idx) => {
-          const isDone = !failed && idx < currentIdx;
-          const isActive = !failed && idx === currentIdx;
-          const isPending = !failed && idx > currentIdx;
+          const isDone = !failed && (completed || idx < currentIdx);
+          const isActive = !failed && !completed && idx === currentIdx;
+          const isPending = !failed && !completed && idx > currentIdx;
           const Icon = isActive ? Loader2 : isDone ? CheckCircle2 : s.icon;
 
           return (
