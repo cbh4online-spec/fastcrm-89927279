@@ -66,7 +66,31 @@ export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
         <Progress value={pct} className="h-2" />
 
         {imp.error_message && (
-          <p className="text-sm text-destructive">{imp.error_message}</p>
+          <div className="rounded-md border border-destructive/50 bg-destructive/5 p-3 space-y-1">
+            <p className="text-sm text-destructive font-medium">
+              {imp.last_error_step ? `Falhou em "${imp.last_error_step}"` : "Falhou"}
+            </p>
+            <p className="text-sm text-destructive">{imp.error_message}</p>
+            {imp.last_step_at && (
+              <p className="text-xs text-muted-foreground">Último passo: {imp.last_step ?? "—"} · {new Date(imp.last_step_at).toLocaleString("pt-PT")}</p>
+            )}
+            {imp.debug_log && imp.debug_log.length > 0 && (
+              <details className="mt-2">
+                <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">
+                  Ver trace de execução ({imp.debug_log.length} passos)
+                </summary>
+                <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-2 text-xs font-mono whitespace-pre-wrap">
+                  {imp.debug_log.map((e: any, i: number) =>
+                    `${String(i + 1).padStart(2, "0")}. [${e.elapsed_ms ?? 0}ms · rss=${e.rss_mb ?? "?"}MB · heap=${e.heap_mb ?? "?"}MB] ${e.step}${
+                      Object.keys(e).filter(k => !["step","ts","elapsed_ms","rss_mb","heap_mb"].includes(k)).length
+                        ? " " + JSON.stringify(Object.fromEntries(Object.entries(e).filter(([k]) => !["step","ts","elapsed_ms","rss_mb","heap_mb"].includes(k))))
+                        : ""
+                    }`
+                  ).join("\n")}
+                </pre>
+              </details>
+            )}
+          </div>
         )}
 
         {isLive && (
