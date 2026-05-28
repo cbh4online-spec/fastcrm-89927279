@@ -518,15 +518,25 @@ Deno.serve(async (req) => {
       try {
         await processImport(admin, imp, options, parsed, user.id);
 
-        const { data: itemCounts } = await admin
-          .from("saft_import_items")
-          .select("entity_type, action")
-          .eq("import_id", import_id);
-
+        // Paginar para contornar o limite de 1000 linhas por defeito do PostgREST
         const summary: Record<string, Record<string, number>> = {};
-        for (const r of itemCounts ?? []) {
-          summary[r.entity_type] ??= {};
-          summary[r.entity_type][r.action] = (summary[r.entity_type][r.action] ?? 0) + 1;
+        const PAGE = 1000;
+        let from = 0;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { data: page, error: pageErr } = await admin
+            .from("saft_import_items")
+            .select("entity_type, action")
+            .eq("import_id", import_id)
+            .range(from, from + PAGE - 1);
+          if (pageErr) { console.warn("[saft-import] summary page error", pageErr.message); break; }
+          if (!page || page.length === 0) break;
+          for (const r of page) {
+            summary[r.entity_type] ??= {};
+            summary[r.entity_type][r.action] = (summary[r.entity_type][r.action] ?? 0) + 1;
+          }
+          if (page.length < PAGE) break;
+          from += PAGE;
         }
 
         await admin.from("saft_imports").update({
