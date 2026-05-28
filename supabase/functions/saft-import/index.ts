@@ -386,9 +386,19 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     const newPays: any[] = [];
     const newPayKeys: string[] = [];
     for (const p of parsed.payments) {
-      if (!p.payment_ref || !p.invoice_no) continue;
+      if (!p.payment_ref) {
+        pushLog({ entity_type: "payment", source_key: p.invoice_no ?? "(sem ref)", action: "skipped", error_message: "Pagamento sem referência" });
+        continue;
+      }
+      if (!p.invoice_no) {
+        pushLog({ entity_type: "payment", source_key: p.payment_ref, action: "skipped", error_message: "Pagamento sem fatura associada" });
+        continue;
+      }
       const invId = invoiceIdByNo.get(p.invoice_no);
-      if (!invId) continue;
+      if (!invId) {
+        pushLog({ entity_type: "payment", source_key: p.payment_ref, action: "skipped", error_message: `Fatura ${p.invoice_no} não encontrada (anulada ou fora do período)` });
+        continue;
+      }
       const key = `${invId}|${p.payment_ref}`;
       if (existingPay.has(key)) {
         pushLog({ entity_type: "payment", source_key: p.payment_ref, action: "skipped_duplicate" });
