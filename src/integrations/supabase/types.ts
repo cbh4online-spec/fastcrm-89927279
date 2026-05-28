@@ -90679,6 +90679,17 @@ export type Database = {
         }
         Returns: Json
       }
+      financial_reports_verify: {
+        Args: {
+          p_company_id?: string
+          p_contact_id?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_owner_id?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       format_response_for_channel: {
         Args: { p_channel: string; p_response: string; p_workspace_id: string }
         Returns: Json
