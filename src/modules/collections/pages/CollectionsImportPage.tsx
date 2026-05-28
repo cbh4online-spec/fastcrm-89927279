@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Upload, ArrowLeft, FileText, CheckCircle2, AlertCircle, RotateCw, Trash2 } from "lucide-react";
+import { Loader2, Upload, ArrowLeft, FileText, CheckCircle2, AlertCircle, RotateCw, Trash2, Wand2 } from "lucide-react";
 import {
   useCollectionImports,
   useCollectionImportItems,
   useUploadAndAnalyze,
   useApplyImport,
+  useAutoCreateAndApply,
   useDeleteImport,
 } from "../hooks/useCollectionImports";
 
@@ -39,6 +40,7 @@ export default function CollectionsImportPage() {
   const { data: imports = [], isLoading } = useCollectionImports();
   const upload = useUploadAndAnalyze();
   const apply = useApplyImport();
+  const autoApply = useAutoCreateAndApply();
   const del = useDeleteImport();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = imports.find((i) => i.id === selectedId) || null;
@@ -122,9 +124,32 @@ export default function CollectionsImportPage() {
                         <td className="p-2 text-right">{s.total_docs ?? "—"}</td>
                         <td className="p-2 text-right font-mono">{fmtEur(s.total_due || 0)}</td>
                         <td className="p-2 text-right">
-                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("Eliminar esta importação?")) del.mutate(imp.id); }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            {(imp.status === "review" || imp.status === "completed" || imp.status === "failed") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={autoApply.isPending}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedId(imp.id);
+                                  if (confirm("Vai criar automaticamente todas as empresas/contactos em falta e aplicar a importação. Continuar?")) {
+                                    autoApply.mutate(imp.id);
+                                  }
+                                }}
+                                title="Auto-criar empresas em falta e aplicar"
+                              >
+                                {autoApply.isPending && selectedId === imp.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Wand2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("Eliminar esta importação?")) del.mutate(imp.id); }}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -143,6 +168,19 @@ export default function CollectionsImportPage() {
                 <p className="text-xs text-muted-foreground">Importação {selected.id.slice(0, 8)} · {STATUS_LABEL[selected.status]}</p>
               </div>
               <div className="flex gap-2">
+                {(itemStats.needs_mapping || 0) > 0 && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      if (confirm(`Vai criar automaticamente ${itemStats.needs_mapping} empresas/contactos em falta e aplicar. Continuar?`)) {
+                        autoApply.mutate(selected.id);
+                      }
+                    }}
+                    disabled={autoApply.isPending}
+                  >
+                    {autoApply.isPending ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> A criar e aplicar…</> : <><Wand2 className="h-4 w-4 mr-1" /> Auto-criar {itemStats.needs_mapping} e aplicar</>}
+                  </Button>
+                )}
                 {(selected.status === "review" || selected.status === "failed") && (
                   <Button onClick={() => apply.mutate(selected.id)} disabled={apply.isPending}>
                     {apply.isPending ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> A aplicar…</> : <><CheckCircle2 className="h-4 w-4 mr-1" /> Aplicar importação</>}
