@@ -11,6 +11,7 @@ const ReportsSales = lazy(() => import("@/pages/ReportsSales"));
 const ReportsDashboards = lazy(() => import("@/pages/ReportsDashboards"));
 const ReportDashboardView = lazy(() => import("@/pages/ReportDashboardView"));
 const ReportsGoals = lazy(() => import("@/pages/ReportsGoals"));
+const ReportsFinancial = lazy(() => import("@/pages/ReportsFinancial"));
 
 export function ReportsRoutes() {
   return (
