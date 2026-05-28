@@ -19013,6 +19013,220 @@ export type Database = {
           },
         ]
       }
+      collection_client_mappings: {
+        Row: {
+          client_name: string | null
+          client_number: string
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          source: string
+          workspace_id: string
+        }
+        Insert: {
+          client_name?: string | null
+          client_number: string
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source?: string
+          workspace_id: string
+        }
+        Update: {
+          client_name?: string | null
+          client_number?: string
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_client_mappings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "collection_client_mappings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_import_items: {
+        Row: {
+          action: string
+          balance: number | null
+          client_address: string | null
+          client_email: string | null
+          client_name: string | null
+          client_number: string | null
+          created_at: string
+          doc_date: string | null
+          doc_no: string | null
+          doc_third_no: string | null
+          doc_type: string | null
+          due_date: string | null
+          entity_type: string
+          error_message: string | null
+          id: string
+          import_id: string
+          matched_company_id: string | null
+          matched_contact_id: string | null
+          matched_invoice_id: string | null
+          raw: Json
+          source_key: string | null
+          total: number | null
+          workspace_id: string
+        }
+        Insert: {
+          action?: string
+          balance?: number | null
+          client_address?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          client_number?: string | null
+          created_at?: string
+          doc_date?: string | null
+          doc_no?: string | null
+          doc_third_no?: string | null
+          doc_type?: string | null
+          due_date?: string | null
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          import_id: string
+          matched_company_id?: string | null
+          matched_contact_id?: string | null
+          matched_invoice_id?: string | null
+          raw?: Json
+          source_key?: string | null
+          total?: number | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          balance?: number | null
+          client_address?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          client_number?: string | null
+          created_at?: string
+          doc_date?: string | null
+          doc_no?: string | null
+          doc_third_no?: string | null
+          doc_type?: string | null
+          due_date?: string | null
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          import_id?: string
+          matched_company_id?: string | null
+          matched_contact_id?: string | null
+          matched_invoice_id?: string | null
+          raw?: Json
+          source_key?: string | null
+          total?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_import_items_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "collection_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_import_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "collection_import_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_imports: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_hash: string | null
+          file_name: string
+          id: string
+          reference_date: string | null
+          source: string
+          stats: Json
+          status: string
+          storage_path: string | null
+          updated_at: string
+          uploaded_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_hash?: string | null
+          file_name: string
+          id?: string
+          reference_date?: string | null
+          source?: string
+          stats?: Json
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_hash?: string | null
+          file_name?: string
+          id?: string
+          reference_date?: string | null
+          source?: string
+          stats?: Json
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_imports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "collection_imports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collection_portal_tokens: {
         Row: {
           case_id: string
@@ -20370,6 +20584,8 @@ export type Database = {
           estimated_ltv: number | null
           estimated_value: number | null
           expansion_probability: number | null
+          external_id: string | null
+          external_provider: string | null
           facebook_url: string | null
           fax: string | null
           firecrawl_data: Json | null
@@ -20490,6 +20706,8 @@ export type Database = {
           estimated_ltv?: number | null
           estimated_value?: number | null
           expansion_probability?: number | null
+          external_id?: string | null
+          external_provider?: string | null
           facebook_url?: string | null
           fax?: string | null
           firecrawl_data?: Json | null
@@ -20610,6 +20828,8 @@ export type Database = {
           estimated_ltv?: number | null
           estimated_value?: number | null
           expansion_probability?: number | null
+          external_id?: string | null
+          external_provider?: string | null
           facebook_url?: string | null
           fax?: string | null
           firecrawl_data?: Json | null
@@ -22562,6 +22782,8 @@ export type Database = {
           engagement_score: number
           entity_type: string | null
           estimated_value: number | null
+          external_id: string | null
+          external_provider: string | null
           facebook_url: string | null
           first_name: string | null
           fiscal_regime: string | null
@@ -22669,6 +22891,8 @@ export type Database = {
           engagement_score?: number
           entity_type?: string | null
           estimated_value?: number | null
+          external_id?: string | null
+          external_provider?: string | null
           facebook_url?: string | null
           first_name?: string | null
           fiscal_regime?: string | null
@@ -22776,6 +23000,8 @@ export type Database = {
           engagement_score?: number
           entity_type?: string | null
           estimated_value?: number | null
+          external_id?: string | null
+          external_provider?: string | null
           facebook_url?: string | null
           first_name?: string | null
           fiscal_regime?: string | null
