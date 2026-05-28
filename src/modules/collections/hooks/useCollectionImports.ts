@@ -241,6 +241,36 @@ export function useApplyImport() {
   });
 }
 
+export function useAutoCreateAndApply() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (importId: string) => {
+      // Promote all needs_mapping items to pending so the edge function
+      // auto-creates the missing companies/contacts during apply.
+      const { error: upErr } = await supabase
+        .from("collection_import_items" as any)
+        .update({ action: "pending" })
+        .eq("import_id", importId)
+        .eq("action", "needs_mapping");
+      if (upErr) throw upErr;
+
+      const { data, error } = await supabase.functions.invoke("collections-import-apply", {
+        body: { import_id: importId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["collection-imports"] });
+      qc.invalidateQueries({ queryKey: ["collection-import-items"] });
+      qc.invalidateQueries({ queryKey: ["collection-cases"] });
+      toast.success("Empresas em falta criadas e importação aplicada");
+    },
+    onError: (e: Error) => toast.error(`Erro: ${e.message}`),
+  });
+}
+
 export function useDeleteImport() {
   const qc = useQueryClient();
   return useMutation({
@@ -251,3 +281,4 @@ export function useDeleteImport() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["collection-imports"] }),
   });
 }
+
