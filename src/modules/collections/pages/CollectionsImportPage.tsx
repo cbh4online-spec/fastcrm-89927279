@@ -124,9 +124,32 @@ export default function CollectionsImportPage() {
                         <td className="p-2 text-right">{s.total_docs ?? "—"}</td>
                         <td className="p-2 text-right font-mono">{fmtEur(s.total_due || 0)}</td>
                         <td className="p-2 text-right">
-                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("Eliminar esta importação?")) del.mutate(imp.id); }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            {(imp.status === "review" || imp.status === "completed" || imp.status === "failed") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={autoApply.isPending}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedId(imp.id);
+                                  if (confirm("Vai criar automaticamente todas as empresas/contactos em falta e aplicar a importação. Continuar?")) {
+                                    autoApply.mutate(imp.id);
+                                  }
+                                }}
+                                title="Auto-criar empresas em falta e aplicar"
+                              >
+                                {autoApply.isPending && selectedId === imp.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Wand2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("Eliminar esta importação?")) del.mutate(imp.id); }}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
