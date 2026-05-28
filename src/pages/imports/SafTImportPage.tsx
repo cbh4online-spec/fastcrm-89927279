@@ -9,6 +9,7 @@ import { SafTUploader } from "@/components/imports/saft/SafTUploader";
 import { SafTPreviewPanel } from "@/components/imports/saft/SafTPreviewPanel";
 import { SafTMappingPanel, type SafTImportOpts } from "@/components/imports/saft/SafTMappingPanel";
 import { SafTProgressPanel } from "@/components/imports/saft/SafTProgressPanel";
+import { SafTStageIndicator } from "@/components/imports/saft/SafTStageIndicator";
 import { SafTHistoryTable } from "@/components/imports/saft/SafTHistoryTable";
 import {
   useUploadSaft,
@@ -65,6 +66,10 @@ export default function SafTImportPage() {
             </Button>
           )}
         </header>
+
+        {currentId && imp && (
+          <SafTStageIndicator status={imp.status} errorMessage={imp.error_message} />
+        )}
 
         {phase === "upload" && (
           <>
