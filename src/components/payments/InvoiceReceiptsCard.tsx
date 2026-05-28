@@ -35,7 +35,7 @@ export function InvoiceReceiptsCard() {
     queryFn: async () => {
       let q = workspaceClient
         .from("invoice_payments")
-        .select("id, amount, payment_date, payment_method, reference, saft_import_id, invoice_id, invoices:invoice_id(invoice_number, customer_name)")
+        .select("id, amount, payment_date, payment_method, reference, saft_import_id, invoice_id, invoices:invoice_id(invoice_number, client_name)")
         .eq("workspace_id", currentWorkspace!.id)
         .order("payment_date", { ascending: false })
         .limit(1000);
