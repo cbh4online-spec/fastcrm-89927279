@@ -14,7 +14,7 @@ import { pt } from "date-fns/locale";
 import {
   CalendarIcon, RefreshCw, Euro, TrendingUp, TrendingDown, AlertTriangle,
   CheckCircle2, Receipt, Download, Clock, Wallet, ArrowUpRight, ArrowDownRight,
-  Sparkles, Users, Package,
+  Sparkles, Users, Package, ShieldCheck, ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +22,7 @@ import {
   PieChart, Pie, Cell, Area, AreaChart,
 } from "recharts";
 import { useFinancialReports, type FinancialReportFilters } from "@/hooks/useFinancialReports";
+import { useFinancialReportsVerify } from "@/hooks/useFinancialReportsVerify";
 import { useCompanies } from "@/hooks/useCompanies";
 
 function fmtEUR(v: number): string {
@@ -70,6 +71,7 @@ export default function ReportsFinancial() {
   const [ownerId, setOwnerId] = useState<string>("all");
   const [companyId, setCompanyId] = useState<string>("all");
   const [category, setCategory] = useState<string>("all");
+  const [verifyMode, setVerifyMode] = useState<boolean>(false);
 
   const dateRange = useMemo(() => {
     if (period === "custom") {
@@ -91,6 +93,7 @@ export default function ReportsFinancial() {
 
   const { data, isLoading, refetch, isFetching } = useFinancialReports(filters);
   const { companies } = useCompanies();
+  const { data: verifyData, isFetching: verifyLoading, refetch: refetchVerify } = useFinancialReportsVerify(filters, verifyMode);
 
   // Trends: compare last full month vs previous (from monthly evolution)
   const trend = useMemo(() => {
@@ -162,7 +165,17 @@ export default function ReportsFinancial() {
             </div>
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} className="h-9 w-9">
+                <Button
+                  variant={verifyMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setVerifyMode((v) => !v)}
+                  className="gap-2 h-9"
+                  title="Compara KPIs com totais reais de invoice_payments"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  {verifyMode ? "Verificação ativa" : "Verificar valores"}
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => { refetch(); if (verifyMode) refetchVerify(); }} disabled={isFetching} className="h-9 w-9">
                   <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
                 </Button>
                 <Button size="sm" onClick={exportCSV} disabled={!data} className="gap-2">
@@ -256,6 +269,93 @@ export default function ReportsFinancial() {
             </div>
           </CardContent>
         </Card>
+
+        {/* VERIFY BANNER */}
+        {verifyMode && (() => {
+          if (verifyLoading || !verifyData || !k) {
+            return (
+              <Card className="border-dashed border-primary/30 bg-primary/5">
+                <CardContent className="p-4 flex items-center gap-3 text-sm">
+                  <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-muted-foreground">A verificar valores contra <code className="font-mono text-xs">invoice_payments</code>…</span>
+                </CardContent>
+              </Card>
+            );
+          }
+          const EPS = 0.5; // €0.50 de tolerância
+          const diffInv = (k.totalInvoiced || 0) - verifyData.totalInvoiced;
+          const diffRec = (k.totalReceived || 0) - verifyData.totalReceived;
+          const diffDue = (k.totalDue || 0) - verifyData.totalDue;
+          const diffRate = (k.collectionRate || 0) - verifyData.collectionRate;
+          const rows = [
+            { label: "Faturado", kpi: k.totalInvoiced, real: verifyData.totalInvoiced, diff: diffInv, fmt: fmtEUR },
+            { label: "Recebido", kpi: k.totalReceived, real: verifyData.totalReceived, diff: diffRec, fmt: fmtEUR },
+            { label: "Em dívida", kpi: k.totalDue, real: verifyData.totalDue, diff: diffDue, fmt: fmtEUR },
+            { label: "Taxa cobrança", kpi: k.collectionRate, real: verifyData.collectionRate, diff: diffRate, fmt: (v: number) => `${(v || 0).toFixed(2)}%` },
+          ];
+          const hasDiff = rows.some(r => Math.abs(r.diff) > (r.label === "Taxa cobrança" ? 0.1 : EPS));
+          return (
+            <Card className={cn(
+              "border-2",
+              hasDiff
+                ? "border-destructive/40 bg-destructive/5"
+                : "border-emerald-500/30 bg-emerald-500/5"
+            )}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {hasDiff ? (
+                      <ShieldAlert className="h-5 w-5 text-destructive" />
+                    ) : (
+                      <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                    )}
+                    <div>
+                      <div className="text-sm font-semibold">
+                        {hasDiff ? "Discrepância detetada" : "KPIs validados"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {hasDiff
+                          ? "Os valores apresentados divergem dos totais reais em invoice_payments. Revê os dados ou contacta o suporte."
+                          : `Confirmado contra invoice_payments (${verifyData.invoiceCount} faturas).`}
+                      </div>
+                    </div>
+                  </div>
+                  <Badge variant={hasDiff ? "destructive" : "secondary"} className="font-mono text-[10px]">
+                    {hasDiff ? "FALHA" : "OK"}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                  {rows.map((r) => {
+                    const tol = r.label === "Taxa cobrança" ? 0.1 : EPS;
+                    const bad = Math.abs(r.diff) > tol;
+                    return (
+                      <div key={r.label} className={cn(
+                        "rounded-md border p-2 space-y-1",
+                        bad ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/30"
+                      )}>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{r.label}</div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-muted-foreground">KPI</span>
+                          <span className="font-mono">{r.fmt(r.kpi)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-muted-foreground">Real</span>
+                          <span className="font-mono">{r.fmt(r.real)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 pt-1 border-t">
+                          <span className="text-muted-foreground">Δ</span>
+                          <span className={cn("font-mono font-semibold", bad ? "text-destructive" : "text-emerald-600")}>
+                            {r.diff > 0 ? "+" : ""}{r.fmt(r.diff)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* KPI HERO — 4 big cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
