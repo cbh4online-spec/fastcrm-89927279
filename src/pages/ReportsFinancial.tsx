@@ -165,7 +165,17 @@ export default function ReportsFinancial() {
             </div>
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} className="h-9 w-9">
+                <Button
+                  variant={verifyMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setVerifyMode((v) => !v)}
+                  className="gap-2 h-9"
+                  title="Compara KPIs com totais reais de invoice_payments"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  {verifyMode ? "Verificação ativa" : "Verificar valores"}
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => { refetch(); if (verifyMode) refetchVerify(); }} disabled={isFetching} className="h-9 w-9">
                   <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
                 </Button>
                 <Button size="sm" onClick={exportCSV} disabled={!data} className="gap-2">
