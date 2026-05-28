@@ -72,6 +72,28 @@ function monthLabel(key: string): string {
   return `${MONTH_LABELS[Number(m) - 1]} ${y.slice(2)}`;
 }
 
+async function fetchAllPaginated<T = any>(buildQuery: (from: number, to: number) => any, pageSize = 1000): Promise<T[]> {
+  const out: T[] = [];
+  let from = 0;
+  // Safety cap to avoid runaway loops
+  for (let i = 0; i < 50; i++) {
+    const to = from + pageSize - 1;
+    const { data, error } = await buildQuery(from, to);
+    if (error) throw error;
+    const rows = (data || []) as T[];
+    out.push(...rows);
+    if (rows.length < pageSize) break;
+    from += pageSize;
+  }
+  return out;
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
 export function useFinancialReports(filters: FinancialReportFilters = {}) {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
@@ -87,33 +109,39 @@ export function useFinancialReports(filters: FinancialReportFilters = {}) {
         };
       }
 
-      // 1) Fetch invoices in scope
-      let q = workspaceClient
-        .from("invoices")
-        .select("id, total, amount_paid, status, issue_date, due_date, paid_at, company_id, contact_id, client_name, created_by, company:companies(id, name), contact:contacts(id, name)")
-        .eq("workspace_id", currentWorkspace.id)
-        .not("status", "in", '("draft","cancelled")');
-
-      if (filters.dateFrom) q = q.gte("issue_date", filters.dateFrom);
-      if (filters.dateTo) q = q.lte("issue_date", filters.dateTo);
-      if (filters.ownerId) q = q.eq("created_by", filters.ownerId);
-      if (filters.companyId) q = q.eq("company_id", filters.companyId);
-      if (filters.contactId) q = q.eq("contact_id", filters.contactId);
-
-      const { data: invoicesRaw, error } = await q;
-      if (error) throw error;
+      // 1) Fetch invoices in scope (paginated)
+      const invoicesRaw = await fetchAllPaginated((from, to) => {
+        let q = workspaceClient
+          .from("invoices")
+          .select("id, total, amount_paid, status, issue_date, due_date, paid_at, company_id, contact_id, client_name, created_by, company:companies(id, name), contact:contacts(id, name)")
+          .eq("workspace_id", currentWorkspace.id)
+          .not("status", "in", '("draft","cancelled")')
+          .order("issue_date", { ascending: false })
+          .range(from, to);
+        if (filters.dateFrom) q = q.gte("issue_date", filters.dateFrom);
+        if (filters.dateTo) q = q.lte("issue_date", filters.dateTo);
+        if (filters.ownerId) q = q.eq("created_by", filters.ownerId);
+        if (filters.companyId) q = q.eq("company_id", filters.companyId);
+        if (filters.contactId) q = q.eq("contact_id", filters.contactId);
+        return q;
+      });
       let invoices = invoicesRaw || [];
 
-      // 2) Fetch items for product analytics + optional category filter
+      // 2) Fetch items for product analytics + optional category filter (chunked + paginated)
       const invoiceIds = invoices.map((i: any) => i.id);
       let items: any[] = [];
       let allCategories = new Set<string>();
       if (invoiceIds.length) {
-        const { data: itemsData } = await workspaceClient
-          .from("invoice_items")
-          .select("invoice_id, product_id, description, quantity, total, product:products(id, name, category)")
-          .in("invoice_id", invoiceIds);
-        items = itemsData || [];
+        for (const ids of chunk(invoiceIds, 200)) {
+          const part = await fetchAllPaginated((from, to) =>
+            workspaceClient
+              .from("invoice_items")
+              .select("invoice_id, product_id, description, quantity, total, net_total, product:products(id, name, category)")
+              .in("invoice_id", ids)
+              .range(from, to)
+          );
+          items.push(...part);
+        }
         items.forEach((it: any) => {
           if (it.product?.category) allCategories.add(it.product.category);
         });
@@ -126,6 +154,7 @@ export function useFinancialReports(filters: FinancialReportFilters = {}) {
           items = items.filter((it: any) => matchingInvoiceIds.has(it.invoice_id));
         }
       }
+
 
       // 3) KPIs
       const today = new Date();
@@ -161,19 +190,25 @@ export function useFinancialReports(filters: FinancialReportFilters = {}) {
           if (pt) pt.invoiced += Number(inv.total) || 0;
         }
       }
-      // Received: fetch payments for invoices in scope
+      // Received: fetch payments for invoices in scope (chunked + paginated)
       if (invoiceIds.length) {
-        const { data: payments } = await workspaceClient
-          .from("invoice_payments")
-          .select("invoice_id, amount, payment_date")
-          .in("invoice_id", invoiceIds);
-        for (const p of payments || []) {
-          if (!p.payment_date) continue;
-          const key = monthKey(new Date(p.payment_date));
-          const pt = monthsMap.get(key);
-          if (pt) pt.received += Number(p.amount) || 0;
+        for (const ids of chunk(invoiceIds, 200)) {
+          const payments = await fetchAllPaginated((from, to) =>
+            workspaceClient
+              .from("invoice_payments")
+              .select("invoice_id, amount, payment_date")
+              .in("invoice_id", ids)
+              .range(from, to)
+          );
+          for (const p of payments || []) {
+            if (!p.payment_date) continue;
+            const key = monthKey(new Date(p.payment_date));
+            const pt = monthsMap.get(key);
+            if (pt) pt.received += Number(p.amount) || 0;
+          }
         }
       }
+
       const monthly = Array.from(monthsMap.values());
 
       // 5) Top clients
@@ -199,7 +234,7 @@ export function useFinancialReports(filters: FinancialReportFilters = {}) {
         const name = it.product?.name || it.description || "—";
         const category = it.product?.category || null;
         const qty = Number(it.quantity) || 0;
-        const total = Number(it.total) || 0;
+        const total = Number(it.total) || Number(it.net_total) || 0;
         const ex = productMap.get(id);
         if (ex) { ex.qty += qty; ex.total += total; }
         else productMap.set(id, { id, name, category, qty, total });
