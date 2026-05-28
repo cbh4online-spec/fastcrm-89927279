@@ -217,9 +217,53 @@ export default function ReportsOverview() {
                 value={kpis?.upsellPotential || 0}
                 subtitle="Prontos para renovar"
                 icon={Target}
+                href="/dashboard/reports/financial"
               />
             </>
           )}
+        </div>
+
+        {/* Quick links to deep-dive reports */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Link to="/dashboard/reports/financial" className="block">
+            <Card className="hover:border-primary/50 transition-colors">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Euro className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Relatório Financeiro</p>
+                  <p className="text-xs text-muted-foreground">Faturação, recebimentos, aging, top clientes/produtos</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/dashboard/reports/sales" className="block">
+            <Card className="hover:border-primary/50 transition-colors">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <Trophy className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Performance de Vendas</p>
+                  <p className="text-xs text-muted-foreground">Pipeline, conversões, win rate, velocidade</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/dashboard/reports/forecasts" className="block">
+            <Card className="hover:border-primary/50 transition-colors">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Previsões</p>
+                  <p className="text-xs text-muted-foreground">Forecast 30/60/90 dias, cenários</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Charts Row */}
