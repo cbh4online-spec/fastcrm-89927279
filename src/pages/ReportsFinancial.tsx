@@ -78,7 +78,7 @@ export default function ReportsFinancial() {
   };
 
   const { data, isLoading, refetch, isFetching } = useFinancialReports(filters);
-  const { data: companies } = useCompanies();
+  const { companies } = useCompanies();
 
   const exportCSV = () => {
     if (!data) return;
