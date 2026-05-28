@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Upload, ArrowLeft, FileText, CheckCircle2, AlertCircle, RotateCw, Trash2 } from "lucide-react";
+import { Loader2, Upload, ArrowLeft, FileText, CheckCircle2, AlertCircle, RotateCw, Trash2, Wand2 } from "lucide-react";
 import {
   useCollectionImports,
   useCollectionImportItems,
   useUploadAndAnalyze,
   useApplyImport,
+  useAutoCreateAndApply,
   useDeleteImport,
 } from "../hooks/useCollectionImports";
 
