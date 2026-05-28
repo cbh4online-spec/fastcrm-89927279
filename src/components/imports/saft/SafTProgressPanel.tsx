@@ -31,18 +31,24 @@ export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
   const summary = (s.summary ?? {}) as Record<string, Record<string, number>>;
 
   // Total esperado = clientes + produtos + faturas + pagamentos detectados na análise
-  const expected =
+  const expectedRaw =
     (s.customers ?? 0) +
     (s.products ?? 0) +
     (s.new_invoices ?? s.invoices ?? 0) +
     (s.payments ?? 0);
 
-  // Total realmente processado: usar o summary agregado da BD (criados + duplicados + falhados)
-  // em vez de items.length (que está limitado a 500 pela query da tabela "Últimos registos").
-  const summaryProcessed = Object.values(summary).reduce(
-    (acc, counts) => acc + Object.values(counts ?? {}).reduce((a, b) => a + (Number(b) || 0), 0),
-    0,
-  );
+  // Pagamentos órfãos: referenciam faturas anuladas ou fora do período exportado.
+  // Não são erro — são impossíveis de importar e devem ser excluídos do denominador.
+  const orphanPayments = Number(summary?.payment?.skipped ?? 0);
+  const expected = Math.max(0, expectedRaw - orphanPayments);
+
+  // Total realmente processado: soma do summary excluindo "skipped" (já descontado do esperado).
+  const summaryProcessed = Object.entries(summary).reduce((acc, [entity, counts]) => {
+    return acc + Object.entries(counts ?? {}).reduce((a, [action, b]) => {
+      if (entity === "payment" && action === "skipped") return a;
+      return a + (Number(b) || 0);
+    }, 0);
+  }, 0);
   const processed = summaryProcessed > 0 ? summaryProcessed : items.length;
 
   const isCompleted = imp.status === "completed";
@@ -72,6 +78,17 @@ export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
         </div>
 
         <Progress value={pct} className="h-2" />
+
+        {isCompleted && orphanPayments > 0 && (
+          <div className="rounded-md border border-muted bg-muted/30 p-3 text-sm">
+            <p className="font-medium">
+              {orphanPayments} pagamento{orphanPayments === 1 ? "" : "s"} não importado{orphanPayments === 1 ? "" : "s"}
+            </p>
+            <p className="text-muted-foreground mt-1">
+              Estes pagamentos referenciam faturas anuladas ou fora do período exportado no SAF-T, pelo que não têm fatura correspondente para associar. Não é um erro — é o comportamento esperado.
+            </p>
+          </div>
+        )}
 
         {partial && (
           <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
