@@ -41,7 +41,7 @@ import {
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
   Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
   Eye, Rocket, ShoppingBasket, UserCog, Gavel, Boxes, ChefHat, Heart, Repeat,
-  Wand2, HandCoins,
+  Wand2, HandCoins, Euro,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
