@@ -91353,6 +91353,7 @@ export type Database = {
         }
         Returns: number
       }
+      saft_imports_watchdog: { Args: never; Returns: undefined }
       search_b2b_catalog: {
         Args: {
           p_category?: string
