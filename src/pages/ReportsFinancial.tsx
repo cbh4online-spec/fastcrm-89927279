@@ -71,6 +71,7 @@ export default function ReportsFinancial() {
   const [ownerId, setOwnerId] = useState<string>("all");
   const [companyId, setCompanyId] = useState<string>("all");
   const [category, setCategory] = useState<string>("all");
+  const [verifyMode, setVerifyMode] = useState<boolean>(false);
 
   const dateRange = useMemo(() => {
     if (period === "custom") {
