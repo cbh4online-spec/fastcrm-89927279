@@ -50,7 +50,17 @@ Deno.serve(async (req) => {
       .eq("workspace_id", imp.workspace_id)
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!member) return ok({ error: "forbidden" }, 200);
+
+    let allowed = !!member;
+    if (!allowed) {
+      // Super admin bypass
+      const { data: superCheck } = await admin.rpc("is_super_admin", { _user_id: user.id });
+      allowed = !!superCheck;
+    }
+    if (!allowed) {
+      console.warn("[collections-import-apply] forbidden", { user_id: user.id, workspace_id: imp.workspace_id, import_id });
+      return ok({ error: "forbidden", details: "Não és membro do workspace deste import." }, 200);
+    }
 
     await admin
       .from("collection_imports")
