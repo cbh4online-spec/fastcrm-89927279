@@ -14,7 +14,7 @@ import { pt } from "date-fns/locale";
 import {
   CalendarIcon, RefreshCw, Euro, TrendingUp, TrendingDown, AlertTriangle,
   CheckCircle2, Receipt, Download, Clock, Wallet, ArrowUpRight, ArrowDownRight,
-  Sparkles, Users, Package,
+  Sparkles, Users, Package, ShieldCheck, ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +22,7 @@ import {
   PieChart, Pie, Cell, Area, AreaChart,
 } from "recharts";
 import { useFinancialReports, type FinancialReportFilters } from "@/hooks/useFinancialReports";
+import { useFinancialReportsVerify } from "@/hooks/useFinancialReportsVerify";
 import { useCompanies } from "@/hooks/useCompanies";
 
 function fmtEUR(v: number): string {
