@@ -72,64 +72,72 @@ Deno.serve(async (req) => {
     const allowed = await canAccessWorkspace(admin, imp.workspace_id, user.id);
     if (!allowed) return ok({ ok: false, error: "Sem permissão para analisar SAF-T neste workspace" }, 200);
 
-    await admin.from("saft_imports").update({ status: "analyzing", started_at: new Date().toISOString() }).eq("id", import_id);
+    await admin.from("saft_imports").update({ status: "analyzing", started_at: new Date().toISOString(), error_message: null }).eq("id", import_id);
 
-    // Download file
-    const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
-    if (dlErr || !file) {
-      await admin.from("saft_imports").update({ status: "failed", error_message: dlErr?.message ?? "download failed" }).eq("id", import_id);
-      return ok({ ok: false, error: dlErr?.message ?? "download failed" }, 200);
-    }
+    // Run heavy parsing in background to avoid WORKER_RESOURCE_LIMIT on large SAF-T files (>10MB).
+    // Frontend polls saft_imports.status (analyzing → preview_ready | failed).
+    const runAnalysis = async () => {
+      try {
+        const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
+        if (dlErr || !file) {
+          await admin.from("saft_imports").update({ status: "failed", error_message: dlErr?.message ?? "download failed" }).eq("id", import_id);
+          return;
+        }
 
-    // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const header = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
-    const encMatch = header.match(/encoding=["']([^"']+)["']/);
-    const declared = (encMatch?.[1] ?? "utf-8").toLowerCase();
-    const useEnc = declared.includes("8859") || declared.includes("1252") || declared.includes("windows")
-      ? "windows-1252"
-      : "utf-8";
-    const xml = new TextDecoder(useEnc).decode(bytes);
+        // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const head = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
+        const encMatch = head.match(/encoding=["']([^"']+)["']/);
+        const declared = (encMatch?.[1] ?? "utf-8").toLowerCase();
+        const useEnc = declared.includes("8859") || declared.includes("1252") || declared.includes("windows")
+          ? "windows-1252"
+          : "utf-8";
+        const xml = new TextDecoder(useEnc).decode(bytes);
 
-    let parsed;
-    try {
-      parsed = parseSaftXml(xml);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "parse error";
-      await admin.from("saft_imports").update({ status: "failed", error_message: msg }).eq("id", import_id);
-      return ok({ ok: false, error: msg }, 200);
-    }
+        const parsed = parseSaftXml(xml);
+        const stats = computeStats(parsed);
 
-    const stats = computeStats(parsed);
+        const invoiceNos = parsed.invoices.map(i => i.invoice_no);
+        let existingInvoices = 0;
+        if (invoiceNos.length) {
+          // Chunk IN() para evitar URLs gigantes em SAF-T anuais
+          const CHUNK = 500;
+          for (let i = 0; i < invoiceNos.length; i += CHUNK) {
+            const slice = invoiceNos.slice(i, i + CHUNK);
+            const { count } = await admin
+              .from("invoices")
+              .select("id", { count: "exact", head: true })
+              .eq("workspace_id", imp.workspace_id)
+              .in("saft_invoice_no", slice);
+            existingInvoices += count ?? 0;
+          }
+        }
 
-    // Check duplicates in DB
-    const invoiceNos = parsed.invoices.map(i => i.invoice_no);
-    let existingInvoices = 0;
-    if (invoiceNos.length) {
-      const { count } = await admin
-        .from("invoices")
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", imp.workspace_id)
-        .in("saft_invoice_no", invoiceNos);
-      existingInvoices = count ?? 0;
-    }
+        const fullStats = { ...stats, existing_invoices: existingInvoices, new_invoices: stats.invoices - existingInvoices };
 
-    const fullStats = { ...stats, existing_invoices: existingInvoices, new_invoices: stats.invoices - existingInvoices };
+        await admin.from("saft_imports").update({
+          status: "preview_ready",
+          saft_type: parsed.header.saft_type,
+          saft_version: parsed.header.saft_version,
+          software_company: parsed.header.software_company,
+          software_id: parsed.header.software_id,
+          tax_registration_number: parsed.header.tax_registration_number,
+          fiscal_year: parsed.header.fiscal_year,
+          period_start: parsed.header.period_start,
+          period_end: parsed.header.period_end,
+          stats: fullStats,
+        }).eq("id", import_id);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "parse error";
+        console.error("[saft-analyze:bg] error", msg);
+        await admin.from("saft_imports").update({ status: "failed", error_message: msg }).eq("id", import_id);
+      }
+    };
 
-    await admin.from("saft_imports").update({
-      status: "preview_ready",
-      saft_type: parsed.header.saft_type,
-      saft_version: parsed.header.saft_version,
-      software_company: parsed.header.software_company,
-      software_id: parsed.header.software_id,
-      tax_registration_number: parsed.header.tax_registration_number,
-      fiscal_year: parsed.header.fiscal_year,
-      period_start: parsed.header.period_start,
-      period_end: parsed.header.period_end,
-      stats: fullStats,
-    }).eq("id", import_id);
+    // @ts-ignore EdgeRuntime is provided by Deno Deploy runtime
+    EdgeRuntime.waitUntil(runAnalysis());
 
-    return ok({ ok: true, stats: fullStats, header: parsed.header });
+    return ok({ ok: true, queued: true, import_id });
   } catch (e) {
     console.error("[saft-analyze] error", e);
     const msg = e instanceof Error ? e.message : "internal error";
