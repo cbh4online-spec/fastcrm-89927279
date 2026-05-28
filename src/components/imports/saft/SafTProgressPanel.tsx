@@ -28,7 +28,7 @@ export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
   const { data: items = [] } = useSaftImportItems(imp.id, isLive);
 
   const s = imp.stats ?? {};
-  const summary = s.summary ?? {};
+  const summary = (s.summary ?? {}) as Record<string, Record<string, number>>;
 
   // Total esperado = clientes + produtos + faturas + pagamentos detectados na análise
   const expected =
@@ -37,10 +37,17 @@ export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
     (s.new_invoices ?? s.invoices ?? 0) +
     (s.payments ?? 0);
 
-  const processed = items.length;
+  // Total realmente processado: usar o summary agregado da BD (criados + duplicados + falhados)
+  // em vez de items.length (que está limitado a 500 pela query da tabela "Últimos registos").
+  const summaryProcessed = Object.values(summary).reduce(
+    (acc, counts) => acc + Object.values(counts ?? {}).reduce((a, b) => a + (Number(b) || 0), 0),
+    0,
+  );
+  const processed = summaryProcessed > 0 ? summaryProcessed : items.length;
+
   const isCompleted = imp.status === "completed";
   const isFailed = imp.status === "failed";
-  const partial = isCompleted && expected > 0 && processed > 0 && processed < expected;
+  const partial = isCompleted && expected > 0 && processed > 0 && processed < expected * 0.95;
 
   let pct = 0;
   if (isCompleted && !partial) pct = 100;
