@@ -5,7 +5,7 @@ import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Calculator, 
 import { Company } from "@/hooks/useCompanies";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
-import { useInvoices } from "@/hooks/useInvoices";
+import { useCompanyAggregatedInvoices } from "@/hooks/useCompanyAggregatedInvoices";
 
 interface CommercialHistorySectionProps {
   company: Company;
