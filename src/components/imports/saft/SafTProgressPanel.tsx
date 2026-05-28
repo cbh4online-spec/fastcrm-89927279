@@ -135,7 +135,12 @@ export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
       </Card>
 
       <Card className="p-4">
-        <p className="font-medium mb-2">Últimos registos ({items.length})</p>
+        <p className="font-medium mb-2">
+          Últimos registos{" "}
+          <span className="text-sm text-muted-foreground font-normal">
+            (amostra de {items.length}{processed > items.length ? ` de ${processed} processados` : ""})
+          </span>
+        </p>
         <div className="max-h-96 overflow-auto text-sm">
           <table className="w-full">
             <thead className="text-xs text-muted-foreground">
