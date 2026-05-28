@@ -168,6 +168,19 @@ export default function CollectionsImportPage() {
                 <p className="text-xs text-muted-foreground">Importação {selected.id.slice(0, 8)} · {STATUS_LABEL[selected.status]}</p>
               </div>
               <div className="flex gap-2">
+                {(itemStats.needs_mapping || 0) > 0 && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      if (confirm(`Vai criar automaticamente ${itemStats.needs_mapping} empresas/contactos em falta e aplicar. Continuar?`)) {
+                        autoApply.mutate(selected.id);
+                      }
+                    }}
+                    disabled={autoApply.isPending}
+                  >
+                    {autoApply.isPending ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> A criar e aplicar…</> : <><Wand2 className="h-4 w-4 mr-1" /> Auto-criar {itemStats.needs_mapping} e aplicar</>}
+                  </Button>
+                )}
                 {(selected.status === "review" || selected.status === "failed") && (
                   <Button onClick={() => apply.mutate(selected.id)} disabled={apply.isPending}>
                     {apply.isPending ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> A aplicar…</> : <><CheckCircle2 className="h-4 w-4 mr-1" /> Aplicar importação</>}
