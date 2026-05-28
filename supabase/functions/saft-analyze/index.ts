@@ -72,9 +72,20 @@ Deno.serve(async (req) => {
     const allowed = await canAccessWorkspace(admin, imp.workspace_id, user.id);
     if (!allowed) return ok({ ok: false, error: "Sem permissão para analisar SAF-T neste workspace" }, 200);
 
+    // Hard guard: worker memory ~256MB. A 25MB XML already balloons past that
+    // once decoded to a JS string + parsed AST. Reject early with a friendly msg.
+    const MAX_BYTES = 25 * 1024 * 1024;
+    if (typeof imp.file_size === "number" && imp.file_size > MAX_BYTES) {
+      await admin.from("saft_imports").update({
+        status: "failed",
+        error_message: `Ficheiro demasiado grande (${(imp.file_size / 1024 / 1024).toFixed(1)} MB). Exporte o SAF-T por períodos mais curtos (mensal/trimestral, máx. 25 MB por ficheiro).`,
+      }).eq("id", import_id);
+      return ok({ ok: false, error: "file_too_large", max_mb: 25 }, 200);
+    }
+
     await admin.from("saft_imports").update({ status: "analyzing", started_at: new Date().toISOString(), error_message: null }).eq("id", import_id);
 
-    // Run heavy parsing in background to avoid WORKER_RESOURCE_LIMIT on large SAF-T files (>10MB).
+    // Run heavy parsing in background to avoid WORKER_RESOURCE_LIMIT on large SAF-T files.
     // Frontend polls saft_imports.status (analyzing → preview_ready | failed).
     const runAnalysis = async () => {
       try {
@@ -84,17 +95,27 @@ Deno.serve(async (req) => {
           return;
         }
 
+        if (file.size > MAX_BYTES) {
+          await admin.from("saft_imports").update({
+            status: "failed",
+            error_message: `Ficheiro demasiado grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Divida o SAF-T em períodos mais curtos (máx. 25 MB).`,
+          }).eq("id", import_id);
+          return;
+        }
+
         // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
-        const bytes = new Uint8Array(await file.arrayBuffer());
+        let bytes: Uint8Array | null = new Uint8Array(await file.arrayBuffer());
         const head = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
         const encMatch = head.match(/encoding=["']([^"']+)["']/);
         const declared = (encMatch?.[1] ?? "utf-8").toLowerCase();
         const useEnc = declared.includes("8859") || declared.includes("1252") || declared.includes("windows")
           ? "windows-1252"
           : "utf-8";
-        const xml = new TextDecoder(useEnc).decode(bytes);
+        let xml: string | null = new TextDecoder(useEnc).decode(bytes);
+        bytes = null; // libertar buffer binário antes do parse para reduzir pico de memória
 
         const parsed = parseSaftXml(xml);
+        xml = null; // libertar string original; parsed já tem o necessário
         const stats = computeStats(parsed);
 
         const invoiceNos = parsed.invoices.map(i => i.invoice_no);
