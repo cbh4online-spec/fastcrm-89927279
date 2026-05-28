@@ -69133,12 +69133,16 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          debug_log: Json
           error_message: string | null
           file_hash: string
           file_name: string
           file_size: number
           fiscal_year: number | null
           id: string
+          last_error_step: string | null
+          last_step: string | null
+          last_step_at: string | null
           options: Json
           period_end: string | null
           period_start: string | null
@@ -69158,12 +69162,16 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          debug_log?: Json
           error_message?: string | null
           file_hash: string
           file_name: string
           file_size?: number
           fiscal_year?: number | null
           id?: string
+          last_error_step?: string | null
+          last_step?: string | null
+          last_step_at?: string | null
           options?: Json
           period_end?: string | null
           period_start?: string | null
@@ -69183,12 +69191,16 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          debug_log?: Json
           error_message?: string | null
           file_hash?: string
           file_name?: string
           file_size?: number
           fiscal_year?: number | null
           id?: string
+          last_error_step?: string | null
+          last_step?: string | null
+          last_step_at?: string | null
           options?: Json
           period_end?: string | null
           period_start?: string | null
@@ -91578,6 +91590,10 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: number
+      }
+      saft_imports_append_log: {
+        Args: { p_entry: Json; p_id: string; p_step: string }
+        Returns: undefined
       }
       saft_imports_watchdog: { Args: never; Returns: undefined }
       search_b2b_catalog: {

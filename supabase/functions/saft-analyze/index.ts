@@ -83,27 +83,80 @@ Deno.serve(async (req) => {
       return ok({ ok: false, error: "file_too_large", max_mb: 25 }, 200);
     }
 
-    await admin.from("saft_imports").update({ status: "analyzing", started_at: new Date().toISOString(), error_message: null }).eq("id", import_id);
+    const correlationId = crypto.randomUUID();
+    const t0 = Date.now();
+
+    // Step tracker: persists progress + structured log so failures can be diagnosed
+    // (especially WORKER_RESOURCE_LIMIT, where the function dies mid-step with no JS error).
+    const logStep = async (
+      step: string,
+      extra: Record<string, unknown> = {},
+    ) => {
+      const ts = new Date().toISOString();
+      const elapsed_ms = Date.now() - t0;
+      // @ts-ignore Deno provides memoryUsage in edge runtime
+      const mem = typeof Deno.memoryUsage === "function" ? Deno.memoryUsage() : null;
+      const entry = {
+        step,
+        ts,
+        elapsed_ms,
+        rss_mb: mem ? Math.round(mem.rss / 1024 / 1024) : null,
+        heap_mb: mem ? Math.round(mem.heapUsed / 1024 / 1024) : null,
+        ...extra,
+      };
+      console.log(`[saft-analyze][${correlationId}][${import_id}] ${step}`, JSON.stringify(entry));
+      try {
+        await admin.rpc("saft_imports_append_log", { p_id: import_id, p_step: step, p_entry: entry });
+      } catch {
+        // Fallback: best-effort partial update without the array append
+        await admin.from("saft_imports")
+          .update({ last_step: step, last_step_at: ts })
+          .eq("id", import_id);
+      }
+    };
+
+    const failAt = async (step: string, message: string) => {
+      console.error(`[saft-analyze][${correlationId}][${import_id}] FAIL@${step}: ${message}`);
+      await admin.from("saft_imports").update({
+        status: "failed",
+        error_message: message,
+        last_error_step: step,
+        last_step: step,
+        last_step_at: new Date().toISOString(),
+      }).eq("id", import_id);
+    };
+
+    await admin.from("saft_imports").update({
+      status: "analyzing",
+      started_at: new Date().toISOString(),
+      error_message: null,
+      last_error_step: null,
+      debug_log: [],
+    }).eq("id", import_id);
+    await logStep("analyze_started", { file_size: imp.file_size, correlation_id: correlationId });
 
     // Run heavy parsing in background to avoid WORKER_RESOURCE_LIMIT on large SAF-T files.
     // Frontend polls saft_imports.status (analyzing → preview_ready | failed).
     const runAnalysis = async () => {
       try {
+        await logStep("download_start");
         const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
         if (dlErr || !file) {
-          await admin.from("saft_imports").update({ status: "failed", error_message: dlErr?.message ?? "download failed" }).eq("id", import_id);
+          await failAt("download", dlErr?.message ?? "download failed");
           return;
         }
+        await logStep("download_done", { downloaded_bytes: file.size });
 
         if (file.size > MAX_BYTES) {
-          await admin.from("saft_imports").update({
-            status: "failed",
-            error_message: `Ficheiro demasiado grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Divida o SAF-T em períodos mais curtos (máx. 25 MB).`,
-          }).eq("id", import_id);
+          await failAt(
+            "size_check",
+            `Ficheiro demasiado grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Divida o SAF-T em períodos mais curtos (máx. 25 MB).`,
+          );
           return;
         }
 
         // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
+        await logStep("decode_start");
         let bytes: Uint8Array | null = new Uint8Array(await file.arrayBuffer());
         const head = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
         const encMatch = head.match(/encoding=["']([^"']+)["']/);
@@ -113,11 +166,22 @@ Deno.serve(async (req) => {
           : "utf-8";
         let xml: string | null = new TextDecoder(useEnc).decode(bytes);
         bytes = null; // libertar buffer binário antes do parse para reduzir pico de memória
+        await logStep("decode_done", { encoding: useEnc, xml_chars: xml.length });
 
+        await logStep("parse_xml_start");
         const parsed = parseSaftXml(xml);
         xml = null; // libertar string original; parsed já tem o necessário
-        const stats = computeStats(parsed);
+        await logStep("parse_xml_done", {
+          invoices: parsed.invoices.length,
+          customers: parsed.customers?.length ?? 0,
+          products: parsed.products?.length ?? 0,
+        });
 
+        await logStep("compute_stats_start");
+        const stats = computeStats(parsed);
+        await logStep("compute_stats_done");
+
+        await logStep("dedupe_check_start", { invoice_count: parsed.invoices.length });
         const invoiceNos = parsed.invoices.map(i => i.invoice_no);
         let existingInvoices = 0;
         if (invoiceNos.length) {
@@ -125,18 +189,24 @@ Deno.serve(async (req) => {
           const CHUNK = 500;
           for (let i = 0; i < invoiceNos.length; i += CHUNK) {
             const slice = invoiceNos.slice(i, i + CHUNK);
-            const { count } = await admin
+            const { count, error: cErr } = await admin
               .from("invoices")
               .select("id", { count: "exact", head: true })
               .eq("workspace_id", imp.workspace_id)
               .in("saft_invoice_no", slice);
+            if (cErr) {
+              await failAt("dedupe_check", `dedupe query failed at chunk ${i}: ${cErr.message}`);
+              return;
+            }
             existingInvoices += count ?? 0;
           }
         }
+        await logStep("dedupe_check_done", { existing: existingInvoices });
 
         const fullStats = { ...stats, existing_invoices: existingInvoices, new_invoices: stats.invoices - existingInvoices };
 
-        await admin.from("saft_imports").update({
+        await logStep("persist_preview_start");
+        const { error: upErr } = await admin.from("saft_imports").update({
           status: "preview_ready",
           saft_type: parsed.header.saft_type,
           saft_version: parsed.header.saft_version,
@@ -148,17 +218,23 @@ Deno.serve(async (req) => {
           period_end: parsed.header.period_end,
           stats: fullStats,
         }).eq("id", import_id);
+        if (upErr) {
+          await failAt("persist_preview", upErr.message);
+          return;
+        }
+        await logStep("analyze_completed", { total_ms: Date.now() - t0 });
       } catch (e) {
         const msg = e instanceof Error ? e.message : "parse error";
-        console.error("[saft-analyze:bg] error", msg);
-        await admin.from("saft_imports").update({ status: "failed", error_message: msg }).eq("id", import_id);
+        const stack = e instanceof Error ? e.stack : undefined;
+        console.error(`[saft-analyze:bg][${correlationId}][${import_id}] error`, msg, stack);
+        await failAt("unhandled_exception", msg);
       }
     };
 
     // @ts-ignore EdgeRuntime is provided by Deno Deploy runtime
     EdgeRuntime.waitUntil(runAnalysis());
 
-    return ok({ ok: true, queued: true, import_id });
+    return ok({ ok: true, queued: true, import_id, correlation_id: correlationId });
   } catch (e) {
     console.error("[saft-analyze] error", e);
     const msg = e instanceof Error ? e.message : "internal error";

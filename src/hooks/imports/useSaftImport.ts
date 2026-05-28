@@ -29,6 +29,10 @@ export interface SaftImport {
   stats: Record<string, any>;
   options: Record<string, any>;
   error_message: string | null;
+  last_error_step?: string | null;
+  last_step?: string | null;
+  last_step_at?: string | null;
+  debug_log?: Array<Record<string, any>>;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
