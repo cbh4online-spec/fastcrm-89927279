@@ -40,11 +40,14 @@ export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
   const processed = items.length;
   const isCompleted = imp.status === "completed";
   const isFailed = imp.status === "failed";
+  const partial = isCompleted && expected > 0 && processed > 0 && processed < expected;
 
   let pct = 0;
-  if (isCompleted) pct = 100;
+  if (isCompleted && !partial) pct = 100;
   else if (expected > 0) pct = Math.min(99, Math.round((processed / expected) * 100));
   else if (isLive) pct = 5;
+
+  const statusLabel = partial ? "Concluída (parcial)" : (STATUS_LABEL[imp.status] ?? imp.status);
 
   return (
     <div className="space-y-4">
@@ -52,11 +55,9 @@ export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             {isLive && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-            {isCompleted && <CheckCircle2 className="h-4 w-4 text-primary" />}
-            {isFailed && <AlertCircle className="h-4 w-4 text-destructive" />}
-            <p className="font-semibold">
-              {STATUS_LABEL[imp.status] ?? imp.status}
-            </p>
+            {isCompleted && !partial && <CheckCircle2 className="h-4 w-4 text-primary" />}
+            {(isFailed || partial) && <AlertCircle className={`h-4 w-4 ${partial ? "text-amber-500" : "text-destructive"}`} />}
+            <p className="font-semibold">{statusLabel}</p>
           </div>
           <span className="text-sm font-mono text-muted-foreground">
             {processed}{expected > 0 ? ` / ${expected}` : ""} · {pct}%
@@ -64,6 +65,15 @@ export function SafTProgressPanel({ imp }: { imp: SaftImport }) {
         </div>
 
         <Progress value={pct} className="h-2" />
+
+        {partial && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            <p className="font-medium text-amber-700 dark:text-amber-400">Importação terminada com menos registos do que o previsto</p>
+            <p className="text-muted-foreground mt-1">
+              Foram processados {processed} de {expected} registos esperados. Isto pode dever-se a duplicados ignorados, limites de execução ou erros parciais. Verifica os "Últimos registos" abaixo e o histórico para detalhes.
+            </p>
+          </div>
+        )}
 
         {imp.error_message && (
           <div className="rounded-md border border-destructive/50 bg-destructive/5 p-3 space-y-1">
