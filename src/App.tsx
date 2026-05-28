@@ -71,7 +71,7 @@ const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPag
 const PublicInvoicePayPage = lazy(() => import("@/pages/public/PublicInvoicePayPage"));
 
 // FastCRM V2 — premium app shell preview
-const DashboardV2Page = lazy(() => import("@/pages/app-v2/DashboardV2Page"));
+
 
 // Marketing public pages
 const MarketingLayout = lazy(() => import("@/marketing/layout/MarketingLayout"));
