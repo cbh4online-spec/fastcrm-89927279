@@ -125,7 +125,7 @@ export default function CollectionsImportPage() {
                         <td className="p-2 text-right font-mono">{fmtEur(s.total_due || 0)}</td>
                         <td className="p-2 text-right">
                           <div className="flex justify-end gap-1">
-                            {(imp.status === "review" || imp.status === "completed" || imp.status === "failed") && (
+                            {imp.status !== "uploaded" && imp.status !== "parsing" && (
                               <Button
                                 size="sm"
                                 variant="outline"
