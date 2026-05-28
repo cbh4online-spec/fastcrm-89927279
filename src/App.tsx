@@ -71,7 +71,7 @@ const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPag
 const PublicInvoicePayPage = lazy(() => import("@/pages/public/PublicInvoicePayPage"));
 
 // FastCRM V2 — premium app shell preview
-const DashboardV2Page = lazy(() => import("@/pages/app-v2/DashboardV2Page"));
+
 
 // Marketing public pages
 const MarketingLayout = lazy(() => import("@/marketing/layout/MarketingLayout"));
@@ -232,9 +232,6 @@ const App = () => (
                 {/* Client Portal - ISOLATED from CRM providers */}
                 <Route path="/client/*" element={<ClientPortalRoutes />} />
 
-                {/* FastCRM V2 preview (premium shell) */}
-                <Route path="/app-v2" element={<Navigate to="/app-v2/dashboard" replace />} />
-                <Route path="/app-v2/dashboard" element={<DashboardV2Page />} />
 
                 {/* Legacy dashboard alias */}
                 <Route path="/dashboards" element={<Navigate to="/dashboard" replace />} />
