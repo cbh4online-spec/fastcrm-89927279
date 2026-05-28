@@ -272,7 +272,11 @@ export default function Payments() {
             )}
           </CardContent>
         </Card>
+
+        {/* Recibos de Faturas (inclui SAF-T) */}
+        <InvoiceReceiptsCard />
       </div>
+
 
       {/* Register Payment Dialog */}
       <Dialog open={registerOpen} onOpenChange={setRegisterOpen}>
