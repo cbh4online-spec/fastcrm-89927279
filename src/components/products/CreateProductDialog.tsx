@@ -135,6 +135,8 @@ export function CreateProductDialog({
   const [targetMargin, setTargetMargin] = useState("");
   const [targetMarginMode, setTargetMarginMode] = useState<CostMode>("percent");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const canViewCostMargin = useCapability("finance.view");
+
   const [bundlePriceMode, setBundlePriceMode] = useState<"auto" | "manual">("auto");
   // Consumption model fields
   const [consumptionModel, setConsumptionModel] = useState<ConsumptionModel>("units");
