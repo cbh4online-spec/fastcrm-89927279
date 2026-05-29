@@ -45,6 +45,7 @@ interface AcquiredProductsSectionProps {
 export function AcquiredProductsSection({ contactId, companyId }: AcquiredProductsSectionProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [purchasedQuantity, setPurchasedQuantity] = useState("1");
   const [unitPrice, setUnitPrice] = useState("");
   const [acquisitionDate, setAcquisitionDate] = useState(new Date().toISOString().split('T')[0]);
