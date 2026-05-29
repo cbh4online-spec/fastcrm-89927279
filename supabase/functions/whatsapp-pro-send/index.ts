@@ -64,14 +64,32 @@ Deno.serve(async (req) => {
       return json({ error: "workspace_id, messageType e (phone | groupId | conversationId) são obrigatórios" }, 400);
     }
 
-    // Verificar membership
+    // Verificar membership (com bypass de super_admin)
     const { data: member } = await adminClient
       .from("workspace_members")
       .select("role")
       .eq("workspace_id", body.workspaceId)
       .eq("user_id", userId)
       .maybeSingle();
-    if (!member) return json({ error: "Sem permissão neste workspace" }, 403);
+
+    let isSuperAdmin = false;
+    if (!member) {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profile?.id) {
+        const { data: roles } = await adminClient
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", profile.id);
+        isSuperAdmin = (roles ?? []).some((r: { role: string }) => r.role === "super_admin");
+      }
+      if (!isSuperAdmin) {
+        return json({ error: "Sem permissão neste workspace" }, 403);
+      }
+    }
 
     // Garantir provider_instance
     const { data: instanceId, error: rpcErr } = await adminClient.rpc(
