@@ -17,7 +17,19 @@ interface SocialMediaSectionProps {
   onFieldChange: (field: keyof Company, value: unknown) => Promise<void>;
 }
 
+function buildWhatsAppUrlFromPhone(phone?: string | null): string | null {
+  if (!phone) return null;
+  const digits = String(phone).replace(/\D/g, "");
+  if (digits.length < 6) return null;
+  // Se não tem indicativo internacional, assumir Portugal (351)
+  const withCountry = digits.length <= 9 ? `351${digits}` : digits;
+  return `https://wa.me/${withCountry}`;
+}
+
 export function SocialMediaSection({ company, onFieldChange }: SocialMediaSectionProps) {
+  const storedWhatsApp = (company as any).whatsapp_url as string | null | undefined;
+  const fallbackWhatsApp = buildWhatsAppUrlFromPhone(company.phone);
+  const effectiveWhatsApp = storedWhatsApp || fallbackWhatsApp || "";
   return (
     <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
       <CardHeader className="pb-3 bg-gradient-to-r from-pink-500/10 via-transparent to-transparent">
