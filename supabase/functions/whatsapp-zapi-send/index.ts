@@ -75,16 +75,32 @@ Deno.serve(async (req) => {
     }
     if (!message && !media) return jsonRes({ error: 'message or media required' }, 400);
 
-    // Verify workspace membership
-    const { data: membership } = await supabase
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
+    // Verify workspace membership (with super_admin bypass)
+    const { data: membership } = await admin
       .from('workspace_members')
       .select('id')
       .eq('workspace_id', workspaceId)
       .eq('user_id', userId)
       .maybeSingle();
-    if (!membership) return jsonRes({ error: 'Not a member of this workspace' }, 403);
+    if (!membership) {
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+      let isSuperAdmin = false;
+      if (profile?.id) {
+        const { data: roles } = await admin
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', profile.id);
+        isSuperAdmin = (roles ?? []).some((r: { role: string }) => r.role === 'super_admin');
+      }
+      if (!isSuperAdmin) return jsonRes({ error: 'Not a member of this workspace' }, 403);
+    }
 
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     // Fetch active connection
     const { data: conn } = await admin
