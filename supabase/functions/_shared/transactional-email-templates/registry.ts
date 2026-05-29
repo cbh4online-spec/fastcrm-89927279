@@ -22,6 +22,7 @@ import { template as orderConfirmation } from './order-confirmation.tsx'
 import { template as orderShipped } from './order-shipped.tsx'
 import { template as orderDelivered } from './order-delivered.tsx'
 import { template as partnerOrderDecision } from './partner-order-decision.tsx'
+import { template as accountStatement } from './account-statement.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-invitation': eventInvitation,
@@ -37,4 +38,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'order-shipped': orderShipped,
   'order-delivered': orderDelivered,
   'partner-order-decision': partnerOrderDecision,
+  'account-statement': accountStatement,
 }
