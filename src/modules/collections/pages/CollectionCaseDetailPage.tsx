@@ -4,7 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Send, StickyNote, AlertTriangle, Mail, Phone, Workflow } from "lucide-react";
+import { ArrowLeft, Send, StickyNote, AlertTriangle, Mail, Phone, Workflow, FileText } from "lucide-react";
 import { useCollectionCase } from "../hooks/useCollectionCase";
 import { useCaseActions } from "../hooks/useCaseActions";
 import { StatusBadge } from "../components/StatusBadge";
@@ -13,6 +13,7 @@ import { SendActionDialog } from "../components/SendActionDialog";
 import { AddNoteDialog } from "../components/AddNoteDialog";
 import { PromisesPanel } from "../components/PromisesPanel";
 import { AssignSequenceDialog } from "../components/AssignSequenceDialog";
+import { SendStatementDialog } from "../components/SendStatementDialog";
 import { formatEur } from "../lib/collectionsFormat";
 
 export default function CollectionCaseDetailPage() {
@@ -23,6 +24,7 @@ export default function CollectionCaseDetailPage() {
   const [sendOpen, setSendOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [statementOpen, setStatementOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -69,7 +71,10 @@ export default function CollectionCaseDetailPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setSendOpen(true)}>
+            <Button onClick={() => setStatementOpen(true)}>
+              <FileText className="h-4 w-4 mr-1" /> Enviar extrato
+            </Button>
+            <Button variant="outline" onClick={() => setSendOpen(true)}>
               <Send className="h-4 w-4 mr-1" /> Registar ação
             </Button>
             <Button variant="outline" onClick={() => setNoteOpen(true)}>
@@ -178,6 +183,17 @@ export default function CollectionCaseDetailPage() {
         onOpenChange={setAssignOpen}
         caseId={caseData.id}
         currentSequenceId={caseData.sequence_id}
+      />
+      <SendStatementDialog
+        open={statementOpen}
+        onOpenChange={setStatementOpen}
+        caseId={caseData.id}
+        workspaceId={caseData.workspace_id}
+        companyId={caseData.company_id}
+        contactId={caseData.contact_id}
+        debtorName={caseData.debtor_name}
+        debtorEmail={caseData.debtor_email}
+        debtorPhone={caseData.debtor_phone}
       />
     </DashboardLayout>
   );
