@@ -101,7 +101,6 @@ Deno.serve(async (req) => {
       if (!isSuperAdmin) return jsonRes({ error: 'Not a member of this workspace' }, 403);
     }
 
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     // Fetch active connection
     const { data: conn } = await admin
