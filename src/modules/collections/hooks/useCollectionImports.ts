@@ -55,6 +55,17 @@ export function useCollectionImportItems(importId: string | null) {
   });
 }
 
+function normalizeCompanyName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    // strip common legal suffixes
+    .replace(/\b(lda|s\.?a\.?|sa|unipessoal|sociedade|eireli|s\.?l\.?|gmbh|inc|ltd|ltda)\b\.?/g, "")
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+}
+
 async function autoMatchClient(
   workspaceId: string,
   client: ArtsoftClient,
@@ -91,6 +102,49 @@ async function autoMatchClient(
     .eq("external_id", client.client_number)
     .maybeSingle();
   if (ct) return { matched_company_id: null, matched_contact_id: ct.id };
+
+  // 4. Fallback: match by normalized name against existing companies
+  // (covers the case where SAFT already created the company without ARTSOFT external_id).
+  // SAFT-origin companies are preferred to avoid creating duplicates from ARTSOFT side.
+  if (client.name?.trim()) {
+    const target = normalizeCompanyName(client.name);
+    if (target.length >= 3) {
+      const { data: candidates } = await supabase
+        .from("companies")
+        .select("id, name, source, external_provider, external_id")
+        .eq("workspace_id", workspaceId)
+        .is("deleted_at", null);
+      if (candidates && candidates.length > 0) {
+        const matched = candidates.find((c) => {
+          if (!c.name) return false;
+          // skip companies that already belong to a different ARTSOFT client number
+          if (
+            (c as any).external_provider === "artsoft" &&
+            (c as any).external_id &&
+            (c as any).external_id !== client.client_number
+          ) {
+            return false;
+          }
+          return normalizeCompanyName(c.name) === target;
+        });
+        if (matched) {
+          // Link ARTSOFT external_id to the existing (preferably SAFT) company
+          // so future imports hit step 2 directly. Do not overwrite an existing external link.
+          if (!(matched as any).external_provider) {
+            await supabase
+              .from("companies")
+              .update({
+                external_provider: "artsoft",
+                external_id: client.client_number,
+              })
+              .eq("id", matched.id);
+          }
+          return { matched_company_id: matched.id, matched_contact_id: null };
+        }
+      }
+    }
+  }
+
   return { matched_company_id: null, matched_contact_id: null };
 }
 
