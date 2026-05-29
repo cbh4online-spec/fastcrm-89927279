@@ -38,6 +38,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
+import { useCapability } from "@/hooks/useCapability";
+
 import { LaborConfigEditor } from "./LaborConfigEditor";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
@@ -133,6 +135,8 @@ export function CreateProductDialog({
   const [targetMargin, setTargetMargin] = useState("");
   const [targetMarginMode, setTargetMarginMode] = useState<CostMode>("percent");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const canViewCostMargin = useCapability("finance.view");
+
   const [bundlePriceMode, setBundlePriceMode] = useState<"auto" | "manual">("auto");
   // Consumption model fields
   const [consumptionModel, setConsumptionModel] = useState<ConsumptionModel>("units");
@@ -1093,7 +1097,9 @@ export function CreateProductDialog({
                 onChange={setPhysical}
               />
 
+              {canViewCostMargin && (
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+
                 <CollapsibleTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="w-full justify-between">
                     <span className="text-muted-foreground flex items-center gap-2">
@@ -1202,6 +1208,8 @@ export function CreateProductDialog({
                   )}
                 </CollapsibleContent>
               </Collapsible>
+              )}
+
 
               {/* Consumption Model Section */}
               <Collapsible open={showConsumption} onOpenChange={setShowConsumption}>
