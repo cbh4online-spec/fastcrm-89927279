@@ -1097,7 +1097,9 @@ export function CreateProductDialog({
                 onChange={setPhysical}
               />
 
+              {canViewCostMargin && (
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+
                 <CollapsibleTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="w-full justify-between">
                     <span className="text-muted-foreground flex items-center gap-2">
