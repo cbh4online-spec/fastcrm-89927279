@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface ProductAnalyticsSummary {
   top_in_proposals: Array<{
@@ -81,19 +82,23 @@ async function fetchAnalytics(workspaceId: string, productId?: string, daysInact
 
 
 export function useProductAnalytics(workspaceId: string | undefined, daysInactive = 90) {
+  const { session, loading } = useAuth();
+
   return useQuery<ProductAnalyticsSummary>({
     queryKey: ["product-analytics", workspaceId, daysInactive],
     queryFn: () => fetchAnalytics(workspaceId!, undefined, daysInactive),
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && !!session?.access_token && !loading,
     staleTime: 1000 * 60 * 15,
   });
 }
 
 export function useSingleProductAnalytics(workspaceId: string | undefined, productId: string | undefined) {
+  const { session, loading } = useAuth();
+
   return useQuery<SingleProductAnalytics>({
     queryKey: ["product-analytics-single", workspaceId, productId],
     queryFn: () => fetchAnalytics(workspaceId!, productId),
-    enabled: !!workspaceId && !!productId,
+    enabled: !!workspaceId && !!productId && !!session?.access_token && !loading,
     staleTime: 1000 * 60 * 15,
   });
 }
