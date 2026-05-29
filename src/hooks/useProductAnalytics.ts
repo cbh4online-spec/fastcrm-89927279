@@ -67,7 +67,12 @@ export interface SingleProductAnalytics {
   monthly_trend: Array<{ month: string; revenue: number; qty: number; proposals: number }>;
 }
 
-async function fetchAnalytics(workspaceId: string, accessToken: string, productId?: string, daysInactive?: number) {
+async function fetchAnalytics<T extends ProductAnalyticsSummary | SingleProductAnalytics>(
+  workspaceId: string,
+  accessToken: string,
+  productId?: string,
+  daysInactive?: number,
+) {
   const { data, error } = await supabase.functions.invoke("compute-product-analytics", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -80,7 +85,7 @@ async function fetchAnalytics(workspaceId: string, accessToken: string, productI
   });
   if (error) throw new Error(error.message || "Erro ao calcular analytics");
   if (data?.error) throw new Error(data.error);
-  return data as any;
+  return data as T;
 }
 
 
@@ -89,7 +94,7 @@ export function useProductAnalytics(workspaceId: string | undefined, daysInactiv
 
   return useQuery<ProductAnalyticsSummary>({
     queryKey: ["product-analytics", workspaceId, daysInactive],
-    queryFn: () => fetchAnalytics(workspaceId!, session!.access_token, undefined, daysInactive),
+    queryFn: () => fetchAnalytics<ProductAnalyticsSummary>(workspaceId!, session!.access_token, undefined, daysInactive),
     enabled: !!workspaceId && !!session?.access_token && !loading,
     staleTime: 1000 * 60 * 15,
   });
@@ -100,7 +105,7 @@ export function useSingleProductAnalytics(workspaceId: string | undefined, produ
 
   return useQuery<SingleProductAnalytics>({
     queryKey: ["product-analytics-single", workspaceId, productId],
-    queryFn: () => fetchAnalytics(workspaceId!, session!.access_token, productId),
+    queryFn: () => fetchAnalytics<SingleProductAnalytics>(workspaceId!, session!.access_token, productId),
     enabled: !!workspaceId && !!productId && !!session?.access_token && !loading,
     staleTime: 1000 * 60 * 15,
   });
