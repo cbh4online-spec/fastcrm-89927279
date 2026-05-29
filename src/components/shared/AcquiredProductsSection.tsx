@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { ConsumptionLogsPanel } from "@/components/consumption/ConsumptionLogsPanel";
 import { useProducts } from "@/hooks/useProducts";
 import { 
@@ -43,6 +45,7 @@ interface AcquiredProductsSectionProps {
 export function AcquiredProductsSection({ contactId, companyId }: AcquiredProductsSectionProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [purchasedQuantity, setPurchasedQuantity] = useState("1");
   const [unitPrice, setUnitPrice] = useState("");
   const [acquisitionDate, setAcquisitionDate] = useState(new Date().toISOString().split('T')[0]);
@@ -141,27 +144,91 @@ export function AcquiredProductsSection({ contactId, companyId }: AcquiredProduc
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Produto/Serviço</Label>
-                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar produto..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {catalogLoading ? (
-                      <div className="p-2 text-center text-muted-foreground">A carregar...</div>
-                    ) : availableProducts.length === 0 ? (
-                      <div className="p-2 text-center text-muted-foreground">
-                        Todos os produtos já foram adicionados
-                      </div>
-                    ) : (
-                      availableProducts.map(product => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                          {product.base_price && ` - ${product.base_price}€`}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <Popover open={productPickerOpen} onOpenChange={setProductPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal"
+                    >
+                      <span className="truncate">
+                        {selectedProductId
+                          ? (() => {
+                              const p = availableProducts.find(pr => pr.id === selectedProductId);
+                              return p ? `${p.name}${p.base_price ? ` - ${p.base_price}€` : ""}` : "Selecionar produto...";
+                            })()
+                          : "Selecionar produto..."}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command
+                      filter={(value, search) => {
+                        if (!search) return 1;
+                        return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                      }}
+                    >
+                      <CommandInput placeholder="Pesquisar produto, SKU, categoria..." />
+                      <CommandList>
+                        {catalogLoading ? (
+                          <div className="p-3 text-center text-sm text-muted-foreground">A carregar...</div>
+                        ) : availableProducts.length === 0 ? (
+                          <div className="p-3 text-center text-sm text-muted-foreground">
+                            Todos os produtos já foram adicionados
+                          </div>
+                        ) : (
+                          <>
+                            <CommandEmpty>Sem resultados.</CommandEmpty>
+                            <CommandGroup>
+                              {availableProducts.map(product => {
+                                const searchValue = [
+                                  product.name,
+                                  (product as any).sku,
+                                  (product as any).category,
+                                  (product as any).short_description,
+                                ].filter(Boolean).join(" ");
+                                return (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={searchValue}
+                                    onSelect={() => {
+                                      setSelectedProductId(product.id);
+                                      if (product.base_price && !unitPrice) {
+                                        setUnitPrice(String(product.base_price));
+                                      }
+                                      setProductPickerOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedProductId === product.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                      <span className="truncate">{product.name}</span>
+                                      {((product as any).sku || (product as any).category) && (
+                                        <span className="text-xs text-muted-foreground truncate">
+                                          {[(product as any).sku, (product as any).category].filter(Boolean).join(" · ")}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {product.base_price ? (
+                                      <span className="ml-2 text-xs text-muted-foreground shrink-0">
+                                        {product.base_price}€
+                                      </span>
+                                    ) : null}
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
