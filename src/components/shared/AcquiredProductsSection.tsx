@@ -144,32 +144,32 @@ export function AcquiredProductsSection({ contactId, companyId }: AcquiredProduc
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Produto/Serviço</Label>
-                <Popover open={productPickerOpen} onOpenChange={setProductPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between font-normal"
-                    >
-                      <span className="truncate">
-                        {selectedProductId
-                          ? (() => {
-                              const p = availableProducts.find(pr => pr.id === selectedProductId);
-                              return p ? `${p.name}${p.base_price ? ` - ${p.base_price}€` : ""}` : "Selecionar produto...";
-                            })()
-                          : "Selecionar produto..."}
-                      </span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between font-normal"
+                  onClick={() => setProductPickerOpen((v) => !v)}
+                >
+                  <span className="truncate">
+                    {selectedProductId
+                      ? (() => {
+                          const p = availableProducts.find(pr => pr.id === selectedProductId);
+                          return p ? `${p.name}${p.base_price ? ` - ${p.base_price}€` : ""}` : "Selecionar produto...";
+                        })()
+                      : "Selecionar produto..."}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+                {productPickerOpen && (
+                  <div className="rounded-md border bg-popover shadow-md">
                     <Command
                       filter={(value, search) => {
                         if (!search) return 1;
                         return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
                       }}
                     >
-                      <CommandInput placeholder="Pesquisar produto, SKU, categoria..." />
+                      <CommandInput placeholder="Pesquisar produto, SKU, categoria..." autoFocus />
                       <CommandList>
                         {catalogLoading ? (
                           <div className="p-3 text-center text-sm text-muted-foreground">A carregar...</div>
@@ -227,8 +227,9 @@ export function AcquiredProductsSection({ contactId, companyId }: AcquiredProduc
                         )}
                       </CommandList>
                     </Command>
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                )}
+
               </div>
 
               <div className="grid grid-cols-2 gap-4">
