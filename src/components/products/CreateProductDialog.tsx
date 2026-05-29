@@ -1208,6 +1208,8 @@ export function CreateProductDialog({
                   )}
                 </CollapsibleContent>
               </Collapsible>
+              )}
+
 
               {/* Consumption Model Section */}
               <Collapsible open={showConsumption} onOpenChange={setShowConsumption}>
