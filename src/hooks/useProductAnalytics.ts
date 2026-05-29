@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface ProductAnalyticsSummary {
   top_in_proposals: Array<{
@@ -66,8 +67,16 @@ export interface SingleProductAnalytics {
   monthly_trend: Array<{ month: string; revenue: number; qty: number; proposals: number }>;
 }
 
-async function fetchAnalytics(workspaceId: string, productId?: string, daysInactive?: number) {
+async function fetchAnalytics<T extends ProductAnalyticsSummary | SingleProductAnalytics>(
+  workspaceId: string,
+  accessToken: string,
+  productId?: string,
+  daysInactive?: number,
+) {
   const { data, error } = await supabase.functions.invoke("compute-product-analytics", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: {
       workspace_id: workspaceId,
       product_id: productId,
@@ -76,24 +85,28 @@ async function fetchAnalytics(workspaceId: string, productId?: string, daysInact
   });
   if (error) throw new Error(error.message || "Erro ao calcular analytics");
   if (data?.error) throw new Error(data.error);
-  return data as any;
+  return data as T;
 }
 
 
 export function useProductAnalytics(workspaceId: string | undefined, daysInactive = 90) {
+  const { session, loading } = useAuth();
+
   return useQuery<ProductAnalyticsSummary>({
     queryKey: ["product-analytics", workspaceId, daysInactive],
-    queryFn: () => fetchAnalytics(workspaceId!, undefined, daysInactive),
-    enabled: !!workspaceId,
+    queryFn: () => fetchAnalytics<ProductAnalyticsSummary>(workspaceId!, session!.access_token, undefined, daysInactive),
+    enabled: !!workspaceId && !!session?.access_token && !loading,
     staleTime: 1000 * 60 * 15,
   });
 }
 
 export function useSingleProductAnalytics(workspaceId: string | undefined, productId: string | undefined) {
+  const { session, loading } = useAuth();
+
   return useQuery<SingleProductAnalytics>({
     queryKey: ["product-analytics-single", workspaceId, productId],
-    queryFn: () => fetchAnalytics(workspaceId!, productId),
-    enabled: !!workspaceId && !!productId,
+    queryFn: () => fetchAnalytics<SingleProductAnalytics>(workspaceId!, session!.access_token, productId),
+    enabled: !!workspaceId && !!productId && !!session?.access_token && !loading,
     staleTime: 1000 * 60 * 15,
   });
 }
