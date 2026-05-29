@@ -67,28 +67,18 @@ export interface SingleProductAnalytics {
 }
 
 async function fetchAnalytics(workspaceId: string, productId?: string, daysInactive?: number) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const res = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/compute-product-analytics`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token}`,
-      },
-      body: JSON.stringify({
-        workspace_id: workspaceId,
-        product_id: productId,
-        days_inactive: daysInactive ?? 90,
-      }),
-    }
-  );
-  if (!res.ok) {
-    const err: any = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Erro ao calcular analytics");
-  }
-  return res.json() as Promise<any>;
+  const { data, error } = await supabase.functions.invoke("compute-product-analytics", {
+    body: {
+      workspace_id: workspaceId,
+      product_id: productId,
+      days_inactive: daysInactive ?? 90,
+    },
+  });
+  if (error) throw new Error(error.message || "Erro ao calcular analytics");
+  if (data?.error) throw new Error(data.error);
+  return data as any;
 }
+
 
 export function useProductAnalytics(workspaceId: string | undefined, daysInactive = 90) {
   return useQuery<ProductAnalyticsSummary>({
