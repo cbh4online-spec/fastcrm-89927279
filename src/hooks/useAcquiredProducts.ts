@@ -22,7 +22,7 @@ export function useContactAcquiredProducts(contactId: string | undefined) {
         .select(`
           *,
           product:products(
-            id, name, price, category, product_type, 
+            id, name, base_price, category, product_type, 
             consumption_model, included_quantity, 
             recommended_frequency, typical_duration_days, is_trackable
           )
