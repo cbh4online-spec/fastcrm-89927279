@@ -38,6 +38,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
+import { useCapability } from "@/hooks/useCapability";
+
 import { LaborConfigEditor } from "./LaborConfigEditor";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
