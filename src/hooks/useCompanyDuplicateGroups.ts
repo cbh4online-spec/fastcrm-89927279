@@ -192,6 +192,17 @@ export function useCompanyDuplicateGroups() {
           relatedCounts: relationCounts.get(c.id) || { contacts: 0, opportunities: 0, invoices: 0, proposals: 0 },
         }));
         withRelations.sort((a, b) => {
+          // SAFT-origin companies are always the recommended primary (official tax data wins over ARTSOFT).
+          const sourceRank = (c: CompanyWithRelations) => {
+            const src = ((c as any).source ?? "").toLowerCase();
+            const ext = ((c as any).external_provider ?? "").toLowerCase();
+            if (src === "saft_import" || ext === "saft") return 0;
+            if (!!c.tax_id) return 1; // has NIF (likely SAFT-enriched)
+            if (src === "artsoft_import" || ext === "artsoft") return 3;
+            return 2;
+          };
+          const ra = sourceRank(a), rb = sourceRank(b);
+          if (ra !== rb) return ra - rb;
           const aT = Object.values(a.relatedCounts).reduce((s, v) => s + v, 0);
           const bT = Object.values(b.relatedCounts).reduce((s, v) => s + v, 0);
           if (aT !== bT) return bT - aT;
