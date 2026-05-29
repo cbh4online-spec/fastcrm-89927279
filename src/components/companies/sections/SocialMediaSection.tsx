@@ -123,10 +123,10 @@ export function SocialMediaSection({ company, onFieldChange }: SocialMediaSectio
             label="WhatsApp Business"
             fieldId="whatsapp_url"
             fieldType="text"
-            value={(company as any).whatsapp_url}
+            value={effectiveWhatsApp}
             onChange={(val) => onFieldChange("whatsapp_url" as keyof Company, val)}
             icon={<MessageCircle className="w-4 h-4" />}
-            isLink={!!(company as any).whatsapp_url}
+            isLink={!!effectiveWhatsApp}
             linkType="url"
             placeholder="https://wa.me/..."
           />
