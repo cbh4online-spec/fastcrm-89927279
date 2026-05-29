@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Coins } from "lucide-react";
 import { useProductValuation } from "@/hooks/useInventoryValuation";
+import { useCapability } from "@/hooks/useCapability";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(n || 0);
@@ -14,9 +15,15 @@ interface Props {
 /**
  * Cartão de valorização FIFO para o detalhe de produto.
  * Mostra stock × custo médio FIFO × PVP × margem latente.
+ * Restrito a utilizadores com capability `finance.view` (esconde custo/margem
+ * para perfis comerciais como agentes/SDRs).
  */
 export function ProductValuationCard({ productId }: Props) {
+  const canViewCostMargin = useCapability("finance.view");
   const { valuation, isLoading } = useProductValuation(productId);
+
+  if (!canViewCostMargin) return null;
+
 
   if (isLoading) {
     return (
