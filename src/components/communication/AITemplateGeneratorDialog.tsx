@@ -21,6 +21,8 @@ import { Loader2, Sparkles, ArrowRight, ArrowLeft, Check, Lightbulb, Zap } from 
 import { useGenerateTemplate, GeneratedEmailTemplate, GeneratedWhatsAppTemplate } from '@/hooks/useGenerateTemplate';
 import { CommunicationTemplate, TemplateChannel, TemplateTone, TemplateStructure } from '@/types/communicationTemplate';
 import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { toast } from 'sonner';
 
 interface AITemplateGeneratorDialogProps {
   open: boolean;
