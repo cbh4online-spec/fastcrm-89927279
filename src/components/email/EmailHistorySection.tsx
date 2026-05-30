@@ -20,6 +20,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useContactEmailHistory, EmailConversationWithMessages } from "@/hooks/useContactEmailHistory";
 import { Message } from "@/hooks/useMessages";
+import { sanitizeHtml } from "@/utils/sanitize";
+
 
 interface EmailHistorySectionProps {
   entityType: "contact" | "lead" | "company";

@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink, MessageCircle, Play, ChevronDown, ChevronUp, Quote, Clock, Star, ArrowRight } from "lucide-react";
 import type { LucideProps } from "lucide-react";
 import dynamicIconImports from "lucide-react/dynamicIconImports";
+import { sanitizeCss } from "@/utils/sanitize";
+
 
 interface BioPage {
   id: string;

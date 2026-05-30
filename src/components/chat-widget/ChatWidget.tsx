@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProactiveChatTriggers, type ProactiveRule } from "@/hooks/useProactiveChatTriggers";
+import { sanitizeCss } from "@/utils/sanitize";
+
 
 interface WidgetConfig {
   id: string;
