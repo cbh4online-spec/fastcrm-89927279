@@ -71,11 +71,13 @@ interface EmailRichComposerProps {
   onSent?: () => void;
 }
 
-// Simple HTML preview sanitization for display
+import { sanitizeHtml } from "@/utils/sanitize";
+
+// Safe HTML preview sanitization (DOMPurify with allowlist)
 function sanitizeForPreview(html: string): string {
-  // Remove scripts
-  return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+  return sanitizeHtml(html);
 }
+
 
 // Convert textarea content to basic HTML
 function textToHtml(text: string): string {

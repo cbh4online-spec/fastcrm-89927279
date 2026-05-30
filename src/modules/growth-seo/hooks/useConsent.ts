@@ -38,24 +38,26 @@ export function useConsent() {
         }
 
         const visitorId = getVisitorId();
-        const { data, error } = await supabase
-          .from('gdpr_consents')
-          .select('*')
-          .eq('visitor_id', visitorId)
-          .maybeSingle();
+        const { data, error } = await (supabase as any).rpc('get_my_gdpr_consent', {
+          p_visitor_id: visitorId,
+        });
 
         if (error) {
           console.warn('GDPR consent lookup failed:', error.message);
-        } else if (data) {
-          const dbConsent: ConsentState = {
-            necessary: data.consent_necessary,
-            analytics: data.consent_analytics,
-            marketing: data.consent_marketing,
-            hasConsented: true,
-          };
-          setConsent(dbConsent);
-          localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(dbConsent));
+        } else {
+          const row = Array.isArray(data) ? data[0] : data;
+          if (row) {
+            const dbConsent: ConsentState = {
+              necessary: row.consent_necessary,
+              analytics: row.consent_analytics,
+              marketing: row.consent_marketing,
+              hasConsented: true,
+            };
+            setConsent(dbConsent);
+            localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(dbConsent));
+          }
         }
+
       } catch (error) {
         console.error('Error loading consent:', error);
       } finally {
@@ -88,44 +90,18 @@ export function useConsent() {
     }
 
     try {
-      const { data: existing, error: existingError } = await supabase
-        .from('gdpr_consents')
-        .select('id')
-        .eq('visitor_id', visitorId)
-        .maybeSingle();
-
-      if (existingError) {
-        throw existingError;
-      }
-
-      if (existing) {
-        const { error: updateError } = await supabase
-          .from('gdpr_consents')
-          .update({
-            consent_necessary: updatedConsent.necessary,
-            consent_analytics: updatedConsent.analytics,
-            consent_marketing: updatedConsent.marketing,
-            consent_updated_at: new Date().toISOString(),
-          })
-          .eq('visitor_id', visitorId);
-
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('gdpr_consents')
-          .insert({
-            visitor_id: visitorId,
-            consent_necessary: updatedConsent.necessary,
-            consent_analytics: updatedConsent.analytics,
-            consent_marketing: updatedConsent.marketing,
-            user_agent: navigator.userAgent,
-          });
-
-        if (insertError) throw insertError;
-      }
+      const { error: rpcError } = await (supabase as any).rpc('upsert_my_gdpr_consent', {
+        p_visitor_id: visitorId,
+        p_necessary: updatedConsent.necessary,
+        p_analytics: updatedConsent.analytics,
+        p_marketing: updatedConsent.marketing,
+        p_user_agent: navigator.userAgent,
+      });
+      if (rpcError) throw rpcError;
     } catch (error) {
       console.error('Error saving consent:', error);
     }
+
   }, [consent]);
 
   const acceptAll = useCallback(() => {

@@ -90114,6 +90114,10 @@ export type Database = {
             }
             Returns: boolean
           }
+      activate_community_member_by_token: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
       add_module_credits: {
         Args: {
           p_credits: number
@@ -90860,6 +90864,17 @@ export type Database = {
           slot_start: string
         }[]
       }
+      get_c2c_seller_invite_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          email: string
+          expires_at: string
+          id: string
+          name: string
+          status: string
+          workspace_id: string
+        }[]
+      }
       get_channel_config: {
         Args: { p_channel: string; p_workspace_id: string }
         Returns: Json
@@ -90868,6 +90883,17 @@ export type Database = {
       get_client_roles: {
         Args: { _auth_user_id: string }
         Returns: Database["public"]["Enums"]["client_role"][]
+      }
+      get_community_invite_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          email: string
+          id: string
+          invite_expires_at: string
+          name: string
+          status: string
+          workspace_id: string
+        }[]
       }
       get_composite_kit_stock: { Args: { _kit_id: string }; Returns: Json }
       get_entity_memory_stats: {
@@ -90887,6 +90913,15 @@ export type Database = {
       get_module_trial_status: {
         Args: { p_module_id: string; p_workspace_id: string }
         Returns: Json
+      }
+      get_my_gdpr_consent: {
+        Args: { p_visitor_id: string }
+        Returns: {
+          consent_analytics: boolean
+          consent_marketing: boolean
+          consent_necessary: boolean
+          consent_updated_at: string
+        }[]
       }
       get_next_objective: {
         Args: {
@@ -91058,6 +91093,18 @@ export type Database = {
           total_sale_value: number
           total_units: number
           zero_stock_count: number
+        }[]
+      }
+      get_workspace_invite_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          email: string
+          expires_at: string
+          id: string
+          role: string
+          status: string
+          workspace_id: string
+          workspace_name: string
         }[]
       }
       get_workspace_stripe_config: {
@@ -91785,6 +91832,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      upsert_my_gdpr_consent: {
+        Args: {
+          p_analytics: boolean
+          p_marketing: boolean
+          p_necessary: boolean
+          p_user_agent: string
+          p_visitor_id: string
+        }
+        Returns: undefined
+      }
       upsert_overage_charge: {
         Args: {
           p_amount: number
@@ -91813,6 +91870,17 @@ export type Database = {
           mechanic_config: Json
           reason: string
           valid: boolean
+        }[]
+      }
+      validate_gift_card_code: {
+        Args: { p_code: string; p_workspace_id: string }
+        Returns: {
+          code: string
+          currency: string
+          current_balance: number
+          expires_at: string
+          id: string
+          status: string
         }[]
       }
       validate_memory: {

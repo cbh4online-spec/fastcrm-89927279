@@ -102,18 +102,22 @@ export function useToggleGiftCardStatus(workspaceId: string) {
   });
 }
 
-// Public: validate gift card by code
+// Public: validate gift card by code via SECURITY DEFINER RPC
 export async function validateGiftCard(code: string, workspaceId: string) {
-  const { data, error } = await supabase
-    .from("store_gift_cards")
-    .select("id, code, current_balance, currency, status, expires_at")
-    .eq("code", code.toUpperCase().trim())
-    .eq("workspace_id", workspaceId)
-    .eq("status", "active")
-    .maybeSingle();
-
+  const { data, error } = await (supabase as any).rpc("validate_gift_card_code", {
+    p_code: code,
+    p_workspace_id: workspaceId,
+  });
   if (error || !data) return null;
-  if (data.expires_at && new Date(data.expires_at) < new Date()) return null;
-  if (data.current_balance <= 0) return null;
-  return data;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  return row as {
+    id: string;
+    code: string;
+    current_balance: number;
+    currency: string;
+    status: string;
+    expires_at: string | null;
+  };
 }
+

@@ -33,19 +33,19 @@ export default function C2CSellerInviteActivation() {
         return;
       }
 
-      const { data, error: fetchError } = await supabase
-        .from("c2c_seller_invites" as any)
-        .select("*")
-        .eq("invite_token", token)
-        .maybeSingle();
+      const { data, error: fetchError } = await (supabase as any).rpc("get_c2c_seller_invite_by_token", {
+        p_token: token,
+      });
 
-      if (fetchError || !data) {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (fetchError || !row) {
         setError("Convite não encontrado ou expirado");
         setLoading(false);
         return;
       }
 
-      const inv = data as any;
+      const inv = row as any;
+
       if (inv.status !== "pending") {
         setError("Este convite já foi utilizado");
         setLoading(false);

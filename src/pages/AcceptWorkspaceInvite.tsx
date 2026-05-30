@@ -51,20 +51,18 @@ export default function AcceptWorkspaceInvite() {
 
   const fetchInvite = async () => {
     try {
-      // Use service-level access via RPC or direct query
-      const { data, error: fetchError } = await supabase
-        .from("workspace_invites" as any)
-        .select("id, workspace_id, email, role, status, expires_at")
-        .eq("invite_token", token)
-        .single();
+      const { data, error: fetchError } = await (supabase as any).rpc("get_workspace_invite_by_token", {
+        p_token: token,
+      });
 
-      if (fetchError || !data) {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (fetchError || !row) {
         setError("Convite não encontrado ou inválido.");
         setLoading(false);
         return;
       }
 
-      const inviteData = data as any;
+      const inviteData = row as any;
 
       if (inviteData.status !== "pending") {
         setError("Este convite já foi utilizado ou revogado.");
@@ -78,18 +76,12 @@ export default function AcceptWorkspaceInvite() {
         return;
       }
 
-      // Get workspace name
-      const { data: ws } = await supabase
-        .from("workspaces")
-        .select("name, ui_mode")
-        .eq("id", inviteData.workspace_id)
-        .single();
-
       setInvite({
         ...inviteData,
-        workspace_name: ws?.name || "Workspace",
-        workspace_ui_mode: (ws as any)?.ui_mode || "auto",
+        workspace_name: inviteData.workspace_name || "Workspace",
+        workspace_ui_mode: "auto",
       });
+
       setSignupEmail(inviteData.email);
       setLoginEmail(inviteData.email);
     } catch (err) {

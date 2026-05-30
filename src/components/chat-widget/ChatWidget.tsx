@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProactiveChatTriggers, type ProactiveRule } from "@/hooks/useProactiveChatTriggers";
+import { sanitizeCss } from "@/utils/sanitize";
+
 
 interface WidgetConfig {
   id: string;
@@ -241,10 +243,11 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
   return (
     <>
-      {/* Inject custom CSS */}
+      {/* Inject custom CSS (sanitized) */}
       {config.custom_css && (
-        <style dangerouslySetInnerHTML={{ __html: config.custom_css }} />
+        <style dangerouslySetInnerHTML={{ __html: sanitizeCss(config.custom_css) }} />
       )}
+
 
       {/* Proactive message bubble */}
       {proactiveMessage && !isOpen && (
