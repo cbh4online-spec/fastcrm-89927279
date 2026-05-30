@@ -42,6 +42,8 @@ export function WhatsAppZapiConnectionCard() {
   const { data: conn, isLoading } = useWhatsAppZapiConnection();
   const disconnect = useDisconnectWhatsAppZapi();
   const refreshStatus = useStatusWhatsAppZapi();
+  const configureWebhook = useWhatsAppConfigureWebhook();
+  const { isSuperAdmin } = useWorkspace();
   const [showQR, setShowQR] = useState(false);
   const [showTestSend, setShowTestSend] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
