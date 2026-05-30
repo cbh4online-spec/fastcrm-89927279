@@ -27,6 +27,7 @@ import {
   type GeneratedWhatsAppTemplate 
 } from "@/hooks/useGenerateTemplate";
 import { useCreateTemplate, type TemplateType, type TemplateGoal, type TemplateTone } from "@/hooks/useTemplates";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { 
   Sparkles, 
   Loader2, 
