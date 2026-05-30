@@ -19,6 +19,8 @@ interface GenerateTemplateRequest {
   };
   customInstructions?: string;
   dynamic?: boolean;
+  workspaceId?: string;
+  workspace_id?: string;
 }
 
 Deno.serve(async (req) => {
