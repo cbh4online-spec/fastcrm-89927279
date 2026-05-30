@@ -47,14 +47,21 @@ Deno.serve(async (req) => {
       return jsonRes({ ok: false, error: 'Mensagem inválida (máx 2000 caracteres)' }, 400);
     }
 
-    // Verificar pertença ao workspace
+    // Verificar pertença ao workspace, com bypass seguro para super admin
     const { data: membership } = await admin
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
       .eq('user_id', userId)
       .maybeSingle();
-    if (!membership) return jsonRes({ error: 'Forbidden' }, 403);
+
+    let isSuperAdmin = false;
+    if (!membership) {
+      const { data: superAdminCheck } = await admin.rpc('is_super_admin', { _user_id: userId });
+      isSuperAdmin = superAdminCheck === true;
+    }
+
+    if (!membership && !isSuperAdmin) return jsonRes({ error: 'Forbidden' }, 403);
 
     const { data: conn } = await admin
       .from('whatsapp_zapi_connections')
