@@ -49,7 +49,13 @@ Deno.serve(async (req) => {
       .eq('user_id', userId)
       .maybeSingle();
 
+    let isSuperAdmin = false;
     if (!membership) {
+      const { data: superAdminCheck } = await admin.rpc('is_super_admin', { _user_id: userId });
+      isSuperAdmin = superAdminCheck === true;
+    }
+
+    if (!membership && !isSuperAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
