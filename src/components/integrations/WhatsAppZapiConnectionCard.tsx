@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Phone, CheckCircle, Loader2, QrCode, XCircle, AlertTriangle, Clock, WifiOff,
-  RefreshCw, Send, Activity,
+  RefreshCw, Send, Activity, Webhook,
 } from "lucide-react";
 import {
   useWhatsAppZapiConnection,
@@ -11,6 +11,8 @@ import {
   useStatusWhatsAppZapi,
   type ZapiStatus,
 } from "@/hooks/useWhatsAppZapiConnection";
+import { useWhatsAppConfigureWebhook } from "@/hooks/useWhatsAppOps";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useState } from "react";
 import { WhatsAppZapiQRDialog } from "@/components/settings/WhatsAppZapiQRDialog";
 import { WhatsAppTestSendDialog } from "@/components/settings/WhatsAppTestSendDialog";
@@ -40,6 +42,8 @@ export function WhatsAppZapiConnectionCard() {
   const { data: conn, isLoading } = useWhatsAppZapiConnection();
   const disconnect = useDisconnectWhatsAppZapi();
   const refreshStatus = useStatusWhatsAppZapi();
+  const configureWebhook = useWhatsAppConfigureWebhook();
+  const { isSuperAdmin } = useWorkspace();
   const [showQR, setShowQR] = useState(false);
   const [showTestSend, setShowTestSend] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
@@ -115,9 +119,27 @@ export function WhatsAppZapiConnectionCard() {
                 {webhookConfigured ? (
                   <Badge className="bg-emerald-500 text-white text-xs">Ativo</Badge>
                 ) : (
-                  <Badge variant="outline" className="border-orange-400 text-orange-700 text-xs">
-                    Não configurado
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="border-orange-400 text-orange-700 text-xs">
+                      Não configurado
+                    </Badge>
+                    {isSuperAdmin && isConnected && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1.5 text-xs"
+                        onClick={() => configureWebhook.mutate()}
+                        disabled={configureWebhook.isPending}
+                      >
+                        {configureWebhook.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Webhook className="h-3 w-3" />
+                        )}
+                        Configurar
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
               {webhookLastReceived && (
