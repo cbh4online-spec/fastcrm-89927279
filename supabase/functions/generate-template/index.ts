@@ -248,7 +248,7 @@ Use {{first_name}}, {{company_name}}, {{industry}}, {{potential_value}} for pers
     try {
       const _usage = aiData?.usage;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspaceId: workspaceId,
         feature: 'generate-template',
         model: aiData?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,
