@@ -141,6 +141,7 @@ export function WhatsAppZapiConnectionCard() {
                     )}
                   </div>
                 )}
+              </div>
               {webhookLastReceived && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Última receção:</span>
