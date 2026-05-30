@@ -27,6 +27,7 @@ import {
   type GeneratedWhatsAppTemplate 
 } from "@/hooks/useGenerateTemplate";
 import { useCreateTemplate, type TemplateType, type TemplateGoal, type TemplateTone } from "@/hooks/useTemplates";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { 
   Sparkles, 
   Loader2, 
@@ -95,10 +96,15 @@ export function AITemplateGenerator({
 
   const generateTemplate = useGenerateTemplate();
   const createTemplate = useCreateTemplate();
+  const { currentWorkspace } = useWorkspace();
 
   const handleGenerate = async () => {
     if (!goal) {
       toast.error("Selecione um objetivo");
+      return;
+    }
+    if (!currentWorkspace?.id) {
+      toast.error("Workspace ativo não encontrado");
       return;
     }
 
@@ -113,6 +119,7 @@ export function AITemplateGenerator({
         conversationContext: context.conversationContext,
       },
       customInstructions: customInstructions || undefined,
+      workspaceId: currentWorkspace.id,
     };
 
     try {

@@ -21,6 +21,8 @@ import { Loader2, Sparkles, ArrowRight, ArrowLeft, Check, Lightbulb, Zap } from 
 import { useGenerateTemplate, GeneratedEmailTemplate, GeneratedWhatsAppTemplate } from '@/hooks/useGenerateTemplate';
 import { CommunicationTemplate, TemplateChannel, TemplateTone, TemplateStructure } from '@/types/communicationTemplate';
 import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { toast } from 'sonner';
 
 interface AITemplateGeneratorDialogProps {
   open: boolean;
@@ -65,6 +67,7 @@ export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated, ini
 
   const { recommendations } = useTemplateRecommendations();
   const generateTemplate = useGenerateTemplate();
+  const { currentWorkspace } = useWorkspace();
 
   // The active recommendation: either passed from outside or the top one
   const activeRec = initialRecommendation || (recommendations.length > 0 ? recommendations[0] : null);
@@ -85,6 +88,10 @@ export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated, ini
   };
 
   const handleGenerate = async () => {
+    if (!currentWorkspace?.id) {
+      toast.error('Workspace ativo não encontrado');
+      return;
+    }
     const goalLabel = GOAL_OPTIONS.find(g => g.value === goal)?.label || goal;
     const audienceLabel = AUDIENCE_OPTIONS.find(a => a.value === audience)?.label || audience;
 
@@ -94,6 +101,7 @@ export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated, ini
       tone: tone,
       context: {},
       customInstructions: `Estrutura AIDA. Público-alvo: ${audienceLabel}. Objetivo: ${goalLabel}.`,
+      workspaceId: currentWorkspace.id,
     });
 
     // Map generated result to CommunicationTemplate partial
