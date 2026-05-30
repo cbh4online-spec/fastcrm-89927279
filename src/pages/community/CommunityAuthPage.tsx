@@ -41,24 +41,23 @@ export default function CommunityAuthPage() {
   // Load invite data if token present
   useEffect(() => {
     if (!inviteToken) return;
-    supabase
-      .from("community_members")
-      .select("name, email, status, invite_expires_at")
-      .eq("invite_token", inviteToken)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data && (data as any).status === "pending") {
-          const expires = new Date((data as any).invite_expires_at);
-          if (expires > new Date()) {
-            setInviteData({ name: (data as any).name, email: (data as any).email });
-            setFullName((data as any).name);
-            setEmail((data as any).email);
+    (supabase as any)
+      .rpc("get_community_invite_by_token", { p_token: inviteToken })
+      .then(({ data }: { data: any }) => {
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row && row.status === "pending") {
+          const expires = row.invite_expires_at ? new Date(row.invite_expires_at) : null;
+          if (!expires || expires > new Date()) {
+            setInviteData({ name: row.name, email: row.email });
+            setFullName(row.name);
+            setEmail(row.email);
           } else {
             toast.error("Este convite expirou");
           }
         }
       });
   }, [inviteToken]);
+
 
   // Redirect if already logged in — go back to public page which handles membership check
   if (!authLoading && user) {
@@ -144,12 +143,9 @@ export default function CommunityAuthPage() {
         try {
           let memberId: string | null = null;
           if (inviteToken) {
-            const { data: member } = await supabase
-              .from("community_members")
-              .select("id")
-              .eq("invite_token", inviteToken)
-              .maybeSingle();
-            memberId = member?.id || null;
+            const { data: member } = await (supabase as any).rpc("get_community_invite_by_token", { p_token: inviteToken });
+            const row = Array.isArray(member) ? member[0] : member;
+            memberId = row?.id || null;
           }
 
           const answerRows = Object.entries(answers)
@@ -172,17 +168,15 @@ export default function CommunityAuthPage() {
         }
       }
 
-      // Activate community member if invite token
+      // Activate community member if invite token (via SECURITY DEFINER RPC)
       if (inviteToken) {
         try {
-          await supabase
-            .from("community_members")
-            .update({ status: "active", joined_at: new Date().toISOString() } as any)
-            .eq("invite_token", inviteToken);
+          await (supabase as any).rpc("activate_community_member_by_token", { p_token: inviteToken });
         } catch (e) {
           console.error("Error activating invite:", e);
         }
       }
+
     }
 
     setLoading(false);
