@@ -40,7 +40,13 @@ Deno.serve(async (req) => {
       .eq('workspace_id', workspaceId)
       .eq('user_id', userId)
       .maybeSingle();
-    if (!membership) return jsonRes({ error: 'Not a member of this workspace' }, 403);
+    let isSuperAdmin = false;
+    if (!membership) {
+      const admin0 = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+      const { data: superAdminCheck } = await admin0.rpc('is_super_admin', { _user_id: userId });
+      isSuperAdmin = superAdminCheck === true;
+    }
+    if (!membership && !isSuperAdmin) return jsonRes({ error: 'Not a member of this workspace' }, 403);
 
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
