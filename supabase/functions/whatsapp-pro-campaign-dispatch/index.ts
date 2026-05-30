@@ -277,8 +277,19 @@ async function processCampaign(supabase: any, c: Campaign): Promise<{ sent: numb
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Auth: require shared CRON_SECRET for manual/cron invocations
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const providedSecret =
+    req.headers.get("x-cron-secret") ||
+    (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!cronSecret || providedSecret !== cronSecret) {
+    return jsonRes({ ok: false, error: "unauthorized" }, 401);
+  }
+
   try {
     const supabase = createClient(supabaseUrl, serviceKey);
+
+
 
     // Find campaigns ready to dispatch
     const nowIso = new Date().toISOString();
