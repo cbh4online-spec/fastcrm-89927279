@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Phone, CheckCircle, Loader2, QrCode, XCircle, AlertTriangle, Clock, WifiOff,
-  RefreshCw, Send, Activity,
+  RefreshCw, Send, Activity, Webhook,
 } from "lucide-react";
 import {
   useWhatsAppZapiConnection,
@@ -11,6 +11,8 @@ import {
   useStatusWhatsAppZapi,
   type ZapiStatus,
 } from "@/hooks/useWhatsAppZapiConnection";
+import { useWhatsAppConfigureWebhook } from "@/hooks/useWhatsAppOps";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useState } from "react";
 import { WhatsAppZapiQRDialog } from "@/components/settings/WhatsAppZapiQRDialog";
 import { WhatsAppTestSendDialog } from "@/components/settings/WhatsAppTestSendDialog";
