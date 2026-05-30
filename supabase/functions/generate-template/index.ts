@@ -56,20 +56,41 @@ Deno.serve(async (req) => {
     }
 
     const body: GenerateTemplateRequest = await req.json();
+    const { type, goal, tone, context, customInstructions, dynamic } = body;
+    const workspaceId = body.workspaceId || body.workspace_id || null;
 
-    // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'light', 'generate-template');
-      if (!gate.allowed) {
-        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Workspace isolation: workspaceId obrigatório para evitar fuga entre tenants
+    if (!workspaceId) {
+      return new Response(
+        JSON.stringify({ error: "workspaceId is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const { type, goal, tone, context, customInstructions, dynamic } = body;
+    // Validar pertença do utilizador ao workspace
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: membership, error: membershipError } = await supabase
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", userData.user.id)
+      .maybeSingle();
+
+    if (membershipError || !membership) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: not a member of this workspace" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // AI Gate check
+    const gate = await aiGate(workspaceId, 'light', 'generate-template');
+    if (!gate.allowed) {
+      return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!type || !goal) {
       return new Response(
@@ -86,9 +107,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Gather context data
+    // Gather context data — SEMPRE filtrar por workspace_id para evitar fuga entre tenants
     let contextData: Record<string, unknown> = {};
 
     if (context.contactId) {
@@ -96,7 +115,8 @@ Deno.serve(async (req) => {
         .from("contacts")
         .select("name, email, phone, company, job_title, notes, tags")
         .eq("id", context.contactId)
-        .single();
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
       if (contact) contextData.contact = contact;
     }
 
@@ -105,7 +125,8 @@ Deno.serve(async (req) => {
         .from("companies")
         .select("name, industry, size, website, notes")
         .eq("id", context.companyId)
-        .single();
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
       if (company) contextData.company = company;
     }
 
@@ -114,7 +135,8 @@ Deno.serve(async (req) => {
         .from("opportunities")
         .select("title, value, status, notes, expected_close_date, lead:leads(name, email, phone)")
         .eq("id", context.opportunityId)
-        .single();
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
       if (opportunity) contextData.opportunity = opportunity;
     }
 
