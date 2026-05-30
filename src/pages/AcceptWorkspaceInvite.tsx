@@ -79,9 +79,9 @@ export default function AcceptWorkspaceInvite() {
       setInvite({
         ...inviteData,
         workspace_name: inviteData.workspace_name || "Workspace",
-
-        workspace_ui_mode: (ws as any)?.ui_mode || "auto",
+        workspace_ui_mode: "auto",
       });
+
       setSignupEmail(inviteData.email);
       setLoginEmail(inviteData.email);
     } catch (err) {
