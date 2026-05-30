@@ -56,9 +56,10 @@ function MessageBubble({ message }: { message: Message }) {
         <div 
           className="text-sm whitespace-pre-wrap break-words"
           dangerouslySetInnerHTML={{ 
-            __html: message.content.replace(/\n/g, "<br>") 
+            __html: sanitizeHtml(message.content.replace(/\n/g, "<br>")) 
           }}
         />
+
         <div className={cn(
           "text-[10px] mt-2 flex items-center gap-1",
           isOutbound ? "text-primary-foreground/70 justify-end" : "text-muted-foreground"

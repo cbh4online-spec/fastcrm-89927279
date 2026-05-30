@@ -733,7 +733,7 @@ export default function PublicBioPage() {
       <style dangerouslySetInnerHTML={{ __html: bioAnimationCSS }} />
 
       <div className="min-h-screen" style={bgStyle}>
-        {page.custom_css && <style dangerouslySetInnerHTML={{ __html: page.custom_css }} />}
+        {page.custom_css && <style dangerouslySetInnerHTML={{ __html: sanitizeCss(page.custom_css) }} />}
 
         <div className="max-w-lg mx-auto px-4 py-10 space-y-5">
           {blocks.map((block, i) => (

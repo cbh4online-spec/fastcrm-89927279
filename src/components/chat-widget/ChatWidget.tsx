@@ -241,10 +241,11 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
   return (
     <>
-      {/* Inject custom CSS */}
+      {/* Inject custom CSS (sanitized) */}
       {config.custom_css && (
-        <style dangerouslySetInnerHTML={{ __html: config.custom_css }} />
+        <style dangerouslySetInnerHTML={{ __html: sanitizeCss(config.custom_css) }} />
       )}
+
 
       {/* Proactive message bubble */}
       {proactiveMessage && !isOpen && (
