@@ -96,10 +96,15 @@ export function AITemplateGenerator({
 
   const generateTemplate = useGenerateTemplate();
   const createTemplate = useCreateTemplate();
+  const { currentWorkspace } = useWorkspace();
 
   const handleGenerate = async () => {
     if (!goal) {
       toast.error("Selecione um objetivo");
+      return;
+    }
+    if (!currentWorkspace?.id) {
+      toast.error("Workspace ativo não encontrado");
       return;
     }
 
@@ -114,6 +119,7 @@ export function AITemplateGenerator({
         conversationContext: context.conversationContext,
       },
       customInstructions: customInstructions || undefined,
+      workspaceId: currentWorkspace.id,
     };
 
     try {
