@@ -55,11 +55,12 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Copy,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useProduct, useUpdateProduct, useArchiveProduct, useDeleteProduct } from "@/hooks/useProducts";
+import { useProduct, useUpdateProduct, useArchiveProduct, useDeleteProduct, useDuplicateProduct } from "@/hooks/useProducts";
 import { useProductStats, generateProductAlerts } from "@/hooks/useProductStats";
 import {
   productTypeLabels,
