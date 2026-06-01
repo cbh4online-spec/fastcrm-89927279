@@ -206,7 +206,7 @@ Tags do workspace: ${JSON.stringify(workspaceTags)}`,
       reasoning: s.reasoning,
       explanation: s.reasoning,
       field_name: 'tags',
-      field_type: 'tag',
+      field_type: 'standard',
       suggested_value: s.tag,
       source_context: { entity_type, method: 'ai-entity-tags' },
     }));
