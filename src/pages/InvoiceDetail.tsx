@@ -180,8 +180,12 @@ export default function InvoiceDetail() {
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Empresa</p>
-                      <p className="text-sm text-muted-foreground">{invoice.company_id}</p>
+                      <p className="font-medium">{company?.name || "Empresa"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {company?.nif ? `NIF ${company.nif}` : null}
+                        {company?.nif && company?.email ? " · " : null}
+                        {company?.email || (!company ? "A carregar…" : null)}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -189,8 +193,10 @@ export default function InvoiceDetail() {
                   <div className="flex items-center gap-3">
                     <User className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Contacto</p>
-                      <p className="text-sm text-muted-foreground">{invoice.contact_id}</p>
+                      <p className="font-medium">{contact?.name || "Contacto"}</p>
+                      {contact?.email && (
+                        <p className="text-sm text-muted-foreground">{contact.email}</p>
+                      )}
                     </div>
                   </div>
                 )}
