@@ -98,6 +98,7 @@ export default function BillingIntegrationsPage() {
   const { data, isLoading } = useBillingIntegrations();
   const del = useDeleteBillingIntegration();
   const setDefault = useSetDefaultBillingIntegration();
+  const recheck = useRecheckBillingIntegration();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<BillingIntegration | null>(null);
