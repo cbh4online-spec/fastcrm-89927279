@@ -146,13 +146,15 @@ Deno.serve(async (req) => {
 
     let workspaceFilter: string | null = null;
     let invoiceIdFilter: string | null = null;
+    let cronMode = false;
 
     if (body.invoice_id) {
       invoiceIdFilter = body.invoice_id;
     } else if (body.workspace_id) {
       workspaceFilter = body.workspace_id;
-    } else if (!isServiceRole) {
-      return json({ ok: false, error: "invoice_id ou workspace_id obrigatórios" }, 200);
+    } else {
+      // No filter → cron/background mode (counts only, no per-invoice data leak)
+      cronMode = true;
     }
 
     if (!isServiceRole) {
