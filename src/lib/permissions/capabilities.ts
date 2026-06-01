@@ -95,6 +95,7 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "inbox.reply",
     "catalog.read",
     "reports.operational",
+    "rentals.view",
   ],
 
   viewer: [
@@ -103,6 +104,7 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "catalog.read",
     "reports.operational",
     "finance.view",
+    "rentals.view",
   ],
 };
 
