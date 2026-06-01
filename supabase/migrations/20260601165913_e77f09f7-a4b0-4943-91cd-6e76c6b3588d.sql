@@ -1,0 +1,2 @@
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS is_financier boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_companies_is_financier ON public.companies(workspace_id, is_financier) WHERE is_financier = true;
