@@ -325,8 +325,37 @@ export default function RentalContractNewPage() {
           <div><Label>Notas internas</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} /></div>
         </Card>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button variant="ghost" onClick={() => navigate("/dashboard/rentals")}>Cancelar</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              const validItems = items.filter((l) => l.description.trim());
+              if (validItems.length === 0) {
+                toast.error("Adiciona pelo menos uma linha com descrição.");
+                return;
+              }
+              const client = companies.find((c) => c.id === endClientId);
+              const fin = financiers.find((c) => c.id === financierId);
+              const doc = generateRentalContractPdf({
+                end_client_name: client?.name,
+                end_client_tax_id: client?.tax_id ?? null,
+                financier_name: fin?.name,
+                financier_tax_id: fin?.tax_id ?? null,
+                start_date: startDate,
+                duration_months: months,
+                monthly_amount: monthly,
+                total_financed: total,
+                notes,
+                items: validItems,
+              });
+              const fname = `pre-renting_${client?.name?.replace(/\s+/g, "-").toLowerCase() ?? "cliente"}_${startDate}.pdf`;
+              doc.save(fname);
+            }}
+          >
+            <FileDown className="h-4 w-4 mr-2" />Pré-visualizar PDF
+          </Button>
           <Button onClick={submit} disabled={mutation.isPending || !endClientId || !financierId}>{mutation.isPending ? "A criar…" : "Criar contrato"}</Button>
         </div>
       </div>
