@@ -11,6 +11,11 @@ const CollectionCaseDetailPage = lazy(() => import("@/modules/collections/pages/
 const DunningSequencesPage = lazy(() => import("@/modules/collections/pages/DunningSequencesPage"));
 const CollectionsImportPage = lazy(() => import("@/modules/collections/pages/CollectionsImportPage"));
 const SafTImportPage = lazy(() => import("@/pages/imports/SafTImportPage"));
+const RentalsListPage = lazy(() => import("@/modules/rentals/pages/RentalsListPage"));
+const RentalContractNewPage = lazy(() => import("@/modules/rentals/pages/RentalContractNewPage"));
+const RentalContractDetailPage = lazy(() => import("@/modules/rentals/pages/RentalContractDetailPage"));
+const EquipmentInventoryPage = lazy(() => import("@/modules/rentals/pages/EquipmentInventoryPage"));
+const EquipmentUnitDetailPage = lazy(() => import("@/modules/rentals/pages/EquipmentUnitDetailPage"));
 
 export function RevenueOpsRoutes() {
   return (
@@ -25,6 +30,11 @@ export function RevenueOpsRoutes() {
       <Route path="/dashboard/collections/import" element={<CollectionsImportPage />} />
       <Route path="/dashboard/collections/sequences" element={<DunningSequencesPage />} />
       <Route path="/dashboard/collections/:id" element={<CollectionCaseDetailPage />} />
+      <Route path="/dashboard/rentals" element={<RentalsListPage />} />
+      <Route path="/dashboard/rentals/new" element={<RentalContractNewPage />} />
+      <Route path="/dashboard/rentals/equipment" element={<EquipmentInventoryPage />} />
+      <Route path="/dashboard/rentals/equipment/:id" element={<EquipmentUnitDetailPage />} />
+      <Route path="/dashboard/rentals/:id" element={<RentalContractDetailPage />} />
     </>
   );
 }
