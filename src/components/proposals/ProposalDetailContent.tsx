@@ -47,6 +47,7 @@ import { ProposalChangeRequestDialog } from "./ProposalChangeRequestDialog";
 import { ProposalClientDocument } from "./ProposalClientDocument";
 import { ProposalDocumentPreviewDialog } from "./ProposalDocumentPreviewDialog";
 import { ProposalToRenewalCTA } from "./ProposalToRenewalCTA";
+import { ProposalToRentalCTA } from "./ProposalToRentalCTA";
 import { VoiceProposalAssistant, type VoiceScopeResult, type VoiceTimelineResult, type VoiceConditionsResult, type VoiceReferencesResult } from "./VoiceProposalAssistant";
 import { ProposalNarrationButton } from "@/components/voice/ProposalNarrationButton";
 import { PAYMENT_CONDITIONS, type ClientType } from "./proposalConstants";
