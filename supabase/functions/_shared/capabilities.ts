@@ -35,6 +35,8 @@ export const CAPABILITIES = [
   "hr.access",
   "security.access",
   "audit.view",
+  "rentals.view",
+  "rentals.manage",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
