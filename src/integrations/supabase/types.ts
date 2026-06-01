@@ -31572,6 +31572,185 @@ export type Database = {
           },
         ]
       }
+      equipment_unit_history: {
+        Row: {
+          actor_user_id: string | null
+          contract_id: string | null
+          equipment_unit_id: string
+          event_type: string
+          from_client_id: string | null
+          id: string
+          invoice_id: string | null
+          occurred_at: string
+          payload: Json
+          to_client_id: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          contract_id?: string | null
+          equipment_unit_id: string
+          event_type: string
+          from_client_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          occurred_at?: string
+          payload?: Json
+          to_client_id?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          contract_id?: string | null
+          equipment_unit_id?: string
+          event_type?: string
+          from_client_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          occurred_at?: string
+          payload?: Json
+          to_client_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_unit_history_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_unit_history_equipment_unit_id_fkey"
+            columns: ["equipment_unit_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_unit_history_from_client_id_fkey"
+            columns: ["from_client_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_unit_history_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_unit_history_to_client_id_fkey"
+            columns: ["to_client_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_units: {
+        Row: {
+          assigned_at: string | null
+          created_at: string
+          created_by: string | null
+          current_client_company_id: string | null
+          current_contract_id: string | null
+          id: string
+          notes: string | null
+          product_id: string | null
+          purchase_date: string | null
+          returned_at: string | null
+          serial_number: string
+          status: string
+          updated_at: string
+          warranty_end_date: string | null
+          workspace_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_client_company_id?: string | null
+          current_contract_id?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          purchase_date?: string | null
+          returned_at?: string | null
+          serial_number: string
+          status?: string
+          updated_at?: string
+          warranty_end_date?: string | null
+          workspace_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_client_company_id?: string | null
+          current_contract_id?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          purchase_date?: string | null
+          returned_at?: string | null
+          serial_number?: string
+          status?: string
+          updated_at?: string
+          warranty_end_date?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_units_current_client_company_id_fkey"
+            columns: ["current_client_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_units_current_contract_id_fkey"
+            columns: ["current_contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "equipment_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "equipment_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_decision_matrix: {
         Row: {
           action_type: string | null
@@ -42002,6 +42181,7 @@ export type Database = {
           position: number
           product_id: string | null
           quantity: number
+          serial_numbers: string[] | null
           tax_amount: number | null
           tax_rate: number | null
           total: number
@@ -42019,6 +42199,7 @@ export type Database = {
           position?: number
           product_id?: string | null
           quantity?: number
+          serial_numbers?: string[] | null
           tax_amount?: number | null
           tax_rate?: number | null
           total?: number
@@ -42036,6 +42217,7 @@ export type Database = {
           position?: number
           product_id?: string | null
           quantity?: number
+          serial_numbers?: string[] | null
           tax_amount?: number | null
           tax_rate?: number | null
           total?: number
@@ -42383,6 +42565,7 @@ export type Database = {
           public_url: string | null
           related_invoice_id: string | null
           renewal_contract_id: string | null
+          rental_contract_id: string | null
           saft_atcud: string | null
           saft_hash: string | null
           saft_import_id: string | null
@@ -42438,6 +42621,7 @@ export type Database = {
           public_url?: string | null
           related_invoice_id?: string | null
           renewal_contract_id?: string | null
+          rental_contract_id?: string | null
           saft_atcud?: string | null
           saft_hash?: string | null
           saft_import_id?: string | null
@@ -42493,6 +42677,7 @@ export type Database = {
           public_url?: string | null
           related_invoice_id?: string | null
           renewal_contract_id?: string | null
+          rental_contract_id?: string | null
           saft_atcud?: string | null
           saft_hash?: string | null
           saft_import_id?: string | null
@@ -42557,6 +42742,13 @@ export type Database = {
             columns: ["renewal_contract_id"]
             isOneToOne: false
             referencedRelation: "renewal_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_rental_contract_id_fkey"
+            columns: ["rental_contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
             referencedColumns: ["id"]
           },
           {
@@ -67135,6 +67327,235 @@ export type Database = {
           },
         ]
       }
+      rental_contract_events: {
+        Row: {
+          actor_user_id: string | null
+          contract_id: string
+          event_type: string
+          id: string
+          occurred_at: string
+          payload: Json
+        }
+        Insert: {
+          actor_user_id?: string | null
+          contract_id: string
+          event_type: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+        }
+        Update: {
+          actor_user_id?: string | null
+          contract_id?: string
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_contract_events_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_contract_items: {
+        Row: {
+          contract_id: string
+          created_at: string
+          description: string
+          id: string
+          position: number
+          product_id: string | null
+          quantity: number
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          description: string
+          id?: string
+          position?: number
+          product_id?: string | null
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          position?: number
+          product_id?: string | null
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_contract_items_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contract_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contract_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "rental_contract_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contract_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "rental_contract_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_contracts: {
+        Row: {
+          client_note_id: string | null
+          contract_number: string
+          created_at: string
+          created_by: string
+          currency: string
+          duration_months: number | null
+          end_client_company_id: string | null
+          end_client_contact_id: string | null
+          end_date: string | null
+          financier_commission: number | null
+          financier_company_id: string
+          id: string
+          liquid_invoice_id: string | null
+          monthly_amount: number | null
+          notes: string | null
+          renewed_from_id: string | null
+          start_date: string | null
+          status: string
+          total_financed: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          client_note_id?: string | null
+          contract_number: string
+          created_at?: string
+          created_by: string
+          currency?: string
+          duration_months?: number | null
+          end_client_company_id?: string | null
+          end_client_contact_id?: string | null
+          end_date?: string | null
+          financier_commission?: number | null
+          financier_company_id: string
+          id?: string
+          liquid_invoice_id?: string | null
+          monthly_amount?: number | null
+          notes?: string | null
+          renewed_from_id?: string | null
+          start_date?: string | null
+          status?: string
+          total_financed?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          client_note_id?: string | null
+          contract_number?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          duration_months?: number | null
+          end_client_company_id?: string | null
+          end_client_contact_id?: string | null
+          end_date?: string | null
+          financier_commission?: number | null
+          financier_company_id?: string
+          id?: string
+          liquid_invoice_id?: string | null
+          monthly_amount?: number | null
+          notes?: string | null
+          renewed_from_id?: string | null
+          start_date?: string | null
+          status?: string
+          total_financed?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_contracts_client_note_id_fkey"
+            columns: ["client_note_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_end_client_company_id_fkey"
+            columns: ["end_client_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_end_client_contact_id_fkey"
+            columns: ["end_client_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_financier_company_id_fkey"
+            columns: ["financier_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_liquid_invoice_id_fkey"
+            columns: ["liquid_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_renewed_from_id_fkey"
+            columns: ["renewed_from_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_dashboards: {
         Row: {
           created_at: string | null
@@ -90707,6 +91128,10 @@ export type Database = {
         Returns: string
       }
       generate_order_note_number: {
+        Args: { p_workspace_id: string }
+        Returns: string
+      }
+      generate_rental_contract_number: {
         Args: { p_workspace_id: string }
         Returns: string
       }

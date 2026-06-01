@@ -35,6 +35,8 @@ export const CAPABILITIES = [
   "hr.access",
   "security.access",
   "audit.view",
+  "rentals.view",
+  "rentals.manage",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
@@ -61,6 +63,7 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "inbox.reply",
     "catalog.read",
     "reports.operational",
+    "rentals.view",
   ],
   viewer: [
     "crm.read",
@@ -68,6 +71,7 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "catalog.read",
     "reports.operational",
     "finance.view",
+    "rentals.view",
   ],
 };
 

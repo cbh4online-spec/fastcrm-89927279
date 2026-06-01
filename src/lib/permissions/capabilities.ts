@@ -48,6 +48,10 @@ export const CAPABILITIES = [
   "hr.access",
   "security.access",
   "audit.view",
+
+  // Renting / Financiamento
+  "rentals.view",
+  "rentals.manage",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
@@ -91,6 +95,7 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "inbox.reply",
     "catalog.read",
     "reports.operational",
+    "rentals.view",
   ],
 
   viewer: [
@@ -99,6 +104,7 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "catalog.read",
     "reports.operational",
     "finance.view",
+    "rentals.view",
   ],
 };
 
@@ -132,4 +138,6 @@ export const CAPABILITY_LABELS: Record<Capability, string> = {
   "hr.access": "Aceder a Recursos Humanos",
   "security.access": "Aceder ao módulo Segurança",
   "audit.view": "Ver logs de auditoria",
+  "rentals.view": "Ver contratos de renting",
+  "rentals.manage": "Gerir contratos de renting",
 };
