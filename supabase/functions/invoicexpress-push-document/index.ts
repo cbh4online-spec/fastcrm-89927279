@@ -234,6 +234,10 @@ Deno.serve(async (req) => {
           external_id: externalId,
           external_url: permalink,
           external_synced_at: new Date().toISOString(),
+          external_document_type: docType,
+          external_state: created?.status || "draft",
+          external_sequence_number: sequence,
+          external_state_synced_at: new Date().toISOString(),
         })
         .eq("id", invoice.id);
     }

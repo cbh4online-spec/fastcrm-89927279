@@ -42547,8 +42547,12 @@ export type Database = {
           discount_amount: number | null
           document_type: string
           due_date: string
+          external_document_type: string | null
           external_id: string | null
           external_provider: string | null
+          external_sequence_number: string | null
+          external_state: string | null
+          external_state_synced_at: string | null
           external_synced_at: string | null
           external_url: string | null
           fiscal_status: string | null
@@ -42603,8 +42607,12 @@ export type Database = {
           discount_amount?: number | null
           document_type?: string
           due_date?: string
+          external_document_type?: string | null
           external_id?: string | null
           external_provider?: string | null
+          external_sequence_number?: string | null
+          external_state?: string | null
+          external_state_synced_at?: string | null
           external_synced_at?: string | null
           external_url?: string | null
           fiscal_status?: string | null
@@ -42659,8 +42667,12 @@ export type Database = {
           discount_amount?: number | null
           document_type?: string
           due_date?: string
+          external_document_type?: string | null
           external_id?: string | null
           external_provider?: string | null
+          external_sequence_number?: string | null
+          external_state?: string | null
+          external_state_synced_at?: string | null
           external_synced_at?: string | null
           external_url?: string | null
           fiscal_status?: string | null

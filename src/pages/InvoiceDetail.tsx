@@ -151,6 +151,9 @@ export default function InvoiceDetail() {
               invoiceId={invoice.id}
               externalProvider={(invoice as any).external_provider}
               externalUrl={(invoice as any).external_url}
+              externalState={(invoice as any).external_state}
+              externalSequenceNumber={(invoice as any).external_sequence_number}
+              externalStateSyncedAt={(invoice as any).external_state_synced_at}
             />
             {invoice.status === "draft" && (
               <Button variant="outline" onClick={handleSendInvoice} disabled={sendInvoice.isPending}>
