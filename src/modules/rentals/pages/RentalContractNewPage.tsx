@@ -79,11 +79,15 @@ export default function RentalContractNewPage() {
 
   const [endClientId, setEndClientId] = useState("");
   const [financierId, setFinancierId] = useState("");
+  const [contractRef, setContractRef] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [months, setMonths] = useState(36);
   const [notes, setNotes] = useState("");
   const [emitFinancier, setEmitFinancier] = useState(true);
   const [emitClientNote, setEmitClientNote] = useState(true);
+  const [billingFreq, setBillingFreq] = useState<"monthly" | "quarterly">("monthly");
+  const [manualAmount, setManualAmount] = useState(false);
+  const [manualInstallment, setManualInstallment] = useState<number>(0);
   const [items, setItems] = useState<NewRentalLineInput[]>([
     { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""], track_serials: false },
   ]);
@@ -150,7 +154,13 @@ export default function RentalContractNewPage() {
   });
 
   const total = useMemo(() => items.reduce((s, l) => s + Number(l.quantity || 0) * Number(l.unit_price || 0), 0), [items]);
-  const monthly = months > 0 ? total / months : 0;
+  const periodFactor = billingFreq === "quarterly" ? 3 : 1;
+  // Renda automática por período (mensal ou trimestral) calculada a partir do total
+  const autoInstallment = months > 0 ? (total / months) * periodFactor : 0;
+  // Renda efectiva por período (manual ou automática)
+  const installment = manualAmount ? Number(manualInstallment || 0) : autoInstallment;
+  // Valor sempre guardado em base mensal na BD
+  const monthly = installment / periodFactor;
 
   const updateItem = (i: number, patch: Partial<NewRentalLineInput>) => {
     setItems((arr) => arr.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
@@ -177,6 +187,8 @@ export default function RentalContractNewPage() {
         items: items.filter((l) => l.description.trim()),
         emit_financier_invoice: emitFinancier,
         emit_client_note: emitClientNote,
+        contract_number_override: contractRef.trim() || undefined,
+        billing_frequency: billingFreq,
       });
       navigate(`/dashboard/rentals/${c.id}`);
     } catch { /* toast handled in hook */ }
@@ -205,14 +217,61 @@ export default function RentalContractNewPage() {
               <p className="text-xs text-muted-foreground mt-1">Apenas empresas marcadas como financiadoras.</p>
             </div>
           </div>
+          <div>
+            <Label>Referência do contrato (opcional)</Label>
+            <Input
+              value={contractRef}
+              onChange={(e) => setContractRef(e.target.value)}
+              placeholder="Deixar vazio para gerar automaticamente (ex.: RNT-2026-0001)"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Tem de ser único no workspace.</p>
+          </div>
         </Card>
 
         <Card className="p-6 space-y-4">
           <h2 className="font-medium">2. Equipamento e prazo</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div><Label>Data de início</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
             <div><Label>Prazo (meses)</Label><Input type="number" value={months} onChange={(e) => setMonths(Number(e.target.value))} /></div>
-            <div><Label>Renda mensal calculada</Label><Input value={`${monthly.toFixed(2)} €`} disabled /></div>
+            <div>
+              <Label>Periodicidade</Label>
+              <Select value={billingFreq} onValueChange={(v) => setBillingFreq(v as "monthly" | "quarterly")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Mensal</SelectItem>
+                  <SelectItem value="quarterly">Trimestral</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{billingFreq === "quarterly" ? "Renda trimestral" : "Renda mensal"}</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={manualAmount ? manualInstallment : Number(autoInstallment.toFixed(2))}
+                disabled={!manualAmount}
+                onChange={(e) => setManualInstallment(Number(e.target.value))}
+              />
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  id="manual-amount"
+                  type="checkbox"
+                  checked={manualAmount}
+                  onChange={(e) => {
+                    setManualAmount(e.target.checked);
+                    if (e.target.checked) setManualInstallment(Number(autoInstallment.toFixed(2)));
+                  }}
+                />
+                <Label htmlFor="manual-amount" className="text-xs cursor-pointer text-muted-foreground">
+                  Editar valor manualmente
+                </Label>
+              </div>
+              {billingFreq === "quarterly" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Equivalente mensal: <b>{monthly.toFixed(2)} €</b>
+                </p>
+              )}
+            </div>
           </div>
 
           {prefilledFromProposal && (
@@ -339,6 +398,7 @@ export default function RentalContractNewPage() {
               const client = companies.find((c) => c.id === endClientId);
               const fin = financiers.find((c) => c.id === financierId);
               const doc = generateRentalContractPdf({
+                contract_number: contractRef.trim() || undefined,
                 end_client_name: client?.name,
                 end_client_tax_id: client?.tax_id ?? null,
                 financier_name: fin?.name,
@@ -347,7 +407,12 @@ export default function RentalContractNewPage() {
                 duration_months: months,
                 monthly_amount: monthly,
                 total_financed: total,
-                notes,
+                notes: [
+                  billingFreq === "quarterly"
+                    ? `Periodicidade: trimestral (renda trimestral: ${(monthly * 3).toFixed(2)} €)`
+                    : null,
+                  notes,
+                ].filter(Boolean).join("\n"),
                 items: validItems,
               });
               const fname = `pre-renting_${client?.name?.replace(/\s+/g, "-").toLowerCase() ?? "cliente"}_${startDate}.pdf`;
