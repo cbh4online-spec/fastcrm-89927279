@@ -90,6 +90,8 @@ export interface NewRentalLineInput {
   track_serials?: boolean;
 }
 
+export type BillingFrequency = "monthly" | "quarterly";
+
 export interface CreateRentalContractInput {
   end_client_company_id: string;
   end_client_contact_id?: string | null;
@@ -102,4 +104,8 @@ export interface CreateRentalContractInput {
   items: NewRentalLineInput[];
   emit_financier_invoice: boolean;
   emit_client_note: boolean;
+  /** Referência manual do contrato. Se vazio, é gerada automaticamente. */
+  contract_number_override?: string;
+  /** Periodicidade da renda (default: monthly). */
+  billing_frequency?: BillingFrequency;
 }
