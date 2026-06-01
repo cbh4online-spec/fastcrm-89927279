@@ -32,7 +32,7 @@ export default function RentalContractNewPage() {
   const [emitFinancier, setEmitFinancier] = useState(true);
   const [emitClientNote, setEmitClientNote] = useState(true);
   const [items, setItems] = useState<NewRentalLineInput[]>([
-    { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""] },
+    { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""], track_serials: false },
   ]);
 
   const { data: companies = [] } = useQuery({
