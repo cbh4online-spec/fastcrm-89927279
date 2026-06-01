@@ -56,7 +56,15 @@ import {
   Star,
   ExternalLink,
   RefreshCw,
+  Loader2,
+  PlugZap,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const PROVIDER_LABEL: Record<string, string> = {
   invoicexpress: "InvoiceXpress",
