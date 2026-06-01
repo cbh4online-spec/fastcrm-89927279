@@ -154,7 +154,13 @@ export default function RentalContractNewPage() {
   });
 
   const total = useMemo(() => items.reduce((s, l) => s + Number(l.quantity || 0) * Number(l.unit_price || 0), 0), [items]);
-  const monthly = months > 0 ? total / months : 0;
+  const periodFactor = billingFreq === "quarterly" ? 3 : 1;
+  // Renda automática por período (mensal ou trimestral) calculada a partir do total
+  const autoInstallment = months > 0 ? (total / months) * periodFactor : 0;
+  // Renda efectiva por período (manual ou automática)
+  const installment = manualAmount ? Number(manualInstallment || 0) : autoInstallment;
+  // Valor sempre guardado em base mensal na BD
+  const monthly = installment / periodFactor;
 
   const updateItem = (i: number, patch: Partial<NewRentalLineInput>) => {
     setItems((arr) => arr.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
@@ -181,6 +187,8 @@ export default function RentalContractNewPage() {
         items: items.filter((l) => l.description.trim()),
         emit_financier_invoice: emitFinancier,
         emit_client_note: emitClientNote,
+        contract_number_override: contractRef.trim() || undefined,
+        billing_frequency: billingFreq,
       });
       navigate(`/dashboard/rentals/${c.id}`);
     } catch { /* toast handled in hook */ }
