@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,6 +85,36 @@ export default function RentalContractNewPage() {
   const [items, setItems] = useState<NewRentalLineInput[]>([
     { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""], track_serials: false },
   ]);
+
+  // Pré-preencher a partir de proposta aceite (via sessionStorage)
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("rental:prefillFromProposal");
+      if (!raw) return;
+      sessionStorage.removeItem("rental:prefillFromProposal");
+      const p = JSON.parse(raw) as {
+        end_client_company_id?: string;
+        notes?: string;
+        items?: NewRentalLineInput[];
+      };
+      if (p.end_client_company_id) setEndClientId(p.end_client_company_id);
+      if (p.notes) setNotes(p.notes);
+      if (Array.isArray(p.items) && p.items.length > 0) {
+        setItems(
+          p.items.map((l) => ({
+            product_id: l.product_id ?? null,
+            description: l.description ?? "",
+            quantity: Number(l.quantity || 1),
+            unit_price: Number(l.unit_price || 0),
+            serial_numbers: Array.from({ length: Math.max(1, Number(l.quantity || 1)) }, () => ""),
+            track_serials: false,
+          })),
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const { data: companies = [] } = useQuery({
     queryKey: ["rentals-companies", wid],
