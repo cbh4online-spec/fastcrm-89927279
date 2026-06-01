@@ -60,7 +60,7 @@ export default function InvoiceDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("companies")
-        .select("id, name, email, nif")
+        .select("id, name, email, tax_id")
         .eq("id", invoice!.company_id!)
         .maybeSingle();
       return data;
