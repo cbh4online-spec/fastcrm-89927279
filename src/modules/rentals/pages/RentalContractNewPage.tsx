@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
