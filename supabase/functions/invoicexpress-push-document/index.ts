@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
     if (invoice.client_tax_id) clientPayload.fiscal_id = invoice.client_tax_id;
     if (invoice.client_email) clientPayload.email = invoice.client_email;
     if (invoice.client_address) clientPayload.address = invoice.client_address;
-    if (invoice.client_country) clientPayload.country = invoice.client_country;
+    if (invoice.client_country) clientPayload.country = mapCountry(invoice.client_country);
 
     const ixItems = items.map((it: any) => {
       const li: Record<string, unknown> = {
