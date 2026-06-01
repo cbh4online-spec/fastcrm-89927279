@@ -85,6 +85,7 @@ export interface NewRentalLineInput {
   description: string;
   quantity: number;
   unit_price: number;
+  cost_price?: number;
   serial_numbers: string[];
   track_serials?: boolean;
 }
