@@ -82,6 +82,49 @@ function formatCurrency(value: number, currency: string = "EUR"): string {
   }).format(value);
 }
 
+/**
+ * Discount input with local state. Snapshots the current unit_price on mount as
+ * the baseline so successive edits compute from the same reference, and the
+ * typed value is always visible to the user (the underlying table has no
+ * discount column to read back from).
+ */
+function DiscountInput({
+  itemId,
+  currentUnitPrice,
+  disabled,
+  onApplyPrice,
+}: {
+  itemId: string;
+  currentUnitPrice: number;
+  disabled?: boolean;
+  onApplyPrice: (itemId: string, newPrice: number) => void;
+}) {
+  const baselineRef = useRef<number>(currentUnitPrice);
+  const [value, setValue] = useState<string>("");
+
+  return (
+    <Input
+      type="number"
+      step="1"
+      min="0"
+      max="100"
+      value={value}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setValue(raw);
+        const pct = raw === "" ? 0 : parseFloat(raw);
+        if (Number.isNaN(pct)) return;
+        const clamped = Math.max(0, Math.min(100, pct));
+        const newPrice = baselineRef.current * (1 - clamped / 100);
+        onApplyPrice(itemId, Number(newPrice.toFixed(2)));
+      }}
+      className={cn("w-16 h-8 text-right ml-auto", disabled && "opacity-50")}
+      disabled={disabled}
+      placeholder="0"
+    />
+  );
+}
+
 export function ProposalInternalView({ 
   proposal, 
   items = [],
