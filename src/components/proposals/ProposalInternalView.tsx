@@ -477,7 +477,14 @@ export function ProposalInternalView({
                       />
                     </TableCell>
                     <TableCell className={cn("text-right text-muted-foreground whitespace-nowrap", !isEnabled && "line-through")}>
-                      {formatCurrency(itemUnitCost, proposal.currency)}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>{formatCurrency(itemCost, proposal.currency)}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {formatCurrency(itemUnitCost, proposal.currency)} × {item.quantity}
+                        </TooltipContent>
+                      </Tooltip>
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-medium whitespace-nowrap",
