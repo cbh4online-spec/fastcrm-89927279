@@ -969,19 +969,32 @@ export function ProposalDetailContent({
                       </>
                     )}
                     {proposal.status === "accepted" && (
-                      <ProposalToRenewalCTA 
-                        proposal={proposal as any} 
-                        proposalItems={proposalItems?.map(i => ({
-                          id: i.id,
-                          name: i.name,
-                          quantity: i.quantity,
-                          unit_price: i.unit_price,
-                          cost_price: (i as any).cost_price,
-                          description: i.description,
-                          product_id: i.product_id,
-                          product: i.product,
-                        })) || []}
-                      />
+                      <>
+                        <ProposalToRenewalCTA 
+                          proposal={proposal as any} 
+                          proposalItems={proposalItems?.map(i => ({
+                            id: i.id,
+                            name: i.name,
+                            quantity: i.quantity,
+                            unit_price: i.unit_price,
+                            cost_price: (i as any).cost_price,
+                            description: i.description,
+                            product_id: i.product_id,
+                            product: i.product,
+                          })) || []}
+                        />
+                        <ProposalToRentalCTA
+                          proposal={proposal as any}
+                          proposalItems={proposalItems?.map(i => ({
+                            id: i.id,
+                            name: i.name,
+                            quantity: i.quantity,
+                            unit_price: i.unit_price,
+                            description: i.description,
+                            product_id: i.product_id,
+                          })) || []}
+                        />
+                      </>
                     )}
                   </>
                 ) : (
