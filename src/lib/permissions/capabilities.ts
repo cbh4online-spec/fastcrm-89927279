@@ -138,4 +138,6 @@ export const CAPABILITY_LABELS: Record<Capability, string> = {
   "hr.access": "Aceder a Recursos Humanos",
   "security.access": "Aceder ao módulo Segurança",
   "audit.view": "Ver logs de auditoria",
+  "rentals.view": "Ver contratos de renting",
+  "rentals.manage": "Gerir contratos de renting",
 };
