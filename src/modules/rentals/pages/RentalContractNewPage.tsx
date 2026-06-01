@@ -161,10 +161,10 @@ export default function RentalContractNewPage() {
             </div>
             <div><Label>Financiadora</Label>
               <Select value={financierId} onValueChange={setFinancierId}>
-                <SelectTrigger><SelectValue placeholder="Escolher financiadora…" /></SelectTrigger>
-                <SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                <SelectTrigger><SelectValue placeholder={financiers.length ? "Escolher financiadora…" : "Sem financiadoras — criar em Renting › Financiadoras"} /></SelectTrigger>
+                <SelectContent>{financiers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">Cria a Liquid em Empresas se ainda não existir.</p>
+              <p className="text-xs text-muted-foreground mt-1">Apenas empresas marcadas como financiadoras.</p>
             </div>
           </div>
         </Card>
