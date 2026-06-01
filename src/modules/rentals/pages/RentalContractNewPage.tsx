@@ -85,6 +85,8 @@ export default function RentalContractNewPage() {
   const [items, setItems] = useState<NewRentalLineInput[]>([
     { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""], track_serials: false },
   ]);
+  const [prefilledFromProposal, setPrefilledFromProposal] = useState(false);
+  const [linesLocked, setLinesLocked] = useState(false);
 
   // Pré-preencher a partir de proposta aceite (via sessionStorage)
   useEffect(() => {
@@ -95,6 +97,7 @@ export default function RentalContractNewPage() {
       const p = JSON.parse(raw) as {
         end_client_company_id?: string;
         notes?: string;
+        locked?: boolean;
         items?: NewRentalLineInput[];
       };
       if (p.end_client_company_id) setEndClientId(p.end_client_company_id);
@@ -106,10 +109,13 @@ export default function RentalContractNewPage() {
             description: l.description ?? "",
             quantity: Number(l.quantity || 1),
             unit_price: Number(l.unit_price || 0),
+            cost_price: l.cost_price != null ? Number(l.cost_price) : undefined,
             serial_numbers: Array.from({ length: Math.max(1, Number(l.quantity || 1)) }, () => ""),
             track_serials: false,
           })),
         );
+        setPrefilledFromProposal(true);
+        setLinesLocked(p.locked !== false);
       }
     } catch {
       /* ignore */
