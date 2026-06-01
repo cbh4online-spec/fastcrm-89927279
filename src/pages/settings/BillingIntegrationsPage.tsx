@@ -39,6 +39,7 @@ import {
   useBillingIntegrations,
   useDeleteBillingIntegration,
   useSetDefaultBillingIntegration,
+  useRecheckBillingIntegration,
 } from "@/hooks/useBillingIntegrations";
 import { BillingIntegrationDialog } from "@/components/settings/billing/BillingIntegrationDialog";
 import { BillingSyncSheet } from "@/components/settings/billing/BillingSyncSheet";
@@ -55,7 +56,15 @@ import {
   Star,
   ExternalLink,
   RefreshCw,
+  Loader2,
+  PlugZap,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const PROVIDER_LABEL: Record<string, string> = {
   invoicexpress: "InvoiceXpress",
@@ -89,6 +98,7 @@ export default function BillingIntegrationsPage() {
   const { data, isLoading } = useBillingIntegrations();
   const del = useDeleteBillingIntegration();
   const setDefault = useSetDefaultBillingIntegration();
+  const recheck = useRecheckBillingIntegration();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<BillingIntegration | null>(null);
@@ -213,7 +223,7 @@ export default function BillingIntegrationsPage() {
                           <Badge className="gap-1 bg-amber-500/15 text-amber-600 border-amber-500/30 hover:bg-amber-500/20">
                             <Star className="h-3 w-3" /> Predefinida
                           </Badge>
-                        ) : (
+                        ) : row.last_check_status === "ok" && row.is_active ? (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -221,20 +231,57 @@ export default function BillingIntegrationsPage() {
                           >
                             Definir
                           </Button>
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <Button size="sm" variant="ghost" disabled>
+                                    Definir
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {row.is_active
+                                  ? "Testa a ligação com sucesso antes de definir como predefinida."
+                                  : "Activa a integração antes de a definir como predefinida."}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {row.last_check_at
-                          ? new Date(row.last_check_at).toLocaleString("pt-PT")
-                          : "—"}
-                        {row.last_check_error && (
-                          <div
-                            className="text-destructive truncate max-w-[280px]"
-                            title={row.last_check_error}
-                          >
-                            {row.last_check_error}
+                        <div className="flex items-center gap-2">
+                          <div className="min-w-0">
+                            <div>
+                              {row.last_check_at
+                                ? new Date(row.last_check_at).toLocaleString("pt-PT")
+                                : "—"}
+                            </div>
+                            {row.last_check_error && (
+                              <div
+                                className="text-destructive truncate max-w-[260px]"
+                                title={row.last_check_error}
+                              >
+                                {row.last_check_error}
+                              </div>
+                            )}
                           </div>
-                        )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="ml-auto h-7 px-2"
+                            disabled={recheck.isPending && recheck.variables === row.id}
+                            onClick={() => recheck.mutate(row.id)}
+                          >
+                            {recheck.isPending && recheck.variables === row.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <PlugZap className="h-3 w-3" />
+                            )}
+                            <span className="ml-1">Testar</span>
+                          </Button>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

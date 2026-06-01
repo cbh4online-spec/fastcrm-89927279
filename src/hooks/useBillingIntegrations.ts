@@ -66,6 +66,26 @@ export function useTestBillingConnection() {
   });
 }
 
+export function useRecheckBillingIntegration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke(
+        "billing-integration-recheck",
+        { body: { id } },
+      );
+      if (error) throw error;
+      return data as { ok: boolean; error?: string };
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["billing-integrations"] });
+      if (r.ok) toast.success("Ligação validada com sucesso");
+      else toast.error(r.error || "Falha ao validar ligação");
+    },
+    onError: (e: any) => toast.error(e.message || "Erro a testar ligação"),
+  });
+}
+
 export function useSaveBillingIntegration() {
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
