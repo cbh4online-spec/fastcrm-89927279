@@ -30,6 +30,7 @@ import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDial
 import { InvoicePaymentsHistory } from "@/components/invoices/InvoicePaymentsHistory";
 import { PaymentActionsCard } from "@/components/invoices/PaymentActionsCard";
 import { InvoiceWhatsAppHistoryCard } from "@/components/invoices/InvoiceWhatsAppHistoryCard";
+import { PushToInvoiceXpressButton } from "@/components/invoices/PushToInvoiceXpressButton";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
