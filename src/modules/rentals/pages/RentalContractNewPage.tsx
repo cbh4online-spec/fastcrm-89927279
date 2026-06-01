@@ -94,6 +94,14 @@ export default function RentalContractNewPage() {
     },
     enabled: !!wid,
   });
+  const { data: financiers = [] } = useQuery({
+    queryKey: ["rentals-financiers", wid],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id,name,tax_id,tags").eq("workspace_id", wid!).eq("is_financier", true).order("name").limit(500);
+      return (data ?? []) as CompanyOpt[];
+    },
+    enabled: !!wid,
+  });
   const { data: products = [] } = useQuery({
     queryKey: ["rentals-products", wid],
     queryFn: async () => {
