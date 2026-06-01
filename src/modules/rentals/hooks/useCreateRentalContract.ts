@@ -76,7 +76,12 @@ export function useCreateRentalContract() {
           monthly_amount: input.monthly_amount,
           total_financed,
           financier_commission: input.financier_commission ?? 0,
-          notes: input.notes ?? null,
+          notes: [
+            input.billing_frequency === "quarterly"
+              ? `Periodicidade: trimestral (renda trimestral: ${(input.monthly_amount * 3).toFixed(2)} €)`
+              : null,
+            input.notes?.trim() || null,
+          ].filter(Boolean).join("\n") || null,
           created_by: userId,
         })
         .select()
