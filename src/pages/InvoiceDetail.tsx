@@ -54,6 +54,32 @@ export default function InvoiceDetail() {
   const forceStatus = useForceInvoiceStatus();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
+  const { data: company } = useQuery({
+    queryKey: ["invoice-company", invoice?.company_id],
+    enabled: !!invoice?.company_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name, email, nif")
+        .eq("id", invoice!.company_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: contact } = useQuery({
+    queryKey: ["invoice-contact", invoice?.contact_id],
+    enabled: !!invoice?.contact_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, name, email")
+        .eq("id", invoice!.contact_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-PT", {
       style: "currency",
