@@ -398,6 +398,7 @@ export default function RentalContractNewPage() {
               const client = companies.find((c) => c.id === endClientId);
               const fin = financiers.find((c) => c.id === financierId);
               const doc = generateRentalContractPdf({
+                contract_number: contractRef.trim() || undefined,
                 end_client_name: client?.name,
                 end_client_tax_id: client?.tax_id ?? null,
                 financier_name: fin?.name,
@@ -406,7 +407,12 @@ export default function RentalContractNewPage() {
                 duration_months: months,
                 monthly_amount: monthly,
                 total_financed: total,
-                notes,
+                notes: [
+                  billingFreq === "quarterly"
+                    ? `Periodicidade: trimestral (renda trimestral: ${(monthly * 3).toFixed(2)} €)`
+                    : null,
+                  notes,
+                ].filter(Boolean).join("\n"),
                 items: validItems,
               });
               const fname = `pre-renting_${client?.name?.replace(/\s+/g, "-").toLowerCase() ?? "cliente"}_${startDate}.pdf`;
