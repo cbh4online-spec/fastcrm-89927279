@@ -217,14 +217,61 @@ export default function RentalContractNewPage() {
               <p className="text-xs text-muted-foreground mt-1">Apenas empresas marcadas como financiadoras.</p>
             </div>
           </div>
+          <div>
+            <Label>Referência do contrato (opcional)</Label>
+            <Input
+              value={contractRef}
+              onChange={(e) => setContractRef(e.target.value)}
+              placeholder="Deixar vazio para gerar automaticamente (ex.: RNT-2026-0001)"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Tem de ser único no workspace.</p>
+          </div>
         </Card>
 
         <Card className="p-6 space-y-4">
           <h2 className="font-medium">2. Equipamento e prazo</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div><Label>Data de início</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
             <div><Label>Prazo (meses)</Label><Input type="number" value={months} onChange={(e) => setMonths(Number(e.target.value))} /></div>
-            <div><Label>Renda mensal calculada</Label><Input value={`${monthly.toFixed(2)} €`} disabled /></div>
+            <div>
+              <Label>Periodicidade</Label>
+              <Select value={billingFreq} onValueChange={(v) => setBillingFreq(v as "monthly" | "quarterly")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Mensal</SelectItem>
+                  <SelectItem value="quarterly">Trimestral</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{billingFreq === "quarterly" ? "Renda trimestral" : "Renda mensal"}</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={manualAmount ? manualInstallment : Number(autoInstallment.toFixed(2))}
+                disabled={!manualAmount}
+                onChange={(e) => setManualInstallment(Number(e.target.value))}
+              />
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  id="manual-amount"
+                  type="checkbox"
+                  checked={manualAmount}
+                  onChange={(e) => {
+                    setManualAmount(e.target.checked);
+                    if (e.target.checked) setManualInstallment(Number(autoInstallment.toFixed(2)));
+                  }}
+                />
+                <Label htmlFor="manual-amount" className="text-xs cursor-pointer text-muted-foreground">
+                  Editar valor manualmente
+                </Label>
+              </div>
+              {billingFreq === "quarterly" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Equivalente mensal: <b>{monthly.toFixed(2)} €</b>
+                </p>
+              )}
+            </div>
           </div>
 
           {prefilledFromProposal && (
