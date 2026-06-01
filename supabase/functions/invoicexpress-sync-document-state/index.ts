@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
       cronMode = true;
     }
 
-    if (!isServiceRole) {
+    if (!isServiceRole && !cronMode) {
       if (!authHeader.startsWith("Bearer "))
         return json({ ok: false, error: "Unauthorized" }, 200);
       const userClient = createClient(
