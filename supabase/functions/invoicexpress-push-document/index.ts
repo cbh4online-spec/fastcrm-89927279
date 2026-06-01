@@ -57,6 +57,21 @@ function fmtDate(d: string | null | undefined): string {
   return `${dd}/${mm}/${dt.getFullYear()}`;
 }
 
+// InvoiceXpress requires full country names, not ISO codes
+const COUNTRY_MAP: Record<string, string> = {
+  PT: "Portugal", ES: "Spain", FR: "France", DE: "Germany", IT: "Italy",
+  GB: "United Kingdom", UK: "United Kingdom", IE: "Ireland", NL: "Netherlands",
+  BE: "Belgium", LU: "Luxembourg", CH: "Switzerland", AT: "Austria",
+  US: "United States", BR: "Brazil", AO: "Angola", MZ: "Mozambique",
+  CV: "Cape Verde", PL: "Poland", SE: "Sweden", DK: "Denmark", NO: "Norway",
+  FI: "Finland", CZ: "Czech Republic", GR: "Greece", RO: "Romania", HU: "Hungary",
+};
+function mapCountry(v: string | null | undefined): string {
+  if (!v) return "Portugal";
+  const t = String(v).trim();
+  const up = t.toUpperCase();
+  return COUNTRY_MAP[up] || t;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
