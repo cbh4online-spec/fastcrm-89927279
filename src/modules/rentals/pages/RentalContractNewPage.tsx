@@ -79,11 +79,15 @@ export default function RentalContractNewPage() {
 
   const [endClientId, setEndClientId] = useState("");
   const [financierId, setFinancierId] = useState("");
+  const [contractRef, setContractRef] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [months, setMonths] = useState(36);
   const [notes, setNotes] = useState("");
   const [emitFinancier, setEmitFinancier] = useState(true);
   const [emitClientNote, setEmitClientNote] = useState(true);
+  const [billingFreq, setBillingFreq] = useState<"monthly" | "quarterly">("monthly");
+  const [manualAmount, setManualAmount] = useState(false);
+  const [manualInstallment, setManualInstallment] = useState<number>(0);
   const [items, setItems] = useState<NewRentalLineInput[]>([
     { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""], track_serials: false },
   ]);
