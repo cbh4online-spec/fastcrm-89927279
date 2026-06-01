@@ -16,13 +16,26 @@ export function useCreateRentalContract() {
       const userId = userData.user?.id;
       if (!userId) throw new Error("Sessão expirada");
 
-      // 1. Gerar nº contrato
-      const { data: numberData, error: numErr } = await supabase.rpc(
-        "generate_rental_contract_number",
-        { p_workspace_id: wid },
-      );
-      if (numErr) throw numErr;
-      const contract_number = numberData as unknown as string;
+      // 1. Gerar nº contrato (ou usar override manual)
+      let contract_number: string;
+      if (input.contract_number_override && input.contract_number_override.trim()) {
+        contract_number = input.contract_number_override.trim();
+        const { data: dup } = await supabase
+          .from("rental_contracts")
+          .select("id")
+          .eq("workspace_id", wid)
+          .eq("contract_number", contract_number)
+          .limit(1)
+          .maybeSingle();
+        if (dup) throw new Error(`Já existe um contrato com a referência "${contract_number}".`);
+      } else {
+        const { data: numberData, error: numErr } = await supabase.rpc(
+          "generate_rental_contract_number",
+          { p_workspace_id: wid },
+        );
+        if (numErr) throw numErr;
+        contract_number = numberData as unknown as string;
+      }
 
       // 2. Calcular totais
       const total_financed = input.items.reduce(
