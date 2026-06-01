@@ -94,6 +94,14 @@ export default function RentalContractNewPage() {
     },
     enabled: !!wid,
   });
+  const { data: financiers = [] } = useQuery({
+    queryKey: ["rentals-financiers", wid],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id,name,tax_id,tags").eq("workspace_id", wid!).eq("is_financier", true).order("name").limit(500);
+      return (data ?? []) as CompanyOpt[];
+    },
+    enabled: !!wid,
+  });
   const { data: products = [] } = useQuery({
     queryKey: ["rentals-products", wid],
     queryFn: async () => {
@@ -153,10 +161,10 @@ export default function RentalContractNewPage() {
             </div>
             <div><Label>Financiadora</Label>
               <Select value={financierId} onValueChange={setFinancierId}>
-                <SelectTrigger><SelectValue placeholder="Escolher financiadora…" /></SelectTrigger>
-                <SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                <SelectTrigger><SelectValue placeholder={financiers.length ? "Escolher financiadora…" : "Sem financiadoras — criar em Renting › Financiadoras"} /></SelectTrigger>
+                <SelectContent>{financiers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">Cria a Liquid em Empresas se ainda não existir.</p>
+              <p className="text-xs text-muted-foreground mt-1">Apenas empresas marcadas como financiadoras.</p>
             </div>
           </div>
         </Card>
