@@ -55,11 +55,12 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Copy,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useProduct, useUpdateProduct, useArchiveProduct, useDeleteProduct } from "@/hooks/useProducts";
+import { useProduct, useUpdateProduct, useArchiveProduct, useDeleteProduct, useDuplicateProduct } from "@/hooks/useProducts";
 import { useProductStats, generateProductAlerts } from "@/hooks/useProductStats";
 import {
   productTypeLabels,
@@ -128,6 +129,7 @@ export function ProductDetailDialog({
   const { currentWorkspace } = useWorkspace();
   const updateProduct = useUpdateProduct();
   const archiveProduct = useArchiveProduct();
+  const duplicateProduct = useDuplicateProduct();
   const deleteProduct = useDeleteProduct();
   const { canSeeField } = useFieldPermissions();
   const { salesFunction } = useAdaptiveDashboard();
@@ -393,6 +395,20 @@ export function ProductDetailDialog({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Editar</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={duplicateProduct.isPending}
+                          onClick={() => duplicateProduct.mutate(product.id)}
+                        >
+                          {duplicateProduct.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicar</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>

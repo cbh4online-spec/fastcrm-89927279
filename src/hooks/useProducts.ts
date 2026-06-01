@@ -274,6 +274,123 @@ export function useCreateProduct() {
   });
 }
 
+/**
+ * Duplicate an existing product as a fresh draft. Keeps every editable field
+ * (price, cost, category, descriptions, playbook, etc.) and only mutates the
+ * fields that must be unique (id, name, sku) plus timestamps and stock-derived
+ * counters. The clone is created as a `draft` so the user can review before
+ * publishing.
+ */
+export function useDuplicateProduct() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (productId: string) => {
+      if (!currentWorkspace?.id || !user?.id) {
+        throw new Error("Workspace ou utilizador não encontrado");
+      }
+
+      const { data: source, error: fetchErr } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", productId)
+        .eq("workspace_id", currentWorkspace.id)
+        .single();
+      if (fetchErr) throw fetchErr;
+      if (!source) throw new Error("Produto original não encontrado");
+
+      // Find an available "(cópia)" name
+      const baseName = (source as any).name as string;
+      let candidateName = `${baseName} (cópia)`;
+      let suffix = 2;
+      while (true) {
+        const { data: dup } = await supabase
+          .from("products")
+          .select("id")
+          .eq("workspace_id", currentWorkspace.id)
+          .ilike("name", candidateName)
+          .limit(1);
+        if (!dup || dup.length === 0) break;
+        candidateName = `${baseName} (cópia ${suffix})`;
+        suffix += 1;
+        if (suffix > 50) throw new Error("Não foi possível gerar nome único");
+      }
+
+      // Find an available SKU (only if the source has one)
+      const baseSku = ((source as any).sku as string | null)?.trim() || null;
+      let candidateSku: string | null = null;
+      if (baseSku) {
+        candidateSku = `${baseSku}-COPY`;
+        let s = 2;
+        while (true) {
+          const { data: dup } = await supabase
+            .from("products")
+            .select("id")
+            .eq("workspace_id", currentWorkspace.id)
+            .ilike("sku", candidateSku)
+            .limit(1);
+          if (!dup || dup.length === 0) break;
+          candidateSku = `${baseSku}-COPY-${s}`;
+          s += 1;
+          if (s > 50) {
+            candidateSku = `${baseSku}-COPY-${Date.now().toString(36)}`;
+            break;
+          }
+        }
+      }
+
+      // Strip fields that must not be cloned verbatim
+      const {
+        id: _id,
+        created_at: _ca,
+        updated_at: _ua,
+        created_by: _cb,
+        slug: _slug,
+        ...rest
+      } = source as any;
+
+      const insertPayload: Record<string, any> = {
+        ...rest,
+        workspace_id: currentWorkspace.id,
+        created_by: user.id,
+        name: candidateName,
+        sku: candidateSku,
+        status: "draft",
+      };
+
+      const { data, error } = await supabase
+        .from("products")
+        .insert(insertPayload as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Product;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success(`Produto duplicado: "${(data as any).name}"`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "PRODUCT.CREATED",
+          entity_kind: "product",
+          entity_id: data.id,
+          source_module: "sales-products",
+          payload: { duplicated_from: (data as any).id, status: "draft" },
+        });
+      }
+    },
+    onError: (error: any) => {
+      console.warn("[PRODUCTS] DUPLICATE_FAILED", error?.message);
+      toast.error("Erro ao duplicar produto: " + (error?.message ?? "desconhecido"));
+    },
+  });
+}
+
+
+
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
