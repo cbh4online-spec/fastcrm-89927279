@@ -213,8 +213,30 @@ export default function RentalContractNewPage() {
             <div><Label>Renda mensal calculada</Label><Input value={`${monthly.toFixed(2)} €`} disabled /></div>
           </div>
 
+          {prefilledFromProposal && (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm dark:border-blue-900 dark:bg-blue-950/40">
+              <span className="text-blue-800 dark:text-blue-300">
+                {linesLocked
+                  ? "Linhas pré-preenchidas a partir da proposta — bloqueadas para evitar alterações acidentais."
+                  : "Linhas pré-preenchidas a partir da proposta — modo edição activo."}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant={linesLocked ? "outline" : "secondary"}
+                onClick={() => setLinesLocked((v) => !v)}
+              >
+                {linesLocked ? "Editar linhas" : "Bloquear linhas"}
+              </Button>
+            </div>
+          )}
+
           <div className="space-y-3">
-            {items.map((line, i) => (
+            {items.map((line, i) => {
+              const lineTotal = Number(line.quantity || 0) * Number(line.unit_price || 0);
+              const lineCost = line.cost_price != null ? Number(line.cost_price) * Number(line.quantity || 0) : null;
+              const marginPct = lineCost != null && lineTotal > 0 ? ((lineTotal - lineCost) / lineTotal) * 100 : null;
+              return (
               <div key={i} className="border rounded-md p-3 space-y-2">
                 <div className="grid grid-cols-12 gap-2">
                   <div className="col-span-4">
@@ -223,17 +245,38 @@ export default function RentalContractNewPage() {
                       products={products}
                       value={line.product_id}
                       onChange={(v) => {
+                        if (linesLocked) return;
                         const p = products.find((x) => x.id === v);
                         updateItem(i, { product_id: v, description: p?.name ?? line.description, unit_price: p?.base_price ?? line.unit_price });
                       }}
                     />
                   </div>
-                  <div className="col-span-3"><Label className="text-xs">Descrição</Label><Input value={line.description} onChange={(e) => updateItem(i, { description: e.target.value })} /></div>
-                  <div className="col-span-1"><Label className="text-xs">Qtd</Label><Input type="number" min={1} value={line.quantity} onChange={(e) => updateSerials(i, Number(e.target.value))} /></div>
-                  <div className="col-span-2"><Label className="text-xs">Preço unit.</Label><Input type="number" step="0.01" value={line.unit_price} onChange={(e) => updateItem(i, { unit_price: Number(e.target.value) })} /></div>
-                  <div className="col-span-1 text-right pt-6 text-sm">{(line.quantity * line.unit_price).toFixed(2)} €</div>
-                  <div className="col-span-1 pt-5"><Button variant="ghost" size="icon" onClick={() => setItems((a) => a.filter((_, idx) => idx !== i))}><Trash2 className="h-4 w-4" /></Button></div>
+                  <div className="col-span-3"><Label className="text-xs">Descrição</Label><Input value={line.description} disabled={linesLocked} onChange={(e) => updateItem(i, { description: e.target.value })} /></div>
+                  <div className="col-span-1"><Label className="text-xs">Qtd</Label><Input type="number" min={1} value={line.quantity} disabled={linesLocked} onChange={(e) => updateSerials(i, Number(e.target.value))} /></div>
+                  <div className="col-span-2"><Label className="text-xs">Preço unit.</Label><Input type="number" step="0.01" value={line.unit_price} disabled={linesLocked} onChange={(e) => updateItem(i, { unit_price: Number(e.target.value) })} /></div>
+                  <div className="col-span-1 text-right pt-6 text-sm">{lineTotal.toFixed(2)} €</div>
+                  <div className="col-span-1 pt-5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={linesLocked}
+                      onClick={() => setItems((a) => a.filter((_, idx) => idx !== i))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
+                {lineCost != null && (
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <span>Custo unit.: <b>{Number(line.cost_price).toFixed(2)} €</b></span>
+                    <span>Custo total: <b>{lineCost.toFixed(2)} €</b></span>
+                    {marginPct != null && (
+                      <span className={marginPct < 0 ? "text-destructive" : marginPct < 15 ? "text-amber-600" : "text-emerald-600"}>
+                        Margem: <b>{marginPct.toFixed(1)}%</b>
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -259,8 +302,16 @@ export default function RentalContractNewPage() {
                   </div>
                 )}
               </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={() => setItems((a) => [...a, { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""], track_serials: false }])}><Plus className="h-4 w-4 mr-2" />Adicionar linha</Button>
+              );
+            })}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={linesLocked}
+              onClick={() => setItems((a) => [...a, { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""], track_serials: false }])}
+            >
+              <Plus className="h-4 w-4 mr-2" />Adicionar linha
+            </Button>
           </div>
           <div className="flex justify-end text-lg font-semibold">Total financiado: {total.toFixed(2)} €</div>
         </Card>
