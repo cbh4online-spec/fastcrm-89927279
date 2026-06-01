@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +19,55 @@ import type { NewRentalLineInput } from "../types";
 
 interface CompanyOpt { id: string; name: string; tax_id: string | null; tags: string[] | null }
 interface ProductOpt { id: string; name: string; base_price: number | null; sku: string | null }
+
+function ProductSearchSelect({
+  products,
+  value,
+  onChange,
+}: {
+  products: ProductOpt[];
+  value: string | null;
+  onChange: (productId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = products.find((p) => p.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" className="h-10 w-full justify-between px-3 font-normal">
+          <span className={selected ? "truncate text-left" : "truncate text-left text-muted-foreground"}>
+            {selected ? selected.name : "Pesquisar produto…"}
+          </span>
+          <Search className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[520px] max-w-[calc(100vw-2rem)] p-0">
+        <Command>
+          <CommandInput placeholder="Escrever nome do produto…" />
+          <CommandList className="max-h-72">
+            <CommandEmpty>Sem produtos encontrados.</CommandEmpty>
+            <CommandGroup>
+              {products.map((p) => (
+                <CommandItem
+                  key={p.id}
+                  value={`${p.name} ${p.sku ?? ""}`}
+                  onSelect={() => {
+                    onChange(p.id);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="truncate">{p.name}</span>
+                  {p.sku && <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{p.sku}</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function RentalContractNewPage() {
   const navigate = useNavigate();
@@ -124,13 +175,14 @@ export default function RentalContractNewPage() {
                 <div className="grid grid-cols-12 gap-2">
                   <div className="col-span-4">
                     <Label className="text-xs">Produto</Label>
-                    <Select value={line.product_id ?? ""} onValueChange={(v) => {
-                      const p = products.find((x) => x.id === v);
-                      updateItem(i, { product_id: v, description: p?.name ?? line.description, unit_price: p?.base_price ?? line.unit_price });
-                    }}>
-                      <SelectTrigger><SelectValue placeholder="Produto…" /></SelectTrigger>
-                      <SelectContent>{products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <ProductSearchSelect
+                      products={products}
+                      value={line.product_id}
+                      onChange={(v) => {
+                        const p = products.find((x) => x.id === v);
+                        updateItem(i, { product_id: v, description: p?.name ?? line.description, unit_price: p?.base_price ?? line.unit_price });
+                      }}
+                    />
                   </div>
                   <div className="col-span-3"><Label className="text-xs">Descrição</Label><Input value={line.description} onChange={(e) => updateItem(i, { description: e.target.value })} /></div>
                   <div className="col-span-1"><Label className="text-xs">Qtd</Label><Input type="number" min={1} value={line.quantity} onChange={(e) => updateSerials(i, Number(e.target.value))} /></div>
