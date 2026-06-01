@@ -32,7 +32,7 @@ export default function RentalContractNewPage() {
   const [emitFinancier, setEmitFinancier] = useState(true);
   const [emitClientNote, setEmitClientNote] = useState(true);
   const [items, setItems] = useState<NewRentalLineInput[]>([
-    { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""] },
+    { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""], track_serials: false },
   ]);
 
   const { data: companies = [] } = useQuery({
@@ -138,20 +138,33 @@ export default function RentalContractNewPage() {
                   <div className="col-span-1 text-right pt-6 text-sm">{(line.quantity * line.unit_price).toFixed(2)} €</div>
                   <div className="col-span-1 pt-5"><Button variant="ghost" size="icon" onClick={() => setItems((a) => a.filter((_, idx) => idx !== i))}><Trash2 className="h-4 w-4" /></Button></div>
                 </div>
-                <div className="grid grid-cols-1 gap-1">
-                  <Label className="text-xs">Nºs de série ({line.quantity})</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {line.serial_numbers.map((sn, sIdx) => (
-                      <Input key={sIdx} placeholder={`Nº série ${sIdx + 1}`} value={sn} onChange={(e) => {
-                        const arr = [...line.serial_numbers]; arr[sIdx] = e.target.value;
-                        updateItem(i, { serial_numbers: arr });
-                      }} />
-                    ))}
-                  </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`track-${i}`}
+                    checked={line.track_serials ?? false}
+                    onChange={(e) => updateItem(i, { track_serials: e.target.checked })}
+                  />
+                  <Label htmlFor={`track-${i}`} className="text-xs cursor-pointer">
+                    Equipamento físico (registar Nºs de série)
+                  </Label>
                 </div>
+                {line.track_serials && (
+                  <div className="grid grid-cols-1 gap-1">
+                    <Label className="text-xs">Nºs de série ({line.quantity})</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {line.serial_numbers.map((sn, sIdx) => (
+                        <Input key={sIdx} placeholder={`Nº série ${sIdx + 1}`} value={sn} onChange={(e) => {
+                          const arr = [...line.serial_numbers]; arr[sIdx] = e.target.value;
+                          updateItem(i, { serial_numbers: arr });
+                        }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => setItems((a) => [...a, { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""] }])}><Plus className="h-4 w-4 mr-2" />Adicionar linha</Button>
+            <Button variant="outline" size="sm" onClick={() => setItems((a) => [...a, { product_id: null, description: "", quantity: 1, unit_price: 0, serial_numbers: [""], track_serials: false }])}><Plus className="h-4 w-4 mr-2" />Adicionar linha</Button>
           </div>
           <div className="flex justify-end text-lg font-semibold">Total financiado: {total.toFixed(2)} €</div>
         </Card>

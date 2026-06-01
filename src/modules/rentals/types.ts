@@ -86,6 +86,7 @@ export interface NewRentalLineInput {
   quantity: number;
   unit_price: number;
   serial_numbers: string[];
+  track_serials?: boolean;
 }
 
 export interface CreateRentalContractInput {
