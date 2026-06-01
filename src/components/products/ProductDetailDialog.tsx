@@ -398,6 +398,20 @@ export function ProductDetailDialog({
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={duplicateProduct.isPending}
+                          onClick={() => duplicateProduct.mutate(product.id)}
+                        >
+                          {duplicateProduct.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicar</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <Button variant="outline" size="icon" className="h-7 w-7" onClick={handleArchive}>
                           {product.status === "active" ? <Archive className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
                         </Button>
