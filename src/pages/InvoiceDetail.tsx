@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useInvoice, useInvoiceItems, useMarkInvoicePaid, useSendInvoice, useForceInvoiceStatus, type InvoiceStatus } from "@/hooks/useInvoices";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -51,6 +53,32 @@ export default function InvoiceDetail() {
   const sendInvoice = useSendInvoice();
   const forceStatus = useForceInvoiceStatus();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+
+  const { data: company } = useQuery({
+    queryKey: ["invoice-company", invoice?.company_id],
+    enabled: !!invoice?.company_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name, email, tax_id")
+        .eq("id", invoice!.company_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: contact } = useQuery({
+    queryKey: ["invoice-contact", invoice?.contact_id],
+    enabled: !!invoice?.contact_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, name, email")
+        .eq("id", invoice!.contact_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-PT", {
@@ -152,8 +180,12 @@ export default function InvoiceDetail() {
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Empresa</p>
-                      <p className="text-sm text-muted-foreground">{invoice.company_id}</p>
+                      <p className="font-medium">{company?.name || "Empresa"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {company?.tax_id ? `NIF ${company.tax_id}` : null}
+                        {company?.tax_id && company?.email ? " · " : null}
+                        {company?.email || (!company ? "A carregar…" : null)}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -161,8 +193,10 @@ export default function InvoiceDetail() {
                   <div className="flex items-center gap-3">
                     <User className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Contacto</p>
-                      <p className="text-sm text-muted-foreground">{invoice.contact_id}</p>
+                      <p className="font-medium">{contact?.name || "Contacto"}</p>
+                      {contact?.email && (
+                        <p className="text-sm text-muted-foreground">{contact.email}</p>
+                      )}
                     </div>
                   </div>
                 )}
