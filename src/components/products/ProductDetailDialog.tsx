@@ -129,6 +129,7 @@ export function ProductDetailDialog({
   const { currentWorkspace } = useWorkspace();
   const updateProduct = useUpdateProduct();
   const archiveProduct = useArchiveProduct();
+  const duplicateProduct = useDuplicateProduct();
   const deleteProduct = useDeleteProduct();
   const { canSeeField } = useFieldPermissions();
   const { salesFunction } = useAdaptiveDashboard();
