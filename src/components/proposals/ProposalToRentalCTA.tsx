@@ -11,6 +11,7 @@ export interface ProposalToRentalCTAProps {
     name: string;
     quantity: number;
     unit_price: number;
+    cost_price?: number | null;
     description?: string;
     product_id?: string | null;
   }>;
@@ -32,11 +33,13 @@ export function ProposalToRentalCTA({ proposal, proposalItems = [] }: ProposalTo
       proposal_id: proposal.id,
       end_client_company_id: proposal.company_id,
       notes: `Origem: proposta ${proposal.title}`,
+      locked: true,
       items: proposalItems.map((i) => ({
         product_id: i.product_id ?? null,
         description: i.description || i.name,
         quantity: Number(i.quantity || 1),
         unit_price: Number(i.unit_price || 0),
+        cost_price: i.cost_price != null ? Number(i.cost_price) : undefined,
         serial_numbers: [""],
         track_serials: false,
       })),
