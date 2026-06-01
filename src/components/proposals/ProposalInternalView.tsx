@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +80,49 @@ function formatCurrency(value: number, currency: string = "EUR"): string {
     style: "currency",
     currency,
   }).format(value);
+}
+
+/**
+ * Discount input with local state. Snapshots the current unit_price on mount as
+ * the baseline so successive edits compute from the same reference, and the
+ * typed value is always visible to the user (the underlying table has no
+ * discount column to read back from).
+ */
+function DiscountInput({
+  itemId,
+  currentUnitPrice,
+  disabled,
+  onApplyPrice,
+}: {
+  itemId: string;
+  currentUnitPrice: number;
+  disabled?: boolean;
+  onApplyPrice: (itemId: string, newPrice: number) => void;
+}) {
+  const baselineRef = useRef<number>(currentUnitPrice);
+  const [value, setValue] = useState<string>("");
+
+  return (
+    <Input
+      type="number"
+      step="1"
+      min="0"
+      max="100"
+      value={value}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setValue(raw);
+        const pct = raw === "" ? 0 : parseFloat(raw);
+        if (Number.isNaN(pct)) return;
+        const clamped = Math.max(0, Math.min(100, pct));
+        const newPrice = baselineRef.current * (1 - clamped / 100);
+        onApplyPrice(itemId, Number(newPrice.toFixed(2)));
+      }}
+      className={cn("w-16 h-8 text-right ml-auto", disabled && "opacity-50")}
+      disabled={disabled}
+      placeholder="0"
+    />
+  );
 }
 
 export function ProposalInternalView({ 
@@ -426,16 +469,11 @@ export function ProposalInternalView({
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Input
-                        type="number"
-                        step="1"
-                        min="0"
-                        max="100"
-                        value={(item as any).discount ?? ""}
-                        onChange={(e) => onDiscountChange?.(item.id, e.target.value ? parseFloat(e.target.value) : undefined)}
-                        className={cn("w-16 h-8 text-right ml-auto", !isEnabled && "opacity-50")}
+                      <DiscountInput
+                        itemId={item.id}
+                        currentUnitPrice={item.unit_price}
                         disabled={!isEnabled}
-                        placeholder="0"
+                        onApplyPrice={(id, newPrice) => onPriceChange?.(id, newPrice)}
                       />
                     </TableCell>
                     <TableCell className={cn("text-right text-muted-foreground whitespace-nowrap", !isEnabled && "line-through")}>
