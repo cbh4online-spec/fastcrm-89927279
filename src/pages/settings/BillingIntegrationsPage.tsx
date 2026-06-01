@@ -39,6 +39,7 @@ import {
   useBillingIntegrations,
   useDeleteBillingIntegration,
   useSetDefaultBillingIntegration,
+  useRecheckBillingIntegration,
 } from "@/hooks/useBillingIntegrations";
 import { BillingIntegrationDialog } from "@/components/settings/billing/BillingIntegrationDialog";
 import { BillingSyncSheet } from "@/components/settings/billing/BillingSyncSheet";
