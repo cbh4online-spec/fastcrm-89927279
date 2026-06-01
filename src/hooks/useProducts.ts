@@ -387,6 +387,9 @@ export function useDuplicateProduct() {
       toast.error("Erro ao duplicar produto: " + (error?.message ?? "desconhecido"));
     },
   });
+}
+
+
 
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
