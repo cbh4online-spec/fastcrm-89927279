@@ -71,6 +71,7 @@ function mapCountry(v: string | null | undefined): string {
   const t = String(v).trim();
   const up = t.toUpperCase();
   return COUNTRY_MAP[up] || t;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
