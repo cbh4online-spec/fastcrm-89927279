@@ -272,6 +272,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("rentals",         "Contratos de Renting", "/dashboard/rentals",            Landmark, "vendas", { menuKey: "invoices" }),
   e("rentals-new",     "Novo contrato",        "/dashboard/rentals/new",        Landmark, "vendas", { visibleInSidebar: false }),
   e("rentals-equipment","Parque instalado",    "/dashboard/rentals/equipment",  Wrench,   "vendas", { menuKey: "invoices" }),
+  e("rentals-financiers","Financiadoras",      "/dashboard/rentals/financiers", Landmark, "vendas", { menuKey: "invoices" }),
   e("rentals-equipment-detail","Equipamento",  "/dashboard/rentals/equipment/:id", Wrench, "vendas", { visibleInSidebar: false }),
   e("rentals-detail",  "Detalhe de contrato",  "/dashboard/rentals/:id",        Landmark, "vendas", { visibleInSidebar: false }),
   e("products",     "Produtos",         "/dashboard/products",          Package,     "vendas", { menuKey: "products" }),

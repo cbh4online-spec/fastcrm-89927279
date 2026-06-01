@@ -16,6 +16,7 @@ const RentalContractNewPage = lazy(() => import("@/modules/rentals/pages/RentalC
 const RentalContractDetailPage = lazy(() => import("@/modules/rentals/pages/RentalContractDetailPage"));
 const EquipmentInventoryPage = lazy(() => import("@/modules/rentals/pages/EquipmentInventoryPage"));
 const EquipmentUnitDetailPage = lazy(() => import("@/modules/rentals/pages/EquipmentUnitDetailPage"));
+const FinanciersPage = lazy(() => import("@/modules/rentals/pages/FinanciersPage"));
 
 export function RevenueOpsRoutes() {
   return (
@@ -33,6 +34,7 @@ export function RevenueOpsRoutes() {
       <Route path="/dashboard/rentals" element={<RentalsListPage />} />
       <Route path="/dashboard/rentals/new" element={<RentalContractNewPage />} />
       <Route path="/dashboard/rentals/equipment" element={<EquipmentInventoryPage />} />
+      <Route path="/dashboard/rentals/financiers" element={<FinanciersPage />} />
       <Route path="/dashboard/rentals/equipment/:id" element={<EquipmentUnitDetailPage />} />
       <Route path="/dashboard/rentals/:id" element={<RentalContractDetailPage />} />
     </>

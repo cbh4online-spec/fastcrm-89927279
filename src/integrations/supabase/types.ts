@@ -20601,6 +20601,7 @@ export type Database = {
           id: string
           industry: string | null
           instagram_url: string | null
+          is_financier: boolean
           last_contact_at: string | null
           last_purchase_date: string | null
           latitude: number | null
@@ -20723,6 +20724,7 @@ export type Database = {
           id?: string
           industry?: string | null
           instagram_url?: string | null
+          is_financier?: boolean
           last_contact_at?: string | null
           last_purchase_date?: string | null
           latitude?: number | null
@@ -20845,6 +20847,7 @@ export type Database = {
           id?: string
           industry?: string | null
           instagram_url?: string | null
+          is_financier?: boolean
           last_contact_at?: string | null
           last_purchase_date?: string | null
           latitude?: number | null
