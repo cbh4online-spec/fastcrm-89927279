@@ -990,6 +990,7 @@ export function ProposalDetailContent({
                             name: i.name,
                             quantity: i.quantity,
                             unit_price: i.unit_price,
+                            cost_price: (i as any).cost_price,
                             description: i.description,
                             product_id: i.product_id,
                           })) || []}
