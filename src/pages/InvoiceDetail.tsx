@@ -182,8 +182,8 @@ export default function InvoiceDetail() {
                     <div>
                       <p className="font-medium">{company?.name || "Empresa"}</p>
                       <p className="text-sm text-muted-foreground">
-                        {company?.nif ? `NIF ${company.nif}` : null}
-                        {company?.nif && company?.email ? " · " : null}
+                        {company?.tax_id ? `NIF ${company.tax_id}` : null}
+                        {company?.tax_id && company?.email ? " · " : null}
                         {company?.email || (!company ? "A carregar…" : null)}
                       </p>
                     </div>
