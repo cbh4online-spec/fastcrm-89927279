@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, ArrowLeft, Search } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Search, FileDown } from "lucide-react";
+import { toast } from "sonner";
+import { generateRentalContractPdf } from "../lib/generateRentalContractPdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
