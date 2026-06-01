@@ -119,6 +119,11 @@ export default function InvoiceDetail() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <PushToInvoiceXpressButton
+              invoiceId={invoice.id}
+              externalProvider={(invoice as any).external_provider}
+              externalUrl={(invoice as any).external_url}
+            />
             {invoice.status === "draft" && (
               <Button variant="outline" onClick={handleSendInvoice} disabled={sendInvoice.isPending}>
                 <Send className="w-4 h-4 mr-2" />
