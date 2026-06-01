@@ -357,7 +357,9 @@ export function useDuplicateProduct() {
         created_by: user.id,
         name: candidateName,
         sku: candidateSku,
-        status: "draft",
+        // Clone como "archived" para o utilizador rever antes de publicar
+        // (a tabela só aceita 'active' ou 'archived').
+        status: "archived",
       };
 
       const { data, error } = await supabase
