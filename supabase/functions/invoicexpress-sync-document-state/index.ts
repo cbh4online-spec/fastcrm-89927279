@@ -196,18 +196,17 @@ Deno.serve(async (req) => {
       .not("external_id", "is", null);
     if (invoiceIdFilter) invQ = invQ.eq("id", invoiceIdFilter);
     if (workspaceFilter) invQ = invQ.eq("workspace_id", workspaceFilter);
-    if (!invoiceIdFilter && isServiceRole) {
+    if (cronMode) {
       const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
       invQ = invQ
         .or(`external_state_synced_at.is.null,external_state_synced_at.lt.${fifteenMinAgo}`)
-        .or("external_state.is.null,external_state.in.(draft,sent,settled,partial)")
         .limit(200);
     }
 
     const { data: invoices, error: invErr } = await invQ;
     if (invErr) return json({ ok: false, error: invErr.message }, 200);
     if (!invoices?.length)
-      return json({ ok: true, synced: 0, results: [] });
+      return json({ ok: true, synced: 0, total: 0, results: cronMode ? undefined : [] });
 
     const wsIds = Array.from(new Set(invoices.map((i: any) => i.workspace_id)));
     const { data: integrations } = await admin
@@ -231,7 +230,12 @@ Deno.serve(async (req) => {
       if (r.ok) okCount++;
     }
 
-    return json({ ok: true, synced: okCount, total: invoices.length, results });
+    return json({
+      ok: true,
+      synced: okCount,
+      total: invoices.length,
+      results: cronMode ? undefined : results,
+    });
   } catch (e) {
     console.error("[invoicexpress-sync-document-state] internal_error", e);
     return json(
