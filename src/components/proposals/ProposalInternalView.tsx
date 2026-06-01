@@ -469,16 +469,11 @@ export function ProposalInternalView({
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Input
-                        type="number"
-                        step="1"
-                        min="0"
-                        max="100"
-                        value={(item as any).discount ?? ""}
-                        onChange={(e) => onDiscountChange?.(item.id, e.target.value ? parseFloat(e.target.value) : undefined)}
-                        className={cn("w-16 h-8 text-right ml-auto", !isEnabled && "opacity-50")}
+                      <DiscountInput
+                        itemId={item.id}
+                        currentUnitPrice={item.unit_price}
                         disabled={!isEnabled}
-                        placeholder="0"
+                        onApplyPrice={(id, newPrice) => onPriceChange?.(id, newPrice)}
                       />
                     </TableCell>
                     <TableCell className={cn("text-right text-muted-foreground whitespace-nowrap", !isEnabled && "line-through")}>
