@@ -34,7 +34,10 @@ export function InboxView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [showContextPanel, setShowContextPanel] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(() => {
+    const stored = localStorage.getItem("inbox-folders-sidebar");
+    return stored === null ? false : stored === "1";
+  });
   const [selectedCategory, setSelectedCategory] = useState<InboxCategory>("all");
   const [selectedChannel, setSelectedChannel] = useState<ChannelFilter>("all");
   const [activeView, setActiveView] = useState<string | null>(null);
