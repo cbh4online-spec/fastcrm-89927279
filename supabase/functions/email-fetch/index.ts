@@ -20,16 +20,137 @@ async function decryptCredential(encrypted: string, key: string): Promise<string
   return decoder.decode(decrypted);
 }
 
-// Decode MIME encoded words (minimal)
+function decodeBytes(bytes: Uint8Array, charset = "utf-8"): string {
+  const normalized = charset.toLowerCase().replace(/["']/g, "");
+  const label = normalized.includes("iso-8859-1") || normalized.includes("latin1")
+    ? "iso-8859-1"
+    : normalized.includes("windows-1252")
+      ? "windows-1252"
+      : "utf-8";
+  try { return new TextDecoder(label).decode(bytes); }
+  catch { return new TextDecoder("utf-8").decode(bytes); }
+}
+
 function decodeMimeWord(str: string): string {
   if (!str) return "";
-  return str.replace(/=\?([^?]+)\?([BQ])\?([^?]*)\?=/gi, (_, _cs, encoding, text) => {
+  return str.replace(/=\?([^?]+)\?([BQ])\?([^?]*)\?=/gi, (_m, charset, encoding, text) => {
     try {
-      if (encoding.toUpperCase() === "B") return atob(text);
-      if (encoding.toUpperCase() === "Q") return text.replace(/_/g, " ").replace(/=([0-9A-F]{2})/gi, (_m: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
-    } catch { /* ignore */ }
-    return text;
+      if (encoding.toUpperCase() === "B") {
+        const bytes = Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+        return decodeBytes(bytes, charset);
+      }
+      const qp = text.replace(/_/g, " ");
+      const bytes: number[] = [];
+      for (let i = 0; i < qp.length; i++) {
+        if (qp[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(qp.slice(i + 1, i + 3))) {
+          bytes.push(parseInt(qp.slice(i + 1, i + 3), 16));
+          i += 2;
+        } else {
+          bytes.push(qp.charCodeAt(i));
+        }
+      }
+      return decodeBytes(new Uint8Array(bytes), charset);
+    } catch { return text; }
   });
+}
+
+function splitRawMessage(raw: string): { headers: string; body: string } {
+  const idx = raw.search(/\r?\n\r?\n/);
+  if (idx < 0) return { headers: raw, body: "" };
+  const match = raw.slice(idx).match(/^\r?\n\r?\n/);
+  return { headers: raw.slice(0, idx), body: raw.slice(idx + (match?.[0].length ?? 2)) };
+}
+
+function getHeader(headers: string, name: string): string | null {
+  const unfolded = headers.replace(/\r?\n[ \t]+/g, " ");
+  const re = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*(.+)$`, "im");
+  return unfolded.match(re)?.[1]?.trim() ?? null;
+}
+
+function getHeaderParam(header: string | null, param: string): string | null {
+  if (!header) return null;
+  const re = new RegExp(`${param}=\\"?([^\\";]+)\\"?`, "i");
+  return header.match(re)?.[1]?.trim() ?? null;
+}
+
+function parseAddress(value: string | null): { email: string; name: string } {
+  const decoded = decodeMimeWord(value || "").replace(/\r?\n/g, " ").trim();
+  const email = decoded.match(/<([^>]+)>/)?.[1] || decoded.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "";
+  const name = decoded.replace(/<[^>]+>/g, "").replace(/["']/g, "").trim() || email;
+  return { email: email.toLowerCase(), name };
+}
+
+function decodeTransfer(body: string, encoding: string | null, charset: string | null): string {
+  const enc = (encoding || "7bit").toLowerCase();
+  if (enc === "base64") {
+    const bytes = Uint8Array.from(atob(body.replace(/\s/g, "")), (c) => c.charCodeAt(0));
+    return decodeBytes(bytes, charset || "utf-8");
+  }
+  if (enc === "quoted-printable") {
+    const soft = body.replace(/=\r?\n/g, "");
+    const bytes: number[] = [];
+    for (let i = 0; i < soft.length; i++) {
+      if (soft[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(soft.slice(i + 1, i + 3))) {
+        bytes.push(parseInt(soft.slice(i + 1, i + 3), 16));
+        i += 2;
+      } else {
+        bytes.push(soft.charCodeAt(i));
+      }
+    }
+    return decodeBytes(new Uint8Array(bytes), charset || "utf-8");
+  }
+  return body.trim();
+}
+
+function parseEmailPart(raw: string, depth = 0): { text: string; html: string } {
+  if (depth > 8) return { text: "", html: "" };
+  const { headers, body } = splitRawMessage(raw);
+  const contentType = getHeader(headers, "content-type") || "text/plain; charset=utf-8";
+  const boundary = getHeaderParam(contentType, "boundary");
+  if (/multipart\//i.test(contentType) && boundary) {
+    const parsed = { text: "", html: "" };
+    const segments = body.split(`--${boundary}`).slice(1);
+    for (const segment of segments) {
+      if (segment.trim().startsWith("--")) break;
+      const part = parseEmailPart(segment.replace(/^\r?\n/, "").replace(/\r?\n$/, ""), depth + 1);
+      if (!parsed.text && part.text) parsed.text = part.text;
+      if (!parsed.html && part.html) parsed.html = part.html;
+    }
+    return parsed;
+  }
+
+  const charset = getHeaderParam(contentType, "charset");
+  const decoded = decodeTransfer(body, getHeader(headers, "content-transfer-encoding"), charset);
+  if (/text\/html/i.test(contentType)) return { text: "", html: decoded.trim() };
+  if (/text\/plain/i.test(contentType) || !contentType) return { text: decoded.trim(), html: "" };
+  return { text: "", html: "" };
+}
+
+function extractRawFromFetchBlock(block: string): string {
+  const marker = block.match(/(?:BODY\[\]|RFC822) \{\d+\}\r?\n/i);
+  if (!marker || marker.index === undefined) return "";
+  return block.slice(marker.index + marker[0].length).replace(/\r?\n\)\s*$/, "");
+}
+
+function parseRawEmail(raw: string) {
+  const { headers } = splitRawMessage(raw);
+  const from = parseAddress(getHeader(headers, "from"));
+  const to = parseAddress(getHeader(headers, "to"));
+  const cc = getHeader(headers, "cc");
+  const parsed = parseEmailPart(raw);
+  return {
+    subject: decodeMimeWord(getHeader(headers, "subject") || ""),
+    fromEmail: from.email,
+    fromName: from.name,
+    toEmail: to.email,
+    ccEmail: cc ? decodeMimeWord(cc) : "",
+    date: getHeader(headers, "date") || "",
+    messageId: getHeader(headers, "message-id") || "",
+    inReplyTo: getHeader(headers, "in-reply-to"),
+    references: getHeader(headers, "references"),
+    textContent: parsed.text,
+    htmlContent: parsed.html,
+  };
 }
 
 function parseDateSafe(dateStr: string | null | undefined): string {
