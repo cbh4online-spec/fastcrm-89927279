@@ -399,7 +399,10 @@ Deno.serve(async (req) => {
       const email = (msg.fromEmail || "unknown@email.com").toLowerCase();
       if (email !== connection.email_address.toLowerCase()) senderEmails.add(email);
       emailMsgIds.push(msg.messageId || `<${msg.uid}@${connection.imap_host}>`);
-      threadKeys.add((msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${msg.uid}`);
+      const threadKey = (msg.inReplyTo || msg.references?.split(/\s+/).find(Boolean) || msg.subject || "")
+        .replace(/^(Re:|Fwd:|Fw:)\s*/gi, "")
+        .trim() || `email-${msg.uid}`;
+      threadKeys.add(threadKey);
     }
 
     // 3 batch queries
@@ -450,24 +453,43 @@ Deno.serve(async (req) => {
       }
 
       // Conversation
-      const threadKey = (msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${msg.uid}`;
+      const threadKey = (msg.inReplyTo || msg.references?.split(/\s+/).find(Boolean) || msg.subject || "")
+        .replace(/^(Re:|Fwd:|Fw:)\s*/gi, "")
+        .trim() || `email-${msg.uid}`;
       let conversationId = convMap.get(threadKey) || null;
+      const messageContent = msg.htmlContent || msg.textContent || msg.subject || "(Sem conteúdo)";
+      const preview = cleanPreview(msg.textContent || msg.htmlContent || msg.subject).substring(0, 160) || msg.subject || "Email recebido";
 
       if (conversationId) {
         await supabaseClient.from("conversations").update({
-          last_message_at: new Date().toISOString(),
-          last_message_preview: (msg.subject || "").substring(0, 100),
+          last_message_at: parseDateSafe(msg.date),
+          last_message_preview: preview,
           lead_id: leadId || undefined,
           unread_count: isInbound ? 1 : 0,
+          channel_metadata: {
+            connection_id: connectionId,
+            subject: msg.subject,
+            from_email: msg.fromEmail,
+            from_name: msg.fromName,
+            to_email: msg.toEmail,
+            cc: msg.ccEmail || undefined,
+          },
         }).eq("id", conversationId);
       } else {
         const { data: nc } = await supabaseClient.from("conversations")
           .insert({
             workspace_id: workspaceId, channel: "email", external_thread_id: threadKey,
             lead_id: leadId, status: "open", unread_count: isInbound ? 1 : 0,
-            last_message_at: new Date().toISOString(),
-            last_message_preview: (msg.subject || "").substring(0, 100),
-            channel_metadata: { connection_id: connectionId, subject: msg.subject },
+            last_message_at: parseDateSafe(msg.date),
+            last_message_preview: preview,
+            channel_metadata: {
+              connection_id: connectionId,
+              subject: msg.subject,
+              from_email: msg.fromEmail,
+              from_name: msg.fromName,
+              to_email: msg.toEmail,
+              cc: msg.ccEmail || undefined,
+            },
           }).select("id").single();
         if (!nc) continue;
         conversationId = nc.id;
@@ -478,10 +500,18 @@ Deno.serve(async (req) => {
       const { error: msgErr } = await supabaseClient.from("messages").insert({
         conversation_id: conversationId, workspace_id: workspaceId,
         direction: isInbound ? "inbound" : "outbound",
-        content: msg.subject || "(Sem conteúdo)",
+        content: messageContent,
         sent_at: parseDateSafe(msg.date),
         email_message_id: emailMsgId, email_in_reply_to: msg.inReplyTo || null,
+        email_references: msg.references,
         email_subject: msg.subject, sender_id: isInbound ? null : actingUserId,
+        metadata: {
+          from_email: msg.fromEmail,
+          from_name: msg.fromName,
+          to_email: msg.toEmail,
+          cc: msg.ccEmail || undefined,
+          content_type: msg.htmlContent ? "html" : "text",
+        },
       });
       if (!msgErr) { fetchedCount++; existingIds.add(emailMsgId); }
     }
