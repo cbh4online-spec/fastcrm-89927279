@@ -62,6 +62,10 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
   ({ conversationId, messages, leadData, opportunityData, channel, templateContext, onSend, onSendAndResolve, isSending, disabled }, ref) => {
     const [message, setMessage] = useState("");
     const [showAIPanel, setShowAIPanel] = useState(false);
+    const [showAIBar, setShowAIBar] = useState(() => {
+      if (typeof window === "undefined") return false;
+      return localStorage.getItem("inbox-ai-bar") === "1";
+    });
     const [suggestions, setSuggestions] = useState<ReplySuggestion[]>([]);
     const [reasoning, setReasoning] = useState<string>("");
     const [isModifying, setIsModifying] = useState(false);
