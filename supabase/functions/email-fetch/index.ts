@@ -407,7 +407,7 @@ Deno.serve(async (req) => {
 
     // 3 batch queries
     const [dedupRes, leadsRes, convsRes] = await Promise.all([
-      supabaseClient.from("messages").select("email_message_id")
+      supabaseClient.from("messages").select("id, conversation_id, email_message_id, content")
         .eq("workspace_id", workspaceId).in("email_message_id", emailMsgIds),
       senderEmails.size > 0
         ? supabaseClient.from("leads").select("id, external_email")
@@ -419,7 +419,10 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: [] }),
     ]);
 
-    const existingIds = new Set((dedupRes.data || []).map((m: { email_message_id: string }) => m.email_message_id));
+    const existingByEmailId = new Map(
+      ((dedupRes.data || []) as Array<{ id: string; conversation_id: string; email_message_id: string; content: string | null }>)
+        .map((m) => [m.email_message_id, m]),
+    );
     const leadMap = new Map<string, string>();
     for (const l of (leadsRes.data || []) as Array<{ id: string; external_email: string | null }>) {
       if (l.external_email) leadMap.set(l.external_email.toLowerCase(), l.id);
@@ -435,7 +438,30 @@ Deno.serve(async (req) => {
     for (const msg of newMessages) {
       if (msg.uid > maxUid) maxUid = msg.uid;
       const emailMsgId = msg.messageId || `<${msg.uid}@${connection.imap_host}>`;
-      if (existingIds.has(emailMsgId)) continue;
+      const existingMessage = existingByEmailId.get(emailMsgId);
+      const messageContent = msg.htmlContent || msg.textContent || msg.subject || "(Sem conteúdo)";
+      const preview = cleanPreview(msg.textContent || msg.htmlContent || msg.subject).substring(0, 160) || msg.subject || "Email recebido";
+      if (existingMessage) {
+        const currentContent = existingMessage.content || "";
+        const isSubjectOnly = currentContent.trim() === (msg.subject || "").trim() || currentContent.length < Math.min(messageContent.length, 80);
+        if (isSubjectOnly && messageContent && messageContent !== currentContent) {
+          await supabaseClient.from("messages").update({
+            content: messageContent,
+            email_in_reply_to: msg.inReplyTo || null,
+            email_references: msg.references,
+            metadata: {
+              from_email: msg.fromEmail,
+              from_name: msg.fromName,
+              to_email: msg.toEmail,
+              cc: msg.ccEmail || undefined,
+              content_type: msg.htmlContent ? "html" : "text",
+              backfilled_from_imap: true,
+            },
+          }).eq("id", existingMessage.id);
+          await supabaseClient.from("conversations").update({ last_message_preview: preview }).eq("id", existingMessage.conversation_id);
+        }
+        continue;
+      }
 
       const senderEmail = (msg.fromEmail || "unknown@email.com").toLowerCase();
       const isInbound = senderEmail !== connection.email_address.toLowerCase();
@@ -457,8 +483,6 @@ Deno.serve(async (req) => {
         .replace(/^(Re:|Fwd:|Fw:)\s*/gi, "")
         .trim() || `email-${msg.uid}`;
       let conversationId = convMap.get(threadKey) || null;
-      const messageContent = msg.htmlContent || msg.textContent || msg.subject || "(Sem conteúdo)";
-      const preview = cleanPreview(msg.textContent || msg.htmlContent || msg.subject).substring(0, 160) || msg.subject || "Email recebido";
 
       if (conversationId) {
         await supabaseClient.from("conversations").update({
@@ -513,7 +537,7 @@ Deno.serve(async (req) => {
           content_type: msg.htmlContent ? "html" : "text",
         },
       });
-      if (!msgErr) { fetchedCount++; existingIds.add(emailMsgId); }
+      if (!msgErr) { fetchedCount++; existingByEmailId.set(emailMsgId, { id: emailMsgId, conversation_id: conversationId, email_message_id: emailMsgId, content: messageContent }); }
     }
 
     await supabaseClient.from("email_connections").update({
