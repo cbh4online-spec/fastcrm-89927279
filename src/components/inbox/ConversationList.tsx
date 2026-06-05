@@ -626,14 +626,15 @@ export function ConversationList({
                     <div
                       className={cn(
                         "group relative hover:bg-accent/50 transition-colors cursor-pointer",
-                        density === "normal" ? "py-2.5" : "py-1.5",
+                        density === "normal" ? "py-3" : "py-2",
                         selectedId === conv.id && "bg-accent",
                         isSelected && "bg-primary/5",
                         isPinned && "bg-primary/[0.02]"
                       )}
                       onClick={() => !selectionMode && onSelect(conv.id)}
                     >
-                      <div className="flex items-center gap-2 px-3 max-w-full">
+                      <div className="flex items-center gap-2.5 px-3 max-w-full">
+
                         {/* Unread indicator — left bar */}
                         <div className={cn(
                           "absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full transition-all",
