@@ -165,16 +165,20 @@ function parseDateSafe(dateStr: string | null | undefined): string {
   } catch { return new Date().toISOString(); }
 }
 
-// Minimal IMAP — just get UIDs, subjects, from, date via ENVELOPE
-// Disconnects ASAP to free CPU for DB work
+// Minimal IMAP fetcher — gets the full RFC822 payload so the Inbox can show the actual email body.
 interface RawMsg {
   uid: number;
   subject: string;
   fromEmail: string;
   fromName: string;
+  toEmail: string;
+  ccEmail: string;
   date: string;
   messageId: string;
   inReplyTo: string | null;
+  references: string | null;
+  textContent: string;
+  htmlContent: string;
 }
 
 async function fetchImapMessages(
@@ -226,10 +230,10 @@ async function fetchImapMessages(
     return []; 
   }
 
-  // Fetch last N messages — ENVELOPE only
+  // Fetch last N messages with full source. Limit is intentionally small per run.
   const start = Math.max(1, exists - limit + 1);
   const ft = tag();
-  await send(`${ft} FETCH ${start}:${exists} (UID INTERNALDATE ENVELOPE)`);
+  await send(`${ft} FETCH ${start}:${exists} (UID BODY[])`);
   const fr = await readUntilTag(ft);
 
   // Logout immediately — free TLS resources before parsing
@@ -245,35 +249,24 @@ async function fetchImapMessages(
     if (!uidM) continue;
     const uid = parseInt(uidM[1]);
 
-    const idM = block.match(/INTERNALDATE "([^"]+)"/);
-    const date = idM ? idM[1] : "";
+    const raw = extractRawFromFetchBlock(block);
+    if (!raw) continue;
+    const parsed = parseRawEmail(raw);
 
-    // Extract envelope
-    const envM = block.match(/ENVELOPE \((.+)\)/s);
-    let subject = "", fromEmail = "", fromName = "", messageId = "", inReplyTo: string | null = null;
-
-    if (envM) {
-      const env = envM[1];
-      // Subject is second quoted field
-      const parts = env.match(/"([^"]*)"/g);
-      if (parts && parts.length >= 2) {
-        subject = decodeMimeWord(parts[1].replace(/^"|"$/g, ""));
-      }
-      // From: find pattern ("name" NIL "local" "domain")
-      const fromM = env.match(/\(\((?:"([^"]*)"|NIL)\s+NIL\s+"([^"]+)"\s+"([^"]+)"\)\)/);
-      if (fromM) {
-        fromEmail = `${fromM[2]}@${fromM[3]}`.toLowerCase();
-        fromName = fromM[1] ? decodeMimeWord(fromM[1]) : fromEmail;
-      }
-      // Message-ID: last angle-bracket ID
-      const msgIds = env.match(/<[^>]+@[^>]+>/g);
-      if (msgIds) {
-        messageId = msgIds[msgIds.length - 1];
-        if (msgIds.length > 1) inReplyTo = msgIds[0];
-      }
-    }
-
-    messages.push({ uid, subject, fromEmail, fromName: fromName || fromEmail, date, messageId, inReplyTo });
+    messages.push({
+      uid,
+      subject: parsed.subject,
+      fromEmail: parsed.fromEmail,
+      fromName: parsed.fromName || parsed.fromEmail,
+      toEmail: parsed.toEmail,
+      ccEmail: parsed.ccEmail,
+      date: parsed.date,
+      messageId: parsed.messageId,
+      inReplyTo: parsed.inReplyTo,
+      references: parsed.references,
+      textContent: parsed.textContent,
+      htmlContent: parsed.htmlContent,
+    });
   }
 
   return messages;
