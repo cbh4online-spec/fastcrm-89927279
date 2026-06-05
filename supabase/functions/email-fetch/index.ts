@@ -20,16 +20,150 @@ async function decryptCredential(encrypted: string, key: string): Promise<string
   return decoder.decode(decrypted);
 }
 
-// Decode MIME encoded words (minimal)
+function decodeBytes(bytes: Uint8Array, charset = "utf-8"): string {
+  const normalized = charset.toLowerCase().replace(/["']/g, "");
+  const label = normalized.includes("iso-8859-1") || normalized.includes("latin1")
+    ? "iso-8859-1"
+    : normalized.includes("windows-1252")
+      ? "windows-1252"
+      : "utf-8";
+  try { return new TextDecoder(label).decode(bytes); }
+  catch { return new TextDecoder("utf-8").decode(bytes); }
+}
+
 function decodeMimeWord(str: string): string {
   if (!str) return "";
-  return str.replace(/=\?([^?]+)\?([BQ])\?([^?]*)\?=/gi, (_, _cs, encoding, text) => {
+  return str.replace(/=\?([^?]+)\?([BQ])\?([^?]*)\?=/gi, (_m, charset, encoding, text) => {
     try {
-      if (encoding.toUpperCase() === "B") return atob(text);
-      if (encoding.toUpperCase() === "Q") return text.replace(/_/g, " ").replace(/=([0-9A-F]{2})/gi, (_m: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
-    } catch { /* ignore */ }
-    return text;
+      if (encoding.toUpperCase() === "B") {
+        const bytes = Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+        return decodeBytes(bytes, charset);
+      }
+      const qp = text.replace(/_/g, " ");
+      const bytes: number[] = [];
+      for (let i = 0; i < qp.length; i++) {
+        if (qp[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(qp.slice(i + 1, i + 3))) {
+          bytes.push(parseInt(qp.slice(i + 1, i + 3), 16));
+          i += 2;
+        } else {
+          bytes.push(qp.charCodeAt(i));
+        }
+      }
+      return decodeBytes(new Uint8Array(bytes), charset);
+    } catch { return text; }
   });
+}
+
+function splitRawMessage(raw: string): { headers: string; body: string } {
+  const idx = raw.search(/\r?\n\r?\n/);
+  if (idx < 0) return { headers: raw, body: "" };
+  const match = raw.slice(idx).match(/^\r?\n\r?\n/);
+  return { headers: raw.slice(0, idx), body: raw.slice(idx + (match?.[0].length ?? 2)) };
+}
+
+function getHeader(headers: string, name: string): string | null {
+  const unfolded = headers.replace(/\r?\n[ \t]+/g, " ");
+  const re = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*(.+)$`, "im");
+  return unfolded.match(re)?.[1]?.trim() ?? null;
+}
+
+function getHeaderParam(header: string | null, param: string): string | null {
+  if (!header) return null;
+  const re = new RegExp(`${param}=\\"?([^\\";]+)\\"?`, "i");
+  return header.match(re)?.[1]?.trim() ?? null;
+}
+
+function parseAddress(value: string | null): { email: string; name: string } {
+  const decoded = decodeMimeWord(value || "").replace(/\r?\n/g, " ").trim();
+  const email = decoded.match(/<([^>]+)>/)?.[1] || decoded.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "";
+  const name = decoded.replace(/<[^>]+>/g, "").replace(/["']/g, "").trim() || email;
+  return { email: email.toLowerCase(), name };
+}
+
+function decodeTransfer(body: string, encoding: string | null, charset: string | null): string {
+  const enc = (encoding || "7bit").toLowerCase();
+  if (enc === "base64") {
+    const bytes = Uint8Array.from(atob(body.replace(/\s/g, "")), (c) => c.charCodeAt(0));
+    return decodeBytes(bytes, charset || "utf-8");
+  }
+  if (enc === "quoted-printable") {
+    const soft = body.replace(/=\r?\n/g, "");
+    const bytes: number[] = [];
+    for (let i = 0; i < soft.length; i++) {
+      if (soft[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(soft.slice(i + 1, i + 3))) {
+        bytes.push(parseInt(soft.slice(i + 1, i + 3), 16));
+        i += 2;
+      } else {
+        bytes.push(soft.charCodeAt(i));
+      }
+    }
+    return decodeBytes(new Uint8Array(bytes), charset || "utf-8");
+  }
+  return body.trim();
+}
+
+function parseEmailPart(raw: string, depth = 0): { text: string; html: string } {
+  if (depth > 8) return { text: "", html: "" };
+  const { headers, body } = splitRawMessage(raw);
+  const contentType = getHeader(headers, "content-type") || "text/plain; charset=utf-8";
+  const boundary = getHeaderParam(contentType, "boundary");
+  if (/multipart\//i.test(contentType) && boundary) {
+    const parsed = { text: "", html: "" };
+    const segments = body.split(`--${boundary}`).slice(1);
+    for (const segment of segments) {
+      if (segment.trim().startsWith("--")) break;
+      const part = parseEmailPart(segment.replace(/^\r?\n/, "").replace(/\r?\n$/, ""), depth + 1);
+      if (!parsed.text && part.text) parsed.text = part.text;
+      if (!parsed.html && part.html) parsed.html = part.html;
+    }
+    return parsed;
+  }
+
+  const charset = getHeaderParam(contentType, "charset");
+  const decoded = decodeTransfer(body, getHeader(headers, "content-transfer-encoding"), charset);
+  if (/text\/html/i.test(contentType)) return { text: "", html: decoded.trim() };
+  if (/text\/plain/i.test(contentType) || !contentType) return { text: decoded.trim(), html: "" };
+  return { text: "", html: "" };
+}
+
+function extractRawFromFetchBlock(block: string): string {
+  const marker = block.match(/(?:BODY\[\]|RFC822) \{\d+\}\r?\n/i);
+  if (!marker || marker.index === undefined) return "";
+  return block.slice(marker.index + marker[0].length).replace(/\r?\n\)\s*$/, "");
+}
+
+function parseRawEmail(raw: string) {
+  const { headers } = splitRawMessage(raw);
+  const from = parseAddress(getHeader(headers, "from"));
+  const to = parseAddress(getHeader(headers, "to"));
+  const cc = getHeader(headers, "cc");
+  const parsed = parseEmailPart(raw);
+  return {
+    subject: decodeMimeWord(getHeader(headers, "subject") || ""),
+    fromEmail: from.email,
+    fromName: from.name,
+    toEmail: to.email,
+    ccEmail: cc ? decodeMimeWord(cc) : "",
+    date: getHeader(headers, "date") || "",
+    messageId: getHeader(headers, "message-id") || "",
+    inReplyTo: getHeader(headers, "in-reply-to"),
+    references: getHeader(headers, "references"),
+    textContent: parsed.text,
+    htmlContent: parsed.html,
+  };
+}
+
+function cleanPreview(text: string): string {
+  return decodeMimeWord(text || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function parseDateSafe(dateStr: string | null | undefined): string {
@@ -44,16 +178,20 @@ function parseDateSafe(dateStr: string | null | undefined): string {
   } catch { return new Date().toISOString(); }
 }
 
-// Minimal IMAP — just get UIDs, subjects, from, date via ENVELOPE
-// Disconnects ASAP to free CPU for DB work
+// Minimal IMAP fetcher — gets the full RFC822 payload so the Inbox can show the actual email body.
 interface RawMsg {
   uid: number;
   subject: string;
   fromEmail: string;
   fromName: string;
+  toEmail: string;
+  ccEmail: string;
   date: string;
   messageId: string;
   inReplyTo: string | null;
+  references: string | null;
+  textContent: string;
+  htmlContent: string;
 }
 
 async function fetchImapMessages(
@@ -105,10 +243,10 @@ async function fetchImapMessages(
     return []; 
   }
 
-  // Fetch last N messages — ENVELOPE only
+  // Fetch last N messages with full source. Limit is intentionally small per run.
   const start = Math.max(1, exists - limit + 1);
   const ft = tag();
-  await send(`${ft} FETCH ${start}:${exists} (UID INTERNALDATE ENVELOPE)`);
+  await send(`${ft} FETCH ${start}:${exists} (UID BODY[])`);
   const fr = await readUntilTag(ft);
 
   // Logout immediately — free TLS resources before parsing
@@ -124,35 +262,24 @@ async function fetchImapMessages(
     if (!uidM) continue;
     const uid = parseInt(uidM[1]);
 
-    const idM = block.match(/INTERNALDATE "([^"]+)"/);
-    const date = idM ? idM[1] : "";
+    const raw = extractRawFromFetchBlock(block);
+    if (!raw) continue;
+    const parsed = parseRawEmail(raw);
 
-    // Extract envelope
-    const envM = block.match(/ENVELOPE \((.+)\)/s);
-    let subject = "", fromEmail = "", fromName = "", messageId = "", inReplyTo: string | null = null;
-
-    if (envM) {
-      const env = envM[1];
-      // Subject is second quoted field
-      const parts = env.match(/"([^"]*)"/g);
-      if (parts && parts.length >= 2) {
-        subject = decodeMimeWord(parts[1].replace(/^"|"$/g, ""));
-      }
-      // From: find pattern ("name" NIL "local" "domain")
-      const fromM = env.match(/\(\((?:"([^"]*)"|NIL)\s+NIL\s+"([^"]+)"\s+"([^"]+)"\)\)/);
-      if (fromM) {
-        fromEmail = `${fromM[2]}@${fromM[3]}`.toLowerCase();
-        fromName = fromM[1] ? decodeMimeWord(fromM[1]) : fromEmail;
-      }
-      // Message-ID: last angle-bracket ID
-      const msgIds = env.match(/<[^>]+@[^>]+>/g);
-      if (msgIds) {
-        messageId = msgIds[msgIds.length - 1];
-        if (msgIds.length > 1) inReplyTo = msgIds[0];
-      }
-    }
-
-    messages.push({ uid, subject, fromEmail, fromName: fromName || fromEmail, date, messageId, inReplyTo });
+    messages.push({
+      uid,
+      subject: parsed.subject,
+      fromEmail: parsed.fromEmail,
+      fromName: parsed.fromName || parsed.fromEmail,
+      toEmail: parsed.toEmail,
+      ccEmail: parsed.ccEmail,
+      date: parsed.date,
+      messageId: parsed.messageId,
+      inReplyTo: parsed.inReplyTo,
+      references: parsed.references,
+      textContent: parsed.textContent,
+      htmlContent: parsed.htmlContent,
+    });
   }
 
   return messages;
@@ -272,12 +399,15 @@ Deno.serve(async (req) => {
       const email = (msg.fromEmail || "unknown@email.com").toLowerCase();
       if (email !== connection.email_address.toLowerCase()) senderEmails.add(email);
       emailMsgIds.push(msg.messageId || `<${msg.uid}@${connection.imap_host}>`);
-      threadKeys.add((msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${msg.uid}`);
+      const threadKey = (msg.inReplyTo || msg.references?.split(/\s+/).find(Boolean) || msg.subject || "")
+        .replace(/^(Re:|Fwd:|Fw:)\s*/gi, "")
+        .trim() || `email-${msg.uid}`;
+      threadKeys.add(threadKey);
     }
 
     // 3 batch queries
     const [dedupRes, leadsRes, convsRes] = await Promise.all([
-      supabaseClient.from("messages").select("email_message_id")
+      supabaseClient.from("messages").select("id, conversation_id, email_message_id, content")
         .eq("workspace_id", workspaceId).in("email_message_id", emailMsgIds),
       senderEmails.size > 0
         ? supabaseClient.from("leads").select("id, external_email")
@@ -289,7 +419,10 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: [] }),
     ]);
 
-    const existingIds = new Set((dedupRes.data || []).map((m: { email_message_id: string }) => m.email_message_id));
+    const existingByEmailId = new Map(
+      ((dedupRes.data || []) as Array<{ id: string; conversation_id: string; email_message_id: string; content: string | null }>)
+        .map((m) => [m.email_message_id, m]),
+    );
     const leadMap = new Map<string, string>();
     for (const l of (leadsRes.data || []) as Array<{ id: string; external_email: string | null }>) {
       if (l.external_email) leadMap.set(l.external_email.toLowerCase(), l.id);
@@ -305,7 +438,30 @@ Deno.serve(async (req) => {
     for (const msg of newMessages) {
       if (msg.uid > maxUid) maxUid = msg.uid;
       const emailMsgId = msg.messageId || `<${msg.uid}@${connection.imap_host}>`;
-      if (existingIds.has(emailMsgId)) continue;
+      const existingMessage = existingByEmailId.get(emailMsgId);
+      const messageContent = msg.htmlContent || msg.textContent || msg.subject || "(Sem conteúdo)";
+      const preview = cleanPreview(msg.textContent || msg.htmlContent || msg.subject).substring(0, 160) || msg.subject || "Email recebido";
+      if (existingMessage) {
+        const currentContent = existingMessage.content || "";
+        const isSubjectOnly = currentContent.trim() === (msg.subject || "").trim() || currentContent.length < Math.min(messageContent.length, 80);
+        if (isSubjectOnly && messageContent && messageContent !== currentContent) {
+          await supabaseClient.from("messages").update({
+            content: messageContent,
+            email_in_reply_to: msg.inReplyTo || null,
+            email_references: msg.references,
+            metadata: {
+              from_email: msg.fromEmail,
+              from_name: msg.fromName,
+              to_email: msg.toEmail,
+              cc: msg.ccEmail || undefined,
+              content_type: msg.htmlContent ? "html" : "text",
+              backfilled_from_imap: true,
+            },
+          }).eq("id", existingMessage.id);
+          await supabaseClient.from("conversations").update({ last_message_preview: preview }).eq("id", existingMessage.conversation_id);
+        }
+        continue;
+      }
 
       const senderEmail = (msg.fromEmail || "unknown@email.com").toLowerCase();
       const isInbound = senderEmail !== connection.email_address.toLowerCase();
@@ -323,24 +479,41 @@ Deno.serve(async (req) => {
       }
 
       // Conversation
-      const threadKey = (msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${msg.uid}`;
+      const threadKey = (msg.inReplyTo || msg.references?.split(/\s+/).find(Boolean) || msg.subject || "")
+        .replace(/^(Re:|Fwd:|Fw:)\s*/gi, "")
+        .trim() || `email-${msg.uid}`;
       let conversationId = convMap.get(threadKey) || null;
 
       if (conversationId) {
         await supabaseClient.from("conversations").update({
-          last_message_at: new Date().toISOString(),
-          last_message_preview: (msg.subject || "").substring(0, 100),
+          last_message_at: parseDateSafe(msg.date),
+          last_message_preview: preview,
           lead_id: leadId || undefined,
           unread_count: isInbound ? 1 : 0,
+          channel_metadata: {
+            connection_id: connectionId,
+            subject: msg.subject,
+            from_email: msg.fromEmail,
+            from_name: msg.fromName,
+            to_email: msg.toEmail,
+            cc: msg.ccEmail || undefined,
+          },
         }).eq("id", conversationId);
       } else {
         const { data: nc } = await supabaseClient.from("conversations")
           .insert({
             workspace_id: workspaceId, channel: "email", external_thread_id: threadKey,
             lead_id: leadId, status: "open", unread_count: isInbound ? 1 : 0,
-            last_message_at: new Date().toISOString(),
-            last_message_preview: (msg.subject || "").substring(0, 100),
-            channel_metadata: { connection_id: connectionId, subject: msg.subject },
+            last_message_at: parseDateSafe(msg.date),
+            last_message_preview: preview,
+            channel_metadata: {
+              connection_id: connectionId,
+              subject: msg.subject,
+              from_email: msg.fromEmail,
+              from_name: msg.fromName,
+              to_email: msg.toEmail,
+              cc: msg.ccEmail || undefined,
+            },
           }).select("id").single();
         if (!nc) continue;
         conversationId = nc.id;
@@ -351,12 +524,20 @@ Deno.serve(async (req) => {
       const { error: msgErr } = await supabaseClient.from("messages").insert({
         conversation_id: conversationId, workspace_id: workspaceId,
         direction: isInbound ? "inbound" : "outbound",
-        content: msg.subject || "(Sem conteúdo)",
+        content: messageContent,
         sent_at: parseDateSafe(msg.date),
         email_message_id: emailMsgId, email_in_reply_to: msg.inReplyTo || null,
+        email_references: msg.references,
         email_subject: msg.subject, sender_id: isInbound ? null : actingUserId,
+        metadata: {
+          from_email: msg.fromEmail,
+          from_name: msg.fromName,
+          to_email: msg.toEmail,
+          cc: msg.ccEmail || undefined,
+          content_type: msg.htmlContent ? "html" : "text",
+        },
       });
-      if (!msgErr) { fetchedCount++; existingIds.add(emailMsgId); }
+      if (!msgErr) { fetchedCount++; existingByEmailId.set(emailMsgId, { id: emailMsgId, conversation_id: conversationId, email_message_id: emailMsgId, content: messageContent }); }
     }
 
     await supabaseClient.from("email_connections").update({
