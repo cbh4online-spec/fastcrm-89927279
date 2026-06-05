@@ -62,6 +62,10 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
   ({ conversationId, messages, leadData, opportunityData, channel, templateContext, onSend, onSendAndResolve, isSending, disabled }, ref) => {
     const [message, setMessage] = useState("");
     const [showAIPanel, setShowAIPanel] = useState(false);
+    const [showAIBar, setShowAIBar] = useState(() => {
+      if (typeof window === "undefined") return false;
+      return localStorage.getItem("inbox-ai-bar") === "1";
+    });
     const [suggestions, setSuggestions] = useState<ReplySuggestion[]>([]);
     const [reasoning, setReasoning] = useState<string>("");
     const [isModifying, setIsModifying] = useState(false);
@@ -250,9 +254,47 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
 
     return (
       <div className="p-3 border-t border-border bg-card space-y-2 max-h-[50vh] flex flex-col">
-        {/* AI Actions Bar */}
+        {/* AI toggle header */}
+        <div className="flex items-center justify-between">
+          <Button
+            variant={showAIBar ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => {
+              setShowAIBar((p) => {
+                const next = !p;
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("inbox-ai-bar", next ? "1" : "0");
+                }
+                if (!next) setShowAIPanel(false);
+                return next;
+              });
+            }}
+            className="h-7 text-xs gap-1"
+          >
+            <Sparkles className="w-3 h-3" />
+            IA
+          </Button>
+          <InboxTemplatePanel
+            channel={channel}
+            messages={messages}
+            templateContext={templateContext}
+            leadData={leadData}
+            opportunityData={opportunityData}
+            onApply={handleTemplateApply}
+            trigger={
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                <FileText className="w-3 h-3" />
+                Templates
+              </Button>
+            }
+          />
+        </div>
+
+        {/* AI Actions Bar (collapsible) */}
+        {showAIBar && (
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs text-muted-foreground mr-1">AI:</span>
+          
           
           <TooltipProvider delayDuration={300}>
             {/* Suggest Reply */}
@@ -347,27 +389,11 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
-          {/* Template Panel (NEW - with AI adaptation) */}
-          <div className="ml-auto">
-            <InboxTemplatePanel
-              channel={channel}
-              messages={messages}
-              templateContext={templateContext}
-              leadData={leadData}
-              opportunityData={opportunityData}
-              onApply={handleTemplateApply}
-              trigger={
-                <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
-                  <FileText className="w-3 h-3" />
-                  Templates
-                </Button>
-              }
-            />
-          </div>
         </div>
+        )}
 
         {/* Channel indicator */}
+        {showAIBar && (
         <div className="flex items-center gap-2 text-xs">
           <Badge variant="outline" className="text-[10px] py-0">
             {getChannelLabel(channel)}
@@ -376,6 +402,8 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
             Tom adaptado ao canal
           </span>
         </div>
+        )}
+
 
         {/* AI Suggestions Panel */}
         {showAIPanel && (

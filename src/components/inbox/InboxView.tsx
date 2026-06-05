@@ -34,7 +34,10 @@ export function InboxView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [showContextPanel, setShowContextPanel] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(() => {
+    const stored = localStorage.getItem("inbox-folders-sidebar");
+    return stored === null ? false : stored === "1";
+  });
   const [selectedCategory, setSelectedCategory] = useState<InboxCategory>("all");
   const [selectedChannel, setSelectedChannel] = useState<ChannelFilter>("all");
   const [activeView, setActiveView] = useState<string | null>(null);
@@ -167,7 +170,13 @@ export function InboxView() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowSidebar(!showSidebar)}
+                  onClick={() => {
+                    setShowSidebar((p) => {
+                      const next = !p;
+                      localStorage.setItem("inbox-folders-sidebar", next ? "1" : "0");
+                      return next;
+                    });
+                  }}
                   className="h-8 w-8 p-0 hidden md:inline-flex"
                 >
                   {showSidebar ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
