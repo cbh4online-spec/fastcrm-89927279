@@ -153,6 +153,19 @@ function parseRawEmail(raw: string) {
   };
 }
 
+function cleanPreview(text: string): string {
+  return decodeMimeWord(text || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function parseDateSafe(dateStr: string | null | undefined): string {
   if (!dateStr) return new Date().toISOString();
   try {
