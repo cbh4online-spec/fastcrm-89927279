@@ -812,8 +812,8 @@ export function ConversationList({
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <span className={cn(
-                                      "text-[10px] flex-shrink-0 whitespace-nowrap group-hover:hidden",
-                                      hasUnread ? "text-primary font-medium" : "text-muted-foreground"
+                                      "text-[11px] flex-shrink-0 whitespace-nowrap group-hover:hidden",
+                                      hasUnread ? "text-primary font-semibold" : "text-muted-foreground"
                                     )}>
                                       {formatSmartTime(conv.last_message_at)}
                                     </span>
@@ -823,6 +823,7 @@ export function ConversationList({
                                   </TooltipContent>
                                 </Tooltip>
                               )}
+
                             </div>
                           </div>
 
