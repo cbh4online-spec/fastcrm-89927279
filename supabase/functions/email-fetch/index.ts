@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
         content: msg.subject || "(Sem conteúdo)",
         sent_at: parseDateSafe(msg.date),
         email_message_id: emailMsgId, email_in_reply_to: msg.inReplyTo || null,
-        email_subject: msg.subject, sender_id: isInbound ? null : user.id,
+        email_subject: msg.subject, sender_id: isInbound ? null : actingUserId,
       });
       if (!msgErr) { fetchedCount++; existingIds.add(emailMsgId); }
     }
