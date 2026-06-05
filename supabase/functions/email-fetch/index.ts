@@ -168,25 +168,50 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const encryptionKey = Deno.env.get("EMAIL_ENCRYPTION_KEY") || supabaseServiceKey.slice(0, 32);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing authorization header");
-
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: { user }, error: authError } = await createClient(
-      supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    ).auth.getUser();
-    if (authError || !user) throw new Error("Unauthorized");
-
     const body = await req.json();
-    const { connectionId, workspaceId, limit = 3, forceResync = false } = body;
+    const { connectionId, workspaceId, limit = 3, forceResync = false, source } = body;
+
+    // Cron mode: validate shared secret instead of JWT
+    const cronSecretHeader = req.headers.get("x-cron-secret");
+    let actingUserId: string | null = null;
+    let isCron = false;
+
+    if (source === "cron" && cronSecretHeader) {
+      const { data: cfg } = await supabaseClient
+        .from("_cron_config").select("value").eq("key", "email_fetch_cron_secret").maybeSingle();
+      if (!cfg?.value || cfg.value !== cronSecretHeader) {
+        throw new Error("Invalid cron secret");
+      }
+      isCron = true;
+    } else {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) throw new Error("Missing authorization header");
+      const { data: { user }, error: authError } = await createClient(
+        supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      ).auth.getUser();
+      if (authError || !user) throw new Error("Unauthorized");
+      actingUserId = user.id;
+    }
 
     // Get connection
     const { data: connection, error: connError } = await supabaseClient
       .from("email_connections").select("*")
       .eq("id", connectionId).eq("workspace_id", workspaceId).eq("is_active", true).single();
     if (connError || !connection) throw new Error("Email connection not found");
+
+    if (isCron) actingUserId = connection.connected_by;
+
+    // Reentrancy guard: skip if another sync is already running and started recently
+    if (connection.sync_status === "syncing" && connection.last_sync_at) {
+      const startedAgoMs = Date.now() - new Date(connection.last_sync_at).getTime();
+      if (startedAgoMs < 2 * 60 * 1000) {
+        return new Response(JSON.stringify({ skipped: "in_progress" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
 
     await supabaseClient.from("email_connections").update({ sync_status: "syncing" }).eq("id", connectionId);
 
@@ -291,7 +316,7 @@ Deno.serve(async (req) => {
         leadId = leadMap.get(senderEmail) || null;
         if (!leadId) {
           const { data: nl } = await supabaseClient.from("leads")
-            .insert({ workspace_id: workspaceId, created_by: user.id, name: msg.fromName || senderEmail, email: senderEmail, external_email: senderEmail, source: "email", status: "new" })
+            .insert({ workspace_id: workspaceId, created_by: actingUserId, name: msg.fromName || senderEmail, email: senderEmail, external_email: senderEmail, source: "email", status: "new" })
             .select("id").single();
           if (nl) { leadId = nl.id; leadMap.set(senderEmail, leadId); }
         }
@@ -329,7 +354,7 @@ Deno.serve(async (req) => {
         content: msg.subject || "(Sem conteúdo)",
         sent_at: parseDateSafe(msg.date),
         email_message_id: emailMsgId, email_in_reply_to: msg.inReplyTo || null,
-        email_subject: msg.subject, sender_id: isInbound ? null : user.id,
+        email_subject: msg.subject, sender_id: isInbound ? null : actingUserId,
       });
       if (!msgErr) { fetchedCount++; existingIds.add(emailMsgId); }
     }
