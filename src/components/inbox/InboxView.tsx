@@ -170,7 +170,13 @@ export function InboxView() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowSidebar(!showSidebar)}
+                  onClick={() => {
+                    setShowSidebar((p) => {
+                      const next = !p;
+                      localStorage.setItem("inbox-folders-sidebar", next ? "1" : "0");
+                      return next;
+                    });
+                  }}
                   className="h-8 w-8 p-0 hidden md:inline-flex"
                 >
                   {showSidebar ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
