@@ -387,7 +387,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
               Sem mensagens
             </div>
           ) : (
-            <div className="space-y-1 p-4 min-w-0">
+            <div className="space-y-2 p-4 md:p-6 min-w-0 max-w-3xl mx-auto w-full">
               {messages.map((message, index) => {
                 const msgDate = new Date(message.created_at || message.sent_at);
                 const prevDate = index > 0 ? new Date(messages[index - 1].created_at || messages[index - 1].sent_at) : null;
