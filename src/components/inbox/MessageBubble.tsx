@@ -116,23 +116,14 @@ export function MessageBubble({
   if (isOutbound) {
     // Outbound message (sent by company) - aligned right
     return (
-      <div className="flex justify-end mb-4">
-        <div className="max-w-[75%]">
-          {/* Header */}
-          <div className="flex items-center justify-end gap-2 mb-1">
-            <span className="text-xs font-medium text-foreground">{companyName}</span>
-            <ResponseInfoSheet messageId={message.id}>
-              <button className="text-muted-foreground hover:text-primary transition-colors">
-                <Info className="w-3.5 h-3.5" />
-              </button>
-            </ResponseInfoSheet>
-            <MessageDeliveryStatus status={deliveryStatus} />
-          </div>
-          
+      <div className="flex justify-end mb-3 group">
+        <div className="max-w-[78%] flex flex-col items-end">
           {/* Bubble */}
           <div className={cn(
-            "bg-card border rounded-2xl rounded-tr-sm p-3",
-            isFailed ? "border-destructive/50 bg-destructive/5" : "border-border"
+            "rounded-2xl rounded-tr-sm px-3.5 py-2.5 shadow-sm",
+            isFailed
+              ? "border border-destructive/50 bg-destructive/5"
+              : "bg-primary/10 border border-primary/20 text-foreground"
           )}>
             {isAudio ? (
               <WhatsAppAudioMessageCard
@@ -148,20 +139,20 @@ export function MessageBubble({
                 metadata={message.metadata ?? undefined}
               />
             ) : (
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">{cleanEmailPreview(message.content, 5000)}</p>
             )}
 
             {/* Attachments */}
             {attachments && attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border">
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-primary/15">
                 {attachments.map((att, idx) => renderAttachment(att, idx))}
               </div>
             )}
           </div>
-          
+
           {/* Failed indicator */}
           {isFailed && (
-            <div className="flex items-center justify-end gap-2 mt-2">
+            <div className="flex items-center justify-end gap-2 mt-1.5">
               <span className="text-[10px] text-destructive flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" />
                 Falha ao enviar
@@ -180,11 +171,18 @@ export function MessageBubble({
             </div>
           )}
 
-          {/* Timestamp */}
+          {/* Footer: sender + time + delivery (single source) */}
           {showTimestamp && !isFailed && (
-            <div className="flex items-center justify-end gap-1.5 mt-1.5">
-              <span className="text-xs text-muted-foreground">{formattedDate}</span>
+            <div className="flex items-center justify-end gap-1.5 mt-1 px-1 opacity-60 group-hover:opacity-100 transition-opacity">
+              <span className="text-[11px] text-muted-foreground">{companyName}</span>
+              <span className="text-[11px] text-muted-foreground">·</span>
+              <span className="text-[11px] text-muted-foreground">{formattedTime}</span>
               <MessageDeliveryStatus status={deliveryStatus} />
+              <ResponseInfoSheet messageId={message.id}>
+                <button className="text-muted-foreground hover:text-primary transition-colors">
+                  <Info className="w-3 h-3" />
+                </button>
+              </ResponseInfoSheet>
             </div>
           )}
         </div>
