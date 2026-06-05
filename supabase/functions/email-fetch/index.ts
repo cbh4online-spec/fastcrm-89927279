@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
         leadId = leadMap.get(senderEmail) || null;
         if (!leadId) {
           const { data: nl } = await supabaseClient.from("leads")
-            .insert({ workspace_id: workspaceId, created_by: user.id, name: msg.fromName || senderEmail, email: senderEmail, external_email: senderEmail, source: "email", status: "new" })
+            .insert({ workspace_id: workspaceId, created_by: actingUserId, name: msg.fromName || senderEmail, email: senderEmail, external_email: senderEmail, source: "email", status: "new" })
             .select("id").single();
           if (nl) { leadId = nl.id; leadMap.set(senderEmail, leadId); }
         }
