@@ -44,6 +44,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
   const sectionIds = [
     "integrations-billing-providers",
     "integrations-stripe",
+    "integrations-google",
     "integrations-whatsapp",
     "integrations-video",
     "integrations-ghl",
