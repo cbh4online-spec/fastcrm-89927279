@@ -150,6 +150,13 @@ export function InboxView() {
     localStorage.setItem("inbox-view-mode", next);
   };
 
+  // Density toggle
+  const toggleDensity = () => {
+    const next = density === "normal" ? "compact" : "normal";
+    setDensity(next);
+    localStorage.setItem("inbox-density", next);
+  };
+
   // In columns mode, if a conversation is selected, show the detail
   const showDetail = viewMode === "list" || selectedConversationId;
 
