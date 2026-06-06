@@ -199,26 +199,27 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // COMUNICAÇÃO (Departamento: canais e conversas)
   // Sub-páginas WhatsApp acessíveis via hub "WhatsApp Pro" — ocultas do sidebar mas pesquisáveis
   // ══════════════════════════════════════════════════════════════
+  // Itens principais visíveis no sidebar (menu enxuto e funcional)
   e("inbox",            "Caixa de Entrada",   "/dashboard/inbox",                  Inbox,         "comunicacao", { menuKey: "inbox" }),
   e("whatsapp-pro",     "WhatsApp",           "/dashboard/whatsapp-pro",           MessageSquare, "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-inbox",   "Inbox WhatsApp",     "/dashboard/whatsapp-pro/inbox",     Inbox,         "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-campaigns","Campanhas WhatsApp","/dashboard/whatsapp-pro/campaigns", Send,          "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("telegram",         "Telegram",           "/dashboard/telegram",               Send,          "comunicacao"),
   e("voicehub",         "VoiceHub",           "/dashboard/voicehub",               Headphones,    "comunicacao"),
   e("groups",           "Grupos",             "/dashboard/groups",                 Users,         "comunicacao"),
   e("templates",        "Modelos",            "/dashboard/communication/templates",FileText,      "comunicacao"),
-  // Sub-páginas WhatsApp Pro — agora visíveis no sidebar
-  e("whatsapp-sequences",      "Sequências WhatsApp",        "/dashboard/whatsapp-pro/sequences",       Workflow,    "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-bot-rules",      "Bot WhatsApp",               "/dashboard/whatsapp-pro/bot-rules",       Bot,         "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-templates",      "Templates WhatsApp",         "/dashboard/whatsapp-pro/templates",       FileText,    "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-quick-templates","Templates Rápidos WhatsApp", "/dashboard/whatsapp-pro/quick-templates", Sparkles,    "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-quick-replies",  "Quick Replies WhatsApp",     "/dashboard/whatsapp-pro/quick-replies",   Zap,         "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-segments",       "Segmentos WhatsApp",         "/dashboard/whatsapp-pro/segments",        Target,      "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-contacts-import","Importar Contactos WhatsApp","/dashboard/whatsapp-pro/contacts-import", Upload,      "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-catalog",        "Catálogo WhatsApp",          "/dashboard/whatsapp-pro/catalog",         Package,     "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-analytics",      "Métricas WhatsApp",          "/dashboard/whatsapp-pro/analytics",       BarChart3,   "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-consent",        "Consentimento WhatsApp",     "/dashboard/whatsapp-pro/consent",         ShieldCheck, "comunicacao", { moduleSlug: "whatsapp-business" }),
-  e("whatsapp-throttle",       "Anti-spam & Throttling",     "/dashboard/whatsapp-pro/throttle",        Gauge,       "comunicacao", { moduleSlug: "whatsapp-business" }),
+  // Sub-páginas WhatsApp Pro — acessíveis via hub WhatsApp e pesquisa, ocultas do sidebar
+  e("whatsapp-inbox",          "Inbox WhatsApp",             "/dashboard/whatsapp-pro/inbox",           Inbox,         "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-campaigns",      "Campanhas WhatsApp",         "/dashboard/whatsapp-pro/campaigns",       Send,          "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-sequences",      "Sequências WhatsApp",        "/dashboard/whatsapp-pro/sequences",       Workflow,      "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-bot-rules",      "Bot WhatsApp",               "/dashboard/whatsapp-pro/bot-rules",       Bot,           "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-templates",      "Templates WhatsApp",         "/dashboard/whatsapp-pro/templates",       FileText,      "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-quick-templates","Templates Rápidos WhatsApp", "/dashboard/whatsapp-pro/quick-templates", Sparkles,      "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-quick-replies",  "Quick Replies WhatsApp",     "/dashboard/whatsapp-pro/quick-replies",   Zap,           "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-segments",       "Segmentos WhatsApp",         "/dashboard/whatsapp-pro/segments",        Target,        "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-contacts-import","Importar Contactos WhatsApp","/dashboard/whatsapp-pro/contacts-import", Upload,        "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-catalog",        "Catálogo WhatsApp",          "/dashboard/whatsapp-pro/catalog",         Package,       "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-analytics",      "Métricas WhatsApp",          "/dashboard/whatsapp-pro/analytics",       BarChart3,     "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-consent",        "Consentimento WhatsApp",     "/dashboard/whatsapp-pro/consent",         ShieldCheck,   "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+  e("whatsapp-throttle",       "Anti-spam & Throttling",     "/dashboard/whatsapp-pro/throttle",        Gauge,         "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
 
 
   // Itens administrativos / executivos (movidos para grupos próprios)
