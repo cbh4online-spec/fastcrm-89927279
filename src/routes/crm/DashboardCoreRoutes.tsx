@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { Route, Navigate } from "react-router-dom";
 
 const FastCRMLanding = lazy(() => import("@/pages/FastCRMLanding"));
+const FastCRMWhatsAppSalesLanding = lazy(() => import("@/pages/FastCRMWhatsAppSalesLanding"));
 
 const Login = lazy(() => import("@/pages/Login"));
 const Signup = lazy(() => import("@/pages/Signup"));
