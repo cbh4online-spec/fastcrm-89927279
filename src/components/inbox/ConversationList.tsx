@@ -55,6 +55,7 @@ import {
   Layers,
   WrapText,
   MoreHorizontal,
+  Maximize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
@@ -794,6 +795,20 @@ export function ConversationList({
                             <div className="ml-auto flex items-center gap-1 flex-shrink-0">
                               {/* Hover Quick Actions */}
                               <div className="hidden group-hover:flex items-center gap-0.5 animate-in fade-in-0 duration-150">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelect(conv.id);
+                                      }}
+                                    >
+                                      <Maximize2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Expandir no painel</p></TooltipContent>
+                                </Tooltip>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <button
