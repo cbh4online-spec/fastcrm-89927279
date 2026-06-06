@@ -287,7 +287,7 @@ export function InboxView() {
         <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* LEFT — Sidebar (hidden on mobile) */}
           {showSidebar && (
-            <div className="w-56 min-h-0 flex-shrink-0 border-r border-border hidden lg:block overflow-hidden">
+            <div className="w-48 min-h-0 flex-shrink-0 border-r border-border hidden lg:block overflow-hidden">
               <InboxSidebar
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
@@ -343,7 +343,7 @@ export function InboxView() {
               {/* Classic list view - master-detail on mobile */}
               <div className={cn(
                 "min-h-0 flex-shrink-0 border-r border-border",
-                isMobile ? "w-full" : "w-[300px] md:w-[320px] lg:w-[340px] xl:w-[380px]",
+                isMobile ? "w-full" : "w-[240px] md:w-[260px] lg:w-[280px] xl:w-[300px]",
                 mobileShowDetail && "hidden"
               )}>
                 <ConversationList
