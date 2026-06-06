@@ -200,6 +200,8 @@ export function ConversationList({
     }
   };
 
+  const effectiveChannelFilter = externalChannelFilter || (internalChannelFilter !== "all" ? internalChannelFilter as ConversationChannel : undefined);
+
   const togglePin = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setPinnedIds(prev => {
