@@ -394,6 +394,8 @@ export function InboxView() {
                   activeView={activeView}
                   density={density}
                   onToggleDensity={toggleDensity}
+                  wrapMode={wrapMode}
+                  onToggleWrapMode={toggleWrapMode}
                 />
               </div>
               <div className={cn(
