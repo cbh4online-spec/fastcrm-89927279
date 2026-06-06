@@ -45,6 +45,9 @@ export function InboxView() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem("inbox-view-mode") as ViewMode) || "list";
   });
+  const [density, setDensity] = useState<"normal" | "compact">(() => {
+    return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
+  });
   const [columnsSearch, setColumnsSearch] = useState("");
 
   const channelParam = searchParams.get("channel") as ConversationChannel | null;
