@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.google-calendar-webhook]
 verify_jwt = false
 
+[functions.google-workspace-oauth-callback]
+verify_jwt = false
+
 [functions.csv-url-fetch]
 verify_jwt = false
 
