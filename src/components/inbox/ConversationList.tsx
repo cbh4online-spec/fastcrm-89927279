@@ -53,6 +53,8 @@ import {
   UserPlus,
   AlertTriangle,
   Layers,
+  WrapText,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
