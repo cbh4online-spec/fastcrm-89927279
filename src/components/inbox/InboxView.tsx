@@ -377,6 +377,8 @@ export function InboxView() {
                   categoryFilter={selectedCategory}
                   channelFilter={selectedChannel !== "all" ? selectedChannel as ConversationChannel : undefined}
                   activeView={activeView}
+                  density={density}
+                  onToggleDensity={toggleDensity}
                 />
               </div>
               <div className={cn(
