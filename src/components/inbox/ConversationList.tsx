@@ -664,15 +664,16 @@ export function ConversationList({
 
                         {/* Avatar with channel icon overlay */}
                         <div className="relative flex-shrink-0">
-                          <Avatar className="h-10 w-10">
+                          <Avatar className={density === "compact" ? "h-7 w-7" : "h-10 w-10"}>
                             <AvatarImage src={avatarUrl} />
-                            <AvatarFallback className="text-xs font-medium bg-muted">
+                            <AvatarFallback className={cn("font-medium bg-muted", density === "compact" ? "text-[10px]" : "text-xs")}>
                               {getInitials(displayName)}
                             </AvatarFallback>
                           </Avatar>
                           {/* Channel icon pill */}
                           <div className={cn(
                             "absolute -bottom-0.5 -right-0.5 rounded-full p-0.5 border-2 border-card",
+                            density === "compact" ? "scale-75 origin-bottom-right" : "",
                             channelBgColors[conv.channel]
                           )}>
                             <ChannelIcon className={cn("w-2.5 h-2.5", channelColors[conv.channel])} />
