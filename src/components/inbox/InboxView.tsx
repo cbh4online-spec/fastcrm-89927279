@@ -10,7 +10,7 @@ import { SalesInboxColumns } from "./SalesInboxColumns";
 import { ConversationChannel } from "@/hooks/useConversations";
 import { useConversations, useUpdateConversationStatus } from "@/hooks/useConversations";
 import { Button } from "@/components/ui/button";
-import { PanelRightClose, PanelRight, PanelLeftClose, PanelLeft, Keyboard, LayoutGrid, List, Phone } from "lucide-react";
+import { PanelRightClose, PanelRight, PanelLeftClose, PanelLeft, Keyboard, LayoutGrid, List, Phone, AlignJustify } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
@@ -44,6 +44,9 @@ export function InboxView() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem("inbox-view-mode") as ViewMode) || "list";
+  });
+  const [density, setDensity] = useState<"normal" | "compact">(() => {
+    return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
   });
   const [columnsSearch, setColumnsSearch] = useState("");
 
@@ -147,6 +150,13 @@ export function InboxView() {
     localStorage.setItem("inbox-view-mode", next);
   };
 
+  // Density toggle
+  const toggleDensity = () => {
+    const next = density === "normal" ? "compact" : "normal";
+    setDensity(next);
+    localStorage.setItem("inbox-density", next);
+  };
+
   // In columns mode, if a conversation is selected, show the detail
   const showDetail = viewMode === "list" || selectedConversationId;
 
@@ -240,6 +250,20 @@ export function InboxView() {
           )}
 
           <div className="flex items-center gap-1">
+            {/* Density toggle - hidden on mobile */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleDensity}
+                  className="h-8 w-8 p-0 hidden md:inline-flex"
+                >
+                  {density === "compact" ? <AlignJustify className="w-4 h-4" /> : <List className="w-4 h-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{density === "compact" ? "Modo normal" : "Modo compacto"}</p></TooltipContent>
+            </Tooltip>
             {/* View mode toggle - hidden on mobile */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -353,6 +377,8 @@ export function InboxView() {
                   categoryFilter={selectedCategory}
                   channelFilter={selectedChannel !== "all" ? selectedChannel as ConversationChannel : undefined}
                   activeView={activeView}
+                  density={density}
+                  onToggleDensity={toggleDensity}
                 />
               </div>
               <div className={cn(

@@ -155,6 +155,8 @@ interface ConversationListProps {
   categoryFilter?: InboxCategory;
   channelFilter?: ConversationChannel;
   activeView?: string | null;
+  density?: "normal" | "compact";
+  onToggleDensity?: () => void;
 }
 
 export function ConversationList({
@@ -164,6 +166,8 @@ export function ConversationList({
   categoryFilter,
   channelFilter: externalChannelFilter,
   activeView,
+  density: densityProp,
+  onToggleDensity,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<SimplifiedTab>("requires_response");
@@ -177,20 +181,26 @@ export function ConversationList({
       return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
     } catch { return new Set(); }
   });
-  const [density, setDensity] = useState<"normal" | "compact">(() => {
+  const [internalDensity, setInternalDensity] = useState<"normal" | "compact">(() => {
     return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
   });
   const updateStatus = useUpdateConversationStatus();
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
-  const effectiveChannelFilter = externalChannelFilter || (internalChannelFilter !== "all" ? internalChannelFilter as ConversationChannel : undefined);
+  const density = densityProp ?? internalDensity;
 
   const toggleDensity = () => {
     const next = density === "normal" ? "compact" : "normal";
-    setDensity(next);
-    localStorage.setItem("inbox-density", next);
+    if (onToggleDensity) {
+      onToggleDensity();
+    } else {
+      setInternalDensity(next);
+      localStorage.setItem("inbox-density", next);
+    }
   };
+
+  const effectiveChannelFilter = externalChannelFilter || (internalChannelFilter !== "all" ? internalChannelFilter as ConversationChannel : undefined);
 
   const togglePin = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -626,14 +636,17 @@ export function ConversationList({
                     <div
                       className={cn(
                         "group relative hover:bg-accent/50 transition-colors cursor-pointer",
-                        density === "normal" ? "py-3" : "py-2",
+                        density === "normal" ? "py-3" : "py-1.5",
                         selectedId === conv.id && "bg-accent",
                         isSelected && "bg-primary/5",
                         isPinned && "bg-primary/[0.02]"
                       )}
                       onClick={() => !selectionMode && onSelect(conv.id)}
                     >
-                      <div className="flex items-center gap-2.5 px-3 max-w-full">
+                      <div className={cn(
+                        "flex items-center gap-2 px-3 max-w-full",
+                        density === "normal" ? "gap-2.5" : "gap-2"
+                      )}>
 
                         {/* Unread indicator — left bar */}
                         <div className={cn(
@@ -651,15 +664,16 @@ export function ConversationList({
 
                         {/* Avatar with channel icon overlay */}
                         <div className="relative flex-shrink-0">
-                          <Avatar className="h-10 w-10">
+                          <Avatar className={density === "compact" ? "h-7 w-7" : "h-10 w-10"}>
                             <AvatarImage src={avatarUrl} />
-                            <AvatarFallback className="text-xs font-medium bg-muted">
+                            <AvatarFallback className={cn("font-medium bg-muted", density === "compact" ? "text-[10px]" : "text-xs")}>
                               {getInitials(displayName)}
                             </AvatarFallback>
                           </Avatar>
                           {/* Channel icon pill */}
                           <div className={cn(
                             "absolute -bottom-0.5 -right-0.5 rounded-full p-0.5 border-2 border-card",
+                            density === "compact" ? "scale-75 origin-bottom-right" : "",
                             channelBgColors[conv.channel]
                           )}>
                             <ChannelIcon className={cn("w-2.5 h-2.5", channelColors[conv.channel])} />
@@ -699,7 +713,7 @@ export function ConversationList({
                                 {displayName}
                               </span>
                             )}
-                            {conv.resolved_contact && !conv.contact?.name && !conv.lead?.name && (
+                            {density !== "compact" && conv.resolved_contact && !conv.contact?.name && !conv.lead?.name && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge
@@ -739,7 +753,7 @@ export function ConversationList({
                               </Tooltip>
                             )}
                             {isPinned && <Pin className="w-3 h-3 text-primary/60 flex-shrink-0" />}
-                            {messageCount > 0 && (
+                            {density !== "compact" && messageCount > 0 && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge variant="secondary" className="h-4 px-1 text-[9px] font-medium flex-shrink-0">
@@ -828,7 +842,7 @@ export function ConversationList({
                           </div>
 
                           {/* Email subject line */}
-                          {emailSubject && (
+                          {density !== "compact" && emailSubject && (
                             <p className="text-[11px] font-medium text-foreground/70 truncate mt-0.5 flex items-center gap-1">
                               <Mail className="w-3 h-3 flex-shrink-0" />
                               {emailSubject}
@@ -836,14 +850,20 @@ export function ConversationList({
                           )}
 
                           {/* Line 2: Direction arrow + Preview + Delivery status */}
-                          <div className="flex items-center gap-1 mt-0.5">
-                            {isOutbound ? (
-                              <ArrowUpRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                            ) : (
-                              <ArrowDownLeft className="w-3 h-3 text-primary/60 flex-shrink-0" />
+                          <div className={cn(
+                            "flex items-center gap-1",
+                            density === "normal" ? "mt-0.5" : ""
+                          )}>
+                            {density !== "compact" && (
+                              isOutbound ? (
+                                <ArrowUpRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                              ) : (
+                                <ArrowDownLeft className="w-3 h-3 text-primary/60 flex-shrink-0" />
+                              )
                             )}
                             <p className={cn(
-                              "text-xs truncate flex-1 min-w-0",
+                              "truncate flex-1 min-w-0",
+                              density === "compact" ? "text-[11px]" : "text-xs",
                               hasUnread ? "text-foreground/80" : "text-muted-foreground"
                             )}>
                               {conv.channel === 'email'
