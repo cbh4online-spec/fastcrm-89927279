@@ -890,9 +890,12 @@ export function ConversationList({
                               )
                             )}
                             <p className={cn(
-                              "truncate flex-1 min-w-0",
+                              "flex-1 min-w-0",
                               density === "compact" ? "text-[11px]" : "text-xs",
-                              hasUnread ? "text-foreground/80" : "text-muted-foreground"
+                              hasUnread ? "text-foreground/80" : "text-muted-foreground",
+                              wrapMode === "wrap"
+                                ? "whitespace-pre-wrap break-words leading-relaxed"
+                                : "truncate"
                             )}>
                               {conv.channel === 'email'
                                 ? cleanEmailPreview(conv.last_message_preview)
