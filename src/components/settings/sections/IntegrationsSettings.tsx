@@ -94,6 +94,22 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
         </div>
       )}
 
+      {/* ──────────────── Google Workspace ──────────────── */}
+      {shouldShow("integrations-google") && (
+        <div className="space-y-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+            Google Workspace
+          </h3>
+          <SettingsSection
+            title="Conectores Google"
+            description="Liga Gmail, Calendar, Drive e Docs/Sheets a este workspace via OAuth dedicado."
+            icon={<Mail className="h-5 w-5 text-red-500" />}
+          >
+            <GoogleWorkspaceIntegrations />
+          </SettingsSection>
+        </div>
+      )}
+
       {/* ──────────────── Comunicação ──────────────── */}
       {(shouldShow("integrations-whatsapp") || shouldShow("integrations-video")) && (
         <div className="space-y-4">
