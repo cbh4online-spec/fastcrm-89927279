@@ -850,14 +850,20 @@ export function ConversationList({
                           )}
 
                           {/* Line 2: Direction arrow + Preview + Delivery status */}
-                          <div className="flex items-center gap-1 mt-0.5">
-                            {isOutbound ? (
-                              <ArrowUpRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                            ) : (
-                              <ArrowDownLeft className="w-3 h-3 text-primary/60 flex-shrink-0" />
+                          <div className={cn(
+                            "flex items-center gap-1",
+                            density === "normal" ? "mt-0.5" : ""
+                          )}>
+                            {density !== "compact" && (
+                              isOutbound ? (
+                                <ArrowUpRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                              ) : (
+                                <ArrowDownLeft className="w-3 h-3 text-primary/60 flex-shrink-0" />
+                              )
                             )}
                             <p className={cn(
-                              "text-xs truncate flex-1 min-w-0",
+                              "truncate flex-1 min-w-0",
+                              density === "compact" ? "text-[11px]" : "text-xs",
                               hasUnread ? "text-foreground/80" : "text-muted-foreground"
                             )}>
                               {conv.channel === 'email'
