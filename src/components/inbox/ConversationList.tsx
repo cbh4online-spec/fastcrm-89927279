@@ -801,6 +801,20 @@ export function ConversationList({
                                       className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
                                       onClick={(e) => {
                                         e.stopPropagation();
+                                        onSelect(conv.id);
+                                      }}
+                                    >
+                                      <Maximize2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Expandir no painel</p></TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         toast.success(hasUnread ? "Marcado como lido" : "Marcado como não lido");
                                       }}
                                     >
