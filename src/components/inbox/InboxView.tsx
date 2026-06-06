@@ -250,6 +250,20 @@ export function InboxView() {
           )}
 
           <div className="flex items-center gap-1">
+            {/* Density toggle - hidden on mobile */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleDensity}
+                  className="h-8 w-8 p-0 hidden md:inline-flex"
+                >
+                  {density === "compact" ? <AlignJustify className="w-4 h-4" /> : <List className="w-4 h-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{density === "compact" ? "Modo normal" : "Modo compacto"}</p></TooltipContent>
+            </Tooltip>
             {/* View mode toggle - hidden on mobile */}
             <Tooltip>
               <TooltipTrigger asChild>
