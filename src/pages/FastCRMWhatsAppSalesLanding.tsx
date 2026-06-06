@@ -219,12 +219,74 @@ export default function FastCRMWhatsAppSalesLanding() {
           content="Centralize conversas, qualifique leads, acompanhe oportunidades e automatize follow-ups com IA. Agende uma demonstração do FastCRM WhatsApp Sales."
         />
         <link rel="canonical" href="https://fastcrm.metodopare.ai/fastcrm-whatsapp-sales" />
+
+        {/* OpenGraph */}
+        <meta property="og:url" content="https://fastcrm.metodopare.ai/fastcrm-whatsapp-sales" />
         <meta property="og:title" content="FastCRM WhatsApp Sales — Conversas que viram vendas" />
         <meta
           property="og:description"
           content="Organize WhatsApp, redes sociais e formulários num só CRM. Pipeline, follow-up e IA comercial."
         />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://fastcrm.metodopare.ai/og/og-home.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:locale" content="pt_PT" />
+        <meta property="og:site_name" content="FastCRM" />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="FastCRM WhatsApp Sales — Conversas que viram vendas" />
+        <meta
+          name="twitter:description"
+          content="Organize WhatsApp, redes sociais e formulários num só CRM. Pipeline, follow-up e IA comercial."
+        />
+        <meta name="twitter:image" content="https://fastcrm.metodopare.ai/og/og-home.jpg" />
+
+        {/* JSON-LD: FAQPage */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": FAQS.map((f) => ({
+              "@type": "Question",
+              "name": f.q,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": f.a,
+              },
+            })),
+          })}
+        </script>
+
+        {/* JSON-LD: WebPage + Product */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "FastCRM WhatsApp Sales",
+            "description": "Transforme o WhatsApp num canal organizado de vendas com pipeline, follow-up e IA comercial.",
+            "url": "https://fastcrm.metodopare.ai/fastcrm-whatsapp-sales",
+            "isPartOf": {
+              "@type": "WebSite",
+              "name": "FastCRM",
+              "url": "https://fastcrm.metodopare.ai/",
+            },
+            "about": {
+              "@type": "SoftwareApplication",
+              "name": "FastCRM WhatsApp Sales",
+              "applicationCategory": "BusinessApplication",
+              "operatingSystem": "Web",
+              "description": "CRM comercial que centraliza WhatsApp, redes sociais e formulários num pipeline de vendas com IA.",
+              "offers": {
+                "@type": "Offer",
+                "price": "79",
+                "priceCurrency": "EUR",
+                "description": "Setup 350€ + 79€/mês",
+              },
+            },
+          })}
+        </script>
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground antialiased">
