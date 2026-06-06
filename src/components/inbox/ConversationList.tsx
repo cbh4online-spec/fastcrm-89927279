@@ -842,7 +842,7 @@ export function ConversationList({
                           </div>
 
                           {/* Email subject line */}
-                          {emailSubject && (
+                          {density !== "compact" && emailSubject && (
                             <p className="text-[11px] font-medium text-foreground/70 truncate mt-0.5 flex items-center gap-1">
                               <Mail className="w-3 h-3 flex-shrink-0" />
                               {emailSubject}
