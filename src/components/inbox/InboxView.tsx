@@ -48,6 +48,9 @@ export function InboxView() {
   const [density, setDensity] = useState<"normal" | "compact">(() => {
     return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
   });
+  const [wrapMode, setWrapMode] = useState<"truncate" | "wrap">(() => {
+    return (localStorage.getItem("inbox-wrap-mode") as "truncate" | "wrap") || "truncate";
+  });
   const [columnsSearch, setColumnsSearch] = useState("");
 
   const channelParam = searchParams.get("channel") as ConversationChannel | null;
