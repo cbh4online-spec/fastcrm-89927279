@@ -166,6 +166,8 @@ export function ConversationList({
   categoryFilter,
   channelFilter: externalChannelFilter,
   activeView,
+  density: densityProp,
+  onToggleDensity,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<SimplifiedTab>("requires_response");
@@ -179,19 +181,23 @@ export function ConversationList({
       return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
     } catch { return new Set(); }
   });
-  const [density, setDensity] = useState<"normal" | "compact">(() => {
+  const [internalDensity, setInternalDensity] = useState<"normal" | "compact">(() => {
     return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
   });
   const updateStatus = useUpdateConversationStatus();
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
-  const effectiveChannelFilter = externalChannelFilter || (internalChannelFilter !== "all" ? internalChannelFilter as ConversationChannel : undefined);
+  const density = densityProp ?? internalDensity;
 
   const toggleDensity = () => {
     const next = density === "normal" ? "compact" : "normal";
-    setDensity(next);
-    localStorage.setItem("inbox-density", next);
+    if (onToggleDensity) {
+      onToggleDensity();
+    } else {
+      setInternalDensity(next);
+      localStorage.setItem("inbox-density", next);
+    }
   };
 
   const togglePin = useCallback((id: string, e: React.MouseEvent) => {
