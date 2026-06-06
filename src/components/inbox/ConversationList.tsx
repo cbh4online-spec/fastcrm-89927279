@@ -534,6 +534,14 @@ export function ConversationList({
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={toggleWrapMode}>
+                    <WrapText className={cn("w-3 h-3", wrapMode === "wrap" && "text-primary")} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>{wrapMode === "wrap" ? "Truncar preview" : "Expandir preview"}</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={toggleDensity}>
                     {density === "normal" ? <AlignJustify className="w-3 h-3" /> : <List className="w-3 h-3" />}
                   </Button>
