@@ -713,7 +713,7 @@ export function ConversationList({
                                 {displayName}
                               </span>
                             )}
-                            {conv.resolved_contact && !conv.contact?.name && !conv.lead?.name && (
+                            {density !== "compact" && conv.resolved_contact && !conv.contact?.name && !conv.lead?.name && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge
