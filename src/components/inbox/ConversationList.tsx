@@ -159,6 +159,8 @@ interface ConversationListProps {
   activeView?: string | null;
   density?: "normal" | "compact";
   onToggleDensity?: () => void;
+  wrapMode?: "truncate" | "wrap";
+  onToggleWrapMode?: () => void;
 }
 
 export function ConversationList({
