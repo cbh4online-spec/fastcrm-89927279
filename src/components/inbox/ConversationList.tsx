@@ -155,6 +155,8 @@ interface ConversationListProps {
   categoryFilter?: InboxCategory;
   channelFilter?: ConversationChannel;
   activeView?: string | null;
+  density?: "normal" | "compact";
+  onToggleDensity?: () => void;
 }
 
 export function ConversationList({
