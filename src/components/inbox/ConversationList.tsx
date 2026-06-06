@@ -53,6 +53,8 @@ import {
   UserPlus,
   AlertTriangle,
   Layers,
+  WrapText,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
@@ -157,6 +159,8 @@ interface ConversationListProps {
   activeView?: string | null;
   density?: "normal" | "compact";
   onToggleDensity?: () => void;
+  wrapMode?: "truncate" | "wrap";
+  onToggleWrapMode?: () => void;
 }
 
 export function ConversationList({
@@ -168,6 +172,8 @@ export function ConversationList({
   activeView,
   density: densityProp,
   onToggleDensity,
+  wrapMode: wrapModeProp,
+  onToggleWrapMode,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<SimplifiedTab>("requires_response");
@@ -184,11 +190,15 @@ export function ConversationList({
   const [internalDensity, setInternalDensity] = useState<"normal" | "compact">(() => {
     return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
   });
+  const [internalWrapMode, setInternalWrapMode] = useState<"truncate" | "wrap">(() => {
+    return (localStorage.getItem("inbox-wrap-mode") as "truncate" | "wrap") || "truncate";
+  });
   const updateStatus = useUpdateConversationStatus();
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   const density = densityProp ?? internalDensity;
+  const wrapMode = wrapModeProp ?? internalWrapMode;
 
   const toggleDensity = () => {
     const next = density === "normal" ? "compact" : "normal";
@@ -197,6 +207,16 @@ export function ConversationList({
     } else {
       setInternalDensity(next);
       localStorage.setItem("inbox-density", next);
+    }
+  };
+
+  const toggleWrapMode = () => {
+    const next = wrapMode === "truncate" ? "wrap" : "truncate";
+    if (onToggleWrapMode) {
+      onToggleWrapMode();
+    } else {
+      setInternalWrapMode(next);
+      localStorage.setItem("inbox-wrap-mode", next);
     }
   };
 
@@ -512,6 +532,14 @@ export function ConversationList({
               {processedConversations.length} conversa(s)
             </span>
             <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={toggleWrapMode}>
+                    <WrapText className={cn("w-3 h-3", wrapMode === "wrap" && "text-primary")} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>{wrapMode === "wrap" ? "Truncar preview" : "Expandir preview"}</p></TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={toggleDensity}>
@@ -862,9 +890,12 @@ export function ConversationList({
                               )
                             )}
                             <p className={cn(
-                              "truncate flex-1 min-w-0",
+                              "flex-1 min-w-0",
                               density === "compact" ? "text-[11px]" : "text-xs",
-                              hasUnread ? "text-foreground/80" : "text-muted-foreground"
+                              hasUnread ? "text-foreground/80" : "text-muted-foreground",
+                              wrapMode === "wrap"
+                                ? "whitespace-pre-wrap break-words leading-relaxed"
+                                : "truncate"
                             )}>
                               {conv.channel === 'email'
                                 ? cleanEmailPreview(conv.last_message_preview)

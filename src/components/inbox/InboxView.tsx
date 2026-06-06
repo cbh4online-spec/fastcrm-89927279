@@ -48,6 +48,9 @@ export function InboxView() {
   const [density, setDensity] = useState<"normal" | "compact">(() => {
     return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
   });
+  const [wrapMode, setWrapMode] = useState<"truncate" | "wrap">(() => {
+    return (localStorage.getItem("inbox-wrap-mode") as "truncate" | "wrap") || "truncate";
+  });
   const [columnsSearch, setColumnsSearch] = useState("");
 
   const channelParam = searchParams.get("channel") as ConversationChannel | null;
@@ -155,6 +158,13 @@ export function InboxView() {
     const next = density === "normal" ? "compact" : "normal";
     setDensity(next);
     localStorage.setItem("inbox-density", next);
+  };
+
+  // Wrap mode toggle
+  const toggleWrapMode = () => {
+    const next = wrapMode === "truncate" ? "wrap" : "truncate";
+    setWrapMode(next);
+    localStorage.setItem("inbox-wrap-mode", next);
   };
 
   // In columns mode, if a conversation is selected, show the detail
@@ -384,6 +394,8 @@ export function InboxView() {
                   activeView={activeView}
                   density={density}
                   onToggleDensity={toggleDensity}
+                  wrapMode={wrapMode}
+                  onToggleWrapMode={toggleWrapMode}
                 />
               </div>
               <div className={cn(
