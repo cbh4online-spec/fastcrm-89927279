@@ -14,7 +14,9 @@ import {
   Blocks,
   Receipt,
   Activity,
+  Mail,
 } from "lucide-react";
+import { GoogleWorkspaceIntegrations } from "./GoogleWorkspaceIntegrations";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
 import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
 import { WorkspaceVideoSettings } from "./WorkspaceVideoSettings";
@@ -42,6 +44,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
   const sectionIds = [
     "integrations-billing-providers",
     "integrations-stripe",
+    "integrations-google",
     "integrations-whatsapp",
     "integrations-video",
     "integrations-ghl",
@@ -88,6 +91,22 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
               <WorkspaceStripeSettings />
             </SettingsSection>
           )}
+        </div>
+      )}
+
+      {/* ──────────────── Google Workspace ──────────────── */}
+      {shouldShow("integrations-google") && (
+        <div className="space-y-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+            Google Workspace
+          </h3>
+          <SettingsSection
+            title="Conectores Google"
+            description="Liga Gmail, Calendar, Drive e Docs/Sheets a este workspace via OAuth dedicado."
+            icon={<Mail className="h-5 w-5 text-red-500" />}
+          >
+            <GoogleWorkspaceIntegrations />
+          </SettingsSection>
         </div>
       )}
 

@@ -87089,6 +87089,57 @@ export type Database = {
           },
         ]
       }
+      workspace_google_connections: {
+        Row: {
+          access_token: string | null
+          connected_by: string | null
+          created_at: string
+          google_email: string | null
+          google_user_id: string | null
+          id: string
+          is_active: boolean
+          last_error: string | null
+          refresh_token: string | null
+          scopes: string[]
+          service: Database["public"]["Enums"]["google_service"]
+          token_expires_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_by?: string | null
+          created_at?: string
+          google_email?: string | null
+          google_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          refresh_token?: string | null
+          scopes?: string[]
+          service: Database["public"]["Enums"]["google_service"]
+          token_expires_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_by?: string | null
+          created_at?: string
+          google_email?: string | null
+          google_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          refresh_token?: string | null
+          scopes?: string[]
+          service?: Database["public"]["Enums"]["google_service"]
+          token_expires_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       workspace_health: {
         Row: {
           active_alerts: Json | null
@@ -90066,13 +90117,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_a"]
-            isOneToOne: false
-            referencedRelation: "partner_b2b_catalog_grouped"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "partner_b2b_catalog_grouped"
@@ -90082,8 +90126,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_b2b_content"
-            referencedColumns: ["product_id"]
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -90096,8 +90140,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_catalog"
-            referencedColumns: ["id"]
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -90110,8 +90154,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -90123,13 +90167,20 @@ export type Database = {
           {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_b"]
+            columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
@@ -90509,6 +90560,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workspace_google_connections_safe: {
+        Row: {
+          connected_by: string | null
+          created_at: string | null
+          google_email: string | null
+          google_user_id: string | null
+          has_refresh_token: boolean | null
+          id: string | null
+          is_active: boolean | null
+          last_error: string | null
+          scopes: string[] | null
+          service: Database["public"]["Enums"]["google_service"] | null
+          token_expires_at: string | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          connected_by?: string | null
+          created_at?: string | null
+          google_email?: string | null
+          google_user_id?: string | null
+          has_refresh_token?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_error?: string | null
+          scopes?: string[] | null
+          service?: Database["public"]["Enums"]["google_service"] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          connected_by?: string | null
+          created_at?: string | null
+          google_email?: string | null
+          google_user_id?: string | null
+          has_refresh_token?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_error?: string | null
+          scopes?: string[] | null
+          service?: Database["public"]["Enums"]["google_service"] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
       }
       workspace_progression_leaderboard: {
         Row: {
@@ -92670,6 +92769,7 @@ export type Database = {
         | "quarterly"
         | "semiannual"
       goal_status: "not_started" | "in_progress" | "completed" | "failed"
+      google_service: "gmail" | "calendar" | "drive" | "docs_sheets"
       hr_onboarding_feedback_type: "30_days" | "60_days" | "90_days"
       hr_onboarding_status:
         | "pending"
@@ -93329,6 +93429,7 @@ export const Constants = {
         "semiannual",
       ],
       goal_status: ["not_started", "in_progress", "completed", "failed"],
+      google_service: ["gmail", "calendar", "drive", "docs_sheets"],
       hr_onboarding_feedback_type: ["30_days", "60_days", "90_days"],
       hr_onboarding_status: [
         "pending",
