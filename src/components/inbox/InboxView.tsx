@@ -160,6 +160,13 @@ export function InboxView() {
     localStorage.setItem("inbox-density", next);
   };
 
+  // Wrap mode toggle
+  const toggleWrapMode = () => {
+    const next = wrapMode === "truncate" ? "wrap" : "truncate";
+    setWrapMode(next);
+    localStorage.setItem("inbox-wrap-mode", next);
+  };
+
   // In columns mode, if a conversation is selected, show the detail
   const showDetail = viewMode === "list" || selectedConversationId;
 
