@@ -172,6 +172,8 @@ export function ConversationList({
   activeView,
   density: densityProp,
   onToggleDensity,
+  wrapMode: wrapModeProp,
+  onToggleWrapMode,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<SimplifiedTab>("requires_response");
@@ -188,11 +190,15 @@ export function ConversationList({
   const [internalDensity, setInternalDensity] = useState<"normal" | "compact">(() => {
     return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
   });
+  const [internalWrapMode, setInternalWrapMode] = useState<"truncate" | "wrap">(() => {
+    return (localStorage.getItem("inbox-wrap-mode") as "truncate" | "wrap") || "truncate";
+  });
   const updateStatus = useUpdateConversationStatus();
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   const density = densityProp ?? internalDensity;
+  const wrapMode = wrapModeProp ?? internalWrapMode;
 
   const toggleDensity = () => {
     const next = density === "normal" ? "compact" : "normal";
@@ -201,6 +207,16 @@ export function ConversationList({
     } else {
       setInternalDensity(next);
       localStorage.setItem("inbox-density", next);
+    }
+  };
+
+  const toggleWrapMode = () => {
+    const next = wrapMode === "truncate" ? "wrap" : "truncate";
+    if (onToggleWrapMode) {
+      onToggleWrapMode();
+    } else {
+      setInternalWrapMode(next);
+      localStorage.setItem("inbox-wrap-mode", next);
     }
   };
 
