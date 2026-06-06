@@ -753,7 +753,7 @@ export function ConversationList({
                               </Tooltip>
                             )}
                             {isPinned && <Pin className="w-3 h-3 text-primary/60 flex-shrink-0" />}
-                            {messageCount > 0 && (
+                            {density !== "compact" && messageCount > 0 && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge variant="secondary" className="h-4 px-1 text-[9px] font-medium flex-shrink-0">
