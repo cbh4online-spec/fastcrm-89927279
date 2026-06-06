@@ -14,7 +14,9 @@ import {
   Blocks,
   Receipt,
   Activity,
+  Mail,
 } from "lucide-react";
+import { GoogleWorkspaceIntegrations } from "./GoogleWorkspaceIntegrations";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
 import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
 import { WorkspaceVideoSettings } from "./WorkspaceVideoSettings";
