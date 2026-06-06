@@ -10,7 +10,7 @@ import { SalesInboxColumns } from "./SalesInboxColumns";
 import { ConversationChannel } from "@/hooks/useConversations";
 import { useConversations, useUpdateConversationStatus } from "@/hooks/useConversations";
 import { Button } from "@/components/ui/button";
-import { PanelRightClose, PanelRight, PanelLeftClose, PanelLeft, Keyboard, LayoutGrid, List, Phone } from "lucide-react";
+import { PanelRightClose, PanelRight, PanelLeftClose, PanelLeft, Keyboard, LayoutGrid, List, Phone, AlignJustify } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
