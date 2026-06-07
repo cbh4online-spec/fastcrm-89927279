@@ -3,14 +3,26 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import {
+  PUBLIC_CTA_NAVIGATION,
+  PUBLIC_FOOTER_NAVIGATION,
+  PUBLIC_PRIMARY_NAVIGATION,
+} from "@/config/publicNavigation";
 
-const NAV = [
-  { label: "Funcionalidades", href: "/funcionalidades" },
-  { label: "Preços", href: "/precos" },
-  { label: "Casos", href: "/casos" },
-  { label: "Sobre", href: "/sobre" },
-  { label: "Contacto", href: "/contacto" },
-];
+const PRIMARY_NAV = PUBLIC_PRIMARY_NAVIGATION.filter((item) => item.visibility === "primary");
+const PRIMARY_CTA = PUBLIC_CTA_NAVIGATION[0];
+
+const FOOTER_PRODUCT_LINKS = PUBLIC_FOOTER_NAVIGATION.filter((item) =>
+  ["/fastcrm-whatsapp-sales", "/funcionalidades", "/precos", "/casos"].includes(item.href),
+);
+
+const FOOTER_COMPANY_LINKS = PUBLIC_FOOTER_NAVIGATION.filter((item) =>
+  ["/sobre", "/contacto"].includes(item.href),
+);
+
+const FOOTER_LEGAL_LINKS = PUBLIC_FOOTER_NAVIGATION.filter((item) =>
+  ["/privacy", "/terms", "/cookies"].includes(item.href),
+);
 
 export default function MarketingLayout() {
   const [open, setOpen] = useState(false);
@@ -29,10 +41,10 @@ export default function MarketingLayout() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            {NAV.map((n) => (
+            {PRIMARY_NAV.map((item) => (
               <NavLink
-                key={n.href}
-                to={n.href}
+                key={item.href}
+                to={item.href}
                 className={({ isActive }) =>
                   cn(
                     "px-3 py-2 text-sm rounded-md transition-colors",
@@ -42,7 +54,7 @@ export default function MarketingLayout() {
                   )
                 }
               >
-                {n.label}
+                {item.label}
               </NavLink>
             ))}
           </nav>
@@ -51,9 +63,11 @@ export default function MarketingLayout() {
             <Button variant="ghost" size="sm" asChild>
               <Link to="/app">Entrar</Link>
             </Button>
-            <Button size="sm" asChild>
-              <Link to="/contacto?tipo=demo">Pedir demo</Link>
-            </Button>
+            {PRIMARY_CTA && (
+              <Button size="sm" asChild>
+                <Link to={PRIMARY_CTA.href}>{PRIMARY_CTA.label}</Link>
+              </Button>
+            )}
           </div>
 
           <button
@@ -68,22 +82,24 @@ export default function MarketingLayout() {
         {open && (
           <div className="md:hidden border-t border-border/50 bg-background">
             <div className="container mx-auto px-4 py-3 flex flex-col gap-1">
-              {NAV.map((n) => (
+              {PRIMARY_NAV.map((item) => (
                 <Link
-                  key={n.href}
-                  to={n.href}
+                  key={item.href}
+                  to={item.href}
                   className="px-3 py-2 text-sm rounded-md hover:bg-muted"
                 >
-                  {n.label}
+                  {item.label}
                 </Link>
               ))}
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" size="sm" asChild className="flex-1">
                   <Link to="/app">Entrar</Link>
                 </Button>
-                <Button size="sm" asChild className="flex-1">
-                  <Link to="/contacto?tipo=demo">Pedir demo</Link>
-                </Button>
+                {PRIMARY_CTA && (
+                  <Button size="sm" asChild className="flex-1">
+                    <Link to={PRIMARY_CTA.href}>{PRIMARY_CTA.label}</Link>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -104,30 +120,51 @@ export default function MarketingLayout() {
               <span className="text-lg font-semibold">FastCRM</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              O CRM com IA pensado para PME portuguesas. Vende mais, com a mesma equipa.
+              O CRM com IA pensado para PME portuguesas. Organize leads, conversas, oportunidades e follow-ups.
             </p>
           </div>
           <div>
             <h4 className="text-sm font-semibold mb-3">Produto</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/funcionalidades" className="hover:text-foreground">Funcionalidades</Link></li>
-              <li><Link to="/precos" className="hover:text-foreground">Preços</Link></li>
-              <li><Link to="/casos" className="hover:text-foreground">Casos</Link></li>
+              {FOOTER_PRODUCT_LINKS.map((item) => (
+                <li key={item.href}>
+                  <Link to={item.href} className="hover:text-foreground">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
             <h4 className="text-sm font-semibold mb-3">Empresa</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/sobre" className="hover:text-foreground">Sobre nós</Link></li>
-              <li><Link to="/contacto" className="hover:text-foreground">Contacto</Link></li>
-              <li><a href="https://fastcrm.lovable.app/dashboard/pitch" className="hover:text-foreground">Apresentação</a></li>
+              {FOOTER_COMPANY_LINKS.map((item) => (
+                <li key={item.href}>
+                  <Link to={item.href} className="hover:text-foreground">
+                    {item.label === "Sobre" ? "Sobre nós" : item.label}
+                  </Link>
+                </li>
+              ))}
+              {PRIMARY_CTA && (
+                <li>
+                  <Link to={PRIMARY_CTA.href} className="hover:text-foreground">
+                    {PRIMARY_CTA.label}
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
           <div>
             <h4 className="text-sm font-semibold mb-3">Conta</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link to="/app" className="hover:text-foreground">Entrar</Link></li>
-              <li><Link to="/contacto?tipo=demo" className="hover:text-foreground">Pedir demo</Link></li>
+              {PRIMARY_CTA && (
+                <li>
+                  <Link to={PRIMARY_CTA.href} className="hover:text-foreground">
+                    {PRIMARY_CTA.label}
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -135,8 +172,11 @@ export default function MarketingLayout() {
           <div className="container mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
             <p>© {new Date().getFullYear()} FastCRM · vendesimples.com · Feito em Portugal</p>
             <div className="flex gap-4">
-              <a href="#" className="hover:text-foreground">Privacidade</a>
-              <a href="#" className="hover:text-foreground">Termos</a>
+              {FOOTER_LEGAL_LINKS.map((item) => (
+                <Link key={item.href} to={item.href} className="hover:text-foreground">
+                  {item.label}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
