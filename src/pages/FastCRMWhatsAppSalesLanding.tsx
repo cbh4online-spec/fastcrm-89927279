@@ -287,6 +287,28 @@ export default function FastCRMWhatsAppSalesLanding() {
             },
           })}
         </script>
+
+        {/* JSON-LD: BreadcrumbList */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://fastcrm.metodopare.ai/",
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "FastCRM WhatsApp Sales",
+                "item": "https://fastcrm.metodopare.ai/fastcrm-whatsapp-sales",
+              },
+            ],
+          })}
+        </script>
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground antialiased">
