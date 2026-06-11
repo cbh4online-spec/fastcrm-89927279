@@ -21,6 +21,7 @@ export interface AggregatedInvoice {
   company_id: string | null;
   contact_id: string | null;
   invoice_number: string | null;
+  workspace_id: string | null;
 }
 
 export function useCompanyAggregatedInvoices(companyId: string | undefined) {
