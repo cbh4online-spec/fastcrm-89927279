@@ -67,15 +67,16 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
     return companyInvoices.filter(inv => !EXCLUDED.has((inv.status || '').toLowerCase()));
   }, [companyInvoices]);
 
-  // Calculate sales by year from invoices (com IVA = total)
+  // Calculate sales by year from invoices (s/ IVA = subtotal; fallback ao total se subtotal ausente)
   const invoiceSalesByYear = useMemo(() => {
     const sales: Record<number, { amount: number; count: number }> = {};
 
     countableInvoices.forEach(inv => {
-      if (inv.issue_date && inv.total) {
+      const net = (inv as any).subtotal ?? inv.total;
+      if (inv.issue_date && net) {
         const year = new Date(inv.issue_date).getFullYear();
         if (!sales[year]) sales[year] = { amount: 0, count: 0 };
-        sales[year].amount += inv.total;
+        sales[year].amount += Number(net) || 0;
         sales[year].count += 1;
       }
     });
@@ -259,7 +260,7 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
                           · Ticket médio {formatCurrency(yearData.invoice / yearData.count)}
                         </span>
                       )}
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">c/ IVA</span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">s/ IVA</span>
                     </div>
                   )}
                   
