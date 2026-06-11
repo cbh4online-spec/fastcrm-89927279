@@ -298,7 +298,9 @@ Deno.serve(async (req) => {
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { connectionId, workspaceId, limit = 3, forceResync = false, source } = body;
+    const { connectionId, workspaceId, forceResync = false, source } = body;
+    // Hard cap to stay within edge worker CPU budget. Cron/UI may request more; we ignore it.
+    const limit = Math.min(Number(body.limit) || 3, 5);
 
     // Cron mode: validate shared secret instead of JWT
     const cronSecretHeader = req.headers.get("x-cron-secret");
@@ -340,7 +342,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    await supabaseClient.from("email_connections").update({ sync_status: "syncing" }).eq("id", connectionId);
+    await supabaseClient.from("email_connections")
+      .update({ sync_status: "syncing", last_sync_at: new Date().toISOString() })
+      .eq("id", connectionId);
 
     // Decrypt
     if (!connection.encrypted_app_password) throw new Error("No password configured");
@@ -353,200 +357,196 @@ Deno.serve(async (req) => {
       throw new Error("Failed to decrypt credentials");
     }
 
-    // === PHASE 1: IMAP fetch (CPU-intensive) — then disconnect ===
-    console.log(`Connecting to IMAP: ${connection.imap_host}:${connection.imap_port}, limit=${limit}`);
-    let rawMessages: RawMsg[];
-    try {
-      rawMessages = await fetchImapMessages(
-        connection.imap_host, connection.imap_port,
-        connection.email_address, password, limit
-      );
-    } catch (imapErr: unknown) {
-      const msg = imapErr instanceof Error ? imapErr.message : "IMAP connection failed";
-      await supabaseClient.from("email_connections")
-        .update({ sync_status: "error", sync_error: msg }).eq("id", connectionId);
-      throw new Error(`IMAP error: ${msg}`);
-    }
+    // Heavy work runs in background — return 202 immediately so the client never gets a 546.
+    const runSync = async () => {
+      try {
+        console.log(`[bg] IMAP ${connection.imap_host}:${connection.imap_port} limit=${limit}`);
+        const rawMessages = await fetchImapMessages(
+          connection.imap_host, connection.imap_port,
+          connection.email_address, password, limit,
+        );
+        console.log(`[bg] got ${rawMessages.length} raw messages`);
 
-    console.log(`IMAP done, got ${rawMessages.length} raw messages`);
+        const lastUid = forceResync ? 0 : (connection.last_sync_uid ? parseInt(connection.last_sync_uid) : 0);
+        const newMessages = rawMessages.filter(m => m.uid > lastUid);
 
-    if (rawMessages.length === 0) {
-      await supabaseClient.from("email_connections")
-        .update({ sync_status: "synced", last_sync_at: new Date().toISOString(), sync_error: null })
-        .eq("id", connectionId);
-      return new Response(JSON.stringify({ success: true, message: "No new emails", fetchedCount: 0 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+        if (newMessages.length === 0) {
+          await supabaseClient.from("email_connections")
+            .update({ sync_status: "synced", last_sync_at: new Date().toISOString(), sync_error: null })
+            .eq("id", connectionId);
+          return;
+        }
 
-    // === PHASE 2: DB work (no more TLS overhead) ===
-    const lastUid = forceResync ? 0 : (connection.last_sync_uid ? parseInt(connection.last_sync_uid) : 0);
-    const newMessages = rawMessages.filter(m => m.uid > lastUid);
+        const senderEmails = new Set<string>();
+        const emailMsgIds: string[] = [];
+        const threadKeys = new Set<string>();
 
-    if (newMessages.length === 0) {
-      await supabaseClient.from("email_connections")
-        .update({ sync_status: "synced", last_sync_at: new Date().toISOString(), sync_error: null })
-        .eq("id", connectionId);
-      return new Response(JSON.stringify({ success: true, message: "No new emails", fetchedCount: 0 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+        for (const msg of newMessages) {
+          const email = (msg.fromEmail || "unknown@email.com").toLowerCase();
+          if (email !== connection.email_address.toLowerCase()) senderEmails.add(email);
+          emailMsgIds.push(msg.messageId || `<${msg.uid}@${connection.imap_host}>`);
+          const threadKey = (msg.inReplyTo || msg.references?.split(/\s+/).find(Boolean) || msg.subject || "")
+            .replace(/^(Re:|Fwd:|Fw:)\s*/gi, "")
+            .trim() || `email-${msg.uid}`;
+          threadKeys.add(threadKey);
+        }
 
-    // Collect unique keys
-    const senderEmails = new Set<string>();
-    const emailMsgIds: string[] = [];
-    const threadKeys = new Set<string>();
+        const [dedupRes, leadsRes, convsRes] = await Promise.all([
+          supabaseClient.from("messages").select("id, conversation_id, email_message_id, content")
+            .eq("workspace_id", workspaceId).in("email_message_id", emailMsgIds),
+          senderEmails.size > 0
+            ? supabaseClient.from("leads").select("id, external_email")
+                .eq("workspace_id", workspaceId).in("external_email", Array.from(senderEmails))
+            : Promise.resolve({ data: [] }),
+          threadKeys.size > 0
+            ? supabaseClient.from("conversations").select("id, external_thread_id")
+                .eq("workspace_id", workspaceId).eq("channel", "email").in("external_thread_id", Array.from(threadKeys))
+            : Promise.resolve({ data: [] }),
+        ]);
 
-    for (const msg of newMessages) {
-      const email = (msg.fromEmail || "unknown@email.com").toLowerCase();
-      if (email !== connection.email_address.toLowerCase()) senderEmails.add(email);
-      emailMsgIds.push(msg.messageId || `<${msg.uid}@${connection.imap_host}>`);
-      const threadKey = (msg.inReplyTo || msg.references?.split(/\s+/).find(Boolean) || msg.subject || "")
-        .replace(/^(Re:|Fwd:|Fw:)\s*/gi, "")
-        .trim() || `email-${msg.uid}`;
-      threadKeys.add(threadKey);
-    }
+        const existingByEmailId = new Map(
+          ((dedupRes.data || []) as Array<{ id: string; conversation_id: string; email_message_id: string; content: string | null }>)
+            .map((m) => [m.email_message_id, m]),
+        );
+        const leadMap = new Map<string, string>();
+        for (const l of (leadsRes.data || []) as Array<{ id: string; external_email: string | null }>) {
+          if (l.external_email) leadMap.set(l.external_email.toLowerCase(), l.id);
+        }
+        const convMap = new Map<string, string>();
+        for (const c of (convsRes.data || []) as Array<{ id: string; external_thread_id: string | null }>) {
+          if (c.external_thread_id) convMap.set(c.external_thread_id, c.id);
+        }
 
-    // 3 batch queries
-    const [dedupRes, leadsRes, convsRes] = await Promise.all([
-      supabaseClient.from("messages").select("id, conversation_id, email_message_id, content")
-        .eq("workspace_id", workspaceId).in("email_message_id", emailMsgIds),
-      senderEmails.size > 0
-        ? supabaseClient.from("leads").select("id, external_email")
-            .eq("workspace_id", workspaceId).in("external_email", Array.from(senderEmails))
-        : Promise.resolve({ data: [] }),
-      threadKeys.size > 0
-        ? supabaseClient.from("conversations").select("id, external_thread_id")
-            .eq("workspace_id", workspaceId).eq("channel", "email").in("external_thread_id", Array.from(threadKeys))
-        : Promise.resolve({ data: [] }),
-    ]);
+        let fetchedCount = 0;
+        let maxUid = lastUid;
 
-    const existingByEmailId = new Map(
-      ((dedupRes.data || []) as Array<{ id: string; conversation_id: string; email_message_id: string; content: string | null }>)
-        .map((m) => [m.email_message_id, m]),
-    );
-    const leadMap = new Map<string, string>();
-    for (const l of (leadsRes.data || []) as Array<{ id: string; external_email: string | null }>) {
-      if (l.external_email) leadMap.set(l.external_email.toLowerCase(), l.id);
-    }
-    const convMap = new Map<string, string>();
-    for (const c of (convsRes.data || []) as Array<{ id: string; external_thread_id: string | null }>) {
-      if (c.external_thread_id) convMap.set(c.external_thread_id, c.id);
-    }
+        for (const msg of newMessages) {
+          if (msg.uid > maxUid) maxUid = msg.uid;
+          const emailMsgId = msg.messageId || `<${msg.uid}@${connection.imap_host}>`;
+          const existingMessage = existingByEmailId.get(emailMsgId);
+          const messageContent = msg.htmlContent || msg.textContent || msg.subject || "(Sem conteúdo)";
+          const preview = cleanPreview(msg.textContent || msg.htmlContent || msg.subject).substring(0, 160) || msg.subject || "Email recebido";
+          if (existingMessage) {
+            const currentContent = existingMessage.content || "";
+            const isSubjectOnly = currentContent.trim() === (msg.subject || "").trim() || currentContent.length < Math.min(messageContent.length, 80);
+            if (isSubjectOnly && messageContent && messageContent !== currentContent) {
+              await supabaseClient.from("messages").update({
+                content: messageContent,
+                email_in_reply_to: msg.inReplyTo || null,
+                email_references: msg.references,
+                metadata: {
+                  from_email: msg.fromEmail,
+                  from_name: msg.fromName,
+                  to_email: msg.toEmail,
+                  cc: msg.ccEmail || undefined,
+                  content_type: msg.htmlContent ? "html" : "text",
+                  backfilled_from_imap: true,
+                },
+              }).eq("id", existingMessage.id);
+              await supabaseClient.from("conversations").update({ last_message_preview: preview }).eq("id", existingMessage.conversation_id);
+            }
+            continue;
+          }
 
-    let fetchedCount = 0;
-    let maxUid = lastUid;
+          const senderEmail = (msg.fromEmail || "unknown@email.com").toLowerCase();
+          const isInbound = senderEmail !== connection.email_address.toLowerCase();
 
-    for (const msg of newMessages) {
-      if (msg.uid > maxUid) maxUid = msg.uid;
-      const emailMsgId = msg.messageId || `<${msg.uid}@${connection.imap_host}>`;
-      const existingMessage = existingByEmailId.get(emailMsgId);
-      const messageContent = msg.htmlContent || msg.textContent || msg.subject || "(Sem conteúdo)";
-      const preview = cleanPreview(msg.textContent || msg.htmlContent || msg.subject).substring(0, 160) || msg.subject || "Email recebido";
-      if (existingMessage) {
-        const currentContent = existingMessage.content || "";
-        const isSubjectOnly = currentContent.trim() === (msg.subject || "").trim() || currentContent.length < Math.min(messageContent.length, 80);
-        if (isSubjectOnly && messageContent && messageContent !== currentContent) {
-          await supabaseClient.from("messages").update({
+          let leadId: string | null = null;
+          if (isInbound && senderEmail) {
+            leadId = leadMap.get(senderEmail) || null;
+            if (!leadId) {
+              const { data: nl } = await supabaseClient.from("leads")
+                .insert({ workspace_id: workspaceId, created_by: actingUserId, name: msg.fromName || senderEmail, email: senderEmail, external_email: senderEmail, source: "email", status: "new" })
+                .select("id").single();
+              if (nl) { leadId = nl.id; leadMap.set(senderEmail, leadId); }
+            }
+          }
+
+          const threadKey = (msg.inReplyTo || msg.references?.split(/\s+/).find(Boolean) || msg.subject || "")
+            .replace(/^(Re:|Fwd:|Fw:)\s*/gi, "")
+            .trim() || `email-${msg.uid}`;
+          let conversationId = convMap.get(threadKey) || null;
+
+          if (conversationId) {
+            await supabaseClient.from("conversations").update({
+              last_message_at: parseDateSafe(msg.date),
+              last_message_preview: preview,
+              lead_id: leadId || undefined,
+              unread_count: isInbound ? 1 : 0,
+              channel_metadata: {
+                connection_id: connectionId,
+                subject: msg.subject,
+                from_email: msg.fromEmail,
+                from_name: msg.fromName,
+                to_email: msg.toEmail,
+                cc: msg.ccEmail || undefined,
+              },
+            }).eq("id", conversationId);
+          } else {
+            const { data: nc } = await supabaseClient.from("conversations")
+              .insert({
+                workspace_id: workspaceId, channel: "email", external_thread_id: threadKey,
+                lead_id: leadId, status: "open", unread_count: isInbound ? 1 : 0,
+                last_message_at: parseDateSafe(msg.date),
+                last_message_preview: preview,
+                channel_metadata: {
+                  connection_id: connectionId,
+                  subject: msg.subject,
+                  from_email: msg.fromEmail,
+                  from_name: msg.fromName,
+                  to_email: msg.toEmail,
+                  cc: msg.ccEmail || undefined,
+                },
+              }).select("id").single();
+            if (!nc) continue;
+            conversationId = nc.id;
+            convMap.set(threadKey, conversationId);
+          }
+
+          const { error: msgErr } = await supabaseClient.from("messages").insert({
+            conversation_id: conversationId, workspace_id: workspaceId,
+            direction: isInbound ? "inbound" : "outbound",
             content: messageContent,
-            email_in_reply_to: msg.inReplyTo || null,
+            sent_at: parseDateSafe(msg.date),
+            email_message_id: emailMsgId, email_in_reply_to: msg.inReplyTo || null,
             email_references: msg.references,
+            email_subject: msg.subject, sender_id: isInbound ? null : actingUserId,
             metadata: {
               from_email: msg.fromEmail,
               from_name: msg.fromName,
               to_email: msg.toEmail,
               cc: msg.ccEmail || undefined,
               content_type: msg.htmlContent ? "html" : "text",
-              backfilled_from_imap: true,
             },
-          }).eq("id", existingMessage.id);
-          await supabaseClient.from("conversations").update({ last_message_preview: preview }).eq("id", existingMessage.conversation_id);
+          });
+          if (!msgErr) { fetchedCount++; existingByEmailId.set(emailMsgId, { id: emailMsgId, conversation_id: conversationId, email_message_id: emailMsgId, content: messageContent }); }
         }
-        continue;
+
+        await supabaseClient.from("email_connections").update({
+          sync_status: "synced", last_sync_at: new Date().toISOString(),
+          last_sync_uid: maxUid.toString(), sync_error: null,
+        }).eq("id", connectionId);
+        console.log(`[bg] sync done — ${fetchedCount} new`);
+      } catch (bgErr) {
+        const m = bgErr instanceof Error ? bgErr.message : "Background sync failed";
+        console.error("[bg] sync error:", m);
+        await supabaseClient.from("email_connections")
+          .update({ sync_status: "error", sync_error: m }).eq("id", connectionId);
       }
+    };
 
-      const senderEmail = (msg.fromEmail || "unknown@email.com").toLowerCase();
-      const isInbound = senderEmail !== connection.email_address.toLowerCase();
-
-      // Lead
-      let leadId: string | null = null;
-      if (isInbound && senderEmail) {
-        leadId = leadMap.get(senderEmail) || null;
-        if (!leadId) {
-          const { data: nl } = await supabaseClient.from("leads")
-            .insert({ workspace_id: workspaceId, created_by: actingUserId, name: msg.fromName || senderEmail, email: senderEmail, external_email: senderEmail, source: "email", status: "new" })
-            .select("id").single();
-          if (nl) { leadId = nl.id; leadMap.set(senderEmail, leadId); }
-        }
-      }
-
-      // Conversation
-      const threadKey = (msg.inReplyTo || msg.references?.split(/\s+/).find(Boolean) || msg.subject || "")
-        .replace(/^(Re:|Fwd:|Fw:)\s*/gi, "")
-        .trim() || `email-${msg.uid}`;
-      let conversationId = convMap.get(threadKey) || null;
-
-      if (conversationId) {
-        await supabaseClient.from("conversations").update({
-          last_message_at: parseDateSafe(msg.date),
-          last_message_preview: preview,
-          lead_id: leadId || undefined,
-          unread_count: isInbound ? 1 : 0,
-          channel_metadata: {
-            connection_id: connectionId,
-            subject: msg.subject,
-            from_email: msg.fromEmail,
-            from_name: msg.fromName,
-            to_email: msg.toEmail,
-            cc: msg.ccEmail || undefined,
-          },
-        }).eq("id", conversationId);
-      } else {
-        const { data: nc } = await supabaseClient.from("conversations")
-          .insert({
-            workspace_id: workspaceId, channel: "email", external_thread_id: threadKey,
-            lead_id: leadId, status: "open", unread_count: isInbound ? 1 : 0,
-            last_message_at: parseDateSafe(msg.date),
-            last_message_preview: preview,
-            channel_metadata: {
-              connection_id: connectionId,
-              subject: msg.subject,
-              from_email: msg.fromEmail,
-              from_name: msg.fromName,
-              to_email: msg.toEmail,
-              cc: msg.ccEmail || undefined,
-            },
-          }).select("id").single();
-        if (!nc) continue;
-        conversationId = nc.id;
-        convMap.set(threadKey, conversationId);
-      }
-
-      // Message
-      const { error: msgErr } = await supabaseClient.from("messages").insert({
-        conversation_id: conversationId, workspace_id: workspaceId,
-        direction: isInbound ? "inbound" : "outbound",
-        content: messageContent,
-        sent_at: parseDateSafe(msg.date),
-        email_message_id: emailMsgId, email_in_reply_to: msg.inReplyTo || null,
-        email_references: msg.references,
-        email_subject: msg.subject, sender_id: isInbound ? null : actingUserId,
-        metadata: {
-          from_email: msg.fromEmail,
-          from_name: msg.fromName,
-          to_email: msg.toEmail,
-          cc: msg.ccEmail || undefined,
-          content_type: msg.htmlContent ? "html" : "text",
-        },
-      });
-      if (!msgErr) { fetchedCount++; existingByEmailId.set(emailMsgId, { id: emailMsgId, conversation_id: conversationId, email_message_id: emailMsgId, content: messageContent }); }
+    // @ts-ignore — EdgeRuntime is provided by Supabase Edge runtime
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(runSync());
+    } else {
+      runSync();
     }
 
-    await supabaseClient.from("email_connections").update({
-      sync_status: "synced", last_sync_at: new Date().toISOString(),
-      last_sync_uid: maxUid.toString(), sync_error: null,
-    }).eq("id", connectionId);
-
-    return new Response(JSON.stringify({ success: true, message: `Synced ${fetchedCount} new emails`, fetchedCount }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({ success: true, queued: true, message: "Sync started in background" }),
+      { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
 
   } catch (error: unknown) {
     console.error("Email fetch error:", error);
