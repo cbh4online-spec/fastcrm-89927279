@@ -57,8 +57,10 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
   // Fetch invoices for this company AND for all contacts that belong to it
   const { data: companyInvoices = [] } = useCompanyAggregatedInvoices(company.id);
 
+  const [invoicesOpen, setInvoicesOpen] = useState(false);
+  const [yearFilter, setYearFilter] = useState<number | null>(null);
+
   // Active invoices = everything except cancelled/draft/refunded
-  // Includes: sent, paid, overdue, partially_paid, pending
   const countableInvoices = useMemo(() => {
     const EXCLUDED = new Set(['cancelled', 'draft', 'refunded', 'void']);
     return companyInvoices.filter(inv => !EXCLUDED.has((inv.status || '').toLowerCase()));
