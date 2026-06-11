@@ -1,7 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Calculator, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Calculator, FileText, Eye } from "lucide-react";
 import { Company } from "@/hooks/useCompanies";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
@@ -54,8 +57,10 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
   // Fetch invoices for this company AND for all contacts that belong to it
   const { data: companyInvoices = [] } = useCompanyAggregatedInvoices(company.id);
 
+  const [invoicesOpen, setInvoicesOpen] = useState(false);
+  const [yearFilter, setYearFilter] = useState<number | null>(null);
+
   // Active invoices = everything except cancelled/draft/refunded
-  // Includes: sent, paid, overdue, partially_paid, pending
   const countableInvoices = useMemo(() => {
     const EXCLUDED = new Set(['cancelled', 'draft', 'refunded', 'void']);
     return companyInvoices.filter(inv => !EXCLUDED.has((inv.status || '').toLowerCase()));
@@ -181,9 +186,20 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
             )}
           </div>
         </div>
-        <CardDescription className="flex items-center gap-1.5 mt-1">
+        <CardDescription className="flex items-center gap-2 mt-1">
           <FileText className="w-3 h-3" />
-          {invoiceCount} fatura{invoiceCount !== 1 ? 's' : ''} registada{invoiceCount !== 1 ? 's' : ''}
+          <span>{invoiceCount} fatura{invoiceCount !== 1 ? 's' : ''} registada{invoiceCount !== 1 ? 's' : ''}</span>
+          {invoiceCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => { setYearFilter(null); setInvoicesOpen(true); }}
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              Ver faturas
+            </Button>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
@@ -226,10 +242,17 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
                       <span className="text-sm font-medium text-emerald-600">
                         {formatCurrency(yearData.invoice)}
                       </span>
-                      <Badge variant="secondary" className="text-xs gap-1">
-                        <FileText className="w-3 h-3" />
-                        {yearData.count} fatura{yearData.count !== 1 ? 's' : ''}
-                      </Badge>
+                      <button
+                        type="button"
+                        onClick={() => { setYearFilter(year); setInvoicesOpen(true); }}
+                        className="inline-flex"
+                        title="Ver faturas deste ano"
+                      >
+                        <Badge variant="secondary" className="text-xs gap-1 cursor-pointer hover:bg-secondary/80">
+                          <FileText className="w-3 h-3" />
+                          {yearData.count} fatura{yearData.count !== 1 ? 's' : ''}
+                        </Badge>
+                      </button>
                       {yearData.count > 0 && (
                         <span className="text-xs text-muted-foreground">
                           · Ticket médio {formatCurrency(yearData.invoice / yearData.count)}
@@ -324,6 +347,126 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
           </div>
         </div>
       </CardContent>
+
+      <InvoicesDialog
+        open={invoicesOpen}
+        onOpenChange={setInvoicesOpen}
+        invoices={countableInvoices}
+        yearFilter={yearFilter}
+        onYearFilterChange={setYearFilter}
+        availableYears={Object.keys(invoiceSalesByYear).map(Number).sort((a, b) => b - a)}
+      />
     </Card>
+  );
+}
+
+interface InvoicesDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  invoices: Array<{
+    id: string;
+    invoice_number: string | null;
+    issue_date: string | null;
+    status: string | null;
+    total: number | null;
+    amount_paid: number | null;
+  }>;
+  yearFilter: number | null;
+  onYearFilterChange: (year: number | null) => void;
+  availableYears: number[];
+}
+
+function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilterChange, availableYears }: InvoicesDialogProps) {
+  const filtered = useMemo(() => {
+    const list = yearFilter
+      ? invoices.filter(inv => inv.issue_date && new Date(inv.issue_date).getFullYear() === yearFilter)
+      : invoices;
+    return [...list].sort((a, b) => {
+      const da = a.issue_date ? new Date(a.issue_date).getTime() : 0;
+      const db = b.issue_date ? new Date(b.issue_date).getTime() : 0;
+      return db - da;
+    });
+  }, [invoices, yearFilter]);
+
+  const totalSum = filtered.reduce((sum, inv) => sum + (inv.total || 0), 0);
+  const paidSum = filtered.reduce((sum, inv) => sum + (inv.amount_paid || 0), 0);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>
+            Faturas {yearFilter ? `de ${yearFilter}` : "ativas"}
+          </DialogTitle>
+          <DialogDescription>
+            {filtered.length} fatura{filtered.length !== 1 ? "s" : ""} · Total c/IVA {formatCurrency(totalSum)} · Pago {formatCurrency(paidSum)}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-wrap gap-2 pb-2">
+          <Button
+            size="sm"
+            variant={yearFilter === null ? "default" : "outline"}
+            onClick={() => onYearFilterChange(null)}
+          >
+            Todas
+          </Button>
+          {availableYears.map(y => (
+            <Button
+              key={y}
+              size="sm"
+              variant={yearFilter === y ? "default" : "outline"}
+              onClick={() => onYearFilterChange(y)}
+            >
+              {y}
+            </Button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-auto border rounded-md">
+          <Table>
+            <TableHeader className="sticky top-0 bg-card">
+              <TableRow>
+                <TableHead>Nº Fatura</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="text-right">Total c/IVA</TableHead>
+                <TableHead className="text-right">Pago</TableHead>
+                <TableHead className="text-right">Em dívida</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    Sem faturas para este filtro.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map(inv => {
+                  const total = inv.total || 0;
+                  const paid = inv.amount_paid || 0;
+                  const due = Math.max(total - paid, 0);
+                  return (
+                    <TableRow key={inv.id}>
+                      <TableCell className="font-mono text-xs">{inv.invoice_number || "—"}</TableCell>
+                      <TableCell className="text-xs">{formatDate(inv.issue_date)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {inv.status || "—"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
+                      <TableCell className="text-right text-emerald-600">{formatCurrency(paid)}</TableCell>
+                      <TableCell className="text-right text-amber-600">{formatCurrency(due)}</TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
