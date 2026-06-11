@@ -225,12 +225,19 @@ export function ConversationPrivacyPopover({ conversationId }: Props) {
                   return (
                     <button
                       key={m.user_id}
-                      onClick={() =>
-                        shared
-                          ? removeShare.mutate(m.user_id)
-                          : addShare.mutate(m.user_id)
-                      }
-                      className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded hover:bg-muted text-left"
+                      disabled={!canManage}
+                      onClick={() => {
+                        if (!canManage) return;
+                        if (shared) {
+                          removeShare.mutate(m.user_id);
+                        } else {
+                          setConfirmUser({
+                            id: m.user_id,
+                            name: m.profile?.full_name || m.profile?.email || "este membro",
+                          });
+                        }
+                      }}
+                      className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded hover:bg-muted text-left disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       <div className="min-w-0">
                         <div className="text-xs font-medium truncate">
@@ -249,6 +256,33 @@ export function ConversationPrivacyPopover({ conversationId }: Props) {
                       )}
                     </button>
                   );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+      </PopoverContent>
+
+      <AlertDialog open={!!confirmUser} onOpenChange={(o) => !o && setConfirmUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Partilhar conversa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vai dar acesso a esta conversa a <strong>{confirmUser?.name}</strong>. Pode remover
+              a partilha a qualquer momento. Confirma?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={addShare.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleQuickShareConfirm} disabled={addShare.isPending}>
+              {addShare.isPending ? "A partilhar..." : "Partilhar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Popover>
+  );
+}
                 })
               )}
             </div>
