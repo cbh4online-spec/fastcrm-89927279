@@ -499,6 +499,8 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                 <TableHead>Data</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Total s/IVA</TableHead>
+                <TableHead className="text-right">IVA</TableHead>
+                <TableHead className="text-right">Total c/IVA</TableHead>
                 <TableHead className="text-right">Pago</TableHead>
                 <TableHead className="text-right">Em dívida</TableHead>
               </TableRow>
@@ -506,7 +508,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
             <TableBody>
               {paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Sem faturas para este filtro.
                   </TableCell>
                 </TableRow>
@@ -515,9 +517,10 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                   const t = Number((inv as any).total) || 0;
                   const tax = Number((inv as any).tax_amount) || 0;
                   const sub = Number((inv as any).subtotal) || 0;
-                  const total = (t && tax > 0) ? Math.max(t - tax, 0) : (sub || t);
+                  const net = (t && tax > 0) ? Math.max(t - tax, 0) : (sub || t);
+                  const gross = net + tax;
                   const paid = inv.amount_paid || 0;
-                  const due = Math.max(total - paid, 0);
+                  const due = Math.max(net - paid, 0);
                   return (
                     <TableRow key={inv.id}>
                       <TableCell className="font-mono text-xs">{inv.invoice_number || "—"}</TableCell>
@@ -527,7 +530,9 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                           {inv.status || "—"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(net)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatCurrency(tax)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(gross)}</TableCell>
                       <TableCell className="text-right text-emerald-600">{formatCurrency(paid)}</TableCell>
                       <TableCell className="text-right text-amber-600">{formatCurrency(due)}</TableCell>
                     </TableRow>
