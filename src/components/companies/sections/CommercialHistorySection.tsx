@@ -89,19 +89,21 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
   const combinedSalesByYear = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
-    const combined: Record<number, { invoice: number; manual: number | null; total: number }> = {};
-    
+    const combined: Record<number, { invoice: number; manual: number | null; total: number; count: number }> = {};
+
     years.forEach(year => {
-      const invoiceVal = invoiceSalesByYear[year] || 0;
+      const invoiceData = invoiceSalesByYear[year];
+      const invoiceVal = invoiceData?.amount || 0;
+      const invoiceCount = invoiceData?.count || 0;
       const manualVal = manualSalesByYear[year];
-      // Total = invoice value + manual value (manual can add to invoice data)
       combined[year] = {
         invoice: invoiceVal,
         manual: manualVal,
         total: invoiceVal + (manualVal || 0),
+        count: invoiceCount,
       };
     });
-    
+
     return combined;
   }, [invoiceSalesByYear, manualSalesByYear]);
 
