@@ -520,7 +520,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                   const net = (t && tax > 0) ? Math.max(t - tax, 0) : (sub || t);
                   const gross = net + tax;
                   const paid = inv.amount_paid || 0;
-                  const due = Math.max(net - paid, 0);
+                  const due = Math.max(gross - paid, 0);
                   return (
                     <TableRow key={inv.id}>
                       <TableCell className="font-mono text-xs">{inv.invoice_number || "—"}</TableCell>
