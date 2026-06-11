@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil, Clock, Youtube, Pin, MessageCircle } from 'lucide-react';
 
