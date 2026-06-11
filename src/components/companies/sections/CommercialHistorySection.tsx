@@ -573,12 +573,13 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                 <TableHead className="text-right">Total c/IVA</TableHead>
                 <TableHead className="text-right">Pago</TableHead>
                 <TableHead className="text-right">Em dívida</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     Sem faturas para este filtro.
                   </TableCell>
                 </TableRow>
@@ -591,6 +592,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                   const gross = net + tax;
                   const paid = inv.amount_paid || 0;
                   const due = Math.max(gross - paid, 0);
+                  const isPaid = due <= 0.0001;
                   return (
                     <TableRow key={inv.id}>
                       <TableCell className="font-mono text-xs">{inv.invoice_number || "—"}</TableCell>
@@ -605,6 +607,30 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                       <TableCell className="text-right">{formatCurrency(gross)}</TableCell>
                       <TableCell className="text-right text-emerald-600">{formatCurrency(paid)}</TableCell>
                       <TableCell className="text-right text-amber-600">{formatCurrency(due)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            disabled={isPaid || submitting}
+                            title={isPaid ? "Já paga" : "Confirmar como paga (valor em dívida)"}
+                            onClick={() => handleMarkPaid(inv, due)}
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            disabled={submitting}
+                            title="Registar pagamento manual"
+                            onClick={() => openPaymentDialog(inv, due)}
+                          >
+                            <Euro className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })
@@ -612,6 +638,64 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
             </TableBody>
           </Table>
         </div>
+
+        <Dialog open={!!paymentInvoice} onOpenChange={(o) => !o && setPaymentInvoice(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Registar pagamento</DialogTitle>
+              <DialogDescription>
+                {paymentInvoice?.inv.invoice_number} · Em dívida: {formatCurrency(paymentInvoice?.due || 0)}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label htmlFor="pay-amount">Valor (€)</Label>
+                <Input
+                  id="pay-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="pay-date">Data</Label>
+                <Input
+                  id="pay-date"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="pay-method">Método</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger id="pay-method">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="transfer">Transferência</SelectItem>
+                    <SelectItem value="mbway">MB WAY</SelectItem>
+                    <SelectItem value="multibanco">Multibanco</SelectItem>
+                    <SelectItem value="cash">Numerário</SelectItem>
+                    <SelectItem value="check">Cheque</SelectItem>
+                    <SelectItem value="card">Cartão</SelectItem>
+                    <SelectItem value="other">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPaymentInvoice(null)} disabled={submitting}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSubmitManualPayment} disabled={submitting}>
+                {submitting ? "A registar..." : "Confirmar pagamento"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Pagination footer */}
         {totalItems > 0 && (
