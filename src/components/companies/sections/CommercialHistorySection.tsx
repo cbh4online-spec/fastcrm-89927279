@@ -54,24 +54,26 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
   // Fetch invoices for this company AND for all contacts that belong to it
   const { data: companyInvoices = [] } = useCompanyAggregatedInvoices(company.id);
 
-  // Filter to only count sent, paid, overdue invoices
+  // Active invoices = everything except cancelled/draft/refunded
+  // Includes: sent, paid, overdue, partially_paid, pending
   const countableInvoices = useMemo(() => {
-    return companyInvoices.filter(inv => 
-      inv.status === 'sent' || inv.status === 'paid' || inv.status === 'overdue'
-    );
+    const EXCLUDED = new Set(['cancelled', 'draft', 'refunded', 'void']);
+    return companyInvoices.filter(inv => !EXCLUDED.has((inv.status || '').toLowerCase()));
   }, [companyInvoices]);
 
-  // Calculate sales by year from invoices (automatic)
+  // Calculate sales by year from invoices (com IVA = total)
   const invoiceSalesByYear = useMemo(() => {
-    const sales: Record<number, number> = {};
-    
+    const sales: Record<number, { amount: number; count: number }> = {};
+
     countableInvoices.forEach(inv => {
       if (inv.issue_date && inv.total) {
         const year = new Date(inv.issue_date).getFullYear();
-        sales[year] = (sales[year] || 0) + inv.total;
+        if (!sales[year]) sales[year] = { amount: 0, count: 0 };
+        sales[year].amount += inv.total;
+        sales[year].count += 1;
       }
     });
-    
+
     return sales;
   }, [countableInvoices]);
 
