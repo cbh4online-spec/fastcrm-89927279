@@ -67,16 +67,28 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
     return companyInvoices.filter(inv => !EXCLUDED.has((inv.status || '').toLowerCase()));
   }, [companyInvoices]);
 
-  // Calculate sales by year from invoices (s/ IVA = subtotal; fallback ao total se subtotal ausente)
+  // Helper: devolve sempre o valor LÍQUIDO (s/ IVA) da fatura.
+  // Prioridade: total - tax_amount (o mais fiável quando ambos existem),
+  // depois subtotal, e por fim o total tal-qual (caso a fatura não tenha IVA).
+  const getNetAmount = (inv: any): number => {
+    const total = Number(inv?.total) || 0;
+    const tax = Number(inv?.tax_amount) || 0;
+    if (total && tax > 0) return Math.max(total - tax, 0);
+    const sub = Number(inv?.subtotal) || 0;
+    if (sub) return sub;
+    return total;
+  };
+
+  // Calculate sales by year from invoices (sempre s/ IVA)
   const invoiceSalesByYear = useMemo(() => {
     const sales: Record<number, { amount: number; count: number }> = {};
 
     countableInvoices.forEach(inv => {
-      const net = (inv as any).subtotal ?? inv.total;
+      const net = getNetAmount(inv);
       if (inv.issue_date && net) {
         const year = new Date(inv.issue_date).getFullYear();
         if (!sales[year]) sales[year] = { amount: 0, count: 0 };
-        sales[year].amount += Number(net) || 0;
+        sales[year].amount += net;
         sales[year].count += 1;
       }
     });
