@@ -67,16 +67,28 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
     return companyInvoices.filter(inv => !EXCLUDED.has((inv.status || '').toLowerCase()));
   }, [companyInvoices]);
 
-  // Calculate sales by year from invoices (s/ IVA = subtotal; fallback ao total se subtotal ausente)
+  // Helper: devolve sempre o valor LÍQUIDO (s/ IVA) da fatura.
+  // Prioridade: total - tax_amount (o mais fiável quando ambos existem),
+  // depois subtotal, e por fim o total tal-qual (caso a fatura não tenha IVA).
+  const getNetAmount = (inv: any): number => {
+    const total = Number(inv?.total) || 0;
+    const tax = Number(inv?.tax_amount) || 0;
+    if (total && tax > 0) return Math.max(total - tax, 0);
+    const sub = Number(inv?.subtotal) || 0;
+    if (sub) return sub;
+    return total;
+  };
+
+  // Calculate sales by year from invoices (sempre s/ IVA)
   const invoiceSalesByYear = useMemo(() => {
     const sales: Record<number, { amount: number; count: number }> = {};
 
     countableInvoices.forEach(inv => {
-      const net = (inv as any).subtotal ?? inv.total;
+      const net = getNetAmount(inv);
       if (inv.issue_date && net) {
         const year = new Date(inv.issue_date).getFullYear();
         if (!sales[year]) sales[year] = { amount: 0, count: 0 };
-        sales[year].amount += Number(net) || 0;
+        sales[year].amount += net;
         sales[year].count += 1;
       }
     });
@@ -404,7 +416,13 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
     return filtered.slice(start, start + pageSize);
   }, [filtered, safePage, pageSize]);
 
-  const totalSum = filtered.reduce((sum, inv) => sum + (((inv as any).subtotal ?? inv.total) || 0), 0);
+  const totalSum = filtered.reduce((sum, inv) => {
+    const t = Number((inv as any).total) || 0;
+    const tax = Number((inv as any).tax_amount) || 0;
+    const sub = Number((inv as any).subtotal) || 0;
+    const net = (t && tax > 0) ? Math.max(t - tax, 0) : (sub || t);
+    return sum + net;
+  }, 0);
   const paidSum = filtered.reduce((sum, inv) => sum + (inv.amount_paid || 0), 0);
 
   const goToPage = useCallback((page: number) => {
@@ -492,7 +510,10 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                 </TableRow>
               ) : (
                 paginated.map(inv => {
-                  const total = ((inv as any).subtotal ?? inv.total) || 0;
+                  const t = Number((inv as any).total) || 0;
+                  const tax = Number((inv as any).tax_amount) || 0;
+                  const sub = Number((inv as any).subtotal) || 0;
+                  const total = (t && tax > 0) ? Math.max(t - tax, 0) : (sub || t);
                   const paid = inv.amount_paid || 0;
                   const due = Math.max(total - paid, 0);
                   return (
