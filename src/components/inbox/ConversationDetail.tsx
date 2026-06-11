@@ -306,6 +306,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
             currentAssigneeId={conversation.assigned_to}
             variant="icon"
           />
+          <ConversationPrivacyPopover conversationId={conversation.id} />
           {conversation.channel === "whatsapp" && (
             <Button
               variant="ghost"
