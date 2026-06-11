@@ -470,9 +470,9 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
   const handleSubmitManualPayment = useCallback(async () => {
     if (!paymentInvoice) return;
     const amount = parseFloat(paymentAmount.replace(",", "."));
-    const ok = await registerPayment(paymentInvoice.inv, amount, paymentDate, paymentMethod);
+    const ok = await registerPayment(paymentInvoice.inv, amount, paymentDate, paymentMethod, paymentNotes);
     if (ok) setPaymentInvoice(null);
-  }, [paymentInvoice, paymentAmount, paymentDate, paymentMethod, registerPayment]);
+  }, [paymentInvoice, paymentAmount, paymentDate, paymentMethod, paymentNotes, registerPayment]);
 
   const filtered = useMemo(() => {
     const list = yearFilter
