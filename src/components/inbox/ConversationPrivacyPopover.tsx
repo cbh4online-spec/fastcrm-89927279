@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Lock, Unlock, Users, Globe2, Check, Loader2 } from "lucide-react";
+import { Lock, Users, Globe2, Check, Loader2, Share2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -7,11 +7,30 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { useConversationPrivacy, ConversationVisibility } from "@/hooks/useConversationPrivacy";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCapabilities } from "@/hooks/useCapability";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface Props {
