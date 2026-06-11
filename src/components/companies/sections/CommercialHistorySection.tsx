@@ -691,12 +691,26 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="pay-notes">Comentário <span className="text-red-500">*</span></Label>
+                <textarea
+                  id="pay-notes"
+                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-y"
+                  placeholder="Descreva o motivo ou observações deste pagamento..."
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  required
+                />
+                {!paymentNotes.trim() && paymentInvoice && (
+                  <p className="text-xs text-red-500">O comentário é obrigatório.</p>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setPaymentInvoice(null)} disabled={submitting}>
                 Cancelar
               </Button>
-              <Button onClick={handleSubmitManualPayment} disabled={submitting}>
+              <Button onClick={handleSubmitManualPayment} disabled={submitting || !paymentNotes.trim()}>
                 {submitting ? "A registar..." : "Confirmar pagamento"}
               </Button>
             </DialogFooter>
