@@ -379,19 +379,22 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
   );
 }
 
+interface InvoiceRow {
+  id: string;
+  invoice_number: string | null;
+  issue_date: string | null;
+  status: string | null;
+  total: number | null;
+  subtotal: number | null;
+  tax_amount: number | null;
+  amount_paid: number | null;
+  workspace_id?: string | null;
+}
+
 interface InvoicesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  invoices: Array<{
-    id: string;
-    invoice_number: string | null;
-    issue_date: string | null;
-    status: string | null;
-    total: number | null;
-    subtotal: number | null;
-    tax_amount: number | null;
-    amount_paid: number | null;
-  }>;
+  invoices: InvoiceRow[];
   yearFilter: number | null;
   onYearFilterChange: (year: number | null) => void;
   availableYears: number[];
@@ -402,6 +405,68 @@ const PAGE_SIZES = [25, 50, 100];
 function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilterChange, availableYears }: InvoicesDialogProps) {
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
+  const [paymentInvoice, setPaymentInvoice] = useState<{ inv: InvoiceRow; due: number } | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string>("");
+  const [paymentDate, setPaymentDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [paymentMethod, setPaymentMethod] = useState<string>("transfer");
+  const [submitting, setSubmitting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const registerPayment = useCallback(async (inv: InvoiceRow, amount: number, date: string, method: string) => {
+    if (!inv.workspace_id) {
+      toast.error("Fatura sem workspace associado");
+      return false;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Valor de pagamento inválido");
+      return false;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await (supabase as any).rpc("register_invoice_payment", {
+        p_invoice_id: inv.id,
+        p_workspace_id: inv.workspace_id,
+        p_amount: amount,
+        p_payment_date: date,
+        p_payment_method: method || null,
+        p_reference: null,
+        p_notes: "Confirmação manual",
+      });
+      if (error) throw error;
+      toast.success("Pagamento registado");
+      await queryClient.invalidateQueries({ queryKey: ["company-aggregated-invoices"] });
+      return true;
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Erro ao registar pagamento");
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [queryClient]);
+
+  const handleMarkPaid = useCallback(async (inv: InvoiceRow, due: number) => {
+    if (due <= 0) {
+      toast.info("Esta fatura já está totalmente paga");
+      return;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    await registerPayment(inv, due, today, "manual");
+  }, [registerPayment]);
+
+  const openPaymentDialog = useCallback((inv: InvoiceRow, due: number) => {
+    setPaymentInvoice({ inv, due });
+    setPaymentAmount(due > 0 ? due.toFixed(2) : "");
+    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setPaymentMethod("transfer");
+  }, []);
+
+  const handleSubmitManualPayment = useCallback(async () => {
+    if (!paymentInvoice) return;
+    const amount = parseFloat(paymentAmount.replace(",", "."));
+    const ok = await registerPayment(paymentInvoice.inv, amount, paymentDate, paymentMethod);
+    if (ok) setPaymentInvoice(null);
+  }, [paymentInvoice, paymentAmount, paymentDate, paymentMethod, registerPayment]);
 
   const filtered = useMemo(() => {
     const list = yearFilter
