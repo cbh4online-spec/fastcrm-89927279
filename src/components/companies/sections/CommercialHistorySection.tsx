@@ -186,9 +186,20 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
             )}
           </div>
         </div>
-        <CardDescription className="flex items-center gap-1.5 mt-1">
+        <CardDescription className="flex items-center gap-2 mt-1">
           <FileText className="w-3 h-3" />
-          {invoiceCount} fatura{invoiceCount !== 1 ? 's' : ''} registada{invoiceCount !== 1 ? 's' : ''}
+          <span>{invoiceCount} fatura{invoiceCount !== 1 ? 's' : ''} registada{invoiceCount !== 1 ? 's' : ''}</span>
+          {invoiceCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => { setYearFilter(null); setInvoicesOpen(true); }}
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              Ver faturas
+            </Button>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
