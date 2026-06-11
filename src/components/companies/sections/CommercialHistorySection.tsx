@@ -416,7 +416,13 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
     return filtered.slice(start, start + pageSize);
   }, [filtered, safePage, pageSize]);
 
-  const totalSum = filtered.reduce((sum, inv) => sum + (((inv as any).subtotal ?? inv.total) || 0), 0);
+  const totalSum = filtered.reduce((sum, inv) => {
+    const t = Number((inv as any).total) || 0;
+    const tax = Number((inv as any).tax_amount) || 0;
+    const sub = Number((inv as any).subtotal) || 0;
+    const net = (t && tax > 0) ? Math.max(t - tax, 0) : (sub || t);
+    return sum + net;
+  }, 0);
   const paidSum = filtered.reduce((sum, inv) => sum + (inv.amount_paid || 0), 0);
 
   const goToPage = useCallback((page: number) => {
@@ -504,7 +510,10 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                 </TableRow>
               ) : (
                 paginated.map(inv => {
-                  const total = ((inv as any).subtotal ?? inv.total) || 0;
+                  const t = Number((inv as any).total) || 0;
+                  const tax = Number((inv as any).tax_amount) || 0;
+                  const sub = Number((inv as any).subtotal) || 0;
+                  const total = (t && tax > 0) ? Math.max(t - tax, 0) : (sub || t);
                   const paid = inv.amount_paid || 0;
                   const due = Math.max(total - paid, 0);
                   return (
