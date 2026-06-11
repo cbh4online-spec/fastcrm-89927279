@@ -46,6 +46,7 @@ import { ScheduleAppointmentDialog } from "@/components/whatsapp-pro/ScheduleApp
 import { CreateTicketFromConversationDialog } from "@/components/whatsapp-pro/CreateTicketFromConversationDialog";
 import { LifeBuoy } from "lucide-react";
 import { AssignConversationButton } from "@/components/team-inbox/AssignConversationButton";
+import { ConversationPrivacyPopover } from "./ConversationPrivacyPopover";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { PriorityScoreBadge } from "./PriorityScoreBadge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -305,6 +306,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
             currentAssigneeId={conversation.assigned_to}
             variant="icon"
           />
+          <ConversationPrivacyPopover conversationId={conversation.id} />
           {conversation.channel === "whatsapp" && (
             <Button
               variant="ghost"

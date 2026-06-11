@@ -1,43 +1,82 @@
-## Problema
+## Diagnóstico
 
-A função `email-fetch` (sync IMAP) só corre quando o utilizador abre a UI de canais ou clica em "Sincronizar". Não existe nenhum `cron.job` agendado para email — só `process-email-queue` (envio). Resultado: 3 das 5 contas activas estão sem sincronizar há dias (`fernandohenriques@pharliss.pt` há 5 dias, `nfox@blecksen.pt` há 44 dias, `info@blecksen.pt` há 70 dias).
+Hoje qualquer membro do workspace que tenha `inbox.read` vê todas as conversas de email do workspace, independentemente de a conta de email pertencer a outro utilizador. Cada conversa de email já está ligada a uma `email_connections` (via `channel_metadata.connection_id`), e essa conexão tem um dono em `connected_by`. Isto dá-nos a fronteira natural para privacidade: **emails recebidos numa caixa pertencem, por omissão, ao dono dessa caixa**.
 
-## Solução
+## Decisões de produto / UX
 
-Criar um scheduler que percorre todas as contas IMAP activas e dispara o sync a cada 5 minutos via pg_cron.
+1. **Privado por omissão**: toda a conversa de email associada a uma `email_connection` é privada — só o dono da conexão, o `owner`/`admin` do workspace e o `super_admin` a vêem.
+2. **Partilha granular**: o dono (e owner/admin/super_admin) pode tornar uma conversa visível a membros específicos do workspace, ou a "todos" (público no workspace).
+3. **Visível na lista**: cada item da Caixa de Entrada mostra um cadeado ("Privado") ou ícone de partilha quando aplicável. Conversas a que o utilizador não tem acesso simplesmente não aparecem.
+4. **Gestão**: no painel de detalhe da conversa, botão "Privacidade" abre popover com:
+   - Estado actual (Privado / Partilhada com N / Pública no workspace)
+   - Lista de membros com toggle
+   - Atalho "Tornar pública no workspace" / "Voltar a privada"
+5. **Default por conexão configurável** (fase 2, opcional): o dono da conexão pode marcar a sua caixa como "Sempre pública" se não quiser privacidade — fica fora desta primeira fase.
 
-### 1. Edge function nova: `supabase/functions/email-fetch-scheduler/index.ts`
+## Estrutura técnica
 
-- `verify_jwt = false`, valida cabeçalho `x-cron-secret` contra `_cron_config.email_fetch_cron_secret` (mesmo padrão já usado por `billing-sync-daily`).
-- Cliente com service role.
-- Selecciona `email_connections` onde `is_active=true` E (`last_sync_at IS NULL` OU `last_sync_at < now() - interval '5 minutes'`) E `sync_status <> 'syncing'`.
-- Para cada conexão, invoca `email-fetch` em série (ou em lotes de 3 para evitar saturação) passando `{ connectionId, workspaceId, source: 'cron' }` e um header `x-cron-secret`.
-- Devolve `{ processed, ok, failed }` (200 OK mesmo com falhas parciais, conforme padrão de resiliência do projecto).
+### Base de dados (migração)
+- Nova coluna `conversations.visibility text not null default 'private'` com check em `('private','shared','workspace')`.
+  - Backfill: conversas `channel='email'` → `private`; restantes canais (whatsapp, sms, instagram, …) → `workspace` para não alterar comportamento actual.
+- Nova tabela `conversation_shared_with`:
+  - `conversation_id uuid` (FK), `user_id uuid` (FK auth.users), `granted_by uuid`, `created_at timestamptz`
+  - PK composta (`conversation_id`, `user_id`), index em `user_id`.
+  - GRANT a `authenticated` + `service_role`; RLS activa.
 
-### 2. Ajuste em `supabase/functions/email-fetch/index.ts`
+### Função helper SECURITY DEFINER
+```
+public.can_access_conversation(_conv_id uuid, _user_id uuid) returns boolean
+```
+Regra:
+- `super_admin` → true.
+- `owner`/`admin` do workspace da conversa → true.
+- `visibility='workspace'` e utilizador é membro → true.
+- `visibility='private'` ou `'shared'`:
+  - É o `connected_by` da `email_connection` referenciada em `channel_metadata.connection_id` → true.
+  - É `assigned_to` da conversa → true (mantém compat com fluxos de atribuição).
+  - Existe linha em `conversation_shared_with` → true.
+- Caso contrário → false.
 
-- Quando o body contém `source: 'cron'` E o header `x-cron-secret` é válido, ignora a validação JWT e usa `connection.connected_by` como `user.id` no `insert` de leads novos (linha 294) — único sítio onde o user actual é usado.
-- Em todos os outros casos mantém o fluxo actual (JWT obrigatório).
-- Acrescenta um guard: se `sync_status = 'syncing'` há menos de 2 minutos, devolve `{ skipped: 'in_progress' }` sem reentrar.
+### RLS
+- `conversations`: substituir `USING (workspace_member)` por `USING (can_access_conversation(id, auth.uid()))` em SELECT/UPDATE. INSERT continua restrito a membros.
+- `messages`: SELECT passa a depender de `can_access_conversation(conversation_id, auth.uid())`.
+- `conversation_shared_with`:
+  - SELECT: membros do workspace da conversa que já têm `can_access_conversation` true.
+  - INSERT/DELETE: dono da conexão, `assigned_to`, owner/admin do workspace, super_admin.
 
-### 3. Migração SQL
+### Frontend
+- `useConversations` e `useUnreadInboxCount`: nenhuma alteração lógica — o filtro fica do lado da RLS. Apenas garantir que invalida queries após alterar partilha.
+- Novo hook `useConversationPrivacy(conversationId)`:
+  - lê `visibility` + lista de partilhados
+  - mutations: `setVisibility`, `addShare`, `removeShare`
+- Novo componente `ConversationPrivacyPopover` no header do detalhe da conversa (ao lado dos botões existentes na barra superior do painel direito).
+- Badge `Privado` / `Partilhada` na lista (`ConversationListItem`).
+- Capability nova `inbox.privacy.manage` na matriz (`src/lib/permissions/capabilities.ts` + espelho backend): owner, admin, agency e super_admin. O dono da conexão recebe override implícito (verificado no hook).
 
-- Garantir entrada em `public._cron_config` para `email_fetch_cron_secret` (gerar UUID se ainda não existir).
-- `cron.schedule('email-fetch-scheduler', '*/5 * * * *', ...)` com `net.http_post` para a edge function, passando `x-cron-secret` no header.
-- Sem GRANTs novos (tabela já existe).
+### Auditoria
+- Inserir em `inbox_action_logs` os eventos `privacy_changed`, `share_added`, `share_removed` com `actor`, `conversation_id`, `target_user_id`.
 
-### 4. UI (opcional, mínima)
+## Plano de implementação
 
-- Em `BillingIntegrationsPage`/canais de email, a coluna "Última sync" já existe — sem alteração visual necessária. A frase "Sincronizado · há menos de um minuto" passará a actualizar sozinha.
+1. **Migração SQL**: coluna `visibility`, tabela `conversation_shared_with`, função `can_access_conversation`, novas policies, backfill.
+2. **Capability** + espelho em `supabase/functions/_shared/capabilities.ts`.
+3. **Hook** `useConversationPrivacy` + invalidations.
+4. **UI**: popover de gestão no detalhe, badge na lista, mensagem amigável quando o utilizador tenta abrir conversa sem acesso (caso venha de URL direto).
+5. **Auditoria**: registar em `inbox_action_logs`.
+6. **QA** com a Ana Sábio (agent — não vê privadas de outros), o Utilizador Demo (alternar roles) e um owner.
 
-## Ficheiros tocados
+## Critérios de aceitação
 
-- Novo: `supabase/functions/email-fetch-scheduler/index.ts`
-- Novo: `supabase/migrations/<timestamp>_email_fetch_cron.sql`
-- Editado: `supabase/functions/email-fetch/index.ts` (modo cron + guard de reentrância)
+- Um `agent` só vê emails das suas conexões + os que lhe foram explicitamente partilhados + os marcados `workspace`.
+- `owner`/`admin`/`super_admin` vêem tudo.
+- Partilhar uma conversa com a Ana Sábio faz aparecê-la imediatamente na inbox dela (realtime).
+- Remover a partilha remove-a da inbox.
+- Conversas WhatsApp/SMS/Instagram continuam visíveis a todos os membros (sem regressão).
+- Tentar `GET /messages?conversation_id=...` via API a uma conversa privada de outro retorna 0 linhas.
 
-## Verificação
+## Riscos e pontos por validar
 
-- Após deploy: `SELECT jobname, schedule, active FROM cron.job WHERE jobname='email-fetch-scheduler';`
-- Após 5 min: `SELECT email_address, last_sync_at, sync_status FROM email_connections WHERE is_active`.
-- Logs em `email-fetch-scheduler` e `email-fetch`.
+- **Performance da RLS**: a função `can_access_conversation` corre em cada linha. Mitigação: `STABLE`, índices em `email_connections.connected_by`, `conversation_shared_with(user_id)`, e em `conversations(workspace_id, visibility)`.
+- **Realtime**: filtros Supabase Realtime não respeitam funções complexas — confirmar que canal de `conversations` ainda entrega eventos só do workspace e que o frontend filtra com o mesmo helper.
+- **Backfill**: marcar emails históricos como privados pode "esconder" conversas que toda a equipa via. Confirmar com o utilizador se quer aplicar retroactivamente ou só a novos emails (recomendo retroactivo, é a intenção do pedido).
+- **Conexões partilhadas** (ex.: `geral@empresa.pt` usada por vários): se for `connected_by` a uma única pessoa, fica privada. Caminho: o dono marca como `workspace` em massa, ou criamos no futuro um modo "caixa partilhada" na própria `email_connections`.
