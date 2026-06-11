@@ -118,6 +118,59 @@ export function ConversationPrivacyPopover({ conversationId }: Props) {
           <p className="text-xs text-muted-foreground">
             Controle quem do workspace pode ver esta conversa.
           </p>
+          {!canManage && (
+            <div className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/30 rounded p-2">
+              <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>Só leitura — sem permissão para alterar privacidade ou partilhar.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Quick share */}
+        <div className="p-3 border-b bg-muted/30">
+          <div className="text-xs font-medium mb-2 flex items-center gap-1.5">
+            <Share2 className="w-3.5 h-3.5" /> Partilha rápida
+          </div>
+          <div className="flex gap-2">
+            <Select
+              value={quickPick}
+              onValueChange={setQuickPick}
+              disabled={!canManage || shareableMembers.length === 0}
+            >
+              <SelectTrigger className="h-8 text-xs flex-1">
+                <SelectValue
+                  placeholder={
+                    shareableMembers.length === 0
+                      ? "Nada para partilhar"
+                      : "Escolher membro..."
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {shareableMembers.slice(0, 30).map((m) => (
+                  <SelectItem key={m.user_id} value={m.user_id} className="text-xs">
+                    {m.profile?.full_name || m.profile?.email || m.user_id.slice(0, 8)}
+                    <span className="text-muted-foreground ml-1">· {m.role}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              className="h-8 text-xs"
+              disabled={!canManage || !quickPick || addShare.isPending}
+              onClick={() => {
+                const m = members.find((mm) => mm.user_id === quickPick);
+                if (!m) return;
+                setConfirmUser({
+                  id: m.user_id,
+                  name: m.profile?.full_name || m.profile?.email || "este membro",
+                });
+              }}
+            >
+              {addShare.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Partilhar"}
+            </Button>
+          </div>
         </div>
 
         <div className="p-2 space-y-1 border-b">
@@ -126,7 +179,7 @@ export function ConversationPrivacyPopover({ conversationId }: Props) {
             icon={Lock}
             title="Privada"
             description="Só o dono da caixa, atribuído e admins."
-            disabled={setVisibility.isPending}
+            disabled={setVisibility.isPending || !canManage}
             onClick={() => setVisibility.mutate("private")}
           />
           <VisibilityOption
@@ -134,7 +187,7 @@ export function ConversationPrivacyPopover({ conversationId }: Props) {
             icon={Users}
             title="Partilhada"
             description="Só os utilizadores escolhidos abaixo."
-            disabled={setVisibility.isPending}
+            disabled={setVisibility.isPending || !canManage}
             onClick={() => setVisibility.mutate("shared")}
           />
           <VisibilityOption
@@ -142,7 +195,7 @@ export function ConversationPrivacyPopover({ conversationId }: Props) {
             icon={Globe2}
             title="Pública no workspace"
             description="Todos os membros podem ver."
-            disabled={setVisibility.isPending}
+            disabled={setVisibility.isPending || !canManage}
             onClick={() => setVisibility.mutate("workspace")}
           />
         </div>
