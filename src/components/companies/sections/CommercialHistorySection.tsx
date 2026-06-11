@@ -54,24 +54,26 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
   // Fetch invoices for this company AND for all contacts that belong to it
   const { data: companyInvoices = [] } = useCompanyAggregatedInvoices(company.id);
 
-  // Filter to only count sent, paid, overdue invoices
+  // Active invoices = everything except cancelled/draft/refunded
+  // Includes: sent, paid, overdue, partially_paid, pending
   const countableInvoices = useMemo(() => {
-    return companyInvoices.filter(inv => 
-      inv.status === 'sent' || inv.status === 'paid' || inv.status === 'overdue'
-    );
+    const EXCLUDED = new Set(['cancelled', 'draft', 'refunded', 'void']);
+    return companyInvoices.filter(inv => !EXCLUDED.has((inv.status || '').toLowerCase()));
   }, [companyInvoices]);
 
-  // Calculate sales by year from invoices (automatic)
+  // Calculate sales by year from invoices (com IVA = total)
   const invoiceSalesByYear = useMemo(() => {
-    const sales: Record<number, number> = {};
-    
+    const sales: Record<number, { amount: number; count: number }> = {};
+
     countableInvoices.forEach(inv => {
       if (inv.issue_date && inv.total) {
         const year = new Date(inv.issue_date).getFullYear();
-        sales[year] = (sales[year] || 0) + inv.total;
+        if (!sales[year]) sales[year] = { amount: 0, count: 0 };
+        sales[year].amount += inv.total;
+        sales[year].count += 1;
       }
     });
-    
+
     return sales;
   }, [countableInvoices]);
 
@@ -87,19 +89,21 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
   const combinedSalesByYear = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
-    const combined: Record<number, { invoice: number; manual: number | null; total: number }> = {};
-    
+    const combined: Record<number, { invoice: number; manual: number | null; total: number; count: number }> = {};
+
     years.forEach(year => {
-      const invoiceVal = invoiceSalesByYear[year] || 0;
+      const invoiceData = invoiceSalesByYear[year];
+      const invoiceVal = invoiceData?.amount || 0;
+      const invoiceCount = invoiceData?.count || 0;
       const manualVal = manualSalesByYear[year];
-      // Total = invoice value + manual value (manual can add to invoice data)
       combined[year] = {
         invoice: invoiceVal,
         manual: manualVal,
         total: invoiceVal + (manualVal || 0),
+        count: invoiceCount,
       };
     });
-    
+
     return combined;
   }, [invoiceSalesByYear, manualSalesByYear]);
 
@@ -218,14 +222,20 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
                 <div className="flex-1">
                   {/* Show invoice total if exists */}
                   {hasInvoices && (
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-sm font-medium text-emerald-600">
                         {formatCurrency(yearData.invoice)}
                       </span>
                       <Badge variant="secondary" className="text-xs gap-1">
                         <FileText className="w-3 h-3" />
-                        Faturas
+                        {yearData.count} fatura{yearData.count !== 1 ? 's' : ''}
                       </Badge>
+                      {yearData.count > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          · Ticket médio {formatCurrency(yearData.invoice / yearData.count)}
+                        </span>
+                      )}
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">c/ IVA</span>
                     </div>
                   )}
                   
