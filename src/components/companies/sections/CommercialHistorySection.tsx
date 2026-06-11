@@ -409,6 +409,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState<string>("transfer");
+  const [paymentNotes, setPaymentNotes] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
