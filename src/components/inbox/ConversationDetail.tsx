@@ -46,6 +46,7 @@ import { ScheduleAppointmentDialog } from "@/components/whatsapp-pro/ScheduleApp
 import { CreateTicketFromConversationDialog } from "@/components/whatsapp-pro/CreateTicketFromConversationDialog";
 import { LifeBuoy } from "lucide-react";
 import { AssignConversationButton } from "@/components/team-inbox/AssignConversationButton";
+import { ConversationPrivacyPopover } from "./ConversationPrivacyPopover";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { PriorityScoreBadge } from "./PriorityScoreBadge";
 import { useAuth } from "@/contexts/AuthContext";
