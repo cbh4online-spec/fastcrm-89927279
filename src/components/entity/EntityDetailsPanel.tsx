@@ -320,13 +320,28 @@ function CompanyDetails({ entity, onUpdate, onEmailClick }: { entity: CompanyEnt
 function ContactDetails({ entity, onUpdate, onEmailClick }: { entity: ContactEntity; onUpdate?: (field: string, value: unknown) => void; onEmailClick?: (email: string) => void }) {
   const e = entity as any;
   const hasSocialUrls = !!(e.linkedin_url || e.facebook_url || e.instagram_url || e.twitter_url || e.youtube_url || e.tiktok_url || e.pinterest_url || e.whatsapp_url);
+  const { data: linkedCompanyName } = useQuery({
+    queryKey: ['entity-details-linked-company', e.company_id],
+    enabled: !entity.company && !!e.company_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', e.company_id)
+        .maybeSingle();
+      if (error) return null;
+      return data?.name ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const companyDisplay = entity.company || linkedCompanyName || null;
   return (
     <div>
       <CollapsibleSection title="Dados do Contacto">
         <ProgressiveFields>
           <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} onEmailClick={onEmailClick} />
           <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
-          <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
+          <EditableFieldRow label="Empresa" value={companyDisplay} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
           <EditableFieldRow label="Cargo" value={entity.job_title} icon={Briefcase} iconClassName="text-amber-500" fieldKey="job_title" onUpdate={onUpdate} />
           <EditableFieldRow label="NIF" value={e.tax_id} fieldKey="tax_id" onUpdate={onUpdate} />
           {entity.tags && entity.tags.length > 0 && (
