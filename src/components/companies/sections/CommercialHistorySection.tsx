@@ -383,6 +383,8 @@ interface InvoicesDialogProps {
     issue_date: string | null;
     status: string | null;
     total: number | null;
+    subtotal: number | null;
+    tax_amount: number | null;
     amount_paid: number | null;
   }>;
   yearFilter: number | null;
