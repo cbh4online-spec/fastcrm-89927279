@@ -68,14 +68,16 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
   }, [companyInvoices]);
 
   // Helper: devolve sempre o valor LÍQUIDO (s/ IVA) da fatura.
-  // Prioridade: total - tax_amount (o mais fiável quando ambos existem),
-  // depois subtotal, e por fim o total tal-qual (caso a fatura não tenha IVA).
+  // Neste dataset (SAF-T importado), invoices.subtotal corresponde à soma dos
+  // item.gross_total (já c/ IVA) e invoices.total foi recalculado a somar o IVA
+  // por cima — ficando com IVA a dobrar. O líquido real = subtotal - tax_amount.
   const getNetAmount = (inv: any): number => {
-    const total = Number(inv?.total) || 0;
-    const tax = Number(inv?.tax_amount) || 0;
-    if (total && tax > 0) return Math.max(total - tax, 0);
     const sub = Number(inv?.subtotal) || 0;
+    const tax = Number(inv?.tax_amount) || 0;
+    const total = Number(inv?.total) || 0;
+    if (sub && tax > 0) return Math.max(sub - tax, 0);
     if (sub) return sub;
+    if (total && tax > 0) return Math.max(total - tax, 0);
     return total;
   };
 
