@@ -242,10 +242,17 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
                       <span className="text-sm font-medium text-emerald-600">
                         {formatCurrency(yearData.invoice)}
                       </span>
-                      <Badge variant="secondary" className="text-xs gap-1">
-                        <FileText className="w-3 h-3" />
-                        {yearData.count} fatura{yearData.count !== 1 ? 's' : ''}
-                      </Badge>
+                      <button
+                        type="button"
+                        onClick={() => { setYearFilter(year); setInvoicesOpen(true); }}
+                        className="inline-flex"
+                        title="Ver faturas deste ano"
+                      >
+                        <Badge variant="secondary" className="text-xs gap-1 cursor-pointer hover:bg-secondary/80">
+                          <FileText className="w-3 h-3" />
+                          {yearData.count} fatura{yearData.count !== 1 ? 's' : ''}
+                        </Badge>
+                      </button>
                       {yearData.count > 0 && (
                         <span className="text-xs text-muted-foreground">
                           · Ticket médio {formatCurrency(yearData.invoice / yearData.count)}
