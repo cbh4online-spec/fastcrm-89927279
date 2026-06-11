@@ -36,7 +36,7 @@ export function useConversationPrivacy(conversationId: string | undefined) {
         .select("user_id, granted_by, created_at")
         .eq("conversation_id", conversationId!);
       if (error) throw error;
-      return (data || []) as ConversationShare[];
+      return ((data || []) as unknown) as ConversationShare[];
     },
   });
 
