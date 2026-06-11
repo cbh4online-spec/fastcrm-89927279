@@ -13,6 +13,7 @@ export interface AggregatedInvoice {
   status: string | null;
   total: number | null;
   subtotal: number | null;
+  tax_amount: number | null;
   amount_paid: number | null;
   issue_date: string | null;
   paid_at: string | null;
