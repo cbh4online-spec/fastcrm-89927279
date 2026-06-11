@@ -298,6 +298,18 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     }
     const cust = customerMap.get(inv.customer_id);
     const custName = parsed.customers.find((c) => c.customer_id === inv.customer_id)?.name ?? "Consumidor final";
+    // Salvaguarda anti-IVA-duplicado: alguns softwares exportam NetTotal já c/ IVA.
+    // A verdade são as linhas: se o NetTotal do ficheiro ≈ soma dos brutos das linhas,
+    // recalculamos subtotal/IVA/total a partir das linhas (net = s/ IVA, gross = c/ IVA).
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    const linesNet = r2(inv.lines.reduce((s, l) => s + (l.line_total - l.tax_amount), 0));
+    const linesGross = r2(inv.lines.reduce((s, l) => s + l.line_total, 0));
+    let subtotal = inv.net_total, taxAmount = inv.tax_payable, total = inv.gross_total;
+    if (inv.lines.length > 0 && Math.abs(r2(inv.net_total) - linesGross) <= 0.02 && linesGross > linesNet) {
+      subtotal = linesNet;
+      taxAmount = r2(linesGross - linesNet);
+      total = linesGross;
+    }
     newInvRows.push({
       workspace_id: ws, created_by: userId,
       invoice_number: inv.invoice_no,
@@ -308,7 +320,7 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
       client_name: custName,
       contact_id: cust?.contact_id ?? null,
       company_id: cust?.company_id ?? null,
-      subtotal: inv.net_total, tax_amount: inv.tax_payable, total: inv.gross_total,
+      subtotal, tax_amount: taxAmount, total,
       currency: inv.currency,
       saft_import_id: importId, saft_invoice_no: inv.invoice_no,
       saft_atcud: inv.atcud, saft_hash: inv.hash,
