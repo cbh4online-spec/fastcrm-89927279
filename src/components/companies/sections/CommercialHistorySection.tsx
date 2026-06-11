@@ -377,7 +377,12 @@ interface InvoicesDialogProps {
   availableYears: number[];
 }
 
+const PAGE_SIZES = [25, 50, 100];
+
 function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilterChange, availableYears }: InvoicesDialogProps) {
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
+
   const filtered = useMemo(() => {
     const list = yearFilter
       ? invoices.filter(inv => inv.issue_date && new Date(inv.issue_date).getFullYear() === yearFilter)
@@ -389,8 +394,35 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
     });
   }, [invoices, yearFilter]);
 
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginated = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, safePage, pageSize]);
+
   const totalSum = filtered.reduce((sum, inv) => sum + (inv.total || 0), 0);
   const paidSum = filtered.reduce((sum, inv) => sum + (inv.amount_paid || 0), 0);
+
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  }, [totalPages]);
+
+  const handlePageSizeChange = useCallback((value: string) => {
+    const newSize = parseInt(value, 10);
+    setPageSize(newSize);
+    setCurrentPage(1);
+  }, []);
+
+  // Reset to page 1 when filter changes
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [yearFilter]);
+
+  const startItem = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const endItem = Math.min(safePage * pageSize, totalItems);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -400,11 +432,11 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
             Faturas {yearFilter ? `de ${yearFilter}` : "ativas"}
           </DialogTitle>
           <DialogDescription>
-            {filtered.length} fatura{filtered.length !== 1 ? "s" : ""} · Total c/IVA {formatCurrency(totalSum)} · Pago {formatCurrency(paidSum)}
+            {totalItems} fatura{totalItems !== 1 ? "s" : ""} · Total c/IVA {formatCurrency(totalSum)} · Pago {formatCurrency(paidSum)}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap gap-2 pb-2">
+        <div className="flex flex-wrap items-center gap-2 pb-2">
           <Button
             size="sm"
             variant={yearFilter === null ? "default" : "outline"}
@@ -422,6 +454,20 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
               {y}
             </Button>
           ))}
+
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden sm:inline">Por página:</span>
+            <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+              <SelectTrigger className="h-8 w-[70px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZES.map(size => (
+                  <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto border rounded-md">
@@ -437,14 +483,14 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paginated.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Sem faturas para este filtro.
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map(inv => {
+                paginated.map(inv => {
                   const total = inv.total || 0;
                   const paid = inv.amount_paid || 0;
                   const due = Math.max(total - paid, 0);
@@ -467,6 +513,63 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination footer */}
+        {totalItems > 0 && (
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-muted-foreground">
+              {startItem}–{endItem} de {totalItems}
+            </span>
+
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                disabled={safePage <= 1}
+                onClick={() => goToPage(1)}
+                title="Primeira página"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                disabled={safePage <= 1}
+                onClick={() => goToPage(safePage - 1)}
+                title="Página anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+
+              <span className="text-xs px-2 min-w-[3rem] text-center">
+                {safePage} / {totalPages}
+              </span>
+
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                disabled={safePage >= totalPages}
+                onClick={() => goToPage(safePage + 1)}
+                title="Próxima página"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                disabled={safePage >= totalPages}
+                onClick={() => goToPage(totalPages)}
+                title="Última página"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
