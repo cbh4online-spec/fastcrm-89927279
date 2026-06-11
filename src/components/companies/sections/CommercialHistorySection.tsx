@@ -447,7 +447,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             Faturas {yearFilter ? `de ${yearFilter}` : "ativas"}
