@@ -222,14 +222,20 @@ export function CommercialHistorySection({ company, onFieldChange }: CommercialH
                 <div className="flex-1">
                   {/* Show invoice total if exists */}
                   {hasInvoices && (
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-sm font-medium text-emerald-600">
                         {formatCurrency(yearData.invoice)}
                       </span>
                       <Badge variant="secondary" className="text-xs gap-1">
                         <FileText className="w-3 h-3" />
-                        Faturas
+                        {yearData.count} fatura{yearData.count !== 1 ? 's' : ''}
                       </Badge>
+                      {yearData.count > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          · Ticket médio {formatCurrency(yearData.invoice / yearData.count)}
+                        </span>
+                      )}
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">c/ IVA</span>
                     </div>
                   )}
                   
