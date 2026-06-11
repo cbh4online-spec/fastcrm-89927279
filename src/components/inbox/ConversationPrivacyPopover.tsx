@@ -42,7 +42,21 @@ export function ConversationPrivacyPopover({ conversationId }: Props) {
   const { visibility, shares, isLoading, setVisibility, addShare, removeShare, conversation } =
     useConversationPrivacy(conversationId);
   const { data: members = [] } = useWorkspaceMembers();
+  const { can, isSuperAdmin, role } = useCapabilities();
   const [query, setQuery] = useState("");
+  const [quickPick, setQuickPick] = useState<string>("");
+  const [confirmUser, setConfirmUser] = useState<{ id: string; name: string } | null>(null);
+
+  // Permission to manage privacy: admin/owner/agency, super admin,
+  // mailbox owner (connected_by) or assigned agent.
+  const connectedBy = (conversation?.channel_metadata as any)?.connection_id
+    ? (conversation as any)?.connected_by
+    : null;
+  const isAdminLike =
+    isSuperAdmin || role === "owner" || role === "admin" || role === "agency";
+  const isAssignee = !!user?.id && conversation?.assigned_to === user.id;
+  const isMailboxOwner = !!user?.id && connectedBy === user.id;
+  const canManage = isAdminLike || isAssignee || isMailboxOwner;
 
   const sharedIds = useMemo(() => new Set(shares.map((s) => s.user_id)), [shares]);
 
@@ -58,12 +72,32 @@ export function ConversationPrivacyPopover({ conversationId }: Props) {
       });
   }, [members, query, user?.id]);
 
+  const shareableMembers = useMemo(
+    () => filteredMembers.filter((m) => !sharedIds.has(m.user_id)),
+    [filteredMembers, sharedIds],
+  );
+
   const v: ConversationVisibility = (visibility as ConversationVisibility) || "workspace";
 
   const icon = v === "workspace" ? Globe2 : v === "shared" ? Users : Lock;
   const Icon = icon;
   const label =
     v === "workspace" ? "Pública" : v === "shared" ? `Partilhada (${shares.length})` : "Privada";
+
+  const handleQuickShareConfirm = () => {
+    if (!confirmUser) return;
+    if (!canManage) {
+      toast.error("Sem permissão para partilhar esta conversa");
+      setConfirmUser(null);
+      return;
+    }
+    addShare.mutate(confirmUser.id, {
+      onSettled: () => {
+        setConfirmUser(null);
+        setQuickPick("");
+      },
+    });
+  };
 
   return (
     <Popover>
