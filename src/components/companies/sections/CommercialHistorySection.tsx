@@ -409,16 +409,21 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState<string>("transfer");
+  const [paymentNotes, setPaymentNotes] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
-  const registerPayment = useCallback(async (inv: InvoiceRow, amount: number, date: string, method: string) => {
+  const registerPayment = useCallback(async (inv: InvoiceRow, amount: number, date: string, method: string, notes: string) => {
     if (!inv.workspace_id) {
       toast.error("Fatura sem workspace associado");
       return false;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
       toast.error("Valor de pagamento inválido");
+      return false;
+    }
+    if (!notes || !notes.trim()) {
+      toast.error("O comentário é obrigatório");
       return false;
     }
     setSubmitting(true);
@@ -430,7 +435,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
         p_payment_date: date,
         p_payment_method: method || null,
         p_reference: null,
-        p_notes: "Confirmação manual",
+        p_notes: notes.trim(),
       });
       if (error) throw error;
       toast.success("Pagamento registado");
@@ -451,7 +456,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
       return;
     }
     const today = new Date().toISOString().slice(0, 10);
-    await registerPayment(inv, due, today, "manual");
+    await registerPayment(inv, due, today, "manual", "Confirmação manual — marcada como paga");
   }, [registerPayment]);
 
   const openPaymentDialog = useCallback((inv: InvoiceRow, due: number) => {
@@ -459,14 +464,15 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
     setPaymentAmount(due > 0 ? due.toFixed(2) : "");
     setPaymentDate(new Date().toISOString().slice(0, 10));
     setPaymentMethod("transfer");
+    setPaymentNotes("");
   }, []);
 
   const handleSubmitManualPayment = useCallback(async () => {
     if (!paymentInvoice) return;
     const amount = parseFloat(paymentAmount.replace(",", "."));
-    const ok = await registerPayment(paymentInvoice.inv, amount, paymentDate, paymentMethod);
+    const ok = await registerPayment(paymentInvoice.inv, amount, paymentDate, paymentMethod, paymentNotes);
     if (ok) setPaymentInvoice(null);
-  }, [paymentInvoice, paymentAmount, paymentDate, paymentMethod, registerPayment]);
+  }, [paymentInvoice, paymentAmount, paymentDate, paymentMethod, paymentNotes, registerPayment]);
 
   const filtered = useMemo(() => {
     const list = yearFilter
@@ -685,12 +691,26 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="pay-notes">Comentário <span className="text-red-500">*</span></Label>
+                <textarea
+                  id="pay-notes"
+                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-y"
+                  placeholder="Descreva o motivo ou observações deste pagamento..."
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  required
+                />
+                {!paymentNotes.trim() && paymentInvoice && (
+                  <p className="text-xs text-red-500">O comentário é obrigatório.</p>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setPaymentInvoice(null)} disabled={submitting}>
                 Cancelar
               </Button>
-              <Button onClick={handleSubmitManualPayment} disabled={submitting}>
+              <Button onClick={handleSubmitManualPayment} disabled={submitting || !paymentNotes.trim()}>
                 {submitting ? "A registar..." : "Confirmar pagamento"}
               </Button>
             </DialogFooter>
