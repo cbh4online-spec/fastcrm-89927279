@@ -404,7 +404,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
     return filtered.slice(start, start + pageSize);
   }, [filtered, safePage, pageSize]);
 
-  const totalSum = filtered.reduce((sum, inv) => sum + (inv.total || 0), 0);
+  const totalSum = filtered.reduce((sum, inv) => sum + (((inv as any).subtotal ?? inv.total) || 0), 0);
   const paidSum = filtered.reduce((sum, inv) => sum + (inv.amount_paid || 0), 0);
 
   const goToPage = useCallback((page: number) => {
@@ -433,7 +433,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
             Faturas {yearFilter ? `de ${yearFilter}` : "ativas"}
           </DialogTitle>
           <DialogDescription>
-            {totalItems} fatura{totalItems !== 1 ? "s" : ""} · Total c/IVA {formatCurrency(totalSum)} · Pago {formatCurrency(paidSum)}
+            {totalItems} fatura{totalItems !== 1 ? "s" : ""} · Total s/IVA {formatCurrency(totalSum)} · Pago {formatCurrency(paidSum)}
           </DialogDescription>
         </DialogHeader>
 
@@ -478,7 +478,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                 <TableHead>Nº Fatura</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Total c/IVA</TableHead>
+                <TableHead className="text-right">Total s/IVA</TableHead>
                 <TableHead className="text-right">Pago</TableHead>
                 <TableHead className="text-right">Em dívida</TableHead>
               </TableRow>
@@ -492,7 +492,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
                 </TableRow>
               ) : (
                 paginated.map(inv => {
-                  const total = inv.total || 0;
+                  const total = ((inv as any).subtotal ?? inv.total) || 0;
                   const paid = inv.amount_paid || 0;
                   const due = Math.max(total - paid, 0);
                   return (
