@@ -27262,6 +27262,42 @@ export type Database = {
           },
         ]
       }
+      conversation_shared_with: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          granted_by: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          granted_by?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          granted_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_shared_with_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_shared_with_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_signals: {
         Row: {
           buying_intent_score: number | null
@@ -27504,6 +27540,7 @@ export type Database = {
           user_intent: string | null
           user_priority: string | null
           user_tags: string[] | null
+          visibility: string
           workspace_id: string
         }
         Insert: {
@@ -27553,6 +27590,7 @@ export type Database = {
           user_intent?: string | null
           user_priority?: string | null
           user_tags?: string[] | null
+          visibility?: string
           workspace_id: string
         }
         Update: {
@@ -27602,6 +27640,7 @@ export type Database = {
           user_intent?: string | null
           user_priority?: string | null
           user_tags?: string[] | null
+          visibility?: string
           workspace_id?: string
         }
         Relationships: [
@@ -97668,6 +97707,14 @@ export type Database = {
       calculate_success_metrics: {
         Args: { p_date?: string; p_workspace_id: string }
         Returns: Json
+      }
+      can_access_conversation: {
+        Args: { _conv_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_manage_conversation_privacy: {
+        Args: { _conv_id: string; _user_id: string }
+        Returns: boolean
       }
       can_manage_workspace: {
         Args: { _user_id: string; _workspace_id: string }
