@@ -43,14 +43,14 @@ export function useCompanyAggregatedInvoices(companyId: string | undefined) {
       // 2. Fetch invoices directly linked to the company
       const directPromise = supabase
         .from("invoices")
-        .select("id,status,total,subtotal,amount_paid,issue_date,paid_at,due_date,company_id,contact_id,invoice_number")
+        .select("id,status,total,subtotal,tax_amount,amount_paid,issue_date,paid_at,due_date,company_id,contact_id,invoice_number")
         .eq("company_id", companyId);
 
       // 3. Fetch invoices linked to any of the company's contacts
       const viaContactsPromise = contactIds.length > 0
         ? supabase
             .from("invoices")
-            .select("id,status,total,subtotal,amount_paid,issue_date,paid_at,due_date,company_id,contact_id,invoice_number")
+            .select("id,status,total,subtotal,tax_amount,amount_paid,issue_date,paid_at,due_date,company_id,contact_id,invoice_number")
             .in("contact_id", contactIds)
         : Promise.resolve({ data: [] as any[], error: null });
 
