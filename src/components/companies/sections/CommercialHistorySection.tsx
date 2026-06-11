@@ -456,7 +456,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
       return;
     }
     const today = new Date().toISOString().slice(0, 10);
-    await registerPayment(inv, due, today, "manual");
+    await registerPayment(inv, due, today, "manual", "Confirmação manual — marcada como paga");
   }, [registerPayment]);
 
   const openPaymentDialog = useCallback((inv: InvoiceRow, due: number) => {
@@ -464,6 +464,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
     setPaymentAmount(due > 0 ? due.toFixed(2) : "");
     setPaymentDate(new Date().toISOString().slice(0, 10));
     setPaymentMethod("transfer");
+    setPaymentNotes("");
   }, []);
 
   const handleSubmitManualPayment = useCallback(async () => {
