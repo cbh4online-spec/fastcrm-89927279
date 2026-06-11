@@ -413,13 +413,17 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
-  const registerPayment = useCallback(async (inv: InvoiceRow, amount: number, date: string, method: string) => {
+  const registerPayment = useCallback(async (inv: InvoiceRow, amount: number, date: string, method: string, notes: string) => {
     if (!inv.workspace_id) {
       toast.error("Fatura sem workspace associado");
       return false;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
       toast.error("Valor de pagamento inválido");
+      return false;
+    }
+    if (!notes || !notes.trim()) {
+      toast.error("O comentário é obrigatório");
       return false;
     }
     setSubmitting(true);
@@ -431,7 +435,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
         p_payment_date: date,
         p_payment_method: method || null,
         p_reference: null,
-        p_notes: "Confirmação manual",
+        p_notes: notes.trim(),
       });
       if (error) throw error;
       toast.success("Pagamento registado");
