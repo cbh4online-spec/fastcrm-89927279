@@ -77,3 +77,52 @@ export function useWhatsAppConfigureWebhook() {
     onError: (err: Error) => toast.error(err.message),
   });
 }
+
+/**
+ * Mover uma instância Z-API entre workspaces (super-admin).
+ * Desactiva no workspace de origem, move credenciais, reconfigura webhook
+ * e refresca status/phone_number em série numa única chamada.
+ */
+export function useMoveWhatsAppZapiInstance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: {
+      toWorkspaceId: string;
+      instanceId?: string;
+      fromWorkspaceId?: string;
+    }) => {
+      if (!vars.toWorkspaceId) throw new Error("toWorkspaceId obrigatório");
+      if (!vars.instanceId && !vars.fromWorkspaceId) {
+        throw new Error("instanceId ou fromWorkspaceId obrigatório");
+      }
+      const { data, error } = await supabase.functions.invoke(
+        "whatsapp-zapi-move-instance",
+        { body: vars },
+      );
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || "Falha ao mover instância");
+      return data as {
+        ok: true;
+        moved: boolean;
+        fromWorkspaceId: string;
+        toWorkspaceId: string;
+        instanceId: string;
+        webhookConfigured: boolean;
+        status: string;
+        connected: boolean;
+        phoneNumber: string | null;
+      };
+    },
+    onSuccess: (data) => {
+      const msg = data.connected
+        ? `Instância movida e ligada (${data.phoneNumber ?? "—"})`
+        : data.webhookConfigured
+        ? "Instância movida e webhook configurado — aguardar ligação"
+        : "Instância movida mas webhook falhou parcialmente";
+      toast.success(msg);
+      qc.invalidateQueries({ queryKey: ["whatsapp-zapi-connection"] });
+      qc.invalidateQueries({ queryKey: ["whatsapp-provider-instances"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
