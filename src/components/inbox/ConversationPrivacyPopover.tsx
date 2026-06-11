@@ -283,15 +283,6 @@ export function ConversationPrivacyPopover({ conversationId }: Props) {
     </Popover>
   );
 }
-                })
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 function VisibilityOption({
   active,
