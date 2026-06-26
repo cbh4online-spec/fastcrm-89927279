@@ -196,8 +196,8 @@ export function LeadDetailWithSidebar() {
               { id: "tasks", label: "Tarefas" },
               { id: "automations", label: "Automações" },
             ]}
-            value={activeActivitySub}
-            onValueChange={setActiveActivitySub}
+            activeTab={activeActivitySub}
+            onTabChange={setActiveActivitySub}
           >
             {(tab) => {
               switch (tab) {
@@ -224,8 +224,8 @@ export function LeadDetailWithSidebar() {
               { id: "messages", label: "Mensagens" },
               { id: "scheduling", label: "Agendamentos" },
             ]}
-            value={activeCommunicationSub}
-            onValueChange={setActiveCommunicationSub}
+            activeTab={activeCommunicationSub}
+            onTabChange={setActiveCommunicationSub}
           >
             {(tab) => {
               switch (tab) {
@@ -280,8 +280,8 @@ export function LeadDetailWithSidebar() {
               { id: "files", label: "Ficheiros" },
               { id: "team", label: "Equipa" },
             ]}
-            value={activeBusinessSub}
-            onValueChange={setActiveBusinessSub}
+            activeTab={activeBusinessSub}
+            onTabChange={setActiveBusinessSub}
           >
             {(tab) => {
               switch (tab) {
@@ -313,8 +313,8 @@ export function LeadDetailWithSidebar() {
               { id: "fields", label: "Campos" },
               { id: "audit", label: "Auditoria" },
             ]}
-            value={activeDataSub}
-            onValueChange={setActiveDataSub}
+            activeTab={activeDataSub}
+            onTabChange={setActiveDataSub}
           >
             {(tab) => {
               switch (tab) {
