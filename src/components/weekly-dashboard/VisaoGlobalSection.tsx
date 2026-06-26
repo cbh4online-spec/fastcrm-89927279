@@ -157,7 +157,8 @@ export function VisaoGlobalSection() {
     prev > 0 ? ((cur - prev) / prev) * 100 : cur > 0 ? 100 : 0;
 
   const years = data?.yearly.map((y) => y.year) ?? [];
-  const yearColors = ["hsl(var(--muted-foreground) / 0.3)", "hsl(var(--muted-foreground) / 0.5)", "hsl(142 71% 45%)"];
+  // Cores distintas por ano: penúltimo cinzento, anterior azul, atual verde
+  const yearColors = ["#cbd5e1", "#60a5fa", "#10b981"];
 
   if (isLoading || !data) {
     return (
