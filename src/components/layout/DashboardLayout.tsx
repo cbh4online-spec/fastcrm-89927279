@@ -5,7 +5,8 @@ import { ReactNode, useEffect, useState } from "react";
 // durante refetch/auth refresh.
 let hadWorkspacesEver = false;
 import { AdaptiveDashboardProvider } from "@/contexts/AdaptiveDashboardContext";
-import { InvoiceXpressSidebar } from "./InvoiceXpressSidebar";
+import { AdaptiveSidebar } from "./AdaptiveSidebar";
+import { WatidySidebar } from "./WatidySidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
