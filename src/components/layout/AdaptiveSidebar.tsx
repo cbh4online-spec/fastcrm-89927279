@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { SidebarNavItem, SidebarSectionLabel } from "./sidebar/SidebarNavItem";
 import {
   DropdownMenu,
   DropdownMenuContent,
