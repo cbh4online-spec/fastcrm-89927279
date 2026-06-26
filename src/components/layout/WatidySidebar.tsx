@@ -650,7 +650,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                     return (
                       <div key={section.key} className="pt-3">
                         <div className="px-3 pb-2 pt-1">
-                          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/45">
+                          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/40">
                             {section.label}
                           </span>
                         </div>
@@ -662,7 +662,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   return (
                     <Collapsible key={section.key} open={groupOpen} onOpenChange={() => toggleGroup(section.key)}>
                       <CollapsibleTrigger className="w-full mt-4 group">
-                        <div className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/45 hover:text-sidebar-foreground/70 transition-colors">
+                        <div className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors">
                           <span className="flex-1 text-left truncate">{section.label}</span>
                           <span className="text-[10px] font-medium opacity-60">
                             {section.items.length}

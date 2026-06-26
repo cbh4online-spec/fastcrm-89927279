@@ -185,7 +185,7 @@ export function SuperAdminSidebar({ activeSection, onSectionChange }: SuperAdmin
               open={openSections.includes(section.id)}
               onOpenChange={() => toggleSection(section.id)}
             >
-              <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70 hover:text-foreground transition-colors">
+              <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground/60 hover:text-foreground transition-colors">
                 <section.icon className="h-3 w-3 opacity-70" strokeWidth={1.75} />
                 <span className="flex-1 text-left">{section.label}</span>
                 {openSections.includes(section.id) ? (
