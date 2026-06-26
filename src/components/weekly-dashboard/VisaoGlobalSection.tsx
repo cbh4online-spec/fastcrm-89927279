@@ -316,6 +316,59 @@ export function VisaoGlobalSection() {
             </Card>
           </div>
         </div>
+
+        <Card className="p-5 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Tendência mensal · {currentYear} vs {currentYear - 1}</h3>
+              <p className="text-xs text-muted-foreground">Faturação líquida (s/ IVA) ao longo do ano</p>
+            </div>
+          </div>
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trendChart} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  fontSize={11}
+                  tickFormatter={(v) => `€${(v / 1000).toFixed(0)}K`}
+                />
+                <Tooltip
+                  formatter={(v: number, name) => [formatEuro(v), name === "current" ? String(currentYear) : String(currentYear - 1)]}
+                  labelFormatter={(label) => `Mês ${label}`}
+                  contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))" }}
+                />
+                <Legend
+                  iconType="circle"
+                  wrapperStyle={{ fontSize: 12 }}
+                  formatter={(value) => (value === "current" ? String(currentYear) : String(currentYear - 1))}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="previous"
+                  name="previous"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  dot={{ r: 3 }}
+                  isAnimationActive={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="current"
+                  name="current"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2.5}
+                  dot={{ r: 4 }}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
       </IXSection>
 
       {/* COBRANÇAS */}
@@ -324,6 +377,7 @@ export function VisaoGlobalSection() {
         subtitle="Acompanha o fluxo de caixa e o dinheiro em dívida (valores c/ IVA)"
         bare
       >
+
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
