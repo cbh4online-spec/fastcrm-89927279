@@ -5,13 +5,18 @@ import { Button } from "@/components/ui/button";
 import {
   DocumentListLayout,
   DocumentListToolbar,
-  DocumentRow,
   DocumentStatusBadge,
   type DocumentStatusTone,
 } from "@/components/documents/listing";
 import { useSmartLeads, type SmartLead } from "@/hooks/useSmartLeads";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
+import {
+  LEAD_COLUMNS,
+  LeadsColumnsPicker,
+  useLeadColumns,
+} from "./LeadsColumnsPicker";
+import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "created_at" | "lead_score";
 
@@ -21,12 +26,148 @@ const STATUS_LABEL: Record<string, { label: string; tone: DocumentStatusTone }> 
   completed: { label: "Concluído", tone: "approved" },
 };
 
+const TEMP_LABEL: Record<string, { label: string; tone: DocumentStatusTone }> = {
+  hot: { label: "Quente", tone: "overdue" },
+  warm: { label: "Morno", tone: "pending" },
+  cold: { label: "Frio", tone: "sent" },
+};
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-PT", {
     style: "currency",
     currency: "EUR",
   }).format(value || 0);
 }
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleDateString("pt-PT");
+  } catch {
+    return "—";
+  }
+}
+
+function renderCell(col: string, lead: SmartLead) {
+  switch (col) {
+    case "status": {
+      const meta = STATUS_LABEL[lead.status] ?? { label: lead.status, tone: "neutral" as DocumentStatusTone };
+      return <DocumentStatusBadge label={meta.label} tone={meta.tone} />;
+    }
+    case "name":
+      return (
+        <div className="flex flex-col">
+          <span className="truncate text-sm font-semibold text-foreground">
+            {lead.name || "(sem nome)"}
+          </span>
+          {lead.company_name && (
+            <span className="truncate text-xs text-muted-foreground">
+              {lead.company_name}
+            </span>
+          )}
+        </div>
+      );
+    case "email":
+      return (
+        <span className="truncate text-sm text-foreground">
+          {lead.email || "—"}
+        </span>
+      );
+    case "phone":
+      return <span className="text-sm text-foreground">{lead.phone || "—"}</span>;
+    case "company":
+      return (
+        <span className="truncate text-sm text-foreground">
+          {lead.company_name || "—"}
+        </span>
+      );
+    case "source":
+      return (
+        <span className="text-sm text-muted-foreground">{lead.source || "—"}</span>
+      );
+    case "temperature": {
+      const meta = TEMP_LABEL[lead.ai_temperature] ?? {
+        label: lead.ai_temperature || "—",
+        tone: "neutral" as DocumentStatusTone,
+      };
+      return <DocumentStatusBadge label={meta.label} tone={meta.tone} />;
+    }
+    case "score":
+      return (
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">Score</span>
+          <div className="text-sm font-semibold">{lead.lead_score ?? 0}</div>
+        </div>
+      );
+    case "value":
+      return (
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">Valor</span>
+          <div className="text-sm font-semibold">
+            {formatCurrency(lead.estimated_value || 0)}
+          </div>
+        </div>
+      );
+    case "created_at":
+      return (
+        <div className="text-right text-xs">
+          <div className="text-muted-foreground">Criado</div>
+          <div className="font-medium text-foreground">
+            {formatDate(lead.created_at)}
+          </div>
+        </div>
+      );
+    case "last_contact":
+      return (
+        <div className="text-right text-xs">
+          <div className="text-muted-foreground">Último contacto</div>
+          <div className="font-medium text-foreground">
+            {formatDate(lead.last_contact_at)}
+          </div>
+        </div>
+      );
+    case "assigned_to":
+      return (
+        <span className="truncate text-sm text-foreground">
+          {lead.assigned_to ? lead.assigned_to.slice(0, 8) : "—"}
+        </span>
+      );
+    case "tags":
+      return (
+        <div className="flex flex-wrap gap-1">
+          {(lead.tags || []).slice(0, 3).map((t) => (
+            <span
+              key={t}
+              className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground"
+            >
+              {t}
+            </span>
+          ))}
+          {(!lead.tags || lead.tags.length === 0) && (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
+const COLUMN_WIDTH: Record<string, string> = {
+  status: "w-[90px] shrink-0",
+  name: "min-w-[180px] flex-1",
+  email: "min-w-[180px] flex-1",
+  phone: "w-[130px] shrink-0",
+  company: "min-w-[160px] flex-1",
+  source: "w-[120px] shrink-0",
+  temperature: "w-[100px] shrink-0",
+  score: "w-[80px] shrink-0",
+  value: "w-[130px] shrink-0",
+  created_at: "w-[120px] shrink-0",
+  last_contact: "w-[140px] shrink-0",
+  assigned_to: "w-[120px] shrink-0",
+  tags: "min-w-[140px] flex-1",
+};
 
 export function LeadsListIX() {
   const navigate = useNavigate();
@@ -36,6 +177,7 @@ export function LeadsListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const { columns, setColumns } = useLeadColumns();
 
   const { data, isLoading } = useSmartLeads({
     search,
@@ -59,6 +201,11 @@ export function LeadsListIX() {
     });
     return arr;
   }, [leads, sortBy, sortDir]);
+
+  const orderedColumns = useMemo(
+    () => LEAD_COLUMNS.filter((c) => columns.includes(c.key)).map((c) => c.key),
+    [columns]
+  );
 
   return (
     <DocumentListLayout
@@ -99,6 +246,7 @@ export function LeadsListIX() {
           }}
           totalCount={totalCount}
           countLabel="Leads"
+          extra={<LeadsColumnsPicker value={columns} onChange={setColumns} />}
         />
       }
     >
@@ -112,28 +260,28 @@ export function LeadsListIX() {
           description="Não foram encontrados leads com os filtros atuais."
         />
       ) : (
-        sortedLeads.map((lead) => {
-          const statusMeta = STATUS_LABEL[lead.status] ?? {
-            label: lead.status,
-            tone: "neutral" as DocumentStatusTone,
-          };
-          return (
-            <DocumentRow
+        <div className="flex flex-col gap-2">
+          {sortedLeads.map((lead) => (
+            <div
               key={lead.id}
-              statusBadge={
-                <DocumentStatusBadge label={statusMeta.label} tone={statusMeta.tone} />
-              }
-              number={lead.name || "(sem nome)"}
-              subtitle={lead.company_name || undefined}
-              clientName={lead.email || "—"}
-              clientSubtitle={lead.phone || undefined}
-              issueDate={new Date(lead.created_at).toLocaleDateString("pt-PT")}
-              totalPrimary={formatCurrency(lead.estimated_value || 0)}
-              totalSecondary={`Score ${lead.lead_score ?? 0}`}
+              role="button"
               onClick={() => navigate(`/dashboard/leads/${lead.id}`)}
-            />
-          );
-        })
+              className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
+            >
+              {orderedColumns.map((col) => (
+                <div
+                  key={col}
+                  className={cn(
+                    "flex items-center",
+                    COLUMN_WIDTH[col] ?? "min-w-[120px]"
+                  )}
+                >
+                  {renderCell(col, lead)}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       )}
 
       {totalCount > pageSize && (
