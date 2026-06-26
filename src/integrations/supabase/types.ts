@@ -22200,6 +22200,7 @@ export type Database = {
           automation_active: boolean | null
           avatar_url: string | null
           average_ticket: number | null
+          billing_preferences: Json | null
           birth_date: string | null
           business_model: string | null
           business_status: string | null
@@ -22236,6 +22237,7 @@ export type Database = {
           estimated_ltv: number | null
           estimated_value: number | null
           expansion_probability: number | null
+          external_code: string | null
           external_id: string | null
           external_provider: string | null
           facebook_url: string | null
@@ -22253,6 +22255,7 @@ export type Database = {
           id: string
           industry: string | null
           instagram_url: string | null
+          is_final_consumer: boolean | null
           is_financier: boolean
           last_contact_at: string | null
           last_purchase_date: string | null
@@ -22262,6 +22265,7 @@ export type Database = {
           linkedin_url: string | null
           longitude: number | null
           name: string
+          nif_country: string | null
           notes: string | null
           opening_hours: Json | null
           pare_score: number
@@ -22270,6 +22274,9 @@ export type Database = {
           phone: string | null
           pinterest_url: string | null
           postal_code: string | null
+          preferred_contact_email: string | null
+          preferred_contact_name: string | null
+          preferred_contact_phone: string | null
           preferred_currency: string | null
           preferred_payment_method: string | null
           price_level: string | null
@@ -22323,6 +22330,7 @@ export type Database = {
           automation_active?: boolean | null
           avatar_url?: string | null
           average_ticket?: number | null
+          billing_preferences?: Json | null
           birth_date?: string | null
           business_model?: string | null
           business_status?: string | null
@@ -22359,6 +22367,7 @@ export type Database = {
           estimated_ltv?: number | null
           estimated_value?: number | null
           expansion_probability?: number | null
+          external_code?: string | null
           external_id?: string | null
           external_provider?: string | null
           facebook_url?: string | null
@@ -22376,6 +22385,7 @@ export type Database = {
           id?: string
           industry?: string | null
           instagram_url?: string | null
+          is_final_consumer?: boolean | null
           is_financier?: boolean
           last_contact_at?: string | null
           last_purchase_date?: string | null
@@ -22385,6 +22395,7 @@ export type Database = {
           linkedin_url?: string | null
           longitude?: number | null
           name: string
+          nif_country?: string | null
           notes?: string | null
           opening_hours?: Json | null
           pare_score?: number
@@ -22393,6 +22404,9 @@ export type Database = {
           phone?: string | null
           pinterest_url?: string | null
           postal_code?: string | null
+          preferred_contact_email?: string | null
+          preferred_contact_name?: string | null
+          preferred_contact_phone?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_level?: string | null
@@ -22446,6 +22460,7 @@ export type Database = {
           automation_active?: boolean | null
           avatar_url?: string | null
           average_ticket?: number | null
+          billing_preferences?: Json | null
           birth_date?: string | null
           business_model?: string | null
           business_status?: string | null
@@ -22482,6 +22497,7 @@ export type Database = {
           estimated_ltv?: number | null
           estimated_value?: number | null
           expansion_probability?: number | null
+          external_code?: string | null
           external_id?: string | null
           external_provider?: string | null
           facebook_url?: string | null
@@ -22499,6 +22515,7 @@ export type Database = {
           id?: string
           industry?: string | null
           instagram_url?: string | null
+          is_final_consumer?: boolean | null
           is_financier?: boolean
           last_contact_at?: string | null
           last_purchase_date?: string | null
@@ -22508,6 +22525,7 @@ export type Database = {
           linkedin_url?: string | null
           longitude?: number | null
           name?: string
+          nif_country?: string | null
           notes?: string | null
           opening_hours?: Json | null
           pare_score?: number
@@ -22516,6 +22534,9 @@ export type Database = {
           phone?: string | null
           pinterest_url?: string | null
           postal_code?: string | null
+          preferred_contact_email?: string | null
+          preferred_contact_name?: string | null
+          preferred_contact_phone?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_level?: string | null
@@ -24554,6 +24575,7 @@ export type Database = {
           automation_active: boolean | null
           avatar_url: string | null
           average_ticket: number | null
+          billing_preferences: Json | null
           birth_date: string | null
           business_area: string | null
           cae_code: string | null
@@ -24584,6 +24606,7 @@ export type Database = {
           engagement_score: number
           entity_type: string | null
           estimated_value: number | null
+          external_code: string | null
           external_id: string | null
           external_provider: string | null
           facebook_url: string | null
@@ -24595,6 +24618,7 @@ export type Database = {
           icp_fit_score: number
           id: string
           instagram_url: string | null
+          is_final_consumer: boolean | null
           is_fiscal_address: boolean | null
           is_primary_contact: boolean | null
           job_title: string | null
@@ -24610,6 +24634,7 @@ export type Database = {
           marketing_opt_in: boolean
           name: string
           next_followup_at: string | null
+          nif_country: string | null
           notes: string | null
           pare_score: number
           payment_conditions: string | null
@@ -24617,6 +24642,9 @@ export type Database = {
           phones: Json
           pinterest_url: string | null
           postal_code: string | null
+          preferred_contact_email: string | null
+          preferred_contact_name: string | null
+          preferred_contact_phone: string | null
           preferred_currency: string | null
           preferred_payment_method: string | null
           price_list_id: string | null
@@ -24636,6 +24664,7 @@ export type Database = {
           twitter_url: string | null
           updated_at: string
           updated_by: string | null
+          website: string | null
           whatsapp_number: string | null
           whatsapp_url: string | null
           workspace_id: string
@@ -24663,6 +24692,7 @@ export type Database = {
           automation_active?: boolean | null
           avatar_url?: string | null
           average_ticket?: number | null
+          billing_preferences?: Json | null
           birth_date?: string | null
           business_area?: string | null
           cae_code?: string | null
@@ -24693,6 +24723,7 @@ export type Database = {
           engagement_score?: number
           entity_type?: string | null
           estimated_value?: number | null
+          external_code?: string | null
           external_id?: string | null
           external_provider?: string | null
           facebook_url?: string | null
@@ -24704,6 +24735,7 @@ export type Database = {
           icp_fit_score?: number
           id?: string
           instagram_url?: string | null
+          is_final_consumer?: boolean | null
           is_fiscal_address?: boolean | null
           is_primary_contact?: boolean | null
           job_title?: string | null
@@ -24719,6 +24751,7 @@ export type Database = {
           marketing_opt_in?: boolean
           name: string
           next_followup_at?: string | null
+          nif_country?: string | null
           notes?: string | null
           pare_score?: number
           payment_conditions?: string | null
@@ -24726,6 +24759,9 @@ export type Database = {
           phones?: Json
           pinterest_url?: string | null
           postal_code?: string | null
+          preferred_contact_email?: string | null
+          preferred_contact_name?: string | null
+          preferred_contact_phone?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_list_id?: string | null
@@ -24745,6 +24781,7 @@ export type Database = {
           twitter_url?: string | null
           updated_at?: string
           updated_by?: string | null
+          website?: string | null
           whatsapp_number?: string | null
           whatsapp_url?: string | null
           workspace_id: string
@@ -24772,6 +24809,7 @@ export type Database = {
           automation_active?: boolean | null
           avatar_url?: string | null
           average_ticket?: number | null
+          billing_preferences?: Json | null
           birth_date?: string | null
           business_area?: string | null
           cae_code?: string | null
@@ -24802,6 +24840,7 @@ export type Database = {
           engagement_score?: number
           entity_type?: string | null
           estimated_value?: number | null
+          external_code?: string | null
           external_id?: string | null
           external_provider?: string | null
           facebook_url?: string | null
@@ -24813,6 +24852,7 @@ export type Database = {
           icp_fit_score?: number
           id?: string
           instagram_url?: string | null
+          is_final_consumer?: boolean | null
           is_fiscal_address?: boolean | null
           is_primary_contact?: boolean | null
           job_title?: string | null
@@ -24828,6 +24868,7 @@ export type Database = {
           marketing_opt_in?: boolean
           name?: string
           next_followup_at?: string | null
+          nif_country?: string | null
           notes?: string | null
           pare_score?: number
           payment_conditions?: string | null
@@ -24835,6 +24876,9 @@ export type Database = {
           phones?: Json
           pinterest_url?: string | null
           postal_code?: string | null
+          preferred_contact_email?: string | null
+          preferred_contact_name?: string | null
+          preferred_contact_phone?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_list_id?: string | null
@@ -24854,6 +24898,7 @@ export type Database = {
           twitter_url?: string | null
           updated_at?: string
           updated_by?: string | null
+          website?: string | null
           whatsapp_number?: string | null
           whatsapp_url?: string | null
           workspace_id?: string
@@ -49944,6 +49989,7 @@ export type Database = {
           assigned_to: string | null
           automation_active: boolean | null
           avatar_url: string | null
+          billing_preferences: Json | null
           birth_date: string | null
           business_category: string | null
           business_hours: Json | null
@@ -49957,6 +50003,7 @@ export type Database = {
           contact_person: string | null
           contact_person_role: string | null
           conversion_probability: number | null
+          country: string | null
           county: string | null
           created_at: string
           created_by: string | null
@@ -49967,6 +50014,7 @@ export type Database = {
           engagement_score: number | null
           enrichment_queued_at: string | null
           estimated_value: number | null
+          external_code: string | null
           external_email: string | null
           external_instagram_id: string | null
           external_username: string | null
@@ -49994,6 +50042,7 @@ export type Database = {
           instagram_is_verified: boolean | null
           instagram_posts_count: number | null
           instagram_url: string | null
+          is_final_consumer: boolean | null
           last_contact_at: string | null
           latitude: number | null
           lead_score: number | null
@@ -50004,6 +50053,7 @@ export type Database = {
           linkedin_url: string | null
           longitude: number | null
           name: string
+          nif_country: string | null
           notes: string | null
           number_of_employees: string | null
           pare_score: number | null
@@ -50012,6 +50062,9 @@ export type Database = {
           photos: string[] | null
           pinterest_url: string | null
           postal_code: string | null
+          preferred_contact_email: string | null
+          preferred_contact_name: string | null
+          preferred_contact_phone: string | null
           price_level: number | null
           prospecting_profile_id: string | null
           racius_url: string | null
@@ -50048,6 +50101,7 @@ export type Database = {
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
+          billing_preferences?: Json | null
           birth_date?: string | null
           business_category?: string | null
           business_hours?: Json | null
@@ -50061,6 +50115,7 @@ export type Database = {
           contact_person?: string | null
           contact_person_role?: string | null
           conversion_probability?: number | null
+          country?: string | null
           county?: string | null
           created_at?: string
           created_by?: string | null
@@ -50071,6 +50126,7 @@ export type Database = {
           engagement_score?: number | null
           enrichment_queued_at?: string | null
           estimated_value?: number | null
+          external_code?: string | null
           external_email?: string | null
           external_instagram_id?: string | null
           external_username?: string | null
@@ -50098,6 +50154,7 @@ export type Database = {
           instagram_is_verified?: boolean | null
           instagram_posts_count?: number | null
           instagram_url?: string | null
+          is_final_consumer?: boolean | null
           last_contact_at?: string | null
           latitude?: number | null
           lead_score?: number | null
@@ -50108,6 +50165,7 @@ export type Database = {
           linkedin_url?: string | null
           longitude?: number | null
           name: string
+          nif_country?: string | null
           notes?: string | null
           number_of_employees?: string | null
           pare_score?: number | null
@@ -50116,6 +50174,9 @@ export type Database = {
           photos?: string[] | null
           pinterest_url?: string | null
           postal_code?: string | null
+          preferred_contact_email?: string | null
+          preferred_contact_name?: string | null
+          preferred_contact_phone?: string | null
           price_level?: number | null
           prospecting_profile_id?: string | null
           racius_url?: string | null
@@ -50152,6 +50213,7 @@ export type Database = {
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
+          billing_preferences?: Json | null
           birth_date?: string | null
           business_category?: string | null
           business_hours?: Json | null
@@ -50165,6 +50227,7 @@ export type Database = {
           contact_person?: string | null
           contact_person_role?: string | null
           conversion_probability?: number | null
+          country?: string | null
           county?: string | null
           created_at?: string
           created_by?: string | null
@@ -50175,6 +50238,7 @@ export type Database = {
           engagement_score?: number | null
           enrichment_queued_at?: string | null
           estimated_value?: number | null
+          external_code?: string | null
           external_email?: string | null
           external_instagram_id?: string | null
           external_username?: string | null
@@ -50202,6 +50266,7 @@ export type Database = {
           instagram_is_verified?: boolean | null
           instagram_posts_count?: number | null
           instagram_url?: string | null
+          is_final_consumer?: boolean | null
           last_contact_at?: string | null
           latitude?: number | null
           lead_score?: number | null
@@ -50212,6 +50277,7 @@ export type Database = {
           linkedin_url?: string | null
           longitude?: number | null
           name?: string
+          nif_country?: string | null
           notes?: string | null
           number_of_employees?: string | null
           pare_score?: number | null
@@ -50220,6 +50286,9 @@ export type Database = {
           photos?: string[] | null
           pinterest_url?: string | null
           postal_code?: string | null
+          preferred_contact_email?: string | null
+          preferred_contact_name?: string | null
+          preferred_contact_phone?: string | null
           price_level?: number | null
           prospecting_profile_id?: string | null
           racius_url?: string | null
