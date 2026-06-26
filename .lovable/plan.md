@@ -1,52 +1,57 @@
 ## Diagnóstico
 
-A `WatidySidebar` actual tem duas colunas em simultâneo:
-- **Rail (56px)** — ícones de todos os mega-grupos (Comercial, Marketing, IA, Loja…), favoritos, recentes e avatar
-- **Painel (248px)** — mostra apenas as secções **de UM** mega-grupo de cada vez (o seleccionado no rail)
+A captura mostra o padrão visual InvoiceXpress para a listagem de **Faturas**:
+- Título grande à esquerda + barra de pesquisa central + CTAs verdes à direita (`Criar Outros`, `Criar Fatura`).
+- Linha de **chips-filtro** com label em cima e valor selecionado embaixo (Clientes, Estado, Tipo, Datas, Séries, Favoritos, Outras Opções) — chips ativos com borda verde.
+- Barra de **toolbar**: seleção em massa à esquerda, "Ordenar por", "Resultados por página", contador de documentos, "Limpar filtros".
+- **Cartão-resumo** com fórmula visual: `Não Vencido + Vencido + Recebido + Acertos = Total s/IVA + IVA = Total`, e linha secundária com Rascunhos e Cancelados.
+- **Linhas/cards** de documentos: checkbox + badge de estado (Final/Rascunho/Pago) + número + nome do cliente + datas de emissão/vencimento + total (com s/IVA por baixo) + ícone de ação verde.
 
-Daí a confusão na captura: o rail mostra ~12 ícones de áreas, mas o painel só revela "CRM / Pipeline & Contas / Prospecção / Performance" do grupo Comercial. O utilizador não percebe que os outros ícones do rail são módulos distintos.
+Hoje cada listagem usa um layout próprio (tabela densa, filtros diferentes), o que quebra a consistência com a sidebar InvoiceXpress já aplicada.
 
-## Decisão
+## Decisões de produto/UX
 
-Modo "Só painel expandido" — remover o rail por completo e mostrar **todos os mega-grupos numa só coluna vertical**, cada um como uma secção colapsável (estilo InvoiceXpress / Linear).
+1. Criar **uma framework visual partilhada** para "Listagem de Documentos" reutilizável em Faturas, Propostas/Orçamentos, Notas de Encomenda, Guias e Encomendas da Loja.
+2. Manter a lógica de dados/permissões/filtros existente em cada módulo — só substituir a apresentação.
+3. Cartão-resumo configurável por tipo de documento (faturas mostram financeiro completo; propostas mostram pipeline: rascunho/enviada/aceite/recusada/valor total).
+4. Cards-linha com hover, clique para abrir o detalhe, ação rápida no ícone final (PDF / abrir).
 
-## Alterações
+## Estrutura técnica
 
-### `src/components/layout/WatidySidebar.tsx`
-1. Remover o bloco `RAIL` (linhas 339–562): logo, ícones de mega-grupos, favoritos no rail, recentes, footer rail.
-2. Largura única: `w-[288px]` (sem `w-14 + w-[248px]`).
-3. Reorganizar o **painel** para iterar sobre **todos** os `megaGroups` em vez de apenas `activeMegaData`:
-   - Cabeçalho com logo do workspace + nome + switcher (mantém o que já existe no panel header)
-   - Barra de pesquisa global (já existente)
-   - Para cada mega-grupo: cabeçalho clicável (ícone colorido + label + contagem + chevron) que expande/colapsa as suas secções e itens
-   - Estado: o mega-grupo da rota actual fica expandido por omissão; os outros colapsados
-   - Persistir estado expandido em `localStorage` (`watidy.sidebar.expandedGroups`)
-4. **Favoritos**: passar para uma secção fixa no topo (acima dos mega-grupos), apenas quando existirem
-5. **Recentes**: secção colapsada por baixo dos favoritos
-6. **Footer**: manter avatar + atalhos + theme switcher + copyright (já existe no painel) — só mudar para ocupar toda a largura
-7. Eliminar estado `panelOpen` / `togglePanel` e o atalho ⌘B (deixa de fazer sentido sem rail). Em mobile mantém o drawer (`open` / `onClose`).
+Novos componentes em `src/components/documents/listing/`:
 
-### Componentes auxiliares
-- Reutilizar `SidebarNavItem` e `SidebarSectionLabel` já existentes.
-- Novo helper local `<MegaGroupAccordion>` dentro do mesmo ficheiro para o cabeçalho colapsável de cada grupo (não vale extrair).
+```text
+DocumentListLayout.tsx        // header (título + pesquisa + CTAs) + slots
+DocumentFilterChips.tsx       // chips com label/valor, estado ativo
+DocumentListToolbar.tsx       // seleção, ordenação, page-size, contador
+DocumentSummaryCard.tsx       // fórmula visual configurável
+DocumentRow.tsx               // card-linha com badge, número, cliente, datas, totais
+DocumentStatusBadge.tsx       // mapeamento estado → cor (pago/rascunho/final/…)
+```
 
-### Sem mexer
-- `AdaptiveSidebar`, `SuperAdminSidebar`, `MobileBottomNav`, `routeManifest.ts`, capabilities, badges, lógica de visibilidade por plano.
-- Os hover-cards/popovers do rail desaparecem naturalmente porque o rail deixa de existir.
+Tokens (já existem no design system): usar `--primary` (azul FastCRM) para chips ativos e ações em vez do verde IX. CTAs primários ficam azuis.
+
+## Plano de implementação
+
+1. Construir os 6 componentes base com props tipadas e estados (vazio, loading, erro).
+2. Refatorar `src/pages/Invoices.tsx` para usar o novo layout — referência canónica.
+3. Aplicar a `src/pages/Proposals.tsx` (cartão-resumo: nº rascunhos / enviadas / aceites / valor total).
+4. Aplicar a `src/pages/OrderNotesPage.tsx` (resumo por estado de encomenda).
+5. Aplicar a `src/pages/StoreOrdersPage.tsx`.
+6. Aplicar a páginas de Guias e Recibos, se existirem rotas equivalentes.
+7. QA: estados vazios, mobile (<768px → chips em scroll horizontal, cartão-resumo empilhado), permissões.
 
 ## Critérios de aceitação
 
-- [ ] Sidebar mostra **uma única coluna** com largura ~288px
-- [ ] Todos os mega-grupos (Comercial, Marketing, IA, Loja, HR, etc.) aparecem listados verticalmente, colapsáveis
-- [ ] O mega-grupo da rota actual abre automaticamente; itens activos mantêm a pílula azul FastCRM
-- [ ] Favoritos e Recentes aparecem como secções próprias quando têm conteúdo
-- [ ] Footer (atalhos, theme switcher, copyright) mantém-se
-- [ ] Mobile: drawer continua a abrir/fechar via TopBar
-- [ ] Sem erros de consola; typecheck limpo
-- [ ] Badges, locks de plano e contagens continuam a funcionar
+- Faturas, Propostas, Notas de Encomenda e Encomendas usam o mesmo header, chips, toolbar, cartão-resumo e cards-linha.
+- Cor primária = azul FastCRM (não verde IX).
+- Mantém todos os filtros, ordenação, paginação e ações já existentes.
+- Responsivo em mobile.
+- Zero regressões nos detalhes/criação.
 
-## Riscos
+## Riscos e pontos por validar
 
-- Sidebar fica mais longa verticalmente — mitigado com scroll interno e grupos colapsáveis
-- Utilizadores habituados ao rail rápido perdem o acesso "1 clique" aos módulos — aceite porque foi a escolha explícita
-- Persistência do estado expandido por localStorage (não sincronizado entre dispositivos) — aceitável nesta fase
+- **Confirmar âmbito**: incluo Guias e Recibos? Inclui também as listagens de **Encomendas da Loja** (B2C) e **Aprovações B2B**?
+- Cartão-resumo de Propostas: que métricas queres ver (valor em pipeline, taxa de conversão, nº por estado)?
+- CTAs do header — manter "Criar Fatura" + "Criar Outros" como no IX, ou só um botão primário por página?
+- Quero arrancar pelas **Faturas** como referência e depois replicar — ok?
