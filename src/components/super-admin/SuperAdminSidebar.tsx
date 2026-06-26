@@ -198,25 +198,14 @@ export function SuperAdminSidebar({ activeSection, onSectionChange }: SuperAdmin
               
               <CollapsibleContent className="mt-1 space-y-1">
                 {section.items.map((item) => (
-                  <button
+                  <SidebarNavItem
                     key={item.id}
                     onClick={() => onSectionChange(item.id)}
-                    className={cn(
-                      "flex items-center gap-3 w-full px-3 py-2 text-[13.5px] rounded-full font-semibold transition-colors",
-                      isItemActive(item.id)
-                        ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
-                        : "text-foreground/80 hover:text-foreground hover:bg-accent"
-                    )}
-                  >
-                    <item.icon
-                      className={cn(
-                        "h-[18px] w-[18px] shrink-0",
-                        isItemActive(item.id) ? "text-[hsl(var(--sidebar-active-fg))]" : "text-foreground/70"
-                      )}
-                      strokeWidth={1.75}
-                    />
-                    <span className="flex-1 text-left truncate">{item.label}</span>
-                  </button>
+                    active={isItemActive(item.id)}
+                    icon={item.icon}
+                    label={item.label}
+                    palette="foreground"
+                  />
                 ))}
               </CollapsibleContent>
             </Collapsible>
