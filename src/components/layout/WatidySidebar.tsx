@@ -188,8 +188,25 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
     }
   }, [activeMegaFromRoute]);
 
+  // A partir de "Comercial" (todos excepto "inicio") aplica-se selecção única:
+  // abrir um mega-grupo fecha automaticamente os outros do mesmo conjunto.
   const toggleMega = useCallback(
-    (k: MegaGroup) => setExpandedGroups((p) => ({ ...p, [k]: !p[k] })),
+    (k: MegaGroup) => setExpandedGroups((p) => {
+      const currentlyOpen = !!p[k];
+      if (k === "inicio") {
+        return { ...p, [k]: !currentlyOpen };
+      }
+      if (currentlyOpen) {
+        return { ...p, [k]: false };
+      }
+      // Abrir k → fechar todos os outros não-"inicio"
+      const next: Record<string, boolean> = { ...p };
+      for (const key of Object.keys(next)) {
+        if (key !== "inicio" && key !== k) next[key] = false;
+      }
+      next[k] = true;
+      return next;
+    }),
     [],
   );
 
