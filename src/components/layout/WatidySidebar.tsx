@@ -624,7 +624,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                 <div className="px-2 pt-2">
                   <div className="px-2.5 pb-1 flex items-center gap-1.5">
                     <Star className="w-3 h-3 text-amber-400 fill-current" />
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/40">
                       Favoritos
                     </span>
                     <span className="ml-auto text-[10px] text-sidebar-foreground/30">{favoriteItems.length}/{maxFav}</span>
