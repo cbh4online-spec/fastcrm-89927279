@@ -5,16 +5,126 @@ import { Button } from "@/components/ui/button";
 import {
   DocumentListLayout,
   DocumentListToolbar,
-  DocumentRow,
 } from "@/components/documents/listing";
+import {
+  ListColumnsPicker,
+  useListColumns,
+  type ListColumnDef,
+} from "@/components/documents/listing/ListColumnsPicker";
 import { useCompanies, type Company } from "@/hooks/useCompanies";
 import { CreateCompanyDialog } from "@/components/companies/CreateCompanyDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
+import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "created_at" | "total_revenue";
 
+const COLUMNS: ListColumnDef[] = [
+  { key: "name", label: "Nome", required: true },
+  { key: "tax_id", label: "NIF", defaultVisible: true },
+  { key: "email", label: "Email", defaultVisible: true },
+  { key: "phone", label: "Telefone", defaultVisible: false },
+  { key: "website", label: "Website", defaultVisible: false },
+  { key: "industry", label: "Indústria", defaultVisible: false },
+  { key: "size", label: "Dimensão", defaultVisible: false },
+  { key: "country", label: "País", defaultVisible: false },
+  { key: "client_number", label: "Nº cliente", defaultVisible: false },
+  { key: "abc_category", label: "Categoria ABC", defaultVisible: false },
+  { key: "pare_score", label: "Score PARE", defaultVisible: false },
+  { key: "icp_fit_score", label: "ICP Fit", defaultVisible: false },
+  { key: "total_revenue", label: "Faturação total", defaultVisible: true },
+  { key: "average_ticket", label: "Ticket médio", defaultVisible: false },
+  { key: "sales_2026", label: "Vendas 2026", defaultVisible: false },
+  { key: "sales_2025", label: "Vendas 2025", defaultVisible: false },
+  { key: "sales_2024", label: "Vendas 2024", defaultVisible: false },
+  { key: "last_purchase_date", label: "Última compra", defaultVisible: false },
+  { key: "created_at", label: "Data de criação", defaultVisible: true },
+  { key: "tags", label: "Tags", defaultVisible: false },
+];
+
+const COLUMN_WIDTH: Record<string, string> = {
+  name: "min-w-[200px] flex-1",
+  tax_id: "w-[120px] shrink-0",
+  email: "min-w-[200px] flex-1",
+  phone: "w-[140px] shrink-0",
+  website: "min-w-[160px] flex-1",
+  industry: "w-[140px] shrink-0",
+  size: "w-[110px] shrink-0",
+  country: "w-[100px] shrink-0",
+  client_number: "w-[110px] shrink-0",
+  abc_category: "w-[110px] shrink-0",
+  pare_score: "w-[90px] shrink-0",
+  icp_fit_score: "w-[90px] shrink-0",
+  total_revenue: "w-[150px] shrink-0",
+  average_ticket: "w-[130px] shrink-0",
+  sales_2026: "w-[130px] shrink-0",
+  sales_2025: "w-[130px] shrink-0",
+  sales_2024: "w-[130px] shrink-0",
+  last_purchase_date: "w-[130px] shrink-0",
+  created_at: "w-[120px] shrink-0",
+  tags: "min-w-[140px] flex-1",
+};
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(value || 0);
+}
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  try { return new Date(value).toLocaleDateString("pt-PT"); } catch { return "—"; }
+}
+
+function moneyCell(label: string, value: number | null | undefined) {
+  return (
+    <div className="text-right">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="text-sm font-semibold">{formatCurrency(Number(value) || 0)}</div>
+    </div>
+  );
+}
+
+function renderCell(col: string, c: Company) {
+  switch (col) {
+    case "name":
+      return (
+        <div className="flex flex-col">
+          <span className="truncate text-sm font-semibold text-foreground">{c.name || "(sem nome)"}</span>
+          {c.legal_name && c.legal_name !== c.name && (
+            <span className="truncate text-xs text-muted-foreground">{c.legal_name}</span>
+          )}
+        </div>
+      );
+    case "tax_id": return <span className="text-sm text-foreground">{c.tax_id || "—"}</span>;
+    case "email": return <span className="truncate text-sm text-foreground">{c.email || "—"}</span>;
+    case "phone": return <span className="text-sm text-foreground">{c.phone || "—"}</span>;
+    case "website": return <span className="truncate text-sm text-foreground">{c.website || "—"}</span>;
+    case "industry": return <span className="truncate text-sm text-foreground">{c.industry || "—"}</span>;
+    case "size": return <span className="text-sm text-foreground">{c.size || "—"}</span>;
+    case "country": return <span className="text-sm text-foreground">{c.country || "—"}</span>;
+    case "client_number": return <span className="text-sm text-foreground">{c.client_number || "—"}</span>;
+    case "abc_category": return <span className="text-sm font-semibold text-foreground">{c.abc_category || "—"}</span>;
+    case "pare_score":
+      return <div className="text-right"><span className="text-xs text-muted-foreground">PARE</span><div className="text-sm font-semibold">{c.pare_score ?? 0}</div></div>;
+    case "icp_fit_score":
+      return <div className="text-right"><span className="text-xs text-muted-foreground">ICP</span><div className="text-sm font-semibold">{c.icp_fit_score ?? 0}</div></div>;
+    case "total_revenue": return moneyCell("Faturação", c.total_revenue);
+    case "average_ticket": return moneyCell("Ticket médio", c.average_ticket);
+    case "sales_2026": return moneyCell("2026", c.sales_2026);
+    case "sales_2025": return moneyCell("2025", c.sales_2025);
+    case "sales_2024": return moneyCell("2024", c.sales_2024);
+    case "last_purchase_date":
+      return <div className="text-right text-xs"><div className="text-muted-foreground">Última compra</div><div className="font-medium text-foreground">{formatDate(c.last_purchase_date)}</div></div>;
+    case "created_at":
+      return <div className="text-right text-xs"><div className="text-muted-foreground">Criado</div><div className="font-medium text-foreground">{formatDate(c.created_at)}</div></div>;
+    case "tags":
+      return (
+        <div className="flex flex-wrap gap-1">
+          {(c.tags || []).slice(0, 3).map((t) => (
+            <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">{t}</span>
+          ))}
+          {(!c.tags || c.tags.length === 0) && <span className="text-xs text-muted-foreground">—</span>}
+        </div>
+      );
+    default: return null;
+  }
 }
 
 export function CompaniesListIX() {
@@ -26,6 +136,7 @@ export function CompaniesListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const { columns, setColumns } = useListColumns("companies-list-columns-v1", COLUMNS);
 
   const all = (companies as Company[]) ?? [];
 
@@ -52,6 +163,10 @@ export function CompaniesListIX() {
 
   const totalCount = filtered.length;
   const pageItems = filtered.slice(page * pageSize, page * pageSize + pageSize);
+  const orderedColumns = useMemo(
+    () => COLUMNS.filter((c) => columns.includes(c.key)).map((c) => c.key),
+    [columns],
+  );
 
   return (
     <DocumentListLayout
@@ -84,6 +199,7 @@ export function CompaniesListIX() {
           onPageSizeChange={(v) => { setPageSize(v); setPage(0); }}
           totalCount={totalCount}
           countLabel="Empresas"
+          extra={<ListColumnsPicker definitions={COLUMNS} value={columns} onChange={setColumns} />}
         />
       }
     >
@@ -92,19 +208,22 @@ export function CompaniesListIX() {
       ) : pageItems.length === 0 ? (
         <EmptyState title="Sem empresas" description="Não foram encontradas empresas com os filtros atuais." />
       ) : (
-        pageItems.map((c) => (
-          <DocumentRow
-            key={c.id}
-            number={c.name || "(sem nome)"}
-            subtitle={c.tax_id || undefined}
-            clientName={c.email || "—"}
-            clientSubtitle={c.website || c.phone || undefined}
-            issueDate={new Date(c.created_at).toLocaleDateString("pt-PT")}
-            totalPrimary={formatCurrency(c.total_revenue || 0)}
-            totalSecondary="Faturação"
-            onClick={() => navigate(`/dashboard/companies/${c.id}`)}
-          />
-        ))
+        <div className="flex flex-col gap-2">
+          {pageItems.map((c) => (
+            <div
+              key={c.id}
+              role="button"
+              onClick={() => navigate(`/dashboard/companies/${c.id}`)}
+              className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
+            >
+              {orderedColumns.map((col) => (
+                <div key={col} className={cn("flex items-center", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
+                  {renderCell(col, c)}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       )}
 
       {totalCount > pageSize && (
