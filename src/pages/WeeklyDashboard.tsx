@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Lightbulb, Target } from "lucide-react";
 import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
 import { ClockInOutButton } from "@/components/hr/ClockInOutButton";
+import { IXSection } from "@/components/weekly-dashboard/IXSection";
 
 export default function WeeklyDashboard() {
   const { data, isLoading } = useWeeklyPerformance();
@@ -44,97 +45,141 @@ export default function WeeklyDashboard() {
         onComplete={() => setSetupDismissed(true)}
       />
 
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* 1. Executive Header */}
-        <PremiumDashboardHeader
-          revenueToday={briefMetrics?.revenue_today ?? null}
-          hotLeadsCount={briefMetrics?.leads_today ?? 0}
-          pendingDecisions={openDecisions.length}
-        />
-        {/* Pica Ponto */}
-        <ClockInOutButton />
+      {/* Fundo claro estilo InvoiceXpress */}
+      <div className="bg-muted/30 min-h-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-10">
+          {/* Cabeçalho executivo + pica-ponto */}
+          <div className="space-y-4">
+            <PremiumDashboardHeader
+              revenueToday={briefMetrics?.revenue_today ?? null}
+              hotLeadsCount={briefMetrics?.leads_today ?? 0}
+              pendingDecisions={openDecisions.length}
+            />
+            <ClockInOutButton />
+          </div>
 
-        {/* 2. Assistente de Vendas IA */}
-        <PremiumAISection />
+          <IXSection
+            title="Assistente de Vendas IA"
+            subtitle="Recomendações e estratégia gerada para esta semana"
+            bare
+          >
+            <PremiumAISection />
+          </IXSection>
 
-        {/* 3. Alertas Imediatos */}
-        <ImmediateAttentionBanner
-          metrics={data?.metrics || []}
-          isLoading={isLoading}
-        />
+          <IXSection
+            title="Alertas imediatos"
+            subtitle="Situações que precisam da tua atenção agora"
+            bare
+          >
+            <ImmediateAttentionBanner
+              metrics={data?.metrics || []}
+              isLoading={isLoading}
+            />
+          </IXSection>
 
-        {/* 4. KPI Cards Principais */}
-        <PremiumKPICards
-          metrics={data?.metrics || []}
-          pipelineValue={data?.pipelineValue ?? 0}
-          isLoading={isLoading}
-        />
-
-        {/* 5. War Room — Situação Semanal */}
-        <div className="space-y-0">
-          <RevenueTargetStrip
-            metrics={data?.metrics || []}
-            pipelineValue={data?.pipelineValue ?? 0}
-            isLoading={isLoading}
-          />
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <WarRoomBriefingExport
+          <IXSection
+            title="Performance"
+            subtitle="Indicadores principais e valor de pipeline"
+            bare
+          >
+            <PremiumKPICards
               metrics={data?.metrics || []}
               pipelineValue={data?.pipelineValue ?? 0}
-              weekLabel={weekLabel}
-              todaysBrief={todaysBrief}
-              strategy={strategy}
-              workspaceName={currentWorkspace?.name}
-              workspaceLogoUrl={currentWorkspace?.logo_url}
+              isLoading={isLoading}
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/dashboard/performance/metrics")}
-              className="gap-1.5"
-            >
-              <Target className="h-3.5 w-3.5" />
-              Definir Metas
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={generate}
-              disabled={strategyLoading}
-              className="gap-1.5"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`} />
-              Atualizar
-            </Button>
-          </div>
+          </IXSection>
+
+          <IXSection
+            title="War Room"
+            subtitle={`Situação da semana ${weekLabel} — receita vs. meta`}
+            actions={
+              <>
+                <WarRoomBriefingExport
+                  metrics={data?.metrics || []}
+                  pipelineValue={data?.pipelineValue ?? 0}
+                  weekLabel={weekLabel}
+                  todaysBrief={todaysBrief}
+                  strategy={strategy}
+                  workspaceName={currentWorkspace?.name}
+                  workspaceLogoUrl={currentWorkspace?.logo_url}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/dashboard/performance/metrics")}
+                  className="gap-1.5"
+                >
+                  <Target className="h-3.5 w-3.5" />
+                  Definir Metas
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={generate}
+                  disabled={strategyLoading}
+                  className="gap-1.5"
+                >
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`}
+                  />
+                  Atualizar
+                </Button>
+              </>
+            }
+            bare
+          >
+            <RevenueTargetStrip
+              metrics={data?.metrics || []}
+              pipelineValue={data?.pipelineValue ?? 0}
+              isLoading={isLoading}
+            />
+          </IXSection>
+
+          <IXSection
+            id="today-action-plan"
+            title="Oportunidades e Ações"
+            subtitle="Negócios prioritários e plano de ação para hoje"
+            actions={
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Lightbulb className="h-4 w-4 text-primary" />
+                <span>Foco diário</span>
+              </div>
+            }
+            bare
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <PriorityDealsTable />
+              <TodayActionPlan />
+            </div>
+          </IXSection>
+
+          <IXSection
+            title="Evolução semanal"
+            subtitle="Histórico recente de receita, conversões e atividade"
+            bare
+          >
+            <WeeklyHistoryCharts />
+          </IXSection>
+
+          <IXSection
+            title="Metas do trimestre"
+            subtitle="Projeção e progresso face aos objetivos definidos"
+            bare
+          >
+            <QuarterGoalsProjection
+              metrics={data?.metrics || []}
+              isLoading={isLoading}
+            />
+          </IXSection>
+
+          <IXSection
+            title="Acesso rápido"
+            subtitle="Atalhos para as áreas mais usadas"
+            bare
+          >
+            <QuickAccessFooter />
+          </IXSection>
         </div>
-        
-        <div className="space-y-4" id="today-action-plan">
-          <div className="flex items-center gap-2 px-1">
-            <Lightbulb className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Oportunidades e Ações</h3>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PriorityDealsTable />
-            <TodayActionPlan />
-          </div>
-        </div>
-
-        {/* 7. Evolução Semanal */}
-        <WeeklyHistoryCharts />
-
-        {/* 8. Metas do Trimestre */}
-        <QuarterGoalsProjection
-          metrics={data?.metrics || []}
-          isLoading={isLoading}
-        />
-
-
-        {/* 11. Acesso Rápido */}
-        <QuickAccessFooter />
-
-
-
       </div>
     </DashboardLayout>
   );
