@@ -277,8 +277,8 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
       return (
         <div key={section.key} className={cn(idx > 0 && "mt-3")} role="group" aria-label={section.label}>
           {!isCollapsed && (
-            <div className="px-3 pb-1">
-              <span className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+            <div className="px-3 pb-2 pt-1">
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/45">
                 {section.label}
               </span>
             </div>
