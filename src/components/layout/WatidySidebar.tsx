@@ -310,7 +310,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
         label={item.label}
         badge={<NavBadge count={badgeCount} />}
         // Preserve mega-group accent colour override on active state
-        {...(active && color ? { style: { color: `hsl(${color})` } as any } : {})}
+        style={active && color ? { color: `hsl(${color})` } : undefined}
       />
     );
   };
