@@ -58,6 +58,7 @@ export function SidebarNavItem({
   palette = "sidebar",
   to,
   onClick,
+  style,
   "aria-label": ariaLabel,
 }: SidebarNavItemProps) {
   const idle = palette === "foreground" ? IDLE_FOREGROUND : IDLE_SIDEBAR;
