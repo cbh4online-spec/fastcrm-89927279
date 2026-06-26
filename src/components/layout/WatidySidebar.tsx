@@ -118,7 +118,7 @@ function SidebarFooter() {
   );
 }
 
-
+export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
   const location = useLocation();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
