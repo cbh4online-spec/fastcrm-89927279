@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { AttioContactsTable } from "@/components/contacts/AttioContactsTable";
+import { ContactsListIX } from "@/components/contacts/ContactsListIX";
 
 export default function Contacts() {
   return (
     <DashboardLayout>
-      <AttioContactsTable />
+      <ContactsListIX />
     </DashboardLayout>
   );
 }
