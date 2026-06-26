@@ -19,7 +19,7 @@ function formatCurrency(value: number) {
 
 export function ContactsListIX() {
   const navigate = useNavigate();
-  const { contactsQuery } = useContacts() as unknown as { contactsQuery: { data?: Contact[]; isLoading: boolean } };
+  const { contacts, isLoading } = useContacts();
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
@@ -27,7 +27,7 @@ export function ContactsListIX() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
 
-  const all = contactsQuery.data ?? [];
+  const all = (contacts as Contact[]) ?? [];
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -87,7 +87,7 @@ export function ContactsListIX() {
         />
       }
     >
-      {contactsQuery.isLoading ? (
+      {isLoading ? (
         <div className="flex justify-center py-12"><LoadingSpinner /></div>
       ) : pageItems.length === 0 ? (
         <EmptyState title="Sem contactos" description="Não foram encontrados contactos com os filtros atuais." />

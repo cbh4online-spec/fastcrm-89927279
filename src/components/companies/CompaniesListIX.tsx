@@ -19,7 +19,7 @@ function formatCurrency(value: number) {
 
 export function CompaniesListIX() {
   const navigate = useNavigate();
-  const { companiesQuery } = useCompanies() as unknown as { companiesQuery: { data?: Company[]; isLoading: boolean } };
+  const { companies, isLoading } = useCompanies();
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
@@ -27,7 +27,7 @@ export function CompaniesListIX() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
 
-  const all = companiesQuery.data ?? [];
+  const all = (companies as Company[]) ?? [];
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -87,7 +87,7 @@ export function CompaniesListIX() {
         />
       }
     >
-      {companiesQuery.isLoading ? (
+      {isLoading ? (
         <div className="flex justify-center py-12"><LoadingSpinner /></div>
       ) : pageItems.length === 0 ? (
         <EmptyState title="Sem empresas" description="Não foram encontradas empresas com os filtros atuais." />
