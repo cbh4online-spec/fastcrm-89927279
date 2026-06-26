@@ -102,6 +102,7 @@ export function SidebarNavItem({
         aria-current={active ? "page" : undefined}
         aria-label={a11yLabel}
         className={root}
+        style={style}
       >
         {content}
       </Link>
@@ -115,6 +116,7 @@ export function SidebarNavItem({
       aria-current={active ? "page" : undefined}
       aria-label={a11yLabel}
       className={cn(root, "w-full")}
+      style={style}
     >
       {content}
     </button>
