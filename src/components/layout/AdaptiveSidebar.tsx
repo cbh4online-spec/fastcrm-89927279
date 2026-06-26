@@ -286,8 +286,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
         onClick={onClose}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex items-center gap-3 px-3 rounded-full font-semibold transition-colors",
-          style.itemHeight, style.textSize,
+          "flex items-center gap-3 px-3 py-2 rounded-full text-[13.5px] font-semibold transition-colors",
           indent && "pl-10",
           active
             ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
@@ -295,7 +294,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
         )}
       >
         <Icon
-          className={cn(style.iconSize, "shrink-0", active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70")}
+          className={cn("w-[18px] h-[18px] shrink-0", active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70")}
           strokeWidth={1.75}
         />
         <span className="flex-1 truncate">{item.label}</span>
