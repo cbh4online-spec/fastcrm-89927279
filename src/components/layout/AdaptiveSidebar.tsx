@@ -45,6 +45,41 @@ interface AdaptiveSidebarProps {
   onOpen?: () => void;
 }
 
+function IXThemeSwitcher() {
+  const { theme, setTheme } = useTheme();
+  const current = theme ?? "light";
+  const opts = [
+    { key: "light", icon: Sun, label: "Tema claro" },
+    { key: "system", icon: Monitor, label: "Tema do sistema" },
+    { key: "dark", icon: Moon, label: "Tema escuro" },
+  ] as const;
+  return (
+    <div className="flex items-center gap-1 p-1 rounded-full bg-sidebar-accent/60 border border-sidebar-border">
+      {opts.map((opt) => {
+        const Icon = opt.icon;
+        const active = current === opt.key;
+        return (
+          <button
+            key={opt.key}
+            type="button"
+            aria-label={opt.label}
+            aria-pressed={active}
+            onClick={() => setTheme(opt.key)}
+            className={cn(
+              "flex-1 flex items-center justify-center h-7 rounded-full transition-colors",
+              active
+                ? "bg-background text-sidebar-foreground shadow-sm"
+                : "text-sidebar-foreground/55 hover:text-sidebar-foreground",
+            )}
+          >
+            <Icon className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Age-based style config ──
 interface AgeStyle {
   iconSize: string;
