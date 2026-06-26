@@ -244,7 +244,6 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   // ── Render Link ──
   const renderLink = (item: RouteEntry, indent = false) => {
     const active = isActive(item.href, item.end);
-    const Icon = item.icon;
     const badgeCount = getBadge(item.badgeKey);
     const hasTag = item.isPro || item.isBeta;
 
@@ -252,24 +251,19 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
       return (
         <Tooltip key={item.key}>
           <TooltipTrigger asChild>
-            <Link
+            <SidebarNavItem
               to={item.href}
               onClick={onClose}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "relative flex items-center justify-center p-2 rounded-lg transition-colors",
-                active
-                  ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              )}
-            >
-              <Icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
-              {badgeCount > 0 && (
+              active={active}
+              icon={item.icon}
+              label={item.label}
+              variant="icon"
+              badge={badgeCount > 0 ? (
                 <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sidebar-primary px-1 text-[10px] font-bold text-sidebar-primary-foreground">
                   {badgeCount > 99 ? "99+" : badgeCount}
                 </span>
-              )}
-            </Link>
+              ) : undefined}
+            />
           </TooltipTrigger>
           <TooltipContent side="right">
             {item.label}
@@ -281,29 +275,20 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
     }
 
     return (
-      <Link
+      <SidebarNavItem
         key={item.key}
         to={item.href}
         onClick={onClose}
-        aria-current={active ? "page" : undefined}
-        className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-full text-[13.5px] font-semibold transition-colors",
-          indent && "pl-10",
-          active
-            ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
-            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-        )}
-      >
-        <Icon
-          className={cn("w-[18px] h-[18px] shrink-0", active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70")}
-          strokeWidth={1.75}
-        />
-        <span className="flex-1 truncate">{item.label}</span>
-        {hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
-        <SidebarBadge count={badgeCount} animate={style.animationsEnabled} />
-      </Link>
+        active={active}
+        icon={item.icon}
+        label={item.label}
+        indent={indent}
+        trailing={hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
+        badge={<SidebarBadge count={badgeCount} animate={style.animationsEnabled} />}
+      />
     );
   };
+
 
   // ── Render Section ──
   const renderSection = (section: NavGroupMeta & { items: RouteEntry[] }, idx: number) => {
