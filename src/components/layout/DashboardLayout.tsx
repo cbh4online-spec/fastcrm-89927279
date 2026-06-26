@@ -74,12 +74,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <DirectMessagesProvider>
           <AppModeGuard>
             <div className="h-screen flex bg-background overflow-hidden">
-              {useWatidy ? (
-                <WatidySidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
-              ) : (
-                <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
-              )}
-              <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useWatidy ? (collapsed ? "lg:pl-14" : "lg:pl-[304px]") : (collapsed ? "lg:pl-16" : "lg:pl-[280px]")}`}>
+              <InvoiceXpressSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
+              <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 lg:pl-[280px]">
 
                 <TopBar onMenuClick={() => setSidebarOpen(true)} />
                 <AIUsageBanner />
