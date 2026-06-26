@@ -70,7 +70,55 @@ function ItemTag({ isPro, isBeta }: { isPro?: boolean; isBeta?: boolean }) {
   return null;
 }
 
-export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
+function SidebarFooter() {
+  const { theme, setTheme } = useTheme();
+  const current = theme ?? "light";
+  const year = new Date().getFullYear();
+  const opts: Array<{ key: string; icon: typeof Sun; label: string }> = [
+    { key: "light", icon: Sun, label: "Tema claro" },
+    { key: "system", icon: Monitor, label: "Tema do sistema" },
+    { key: "dark", icon: Moon, label: "Tema escuro" },
+  ];
+  return (
+    <div className="border-t border-sidebar-border px-3 pt-3 pb-3 space-y-2.5">
+      <div className="flex items-center justify-center gap-1.5 text-[11px] text-sidebar-foreground/55">
+        <span>Prima</span>
+        <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-sidebar-border bg-sidebar-accent text-[10px] font-semibold text-sidebar-foreground/70">
+          ?
+        </kbd>
+        <span>para ver os atalhos</span>
+      </div>
+      <div className="flex items-center gap-1 p-1 rounded-full bg-sidebar-accent/60 border border-sidebar-border">
+        {opts.map((opt) => {
+          const Icon = opt.icon;
+          const active = current === opt.key;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              aria-label={opt.label}
+              aria-pressed={active}
+              onClick={() => setTheme(opt.key)}
+              className={cn(
+                "flex-1 flex items-center justify-center h-7 rounded-full transition-colors",
+                active
+                  ? "bg-background text-sidebar-foreground shadow-sm"
+                  : "text-sidebar-foreground/55 hover:text-sidebar-foreground",
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] leading-snug text-sidebar-foreground/40 text-center">
+        © {year} FastCRM — Todos os direitos reservados
+      </p>
+    </div>
+  );
+}
+
+
   const location = useLocation();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
