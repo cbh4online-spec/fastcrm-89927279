@@ -19,6 +19,7 @@ import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { useAdaptiveDashboard } from "@/contexts/AdaptiveDashboardContext";
 import { AdaptiveProfileSetup } from "@/components/adaptive-dashboard/AdaptiveProfileSetup";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RefreshCw, Lightbulb, Target } from "lucide-react";
 import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
 import { ClockInOutButton } from "@/components/hr/ClockInOutButton";
