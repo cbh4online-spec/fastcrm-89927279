@@ -60,6 +60,53 @@ export default function WeeklyDashboard() {
             <ClockInOutButton />
           </div>
 
+          {/* War Room — primeira secção operacional */}
+          <IXSection
+            title="War Room"
+            subtitle={`Situação da semana ${weekLabel} — receita vs. meta`}
+            actions={
+              <>
+                <WarRoomBriefingExport
+                  metrics={data?.metrics || []}
+                  pipelineValue={data?.pipelineValue ?? 0}
+                  weekLabel={weekLabel}
+                  todaysBrief={todaysBrief}
+                  strategy={strategy}
+                  workspaceName={currentWorkspace?.name}
+                  workspaceLogoUrl={currentWorkspace?.logo_url}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/dashboard/performance/metrics")}
+                  className="gap-1.5"
+                >
+                  <Target className="h-3.5 w-3.5" />
+                  Definir Metas
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={generate}
+                  disabled={strategyLoading}
+                  className="gap-1.5"
+                >
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`}
+                  />
+                  Atualizar
+                </Button>
+              </>
+            }
+            bare
+          >
+            <RevenueTargetStrip
+              metrics={data?.metrics || []}
+              pipelineValue={data?.pipelineValue ?? 0}
+              isLoading={isLoading}
+            />
+          </IXSection>
+
           {/* Visão Global — KPIs financeiros principais */}
           <VisaoGlobalSection />
 
@@ -92,52 +139,6 @@ export default function WeeklyDashboard() {
                 bare
               >
                 <PremiumKPICards
-                  metrics={data?.metrics || []}
-                  pipelineValue={data?.pipelineValue ?? 0}
-                  isLoading={isLoading}
-                />
-              </IXSection>
-
-              <IXSection
-                title="War Room"
-                subtitle={`Situação da semana ${weekLabel} — receita vs. meta`}
-                actions={
-                  <>
-                    <WarRoomBriefingExport
-                      metrics={data?.metrics || []}
-                      pipelineValue={data?.pipelineValue ?? 0}
-                      weekLabel={weekLabel}
-                      todaysBrief={todaysBrief}
-                      strategy={strategy}
-                      workspaceName={currentWorkspace?.name}
-                      workspaceLogoUrl={currentWorkspace?.logo_url}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate("/dashboard/performance/metrics")}
-                      className="gap-1.5"
-                    >
-                      <Target className="h-3.5 w-3.5" />
-                      Definir Metas
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={generate}
-                      disabled={strategyLoading}
-                      className="gap-1.5"
-                    >
-                      <RefreshCw
-                        className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`}
-                      />
-                      Atualizar
-                    </Button>
-                  </>
-                }
-                bare
-              >
-                <RevenueTargetStrip
                   metrics={data?.metrics || []}
                   pipelineValue={data?.pipelineValue ?? 0}
                   isLoading={isLoading}
