@@ -181,15 +181,41 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
     localStorage.setItem(STORAGE_KEY_GROUPS, JSON.stringify(expandedGroups));
   }, [expandedGroups]);
 
-  // Abre automaticamente o mega-grupo da rota actual
+  // Abre automaticamente o mega-grupo da rota actual (fechando os outros não-"inicio")
   useEffect(() => {
-    if (activeMegaFromRoute) {
-      setExpandedGroups((p) => (p[activeMegaFromRoute] ? p : { ...p, [activeMegaFromRoute]: true }));
-    }
+    if (!activeMegaFromRoute) return;
+    setExpandedGroups((p) => {
+      if (activeMegaFromRoute === "inicio") {
+        return p.inicio ? p : { ...p, inicio: true };
+      }
+      const next: Record<string, boolean> = { ...p };
+      for (const key of Object.keys(next)) {
+        if (key !== "inicio" && key !== activeMegaFromRoute) next[key] = false;
+      }
+      next[activeMegaFromRoute] = true;
+      return next;
+    });
   }, [activeMegaFromRoute]);
 
+  // A partir de "Comercial" (todos excepto "inicio") aplica-se selecção única:
+  // abrir um mega-grupo fecha automaticamente os outros do mesmo conjunto.
   const toggleMega = useCallback(
-    (k: MegaGroup) => setExpandedGroups((p) => ({ ...p, [k]: !p[k] })),
+    (k: MegaGroup) => setExpandedGroups((p) => {
+      const currentlyOpen = !!p[k];
+      if (k === "inicio") {
+        return { ...p, [k]: !currentlyOpen };
+      }
+      if (currentlyOpen) {
+        return { ...p, [k]: false };
+      }
+      // Abrir k → fechar todos os outros não-"inicio"
+      const next: Record<string, boolean> = { ...p };
+      for (const key of Object.keys(next)) {
+        if (key !== "inicio" && key !== k) next[key] = false;
+      }
+      next[k] = true;
+      return next;
+    }),
     [],
   );
 
