@@ -60,6 +60,9 @@
     --sidebar-accent-foreground: 216 100% 52%;
     --sidebar-border: 217 35% 92%;
     --sidebar-ring: 216 100% 52%;
+    /* InvoiceXpress-inspired active pill */
+    --sidebar-active-bg: 158 38% 22%;
+    --sidebar-active-fg: 0 0% 100%;
 
     /* Status tokens */
     --success: 158 78% 44%;
@@ -125,6 +128,8 @@
     --sidebar-accent-foreground: 216 100% 52%;
     --sidebar-border: 217 35% 92%;
     --sidebar-ring: 216 100% 52%;
+    --sidebar-active-bg: 158 38% 22%;
+    --sidebar-active-fg: 0 0% 100%;
     --gold: 216 100% 52%;
     --gold-foreground: 0 0% 100%;
     --gradient-primary: linear-gradient(135deg, hsl(216 100% 52%) 0%, hsl(189 100% 50%) 100%);

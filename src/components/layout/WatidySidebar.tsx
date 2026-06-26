@@ -20,8 +20,9 @@ import { megaGroupColor } from "./sidebar/megaGroupColors";
 import { useDepartmentVisibility } from "@/hooks/useDepartmentVisibility";
 import {
   X, ChevronRight, Search, PanelLeftClose, PanelLeftOpen,
-  Star, Clock, Pin, Lock,
+  Star, Clock, Pin, Lock, Sun, Monitor, Moon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -67,6 +68,54 @@ function ItemTag({ isPro, isBeta }: { isPro?: boolean; isBeta?: boolean }) {
       </Badge>
     );
   return null;
+}
+
+function SidebarFooter() {
+  const { theme, setTheme } = useTheme();
+  const current = theme ?? "light";
+  const year = new Date().getFullYear();
+  const opts: Array<{ key: string; icon: typeof Sun; label: string }> = [
+    { key: "light", icon: Sun, label: "Tema claro" },
+    { key: "system", icon: Monitor, label: "Tema do sistema" },
+    { key: "dark", icon: Moon, label: "Tema escuro" },
+  ];
+  return (
+    <div className="border-t border-sidebar-border px-3 pt-3 pb-3 space-y-2.5">
+      <div className="flex items-center justify-center gap-1.5 text-[11px] text-sidebar-foreground/55">
+        <span>Prima</span>
+        <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-sidebar-border bg-sidebar-accent text-[10px] font-semibold text-sidebar-foreground/70">
+          ?
+        </kbd>
+        <span>para ver os atalhos</span>
+      </div>
+      <div className="flex items-center gap-1 p-1 rounded-full bg-sidebar-accent/60 border border-sidebar-border">
+        {opts.map((opt) => {
+          const Icon = opt.icon;
+          const active = current === opt.key;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              aria-label={opt.label}
+              aria-pressed={active}
+              onClick={() => setTheme(opt.key)}
+              className={cn(
+                "flex-1 flex items-center justify-center h-7 rounded-full transition-colors",
+                active
+                  ? "bg-background text-sidebar-foreground shadow-sm"
+                  : "text-sidebar-foreground/55 hover:text-sidebar-foreground",
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] leading-snug text-sidebar-foreground/40 text-center">
+        © {year} FastCRM — Todos os direitos reservados
+      </p>
+    </div>
+  );
 }
 
 export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
@@ -225,16 +274,19 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           onClick={onClose}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "relative flex items-center gap-2.5 pl-3 pr-7 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ease-out",
-            "border-l-2",
+            "relative flex items-center gap-3 pl-3 pr-8 py-2 rounded-full text-[13.5px] font-semibold transition-all duration-150 ease-out",
             active
-              ? "bg-[hsl(var(--mega-fg)/0.14)] text-[hsl(var(--mega-fg))] border-[hsl(var(--mega-fg))] font-semibold"
-              : "border-transparent text-sidebar-foreground/75 hover:bg-[hsl(var(--mega-fg)/0.12)] hover:text-[hsl(var(--mega-fg))] hover:border-[hsl(var(--mega-fg)/0.7)] hover:pl-4 [&_svg]:hover:scale-110",
-
-
+              ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
+              : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
           )}
         >
-          <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active && "text-[hsl(var(--mega-fg))]")} />
+          <Icon
+            className={cn(
+              "w-[18px] h-[18px] shrink-0 transition-colors",
+              active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70",
+            )}
+            strokeWidth={1.75}
+          />
           <span className="flex-1 truncate">{item.label}</span>
           {hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
           <NavBadge count={badgeCount} />
@@ -244,7 +296,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.key); }}
           aria-label={fav ? "Desafixar dos favoritos" : "Fixar nos favoritos"}
           className={cn(
-            "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded transition-opacity",
+            "absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded transition-opacity",
             fav
               ? "opacity-100 text-amber-400 hover:text-amber-300"
               : "opacity-0 group-hover:opacity-100 text-sidebar-foreground/40 hover:text-sidebar-foreground",
@@ -596,14 +648,13 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   const SectionIcon = section.icon;
                   if (!section.collapsible) {
                     return (
-                      <div key={section.key} className="pt-1">
-                        <div className="px-2.5 pb-1 flex items-center gap-1.5">
-                          <SectionIcon className="w-3 h-3 text-sidebar-foreground/30" />
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/30">
+                      <div key={section.key} className="pt-3">
+                        <div className="px-3 pb-2 pt-1">
+                          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/45">
                             {section.label}
                           </span>
                         </div>
-                        <div className="space-y-0.5">{section.items.map(renderItem)}</div>
+                        <div className="space-y-1">{section.items.map(renderItem)}</div>
                       </div>
                     );
                   }
@@ -611,24 +662,17 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   return (
                     <Collapsible key={section.key} open={groupOpen} onOpenChange={() => toggleGroup(section.key)}>
                       <CollapsibleTrigger className="w-full mt-4 group">
-                        <div
-                          className="flex items-center gap-2 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] transition-colors"
-                          style={{ color: `hsl(${color.fg})` }}
-                        >
-                          <SectionIcon className="w-3 h-3 shrink-0 opacity-70" />
+                        <div className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/45 hover:text-sidebar-foreground/70 transition-colors">
                           <span className="flex-1 text-left truncate">{section.label}</span>
-                          <span className="text-[10px] font-medium opacity-50">
+                          <span className="text-[10px] font-medium opacity-60">
                             {section.items.length}
                           </span>
-                          <ChevronRight className={cn("w-3 h-3 opacity-50 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]", groupOpen && "rotate-90")} />
+                          <ChevronRight className={cn("w-3 h-3 opacity-60 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]", groupOpen && "rotate-90")} />
                         </div>
                       </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-px mt-1 overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                      <CollapsibleContent className="space-y-1 mt-1 overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
                         {section.items.map(renderItem)}
                       </CollapsibleContent>
-
-
-
                     </Collapsible>
                   );
                 })}
@@ -641,6 +685,9 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   </div>
                 )}
               </nav>
+
+              {/* Footer estilo InvoiceXpress: atalhos + tema + copyright */}
+              <SidebarFooter />
             </div>
           );
         })()}
