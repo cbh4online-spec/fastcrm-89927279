@@ -258,11 +258,11 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
               className={cn(
                 "relative flex items-center justify-center p-2 rounded-lg transition-colors",
                 active
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               )}
             >
-              <Icon className={cn(style.iconSize, active && "text-sidebar-primary")} />
+              <Icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
               {badgeCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sidebar-primary px-1 text-[10px] font-bold text-sidebar-primary-foreground">
                   {badgeCount > 99 ? "99+" : badgeCount}
@@ -286,8 +286,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
         onClick={onClose}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex items-center gap-3 px-3 rounded-full font-semibold transition-colors",
-          style.itemHeight, style.textSize,
+          "flex items-center gap-3 px-3 py-2 rounded-full text-[13.5px] font-semibold transition-colors",
           indent && "pl-10",
           active
             ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
@@ -295,7 +294,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
         )}
       >
         <Icon
-          className={cn(style.iconSize, "shrink-0", active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70")}
+          className={cn("w-[18px] h-[18px] shrink-0", active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70")}
           strokeWidth={1.75}
         />
         <span className="flex-1 truncate">{item.label}</span>
@@ -333,11 +332,10 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           <div role="group" aria-label={section.label}>
             <CollapsibleTrigger className="w-full">
               <div className={cn(
-                "flex items-center gap-3 px-3 rounded-lg font-medium cursor-pointer transition-colors",
-                style.itemHeight, style.textSize,
-                hasActive ? "text-sidebar-foreground" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-[13.5px] font-semibold cursor-pointer transition-colors",
+                hasActive ? "text-sidebar-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               )}>
-                <SectionIcon className={cn(style.iconSize, "shrink-0", hasActive && "text-sidebar-primary")} />
+                <SectionIcon className={cn("w-[18px] h-[18px] shrink-0", hasActive && "text-sidebar-primary")} strokeWidth={1.75} />
                 <span className="flex-1 text-left truncate">{section.label}</span>
                 <ChevronRight className={cn("w-3.5 h-3.5 text-sidebar-foreground/30 transition-transform duration-200", groupOpen && "rotate-90")} />
               </div>

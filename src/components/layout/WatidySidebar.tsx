@@ -319,14 +319,17 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
         to={item.href}
         onClick={onClose}
         className={cn(
-          "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
+          "flex items-center gap-3 px-3 py-2 rounded-full text-[13.5px] font-semibold transition-colors",
           active
-            ? "bg-sidebar-accent text-sidebar-primary font-medium"
-            : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+            ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
+            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
         )}
         style={active && color ? { color: `hsl(${color})` } : undefined}
       >
-        <Icon className="w-4 h-4 shrink-0" />
+        <Icon
+          className={cn("w-[18px] h-[18px] shrink-0", active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70")}
+          strokeWidth={1.75}
+        />
         <span className="flex-1 truncate">{item.label}</span>
         <NavBadge count={badgeCount} />
       </Link>
