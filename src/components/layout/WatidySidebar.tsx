@@ -181,11 +181,20 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
     localStorage.setItem(STORAGE_KEY_GROUPS, JSON.stringify(expandedGroups));
   }, [expandedGroups]);
 
-  // Abre automaticamente o mega-grupo da rota actual
+  // Abre automaticamente o mega-grupo da rota actual (fechando os outros não-"inicio")
   useEffect(() => {
-    if (activeMegaFromRoute) {
-      setExpandedGroups((p) => (p[activeMegaFromRoute] ? p : { ...p, [activeMegaFromRoute]: true }));
-    }
+    if (!activeMegaFromRoute) return;
+    setExpandedGroups((p) => {
+      if (activeMegaFromRoute === "inicio") {
+        return p.inicio ? p : { ...p, inicio: true };
+      }
+      const next: Record<string, boolean> = { ...p };
+      for (const key of Object.keys(next)) {
+        if (key !== "inicio" && key !== activeMegaFromRoute) next[key] = false;
+      }
+      next[activeMegaFromRoute] = true;
+      return next;
+    });
   }, [activeMegaFromRoute]);
 
   // A partir de "Comercial" (todos excepto "inicio") aplica-se selecção única:
