@@ -561,268 +561,163 @@ export function ProposalsList() {
         </div>
       )}
 
-      {/* Table */}
-      <Card className="flex-1 overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-          </div>
-        ) : !paginatedProposals?.length ? (
-          <div className="p-12 text-center text-muted-foreground">
-            <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
-            <h3 className="text-lg font-medium mb-2">Nenhuma proposta encontrada.</h3>
-            <p className="text-sm mb-4">
-              Crie a primeira proposta para começar a fechar negócios.
-            </p>
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Criar primeira proposta
-            </Button>
-          </div>
-        ) : (
-          <div className="w-full overflow-x-auto">
-          <Table className="min-w-[1000px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">
-                  <Checkbox
-                    checked={
-                      paginatedProposals.length > 0 &&
-                      paginatedProposals.every((p) => selectedIds.includes(p.id))
-                    }
-                    onCheckedChange={handleSelectAll}
+      {/* Lista de propostas (estilo InvoiceXpress) */}
+      {isLoading ? (
+        <Card className="p-8 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+        </Card>
+      ) : !paginatedProposals?.length ? (
+        <Card className="p-12 text-center text-muted-foreground">
+          <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
+          <h3 className="text-lg font-medium mb-2">Nenhuma proposta encontrada.</h3>
+          <p className="text-sm mb-4">
+            Crie a primeira proposta para começar a fechar negócios.
+          </p>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Criar primeira proposta
+          </Button>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {paginatedProposals.map((proposal) => {
+            const clientName =
+              proposal.contact?.name ||
+              proposal.company?.name ||
+              proposal.opportunity?.lead?.name ||
+              "—";
+            return (
+              <DocumentRow
+                key={proposal.id}
+                selected={selectedIds.includes(proposal.id)}
+                onSelectedChange={(c) => handleSelectOne(proposal.id, c)}
+                statusBadge={
+                  <DocumentStatusBadge
+                    label={statusLabels[proposal.status]}
+                    tone={statusTone[proposal.status]}
                   />
-                </TableHead>
-                <TableHead className="max-w-[200px]">Título</TableHead>
-                <TableHead className="max-w-[180px]">Oportunidade</TableHead>
-                <TableHead className="max-w-[150px]">Cliente</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Responsável</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Visualizações</TableHead>
-                <TableHead>Criada em</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedProposals.map((proposal) => (
-                <TableRow 
-                  key={proposal.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => setDetailId(proposal.id)}
-                >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedIds.includes(proposal.id)}
-                      onCheckedChange={(checked) =>
-                        handleSelectOne(proposal.id, checked as boolean)
-                      }
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium max-w-[200px]">
-                    <button 
-                      className="text-left hover:text-primary hover:underline transition-colors truncate block w-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDetailId(proposal.id);
-                      }}
-                    >
-                      {proposal.title}
-                    </button>
-                  </TableCell>
-                  <TableCell className="max-w-[180px] truncate">{proposal.opportunity?.title || "-"}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{proposal.contact?.name || proposal.company?.name || proposal.opportunity?.lead?.name || "-"}</TableCell>
-                  <TableCell>
-                    {formatCurrency(proposal.price, proposal.currency || "EUR")}
-                  </TableCell>
-                  <TableCell>
-                    {proposal.assigned_to_profile ? (
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={proposal.assigned_to_profile.avatar_url || undefined} />
-                          <AvatarFallback className="text-[10px]">
-                            {proposal.assigned_to_profile.full_name?.charAt(0) || proposal.assigned_to_profile.email?.charAt(0) || "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm truncate max-w-[100px]" title={proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email || undefined}>
-                          {proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        statusColors[proposal.status] as
-                          | "default"
-                          | "secondary"
-                          | "destructive"
-                      }
-                      className={
-                        proposal.status === "accepted"
-                          ? "bg-green-500 hover:bg-green-600"
-                          : ""
-                      }
-                    >
-                      {statusLabels[proposal.status]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{proposal.views_count}</TableCell>
-                  <TableCell>
-                    {format(new Date(proposal.created_at), "dd/MM/yyyy", {
-                      locale: pt,
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setDetailId(proposal.id)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver detalhes
-                        </DropdownMenuItem>
-                        
-                        {/* Duplicar */}
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDuplicate(proposal.id);
-                          }}
-                          disabled={duplicateProposal.isPending}
-                        >
-                          <Copy className="h-4 w-4 mr-2" />
-                          Duplicar
-                        </DropdownMenuItem>
-                        
-                        {/* Criar Tarefa */}
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenTaskDialog(proposal);
-                          }}
-                        >
-                          <CheckSquare className="h-4 w-4 mr-2" />
-                          Criar Tarefa
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuSeparator />
-                        
-                        {/* Alterar Estado */}
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>
-                            <ArrowRightLeft className="h-4 w-4 mr-2" />
-                            Alterar Estado
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            {proposal.status !== "accepted" && (
-                              <DropdownMenuItem 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleStatusChange(proposal.id, "accepted");
-                                }}
-                              >
-                                <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
-                                Marcar como Aceita
-                              </DropdownMenuItem>
-                            )}
-                            {proposal.status !== "rejected" && (
-                              <DropdownMenuItem 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleStatusChange(proposal.id, "rejected");
-                                }}
-                              >
-                                <XCircle className="h-4 w-4 mr-2 text-red-500" />
-                                Marcar como Rejeitada
-                              </DropdownMenuItem>
-                            )}
-                            {proposal.status !== "draft" && (
-                              <DropdownMenuItem 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleStatusChange(proposal.id, "draft");
-                                }}
-                              >
-                                <FileClock className="h-4 w-4 mr-2" />
-                                Voltar a Rascunho
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-
-                        {/* Converter em Nota de Encomenda - only for accepted proposals not yet converted */}
-                        {proposal.status === "accepted" && (proposal.contact_id || proposal.company_id) && (
-                          convertedProposalIds?.has(proposal.id) ? (
-                            <DropdownMenuItem disabled>
-                              <ShoppingCart className="h-4 w-4 mr-2 text-muted-foreground" />
-                              Já convertida em Encomenda
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setConvertOrderId(proposal.id);
-                              }}
-                            >
-                              <ShoppingCart className="h-4 w-4 mr-2" />
-                              Converter em Encomenda
-                            </DropdownMenuItem>
-                          )
-                        )}
-                        
-                        {proposal.status === "published" && (
-                          <>
-                            <DropdownMenuSeparator />
+                }
+                number={proposal.title}
+                subtitle={proposal.opportunity?.title ? `OPORTUNIDADE · ${proposal.opportunity.title}` : "PROPOSTA"}
+                clientName={clientName}
+                clientSubtitle={
+                  proposal.assigned_to_profile?.full_name ||
+                  proposal.assigned_to_profile?.email ||
+                  undefined
+                }
+                issueDate={format(new Date(proposal.created_at), "dd/MM/yyyy", { locale: pt })}
+                dueDate={`${proposal.views_count} visualizações`}
+                totalPrimary={formatCurrency(proposal.price, proposal.currency || "EUR")}
+                totalSecondary={proposal.currency && proposal.currency !== "EUR" ? proposal.currency : undefined}
+                onClick={() => setDetailId(proposal.id)}
+                action={
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onClick={() => setDetailId(proposal.id)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => { e.stopPropagation(); handleDuplicate(proposal.id); }}
+                        disabled={duplicateProposal.isPending}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Duplicar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => { e.stopPropagation(); handleOpenTaskDialog(proposal); }}
+                      >
+                        <CheckSquare className="h-4 w-4 mr-2" />
+                        Criar Tarefa
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <ArrowRightLeft className="h-4 w-4 mr-2" />
+                          Alterar Estado
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {proposal.status !== "accepted" && (
                             <DropdownMenuItem
-                              onClick={() =>
-                                window.open(getPublicUrl(proposal.slug), "_blank")
-                              }
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(proposal.id, "accepted"); }}
                             >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Abrir página
+                              <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+                              Marcar como Aceita
                             </DropdownMenuItem>
+                          )}
+                          {proposal.status !== "rejected" && (
                             <DropdownMenuItem
-                              onClick={() => handleCopyLink(proposal.slug)}
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(proposal.id, "rejected"); }}
                             >
-                              <Copy className="h-4 w-4 mr-2" />
-                              Copiar link
+                              <XCircle className="h-4 w-4 mr-2 text-red-500" />
+                              Marcar como Rejeitada
                             </DropdownMenuItem>
-                          </>
-                        )}
-                        {proposal.status === "draft" && (
-                          <DropdownMenuItem
-                            onClick={() => handlePublish(proposal.id)}
-                          >
-                            <Send className="h-4 w-4 mr-2" />
-                            Publicar
+                          )}
+                          {proposal.status !== "draft" && (
+                            <DropdownMenuItem
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(proposal.id, "draft"); }}
+                            >
+                              <FileClock className="h-4 w-4 mr-2" />
+                              Voltar a Rascunho
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      {proposal.status === "accepted" && (proposal.contact_id || proposal.company_id) && (
+                        convertedProposalIds?.has(proposal.id) ? (
+                          <DropdownMenuItem disabled>
+                            <ShoppingCart className="h-4 w-4 mr-2 text-muted-foreground" />
+                            Já convertida em Encomenda
                           </DropdownMenuItem>
-                        )}
-                        
-                        <DropdownMenuSeparator />
-                        
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => setDeleteId(proposal.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); setConvertOrderId(proposal.id); }}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Converter em Encomenda
+                          </DropdownMenuItem>
+                        )
+                      )}
+                      {proposal.status === "published" && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => window.open(getPublicUrl(proposal.slug), "_blank")}>
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Abrir página
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleCopyLink(proposal.slug)}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copiar link
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {proposal.status === "draft" && (
+                        <DropdownMenuItem onClick={() => handlePublish(proposal.id)}>
+                          <Send className="h-4 w-4 mr-2" />
+                          Publicar
                         </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-           </Table>
-          </div>
-        )}
-      </Card>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => setDeleteId(proposal.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                }
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 0 && (
