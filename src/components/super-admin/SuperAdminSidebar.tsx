@@ -202,7 +202,7 @@ export function SuperAdminSidebar({ activeSection, onSectionChange }: SuperAdmin
                     key={item.id}
                     onClick={() => onSectionChange(item.id)}
                     active={isItemActive(item.id)}
-                    icon={item.icon}
+                    icon={item.icon as any}
                     label={item.label}
                     palette="foreground"
                   />
