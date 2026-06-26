@@ -272,7 +272,7 @@ export function LeadsListIX() {
                 <div
                   key={col}
                   className={cn(
-                    "flex items-center",
+                    "flex min-w-0 items-center overflow-hidden",
                     COLUMN_WIDTH[col] ?? "min-w-[120px]"
                   )}
                 >
