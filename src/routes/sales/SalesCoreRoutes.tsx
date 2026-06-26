@@ -18,6 +18,7 @@ export function SalesCoreRoutes() {
       <Route path="/dashboard/leads" element={<Leads />} />
       <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
       <Route path="/dashboard/contacts" element={<Contacts />} />
+      <Route path="/dashboard/contacts/new" element={<NewContactPage />} />
       <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
       <Route path="/dashboard/companies" element={<Companies />} />
       <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
