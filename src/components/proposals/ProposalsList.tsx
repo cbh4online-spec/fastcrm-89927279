@@ -89,6 +89,15 @@ import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Proposal, ProposalStatus } from "@/types/proposal";
+import { DocumentRow, DocumentStatusBadge, type DocumentStatusTone } from "@/components/documents/listing";
+
+const statusTone: Record<ProposalStatus, DocumentStatusTone> = {
+  draft: "draft",
+  published: "sent",
+  accepted: "approved",
+  expired: "overdue",
+  rejected: "rejected",
+};
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
