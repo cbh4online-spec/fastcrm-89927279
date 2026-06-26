@@ -2,18 +2,9 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,13 +13,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   useInvoices,
   useInvoiceStats,
@@ -39,75 +27,69 @@ import {
 } from "@/hooks/useInvoices";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDialog";
-import { CreditCard } from "lucide-react";
 import { InvoiceSettingsTab } from "@/components/invoices/InvoiceSettingsTab";
 import { RecurringInvoicesTab } from "@/components/invoices/RecurringInvoicesTab";
 import { FiscalSettingsTab } from "@/components/invoices/FiscalSettingsTab";
 import { SaftExportTab } from "@/components/invoices/SaftExportTab";
-import { PageHeader } from "@/components/common/PageHeader";
-import { Toolbar } from "@/components/common/Toolbar";
-import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { toast } from "sonner";
 import { formatDate, formatCurrency } from "@/lib/formatters";
 import {
-  FileText,
+  DocumentListLayout,
+  DocumentFilterChip,
+  DocumentListToolbar,
+  DocumentSummaryCard,
+  DocumentRow,
+  DocumentStatusBadge,
+  type DocumentStatusTone,
+  type SummaryItem,
+} from "@/components/documents/listing";
+import {
   Plus,
-  MoreHorizontal,
   Send,
   CheckCircle,
   Trash2,
   Eye,
   Download,
-  Clock,
-  AlertTriangle,
-  DollarSign,
-  FileCheck,
-  PanelLeft,
-  PanelLeftClose,
-  RefreshCw,
+  CreditCard,
+  FileText,
+  MoreHorizontal,
+  RefreshCcw,
   ChevronLeft,
   ChevronRight,
-  Calendar,
-  CircleDollarSign,
-  TrendingUp,
-  FileX,
-  RefreshCcw,
 } from "lucide-react";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+const STATUS_TONE: Record<InvoiceStatus, DocumentStatusTone> = {
+  draft: "draft",
+  sent: "sent",
+  paid: "paid",
+  partially_paid: "partial",
+  overdue: "overdue",
+  cancelled: "cancelled",
+};
 
 export default function Invoices() {
   const navigate = useNavigate();
   const { t } = useTranslation("invoices");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [paymentInvoice, setPaymentInvoice] = useState<{ id: string; total: number; amount_paid: number; currency: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("invoices");
-  const [showFilterSidebar, setShowFilterSidebar] = useState(true);
-  const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("date_desc");
-  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | undefined>();
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
 
-  const statusConfig: Record<InvoiceStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof FileText }> = useMemo(() => ({
-    draft: { label: t("statusDraft"), variant: "secondary", icon: FileText },
-    sent: { label: t("statusSent"), variant: "default", icon: Send },
-    paid: { label: t("statusPaid"), variant: "outline", icon: CheckCircle },
-    partially_paid: { label: t("statusPartiallyPaid"), variant: "default", icon: CircleDollarSign },
-    overdue: { label: t("statusOverdue"), variant: "destructive", icon: AlertTriangle },
-    cancelled: { label: t("statusCancelled"), variant: "secondary", icon: FileText },
+  const statusLabel: Record<InvoiceStatus, string> = useMemo(() => ({
+    draft: t("statusDraft"),
+    sent: t("statusSent"),
+    paid: t("statusPaid"),
+    partially_paid: t("statusPartiallyPaid"),
+    overdue: t("statusOverdue"),
+    cancelled: t("statusCancelled"),
   }), [t]);
-
-  const pageTabs = useMemo(() => [
-    { id: "invoices", label: t("tabInvoices") },
-    { id: "recurring", label: t("tabRecurring") },
-    { id: "fiscal", label: t("tabFiscal") },
-    { id: "saft", label: t("tabSaft") },
-    { id: "settings", label: t("tabSettings") },
-  ], [t]);
 
   const sortOptions = useMemo(() => [
     { value: "date_desc", label: t("sortNewest") },
@@ -118,68 +100,8 @@ export default function Invoices() {
     { value: "number_asc", label: t("sortNumberAsc") },
   ], [t]);
 
-  const filterGroups: FilterGroup[] = useMemo(() => [
-    {
-      id: "status",
-      label: t("filterStatus"),
-      icon: <FileText className="h-4 w-4" />,
-      defaultOpen: true,
-      items: [
-        { id: "status_draft", label: t("statusDraft"), icon: <FileText className="h-4 w-4" /> },
-        { id: "status_sent", label: t("statusSent"), icon: <Send className="h-4 w-4 text-blue-500" /> },
-        { id: "status_paid", label: t("statusPaid"), icon: <CheckCircle className="h-4 w-4 text-green-500" /> },
-        { id: "status_overdue", label: t("statusOverdue"), icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
-        { id: "status_cancelled", label: t("statusCancelled"), icon: <FileX className="h-4 w-4" /> },
-      ],
-    },
-    {
-      id: "value",
-      label: t("filterValue"),
-      icon: <CircleDollarSign className="h-4 w-4" />,
-      defaultOpen: false,
-      items: [
-        { id: "value_high", label: t("valueHigh") },
-        { id: "value_medium", label: t("valueMedium") },
-        { id: "value_low", label: t("valueLow") },
-      ],
-    },
-    {
-      id: "timing",
-      label: t("filterPeriod"),
-      icon: <Calendar className="h-4 w-4" />,
-      defaultOpen: false,
-      items: [
-        { id: "timing_today", label: t("timingToday") },
-        { id: "timing_week", label: t("timingWeek") },
-        { id: "timing_month", label: t("timingMonth") },
-        { id: "timing_quarter", label: t("timingQuarter") },
-      ],
-    },
-    {
-      id: "smart",
-      label: t("filterSmart"),
-      icon: <TrendingUp className="h-4 w-4" />,
-      defaultOpen: false,
-      items: [
-        { id: "smart_due_soon", label: t("dueSoon7") },
-        { id: "smart_high_value", label: t("highValuePending") },
-        { id: "smart_recurring", label: t("recurringClients") },
-      ],
-    },
-    {
-      id: "source",
-      label: "Origem",
-      icon: <RefreshCcw className="h-4 w-4" />,
-      defaultOpen: false,
-      items: [
-        { id: "source_renewal", label: "Renovação", icon: <RefreshCcw className="h-4 w-4 text-purple-500" /> },
-        { id: "source_manual", label: "Manual", icon: <FileText className="h-4 w-4" /> },
-      ],
-    },
-  ], [t]);
-
-  const { data: invoices, isLoading, refetch } = useInvoices(
-    statusFilter ? { status: statusFilter } : undefined
+  const { data: invoices, isLoading } = useInvoices(
+    statusFilter !== "all" ? { status: statusFilter as InvoiceStatus } : undefined,
   );
   const stats = useInvoiceStats();
   const markPaid = useMarkInvoicePaid();
@@ -189,480 +111,377 @@ export default function Invoices() {
   const filteredInvoices = useMemo(() => {
     if (!invoices) return [];
     let result = invoices;
-
-    // Source filter
-    if (activeFilterId === "source_renewal") {
-      result = result.filter((inv) => !!(inv as any).renewal_contract_id);
-    } else if (activeFilterId === "source_manual") {
-      result = result.filter((inv) => !(inv as any).renewal_contract_id);
-    }
-
     if (searchValue) {
       const lower = searchValue.toLowerCase();
       result = result.filter(
         (inv) =>
           inv.client_name.toLowerCase().includes(lower) ||
-          inv.invoice_number.toLowerCase().includes(lower)
+          inv.invoice_number.toLowerCase().includes(lower),
       );
     }
-    return result;
-  }, [invoices, searchValue, activeFilterId]);
+    // Sort
+    const sorted = [...result].sort((a, b) => {
+      switch (sortValue) {
+        case "date_asc": return a.issue_date.localeCompare(b.issue_date);
+        case "value_desc": return (b.total || 0) - (a.total || 0);
+        case "value_asc": return (a.total || 0) - (b.total || 0);
+        case "due_asc": return (a.due_date || "").localeCompare(b.due_date || "");
+        case "number_asc": return a.invoice_number.localeCompare(b.invoice_number);
+        case "date_desc":
+        default: return b.issue_date.localeCompare(a.issue_date);
+      }
+    });
+    return sorted;
+  }, [invoices, searchValue, sortValue]);
 
   const totalInvoices = filteredInvoices.length;
-  const totalPages = Math.ceil(totalInvoices / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalInvoices / pageSize));
   const paginatedInvoices = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredInvoices.slice(start, start + pageSize);
   }, [filteredInvoices, currentPage, pageSize]);
 
-  const totalValue = useMemo(() => {
-    return filteredInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
-  }, [filteredInvoices]);
-
-  const filtersActive = !!statusFilter || !!activeFilterId;
-
-  const getStatusBadge = (status: InvoiceStatus) => {
-    const config = statusConfig[status];
-    return (
-      <Badge variant={config.variant} className="gap-1">
-        <config.icon className="h-3 w-3" />
-        {config.label}
-      </Badge>
+  // --- Summary card aggregates (apenas faturas ativas: exclui draft/cancelled)
+  const summary = useMemo(() => {
+    const active = (invoices || []).filter(
+      (i) => i.status !== "draft" && i.status !== "cancelled",
     );
-  };
+    let notDue = 0;
+    let due = 0;
+    let received = 0;
+    let totalNet = 0;
+    let totalVat = 0;
+    let totalGross = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    active.forEach((inv) => {
+      const gross = inv.total || 0;
+      const paid = (inv as any).amount_paid || 0;
+      const net = (inv as any).subtotal || 0;
+      const vat = Math.max(0, gross - net);
+      totalNet += net;
+      totalVat += vat;
+      totalGross += gross;
+      received += paid;
+      const outstanding = Math.max(0, gross - paid);
+      if (outstanding > 0) {
+        if ((inv.due_date || "") < today) due += outstanding;
+        else notDue += outstanding;
+      }
+    });
+    const drafts = (invoices || []).filter((i) => i.status === "draft");
+    const cancelled = (invoices || []).filter((i) => i.status === "cancelled");
+    const draftsGross = drafts.reduce((s, i) => s + (i.total || 0), 0);
+    const draftsNet = drafts.reduce((s, i) => s + ((i as any).subtotal || 0), 0);
+    const cancelledGross = cancelled.reduce((s, i) => s + (i.total || 0), 0);
+    const cancelledNet = cancelled.reduce((s, i) => s + ((i as any).subtotal || 0), 0);
+    return {
+      notDue,
+      due,
+      received,
+      adjustments: 0,
+      totalNet,
+      totalVat,
+      totalGross,
+      draftsGross,
+      draftsNet,
+      cancelledGross,
+      cancelledNet,
+    };
+  }, [invoices]);
 
-  const handleFilterSelect = (filterId: string) => {
-    setActiveFilterId(filterId);
-    if (filterId.startsWith("status_")) {
-      setStatusFilter(filterId.replace("status_", "") as InvoiceStatus);
-    }
-  };
+  const summaryItems: SummaryItem[] = [
+    { label: "Não Vencido", value: formatCurrency(summary.notDue), tone: "default" },
+    { label: "Vencido", value: formatCurrency(summary.due), tone: summary.due > 0 ? "destructive" : "default" },
+    { label: "Recebido", value: formatCurrency(summary.received), tone: "success" },
+    { label: "Acertos", value: formatCurrency(summary.adjustments), tone: "muted" },
+    { label: "Total sem IVA", value: formatCurrency(summary.totalNet), tone: "primary" },
+    { label: "IVA", value: formatCurrency(summary.totalVat), tone: "default" },
+    { label: "Total", value: formatCurrency(summary.totalGross), tone: "primary" },
+  ];
+  const summarySeparators: Array<"+" | "=" | null> = ["+", "+", "+", "=", "+", "="];
+
+  const filtersActive = statusFilter !== "all" || !!searchValue;
 
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(paginatedInvoices.map((inv) => inv.id));
-    } else {
-      setSelectedIds([]);
-    }
+    if (checked) setSelectedIds(paginatedInvoices.map((inv) => inv.id));
+    else setSelectedIds([]);
   };
 
   const handleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds((prev) => [...prev, id]);
-    } else {
-      setSelectedIds((prev) => prev.filter((i) => i !== id));
-    }
+    setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((i) => i !== id)));
   };
 
-  const handleBulkExport = () => {
-    const selected = invoices?.filter((inv) => selectedIds.includes(inv.id)) || [];
-    if (selected.length === 0) return;
-    const csv = [
-      [t("csvNumber"), t("csvClient"), t("csvEmail"), t("csvIssueDate"), t("csvDueDate"), t("csvTotal"), t("csvStatus")].join(","),
-      ...selected.map((inv) =>
-        [
-          inv.invoice_number,
-          inv.client_name,
-          inv.client_email || "",
-          formatDate(inv.issue_date, "dd/MM/yyyy"),
-          formatDate(inv.due_date, "dd/MM/yyyy"),
-          inv.total,
-          statusConfig[inv.status].label,
-        ].join(",")
-      ),
-    ].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `invoices_${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    toast.success(t("invoicesExported", { count: selected.length }));
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setSearchValue("");
   };
 
   return (
     <DashboardLayout>
-      <div className="flex h-full -m-6">
-        <FilterSidebar
-          filterGroups={filterGroups}
-          activeFilterId={activeFilterId}
-          onFilterSelect={handleFilterSelect}
-          onClearFilter={() => {
-            setActiveFilterId(undefined);
-            setStatusFilter(undefined);
-          }}
-          isOpen={showFilterSidebar}
-          onClose={() => setShowFilterSidebar(false)}
-        />
+      <DocumentListLayout
+        title={t("title")}
+        searchValue={searchValue}
+        onSearchChange={(v) => {
+          setSearchValue(v);
+          setCurrentPage(1);
+        }}
+        primaryAction={
+          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90">
+            <Plus className="h-4 w-4" />
+            {t("newInvoice")}
+          </Button>
+        }
+        secondaryAction={
+          <Button variant="outline" onClick={() => setActiveTab("recurring")} className="rounded-full">
+            Criar Outros
+          </Button>
+        }
+        chips={
+          <>
+            <DocumentFilterChip
+              label="Estado"
+              value={statusFilter === "all" ? "Todos" : statusLabel[statusFilter]}
+              active={statusFilter !== "all"}
+            >
+              <DropdownMenuItem onSelect={() => setStatusFilter("all")}>Todos</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {(Object.keys(statusLabel) as InvoiceStatus[]).map((s) => (
+                <DropdownMenuItem key={s} onSelect={() => setStatusFilter(s)}>
+                  {statusLabel[s]}
+                </DropdownMenuItem>
+              ))}
+            </DocumentFilterChip>
+            <DocumentFilterChip label="Ordenação" value={sortOptions.find((o) => o.value === sortValue)?.label || "Data"}>
+              {sortOptions.map((o) => (
+                <DropdownMenuItem key={o.value} onSelect={() => setSortValue(o.value)}>
+                  {o.label}
+                </DropdownMenuItem>
+              ))}
+            </DocumentFilterChip>
+            <DocumentFilterChip label="Resultados" value={`${pageSize}/página`}>
+              {PAGE_SIZE_OPTIONS.map((s) => (
+                <DropdownMenuItem key={s} onSelect={() => { setPageSize(s); setCurrentPage(1); }}>
+                  {s}
+                </DropdownMenuItem>
+              ))}
+            </DocumentFilterChip>
+          </>
+        }
+        summary={
+          activeTab === "invoices" ? (
+            <DocumentSummaryCard
+              items={summaryItems}
+              separators={summarySeparators}
+              footer={
+                <>
+                  <span className="text-amber-700">
+                    <strong>Rascunhos:</strong> {formatCurrency(summary.draftsGross)} (
+                    {formatCurrency(summary.draftsNet)} S/IVA)
+                  </span>
+                  <span className="text-muted-foreground/40">|</span>
+                  <span className="text-muted-foreground">
+                    <strong>Cancelados:</strong> {formatCurrency(summary.cancelledGross)} (
+                    {formatCurrency(summary.cancelledNet)} S/IVA)
+                  </span>
+                </>
+              }
+            />
+          ) : undefined
+        }
+        toolbar={
+          activeTab === "invoices" ? (
+            <DocumentListToolbar
+              selectAllChecked={paginatedInvoices.length > 0 && paginatedInvoices.every((inv) => selectedIds.includes(inv.id))}
+              onSelectAll={handleSelectAll}
+              sortOptions={sortOptions}
+              sortValue={sortValue}
+              onSortChange={setSortValue}
+              pageSize={pageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              onPageSizeChange={(v) => { setPageSize(v); setCurrentPage(1); }}
+              totalCount={totalInvoices}
+              countLabel="Documentos"
+              onClearFilters={clearFilters}
+              clearFiltersDisabled={!filtersActive}
+            />
+          ) : undefined
+        }
+      >
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-2 bg-transparent p-0 gap-1">
+            {[
+              { id: "invoices", label: t("tabInvoices") },
+              { id: "recurring", label: t("tabRecurring") },
+              { id: "fiscal", label: t("tabFiscal") },
+              { id: "saft", label: t("tabSaft") },
+              { id: "settings", label: t("tabSettings") },
+            ].map((tab) => (
+              <TabsTrigger
+                key={tab.id}
+                value={tab.id}
+                className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-        <div className="flex-1 flex flex-col min-w-0 p-6">
-          <PageHeader
-            title={t("title")}
-            count={totalInvoices}
-            description={`${t("total")}: ${formatCurrency(totalValue)}`}
-            tabs={pageTabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            actions={[
-              {
-                label: t("newInvoice"),
-                icon: <Plus className="h-4 w-4" />,
-                onClick: () => setCreateDialogOpen(true),
-              },
-            ]}
-          />
-
-          {activeTab === "settings" ? (
-            <InvoiceSettingsTab />
-          ) : activeTab === "recurring" ? (
-            <RecurringInvoicesTab />
-          ) : activeTab === "fiscal" ? (
-            <FiscalSettingsTab />
-          ) : activeTab === "saft" ? (
-            <SaftExportTab />
-          ) : (
-            <>
-              <div className="grid gap-4 md:grid-cols-5 mb-4">
-                <Card className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t("kpiDraft")}</p>
-                      <p className="text-2xl font-bold">{stats.totalDraft}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountDraft)}</p>
-                    </div>
-                    <FileText className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t("kpiSent")}</p>
-                      <p className="text-2xl font-bold text-blue-600">{stats.totalSent}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountSent)}</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-blue-500/50" />
-                  </div>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t("kpiPartiallyPaid")}</p>
-                      <p className="text-2xl font-bold text-orange-600">{stats.totalPartiallyPaid}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountPartiallyPaid)}</p>
-                    </div>
-                    <CreditCard className="h-8 w-8 text-orange-500/50" />
-                  </div>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t("kpiPaid")}</p>
-                      <p className="text-2xl font-bold text-green-600">{stats.totalPaid}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountPaid)}</p>
-                    </div>
-                    <DollarSign className="h-8 w-8 text-green-500/50" />
-                  </div>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t("kpiOverdue")}</p>
-                      <p className="text-2xl font-bold text-destructive">{stats.totalOverdue}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountOverdue)}</p>
-                    </div>
-                    <AlertTriangle className="h-8 w-8 text-destructive/50" />
-                  </div>
-                </Card>
+        {activeTab === "settings" ? (
+          <InvoiceSettingsTab />
+        ) : activeTab === "recurring" ? (
+          <RecurringInvoicesTab />
+        ) : activeTab === "fiscal" ? (
+          <FiscalSettingsTab />
+        ) : activeTab === "saft" ? (
+          <SaftExportTab />
+        ) : (
+          <>
+            {selectedIds.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2">
+                <span className="text-sm text-foreground">
+                  {t("selectedCount", { count: selectedIds.length })}
+                </span>
+                <div className="flex-1" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const draftIds = invoices?.filter((inv) => selectedIds.includes(inv.id) && inv.status === "draft").map((inv) => inv.id) || [];
+                    if (draftIds.length === 0) { toast.info(t("noDraftToSend")); return; }
+                    draftIds.forEach((id) => sendInvoice.mutate(id));
+                    toast.success(t("bulkSent", { count: draftIds.length }));
+                    setSelectedIds([]);
+                  }}
+                  className="gap-2"
+                >
+                  <Send className="h-4 w-4" /> {t("bulkSend")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const payableIds = invoices?.filter((inv) => selectedIds.includes(inv.id) && (inv.status === "sent" || inv.status === "overdue")).map((inv) => inv.id) || [];
+                    if (payableIds.length === 0) { toast.info(t("noInvoicesToPay")); return; }
+                    payableIds.forEach((id) => markPaid.mutate({ id }));
+                    toast.success(t("bulkPaid", { count: payableIds.length }));
+                    setSelectedIds([]);
+                  }}
+                  className="gap-2"
+                >
+                  <CheckCircle className="h-4 w-4" /> {t("bulkMarkPaid")}
+                </Button>
               </div>
+            )}
 
-          <Toolbar
-            searchValue={searchValue}
-            searchPlaceholder={t("searchInvoices")}
-            onSearchChange={setSearchValue}
-            showFilters={true}
-            filtersActive={filtersActive}
-            onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
-            onClearFilters={() => {
-              setActiveFilterId(undefined);
-              setStatusFilter(undefined);
-            }}
-            sortOptions={sortOptions}
-            sortValue={sortValue}
-            onSortChange={setSortValue}
-            leftActions={
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowFilterSidebar(!showFilterSidebar)}
-                className="gap-2"
-              >
-                {showFilterSidebar ? (
-                  <PanelLeftClose className="h-4 w-4" />
-                ) : (
-                  <PanelLeft className="h-4 w-4" />
-                )}
-              </Button>
-            }
-            rightActions={
-              <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            }
-          />
-
-          {selectedIds.length > 0 && (
-            <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
-              <span className="text-sm text-muted-foreground">
-                {t("selectedCount", { count: selectedIds.length })}
-              </span>
-              <div className="flex-1" />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const draftIds = invoices?.filter(inv => selectedIds.includes(inv.id) && inv.status === "draft").map(inv => inv.id) || [];
-                  if (draftIds.length === 0) { toast.info(t("noDraftToSend")); return; }
-                  draftIds.forEach(id => sendInvoice.mutate(id));
-                  toast.success(t("bulkSent", { count: draftIds.length }));
-                  setSelectedIds([]);
-                }}
-                className="gap-2"
-              >
-                <Send className="h-4 w-4" />
-                {t("bulkSend")}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const payableIds = invoices?.filter(inv => selectedIds.includes(inv.id) && (inv.status === "sent" || inv.status === "overdue")).map(inv => inv.id) || [];
-                  if (payableIds.length === 0) { toast.info(t("noInvoicesToPay")); return; }
-                  payableIds.forEach(id => markPaid.mutate({ id }));
-                  toast.success(t("bulkPaid", { count: payableIds.length }));
-                  setSelectedIds([]);
-                }}
-                className="gap-2"
-              >
-                <CheckCircle className="h-4 w-4" />
-                {t("bulkMarkPaid")}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
-                <Download className="h-4 w-4" />
-                {t("export")}
-              </Button>
-            </div>
-          )}
-
-          <Card className="flex-1 overflow-hidden">
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="space-y-3 p-6">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-14 w-full" />
-                  ))}
-                </div>
-              ) : paginatedInvoices && paginatedInvoices.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[50px]">
-                        <Checkbox
-                          checked={
-                            paginatedInvoices.length > 0 &&
-                            paginatedInvoices.every((inv) => selectedIds.includes(inv.id))
-                          }
-                          onCheckedChange={handleSelectAll}
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : paginatedInvoices.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {paginatedInvoices.map((invoice) => {
+                  const gross = invoice.total || 0;
+                  const net = (invoice as any).subtotal || gross;
+                  const today = new Date().toISOString().slice(0, 10);
+                  const isOverdue =
+                    (invoice.status === "sent" || invoice.status === "partially_paid") &&
+                    (invoice.due_date || "") < today;
+                  return (
+                    <DocumentRow
+                      key={invoice.id}
+                      selected={selectedIds.includes(invoice.id)}
+                      onSelectedChange={(c) => handleSelectOne(invoice.id, c)}
+                      statusBadge={
+                        <DocumentStatusBadge
+                          label={statusLabel[invoice.status]}
+                          tone={STATUS_TONE[invoice.status]}
                         />
-                      </TableHead>
-                      <TableHead>{t("colNumber")}</TableHead>
-                      <TableHead>{t("colClient")}</TableHead>
-                      <TableHead>{t("colIssueDate")}</TableHead>
-                      <TableHead>{t("colDueDate")}</TableHead>
-                      <TableHead className="text-right">{t("colTotal")}</TableHead>
-                      <TableHead className="text-right">{t("colPending")}</TableHead>
-                      <TableHead>{t("colStatus")}</TableHead>
-                      <TableHead className="w-[70px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedInvoices.map((invoice) => (
-                      <TableRow key={invoice.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedIds.includes(invoice.id)}
-                            onCheckedChange={(checked) =>
-                              handleSelectOne(invoice.id, checked as boolean)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="font-mono font-medium">
-                          <span className="flex items-center gap-1.5 flex-wrap">
-                            {invoice.invoice_number}
-                            {(invoice as any).renewal_contract_id && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-300 text-purple-700 bg-purple-50">
-                                <RefreshCcw className="h-2.5 w-2.5 mr-0.5" />
-                                Renovação
-                              </Badge>
-                            )}
-                            {(invoice as any).external_provider === "invoicexpress" && (
-                              <a
-                                href={(invoice as any).external_url || "#"}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                title="Aberta no InvoiceXpress"
-                              >
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100">
-                                  InvoiceXpress
-                                </Badge>
-                              </a>
-                            )}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{invoice.client_name}</p>
-                            {invoice.client_email && (
-                              <p className="text-xs text-muted-foreground">
-                                {invoice.client_email}
-                              </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(invoice.issue_date)}
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(invoice.due_date)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(invoice.total)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {(() => {
-                            const pending = invoice.total - (invoice.amount_paid ?? 0);
-                            return (
-                              <span className={pending <= 0 ? "text-green-600" : "text-orange-600"}>
-                                {formatCurrency(pending > 0 ? pending : 0)}
-                              </span>
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="gap-2" onClick={() => navigate(`/dashboard/invoices/${invoice.id}`)}>
-                                <Eye className="h-4 w-4" />
-                                {t("viewDetails")}
+                      }
+                      number={invoice.invoice_number}
+                      subtitle="FATURA"
+                      clientName={invoice.client_name}
+                      clientSubtitle={invoice.client_email ?? undefined}
+                      issueDate={formatDate(invoice.issue_date)}
+                      dueDate={formatDate(invoice.due_date)}
+                      dueDateTone={isOverdue ? "overdue" : "default"}
+                      totalPrimary={formatCurrency(gross)}
+                      totalSecondary={`${formatCurrency(net)} S/IVA`}
+                      onClick={() => navigate(`/dashboard/invoices/${invoice.id}`)}
+                      action={
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-primary hover:bg-primary/10"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem className="gap-2" onClick={() => navigate(`/dashboard/invoices/${invoice.id}`)}>
+                              <Eye className="h-4 w-4" /> {t("viewDetails")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2">
+                              <Download className="h-4 w-4" /> {t("downloadPdf")}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {invoice.status === "draft" && (
+                              <DropdownMenuItem className="gap-2" onClick={() => sendInvoice.mutate(invoice.id)}>
+                                <Send className="h-4 w-4" /> {t("markAsSent")}
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2">
-                                <Download className="h-4 w-4" />
-                                {t("downloadPdf")}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {invoice.status === "draft" && (
+                            )}
+                            {(invoice.status === "sent" || invoice.status === "overdue" || invoice.status === "partially_paid") && (
+                              <>
                                 <DropdownMenuItem
                                   className="gap-2"
-                                  onClick={() => sendInvoice.mutate(invoice.id)}
+                                  onClick={() => setPaymentInvoice({
+                                    id: invoice.id,
+                                    total: invoice.total,
+                                    amount_paid: invoice.amount_paid || 0,
+                                    currency: invoice.currency || "EUR",
+                                  })}
                                 >
-                                  <Send className="h-4 w-4" />
-                                  {t("markAsSent")}
+                                  <CreditCard className="h-4 w-4" /> {t("registerPayment")}
                                 </DropdownMenuItem>
-                              )}
-                              {(invoice.status === "sent" || invoice.status === "overdue" || invoice.status === "partially_paid") && (
-                                <>
-                                  <DropdownMenuItem
-                                    className="gap-2"
-                                    onClick={() => setPaymentInvoice({
-                                      id: invoice.id,
-                                      total: invoice.total,
-                                      amount_paid: invoice.amount_paid || 0,
-                                      currency: invoice.currency || "EUR",
-                                    })}
-                                  >
-                                    <CreditCard className="h-4 w-4" />
-                                    {t("registerPayment")}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="gap-2"
-                                    onClick={() => markPaid.mutate({ id: invoice.id })}
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                    {t("markAsPaid")}
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="gap-2 text-destructive"
-                                onClick={() => {
-                                  if (confirm(t("confirmDelete"))) {
-                                    deleteInvoice.mutate(invoice.id);
-                                  }
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                {t("deleteInvoice")}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <FileCheck className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium text-foreground">{t("noInvoices")}</h3>
-                  <p className="text-muted-foreground mt-1 mb-4">
-                    {t("noInvoicesDesc")}
-                  </p>
-                  <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    {t("createFirstInvoice")}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {totalPages > 0 && (
-            <div className="flex items-center justify-between pt-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{t("show")}</span>
-                <Select
-                  value={pageSize.toString()}
-                  onValueChange={(v) => {
-                    setPageSize(Number(v));
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="w-[70px] h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAGE_SIZE_OPTIONS.map((size) => (
-                      <SelectItem key={size} value={size.toString()}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-sm text-muted-foreground">{t("perPage")}</span>
+                                <DropdownMenuItem className="gap-2" onClick={() => markPaid.mutate({ id: invoice.id })}>
+                                  <CheckCircle className="h-4 w-4" /> {t("markAsPaid")}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="gap-2 text-destructive"
+                              onClick={() => {
+                                if (confirm(t("confirmDelete"))) deleteInvoice.mutate(invoice.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" /> {t("deleteInvoice")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      }
+                    />
+                  );
+                })}
               </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
+                <FileText className="mb-4 h-12 w-12 text-muted-foreground/50" />
+                <h3 className="text-lg font-semibold text-foreground">{t("noInvoices")}</h3>
+                <p className="mt-1 mb-4 text-sm text-muted-foreground">{t("noInvoicesDesc")}</p>
+                <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" /> {t("createFirstInvoice")}
+                </Button>
+              </div>
+            )}
 
-              <div className="flex items-center gap-2">
+            {totalInvoices > pageSize && (
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <span className="text-sm text-muted-foreground">
                   {t("pageOf", { current: currentPage, total: totalPages })}
                 </span>
@@ -685,17 +504,12 @@ export default function Invoices() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          )}
-            </>
-          )}
-        </div>
-      </div>
+            )}
+          </>
+        )}
+      </DocumentListLayout>
 
-      <CreateInvoiceDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-      />
+      <CreateInvoiceDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
 
       {paymentInvoice && (
         <RegisterPaymentDialog
