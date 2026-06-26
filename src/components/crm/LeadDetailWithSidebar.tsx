@@ -125,23 +125,16 @@ export function LeadDetailWithSidebar() {
   };
 
   const ixTabs = useMemo(() => {
-    const c = counts ?? {};
+    const c = (counts ?? {}) as Record<string, number | undefined>;
+    const n = (k: string) => c[k] ?? 0;
     return [
       { id: "overview", label: "Visão Geral" },
-      {
-        id: "activity",
-        label: "Atividade",
-        count: (c.tasks ?? 0) + (c.notes ?? 0),
-      },
-      {
-        id: "communication",
-        label: "Comunicação",
-        count: (c.messages ?? 0) + (c.scheduling ?? 0),
-      },
+      { id: "activity", label: "Atividade", count: n("tasks") + n("notes") },
+      { id: "communication", label: "Comunicação", count: n("messages") + n("scheduling") },
       {
         id: "business",
         label: "Negócio",
-        count: (c.opportunities ?? 0) + (c.proposals ?? 0) + (c.credit ?? 0) + (c.files ?? 0),
+        count: n("opportunities") + n("proposals") + n("credit") + n("files"),
       },
       { id: "ai_data", label: "IA & Dados" },
     ];
