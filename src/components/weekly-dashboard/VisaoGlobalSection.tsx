@@ -180,6 +180,14 @@ export function VisaoGlobalSection() {
       ? ((curYearSummary.avg - prevYearSummary.avg) / prevYearSummary.avg) * 100
       : 0;
 
+  const curYearData = data?.yearly.find((y) => y.year === currentYear);
+  const prevYearData = data?.yearly.find((y) => y.year === currentYear - 1);
+  const trendChart = MONTH_LABELS.map((label, i) => ({
+    month: label,
+    current: curYearData ? (i < currentMonth ? curYearData.months[i] : null) : null,
+    previous: prevYearData ? prevYearData.months[i] : null,
+  }));
+
   if (isLoading || !data) {
     return (
       <div className="space-y-10">
