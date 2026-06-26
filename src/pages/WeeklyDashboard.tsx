@@ -60,7 +60,20 @@ export default function WeeklyDashboard() {
             <ClockInOutButton />
           </div>
 
-          {/* Conteúdo organizado em separadores — no topo para navegação rápida */}
+          {/* Performance — KPIs principais no topo */}
+          <IXSection
+            title="Performance"
+            subtitle="Indicadores principais e valor de pipeline"
+            bare
+          >
+            <PremiumKPICards
+              metrics={data?.metrics || []}
+              pipelineValue={data?.pipelineValue ?? 0}
+              isLoading={isLoading}
+            />
+          </IXSection>
+
+          {/* Conteúdo organizado em separadores */}
           <Tabs defaultValue="performance" className="space-y-6">
             <TabsList className="grid grid-cols-4 w-full max-w-2xl">
               <TabsTrigger value="performance">Performance</TabsTrigger>
@@ -69,7 +82,7 @@ export default function WeeklyDashboard() {
               <TabsTrigger value="ai">IA & Atalhos</TabsTrigger>
             </TabsList>
 
-            {/* Performance — Alertas, War Room, Visão Global, KPIs e Metas */}
+            {/* Performance — Alertas, War Room, Visão Global e Metas */}
             <TabsContent value="performance" className="space-y-8 mt-6">
               <IXSection
                 title="Alertas imediatos"
@@ -131,18 +144,6 @@ export default function WeeklyDashboard() {
               <VisaoGlobalSection />
 
               <IXSection
-                title="Performance"
-                subtitle="Indicadores principais e valor de pipeline"
-                bare
-              >
-                <PremiumKPICards
-                  metrics={data?.metrics || []}
-                  pipelineValue={data?.pipelineValue ?? 0}
-                  isLoading={isLoading}
-                />
-              </IXSection>
-
-              <IXSection
                 title="Metas do trimestre"
                 subtitle="Projeção e progresso face aos objetivos definidos"
                 bare
@@ -153,6 +154,7 @@ export default function WeeklyDashboard() {
                 />
               </IXSection>
             </TabsContent>
+
 
             {/* Ações — oportunidades e plano diário */}
             <TabsContent value="actions" className="space-y-8 mt-6">
