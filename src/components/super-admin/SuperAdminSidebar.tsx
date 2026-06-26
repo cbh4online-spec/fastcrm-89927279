@@ -28,6 +28,7 @@ import {
   Bug,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SidebarNavItem } from "@/components/layout/sidebar/SidebarNavItem";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
