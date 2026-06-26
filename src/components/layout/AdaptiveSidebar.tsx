@@ -19,7 +19,9 @@ import type { AgeGroup, SalesFunction } from "@/data/adaptiveDashboardMock";
 import {
   X, PanelLeftClose, PanelLeftOpen, ChevronRight,
   Eye, ChevronDown, RotateCcw, Search, Sparkles, Crown,
+  Sun, Monitor, Moon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
