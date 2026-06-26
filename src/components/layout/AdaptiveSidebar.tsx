@@ -249,15 +249,18 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
         onClick={onClose}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex items-center gap-3 px-3 rounded-lg font-medium transition-colors",
+          "flex items-center gap-3 px-3 rounded-full font-semibold transition-colors",
           style.itemHeight, style.textSize,
           indent && "pl-10",
           active
-            ? "bg-sidebar-accent text-sidebar-primary"
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
+            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
         )}
       >
-        <Icon className={cn(style.iconSize, "shrink-0", active && "text-sidebar-primary")} />
+        <Icon
+          className={cn(style.iconSize, "shrink-0", active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70")}
+          strokeWidth={1.75}
+        />
         <span className="flex-1 truncate">{item.label}</span>
         {hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
         <SidebarBadge count={badgeCount} animate={style.animationsEnabled} />
@@ -274,8 +277,8 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
       return (
         <div key={section.key} className={cn(idx > 0 && "mt-3")} role="group" aria-label={section.label}>
           {!isCollapsed && (
-            <div className="px-3 pb-1">
-              <span className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+            <div className="px-3 pb-2 pt-1">
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/45">
                 {section.label}
               </span>
             </div>
