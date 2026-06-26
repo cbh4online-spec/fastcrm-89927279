@@ -1,6 +1,6 @@
 import React from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { SmartLeadsTable } from "@/components/leads/SmartLeadsTable";
+import { LeadsListIX } from "@/components/leads/LeadsListIX";
 
 class LeadsErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -30,11 +30,10 @@ class LeadsErrorBoundary extends React.Component<
 }
 
 export default function Leads() {
-  console.log("[Leads] Page rendering");
   return (
     <DashboardLayout>
       <LeadsErrorBoundary>
-        <SmartLeadsTable />
+        <LeadsListIX />
       </LeadsErrorBoundary>
     </DashboardLayout>
   );
