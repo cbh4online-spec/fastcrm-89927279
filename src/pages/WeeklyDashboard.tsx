@@ -60,19 +60,10 @@ export default function WeeklyDashboard() {
             <ClockInOutButton />
           </div>
 
-          {/* Visão Global — estilo InvoiceXpress */}
+          {/* Visão Global — KPIs financeiros principais */}
           <VisaoGlobalSection />
 
-
-
-          <IXSection
-            title="Assistente de Vendas IA"
-            subtitle="Recomendações e estratégia gerada para esta semana"
-            bare
-          >
-            <PremiumAISection />
-          </IXSection>
-
+          {/* Alertas imediatos — sempre visíveis no topo */}
           <IXSection
             title="Alertas imediatos"
             subtitle="Situações que precisam da tua atenção agora"
@@ -84,108 +75,138 @@ export default function WeeklyDashboard() {
             />
           </IXSection>
 
-          <IXSection
-            title="Performance"
-            subtitle="Indicadores principais e valor de pipeline"
-            bare
-          >
-            <PremiumKPICards
-              metrics={data?.metrics || []}
-              pipelineValue={data?.pipelineValue ?? 0}
-              isLoading={isLoading}
-            />
-          </IXSection>
+          {/* Conteúdo organizado em separadores */}
+          <Tabs defaultValue="performance" className="space-y-6">
+            <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+              <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="actions">Ações</TabsTrigger>
+              <TabsTrigger value="history">Histórico</TabsTrigger>
+              <TabsTrigger value="ai">IA & Atalhos</TabsTrigger>
+            </TabsList>
 
-          <IXSection
-            title="War Room"
-            subtitle={`Situação da semana ${weekLabel} — receita vs. meta`}
-            actions={
-              <>
-                <WarRoomBriefingExport
+            {/* Performance — KPIs, War Room e Metas */}
+            <TabsContent value="performance" className="space-y-8 mt-6">
+              <IXSection
+                title="Performance"
+                subtitle="Indicadores principais e valor de pipeline"
+                bare
+              >
+                <PremiumKPICards
                   metrics={data?.metrics || []}
                   pipelineValue={data?.pipelineValue ?? 0}
-                  weekLabel={weekLabel}
-                  todaysBrief={todaysBrief}
-                  strategy={strategy}
-                  workspaceName={currentWorkspace?.name}
-                  workspaceLogoUrl={currentWorkspace?.logo_url}
+                  isLoading={isLoading}
                 />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate("/dashboard/performance/metrics")}
-                  className="gap-1.5"
-                >
-                  <Target className="h-3.5 w-3.5" />
-                  Definir Metas
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={generate}
-                  disabled={strategyLoading}
-                  className="gap-1.5"
-                >
-                  <RefreshCw
-                    className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`}
-                  />
-                  Atualizar
-                </Button>
-              </>
-            }
-            bare
-          >
-            <RevenueTargetStrip
-              metrics={data?.metrics || []}
-              pipelineValue={data?.pipelineValue ?? 0}
-              isLoading={isLoading}
-            />
-          </IXSection>
+              </IXSection>
 
-          <IXSection
-            id="today-action-plan"
-            title="Oportunidades e Ações"
-            subtitle="Negócios prioritários e plano de ação para hoje"
-            actions={
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Lightbulb className="h-4 w-4 text-primary" />
-                <span>Foco diário</span>
-              </div>
-            }
-            bare
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <PriorityDealsTable />
-              <TodayActionPlan />
-            </div>
-          </IXSection>
+              <IXSection
+                title="War Room"
+                subtitle={`Situação da semana ${weekLabel} — receita vs. meta`}
+                actions={
+                  <>
+                    <WarRoomBriefingExport
+                      metrics={data?.metrics || []}
+                      pipelineValue={data?.pipelineValue ?? 0}
+                      weekLabel={weekLabel}
+                      todaysBrief={todaysBrief}
+                      strategy={strategy}
+                      workspaceName={currentWorkspace?.name}
+                      workspaceLogoUrl={currentWorkspace?.logo_url}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/dashboard/performance/metrics")}
+                      className="gap-1.5"
+                    >
+                      <Target className="h-3.5 w-3.5" />
+                      Definir Metas
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={generate}
+                      disabled={strategyLoading}
+                      className="gap-1.5"
+                    >
+                      <RefreshCw
+                        className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`}
+                      />
+                      Atualizar
+                    </Button>
+                  </>
+                }
+                bare
+              >
+                <RevenueTargetStrip
+                  metrics={data?.metrics || []}
+                  pipelineValue={data?.pipelineValue ?? 0}
+                  isLoading={isLoading}
+                />
+              </IXSection>
 
-          <IXSection
-            title="Evolução semanal"
-            subtitle="Histórico recente de receita, conversões e atividade"
-            bare
-          >
-            <WeeklyHistoryCharts />
-          </IXSection>
+              <IXSection
+                title="Metas do trimestre"
+                subtitle="Projeção e progresso face aos objetivos definidos"
+                bare
+              >
+                <QuarterGoalsProjection
+                  metrics={data?.metrics || []}
+                  isLoading={isLoading}
+                />
+              </IXSection>
+            </TabsContent>
 
-          <IXSection
-            title="Metas do trimestre"
-            subtitle="Projeção e progresso face aos objetivos definidos"
-            bare
-          >
-            <QuarterGoalsProjection
-              metrics={data?.metrics || []}
-              isLoading={isLoading}
-            />
-          </IXSection>
+            {/* Ações — oportunidades e plano diário */}
+            <TabsContent value="actions" className="space-y-8 mt-6">
+              <IXSection
+                id="today-action-plan"
+                title="Oportunidades e Ações"
+                subtitle="Negócios prioritários e plano de ação para hoje"
+                actions={
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Lightbulb className="h-4 w-4 text-primary" />
+                    <span>Foco diário</span>
+                  </div>
+                }
+                bare
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <PriorityDealsTable />
+                  <TodayActionPlan />
+                </div>
+              </IXSection>
+            </TabsContent>
 
-          <IXSection
-            title="Acesso rápido"
-            subtitle="Atalhos para as áreas mais usadas"
-            bare
-          >
-            <QuickAccessFooter />
-          </IXSection>
+            {/* Histórico — evolução semanal */}
+            <TabsContent value="history" className="space-y-8 mt-6">
+              <IXSection
+                title="Evolução semanal"
+                subtitle="Histórico recente de receita, conversões e atividade"
+                bare
+              >
+                <WeeklyHistoryCharts />
+              </IXSection>
+            </TabsContent>
+
+            {/* IA & Atalhos */}
+            <TabsContent value="ai" className="space-y-8 mt-6">
+              <IXSection
+                title="Assistente de Vendas IA"
+                subtitle="Recomendações e estratégia gerada para esta semana"
+                bare
+              >
+                <PremiumAISection />
+              </IXSection>
+
+              <IXSection
+                title="Acesso rápido"
+                subtitle="Atalhos para as áreas mais usadas"
+                bare
+              >
+                <QuickAccessFooter />
+              </IXSection>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </DashboardLayout>
