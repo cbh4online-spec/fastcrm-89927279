@@ -186,7 +186,7 @@ export function ContactsListIX() {
               className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
             >
               {orderedColumns.map((col) => (
-                <div key={col} className={cn("flex items-center", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
+                <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
                   {renderCell(col, c)}
                 </div>
               ))}
