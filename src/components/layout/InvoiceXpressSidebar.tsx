@@ -85,7 +85,7 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
-  const { storeSettings } = useStoreSettings();
+  const { data: storeSettings } = useStoreSettings();
 
   const workspaceName = storeSettings?.store_name || currentWorkspace?.name || "Workspace";
   const logoUrl = storeSettings?.logo_url;
