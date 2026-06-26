@@ -60,6 +60,18 @@ export default function WeeklyDashboard() {
             <ClockInOutButton />
           </div>
 
+          {/* Alertas imediatos — análise CEO/especialista no topo */}
+          <IXSection
+            title="Alertas imediatos"
+            subtitle="Análise executiva — situações que precisam da tua atenção agora"
+            bare
+          >
+            <ImmediateAttentionBanner
+              metrics={data?.metrics || []}
+              isLoading={isLoading}
+            />
+          </IXSection>
+
           {/* War Room — primeira secção operacional */}
           <IXSection
             title="War Room"
@@ -110,17 +122,6 @@ export default function WeeklyDashboard() {
           {/* Visão Global — KPIs financeiros principais */}
           <VisaoGlobalSection />
 
-          {/* Alertas imediatos — sempre visíveis no topo */}
-          <IXSection
-            title="Alertas imediatos"
-            subtitle="Situações que precisam da tua atenção agora"
-            bare
-          >
-            <ImmediateAttentionBanner
-              metrics={data?.metrics || []}
-              isLoading={isLoading}
-            />
-          </IXSection>
 
           {/* Conteúdo organizado em separadores */}
           <Tabs defaultValue="performance" className="space-y-6">
