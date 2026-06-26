@@ -249,15 +249,18 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
         onClick={onClose}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex items-center gap-3 px-3 rounded-lg font-medium transition-colors",
+          "flex items-center gap-3 px-3 rounded-full font-semibold transition-colors",
           style.itemHeight, style.textSize,
           indent && "pl-10",
           active
-            ? "bg-sidebar-accent text-sidebar-primary"
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
+            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
         )}
       >
-        <Icon className={cn(style.iconSize, "shrink-0", active && "text-sidebar-primary")} />
+        <Icon
+          className={cn(style.iconSize, "shrink-0", active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70")}
+          strokeWidth={1.75}
+        />
         <span className="flex-1 truncate">{item.label}</span>
         {hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
         <SidebarBadge count={badgeCount} animate={style.animationsEnabled} />
