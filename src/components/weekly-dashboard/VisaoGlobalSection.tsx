@@ -195,7 +195,8 @@ export function VisaoGlobalSection() {
       {/* FATURAÇÃO */}
       <IXSection
         title="Faturação"
-        subtitle="Visão geral da performance de vendas e tendências da faturação (s/ IVA)"
+        subtitle={`Performance de vendas e variação YoY · ${PERIOD_LABELS[period]} (s/ IVA)`}
+        actions={PeriodToggle}
         bare
       >
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
@@ -231,10 +232,35 @@ export function VisaoGlobalSection() {
             </div>
           </Card>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-            <KpiCard label="Hoje" value={data.kpis.today} />
-            <KpiCard label="Este mês" value={data.kpis.thisMonth} delta={data.kpis.thisMonthDelta} />
-            <KpiCard label="Este trimestre" value={data.kpis.thisQuarter} delta={data.kpis.thisQuarterDelta} />
-            <KpiCard label="Este ano" value={data.kpis.thisYear} delta={data.kpis.thisYearDelta} />
+            <KpiCard
+              label={`Faturação · ${PERIOD_LABELS[period]}`}
+              value={periodMetrics.faturacao}
+              delta={pct(periodMetrics.faturacao, periodMetrics.faturacaoPrev)}
+            />
+            <KpiCard
+              label={`Cobranças · ${PERIOD_LABELS[period]}`}
+              value={periodMetrics.cobrancas}
+              delta={pct(periodMetrics.cobrancas, periodMetrics.cobrancasPrev)}
+            />
+            <KpiCard
+              label={`IVA liquidado · ${PERIOD_LABELS[period]}`}
+              value={periodMetrics.iva}
+              delta={pct(periodMetrics.iva, periodMetrics.ivaPrev)}
+            />
+            <Card className="p-5 flex flex-col gap-2 bg-muted/30">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Período homólogo
+              </span>
+              <div className="text-sm text-muted-foreground">
+                Faturação: <span className="font-semibold text-foreground">{formatEuro(periodMetrics.faturacaoPrev)}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Cobranças: <span className="font-semibold text-foreground">{formatEuro(periodMetrics.cobrancasPrev)}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                IVA: <span className="font-semibold text-foreground">{formatEuro(periodMetrics.ivaPrev)}</span>
+              </div>
+            </Card>
           </div>
         </div>
       </IXSection>
@@ -245,6 +271,7 @@ export function VisaoGlobalSection() {
         subtitle="Acompanha o fluxo de caixa e o dinheiro em dívida (valores c/ IVA)"
         bare
       >
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
