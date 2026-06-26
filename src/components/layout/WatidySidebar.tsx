@@ -637,6 +637,9 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   </div>
                 )}
               </nav>
+
+              {/* Footer estilo InvoiceXpress: atalhos + tema + copyright */}
+              <SidebarFooter />
             </div>
           );
         })()}
