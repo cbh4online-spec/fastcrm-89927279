@@ -5,16 +5,95 @@ import { Button } from "@/components/ui/button";
 import {
   DocumentListLayout,
   DocumentListToolbar,
-  DocumentRow,
 } from "@/components/documents/listing";
+import {
+  ListColumnsPicker,
+  useListColumns,
+  type ListColumnDef,
+} from "@/components/documents/listing/ListColumnsPicker";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
+import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "created_at" | "pare_score";
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(value || 0);
+const COLUMNS: ListColumnDef[] = [
+  { key: "name", label: "Nome", required: true },
+  { key: "email", label: "Email", defaultVisible: true },
+  { key: "phone", label: "Telefone", defaultVisible: true },
+  { key: "company", label: "Empresa", defaultVisible: true },
+  { key: "job_title", label: "Cargo", defaultVisible: false },
+  { key: "tax_id", label: "NIF", defaultVisible: false },
+  { key: "client_number", label: "Nº cliente", defaultVisible: false },
+  { key: "lead_status", label: "Estado", defaultVisible: false },
+  { key: "pare_score", label: "Score PARE", defaultVisible: true },
+  { key: "icp_fit_score", label: "ICP Fit", defaultVisible: false },
+  { key: "engagement_score", label: "Engagement", defaultVisible: false },
+  { key: "created_at", label: "Data de criação", defaultVisible: true },
+  { key: "next_followup_at", label: "Próximo follow-up", defaultVisible: false },
+  { key: "tags", label: "Tags", defaultVisible: false },
+];
+
+const COLUMN_WIDTH: Record<string, string> = {
+  name: "min-w-[180px] flex-1",
+  email: "min-w-[200px] flex-1",
+  phone: "w-[140px] shrink-0",
+  company: "min-w-[160px] flex-1",
+  job_title: "w-[140px] shrink-0",
+  tax_id: "w-[110px] shrink-0",
+  client_number: "w-[110px] shrink-0",
+  lead_status: "w-[110px] shrink-0",
+  pare_score: "w-[90px] shrink-0",
+  icp_fit_score: "w-[90px] shrink-0",
+  engagement_score: "w-[110px] shrink-0",
+  created_at: "w-[120px] shrink-0",
+  next_followup_at: "w-[140px] shrink-0",
+  tags: "min-w-[140px] flex-1",
+};
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  try { return new Date(value).toLocaleDateString("pt-PT"); } catch { return "—"; }
+}
+
+function renderCell(col: string, c: Contact) {
+  switch (col) {
+    case "name":
+      return (
+        <div className="flex flex-col">
+          <span className="truncate text-sm font-semibold text-foreground">{c.name || "(sem nome)"}</span>
+          {c.company && <span className="truncate text-xs text-muted-foreground">{c.company}</span>}
+        </div>
+      );
+    case "email": return <span className="truncate text-sm text-foreground">{c.email || "—"}</span>;
+    case "phone": return <span className="text-sm text-foreground">{c.phone || "—"}</span>;
+    case "company": return <span className="truncate text-sm text-foreground">{c.company || "—"}</span>;
+    case "job_title": return <span className="truncate text-sm text-foreground">{c.job_title || "—"}</span>;
+    case "tax_id": return <span className="text-sm text-foreground">{c.tax_id || "—"}</span>;
+    case "client_number": return <span className="text-sm text-foreground">{c.client_number || "—"}</span>;
+    case "lead_status": return <span className="text-sm text-foreground">{c.lead_status || "—"}</span>;
+    case "pare_score":
+      return <div className="text-right"><span className="text-xs text-muted-foreground">PARE</span><div className="text-sm font-semibold">{c.pare_score ?? 0}</div></div>;
+    case "icp_fit_score":
+      return <div className="text-right"><span className="text-xs text-muted-foreground">ICP</span><div className="text-sm font-semibold">{c.icp_fit_score ?? 0}</div></div>;
+    case "engagement_score":
+      return <div className="text-right"><span className="text-xs text-muted-foreground">Engag.</span><div className="text-sm font-semibold">{c.engagement_score ?? 0}</div></div>;
+    case "created_at":
+      return <div className="text-right text-xs"><div className="text-muted-foreground">Criado</div><div className="font-medium text-foreground">{formatDate(c.created_at)}</div></div>;
+    case "next_followup_at":
+      return <div className="text-right text-xs"><div className="text-muted-foreground">Follow-up</div><div className="font-medium text-foreground">{formatDate(c.next_followup_at)}</div></div>;
+    case "tags":
+      return (
+        <div className="flex flex-wrap gap-1">
+          {(c.tags || []).slice(0, 3).map((t) => (
+            <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">{t}</span>
+          ))}
+          {(!c.tags || c.tags.length === 0) && <span className="text-xs text-muted-foreground">—</span>}
+        </div>
+      );
+    default: return null;
+  }
 }
 
 export function ContactsListIX() {
@@ -26,6 +105,7 @@ export function ContactsListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const { columns, setColumns } = useListColumns("contacts-list-columns-v1", COLUMNS);
 
   const all = (contacts as Contact[]) ?? [];
 
@@ -52,6 +132,10 @@ export function ContactsListIX() {
 
   const totalCount = filtered.length;
   const pageItems = filtered.slice(page * pageSize, page * pageSize + pageSize);
+  const orderedColumns = useMemo(
+    () => COLUMNS.filter((c) => columns.includes(c.key)).map((c) => c.key),
+    [columns],
+  );
 
   return (
     <DocumentListLayout
@@ -84,6 +168,7 @@ export function ContactsListIX() {
           onPageSizeChange={(v) => { setPageSize(v); setPage(0); }}
           totalCount={totalCount}
           countLabel="Contactos"
+          extra={<ListColumnsPicker definitions={COLUMNS} value={columns} onChange={setColumns} />}
         />
       }
     >
@@ -92,19 +177,22 @@ export function ContactsListIX() {
       ) : pageItems.length === 0 ? (
         <EmptyState title="Sem contactos" description="Não foram encontrados contactos com os filtros atuais." />
       ) : (
-        pageItems.map((c) => (
-          <DocumentRow
-            key={c.id}
-            number={c.name || "(sem nome)"}
-            subtitle={c.tax_id || undefined}
-            clientName={c.email || "—"}
-            clientSubtitle={c.company || c.phone || undefined}
-            issueDate={new Date(c.created_at).toLocaleDateString("pt-PT")}
-            totalPrimary={formatCurrency(0)}
-            totalSecondary="Saldo"
-            onClick={() => navigate(`/dashboard/contacts/${c.id}`)}
-          />
-        ))
+        <div className="flex flex-col gap-2">
+          {pageItems.map((c) => (
+            <div
+              key={c.id}
+              role="button"
+              onClick={() => navigate(`/dashboard/contacts/${c.id}`)}
+              className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
+            >
+              {orderedColumns.map((col) => (
+                <div key={col} className={cn("flex items-center", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
+                  {renderCell(col, c)}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       )}
 
       {totalCount > pageSize && (
