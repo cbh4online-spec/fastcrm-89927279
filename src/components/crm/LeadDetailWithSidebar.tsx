@@ -348,9 +348,9 @@ export function LeadDetailWithSidebar() {
   };
 
   return (
-    <div className="flex flex-col -mx-4 -mt-4 -mb-4 md:-mx-6 md:-mt-6 md:-mb-6 min-h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)]">
+    <div className="flex flex-col -mx-4 -mt-4 -mb-4 md:-mx-6 md:-mt-6 md:-mb-6 min-h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)] bg-background">
       {/* Breadcrumbs */}
-      <div className="bg-background px-3 sm:px-6 pt-4">
+      <div className="px-4 sm:px-8 pt-5">
         <PageBreadcrumbs
           items={[
             { label: "CRM", href: "/dashboard/crm" },
@@ -360,11 +360,16 @@ export function LeadDetailWithSidebar() {
         />
       </div>
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-background via-background to-muted/30 border-b px-3 sm:px-6 py-3 sm:py-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/leads")} className="shrink-0">
+      {/* Header — estilo IX: superfície limpa, título grande, pills discretas */}
+      <div className="px-4 sm:px-8 pt-4 pb-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard/leads")}
+              className="shrink-0 mt-1 h-9 w-9 rounded-full hover:bg-muted"
+            >
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <EntityAvatarUpload
@@ -376,15 +381,17 @@ export function LeadDetailWithSidebar() {
               size="md"
             />
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <h1 className="text-lg sm:text-2xl font-semibold text-foreground truncate">{lead.name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground truncate">
+                  {lead.name}
+                </h1>
                 {lead.source && (
-                  <Badge variant="secondary" className="gap-1 text-xs uppercase font-medium shrink-0">
+                  <Badge variant="secondary" className="gap-1 text-[11px] uppercase font-medium shrink-0 rounded-full">
                     {SourceIcon}
                     <span className="hidden sm:inline">{getSourceLabel(lead.source)}</span>
                   </Badge>
                 )}
-                <Badge variant="outline" className={cn(statusColors[lead.status], "shrink-0")}>
+                <Badge variant="outline" className={cn(statusColors[lead.status], "shrink-0 rounded-full")}>
                   {statusLabels[lead.status]}
                 </Badge>
                 <InlineHeaderTags
@@ -392,11 +399,10 @@ export function LeadDetailWithSidebar() {
                   onTagsChange={(newTags) => handleFieldChange('tags', newTags)}
                 />
               </div>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1 flex items-center gap-2">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 shrink-0" />
                 Atualizado há {getTimeAgo(new Date(lead.updated_at))}
               </p>
-              {/* Social quick-links */}
               {(() => {
                 const l = lead as any;
                 const socials = [
@@ -408,7 +414,7 @@ export function LeadDetailWithSidebar() {
                 ].filter(s => !!s.url);
                 if (!socials.length) return null;
                 return (
-                  <div className="flex items-center gap-1.5 mt-1">
+                  <div className="flex items-center gap-1.5 mt-2">
                     {socials.map(s => {
                       const Icon = s.icon;
                       const href = String(s.url).startsWith('http') ? String(s.url) : `https://${s.url}`;
@@ -431,14 +437,15 @@ export function LeadDetailWithSidebar() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap pl-10 sm:pl-0">
+          <div className="flex items-center gap-2 flex-wrap pl-12 lg:pl-0">
             {lead.email && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="icon"
+                      className="h-10 w-10 rounded-full border-border bg-card"
                       onClick={() => setActiveSection('communication')}
                     >
                       <Mail className="w-4 h-4" />
@@ -452,9 +459,10 @@ export function LeadDetailWithSidebar() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="icon"
+                      className="h-10 w-10 rounded-full border-border bg-card"
                       onClick={() => setActiveSection('communication')}
                     >
                       <Phone className="w-4 h-4" />
@@ -464,20 +472,19 @@ export function LeadDetailWithSidebar() {
                 </Tooltip>
               </TooltipProvider>
             )}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleGenerateSuggestions}
               disabled={generateSuggestions.isPending}
-              className="gap-2"
-              size="sm"
+              className="h-10 gap-2 rounded-full border-border bg-card px-4"
             >
               <Sparkles className="w-4 h-4" />
               <span className="hidden sm:inline">{generateSuggestions.isPending ? "A analisar..." : "Analisar IA"}</span>
             </Button>
-            <ConvertLeadDialog 
+            <ConvertLeadDialog
               lead={lead}
               trigger={
-                <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
+                <Button className="h-10 gap-2 rounded-full px-5">
                   <ArrowRight className="w-4 h-4" />
                   <span className="hidden sm:inline">Converter</span>
                 </Button>
@@ -485,7 +492,7 @@ export function LeadDetailWithSidebar() {
             />
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive shrink-0">
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-full border-border bg-card text-destructive hover:text-destructive shrink-0">
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </AlertDialogTrigger>
@@ -510,28 +517,26 @@ export function LeadDetailWithSidebar() {
       </div>
 
       {/* Horizontal Tabs */}
-      <EntityHorizontalTabs
-        entityType="lead"
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-        counts={counts}
-      />
+      <div className="border-t border-border/60">
+        <EntityHorizontalTabs
+          entityType="lead"
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          counts={counts}
+        />
+      </div>
 
       {/* Main Content - Responsive Layout */}
-      <div className="flex-1 lg:flex lg:flex-row lg:min-h-0 lg:overflow-hidden">
-        {/* Center Content */}
+      <div className="flex-1 lg:flex lg:flex-row lg:min-h-0 lg:overflow-hidden bg-muted/20">
         <main className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
-          <div className="p-3 sm:p-6 max-w-4xl">
+          <div className="p-4 sm:p-8 max-w-4xl space-y-6">
             {activeSection === 'overview' && (
-              <div className="mb-6">
-                <EntityHighlightsGrid entityType="lead" entity={lead as any} />
-              </div>
+              <EntityHighlightsGrid entityType="lead" entity={lead as any} />
             )}
             {renderSectionContent()}
           </div>
         </main>
 
-        {/* Right Details Panel */}
         <EntityDetailsPanel entityType="lead" entity={lead as any} onUpdate={(field, value) => handleFieldChange(field as keyof Lead, value)} onEmailClick={(email) => { setEmailTo(email); setShowEmailDialog(true); }} />
       </div>
 
