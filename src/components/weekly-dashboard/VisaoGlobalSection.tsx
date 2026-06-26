@@ -260,6 +260,16 @@ export function VisaoGlobalSection() {
                     <span className="text-xs font-semibold text-muted-foreground">Total {item.year}</span>
                   </div>
                   <div className="mt-1 text-sm font-bold tabular-nums">{formatEuro(item.total)}</div>
+                  <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Média/mês ({item.monthsElapsed}m)</span>
+                    <span className="font-semibold tabular-nums text-foreground">{formatEuro(item.avg)}</span>
+                  </div>
+                  {item.year === currentYear && prevYearSummary && (
+                    <div className="mt-0.5 flex items-center justify-end">
+                      <DeltaBadge value={avgDeltaVsPrev} />
+                      <span className="ml-1 text-[10px] text-muted-foreground">vs {prevYearSummary.year}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
