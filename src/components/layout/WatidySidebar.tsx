@@ -36,6 +36,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { SidebarNavItem, SidebarSectionLabel } from "./sidebar/SidebarNavItem";
 
 interface WatidySidebarProps {
   open: boolean;
@@ -263,34 +264,21 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
   // ── Item renderer (panel) ──
   const renderItem = (item: RouteEntry) => {
     const active = isActive(item.href, item.end);
-    const Icon = item.icon;
     const badgeCount = getBadge(item.badgeKey);
     const hasTag = item.isPro || item.isBeta;
     const fav = isFavorite(item.key);
     return (
       <div key={item.key} className="group relative">
-        <Link
+        <SidebarNavItem
           to={item.href}
           onClick={onClose}
-          aria-current={active ? "page" : undefined}
-          className={cn(
-            "relative flex items-center gap-3 pl-3 pr-8 py-2 rounded-full text-[13.5px] font-semibold transition-all duration-150 ease-out",
-            active
-              ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
-              : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-          )}
-        >
-          <Icon
-            className={cn(
-              "w-[18px] h-[18px] shrink-0 transition-colors",
-              active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70",
-            )}
-            strokeWidth={1.75}
-          />
-          <span className="flex-1 truncate">{item.label}</span>
-          {hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
-          <NavBadge count={badgeCount} />
-        </Link>
+          active={active}
+          icon={item.icon}
+          label={item.label}
+          className="pr-8"
+          trailing={hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
+          badge={<NavBadge count={badgeCount} />}
+        />
         <button
           type="button"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.key); }}
@@ -311,30 +299,22 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
   // ── Compact item renderer for hover popover & rail blocks ──
   const renderCompactLink = (item: RouteEntry, color?: string) => {
     const active = isActive(item.href, item.end);
-    const Icon = item.icon;
     const badgeCount = getBadge(item.badgeKey);
     return (
-      <Link
+      <SidebarNavItem
         key={item.key}
         to={item.href}
         onClick={onClose}
-        className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-full text-[13.5px] font-semibold transition-colors",
-          active
-            ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
-            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-        )}
+        active={active}
+        icon={item.icon}
+        label={item.label}
+        badge={<NavBadge count={badgeCount} />}
+        // Preserve mega-group accent colour override on active state
         style={active && color ? { color: `hsl(${color})` } : undefined}
-      >
-        <Icon
-          className={cn("w-[18px] h-[18px] shrink-0", active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70")}
-          strokeWidth={1.75}
-        />
-        <span className="flex-1 truncate">{item.label}</span>
-        <NavBadge count={badgeCount} />
-      </Link>
+      />
     );
   };
+
 
   // ── Favorites/Recents resolved entries ──
   const favoriteItems = favorites.map((k) => itemByKey.get(k)).filter(Boolean) as RouteEntry[];
