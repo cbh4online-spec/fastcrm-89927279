@@ -112,6 +112,7 @@ function KpiCard({
 export function VisaoGlobalSection() {
   const { currentWorkspace } = useWorkspace();
   const { data, isLoading } = useWorkspaceFinancials(currentWorkspace?.id);
+  const [period, setPeriod] = useState<Period>("month");
 
   const faturacaoChart = useMemo(() => {
     if (!data) return [];
@@ -121,6 +122,39 @@ export function VisaoGlobalSection() {
       return row;
     });
   }, [data]);
+
+  const periodMetrics = useMemo(() => {
+    if (!data) {
+      return {
+        faturacao: 0, faturacaoPrev: 0,
+        cobrancas: 0, cobrancasPrev: 0,
+        iva: 0, ivaPrev: 0,
+      };
+    }
+    const { from, to, prevFrom, prevTo } = periodRange(period);
+    let faturacao = 0, faturacaoPrev = 0;
+    let cobrancas = 0, cobrancasPrev = 0;
+    let iva = 0, ivaPrev = 0;
+    for (const inv of data.invoices) {
+      const issue = inv.issue_date ? new Date(inv.issue_date) : null;
+      const paid = inv.paid_at ? new Date(inv.paid_at) : null;
+      const sub = Number(inv.subtotal || 0);
+      const tax = Number(inv.tax_amount || 0);
+      const amt = Number(inv.amount_paid || 0);
+      if (issue) {
+        if (issue >= from && issue <= to) { faturacao += sub; iva += tax; }
+        else if (issue >= prevFrom && issue <= prevTo) { faturacaoPrev += sub; ivaPrev += tax; }
+      }
+      if (paid) {
+        if (paid >= from && paid <= to) cobrancas += amt;
+        else if (paid >= prevFrom && paid <= prevTo) cobrancasPrev += amt;
+      }
+    }
+    return { faturacao, faturacaoPrev, cobrancas, cobrancasPrev, iva, ivaPrev };
+  }, [data, period]);
+
+  const pct = (cur: number, prev: number) =>
+    prev > 0 ? ((cur - prev) / prev) * 100 : cur > 0 ? 100 : 0;
 
   const years = data?.yearly.map((y) => y.year) ?? [];
   const yearColors = ["hsl(var(--muted-foreground) / 0.3)", "hsl(var(--muted-foreground) / 0.5)", "hsl(142 71% 45%)"];
@@ -139,6 +173,22 @@ export function VisaoGlobalSection() {
   }
 
   const palette = ["#ef4444", "#f97316", "#f59e0b", "#eab308", "#10b981", "#06b6d4", "#3b82f6", "#a855f7"];
+
+  const PeriodToggle = (
+    <ToggleGroup
+      type="single"
+      value={period}
+      onValueChange={(v) => v && setPeriod(v as Period)}
+      size="sm"
+      variant="outline"
+    >
+      <ToggleGroupItem value="7d" className="text-xs">7 dias</ToggleGroupItem>
+      <ToggleGroupItem value="month" className="text-xs">Mês</ToggleGroupItem>
+      <ToggleGroupItem value="quarter" className="text-xs">Trimestre</ToggleGroupItem>
+      <ToggleGroupItem value="year" className="text-xs">Ano</ToggleGroupItem>
+    </ToggleGroup>
+  );
+
 
   return (
     <div className="space-y-10">
