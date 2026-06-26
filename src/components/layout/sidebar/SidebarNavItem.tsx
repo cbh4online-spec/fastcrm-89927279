@@ -32,6 +32,7 @@ export interface SidebarNavItemProps {
   /** Render as `<button>` when no `to` is provided. */
   to?: string;
   onClick?: MouseEventHandler<HTMLElement>;
+  style?: React.CSSProperties;
   "aria-label"?: string;
 }
 
