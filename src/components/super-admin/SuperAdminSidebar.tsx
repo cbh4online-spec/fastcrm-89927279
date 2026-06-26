@@ -185,30 +185,30 @@ export function SuperAdminSidebar({ activeSection, onSectionChange }: SuperAdmin
               open={openSections.includes(section.id)}
               onOpenChange={() => toggleSection(section.id)}
             >
-              <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
-                <section.icon className="h-4 w-4" />
+              <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70 hover:text-foreground transition-colors">
+                <section.icon className="h-3 w-3 opacity-70" strokeWidth={1.75} />
                 <span className="flex-1 text-left">{section.label}</span>
                 {openSections.includes(section.id) ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-3 w-3 opacity-60" />
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-3 w-3 opacity-60" />
                 )}
               </CollapsibleTrigger>
               
-              <CollapsibleContent className="pl-4 mt-1 space-y-1">
+              <CollapsibleContent className="mt-1 space-y-1">
                 {section.items.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => onSectionChange(item.id)}
                     className={cn(
-                      "flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors",
+                      "flex items-center gap-3 w-full px-3 py-2 text-[13.5px] rounded-full font-semibold transition-colors",
                       isItemActive(item.id)
-                        ? "bg-primary text-primary-foreground font-medium"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
+                        : "text-foreground/75 hover:text-foreground hover:bg-accent"
                     )}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+                    <span className="flex-1 text-left truncate">{item.label}</span>
                   </button>
                 ))}
               </CollapsibleContent>
