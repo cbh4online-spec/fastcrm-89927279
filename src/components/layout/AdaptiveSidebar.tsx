@@ -258,11 +258,11 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
               className={cn(
                 "relative flex items-center justify-center p-2 rounded-lg transition-colors",
                 active
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               )}
             >
-              <Icon className={cn(style.iconSize, active && "text-sidebar-primary")} />
+              <Icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
               {badgeCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sidebar-primary px-1 text-[10px] font-bold text-sidebar-primary-foreground">
                   {badgeCount > 99 ? "99+" : badgeCount}
