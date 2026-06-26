@@ -158,11 +158,25 @@ export function VisaoGlobalSection() {
     prev > 0 ? ((cur - prev) / prev) * 100 : cur > 0 ? 100 : 0;
 
   const years = data?.yearly.map((y) => y.year) ?? [];
-  const yearlySummary = data?.yearly.map((y, i) => ({
-    year: y.year,
-    total: y.total,
-    color: YEAR_SERIES_COLORS[i] || "hsl(var(--muted-foreground))",
-  })) ?? [];
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const yearlySummary = data?.yearly.map((y, i) => {
+    const monthsElapsed = y.year === currentYear ? currentMonth : 12;
+    const avg = monthsElapsed > 0 ? y.total / monthsElapsed : 0;
+    return {
+      year: y.year,
+      total: y.total,
+      avg,
+      monthsElapsed,
+      color: YEAR_SERIES_COLORS[i] || "hsl(var(--muted-foreground))",
+    };
+  }) ?? [];
+  const prevYearSummary = yearlySummary.find((y) => y.year === currentYear - 1);
+  const curYearSummary = yearlySummary.find((y) => y.year === currentYear);
+  const avgDeltaVsPrev =
+    curYearSummary && prevYearSummary && prevYearSummary.avg > 0
+      ? ((curYearSummary.avg - prevYearSummary.avg) / prevYearSummary.avg) * 100
+      : 0;
 
   if (isLoading || !data) {
     return (
@@ -246,6 +260,16 @@ export function VisaoGlobalSection() {
                     <span className="text-xs font-semibold text-muted-foreground">Total {item.year}</span>
                   </div>
                   <div className="mt-1 text-sm font-bold tabular-nums">{formatEuro(item.total)}</div>
+                  <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Média/mês ({item.monthsElapsed}m)</span>
+                    <span className="font-semibold tabular-nums text-foreground">{formatEuro(item.avg)}</span>
+                  </div>
+                  {item.year === currentYear && prevYearSummary && (
+                    <div className="mt-0.5 flex items-center justify-end">
+                      <DeltaBadge value={avgDeltaVsPrev} />
+                      <span className="ml-1 text-[10px] text-muted-foreground">vs {prevYearSummary.year}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
