@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceFinancials } from "@/hooks/useWorkspaceFinancials";
 import { IXSection } from "@/components/weekly-dashboard/IXSection";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   ResponsiveContainer,
   BarChart,
@@ -18,6 +19,48 @@ import {
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 const MONTH_LABELS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
+type Period = "7d" | "month" | "quarter" | "year";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  "7d": "Últimos 7 dias",
+  month: "Este mês",
+  quarter: "Este trimestre",
+  year: "Este ano",
+};
+
+function periodRange(period: Period, ref: Date = new Date()): { from: Date; to: Date; prevFrom: Date; prevTo: Date } {
+  const to = new Date(ref);
+  to.setHours(23, 59, 59, 999);
+  let from: Date;
+  let prevFrom: Date;
+  let prevTo: Date;
+  if (period === "7d") {
+    from = new Date(to);
+    from.setDate(to.getDate() - 6);
+    from.setHours(0, 0, 0, 0);
+    prevTo = new Date(from);
+    prevTo.setDate(from.getDate() - 1);
+    prevTo.setHours(23, 59, 59, 999);
+    prevFrom = new Date(prevTo);
+    prevFrom.setDate(prevTo.getDate() - 6);
+    prevFrom.setHours(0, 0, 0, 0);
+  } else if (period === "month") {
+    from = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    prevFrom = new Date(ref.getFullYear() - 1, ref.getMonth(), 1);
+    prevTo = new Date(ref.getFullYear() - 1, ref.getMonth(), ref.getDate(), 23, 59, 59, 999);
+  } else if (period === "quarter") {
+    const q = Math.floor(ref.getMonth() / 3);
+    from = new Date(ref.getFullYear(), q * 3, 1);
+    prevFrom = new Date(ref.getFullYear() - 1, q * 3, 1);
+    prevTo = new Date(ref.getFullYear() - 1, ref.getMonth(), ref.getDate(), 23, 59, 59, 999);
+  } else {
+    from = new Date(ref.getFullYear(), 0, 1);
+    prevFrom = new Date(ref.getFullYear() - 1, 0, 1);
+    prevTo = new Date(ref.getFullYear() - 1, ref.getMonth(), ref.getDate(), 23, 59, 59, 999);
+  }
+  return { from, to, prevFrom, prevTo };
+}
 
 function formatEuro(value: number) {
   return new Intl.NumberFormat("pt-PT", {
@@ -69,6 +112,7 @@ function KpiCard({
 export function VisaoGlobalSection() {
   const { currentWorkspace } = useWorkspace();
   const { data, isLoading } = useWorkspaceFinancials(currentWorkspace?.id);
+  const [period, setPeriod] = useState<Period>("month");
 
   const faturacaoChart = useMemo(() => {
     if (!data) return [];
@@ -78,6 +122,39 @@ export function VisaoGlobalSection() {
       return row;
     });
   }, [data]);
+
+  const periodMetrics = useMemo(() => {
+    if (!data) {
+      return {
+        faturacao: 0, faturacaoPrev: 0,
+        cobrancas: 0, cobrancasPrev: 0,
+        iva: 0, ivaPrev: 0,
+      };
+    }
+    const { from, to, prevFrom, prevTo } = periodRange(period);
+    let faturacao = 0, faturacaoPrev = 0;
+    let cobrancas = 0, cobrancasPrev = 0;
+    let iva = 0, ivaPrev = 0;
+    for (const inv of data.invoices) {
+      const issue = inv.issue_date ? new Date(inv.issue_date) : null;
+      const paid = inv.paid_at ? new Date(inv.paid_at) : null;
+      const sub = Number(inv.subtotal || 0);
+      const tax = Number(inv.tax_amount || 0);
+      const amt = Number(inv.amount_paid || 0);
+      if (issue) {
+        if (issue >= from && issue <= to) { faturacao += sub; iva += tax; }
+        else if (issue >= prevFrom && issue <= prevTo) { faturacaoPrev += sub; ivaPrev += tax; }
+      }
+      if (paid) {
+        if (paid >= from && paid <= to) cobrancas += amt;
+        else if (paid >= prevFrom && paid <= prevTo) cobrancasPrev += amt;
+      }
+    }
+    return { faturacao, faturacaoPrev, cobrancas, cobrancasPrev, iva, ivaPrev };
+  }, [data, period]);
+
+  const pct = (cur: number, prev: number) =>
+    prev > 0 ? ((cur - prev) / prev) * 100 : cur > 0 ? 100 : 0;
 
   const years = data?.yearly.map((y) => y.year) ?? [];
   const yearColors = ["hsl(var(--muted-foreground) / 0.3)", "hsl(var(--muted-foreground) / 0.5)", "hsl(142 71% 45%)"];
@@ -97,12 +174,29 @@ export function VisaoGlobalSection() {
 
   const palette = ["#ef4444", "#f97316", "#f59e0b", "#eab308", "#10b981", "#06b6d4", "#3b82f6", "#a855f7"];
 
+  const PeriodToggle = (
+    <ToggleGroup
+      type="single"
+      value={period}
+      onValueChange={(v) => v && setPeriod(v as Period)}
+      size="sm"
+      variant="outline"
+    >
+      <ToggleGroupItem value="7d" className="text-xs">7 dias</ToggleGroupItem>
+      <ToggleGroupItem value="month" className="text-xs">Mês</ToggleGroupItem>
+      <ToggleGroupItem value="quarter" className="text-xs">Trimestre</ToggleGroupItem>
+      <ToggleGroupItem value="year" className="text-xs">Ano</ToggleGroupItem>
+    </ToggleGroup>
+  );
+
+
   return (
     <div className="space-y-10">
       {/* FATURAÇÃO */}
       <IXSection
         title="Faturação"
-        subtitle="Visão geral da performance de vendas e tendências da faturação (s/ IVA)"
+        subtitle={`Performance de vendas e variação YoY · ${PERIOD_LABELS[period]} (s/ IVA)`}
+        actions={PeriodToggle}
         bare
       >
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
@@ -138,10 +232,35 @@ export function VisaoGlobalSection() {
             </div>
           </Card>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-            <KpiCard label="Hoje" value={data.kpis.today} />
-            <KpiCard label="Este mês" value={data.kpis.thisMonth} delta={data.kpis.thisMonthDelta} />
-            <KpiCard label="Este trimestre" value={data.kpis.thisQuarter} delta={data.kpis.thisQuarterDelta} />
-            <KpiCard label="Este ano" value={data.kpis.thisYear} delta={data.kpis.thisYearDelta} />
+            <KpiCard
+              label={`Faturação · ${PERIOD_LABELS[period]}`}
+              value={periodMetrics.faturacao}
+              delta={pct(periodMetrics.faturacao, periodMetrics.faturacaoPrev)}
+            />
+            <KpiCard
+              label={`Cobranças · ${PERIOD_LABELS[period]}`}
+              value={periodMetrics.cobrancas}
+              delta={pct(periodMetrics.cobrancas, periodMetrics.cobrancasPrev)}
+            />
+            <KpiCard
+              label={`IVA liquidado · ${PERIOD_LABELS[period]}`}
+              value={periodMetrics.iva}
+              delta={pct(periodMetrics.iva, periodMetrics.ivaPrev)}
+            />
+            <Card className="p-5 flex flex-col gap-2 bg-muted/30">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Período homólogo
+              </span>
+              <div className="text-sm text-muted-foreground">
+                Faturação: <span className="font-semibold text-foreground">{formatEuro(periodMetrics.faturacaoPrev)}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Cobranças: <span className="font-semibold text-foreground">{formatEuro(periodMetrics.cobrancasPrev)}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                IVA: <span className="font-semibold text-foreground">{formatEuro(periodMetrics.ivaPrev)}</span>
+              </div>
+            </Card>
           </div>
         </div>
       </IXSection>
@@ -152,6 +271,7 @@ export function VisaoGlobalSection() {
         subtitle="Acompanha o fluxo de caixa e o dinheiro em dívida (valores c/ IVA)"
         bare
       >
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
