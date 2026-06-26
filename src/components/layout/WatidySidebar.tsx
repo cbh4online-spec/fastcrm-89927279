@@ -20,8 +20,9 @@ import { megaGroupColor } from "./sidebar/megaGroupColors";
 import { useDepartmentVisibility } from "@/hooks/useDepartmentVisibility";
 import {
   X, ChevronRight, Search, PanelLeftClose, PanelLeftOpen,
-  Star, Clock, Pin, Lock,
+  Star, Clock, Pin, Lock, Sun, Monitor, Moon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
