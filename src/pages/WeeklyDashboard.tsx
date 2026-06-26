@@ -23,6 +23,7 @@ import { RefreshCw, Lightbulb, Target } from "lucide-react";
 import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
 import { ClockInOutButton } from "@/components/hr/ClockInOutButton";
 import { IXSection } from "@/components/weekly-dashboard/IXSection";
+import { VisaoGlobalSection } from "@/components/weekly-dashboard/VisaoGlobalSection";
 
 export default function WeeklyDashboard() {
   const { data, isLoading } = useWeeklyPerformance();
@@ -57,6 +58,11 @@ export default function WeeklyDashboard() {
             />
             <ClockInOutButton />
           </div>
+
+          {/* Visão Global — estilo InvoiceXpress */}
+          <VisaoGlobalSection />
+
+
 
           <IXSection
             title="Assistente de Vendas IA"
