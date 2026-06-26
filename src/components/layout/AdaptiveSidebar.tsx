@@ -521,6 +521,23 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                   )}
                 </div>
               )}
+
+              {/* ═══ IX-style footer extras (only when expanded) ═══ */}
+              {!isCollapsed && (
+                <div className="mt-2 pt-2 border-t border-sidebar-border/60 space-y-2.5">
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] text-sidebar-foreground/55">
+                    <span>Prima</span>
+                    <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-sidebar-border bg-sidebar-accent text-[10px] font-semibold text-sidebar-foreground/70">
+                      ?
+                    </kbd>
+                    <span>para ver os atalhos</span>
+                  </div>
+                  <IXThemeSwitcher />
+                  <p className="text-[10px] leading-snug text-sidebar-foreground/40 text-center">
+                    © {new Date().getFullYear()} FastCRM — Todos os direitos reservados
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </aside>
