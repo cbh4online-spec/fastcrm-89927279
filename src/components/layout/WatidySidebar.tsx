@@ -226,16 +226,19 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           onClick={onClose}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "relative flex items-center gap-2.5 pl-3 pr-7 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ease-out",
-            "border-l-2",
+            "relative flex items-center gap-3 pl-3 pr-8 py-2 rounded-full text-[13.5px] font-semibold transition-all duration-150 ease-out",
             active
-              ? "bg-[hsl(var(--mega-fg)/0.14)] text-[hsl(var(--mega-fg))] border-[hsl(var(--mega-fg))] font-semibold"
-              : "border-transparent text-sidebar-foreground/75 hover:bg-[hsl(var(--mega-fg)/0.12)] hover:text-[hsl(var(--mega-fg))] hover:border-[hsl(var(--mega-fg)/0.7)] hover:pl-4 [&_svg]:hover:scale-110",
-
-
+              ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
+              : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
           )}
         >
-          <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active && "text-[hsl(var(--mega-fg))]")} />
+          <Icon
+            className={cn(
+              "w-[18px] h-[18px] shrink-0 transition-colors",
+              active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70",
+            )}
+            strokeWidth={1.75}
+          />
           <span className="flex-1 truncate">{item.label}</span>
           {hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
           <NavBadge count={badgeCount} />
@@ -245,7 +248,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.key); }}
           aria-label={fav ? "Desafixar dos favoritos" : "Fixar nos favoritos"}
           className={cn(
-            "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded transition-opacity",
+            "absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded transition-opacity",
             fav
               ? "opacity-100 text-amber-400 hover:text-amber-300"
               : "opacity-0 group-hover:opacity-100 text-sidebar-foreground/40 hover:text-sidebar-foreground",
