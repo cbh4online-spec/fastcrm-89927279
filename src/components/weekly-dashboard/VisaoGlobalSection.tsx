@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceFinancials } from "@/hooks/useWorkspaceFinancials";
 import { IXSection } from "@/components/weekly-dashboard/IXSection";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   ResponsiveContainer,
   BarChart,
@@ -18,6 +19,48 @@ import {
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 const MONTH_LABELS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
+type Period = "7d" | "month" | "quarter" | "year";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  "7d": "Últimos 7 dias",
+  month: "Este mês",
+  quarter: "Este trimestre",
+  year: "Este ano",
+};
+
+function periodRange(period: Period, ref: Date = new Date()): { from: Date; to: Date; prevFrom: Date; prevTo: Date } {
+  const to = new Date(ref);
+  to.setHours(23, 59, 59, 999);
+  let from: Date;
+  let prevFrom: Date;
+  let prevTo: Date;
+  if (period === "7d") {
+    from = new Date(to);
+    from.setDate(to.getDate() - 6);
+    from.setHours(0, 0, 0, 0);
+    prevTo = new Date(from);
+    prevTo.setDate(from.getDate() - 1);
+    prevTo.setHours(23, 59, 59, 999);
+    prevFrom = new Date(prevTo);
+    prevFrom.setDate(prevTo.getDate() - 6);
+    prevFrom.setHours(0, 0, 0, 0);
+  } else if (period === "month") {
+    from = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    prevFrom = new Date(ref.getFullYear() - 1, ref.getMonth(), 1);
+    prevTo = new Date(ref.getFullYear() - 1, ref.getMonth(), ref.getDate(), 23, 59, 59, 999);
+  } else if (period === "quarter") {
+    const q = Math.floor(ref.getMonth() / 3);
+    from = new Date(ref.getFullYear(), q * 3, 1);
+    prevFrom = new Date(ref.getFullYear() - 1, q * 3, 1);
+    prevTo = new Date(ref.getFullYear() - 1, ref.getMonth(), ref.getDate(), 23, 59, 59, 999);
+  } else {
+    from = new Date(ref.getFullYear(), 0, 1);
+    prevFrom = new Date(ref.getFullYear() - 1, 0, 1);
+    prevTo = new Date(ref.getFullYear() - 1, ref.getMonth(), ref.getDate(), 23, 59, 59, 999);
+  }
+  return { from, to, prevFrom, prevTo };
+}
 
 function formatEuro(value: number) {
   return new Intl.NumberFormat("pt-PT", {
