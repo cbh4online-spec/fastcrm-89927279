@@ -19,6 +19,7 @@ import {
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 const MONTH_LABELS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+const YEAR_SERIES_COLORS = ["hsl(var(--warning))", "hsl(var(--primary))", "hsl(var(--success))"];
 
 type Period = "7d" | "month" | "quarter" | "year";
 
@@ -157,8 +158,11 @@ export function VisaoGlobalSection() {
     prev > 0 ? ((cur - prev) / prev) * 100 : cur > 0 ? 100 : 0;
 
   const years = data?.yearly.map((y) => y.year) ?? [];
-  // Cores distintas por ano: penúltimo cinzento, anterior azul, atual verde
-  const yearColors = ["#cbd5e1", "#60a5fa", "#10b981"];
+  const yearlySummary = data?.yearly.map((y, i) => ({
+    year: y.year,
+    total: y.total,
+    color: YEAR_SERIES_COLORS[i] || "hsl(var(--muted-foreground))",
+  })) ?? [];
 
   if (isLoading || !data) {
     return (
@@ -204,7 +208,7 @@ export function VisaoGlobalSection() {
           <Card className="p-5">
             <div className="h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={faturacaoChart}>
+                <BarChart data={faturacaoChart} barGap={2} barCategoryGap="18%" margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                   <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
                   <YAxis
@@ -214,7 +218,8 @@ export function VisaoGlobalSection() {
                     tickFormatter={(v) => `€${(v / 1000).toFixed(0)}K`}
                   />
                   <Tooltip
-                    formatter={(v: number) => formatEuro(v)}
+                    formatter={(v: number, name) => [formatEuro(v), `Ano ${name}`]}
+                    labelFormatter={(label) => `Mês ${label}`}
                     contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))" }}
                   />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
@@ -223,13 +228,26 @@ export function VisaoGlobalSection() {
                       key={y}
                       dataKey={String(y)}
                       name={String(y)}
-                      fill={yearColors[i] || "hsl(var(--primary))"}
+                      fill={YEAR_SERIES_COLORS[i] || "hsl(var(--muted-foreground))"}
+                      fillOpacity={i === years.length - 1 ? 1 : 0.86}
                       radius={[4, 4, 0, 0]}
                       maxBarSize={28}
+                      isAnimationActive={false}
                     />
                   ))}
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {yearlySummary.map((item) => (
+                <div key={item.year} className="rounded-md border border-border bg-background px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-xs font-semibold text-muted-foreground">Total {item.year}</span>
+                  </div>
+                  <div className="mt-1 text-sm font-bold tabular-nums">{formatEuro(item.total)}</div>
+                </div>
+              ))}
             </div>
           </Card>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">

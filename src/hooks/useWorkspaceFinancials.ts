@@ -2,6 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const ACTIVE_STATUSES = ["sent", "partially_paid", "paid"];
+const INVOICES_PAGE_SIZE = 1000;
+const INVOICES_MAX_PAGES = 50;
+const FINANCIALS_INVOICE_SELECT =
+  "id,status,subtotal,tax_amount,total,amount_paid,issue_date,due_date,paid_at,company_id,contact_id,client_name";
 
 export interface FinancialsInvoice {
   id: string;
@@ -100,19 +104,30 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async (): Promise<WorkspaceFinancials> => {
-      const { data, error } = await supabase
-        .from("invoices")
-        .select(
-          "id,status,subtotal,tax_amount,total,amount_paid,issue_date,due_date,paid_at,company_id,contact_id,client_name"
-        )
-        .eq("workspace_id", workspaceId!)
-        .in("status", ACTIVE_STATUSES)
-        .not("issue_date", "is", null)
-        .order("issue_date", { ascending: false })
-        .limit(10000);
-      if (error) throw error;
+      const invoices: FinancialsInvoice[] = [];
 
-      const invoices = (data || []) as FinancialsInvoice[];
+      // A API pode limitar cada resposta a 1000 linhas; sem paginação só chegavam
+      // as faturas mais recentes, deixando 2024/2025 fora dos gráficos.
+      for (let page = 0; page < INVOICES_MAX_PAGES; page += 1) {
+        const from = page * INVOICES_PAGE_SIZE;
+        const to = from + INVOICES_PAGE_SIZE - 1;
+        const { data, error } = await supabase
+          .from("invoices")
+          .select(FINANCIALS_INVOICE_SELECT)
+          .eq("workspace_id", workspaceId!)
+          .in("status", ACTIVE_STATUSES)
+          .not("issue_date", "is", null)
+          .order("issue_date", { ascending: false })
+          .range(from, to);
+
+        if (error) throw error;
+
+        const batch = (data || []) as FinancialsInvoice[];
+        invoices.push(...batch);
+
+        if (batch.length < INVOICES_PAGE_SIZE) break;
+      }
+
       const today = startOfDay(new Date());
       const currentYear = today.getFullYear();
       const currentMonth = today.getMonth();
