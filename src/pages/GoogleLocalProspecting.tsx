@@ -902,27 +902,28 @@ export default function GoogleLocalProspecting() {
   return (
     <ModuleGuard moduleSlug="google-local-services" moduleName="Google Local Services">
     <div className="space-y-6">
-      <PageBreadcrumbs 
+      <PageBreadcrumbs
         items={[
           { label: "Prospecção", href: "/dashboard/prospecting/google-local" },
           { label: "Google Local" }
         ]}
       />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <MapPin className="h-8 w-8 text-primary" />
-            Google Local Services
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Pesquise e importe leads diretamente do Google Maps
-          </p>
-        </div>
+      {/* Header IX */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <MapPin className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Google Local Services</h1>
+            <p className="text-sm text-muted-foreground">Pesquise e importe leads diretamente do Google Maps</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
           <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="rounded-full">
                 <Settings className="mr-2 h-4 w-4" />
                 Configurações
               </Button>
@@ -938,9 +939,7 @@ export default function GoogleLocalProspecting() {
                 <div className="space-y-2">
                   <Label>Estado padrão dos leads importados</Label>
                   <Select value={defaultStatus} onValueChange={setDefaultStatus}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="new">Novo</SelectItem>
                       <SelectItem value="contacted">Contactado</SelectItem>
@@ -948,13 +947,10 @@ export default function GoogleLocalProspecting() {
                     </SelectContent>
                   </Select>
                 </div>
-                
                 <div className="space-y-2">
                   <Label>Rating mínimo para mostrar</Label>
                   <Select value={minRating} onValueChange={setMinRating}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="0">Todos</SelectItem>
                       <SelectItem value="3">3+ estrelas</SelectItem>
@@ -963,29 +959,23 @@ export default function GoogleLocalProspecting() {
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Importação automática</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Importar leads automaticamente ao pesquisar
-                    </p>
+                    <p className="text-sm text-muted-foreground">Importar leads automaticamente ao pesquisar</p>
                   </div>
                   <Switch checked={autoImport} onCheckedChange={setAutoImport} />
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={() => {
-                  setSettingsOpen(false);
-                  toast.success("Configurações guardadas");
-                }}>
+                <Button onClick={() => { setSettingsOpen(false); toast.success("Configurações guardadas"); }}>
                   Guardar
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
-          <Badge variant="outline" className="gap-2 py-2 px-3">
-            <Coins className="h-4 w-4" />
+          <Badge variant="outline" className="gap-2 rounded-full py-1.5 px-3 font-normal">
+            <Coins className="h-3.5 w-3.5" />
             {balance} créditos ({searchCost}/pesquisa)
           </Badge>
         </div>
@@ -994,139 +984,122 @@ export default function GoogleLocalProspecting() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           {/* Search Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Pesquisar Empresas
-              </CardTitle>
-              <CardDescription>
-                Pesquise por tipo de negócio, nome ou serviço e filtre por localização
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <Input
-                    placeholder="Ex: restaurantes, advogados..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  />
-                </div>
-                <div>
-                  <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={locationOpen}
-                        className="w-full justify-between font-normal"
-                      >
-                        <span className="truncate">
-                          {selectedLocationLabel}
-                        </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0" align="start">
-                      <Command shouldFilter={false}>
-                        <CommandInput 
-                          placeholder="Pesquisar localidade..." 
-                          value={locationSearch}
-                          onValueChange={setLocationSearch}
-                        />
-                        <CommandList>
-                          <CommandEmpty>Nenhuma localidade encontrada.</CommandEmpty>
-                          <CommandGroup>
-                            <ScrollArea className="h-[300px]">
-                              {filteredLocations.map((loc) => (
-                                <CommandItem
-                                  key={loc.value || "all"}
-                                  value={loc.value || "all-locations"}
-                                  onSelect={(value) => {
-                                    setLocation(value === "all-locations" ? "" : value);
-                                    setLocationOpen(false);
-                                    setLocationSearch("");
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      location === loc.value || (!location && !loc.value) 
-                                        ? "opacity-100" 
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                                  {loc.label}
-                                </CommandItem>
-                              ))}
-                            </ScrollArea>
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <IXCard
+            title="Pesquisar Empresas"
+            description="Pesquise por tipo de negócio, nome ou serviço e filtre por localização"
+          >
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Ex: restaurantes, advogados..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  className="pl-9 rounded-full"
+                />
               </div>
-              <div className="flex justify-end mt-4">
-                <Button onClick={handleSearch} disabled={isSearching}>
-                  {isSearching ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      A pesquisar...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="mr-2 h-4 w-4" />
-                      Pesquisar (1 crédito)
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              <Popover open={locationOpen} onOpenChange={setLocationOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={locationOpen}
+                    className="w-full justify-between font-normal rounded-full"
+                  >
+                    <span className="truncate flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      {selectedLocationLabel}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Pesquisar localidade..."
+                      value={locationSearch}
+                      onValueChange={setLocationSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>Nenhuma localidade encontrada.</CommandEmpty>
+                      <CommandGroup>
+                        <ScrollArea className="h-[300px]">
+                          {filteredLocations.map((loc) => (
+                            <CommandItem
+                              key={loc.value || "all"}
+                              value={loc.value || "all-locations"}
+                              onSelect={(value) => {
+                                setLocation(value === "all-locations" ? "" : value);
+                                setLocationOpen(false);
+                                setLocationSearch("");
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  location === loc.value || (!location && !loc.value)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                              {loc.label}
+                            </CommandItem>
+                          ))}
+                        </ScrollArea>
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="rounded-full">
+                  <SelectValue placeholder="Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(cat => (
+                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end mt-4">
+              <Button onClick={handleSearch} disabled={isSearching} className="rounded-full">
+                {isSearching ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A pesquisar...</>
+                ) : (
+                  <><Search className="mr-2 h-4 w-4" />Pesquisar (1 crédito)</>
+                )}
+              </Button>
+            </div>
+          </IXCard>
 
           {/* Results */}
           {results.length > 0 && (
             <>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Resultados ({results.length})</CardTitle>
-                    <CardDescription>
-                      {selectedResults.length > 0 
-                        ? `${selectedResults.length} selecionados`
-                        : "Selecione os resultados que pretende importar"
-                      }
-                    </CardDescription>
-                  </div>
+              <IXCard
+                title={`Resultados (${results.length})`}
+                description={
+                  selectedResults.length > 0
+                    ? `${selectedResults.length} selecionados`
+                    : "Selecione os resultados que pretende importar"
+                }
+                actions={
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
                       onClick={handleImportSelected}
                       disabled={selectedResults.length === 0 || createLead.isPending}
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
                       Importar ({selectedResults.length})
                     </Button>
-                    <Button 
+                    <Button
+                      size="sm"
+                      className="rounded-full"
                       onClick={handleImportAll}
                       disabled={createLead.isPending}
                     >
@@ -1134,86 +1107,75 @@ export default function GoogleLocalProspecting() {
                       Importar Todos
                     </Button>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px]">
-                  <div className="space-y-3">
+                }
+              >
+                <ScrollArea className="h-[480px] pr-3">
+                  <div className="divide-y divide-border">
                     {results.map((result) => (
                       <div
                         key={result.id}
-                        className={`p-4 rounded-lg border transition-colors ${
+                        className={cn(
+                          "py-3 px-2 -mx-2 rounded-lg transition-colors",
                           importedIds.includes(result.id)
-                            ? "border-green-500 bg-green-500/5"
+                            ? "bg-emerald-500/5"
                             : result._alreadyExists
-                            ? "opacity-60 border-muted"
+                            ? "opacity-60"
                             : selectedResults.includes(result.id)
-                            ? "border-primary bg-primary/5"
-                            : "hover:border-primary/50"
-                        }`}
+                            ? "bg-primary/5"
+                            : "hover:bg-muted/40"
+                        )}
                       >
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start gap-3">
                           <Checkbox
                             checked={selectedResults.includes(result.id)}
                             onCheckedChange={() => toggleSelection(result.id)}
                             disabled={importedIds.includes(result.id)}
                             className="mt-1"
                           />
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="font-semibold flex items-center gap-2">
-                                  {result.title}
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="font-medium text-sm truncate">{result.title}</h3>
                                   {importedIds.includes(result.id) && (
-                                    <Badge variant="outline" className="text-green-600 border-green-600">
-                                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                                      Importado
+                                    <Badge variant="outline" className="text-emerald-600 border-emerald-600/40 text-[10px]">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />Importado
                                     </Badge>
                                   )}
                                   {result._alreadyExists && !importedIds.includes(result.id) && (
-                                    <Badge variant="destructive" className="text-xs">
-                                      Já existe
-                                    </Badge>
+                                    <Badge variant="destructive" className="text-[10px]">Já existe</Badge>
                                   )}
                                   {result._previouslyFound && !result._alreadyExists && !importedIds.includes(result.id) && (
-                                    <Badge variant="secondary" className="text-xs gap-1">
-                                      <History className="h-3 w-3" />
-                                      Já encontrado
+                                    <Badge variant="secondary" className="text-[10px] gap-1">
+                                      <History className="h-3 w-3" />Já encontrado
                                     </Badge>
                                   )}
-                                </h3>
-                                <Badge variant="outline" className="mt-1 text-xs">
-                                  {result.category}
-                                </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5">{result.category}</p>
                               </div>
-                              <div className="flex items-center gap-1 text-amber-500">
-                                <Star className="h-4 w-4 fill-current" />
-                                <span className="font-medium">{result.rating}</span>
-                                <span className="text-muted-foreground text-xs">
-                                  ({result.reviews_count})
-                                </span>
+                              <div className="flex items-center gap-1 text-amber-500 shrink-0">
+                                <Star className="h-3.5 w-3.5 fill-current" />
+                                <span className="font-medium text-sm">{result.rating}</span>
+                                <span className="text-muted-foreground text-xs">({result.reviews_count})</span>
                               </div>
                             </div>
-                            
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {result.description}
-                            </p>
 
-                            <div className="flex flex-wrap gap-3 text-xs">
-                              <span className="flex items-center gap-1 text-muted-foreground">
-                                <MapPin className="h-3 w-3" />
-                                {result.address}
+                            {result.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-1">{result.description}</p>
+                            )}
+
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />{result.address}
                               </span>
                               {result.phone && (
-                                <span className="flex items-center gap-1 text-muted-foreground">
-                                  <Phone className="h-3 w-3" />
-                                  {result.phone}
+                                <span className="flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />{result.phone}
                                 </span>
                               )}
                               {result.website && (
                                 <a href={result.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
-                                  <Globe className="h-3 w-3" />
-                                  Website
+                                  <Globe className="h-3 w-3" />Website
                                 </a>
                               )}
                             </div>
@@ -1223,115 +1185,107 @@ export default function GoogleLocalProspecting() {
                     ))}
                   </div>
                 </ScrollArea>
-              </CardContent>
-            </Card>
+              </IXCard>
 
-            {/* Load More Button */}
-            {results.length >= 10 && (
-              <div className="flex justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchOffset(prev => prev + 20);
-                    handleSearch();
-                  }}
-                  disabled={isSearching}
-                >
-                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
-                  Carregar mais resultados
-                </Button>
-              </div>
-            )}
+              {results.length >= 10 && (
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => {
+                      setSearchOffset(prev => prev + 20);
+                      handleSearch();
+                    }}
+                    disabled={isSearching}
+                  >
+                    {isSearching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                    Carregar mais resultados
+                  </Button>
+                </div>
+              )}
             </>
           )}
 
           {/* Empty State */}
           {results.length === 0 && !isSearching && (
-            <Card>
-              <CardContent className="py-16 text-center">
-                <MapPin className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Comece a prospectar</h3>
-                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+            <IXCard>
+              <div className="py-14 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                  <MapPin className="h-6 w-6" />
+                </div>
+                <h3 className="text-sm font-semibold mb-1">Comece a prospectar</h3>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
                   Pesquise por tipo de negócio para encontrar leads qualificados.
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </IXCard>
           )}
         </div>
 
-        {/* History Sidebar */}
-        <div className="space-y-4">
-          {/* Search History */}
+        {/* Sidebar */}
+        <div className="space-y-6">
           {searches.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Search className="h-4 w-4" />
-                  Pesquisas Anteriores
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {searches.slice(0, 10).map((s) => (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 cursor-pointer text-sm"
-                      onClick={() => {
-                        setSearchQuery(s.query || "");
-                        if (s.location) setLocation(s.location);
-                        if (s.category) setCategory(s.category);
-                        toast.info(`Pesquisa carregada: "${s.query}"`);
-                      }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{s.query}</p>
-                        <p className="text-xs text-muted-foreground">{s.results_count} res. / {s.imported_count} imp.</p>
-                      </div>
+            <IXCard
+              title="Pesquisas Anteriores"
+              description={`${searches.length} pesquisa(s) recentes`}
+            >
+              <div className="space-y-1">
+                {searches.slice(0, 10).map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className="w-full text-left flex items-center justify-between px-2 py-2 rounded-lg hover:bg-muted/50 text-sm"
+                    onClick={() => {
+                      setSearchQuery(s.query || "");
+                      if (s.location) setLocation(s.location);
+                      if (s.category) setCategory(s.category);
+                      toast.info(`Pesquisa carregada: "${s.query}"`);
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{s.query}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.results_count} res. / {s.imported_count} imp.
+                      </p>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </IXCard>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <History className="h-4 w-4" />
-                Leads Importados
-              </CardTitle>
-              <CardDescription>
-                Últimos leads importados do Google Local
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {prospectionLeads.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhum lead importado ainda
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {prospectionLeads.map((lead) => (
-                    <div key={lead.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
-                      <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{lead.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(lead.created_at).toLocaleDateString('pt-PT')}
-                        </p>
-                      </div>
-                      <Badge variant="secondary" className="text-xs shrink-0">
-                        {lead.status}
-                      </Badge>
+          <IXCard
+            title="Leads Importados"
+            description="Últimos leads importados do Google Local"
+          >
+            {prospectionLeads.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Nenhum lead importado ainda
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {prospectionLeads.map((lead) => (
+                  <div key={lead.id} className="flex items-start gap-3 px-2 py-2 rounded-lg hover:bg-muted/50">
+                    <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{lead.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(lead.created_at).toLocaleDateString('pt-PT')}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <Badge variant="secondary" className="text-[10px] shrink-0 rounded-full">
+                      {lead.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </IXCard>
         </div>
       </div>
     </div>
     </ModuleGuard>
   );
 }
+
