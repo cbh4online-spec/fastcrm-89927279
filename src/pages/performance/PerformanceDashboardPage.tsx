@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { PageHeader } from "@/components/common/PageHeader";
-import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -18,6 +16,27 @@ import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
+
+interface KpiProps { label: string; value: string | number; icon: React.ReactNode; tone?: "default" | "success" | "primary" | "warning"; }
+function IXKpi({ label, value, icon, tone = "default" }: KpiProps) {
+  const tones: Record<string, string> = {
+    default: "bg-muted text-muted-foreground",
+    success: "bg-emerald-500/10 text-emerald-600",
+    primary: "bg-primary/10 text-primary",
+    warning: "bg-amber-500/10 text-amber-600",
+  };
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-5">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", tones[tone])}>{icon}</div>
+      </div>
+      <p className="mt-3 text-2xl font-semibold tracking-tight">{value}</p>
+    </div>
+  );
+}
+
 
 const RECALC_KEY = "perf_last_recalc";
 const RECALC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
