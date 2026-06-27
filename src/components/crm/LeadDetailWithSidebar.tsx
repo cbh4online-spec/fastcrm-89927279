@@ -38,6 +38,7 @@ import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 import { CustomFieldsSection } from "@/components/leads/sections/CustomFieldsSection";
