@@ -306,6 +306,7 @@ export default function NewContactPage() {
         preferred_contact_email: form.preferred_contact_email.trim() || null,
         preferred_contact_phone: form.preferred_contact_phone.trim() || null,
         billing_preferences,
+        avatar_url: form.avatar_url || null,
       };
 
       const { data: created, error } = await workspaceClient
