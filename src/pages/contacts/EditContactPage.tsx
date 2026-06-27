@@ -230,6 +230,7 @@ export default function EditContactPage() {
         preferred_contact_email: form.preferred_contact_email.trim() || null,
         preferred_contact_phone: form.preferred_contact_phone.trim() || null,
         billing_preferences,
+        avatar_url: form.avatar_url || null,
         updated_at: new Date().toISOString(),
       };
 
