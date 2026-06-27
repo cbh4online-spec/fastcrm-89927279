@@ -524,15 +524,8 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
               <div className="space-y-0.5">{recentItems.slice(0, 5).map((it) => renderCompactLink(it))}</div>
             </div>
           )}
-
-          {/* Hint favoritos */}
-          {!filter && favoriteItems.length < maxFav && (
-            <div className="mt-3 px-3 py-2 rounded-md bg-sidebar-accent/30 border border-dashed border-sidebar-border text-[10px] text-sidebar-foreground/40 flex items-start gap-1.5">
-              <Pin className="w-3 h-3 mt-0.5 shrink-0" />
-              <span>Passe o rato sobre um item e clique em <Star className="inline w-2.5 h-2.5 -mt-0.5" /> para fixar nos favoritos.</span>
-            </div>
-          )}
         </nav>
+
 
         {/* Footer com avatar + tema + copyright */}
         <div className="border-t border-sidebar-border px-3 py-2 flex items-center gap-2">
