@@ -36,6 +36,7 @@ import { isValidPhone, toE164 } from "@/utils/phone";
 import { useContactEnrichment, type ContactEnrichmentResult } from "@/hooks/useContactEnrichment";
 import { useContactDuplicateCheck, type DuplicateMatch } from "@/hooks/useContactDuplicates";
 import { cn } from "@/lib/utils";
+import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 
 const contactSchema = z.object({
   name: z.string().trim().max(100),
