@@ -147,6 +147,7 @@ export default function EditContactPage() {
         external_code: (c.external_code as string) || "",
         is_final_consumer: !!c.is_final_consumer,
         name: (c.name as string) || "",
+        avatar_url: (c.avatar_url as string) || "",
         email: (c.email as string) || "",
         phone: (c.phone as string) || "",
         address: (c.address as string) || "",
