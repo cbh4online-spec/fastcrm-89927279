@@ -99564,6 +99564,7 @@ export type Database = {
         | "schedule_repurchase_reminder"
         | "mark_as_at_risk"
         | "send_overdue_alert"
+        | "notify"
       automation_state: "draft" | "active" | "paused" | "error"
       automation_trigger:
         | "lead_created"
@@ -100204,6 +100205,7 @@ export const Constants = {
         "schedule_repurchase_reminder",
         "mark_as_at_risk",
         "send_overdue_alert",
+        "notify",
       ],
       automation_state: ["draft", "active", "paused", "error"],
       automation_trigger: [
