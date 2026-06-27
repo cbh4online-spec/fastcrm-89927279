@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Clock, Check, X, ArrowRight, Send } from "lucide-react";
+import { IXCard } from "@/components/entity/ix/IXCard";
+import { Building2, Clock, Check, X, Send } from "lucide-react";
 import { motion } from "framer-motion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFastMatchInterests } from "@/hooks/useFastMatchInterests";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface ProfileInfo {
   id: string;
@@ -28,18 +28,15 @@ export function PendingInterestsTab({ profiles, onAccept, isAccepting }: Pending
   const { data: interests } = useFastMatchInterests();
   const queryClient = useQueryClient();
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [view, setView] = useState<"received" | "sent">("received");
 
-  const getProfileInfo = (profileId: string): ProfileInfo => {
-    return profiles.find(p => p.id === profileId) || { id: profileId, company_name: "Empresa", industry: null };
-  };
+  const getProfileInfo = (profileId: string): ProfileInfo =>
+    profiles.find((p) => p.id === profileId) || { id: profileId, company_name: "Empresa", industry: null };
 
   const handleReject = async (interestId: string) => {
     setRejectingId(interestId);
     try {
-      await supabase
-        .from("fastmatch_interests")
-        .update({ status: "rejected" })
-        .eq("id", interestId);
+      await supabase.from("fastmatch_interests").update({ status: "rejected" }).eq("id", interestId);
       queryClient.invalidateQueries({ queryKey: ["fastmatch-interests"] });
       toast.success("Interesse recusado.");
     } catch {
@@ -49,139 +46,164 @@ export function PendingInterestsTab({ profiles, onAccept, isAccepting }: Pending
     }
   };
 
-  const received = interests?.received?.filter(i => i.status === "pending") || [];
+  const received = interests?.received?.filter((i) => i.status === "pending") || [];
   const sent = interests?.sent || [];
 
+  const subTabs: { id: "received" | "sent"; label: string; count: number; icon?: typeof Send }[] = [
+    { id: "received", label: "Recebidos", count: received.length },
+    { id: "sent", label: "Enviados", count: sent.length, icon: Send },
+  ];
+
   return (
-    <div className="space-y-6">
-      <Tabs defaultValue="received" className="space-y-4">
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="received" className="gap-1.5 text-sm">
-            Recebidos
-            {received.length > 0 && (
-              <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-[10px] flex items-center justify-center rounded-full">
-                {received.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="sent" className="gap-1.5 text-sm">
-            <Send className="w-3.5 h-3.5" />
-            Enviados ({sent.length})
-          </TabsTrigger>
-        </TabsList>
+    <div className="space-y-4">
+      {/* Sub-tabs em pílula */}
+      <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
+        {subTabs.map((t) => {
+          const active = view === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setView(t.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-full transition-colors",
+                active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {t.icon && <t.icon className="h-3.5 w-3.5" />}
+              {t.label}
+              {t.count > 0 && (
+                <span
+                  className={cn(
+                    "h-5 min-w-5 px-1.5 inline-flex items-center justify-center rounded-full text-[11px] font-semibold",
+                    active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-foreground"
+                  )}
+                >
+                  {t.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-        <TabsContent value="received" className="space-y-3">
+      {view === "received" && (
+        <>
           {received.length === 0 ? (
-            <div className="text-center py-12 space-y-2">
-              <Clock className="w-8 h-8 mx-auto text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Nenhum interesse recebido pendente.</p>
-            </div>
+            <IXCard>
+              <div className="flex flex-col items-center justify-center text-center py-12">
+                <Clock className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                <h3 className="text-sm font-medium mb-1">Nenhum interesse recebido pendente</h3>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  Quando outros perfis demonstrarem interesse no teu, vão aparecer aqui para aceitar ou recusar.
+                </p>
+              </div>
+            </IXCard>
           ) : (
-            received.map((interest, i) => {
-              const profile = getProfileInfo(interest.from_profile_id);
-              return (
-                <motion.div
-                  key={interest.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <Card className="border-primary/20 bg-primary/[0.02]">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <Building2 className="w-4 h-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{profile.company_name}</p>
-                            {profile.industry && (
-                              <p className="text-xs text-muted-foreground">{profile.industry}</p>
-                            )}
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              {formatDistanceToNow(new Date(interest.created_at), { addSuffix: true, locale: pt })}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
-                            onClick={() => handleReject(interest.id)}
-                            disabled={rejectingId === interest.id}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="gap-1.5 text-xs"
-                            onClick={() => onAccept(interest.id, interest.from_profile_id)}
-                            disabled={isAccepting}
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            Aceitar
-                          </Button>
-                        </div>
+            <div className="space-y-2">
+              {received.map((interest, i) => {
+                const profile = getProfileInfo(interest.from_profile_id);
+                return (
+                  <motion.div
+                    key={interest.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="group flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 hover:border-primary/40 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">{profile.company_name}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {profile.industry && <span className="truncate">{profile.industry}</span>}
+                        {profile.industry && <span>•</span>}
+                        <span className="tabular-nums">
+                          {formatDistanceToNow(new Date(interest.created_at), { addSuffix: true, locale: pt })}
+                        </span>
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+                        onClick={() => handleReject(interest.id)}
+                        disabled={rejectingId === interest.id}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="gap-1.5 text-xs rounded-full"
+                        onClick={() => onAccept(interest.id, interest.from_profile_id)}
+                        disabled={isAccepting}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        Aceitar
+                      </Button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           )}
-        </TabsContent>
+        </>
+      )}
 
-        <TabsContent value="sent" className="space-y-3">
+      {view === "sent" && (
+        <>
           {sent.length === 0 ? (
-            <div className="text-center py-12 space-y-2">
-              <Send className="w-8 h-8 mx-auto text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Nenhum interesse enviado.</p>
-            </div>
+            <IXCard>
+              <div className="flex flex-col items-center justify-center text-center py-12">
+                <Send className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                <h3 className="text-sm font-medium mb-1">Nenhum interesse enviado</h3>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  Demonstra interesse em perfis na aba "Descobrir" para iniciar conexões.
+                </p>
+              </div>
+            </IXCard>
           ) : (
-            sent.map((interest, i) => {
-              const profile = getProfileInfo(interest.to_profile_id);
-              const statusLabel = interest.status === "mutual" ? "Mútuo" : interest.status === "pending" ? "Pendente" : interest.status;
-              const statusColor = interest.status === "mutual"
-                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                : "bg-amber-500/10 text-amber-600 border-amber-500/20";
+            <div className="space-y-2">
+              {sent.map((interest, i) => {
+                const profile = getProfileInfo(interest.to_profile_id);
+                const statusLabel =
+                  interest.status === "mutual" ? "Mútuo" : interest.status === "pending" ? "Pendente" : interest.status;
+                const statusColor =
+                  interest.status === "mutual"
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-600 border-amber-500/20";
 
-              return (
-                <motion.div
-                  key={interest.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <Card className="border-border/60">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-muted">
-                            <Building2 className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{profile.company_name}</p>
-                            {profile.industry && (
-                              <p className="text-xs text-muted-foreground">{profile.industry}</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={`${statusColor} text-[10px]`}>{statusLabel}</Badge>
-                          <span className="text-[10px] text-muted-foreground">
-                            {formatDistanceToNow(new Date(interest.created_at), { addSuffix: true, locale: pt })}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })
+                return (
+                  <motion.div
+                    key={interest.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">{profile.company_name}</p>
+                      {profile.industry && (
+                        <p className="text-xs text-muted-foreground truncate">{profile.industry}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge className={`${statusColor} text-[10px]`}>{statusLabel}</Badge>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {formatDistanceToNow(new Date(interest.created_at), { addSuffix: true, locale: pt })}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </>
+      )}
     </div>
   );
 }
