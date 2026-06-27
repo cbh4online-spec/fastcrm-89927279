@@ -2,25 +2,13 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProposalWonProcurementModal } from "@/components/procurement/ProposalWonProcurementModal";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,32 +38,24 @@ import {
   FileText,
   Send,
   Copy,
-  Loader2,
-  PanelLeft,
-  PanelLeftClose,
-  RefreshCw,
   Download,
-  ChevronLeft,
-  ChevronRight,
-  FileCheck,
-  FileClock,
-  FileX,
-  CircleDollarSign,
-  Calendar,
-  TrendingUp,
-  UserCheck,
   CheckSquare,
   ArrowRightLeft,
   CheckCircle2,
   XCircle,
   ShoppingCart,
-  BarChart3,
-  Percent,
+  FileClock,
 } from "lucide-react";
 import { format, isToday, isThisWeek, isThisMonth } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
-import { useProposals, usePublishProposal, useDeleteProposal, useDuplicateProposal, useQuickStatusChange } from "@/hooks/useProposals";
+import {
+  useProposals,
+  usePublishProposal,
+  useDeleteProposal,
+  useDuplicateProposal,
+  useQuickStatusChange,
+} from "@/hooks/useProposals";
 import { useConvertProposalToOrderNote } from "@/hooks/useConvertProposalToOrderNote";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -84,12 +64,19 @@ import { ProposalDetailDialog } from "./ProposalDetailDialog";
 import { ProposalTemplatesList } from "./ProposalTemplatesList";
 import { ProposalAnalyticsTab } from "./ProposalAnalyticsTab";
 import { ProposalTaskDialog } from "./ProposalTaskDialog";
-import { PageHeader } from "@/components/common/PageHeader";
-import { Toolbar } from "@/components/common/Toolbar";
-import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Proposal, ProposalStatus } from "@/types/proposal";
-import { DocumentRow, DocumentStatusBadge, type DocumentStatusTone } from "@/components/documents/listing";
+import {
+  DocumentListLayout,
+  DocumentFilterChip,
+  DocumentListToolbar,
+  DocumentSummaryCard,
+  DocumentRow,
+  DocumentStatusBadge,
+  type DocumentStatusTone,
+  type SummaryItem,
+} from "@/components/documents/listing";
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const statusTone: Record<ProposalStatus, DocumentStatusTone> = {
   draft: "draft",
@@ -99,8 +86,6 @@ const statusTone: Record<ProposalStatus, DocumentStatusTone> = {
   rejected: "rejected",
 };
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
 const statusLabels: Record<ProposalStatus, string> = {
   draft: "Rascunho",
   published: "Publicada",
@@ -109,13 +94,40 @@ const statusLabels: Record<ProposalStatus, string> = {
   rejected: "Rejeitada",
 };
 
-const statusColors: Record<ProposalStatus, string> = {
-  draft: "secondary",
-  published: "default",
-  accepted: "default",
-  expired: "destructive",
-  rejected: "destructive",
+// Normaliza nomes de moeda comuns (Euro, EURO, €) para códigos ISO 4217.
+const CURRENCY_ALIASES: Record<string, string> = {
+  euro: "EUR",
+  euros: "EUR",
+  "€": "EUR",
+  dolar: "USD",
+  dollar: "USD",
+  $: "USD",
+  libra: "GBP",
+  "£": "GBP",
 };
+
+function normalizeCurrencyCode(currency?: string | null): string {
+  if (!currency) return "EUR";
+  const trimmed = currency.trim();
+  if (/^[A-Za-z]{3}$/.test(trimmed)) return trimmed.toUpperCase();
+  const key = trimmed.toLowerCase();
+  return CURRENCY_ALIASES[key] ?? "EUR";
+}
+
+function formatCurrency(value: number | null | undefined, currency?: string | null) {
+  if (value === null || value === undefined) return "—";
+  try {
+    return new Intl.NumberFormat("pt-PT", {
+      style: "currency",
+      currency: normalizeCurrencyCode(currency),
+    }).format(value);
+  } catch {
+    return new Intl.NumberFormat("pt-PT", {
+      style: "currency",
+      currency: "EUR",
+    }).format(value);
+  }
+}
 
 const pageTabs = [
   { id: "proposals", label: "Propostas" },
@@ -132,54 +144,9 @@ const sortOptions = [
   { value: "title_asc", label: "Título (A-Z)" },
 ];
 
-const filterGroups: FilterGroup[] = [
-  {
-    id: "status",
-    label: "Estado",
-    icon: <FileText className="h-4 w-4" />,
-    defaultOpen: true,
-    items: [
-      { id: "status_draft", label: "Rascunho", icon: <FileClock className="h-4 w-4" /> },
-      { id: "status_published", label: "Publicada", icon: <Send className="h-4 w-4" /> },
-      { id: "status_accepted", label: "Aceita", icon: <FileCheck className="h-4 w-4 text-green-500" /> },
-      { id: "status_expired", label: "Expirada", icon: <FileX className="h-4 w-4 text-orange-500" /> },
-      { id: "status_rejected", label: "Rejeitada", icon: <FileX className="h-4 w-4 text-red-500" /> },
-    ],
-  },
-  {
-    id: "value",
-    label: "Valor",
-    icon: <CircleDollarSign className="h-4 w-4" />,
-    defaultOpen: false,
-    items: [
-      { id: "value_high", label: "Alto (>10.000€)" },
-      { id: "value_medium", label: "Médio (1.000-10.000€)" },
-      { id: "value_low", label: "Baixo (<1.000€)" },
-    ],
-  },
-  {
-    id: "timing",
-    label: "Timing",
-    icon: <Calendar className="h-4 w-4" />,
-    defaultOpen: false,
-    items: [
-      { id: "timing_today", label: "Criadas hoje" },
-      { id: "timing_week", label: "Esta semana" },
-      { id: "timing_month", label: "Este mês" },
-    ],
-  },
-  {
-    id: "performance",
-    label: "Performance",
-    icon: <TrendingUp className="h-4 w-4" />,
-    defaultOpen: false,
-    items: [
-      { id: "perf_viewed", label: "Visualizadas" },
-      { id: "perf_not_viewed", label: "Não visualizadas" },
-      { id: "perf_high_views", label: "Muitas visualizações (>10)" },
-    ],
-  },
-];
+type ValueBucket = "high" | "medium" | "low";
+type TimingBucket = "today" | "week" | "month";
+type PerfBucket = "viewed" | "not_viewed" | "high_views";
 
 export function ProposalsList() {
   const [createOpen, setCreateOpen] = useState(false);
@@ -188,20 +155,21 @@ export function ProposalsList() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [taskProposal, setTaskProposal] = useState<Proposal | null>(null);
   const [convertOrderId, setConvertOrderId] = useState<string | null>(null);
-  const [procurementModalProposal, setProcurementModalProposal] = useState<{ id: string; title: string } | null>(null);
+  const [procurementModalProposal, setProcurementModalProposal] =
+    useState<{ id: string; title: string } | null>(null);
 
-  // New state for reorganized UI
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("proposals");
-  const [showFilterSidebar, setShowFilterSidebar] = useState(true);
-  const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<ProposalStatus | "all">("all");
+  const [valueFilter, setValueFilter] = useState<ValueBucket | "all">("all");
+  const [timingFilter, setTimingFilter] = useState<TimingBucket | "all">("all");
+  const [perfFilter, setPerfFilter] = useState<PerfBucket | "all">("all");
 
-  const { data: proposals, isLoading, refetch } = useProposals();
+  const { data: proposals, isLoading } = useProposals();
   const publishProposal = usePublishProposal();
   const deleteProposal = useDeleteProposal();
   const duplicateProposal = useDuplicateProposal();
@@ -209,7 +177,6 @@ export function ProposalsList() {
   const convertToOrderNote = useConvertProposalToOrderNote();
   const { currentWorkspace } = useWorkspace();
 
-  // Query proposals that already have an order note
   const { data: convertedProposalIds } = useQuery({
     queryKey: ["converted-proposal-ids", currentWorkspace?.id],
     queryFn: async () => {
@@ -223,85 +190,137 @@ export function ProposalsList() {
     enabled: !!currentWorkspace?.id,
   });
 
-  // Additional filter state
-  const [valueFilter, setValueFilter] = useState<string | undefined>();
-  const [timingFilter, setTimingFilter] = useState<string | undefined>();
-  const [perfFilter, setPerfFilter] = useState<string | undefined>();
-
-  // Filter and search
   const filteredProposals = useMemo(() => {
     if (!proposals) return [];
-    let result = proposals;
+    let result = [...proposals];
 
-    // Status filter
-    if (statusFilter) {
+    if (statusFilter !== "all") {
       result = result.filter((p) => p.status === statusFilter);
     }
-
-    // Value filter
-    if (valueFilter) {
+    if (valueFilter !== "all") {
       result = result.filter((p) => {
         const price = p.price || 0;
         if (valueFilter === "high") return price > 10000;
         if (valueFilter === "medium") return price >= 1000 && price <= 10000;
-        if (valueFilter === "low") return price < 1000;
-        return true;
+        return price < 1000;
       });
     }
-
-    // Timing filter
-    if (timingFilter) {
+    if (timingFilter !== "all") {
       result = result.filter((p) => {
         const date = new Date(p.created_at);
         if (timingFilter === "today") return isToday(date);
         if (timingFilter === "week") return isThisWeek(date);
-        if (timingFilter === "month") return isThisMonth(date);
-        return true;
+        return isThisMonth(date);
       });
     }
-
-    // Performance filter
-    if (perfFilter) {
+    if (perfFilter !== "all") {
       result = result.filter((p) => {
         if (perfFilter === "viewed") return p.views_count > 0;
         if (perfFilter === "not_viewed") return p.views_count === 0;
-        if (perfFilter === "high_views") return p.views_count > 10;
-        return true;
+        return p.views_count > 10;
       });
     }
-
-    // Search filter
     if (searchValue) {
       const lower = searchValue.toLowerCase();
       result = result.filter(
         (p) =>
           p.title.toLowerCase().includes(lower) ||
           p.opportunity?.title?.toLowerCase().includes(lower) ||
-          p.opportunity?.lead?.name?.toLowerCase().includes(lower)
+          p.opportunity?.lead?.name?.toLowerCase().includes(lower),
       );
     }
 
+    result.sort((a, b) => {
+      switch (sortValue) {
+        case "created_asc":
+          return a.created_at.localeCompare(b.created_at);
+        case "value_desc":
+          return (b.price || 0) - (a.price || 0);
+        case "value_asc":
+          return (a.price || 0) - (b.price || 0);
+        case "views_desc":
+          return (b.views_count || 0) - (a.views_count || 0);
+        case "title_asc":
+          return a.title.localeCompare(b.title);
+        case "created_desc":
+        default:
+          return b.created_at.localeCompare(a.created_at);
+      }
+    });
     return result;
-  }, [proposals, searchValue, statusFilter, valueFilter, timingFilter, perfFilter]);
+  }, [proposals, searchValue, statusFilter, valueFilter, timingFilter, perfFilter, sortValue]);
 
-  // Pagination
   const totalProposals = filteredProposals.length;
-  const totalPages = Math.ceil(totalProposals / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalProposals / pageSize));
   const paginatedProposals = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredProposals.slice(start, start + pageSize);
   }, [filteredProposals, currentPage, pageSize]);
 
-  // Calculate total value
-  const totalValue = useMemo(() => {
-    return filteredProposals.reduce((sum, p) => sum + (p.price || 0), 0);
-  }, [filteredProposals]);
+  const summary = useMemo(() => {
+    const list = proposals || [];
+    let draftValue = 0;
+    let publishedValue = 0;
+    let acceptedValue = 0;
+    let rejectedValue = 0;
+    let totalValue = 0;
+    list.forEach((p) => {
+      const v = p.price || 0;
+      totalValue += v;
+      switch (p.status) {
+        case "draft":
+          draftValue += v;
+          break;
+        case "published":
+          publishedValue += v;
+          break;
+        case "accepted":
+          acceptedValue += v;
+          break;
+        case "rejected":
+        case "expired":
+          rejectedValue += v;
+          break;
+      }
+    });
+    return { draftValue, publishedValue, acceptedValue, rejectedValue, totalValue };
+  }, [proposals]);
 
-  const filtersActive = !!statusFilter || !!activeFilterId || !!valueFilter || !!timingFilter || !!perfFilter;
+  const summaryItems: SummaryItem[] = [
+    { label: "Não Vencido", value: formatCurrency(summary.publishedValue), tone: "default" },
+    { label: "Vencido", value: formatCurrency(summary.rejectedValue), tone: summary.rejectedValue > 0 ? "destructive" : "default" },
+    { label: "Total sem IVA", value: formatCurrency(summary.totalValue), tone: "primary" },
+    { label: "IVA", value: formatCurrency(0), tone: "default" },
+    { label: "Total", value: formatCurrency(summary.totalValue), tone: "primary" },
+  ];
+  const summarySeparators: Array<"+" | "=" | null> = ["+", "=", "+", "="];
 
-  const getPublicUrl = (slug: string) => {
-    return `${getPublicBaseUrl()}/p/${slug}`;
+  const filtersActive =
+    statusFilter !== "all" ||
+    valueFilter !== "all" ||
+    timingFilter !== "all" ||
+    perfFilter !== "all" ||
+    !!searchValue;
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setValueFilter("all");
+    setTimingFilter("all");
+    setPerfFilter("all");
+    setSearchValue("");
+    setCurrentPage(1);
   };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) setSelectedIds(paginatedProposals.map((p) => p.id));
+    else setSelectedIds([]);
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((i) => i !== id)));
+  };
+
+  const getPublicUrl = (slug: string) => `${getPublicBaseUrl()}/p/${slug}`;
 
   const handleCopyLink = (slug: string) => {
     navigator.clipboard.writeText(getPublicUrl(slug));
@@ -321,18 +340,14 @@ export function ProposalsList() {
 
   const handleDuplicate = async (proposalId: string) => {
     const newProposal = await duplicateProposal.mutateAsync(proposalId);
-    if (newProposal) {
-      setDetailId(newProposal.id);
-    }
+    if (newProposal) setDetailId(newProposal.id);
   };
 
   const handleStatusChange = async (proposalId: string, status: ProposalStatus) => {
     await quickStatusChange.mutateAsync({ id: proposalId, status });
     if (status === "accepted") {
-      const prop = proposals?.find(p => p.id === proposalId);
-      if (prop) {
-        setProcurementModalProposal({ id: proposalId, title: prop.title });
-      }
+      const prop = proposals?.find((p) => p.id === proposalId);
+      if (prop) setProcurementModalProposal({ id: proposalId, title: prop.title });
     }
   };
 
@@ -344,51 +359,10 @@ export function ProposalsList() {
   const handleConvertToOrderNote = async () => {
     if (!convertOrderId) return;
     try {
-      const result = await convertToOrderNote.mutateAsync({ proposalId: convertOrderId });
+      await convertToOrderNote.mutateAsync({ proposalId: convertOrderId });
       setConvertOrderId(null);
     } catch {
-      // Error handled by mutation
-    }
-  };
-
-  const handleFilterSelect = (filterId: string) => {
-    setActiveFilterId(filterId);
-    if (filterId.startsWith("status_")) {
-      setStatusFilter(filterId.replace("status_", ""));
-      setValueFilter(undefined);
-      setTimingFilter(undefined);
-      setPerfFilter(undefined);
-    } else if (filterId.startsWith("value_")) {
-      setValueFilter(filterId.replace("value_", ""));
-      setStatusFilter(undefined);
-      setTimingFilter(undefined);
-      setPerfFilter(undefined);
-    } else if (filterId.startsWith("timing_")) {
-      setTimingFilter(filterId.replace("timing_", ""));
-      setStatusFilter(undefined);
-      setValueFilter(undefined);
-      setPerfFilter(undefined);
-    } else if (filterId.startsWith("perf_")) {
-      setPerfFilter(filterId.replace("perf_", ""));
-      setStatusFilter(undefined);
-      setValueFilter(undefined);
-      setTimingFilter(undefined);
-    }
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(paginatedProposals.map((p) => p.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const handleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds((prev) => [...prev, id]);
-    } else {
-      setSelectedIds((prev) => prev.filter((i) => i !== id));
+      // handled by mutation
     }
   };
 
@@ -406,7 +380,7 @@ export function ProposalsList() {
           statusLabels[p.status],
           p.views_count,
           format(new Date(p.created_at), "dd/MM/yyyy"),
-        ].join(",")
+        ].join(","),
       ),
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -418,404 +392,413 @@ export function ProposalsList() {
     toast.success(`${selected.length} propostas exportadas`);
   };
 
-  const handleBulkDelete = () => {
-    if (selectedIds.length > 0) {
-      setDeleteId(selectedIds[0]); // For now, delete one at a time
-    }
+  const valueBucketLabel: Record<ValueBucket | "all", string> = {
+    all: "Todos",
+    high: "Alto (>10.000€)",
+    medium: "Médio (1.000-10.000€)",
+    low: "Baixo (<1.000€)",
   };
-
-  const formatCurrency = (value: number | null, currency?: string) => {
-    if (!value) return "-";
-    // Default to EUR if no currency specified
-    const currencyCode = currency || "EUR";
-    return new Intl.NumberFormat("pt-PT", {
-      style: "currency",
-      currency: currencyCode,
-    }).format(value);
+  const timingBucketLabel: Record<TimingBucket | "all", string> = {
+    all: "Sempre",
+    today: "Hoje",
+    week: "Esta semana",
+    month: "Este mês",
   };
-
-  // Render content based on active tab
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "templates":
-        return <ProposalTemplatesList />;
-      case "analytics":
-        return <ProposalAnalyticsTab />;
-      default:
-        return renderProposalsContent();
-    }
-  };
-
-  const renderProposalsContent = () => {
-    const acceptedCount = (proposals || []).filter(p => p.status === "accepted").length;
-    const allTotal = (proposals || []).length;
-    const conversionRate = allTotal > 0 ? Math.round((acceptedCount / allTotal) * 100) : 0;
-    const avgValue = allTotal > 0 ? Math.round(totalValue / allTotal) : 0;
-
-    return (
-    <>
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
-        <Card
-          className="p-3 cursor-pointer hover:border-primary/30 transition-colors"
-          onClick={() => { setActiveFilterId(undefined); setStatusFilter(undefined); setValueFilter(undefined); setTimingFilter(undefined); setPerfFilter(undefined); }}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Total</span>
-          </div>
-          <p className="text-xl font-bold">{totalProposals}</p>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Valor Total</span>
-          </div>
-          <p className="text-xl font-bold">{formatCurrency(totalValue)}</p>
-        </Card>
-        <Card
-          className="p-3 cursor-pointer hover:border-primary/30 transition-colors"
-          onClick={() => { setActiveFilterId("status_accepted"); setStatusFilter("accepted"); setValueFilter(undefined); setTimingFilter(undefined); setPerfFilter(undefined); }}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span className="text-xs text-muted-foreground">Aceitas</span>
-          </div>
-          <p className="text-xl font-bold">{acceptedCount}</p>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Percent className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Conversão</span>
-          </div>
-          <p className="text-xl font-bold">{conversionRate}%</p>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Valor Médio</span>
-          </div>
-          <p className="text-xl font-bold">{formatCurrency(avgValue)}</p>
-        </Card>
-      </div>
-
-      {/* Toolbar */}
-      <Toolbar
-        searchValue={searchValue}
-        searchPlaceholder="Pesquisar propostas..."
-        onSearchChange={setSearchValue}
-        showFilters={true}
-        filtersActive={filtersActive}
-        onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
-        onClearFilters={() => {
-          setActiveFilterId(undefined);
-          setStatusFilter(undefined);
-          setValueFilter(undefined);
-          setTimingFilter(undefined);
-          setPerfFilter(undefined);
-        }}
-        sortOptions={sortOptions}
-        sortValue={sortValue}
-        onSortChange={setSortValue}
-        leftActions={
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowFilterSidebar(!showFilterSidebar)}
-            className="gap-2"
-          >
-            {showFilterSidebar ? (
-              <PanelLeftClose className="h-4 w-4" />
-            ) : (
-              <PanelLeft className="h-4 w-4" />
-            )}
-          </Button>
-        }
-        rightActions={
-          <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        }
-      />
-
-      {/* Bulk Actions */}
-      {selectedIds.length > 0 && (
-        <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
-          <span className="text-sm text-muted-foreground">
-            {selectedIds.length} {selectedIds.length === 1 ? "selecionada" : "selecionadas"}
-          </span>
-          <div className="flex-1" />
-          <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
-            <Download className="h-4 w-4" />
-            Exportar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBulkDelete}
-            className="gap-2 text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-            Eliminar
-          </Button>
-        </div>
-      )}
-
-      {/* Lista de propostas (estilo InvoiceXpress) */}
-      {isLoading ? (
-        <Card className="p-8 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-        </Card>
-      ) : !paginatedProposals?.length ? (
-        <Card className="p-12 text-center text-muted-foreground">
-          <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
-          <h3 className="text-lg font-medium mb-2">Nenhuma proposta encontrada.</h3>
-          <p className="text-sm mb-4">
-            Crie a primeira proposta para começar a fechar negócios.
-          </p>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Criar primeira proposta
-          </Button>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {paginatedProposals.map((proposal) => {
-            const clientName =
-              proposal.contact?.name ||
-              proposal.company?.name ||
-              proposal.opportunity?.lead?.name ||
-              "—";
-            return (
-              <DocumentRow
-                key={proposal.id}
-                selected={selectedIds.includes(proposal.id)}
-                onSelectedChange={(c) => handleSelectOne(proposal.id, c)}
-                statusBadge={
-                  <DocumentStatusBadge
-                    label={statusLabels[proposal.status]}
-                    tone={statusTone[proposal.status]}
-                  />
-                }
-                number={proposal.title}
-                subtitle={proposal.opportunity?.title ? `OPORTUNIDADE · ${proposal.opportunity.title}` : "PROPOSTA"}
-                clientName={clientName}
-                clientSubtitle={
-                  proposal.assigned_to_profile?.full_name ||
-                  proposal.assigned_to_profile?.email ||
-                  undefined
-                }
-                issueDate={format(new Date(proposal.created_at), "dd/MM/yyyy", { locale: pt })}
-                dueDate={`${proposal.views_count} visualizações`}
-                totalPrimary={formatCurrency(proposal.price, proposal.currency || "EUR")}
-                totalSecondary={proposal.currency && proposal.currency !== "EUR" ? proposal.currency : undefined}
-                onClick={() => setDetailId(proposal.id)}
-                action={
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenuItem onClick={() => setDetailId(proposal.id)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver detalhes
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => { e.stopPropagation(); handleDuplicate(proposal.id); }}
-                        disabled={duplicateProposal.isPending}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Duplicar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => { e.stopPropagation(); handleOpenTaskDialog(proposal); }}
-                      >
-                        <CheckSquare className="h-4 w-4 mr-2" />
-                        Criar Tarefa
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>
-                          <ArrowRightLeft className="h-4 w-4 mr-2" />
-                          Alterar Estado
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          {proposal.status !== "accepted" && (
-                            <DropdownMenuItem
-                              onClick={(e) => { e.stopPropagation(); handleStatusChange(proposal.id, "accepted"); }}
-                            >
-                              <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
-                              Marcar como Aceita
-                            </DropdownMenuItem>
-                          )}
-                          {proposal.status !== "rejected" && (
-                            <DropdownMenuItem
-                              onClick={(e) => { e.stopPropagation(); handleStatusChange(proposal.id, "rejected"); }}
-                            >
-                              <XCircle className="h-4 w-4 mr-2 text-red-500" />
-                              Marcar como Rejeitada
-                            </DropdownMenuItem>
-                          )}
-                          {proposal.status !== "draft" && (
-                            <DropdownMenuItem
-                              onClick={(e) => { e.stopPropagation(); handleStatusChange(proposal.id, "draft"); }}
-                            >
-                              <FileClock className="h-4 w-4 mr-2" />
-                              Voltar a Rascunho
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                      {proposal.status === "accepted" && (proposal.contact_id || proposal.company_id) && (
-                        convertedProposalIds?.has(proposal.id) ? (
-                          <DropdownMenuItem disabled>
-                            <ShoppingCart className="h-4 w-4 mr-2 text-muted-foreground" />
-                            Já convertida em Encomenda
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem
-                            onClick={(e) => { e.stopPropagation(); setConvertOrderId(proposal.id); }}
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            Converter em Encomenda
-                          </DropdownMenuItem>
-                        )
-                      )}
-                      {proposal.status === "published" && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => window.open(getPublicUrl(proposal.slug), "_blank")}>
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Abrir página
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleCopyLink(proposal.slug)}>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copiar link
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                      {proposal.status === "draft" && (
-                        <DropdownMenuItem onClick={() => handlePublish(proposal.id)}>
-                          <Send className="h-4 w-4 mr-2" />
-                          Publicar
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => setDeleteId(proposal.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                }
-              />
-            );
-          })}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 0 && (
-        <div className="flex items-center justify-between pt-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Mostrar</span>
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(v) => {
-                setPageSize(Number(v));
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[70px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-muted-foreground">por página</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              Página {currentPage} de {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-    </>
-    );
+  const perfBucketLabel: Record<PerfBucket | "all", string> = {
+    all: "Todas",
+    viewed: "Visualizadas",
+    not_viewed: "Não visualizadas",
+    high_views: ">10 visualizações",
   };
 
   return (
-    <div className="flex h-full -m-6">
-      {/* Filter Sidebar - only show for proposals tab */}
-      {activeTab === "proposals" && (
-        <FilterSidebar
-          filterGroups={filterGroups}
-          activeFilterId={activeFilterId}
-          onFilterSelect={handleFilterSelect}
-          onClearFilter={() => {
-            setActiveFilterId(undefined);
-            setStatusFilter(undefined);
-            setValueFilter(undefined);
-            setTimingFilter(undefined);
-            setPerfFilter(undefined);
-          }}
-          isOpen={showFilterSidebar}
-          onClose={() => setShowFilterSidebar(false)}
-        />
+    <DocumentListLayout
+      title="Propostas"
+      searchValue={searchValue}
+      onSearchChange={(v) => {
+        setSearchValue(v);
+        setCurrentPage(1);
+      }}
+      searchPlaceholder="Pesquisar por título, oportunidade ou cliente"
+      primaryAction={
+        activeTab === "proposals" ? (
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="gap-2 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Proposta
+          </Button>
+        ) : undefined
+      }
+      chips={
+        activeTab === "proposals" ? (
+          <>
+            <DocumentFilterChip
+              label="Estado"
+              value={statusFilter === "all" ? "Todos" : statusLabels[statusFilter]}
+              active={statusFilter !== "all"}
+            >
+              <DropdownMenuItem onSelect={() => setStatusFilter("all")}>Todos</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {(Object.keys(statusLabels) as ProposalStatus[]).map((s) => (
+                <DropdownMenuItem key={s} onSelect={() => setStatusFilter(s)}>
+                  {statusLabels[s]}
+                </DropdownMenuItem>
+              ))}
+            </DocumentFilterChip>
+            <DocumentFilterChip
+              label="Valor"
+              value={valueBucketLabel[valueFilter]}
+              active={valueFilter !== "all"}
+            >
+              {(Object.keys(valueBucketLabel) as Array<ValueBucket | "all">).map((k) => (
+                <DropdownMenuItem key={k} onSelect={() => setValueFilter(k)}>
+                  {valueBucketLabel[k]}
+                </DropdownMenuItem>
+              ))}
+            </DocumentFilterChip>
+            <DocumentFilterChip
+              label="Datas"
+              value={timingBucketLabel[timingFilter]}
+              active={timingFilter !== "all"}
+            >
+              {(Object.keys(timingBucketLabel) as Array<TimingBucket | "all">).map((k) => (
+                <DropdownMenuItem key={k} onSelect={() => setTimingFilter(k)}>
+                  {timingBucketLabel[k]}
+                </DropdownMenuItem>
+              ))}
+            </DocumentFilterChip>
+            <DocumentFilterChip
+              label="Performance"
+              value={perfBucketLabel[perfFilter]}
+              active={perfFilter !== "all"}
+            >
+              {(Object.keys(perfBucketLabel) as Array<PerfBucket | "all">).map((k) => (
+                <DropdownMenuItem key={k} onSelect={() => setPerfFilter(k)}>
+                  {perfBucketLabel[k]}
+                </DropdownMenuItem>
+              ))}
+            </DocumentFilterChip>
+            <DocumentFilterChip label="Ordenação" value={sortOptions.find((o) => o.value === sortValue)?.label || "—"}>
+              {sortOptions.map((o) => (
+                <DropdownMenuItem key={o.value} onSelect={() => setSortValue(o.value)}>
+                  {o.label}
+                </DropdownMenuItem>
+              ))}
+            </DocumentFilterChip>
+            <DocumentFilterChip label="Resultados" value={`${pageSize}/página`}>
+              {PAGE_SIZE_OPTIONS.map((s) => (
+                <DropdownMenuItem
+                  key={s}
+                  onSelect={() => {
+                    setPageSize(s);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {s}
+                </DropdownMenuItem>
+              ))}
+            </DocumentFilterChip>
+          </>
+        ) : undefined
+      }
+      summary={
+        activeTab === "proposals" ? (
+          <DocumentSummaryCard
+            items={summaryItems}
+            separators={summarySeparators}
+            footer={
+              <>
+                <span className="text-amber-700">
+                  <strong>Rascunho:</strong> {formatCurrency(summary.draftValue)}
+                </span>
+                <span className="text-muted-foreground/40">|</span>
+                <span className="text-emerald-700">
+                  <strong>Aceite:</strong> {formatCurrency(summary.acceptedValue)}
+                </span>
+                <span className="text-muted-foreground/40">|</span>
+                <span className="text-destructive">
+                  <strong>Recusado:</strong> {formatCurrency(summary.rejectedValue)}
+                </span>
+              </>
+            }
+          />
+        ) : undefined
+      }
+      toolbar={
+        activeTab === "proposals" ? (
+          <DocumentListToolbar
+            selectAllChecked={
+              paginatedProposals.length > 0 &&
+              paginatedProposals.every((p) => selectedIds.includes(p.id))
+            }
+            onSelectAll={handleSelectAll}
+            sortOptions={sortOptions}
+            sortValue={sortValue}
+            onSortChange={setSortValue}
+            pageSize={pageSize}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onPageSizeChange={(v) => {
+              setPageSize(v);
+              setCurrentPage(1);
+            }}
+            totalCount={totalProposals}
+            countLabel="Documentos"
+            onClearFilters={clearFilters}
+            clearFiltersDisabled={!filtersActive}
+          />
+        ) : undefined
+      }
+    >
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-2 bg-transparent p-0 gap-1">
+          {pageTabs.map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {activeTab === "templates" ? (
+        <ProposalTemplatesList />
+      ) : activeTab === "analytics" ? (
+        <ProposalAnalyticsTab />
+      ) : (
+        <>
+          {selectedIds.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2">
+              <span className="text-sm text-foreground">
+                {selectedIds.length} {selectedIds.length === 1 ? "selecionada" : "selecionadas"}
+              </span>
+              <div className="flex-1" />
+              <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
+                <Download className="h-4 w-4" /> Exportar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectedIds[0] && setDeleteId(selectedIds[0])}
+                className="gap-2 text-destructive"
+              >
+                <Trash2 className="h-4 w-4" /> Eliminar
+              </Button>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : paginatedProposals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/50 py-16 text-center">
+              <FileText className="h-12 w-12 text-muted-foreground/40" />
+              <h3 className="text-base font-medium text-foreground">
+                Não encontrámos documentos para a sua pesquisa…
+              </h3>
+              <Button onClick={() => setCreateOpen(true)} className="gap-2 rounded-full">
+                <Plus className="h-4 w-4" /> Criar primeira proposta
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {paginatedProposals.map((proposal) => {
+                const clientName =
+                  proposal.contact?.name ||
+                  proposal.company?.name ||
+                  proposal.opportunity?.lead?.name ||
+                  "—";
+                return (
+                  <DocumentRow
+                    key={proposal.id}
+                    selected={selectedIds.includes(proposal.id)}
+                    onSelectedChange={(c) => handleSelectOne(proposal.id, c)}
+                    statusBadge={
+                      <DocumentStatusBadge
+                        label={statusLabels[proposal.status]}
+                        tone={statusTone[proposal.status]}
+                      />
+                    }
+                    number={proposal.title}
+                    subtitle={
+                      proposal.opportunity?.title
+                        ? `OPORTUNIDADE · ${proposal.opportunity.title}`
+                        : "PROPOSTA"
+                    }
+                    clientName={clientName}
+                    clientSubtitle={
+                      proposal.assigned_to_profile?.full_name ||
+                      proposal.assigned_to_profile?.email ||
+                      undefined
+                    }
+                    issueDate={format(new Date(proposal.created_at), "dd/MM/yyyy", { locale: pt })}
+                    dueDate={`${proposal.views_count} visualizações`}
+                    totalPrimary={formatCurrency(proposal.price, proposal.currency)}
+                    totalSecondary={
+                      proposal.currency && normalizeCurrencyCode(proposal.currency) !== "EUR"
+                        ? proposal.currency
+                        : undefined
+                    }
+                    onClick={() => setDetailId(proposal.id)}
+                    action={
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-primary hover:bg-primary/10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={() => setDetailId(proposal.id)}>
+                            <Eye className="h-4 w-4 mr-2" /> Ver detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicate(proposal.id);
+                            }}
+                            disabled={duplicateProposal.isPending}
+                          >
+                            <Copy className="h-4 w-4 mr-2" /> Duplicar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenTaskDialog(proposal);
+                            }}
+                          >
+                            <CheckSquare className="h-4 w-4 mr-2" /> Criar Tarefa
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <ArrowRightLeft className="h-4 w-4 mr-2" /> Alterar Estado
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              {proposal.status !== "accepted" && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStatusChange(proposal.id, "accepted");
+                                  }}
+                                >
+                                  <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+                                  Marcar como Aceita
+                                </DropdownMenuItem>
+                              )}
+                              {proposal.status !== "rejected" && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStatusChange(proposal.id, "rejected");
+                                  }}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2 text-red-500" />
+                                  Marcar como Rejeitada
+                                </DropdownMenuItem>
+                              )}
+                              {proposal.status !== "draft" && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStatusChange(proposal.id, "draft");
+                                  }}
+                                >
+                                  <FileClock className="h-4 w-4 mr-2" /> Voltar a Rascunho
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                          {proposal.status === "accepted" &&
+                            (proposal.contact_id || proposal.company_id) &&
+                            (convertedProposalIds?.has(proposal.id) ? (
+                              <DropdownMenuItem disabled>
+                                <ShoppingCart className="h-4 w-4 mr-2 text-muted-foreground" />
+                                Já convertida em Encomenda
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConvertOrderId(proposal.id);
+                                }}
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                Converter em Encomenda
+                              </DropdownMenuItem>
+                            ))}
+                          {proposal.status === "published" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => window.open(getPublicUrl(proposal.slug), "_blank")}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" /> Abrir página
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCopyLink(proposal.slug)}>
+                                <Copy className="h-4 w-4 mr-2" /> Copiar link
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {proposal.status === "draft" && (
+                            <DropdownMenuItem onClick={() => handlePublish(proposal.id)}>
+                              <Send className="h-4 w-4 mr-2" /> Publicar
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setDeleteId(proposal.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    }
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <span className="text-sm text-muted-foreground">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+              >
+                Seguinte
+              </Button>
+            </div>
+          )}
+        </>
       )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 p-6">
-        {/* Page Header */}
-        <PageHeader
-          title="Propostas"
-          count={activeTab === "proposals" ? totalProposals : undefined}
-          description={activeTab === "proposals" ? `Valor total: ${formatCurrency(totalValue)}` : undefined}
-          tabs={pageTabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          actions={activeTab === "proposals" ? [
-            {
-              label: "Nova Proposta",
-              icon: <Plus className="h-4 w-4" />,
-              onClick: () => setCreateOpen(true),
-            },
-          ] : undefined}
-        />
-
-        {/* Tab Content */}
-        {renderTabContent()}
-      </div>
 
       <CreateProposalDialog open={createOpen} onOpenChange={setCreateOpen} />
 
@@ -838,8 +821,7 @@ export function ProposalsList() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir proposta?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A proposta será permanentemente
-              removida.
+              Esta ação não pode ser desfeita. A proposta será permanentemente removida.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -854,40 +836,32 @@ export function ProposalsList() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Convert to Order Note Dialog */}
       <AlertDialog open={!!convertOrderId} onOpenChange={(open) => !open && setConvertOrderId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Converter em Nota de Encomenda?</AlertDialogTitle>
             <AlertDialogDescription>
-              Os itens desta proposta serão usados para criar uma nova Nota de Encomenda
-              com estado &quot;Submetida&quot;. Se necessário, será criado automaticamente
-              um utilizador cliente associado ao contacto/empresa.
+              Os itens desta proposta serão usados para criar uma nova Nota de Encomenda associada
+              ao mesmo cliente. Poderá depois editá-la antes de a confirmar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={convertToOrderNote.isPending}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConvertToOrderNote}
-              disabled={convertToOrderNote.isPending}
-            >
-              {convertToOrderNote.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConvertToOrderNote}>
               Converter
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       {procurementModalProposal && (
         <ProposalWonProcurementModal
           open={!!procurementModalProposal}
-          onOpenChange={(open) => { if (!open) setProcurementModalProposal(null); }}
+          onOpenChange={(open) => !open && setProcurementModalProposal(null)}
           proposalId={procurementModalProposal.id}
           proposalTitle={procurementModalProposal.title}
-          workspaceId={proposals?.[0]?.workspace_id || ""}
         />
       )}
-    </div>
+    </DocumentListLayout>
   );
 }
