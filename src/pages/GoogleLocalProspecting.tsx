@@ -33,6 +33,7 @@ import {
   Check
 } from "lucide-react";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { useCreateLead, useLeads } from "@/hooks/useLeads";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { useProspectingSearchHistory, useExistingLeadIdentifiers } from "@/hooks/useProspectingSearchHistory";
