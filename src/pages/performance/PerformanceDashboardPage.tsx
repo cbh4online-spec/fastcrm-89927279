@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { PageHeader } from "@/components/common/PageHeader";
-import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -18,6 +16,27 @@ import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
+
+interface KpiProps { label: string; value: string | number; icon: React.ReactNode; tone?: "default" | "success" | "primary" | "warning"; }
+function IXKpi({ label, value, icon, tone = "default" }: KpiProps) {
+  const tones: Record<string, string> = {
+    default: "bg-muted text-muted-foreground",
+    success: "bg-emerald-500/10 text-emerald-600",
+    primary: "bg-primary/10 text-primary",
+    warning: "bg-amber-500/10 text-amber-600",
+  };
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-5">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", tones[tone])}>{icon}</div>
+      </div>
+      <p className="mt-3 text-2xl font-semibold tracking-tight">{value}</p>
+    </div>
+  );
+}
+
 
 const RECALC_KEY = "perf_last_recalc";
 const RECALC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -87,14 +106,16 @@ export default function PerformanceDashboardPage() {
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <PageHeader
-            title={t("title")}
-            description={t("description")}
-          />
+        {/* Header */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{t("description")}</p>
+          </div>
           <Button
             variant="outline"
             size="sm"
+            className="rounded-full"
             onClick={() => recalculate.mutate("weekly")}
             disabled={recalculate.isPending}
           >
@@ -103,199 +124,170 @@ export default function PerformanceDashboardPage() {
           </Button>
         </div>
 
-        <KPIGrid columns={4}>
-          <KPICard
-            title={t("closedRevenue")}
-            value={formatCurrency(totalRevenue)}
-            icon={<DollarSign className="h-4 w-4" />}
-            variant="success"
-          />
-          <KPICard
-            title={t("pipelineGenerated")}
-            value={formatCurrency(totalPipeline)}
-            icon={<TrendingUp className="h-4 w-4" />}
-            variant="primary"
-          />
-          <KPICard
-            title={t("meetingsHeld")}
-            value={totalMeetings}
-            icon={<Calendar className="h-4 w-4" />}
-            variant="warning"
-          />
-          <KPICard
-            title={t("activePerformers")}
-            value={totalDeals}
-            icon={<Users className="h-4 w-4" />}
-            variant="default"
-          />
-        </KPIGrid>
+        {/* KPIs */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <IXKpi label={t("closedRevenue")} value={formatCurrency(totalRevenue)} icon={<DollarSign className="h-4 w-4" />} tone="success" />
+          <IXKpi label={t("pipelineGenerated")} value={formatCurrency(totalPipeline)} icon={<TrendingUp className="h-4 w-4" />} tone="primary" />
+          <IXKpi label={t("meetingsHeld")} value={totalMeetings} icon={<Calendar className="h-4 w-4" />} tone="warning" />
+          <IXKpi label={t("activePerformers")} value={totalDeals} icon={<Users className="h-4 w-4" />} />
+        </div>
 
         {/* Pipeline Metrics Widgets */}
         <MetricWidgets />
 
         <div className="flex justify-end">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/dashboard/performance/metrics")}>
+          <Button variant="outline" size="sm" className="rounded-full gap-1.5" onClick={() => navigate("/dashboard/performance/metrics")}>
             <BarChart3 className="h-4 w-4" />
             Gerir Métricas
           </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-yellow-500" />
-                {t("weeklyLeaderboard")}
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/leaderboard")}>
+          <IXCard
+            className="lg:col-span-2"
+            title={t("weeklyLeaderboard")}
+            actions={
+              <Button variant="ghost" size="sm" className="rounded-full" onClick={() => navigate("/dashboard/performance/leaderboard")}>
                 {t("viewAll")}
               </Button>
-            </CardHeader>
-            <CardContent>
-              {lbLoading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}
-                </div>
-              ) : !leaderboard?.length ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">
-                  {t("noPerformanceData")} {t("noPerformanceDataHint")}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {leaderboard.slice(0, 5).map((entry: any) => (
-                    <div key={entry.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        entry.rank === 1 ? "bg-yellow-500/20 text-yellow-600" :
-                        entry.rank === 2 ? "bg-gray-300/30 text-gray-600" :
-                        entry.rank === 3 ? "bg-orange-400/20 text-orange-600" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
-                        {entry.rank}
-                      </div>
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={entry.avatar_url} />
-                        <AvatarFallback>{entry.user_name?.charAt(0) || "U"}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{entry.user_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatCurrency(entry.revenue_generated)} {t("revenue")} · {entry.meetings_booked} {t("meetings")}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold">{Math.round(entry.score_total)}</p>
-                        <p className="text-xs text-muted-foreground">{t("points")}</p>
-                      </div>
+            }
+          >
+            {lbLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}
+              </div>
+            ) : !leaderboard?.length ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                {t("noPerformanceData")} {t("noPerformanceDataHint")}
+              </p>
+            ) : (
+              <div className="divide-y divide-border">
+                {leaderboard.slice(0, 5).map((entry: any) => (
+                  <div key={entry.id} className="flex items-center gap-3 py-3">
+                    <div className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold",
+                      entry.rank === 1 ? "bg-yellow-500/15 text-yellow-600" :
+                      entry.rank === 2 ? "bg-gray-300/30 text-gray-600" :
+                      entry.rank === 3 ? "bg-orange-400/15 text-orange-600" :
+                      "bg-muted text-muted-foreground"
+                    )}>
+                      {entry.rank}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={entry.avatar_url} />
+                      <AvatarFallback>{entry.user_name?.charAt(0) || "U"}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{entry.user_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(entry.revenue_generated)} {t("revenue")} · {entry.meetings_booked} {t("meetings")}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold">{Math.round(entry.score_total)}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("points")}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </IXCard>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Zap className="h-5 w-5 text-amber-500" />
-                {t("activeChallenges")}
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/challenges")}>
+          <IXCard
+            title={t("activeChallenges")}
+            actions={
+              <Button variant="ghost" size="sm" className="rounded-full" onClick={() => navigate("/dashboard/performance/challenges")}>
                 {t("viewAll")}
               </Button>
-            </CardHeader>
-            <CardContent>
-              {!challenges?.length ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-muted-foreground mb-3">{t("noChallenges")}</p>
-                  <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/performance/challenges")}>
-                    {t("createChallenge")}
-                  </Button>
+            }
+          >
+            {!challenges?.length ? (
+              <div className="text-center py-6">
+                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                  <Zap className="h-5 w-5" />
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {challenges.slice(0, 3).map(ch => {
-                    const daysLeft = Math.max(0, Math.ceil((new Date(ch.end_date).getTime() - Date.now()) / 86400000));
-                    return (
-                      <div key={ch.id} className="p-3 rounded-lg border border-border/50 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium">{ch.challenge_name}</p>
-                          <Badge variant="secondary" className="text-xs">{t("daysRemaining", { count: daysLeft })}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{ch.description}</p>
-                        <Progress value={getChallengeProgress(ch)} className="h-1.5" />
+                <p className="text-sm text-muted-foreground mb-3">{t("noChallenges")}</p>
+                <Button size="sm" variant="outline" className="rounded-full" onClick={() => navigate("/dashboard/performance/challenges")}>
+                  {t("createChallenge")}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {challenges.slice(0, 3).map(ch => {
+                  const daysLeft = Math.max(0, Math.ceil((new Date(ch.end_date).getTime() - Date.now()) / 86400000));
+                  return (
+                    <div key={ch.id} className="p-3 rounded-xl border border-border/60 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium truncate">{ch.challenge_name}</p>
+                        <Badge variant="secondary" className="text-[10px] rounded-full shrink-0">{t("daysRemaining", { count: daysLeft })}</Badge>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      {ch.description && <p className="text-xs text-muted-foreground line-clamp-2">{ch.description}</p>}
+                      <Progress value={getChallengeProgress(ch)} className="h-1.5" />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </IXCard>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                {t("activeGoals")}
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/metrics")}>
+          <IXCard
+            title={t("activeGoals")}
+            actions={
+              <Button variant="ghost" size="sm" className="rounded-full" onClick={() => navigate("/dashboard/performance/metrics")}>
                 {t("manage")}
               </Button>
-            </CardHeader>
-            <CardContent>
-              {!goals?.length ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">{t("noGoals")}</p>
-              ) : (
-                <div className="space-y-3">
-                  {goals.slice(0, 4).map(g => (
-                    <div key={g.id} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{g.goal_name}</span>
-                        <span className="text-muted-foreground">{g.target_value}</span>
-                      </div>
-                      <Progress value={getGoalProgress(g)} className="h-2" />
+            }
+          >
+            {!goals?.length ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">{t("noGoals")}</p>
+            ) : (
+              <div className="space-y-4">
+                {goals.slice(0, 4).map(g => (
+                  <div key={g.id} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium truncate">{g.goal_name}</span>
+                      <span className="text-muted-foreground shrink-0">{g.target_value}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <Progress value={getGoalProgress(g)} className="h-2" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </IXCard>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-yellow-500" />
-                {t("recognitions")}
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/recognition")}>
+          <IXCard
+            title={t("recognitions")}
+            actions={
+              <Button variant="ghost" size="sm" className="rounded-full" onClick={() => navigate("/dashboard/performance/recognition")}>
                 {t("viewAll")}
               </Button>
-            </CardHeader>
-            <CardContent>
-              {!recognitions?.length ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">{t("noRecognitions")}</p>
-              ) : (
-                <div className="space-y-3">
-                  {recognitions.slice(0, 4).map(r => {
-                    const typeInfo = RECOGNITION_TYPES.find(t => t.value === r.recognition_type);
-                    return (
-                      <div key={r.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30">
-                        <span className="text-xl">{typeInfo?.icon || "🏆"}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{r.title}</p>
-                          <p className="text-xs text-muted-foreground">{r.user_name || "—"}</p>
-                        </div>
-                        <Badge variant="outline" className="text-xs">{typeInfo?.label || r.recognition_type}</Badge>
+            }
+          >
+            {!recognitions?.length ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">{t("noRecognitions")}</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {recognitions.slice(0, 4).map(r => {
+                  const typeInfo = RECOGNITION_TYPES.find(t => t.value === r.recognition_type);
+                  return (
+                    <div key={r.id} className="flex items-center gap-3 py-2.5">
+                      <span className="text-lg">{typeInfo?.icon || "🏆"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{r.title}</p>
+                        <p className="text-xs text-muted-foreground">{r.user_name || "—"}</p>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      <Badge variant="outline" className="text-[10px] rounded-full">{typeInfo?.label || r.recognition_type}</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </IXCard>
         </div>
       </div>
+
     </DashboardLayout>
   );
 }
