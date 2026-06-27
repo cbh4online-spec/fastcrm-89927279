@@ -346,18 +346,10 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        {/* Header: workspace logo + nome */}
-        <div className="px-3 py-3 border-b border-sidebar-border flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-sidebar-primary/15 flex items-center justify-center shrink-0">
-            {logoUrl ? (
-              <img src={logoUrl} alt={workspaceName} className="w-7 h-7 rounded-md object-contain" />
-            ) : (
-              <span className="text-sidebar-primary font-bold text-xs">{workspaceName.slice(0, 2).toUpperCase()}</span>
-            )}
-          </div>
+        {/* Workspace switcher (já mostra o logo + nome do workspace) */}
+        <div className="px-3 py-3 border-b border-sidebar-border flex items-center gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-sidebar-foreground truncate">{workspaceName}</p>
-            <p className="text-[11px] text-sidebar-foreground/55 truncate">{userName}</p>
+            <WorkspaceSwitcher collapsed={false} />
           </div>
           <button
             onClick={onClose}
@@ -368,10 +360,6 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           </button>
         </div>
 
-        {/* Workspace switcher */}
-        <div className="px-3 py-2 border-b border-sidebar-border">
-          <WorkspaceSwitcher collapsed={false} />
-        </div>
 
         {/* Pesquisa */}
         <div className="px-3 py-2 border-b border-sidebar-border">
@@ -536,30 +524,12 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
               <div className="space-y-0.5">{recentItems.slice(0, 5).map((it) => renderCompactLink(it))}</div>
             </div>
           )}
-
-          {/* Hint favoritos */}
-          {!filter && favoriteItems.length < maxFav && (
-            <div className="mt-3 px-3 py-2 rounded-md bg-sidebar-accent/30 border border-dashed border-sidebar-border text-[10px] text-sidebar-foreground/40 flex items-start gap-1.5">
-              <Pin className="w-3 h-3 mt-0.5 shrink-0" />
-              <span>Passe o rato sobre um item e clique em <Star className="inline w-2.5 h-2.5 -mt-0.5" /> para fixar nos favoritos.</span>
-            </div>
-          )}
         </nav>
 
-        {/* Footer com avatar + tema + copyright */}
-        <div className="border-t border-sidebar-border px-3 py-2 flex items-center gap-2">
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback className="bg-sidebar-primary/20 text-sidebar-primary text-[10px] font-bold">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-semibold text-sidebar-foreground truncate">{userName}</p>
-            <p className="text-[10px] text-sidebar-foreground/50 truncate">{user?.email}</p>
-          </div>
-        </div>
+
+        {/* Footer */}
         <SidebarFooter />
+
       </aside>
     </>
   );
