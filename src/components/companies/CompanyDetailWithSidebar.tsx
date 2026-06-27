@@ -494,11 +494,11 @@ export function CompanyDetailWithSidebar() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <EntityAvatarUpload
-              entityType="company"
-              entityId={id!}
-              entityName={company.name}
-              currentAvatarUrl={(company as any).avatar_url}
-              onAvatarChange={(url) => handleFieldChange('avatar_url' as keyof Company, url)}
+              name={company.name}
+              value={(company as any).avatar_url}
+              onChange={(url) => handleFieldChange('avatar_url' as keyof Company, url)}
+              workspaceId={currentWorkspace?.id ?? ''}
+              folder="companies"
               size="md"
             />
             <div>

@@ -36,6 +36,7 @@ import { isValidPhone, toE164 } from "@/utils/phone";
 import { useContactEnrichment, type ContactEnrichmentResult } from "@/hooks/useContactEnrichment";
 import { useContactDuplicateCheck, type DuplicateMatch } from "@/hooks/useContactDuplicates";
 import { cn } from "@/lib/utils";
+import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 
 const contactSchema = z.object({
   name: z.string().trim().max(100),
@@ -184,6 +185,7 @@ export default function NewContactPage() {
     external_code: "",
     is_final_consumer: false,
     name: "",
+    avatar_url: "" as string,
     // Detalhes
     email: "",
     phone: "",
@@ -304,6 +306,7 @@ export default function NewContactPage() {
         preferred_contact_email: form.preferred_contact_email.trim() || null,
         preferred_contact_phone: form.preferred_contact_phone.trim() || null,
         billing_preferences,
+        avatar_url: form.avatar_url || null,
       };
 
       const { data: created, error } = await workspaceClient
@@ -374,6 +377,16 @@ export default function NewContactPage() {
           title="Informação Fiscal"
           description="Estes dados serão incluídos em todos os documentos emitidos e comunicações com o Estado."
         >
+          <div className="mb-6">
+            <EntityAvatarUpload
+              name={form.name || "Contacto"}
+              value={form.avatar_url}
+              onChange={(url) => update("avatar_url", url ?? "")}
+              workspaceId={currentWorkspace?.id ?? ""}
+              folder="contacts"
+              size="lg"
+            />
+          </div>
           <div className="grid gap-6 md:grid-cols-2">
             <IXField label="NIF" htmlFor="tax_id">
               <div className="flex gap-2">

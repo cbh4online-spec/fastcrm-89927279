@@ -27,6 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { isValidPhone, toE164 } from "@/utils/phone";
 import { useQueryClient } from "@tanstack/react-query";
+import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 
 const contactSchema = z.object({
   name: z.string().trim().max(100),
@@ -80,6 +81,7 @@ const emptyForm = {
   external_code: "",
   is_final_consumer: false,
   name: "",
+  avatar_url: "" as string,
   email: "",
   phone: "",
   address: "",
@@ -145,6 +147,7 @@ export default function EditContactPage() {
         external_code: (c.external_code as string) || "",
         is_final_consumer: !!c.is_final_consumer,
         name: (c.name as string) || "",
+        avatar_url: (c.avatar_url as string) || "",
         email: (c.email as string) || "",
         phone: (c.phone as string) || "",
         address: (c.address as string) || "",
@@ -227,6 +230,7 @@ export default function EditContactPage() {
         preferred_contact_email: form.preferred_contact_email.trim() || null,
         preferred_contact_phone: form.preferred_contact_phone.trim() || null,
         billing_preferences,
+        avatar_url: form.avatar_url || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -297,6 +301,16 @@ export default function EditContactPage() {
         title="Informação Fiscal"
         description="Estes dados serão incluídos em todos os documentos emitidos e comunicações com o Estado."
       >
+        <div className="mb-6">
+          <EntityAvatarUpload
+            name={form.name || "Contacto"}
+            value={form.avatar_url}
+            onChange={(url) => update("avatar_url", url ?? "")}
+            workspaceId={currentWorkspace?.id ?? ""}
+            folder="contacts"
+            size="lg"
+          />
+        </div>
         <div className="grid gap-6 md:grid-cols-2">
           <IXField label="NIF" htmlFor="tax_id">
             <div className="flex gap-2">

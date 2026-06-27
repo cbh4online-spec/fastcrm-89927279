@@ -491,12 +491,12 @@ export function ENIContactDetailWithSidebar() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <EntityAvatarUpload
-              entityType="contact"
-              entityId={id!}
-              entityName={contact.name}
-              currentAvatarUrl={(contact as any).avatar_url}
-              onAvatarChange={(url) => handleFieldChange('avatar_url' as keyof ENIContact, url)}
-              size="sm"
+              name={contact.name}
+              value={(contact as any).avatar_url}
+              onChange={(url) => handleFieldChange('avatar_url' as keyof ENIContact, url)}
+              workspaceId={currentWorkspace?.id ?? ''}
+              folder="contacts"
+              size="md"
             />
             <div>
               <div className="flex items-center gap-2 flex-wrap">

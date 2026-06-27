@@ -38,6 +38,7 @@ import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 import { CustomFieldsSection } from "@/components/leads/sections/CustomFieldsSection";
@@ -85,6 +86,7 @@ export function LeadDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: lead, isLoading, isFetching, isPending } = useLead(id);
+  const { currentWorkspace } = useWorkspace();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const { data: counts } = useEntityCounts("lead", id);
@@ -377,11 +379,11 @@ export function LeadDetailWithSidebar() {
         backTo="/dashboard/leads"
         avatar={
           <EntityAvatarUpload
-            entityType="lead"
-            entityId={id!}
-            entityName={lead.name}
-            currentAvatarUrl={(lead as any).avatar_url}
-            onAvatarChange={(url) => handleFieldChange("avatar_url" as keyof Lead, url)}
+            name={lead.name}
+            value={(lead as any).avatar_url}
+            onChange={(url) => handleFieldChange("avatar_url" as keyof Lead, url)}
+            workspaceId={currentWorkspace?.id ?? ''}
+            folder="leads"
             size="md"
           />
         }
