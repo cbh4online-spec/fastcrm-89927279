@@ -27,6 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { isValidPhone, toE164 } from "@/utils/phone";
 import { useQueryClient } from "@tanstack/react-query";
+import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 
 const contactSchema = z.object({
   name: z.string().trim().max(100),
