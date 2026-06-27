@@ -527,20 +527,9 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
         </nav>
 
 
-        {/* Footer com avatar + tema + copyright */}
-        <div className="border-t border-sidebar-border px-3 py-2 flex items-center gap-2">
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback className="bg-sidebar-primary/20 text-sidebar-primary text-[10px] font-bold">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-semibold text-sidebar-foreground truncate">{userName}</p>
-            <p className="text-[10px] text-sidebar-foreground/50 truncate">{user?.email}</p>
-          </div>
-        </div>
+        {/* Footer */}
         <SidebarFooter />
+
       </aside>
     </>
   );
