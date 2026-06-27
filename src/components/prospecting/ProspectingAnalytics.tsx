@@ -150,188 +150,132 @@ export function ProspectingAnalytics() {
   ];
 
   return (
-    <div className="space-y-5">
-      {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="space-y-4">
+      {/* KPI Cards — flat IX */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
-          <Card key={kpi.label} className="relative overflow-hidden">
-            <div className={`absolute top-0 right-0 w-20 h-20 ${kpi.bgColor} rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 opacity-50`} />
-            <CardContent className="relative p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bgColor}`}>
-                  <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
-                </div>
-                {kpi.delta !== undefined && kpi.delta !== 0 && (
-                  <Badge
-                    variant="outline"
-                    className={`text-xs gap-0.5 ${
-                      kpi.delta > 0
-                        ? "border-emerald-500/30 text-emerald-600 bg-emerald-500/5"
-                        : "border-red-500/30 text-red-600 bg-red-500/5"
-                    }`}
-                  >
-                    {kpi.delta > 0 ? (
-                      <ArrowUpRight className="h-3 w-3" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3" />
-                    )}
-                    {Math.abs(kpi.delta)}%
-                  </Badge>
-                )}
+          <div key={kpi.label} className="rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                <kpi.icon className="h-4 w-4 text-muted-foreground" />
               </div>
-              <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{kpi.label}</p>
-              {kpi.detail && (
-                <p className="text-[11px] text-muted-foreground/70 mt-1">{kpi.detail}</p>
+              {kpi.delta !== undefined && kpi.delta !== 0 && (
+                <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${kpi.delta > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                  {kpi.delta > 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                  {Math.abs(kpi.delta)}%
+                </span>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            <p className="text-2xl font-bold text-foreground tabular-nums">{kpi.value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{kpi.label}</p>
+            {kpi.detail && (
+              <p className="text-[11px] text-muted-foreground/70 mt-1">{kpi.detail}</p>
+            )}
+          </div>
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         {/* Weekly activity chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              Atividade Semanal
-            </CardTitle>
+        <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
+          <div className="mb-3">
+            <h3 className="text-base font-semibold text-foreground">Atividade semanal</h3>
             <p className="text-xs text-muted-foreground">Pesquisas e importações por semana</p>
-          </CardHeader>
-          <CardContent>
-            {weeklyData.some(w => w.google > 0 || w.web > 0) ? (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={weeklyData} barGap={2}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                  <XAxis dataKey="week" tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                  <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                  />
-                  <Bar dataKey="google" name="Google Local" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="web" name="Web Search" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="imported" name="Importados" fill="#10b981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[240px] text-muted-foreground">
-                <BarChart3 className="h-10 w-10 mb-2 opacity-30" />
-                <p className="text-sm">Sem dados de pesquisa para mostrar</p>
-                <p className="text-xs mt-1">Faça pesquisas de prospeção para ver a atividade aqui</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Source distribution */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
-              Fontes este mês
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {sourceData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={240}>
-                <PieChart>
-                  <Pie
-                    data={sourceData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {sourceData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Legend
-                    verticalAlign="bottom"
-                    formatter={(value: string) => (
-                      <span className="text-xs text-foreground">{value}</span>
-                    )}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                    formatter={(value: number) => [`${value} pesquisas`, ""]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[240px] text-muted-foreground">
-                <Target className="h-10 w-10 mb-2 opacity-30" />
-                <p className="text-sm">Nenhuma pesquisa este mês</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent activity from credit ledger */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Atividade Recente
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {thisMonthSearches.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              Nenhuma atividade de prospeção este mês.
-            </p>
+          </div>
+          {weeklyData.some(w => w.google > 0 || w.web > 0) ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={weeklyData} barGap={2}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                <XAxis dataKey="week" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                  }}
+                />
+                <Bar dataKey="google" name="Google Local" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="web" name="Web Search" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="imported" name="Importados" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           ) : (
-            <div className="divide-y divide-border max-h-64 overflow-y-auto">
-              {thisMonthSearches.slice(0, 15).map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between py-2.5">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                      entry.search_type === "google_local" ? "bg-blue-500/10" : "bg-amber-500/10"
-                    }`}>
-                      {entry.search_type === "google_local" ? (
-                        <Globe className="h-4 w-4 text-blue-500" />
-                      ) : (
-                        <Search className="h-4 w-4 text-amber-500" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-foreground truncate">{entry.query}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(entry.created_at), "d MMM, HH:mm", { locale: pt })}
-                        {entry.location && ` • 📍 ${entry.location}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="secondary" className="text-xs">
-                      {entry.results_count} resultados
-                    </Badge>
-                    {entry.imported_count > 0 && (
-                      <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-600">
-                        {entry.imported_count} importados
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center h-[240px] text-muted-foreground">
+              <BarChart3 className="h-8 w-8 mb-2 opacity-30" />
+              <p className="text-sm">Sem dados de pesquisa para mostrar</p>
+              <p className="text-xs mt-1">Faça pesquisas de prospeção para ver a atividade aqui</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Source distribution */}
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h3 className="text-base font-semibold text-foreground mb-3">Fontes este mês</h3>
+          {sourceData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie data={sourceData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
+                  {sourceData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
+                </Pie>
+                <Legend verticalAlign="bottom" formatter={(value: string) => <span className="text-xs text-foreground">{value}</span>} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                  }}
+                  formatter={(value: number) => [`${value} pesquisas`, ""]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[240px] text-muted-foreground">
+              <Target className="h-8 w-8 mb-2 opacity-30" />
+              <p className="text-sm">Nenhuma pesquisa este mês</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent activity */}
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h3 className="text-base font-semibold text-foreground mb-3">Atividade recente</h3>
+        {thisMonthSearches.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            Nenhuma atividade de prospeção este mês.
+          </p>
+        ) : (
+          <div className="divide-y divide-border max-h-64 overflow-y-auto -mx-1">
+            {thisMonthSearches.slice(0, 15).map((entry) => (
+              <div key={entry.id} className="flex items-center justify-between py-2.5 px-1">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+                    {entry.search_type === "google_local"
+                      ? <Globe className="h-4 w-4 text-muted-foreground" />
+                      : <Search className="h-4 w-4 text-muted-foreground" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-foreground truncate">{entry.query}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(entry.created_at), "d MMM, HH:mm", { locale: pt })}
+                      {entry.location && ` • 📍 ${entry.location}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant="secondary" className="text-xs font-normal">{entry.results_count} resultados</Badge>
+                  {entry.imported_count > 0 && (
+                    <Badge variant="outline" className="text-xs font-normal">{entry.imported_count} importados</Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
