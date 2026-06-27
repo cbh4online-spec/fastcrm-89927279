@@ -346,18 +346,10 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        {/* Header: workspace logo + nome */}
-        <div className="px-3 py-3 border-b border-sidebar-border flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-sidebar-primary/15 flex items-center justify-center shrink-0">
-            {logoUrl ? (
-              <img src={logoUrl} alt={workspaceName} className="w-7 h-7 rounded-md object-contain" />
-            ) : (
-              <span className="text-sidebar-primary font-bold text-xs">{workspaceName.slice(0, 2).toUpperCase()}</span>
-            )}
-          </div>
+        {/* Workspace switcher (já mostra o logo + nome do workspace) */}
+        <div className="px-3 py-3 border-b border-sidebar-border flex items-center gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-sidebar-foreground truncate">{workspaceName}</p>
-            <p className="text-[11px] text-sidebar-foreground/55 truncate">{userName}</p>
+            <WorkspaceSwitcher collapsed={false} />
           </div>
           <button
             onClick={onClose}
@@ -368,10 +360,6 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
           </button>
         </div>
 
-        {/* Workspace switcher */}
-        <div className="px-3 py-2 border-b border-sidebar-border">
-          <WorkspaceSwitcher collapsed={false} />
-        </div>
 
         {/* Pesquisa */}
         <div className="px-3 py-2 border-b border-sidebar-border">
