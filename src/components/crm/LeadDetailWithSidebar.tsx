@@ -86,6 +86,7 @@ export function LeadDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: lead, isLoading, isFetching, isPending } = useLead(id);
+  const { currentWorkspace } = useWorkspace();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const { data: counts } = useEntityCounts("lead", id);
