@@ -854,12 +854,13 @@ export function ProposalsList() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {procurementModalProposal && (
+      {procurementModalProposal && currentWorkspace?.id && (
         <ProposalWonProcurementModal
           open={!!procurementModalProposal}
           onOpenChange={(open) => !open && setProcurementModalProposal(null)}
           proposalId={procurementModalProposal.id}
           proposalTitle={procurementModalProposal.title}
+          workspaceId={currentWorkspace.id}
         />
       )}
     </DocumentListLayout>
