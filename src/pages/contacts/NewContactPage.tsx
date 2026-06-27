@@ -185,6 +185,7 @@ export default function NewContactPage() {
     external_code: "",
     is_final_consumer: false,
     name: "",
+    avatar_url: "" as string,
     // Detalhes
     email: "",
     phone: "",
