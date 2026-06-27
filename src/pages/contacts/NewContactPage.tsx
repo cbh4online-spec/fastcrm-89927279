@@ -377,6 +377,16 @@ export default function NewContactPage() {
           title="Informação Fiscal"
           description="Estes dados serão incluídos em todos os documentos emitidos e comunicações com o Estado."
         >
+          <div className="mb-6">
+            <EntityAvatarUpload
+              name={form.name || "Contacto"}
+              value={form.avatar_url}
+              onChange={(url) => update("avatar_url", url ?? "")}
+              workspaceId={currentWorkspace?.id ?? ""}
+              folder="contacts"
+              size="lg"
+            />
+          </div>
           <div className="grid gap-6 md:grid-cols-2">
             <IXField label="NIF" htmlFor="tax_id">
               <div className="flex gap-2">
