@@ -1,10 +1,19 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Wrench } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
 import { useEquipmentUnit, useEquipmentHistory } from "../hooks/useEquipmentUnits";
 import { EquipmentStatusBadge } from "../components/EquipmentStatusBadge";
+
+function KpiTile({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-1 text-base font-medium text-foreground">{children}</div>
+    </div>
+  );
+}
 
 export default function EquipmentUnitDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,63 +25,68 @@ export default function EquipmentUnitDetailPage() {
 
   return (
     <CapabilityGuard need="rentals.view">
-      <div className="p-6 space-y-6">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/dashboard/rentals/equipment"><ArrowLeft className="h-4 w-4 mr-2" />Parque instalado</Link>
+      <div className="space-y-6 px-4 sm:px-8 py-6">
+        <Button variant="ghost" size="sm" asChild className="-ml-2">
+          <Link to="/dashboard/rentals/equipment">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Parque instalado
+          </Link>
         </Button>
 
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-100 text-amber-700"><Wrench className="h-5 w-5" /></div>
-            <div>
-              <h1 className="text-2xl font-semibold font-mono">{unit.serial_number}</h1>
-              <p className="text-sm text-muted-foreground">{unit.product?.name ?? "—"} {unit.product?.sku ? `· ${unit.product.sku}` : ""}</p>
-            </div>
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground font-mono">
+              {unit.serial_number}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {unit.product?.name ?? "—"}
+              {unit.product?.sku ? ` · ${unit.product.sku}` : ""}
+            </p>
           </div>
           <EquipmentStatusBadge status={unit.status} />
         </header>
 
-        <div className="grid grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground">Cliente atual</div>
-            <div className="text-base font-medium">{unit.current_client?.name ?? "—"}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground">Contrato</div>
-            <div className="text-base font-medium">
-              {unit.current_contract ? (
-                <Link className="text-primary" to={`/dashboard/rentals/${unit.current_contract.id}`}>{unit.current_contract.contract_number}</Link>
-              ) : "—"}
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground">Atribuído em</div>
-            <div className="text-base font-medium">{unit.assigned_at ? new Date(unit.assigned_at).toLocaleDateString("pt-PT") : "—"}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground">Garantia até</div>
-            <div className="text-base font-medium">{unit.warranty_end_date ?? "—"}</div>
-          </Card>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiTile label="Cliente atual">{unit.current_client?.name ?? "—"}</KpiTile>
+          <KpiTile label="Contrato">
+            {unit.current_contract ? (
+              <Link
+                className="text-primary"
+                to={`/dashboard/rentals/${unit.current_contract.id}`}
+              >
+                {unit.current_contract.contract_number}
+              </Link>
+            ) : (
+              "—"
+            )}
+          </KpiTile>
+          <KpiTile label="Atribuído em">
+            {unit.assigned_at ? new Date(unit.assigned_at).toLocaleDateString("pt-PT") : "—"}
+          </KpiTile>
+          <KpiTile label="Garantia até">{unit.warranty_end_date ?? "—"}</KpiTile>
         </div>
 
-        <Card className="p-4">
-          <h2 className="text-sm font-semibold mb-3">Histórico</h2>
-          {history.length === 0 && <p className="text-sm text-muted-foreground">Sem eventos registados.</p>}
-          <div className="space-y-2">
-            {history.map((e) => (
-              <div key={e.id} className="text-sm border-l-2 border-amber-500 pl-3 py-1">
-                <span className="font-medium">{e.event_type}</span>
-                <span className="text-muted-foreground ml-2">{new Date(e.occurred_at).toLocaleString("pt-PT")}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <IXCard title="Histórico">
+          {history.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sem eventos registados.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {history.map((e) => (
+                <div key={e.id} className="flex items-center justify-between py-2.5 text-sm">
+                  <span className="font-medium text-foreground">{e.event_type}</span>
+                  <span className="text-muted-foreground">
+                    {new Date(e.occurred_at).toLocaleString("pt-PT")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </IXCard>
 
         {unit.notes && (
-          <Card className="p-4">
-            <h2 className="text-sm font-semibold mb-2">Notas</h2>
+          <IXCard title="Notas">
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{unit.notes}</p>
-          </Card>
+          </IXCard>
         )}
       </div>
     </CapabilityGuard>
