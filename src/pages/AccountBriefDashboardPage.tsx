@@ -2,11 +2,10 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { PageHeader } from "@/components/common/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { useAccountBriefDashboard } from "@/hooks/useAccountBriefDashboard";
 import { useAccountBriefOnboarding } from "@/hooks/useAccountBriefOnboarding";
 import { useAccountBriefWatchlist } from "@/hooks/useAccountBriefWatchlist";
@@ -22,12 +21,13 @@ import {
 
 const scoreColor = (label: string) => {
   switch (label) {
-    case "Muito Alto": return "bg-emerald-500/15 text-emerald-600 border-emerald-200";
-    case "Alto": return "bg-blue-500/15 text-blue-600 border-blue-200";
-    case "Médio": return "bg-amber-500/15 text-amber-600 border-amber-200";
-    default: return "bg-muted text-muted-foreground border-border";
+    case "Muito Alto": return "border-border bg-muted text-foreground";
+    case "Alto": return "border-border bg-muted text-foreground";
+    case "Médio": return "border-border bg-muted text-muted-foreground";
+    default: return "border-border bg-muted text-muted-foreground";
   }
 };
+
 
 export default function AccountBriefDashboardPage() {
   const navigate = useNavigate();
