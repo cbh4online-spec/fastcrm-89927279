@@ -47,38 +47,63 @@ export default function DunningSequencesPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-4 md:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Sequências de cobrança</h1>
-            <p className="text-sm text-muted-foreground">Define os passos automáticos de dunning aplicados aos casos.</p>
+      <div className="space-y-6 px-4 sm:px-8 py-6">
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Sequências de cobrança</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Define os passos automáticos de dunning aplicados aos casos.
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => runExecutor.mutate()} disabled={runExecutor.isPending}>
-              <Play className="h-4 w-4 mr-1" /> Executar agora
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              onClick={() => setNewOpen(true)}
+              className="h-10 gap-2 rounded-full px-5 font-semibold"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nova sequência</span>
             </Button>
-            <Button onClick={() => setNewOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Nova sequência
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-full border-border bg-card"
+                  aria-label="Mais ações"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={() => runExecutor.mutate()}
+                  disabled={runExecutor.isPending}
+                >
+                  <Play className="h-4 w-4 mr-2" /> Executar agora
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </div>
+        </header>
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">A carregar…</p>
+          <IXCard>
+            <p className="text-sm text-muted-foreground">A carregar…</p>
+          </IXCard>
         ) : sequences.length === 0 ? (
-          <Card>
-            <CardContent className="p-10 text-center text-sm text-muted-foreground">
+          <IXCard>
+            <p className="text-sm text-muted-foreground text-center py-6">
               Ainda não existem sequências. Cria a primeira para automatizar cobranças.
-            </CardContent>
-          </Card>
+            </p>
+          </IXCard>
         ) : (
           <div className="grid gap-4">
             {sequences.map((seq) => (
-              <Card key={seq.id}>
-                <CardHeader className="flex flex-row items-start justify-between space-y-0">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-base">{seq.name}</CardTitle>
+              <IXCard key={seq.id}>
+                <div className="flex flex-row items-start justify-between gap-3">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-semibold text-foreground">{seq.name}</h3>
                       {seq.is_default && <Badge variant="secondary">Padrão</Badge>}
                       {!seq.is_active && <Badge variant="outline">Inativa</Badge>}
                     </div>
@@ -86,7 +111,7 @@ export default function DunningSequencesPage() {
                       <p className="text-xs text-muted-foreground">{seq.description}</p>
                     )}
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 shrink-0">
                     <Button size="sm" variant="ghost" onClick={() => setEditingSeq(seq)}>
                       <Pencil className="h-4 w-4 mr-1" /> Passos
                     </Button>
@@ -99,14 +124,14 @@ export default function DunningSequencesPage() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div className="mt-4">
                   {seq.steps.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Sem passos definidos.</p>
                   ) : (
                     <div className="space-y-1 text-sm">
                       {seq.steps.map((s) => (
-                        <div key={s.id} className="flex items-center gap-3 rounded-md border p-2">
+                        <div key={s.id} className="flex items-center gap-3 rounded-md border border-border p-2">
                           <span className="font-mono text-xs text-muted-foreground">#{s.step_order}</span>
                           <span className="font-medium">D+{s.days_after_due}</span>
                           <Badge variant="outline">{s.channel}</Badge>
@@ -118,8 +143,8 @@ export default function DunningSequencesPage() {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </IXCard>
             ))}
           </div>
         )}
