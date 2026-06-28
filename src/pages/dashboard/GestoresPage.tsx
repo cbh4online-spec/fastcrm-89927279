@@ -432,12 +432,23 @@ export default function GestoresPage() {
           )}
 
           {/* Tabs: Portfolio + History */}
-          <Tabs defaultValue="entities">
-            <TabsList>
-              <TabsTrigger value="entities">Portfólio ({selectedEntities?.length || 0})</TabsTrigger>
-              <TabsTrigger value="history">Histórico ({interactions?.length || 0})</TabsTrigger>
+          <Tabs value={detailTab} onValueChange={setDetailTab}>
+            <div className="-mx-6">
+              <IXEntityTabs
+                activeId={detailTab}
+                onChange={setDetailTab}
+                tabs={[
+                  { id: "entities", label: "Portfólio", count: selectedEntities?.length || 0 },
+                  { id: "history", label: "Histórico", count: interactions?.length || 0 },
+                ]}
+              />
+            </div>
+            <TabsList className="hidden">
+              <TabsTrigger value="entities">x</TabsTrigger>
+              <TabsTrigger value="history">x</TabsTrigger>
             </TabsList>
-            <TabsContent value="entities" className="space-y-3 mt-3">
+            <TabsContent value="entities" className="space-y-3 mt-4">
+
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="relative flex-1 min-w-[200px] max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
