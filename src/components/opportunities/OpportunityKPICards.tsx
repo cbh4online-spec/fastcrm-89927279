@@ -38,7 +38,7 @@ export function OpportunityKPICards() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <Skeleton className="h-4 w-20 mb-3" />
