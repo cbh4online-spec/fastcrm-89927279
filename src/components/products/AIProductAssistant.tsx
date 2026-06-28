@@ -133,7 +133,7 @@ export function AIProductAssistant({
 
   if (!productName || productName.length < 3) {
     return (
-      <Card className="p-4 bg-muted/30 border-dashed">
+      <Card className="p-4 rounded-2xl border border-dashed border-border bg-card">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Sparkles className="h-4 w-4" />
           <span className="text-sm">
@@ -145,27 +145,25 @@ export function AIProductAssistant({
   }
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className="p-4 space-y-4 rounded-2xl border border-border bg-card shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
+          <Sparkles className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium text-sm">Assistente IA</span>
-          <Badge variant={isActive ? "default" : "secondary"} className="text-xs">
+          <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
             {isActive ? "Ativo" : "Inativo"}
           </Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={handleRefresh}
-            disabled={suggestFromName.isPending}
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${suggestFromName.isPending ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={handleRefresh}
+          disabled={suggestFromName.isPending}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${suggestFromName.isPending ? "animate-spin" : ""}`} />
+        </Button>
       </div>
 
       {suggestFromName.isPending ? (
@@ -178,15 +176,15 @@ export function AIProductAssistant({
           {/* Matched Existing Category - Priority */}
           {suggestFromName.data.matchedCategoryName && (
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
                 <Tag className="h-3 w-3" />
-                Categoria existente sugerida:
+                Categoria existente sugerida
               </span>
               <Button
                 type="button"
-                variant={appliedItems.has("existingCategory") ? "secondary" : "default"}
+                variant="outline"
                 size="sm"
-                className="h-8 text-sm"
+                className={`h-8 text-sm rounded-full ${appliedItems.has("existingCategory") ? "border-primary text-primary" : ""}`}
                 onClick={() => handleApplyExistingCategory(suggestFromName.data!.matchedCategoryName!)}
               >
                 {appliedItems.has("existingCategory") ? (
@@ -206,26 +204,30 @@ export function AIProductAssistant({
           {/* Suggested New Categories */}
           {suggestFromName.data.categories && suggestFromName.data.categories.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">
-                {suggestFromName.data.matchedCategoryName 
-                  ? "Ou criar nova categoria:" 
-                  : "Categorias sugeridas:"}
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                {suggestFromName.data.matchedCategoryName
+                  ? "Ou criar nova categoria"
+                  : "Categorias sugeridas"}
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {suggestFromName.data.categories.map((cat) => (
-                  <Badge
-                    key={cat}
-                    variant={appliedItems.has(`category-${cat}`) ? "default" : "outline"}
-                    className="cursor-pointer hover:bg-primary/10 transition-colors"
-                    onClick={() => handleApplyCategory(cat)}
-                  >
-                    {appliedItems.has(`category-${cat}`) && <Check className="h-3 w-3 mr-1" />}
-                    {cat}
-                  </Badge>
-                ))}
+                {suggestFromName.data.categories.map((cat) => {
+                  const applied = appliedItems.has(`category-${cat}`);
+                  return (
+                    <Badge
+                      key={cat}
+                      variant="outline"
+                      className={`cursor-pointer rounded-full transition-colors ${applied ? "border-primary text-primary" : "hover:border-primary/40"}`}
+                      onClick={() => handleApplyCategory(cat)}
+                    >
+                      {applied && <Check className="h-3 w-3 mr-1" />}
+                      {cat}
+                    </Badge>
+                  );
+                })}
               </div>
             </div>
           )}
+
 
           {/* Price suggestion */}
           {suggestFromName.data.priceRange && (
