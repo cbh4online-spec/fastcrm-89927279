@@ -2,30 +2,27 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Mail, 
-  BarChart3, 
-  Settings, 
+import { TabsContent } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Plus,
   Send,
   Sparkles,
-  FileText,
-  Target,
   Paintbrush,
   Code,
   ShieldBan,
-  GitBranch,
-  TrendingUp,
   Library,
-  Globe,
-  Zap,
-  Bell,
-  Blocks,
+  MoreHorizontal,
 } from 'lucide-react';
+import { IXEntityTabs, type IXTabDef } from '@/components/entity/ix/IXEntityTabs';
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
-import { MarketingTemplatesList } from '@/components/marketing/MarketingTemplatesList';
 import { TemplateLibraryPage } from '@/components/marketing/TemplateLibraryPage';
 import { MarketingDashboard } from '@/components/marketing/MarketingDashboard';
 import { MarketingSettingsPanel } from '@/components/marketing/MarketingSettingsPanel';
@@ -45,7 +42,9 @@ import { MultichannelSequenceBuilder } from '@/components/marketing/Multichannel
 import { LifecycleAutomations } from '@/components/marketing/LifecycleAutomations';
 import { MCPIntegrationsTab } from '@/components/marketing/mcp/MCPIntegrationsTab';
 import { EmailCampaignWizardDialog } from '@/components/marketing/EmailCampaignWizardDialog';
+import { Tabs } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+
 
 export default function Marketing() {
   const navigate = useNavigate();
