@@ -2,30 +2,27 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Mail, 
-  BarChart3, 
-  Settings, 
+import { TabsContent } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Plus,
   Send,
   Sparkles,
-  FileText,
-  Target,
   Paintbrush,
   Code,
   ShieldBan,
-  GitBranch,
-  TrendingUp,
   Library,
-  Globe,
-  Zap,
-  Bell,
-  Blocks,
+  MoreHorizontal,
 } from 'lucide-react';
+import { IXEntityTabs, type IXTabDef } from '@/components/entity/ix/IXEntityTabs';
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
-import { MarketingTemplatesList } from '@/components/marketing/MarketingTemplatesList';
 import { TemplateLibraryPage } from '@/components/marketing/TemplateLibraryPage';
 import { MarketingDashboard } from '@/components/marketing/MarketingDashboard';
 import { MarketingSettingsPanel } from '@/components/marketing/MarketingSettingsPanel';
@@ -45,7 +42,9 @@ import { MultichannelSequenceBuilder } from '@/components/marketing/Multichannel
 import { LifecycleAutomations } from '@/components/marketing/LifecycleAutomations';
 import { MCPIntegrationsTab } from '@/components/marketing/mcp/MCPIntegrationsTab';
 import { EmailCampaignWizardDialog } from '@/components/marketing/EmailCampaignWizardDialog';
+import { Tabs } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+
 
 export default function Marketing() {
   const navigate = useNavigate();
@@ -70,7 +69,7 @@ export default function Marketing() {
     setShowEmailBuilder(true);
   };
 
-  const getAddButton = () => {
+  const getPrimaryAction = () => {
     switch (activeTab) {
       case 'campaigns':
         return (
@@ -88,128 +87,87 @@ export default function Marketing() {
         );
       case 'templates':
         return (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowTemplateLibrary(true)}>
-              <Library className="h-4 w-4 mr-2" />
-              Biblioteca
-            </Button>
-            <Button variant="outline" onClick={() => setShowHtmlEditor(true)}>
-              <Code className="h-4 w-4 mr-2" />
-              Editor HTML
-            </Button>
-            <Button variant="outline" onClick={() => setShowEmailBuilder(true)}>
-              <Paintbrush className="h-4 w-4 mr-2" />
-              Editor Visual
-            </Button>
-            <Button onClick={() => setShowTemplateDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Template
-            </Button>
-          </div>
+          <Button onClick={() => setShowTemplateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Template
+          </Button>
         );
       default:
-        return null;
+        return (
+          <Button onClick={() => setShowCampaignCreation(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Campanha
+          </Button>
+        );
     }
   };
+
+  const tabs: IXTabDef[] = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'campaigns', label: 'Campanhas' },
+    { id: 'segments', label: 'Segmentos' },
+    { id: 'templates', label: 'Templates' },
+    { id: 'landing', label: 'Landing Pages' },
+    { id: 'multicanal', label: 'Multi-Canal' },
+    { id: 'automations', label: 'Automações' },
+    { id: 'analytics', label: 'Analytics' },
+    { id: 'events', label: 'Eventos' },
+    { id: 'pipeline', label: 'Pipeline' },
+    { id: 'mcp', label: 'Integrações MCP' },
+    { id: 'settings', label: 'Definições' },
+  ];
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Mail className="h-6 w-6 text-primary" />
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Email Marketing
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Crie e envie campanhas de email para os seus contactos
             </p>
           </div>
-          <div className="flex gap-2 items-center flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCampaignWizard(true)}
-              className="gap-1.5"
-            >
-              <Sparkles className="h-4 w-4" />
-              Criar com IA
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/dashboard/email-campaigns/suppressions')}
-            >
-              <ShieldBan className="h-4 w-4 mr-2" />
-              Supressões
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/dashboard/sequences')}
-            >
-              <Send className="h-4 w-4 mr-2" />
-              Sequências
-            </Button>
-            {getAddButton()}
+          <div className="flex gap-2 items-center">
+            {getPrimaryAction()}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Mais ações">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setShowCampaignWizard(true)}>
+                  <Sparkles className="h-4 w-4 mr-2" /> Criar com IA
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowTemplateLibrary(true)}>
+                  <Library className="h-4 w-4 mr-2" /> Biblioteca de templates
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowHtmlEditor(true)}>
+                  <Code className="h-4 w-4 mr-2" /> Editor HTML
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowEmailBuilder(true)}>
+                  <Paintbrush className="h-4 w-4 mr-2" /> Editor Visual
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/dashboard/email-campaigns/suppressions')}>
+                  <ShieldBan className="h-4 w-4 mr-2" /> Supressões
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/dashboard/sequences')}>
+                  <Send className="h-4 w-4 mr-2" /> Sequências
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="overflow-x-auto -mx-1 px-1">
-            <TabsList className="flex w-max min-w-full lg:w-auto lg:inline-flex">
-              <TabsTrigger value="dashboard" className="gap-1.5">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </TabsTrigger>
-              <TabsTrigger value="campaigns" className="gap-1.5">
-                <Send className="h-4 w-4" />
-                <span className="hidden sm:inline">Campanhas</span>
-              </TabsTrigger>
-              <TabsTrigger value="segments" className="gap-1.5">
-                <Target className="h-4 w-4" />
-                <span className="hidden sm:inline">Segmentos</span>
-              </TabsTrigger>
-              <TabsTrigger value="templates" className="gap-1.5">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Templates</span>
-              </TabsTrigger>
-              <TabsTrigger value="landing" className="gap-1.5">
-                <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline">Landing Pages</span>
-              </TabsTrigger>
-              <TabsTrigger value="multicanal" className="gap-1.5">
-                <Zap className="h-4 w-4" />
-                <span className="hidden sm:inline">Multi-Canal</span>
-              </TabsTrigger>
-              <TabsTrigger value="automations" className="gap-1.5">
-                <GitBranch className="h-4 w-4" />
-                <span className="hidden sm:inline">Automações</span>
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="gap-1.5">
-                <TrendingUp className="h-4 w-4" />
-                <span className="hidden sm:inline">Analytics</span>
-              </TabsTrigger>
-              <TabsTrigger value="events" className="gap-1.5">
-                <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline">Eventos</span>
-              </TabsTrigger>
-              <TabsTrigger value="pipeline" className="gap-1.5">
-                <GitBranch className="h-4 w-4" />
-                <span className="hidden sm:inline">Pipeline</span>
-              </TabsTrigger>
-              <TabsTrigger value="mcp" className="gap-1.5">
-                <Blocks className="h-4 w-4" />
-                <span className="hidden sm:inline">Integrações MCP</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-1.5">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Definições</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          <IXEntityTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} className="px-0 sm:px-0" />
+
 
           <TabsContent value="dashboard" className="space-y-6">
             <MarketingDashboard onCreateCampaign={() => setShowCampaignCreation(true)} />
