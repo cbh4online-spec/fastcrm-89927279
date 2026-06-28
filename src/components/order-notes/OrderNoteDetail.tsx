@@ -1,12 +1,17 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { IXCard } from "@/components/entity/ix/IXCard";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { OrderNoteStatusBadge } from "./OrderNoteStatusBadge";
 import { OrderNoteStatusFlow } from "./OrderNoteStatusFlow";
 import { OrderNoteActions } from "./OrderNoteActions";
@@ -19,18 +24,16 @@ import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { EditClientDataDialog } from "./EditClientDataDialog";
 import {
-  User,
   Mail,
   Phone,
   FileText,
-  MapPin,
   Package,
-  Calendar,
   MessageSquare,
   Save,
   Loader2,
   Copy,
   Pencil,
+  MoreHorizontal,
 } from "lucide-react";
 import { useState } from "react";
 
