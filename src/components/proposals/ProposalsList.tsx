@@ -4,11 +4,7 @@ import { ProposalWonProcurementModal } from "@/components/procurement/ProposalWo
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
