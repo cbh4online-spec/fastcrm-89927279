@@ -1,6 +1,5 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { PageHeader } from "@/components/common/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -8,8 +7,9 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { DEFAULT_KPI_WEIGHTS } from "@/hooks/usePerformanceScores";
-import { Settings, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function PerformanceSettingsPage() {
   const [weights, setWeights] = useState(DEFAULT_KPI_WEIGHTS);
@@ -17,9 +17,10 @@ export default function PerformanceSettingsPage() {
   const [autoRecognition, setAutoRecognition] = useState(true);
 
   const totalWeight = Object.values(weights).reduce((s, v) => s + v, 0);
+  const totalOk = Math.abs(totalWeight - 1) <= 0.01;
 
   const handleSave = () => {
-    if (Math.abs(totalWeight - 1) > 0.01) {
+    if (!totalOk) {
       toast.error("Os pesos devem somar 100%");
       return;
     }
@@ -38,25 +39,35 @@ export default function PerformanceSettingsPage() {
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        <PageHeader title="Configurações de Performance" description="Pesos dos KPIs, reconhecimento e TV Mode" />
+        {/* Header IX */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Configurações de Performance</h1>
+            <p className="text-sm text-muted-foreground mt-1">Pesos dos KPIs, reconhecimento e TV Mode</p>
+          </div>
+          <Button onClick={handleSave} className="rounded-full">
+            <Save className="h-4 w-4 mr-2" /> Guardar
+          </Button>
+        </div>
 
         {/* KPI Weights */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pesos dos KPIs</CardTitle>
-            <CardDescription>
-              Define a importância relativa de cada métrica no score final.
-              Total: <span className={Math.abs(totalWeight - 1) > 0.01 ? "text-destructive font-bold" : "text-green-600 font-bold"}>
-                {Math.round(totalWeight * 100)}%
-              </span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
+        <IXCard
+          title="Pesos dos KPIs"
+          actions={
+            <span className={cn("text-sm font-semibold", totalOk ? "text-foreground" : "text-destructive")}>
+              Total: {Math.round(totalWeight * 100)}%
+            </span>
+          }
+        >
+          <p className="text-sm text-muted-foreground -mt-2 mb-4">
+            Define a importância relativa de cada métrica no score final.
+          </p>
+          <div className="space-y-5">
             {Object.entries(weights).map(([key, value]) => (
               <div key={key} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>{weightLabels[key] || key}</Label>
-                  <span className="text-sm font-mono font-bold">{Math.round(value * 100)}%</span>
+                  <Label className="text-sm">{weightLabels[key] || key}</Label>
+                  <span className="text-sm font-mono font-semibold tabular-nums">{Math.round(value * 100)}%</span>
                 </div>
                 <Slider
                   value={[value * 100]}
@@ -66,50 +77,42 @@ export default function PerformanceSettingsPage() {
                 />
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </IXCard>
 
         {/* Recognition Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Reconhecimento Automático</CardTitle>
-            <CardDescription>Atribuição automática baseada em performance</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Reconhecimento automático</Label>
-                <p className="text-xs text-muted-foreground">Atribui prémios automaticamente no final de cada período</p>
-              </div>
-              <Switch checked={autoRecognition} onCheckedChange={setAutoRecognition} />
+        <IXCard title="Reconhecimento Automático">
+          <p className="text-sm text-muted-foreground -mt-2 mb-4">
+            Atribuição automática baseada em performance.
+          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">Reconhecimento automático</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Atribui prémios automaticamente no final de cada período
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <Switch checked={autoRecognition} onCheckedChange={setAutoRecognition} />
+          </div>
+        </IXCard>
 
         {/* TV Mode Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>TV Mode</CardTitle>
-            <CardDescription>Configurações de exibição em ecrã grande</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Tempo por slide (segundos)</Label>
-              <Input
-                type="number"
-                value={tvCycleSeconds}
-                onChange={e => setTvCycleSeconds(Number(e.target.value))}
-                min={5}
-                max={120}
-                className="mt-1"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Button onClick={handleSave} className="w-full">
-          <Save className="h-4 w-4 mr-2" /> Guardar Configurações
-        </Button>
+        <IXCard title="TV Mode">
+          <p className="text-sm text-muted-foreground -mt-2 mb-4">
+            Configurações de exibição em ecrã grande.
+          </p>
+          <div>
+            <Label className="text-sm">Tempo por slide (segundos)</Label>
+            <Input
+              type="number"
+              value={tvCycleSeconds}
+              onChange={e => setTvCycleSeconds(Number(e.target.value))}
+              min={5}
+              max={120}
+              className="mt-1.5 max-w-[160px]"
+            />
+          </div>
+        </IXCard>
       </div>
     </DashboardLayout>
   );
