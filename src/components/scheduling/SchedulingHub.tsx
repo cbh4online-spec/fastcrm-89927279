@@ -470,7 +470,9 @@ export function SchedulingHub() {
             </div>
           )}
         </div>
+        </div>
       </div>
+
 
       {/* Modals */}
       <CalendarCreateModal
