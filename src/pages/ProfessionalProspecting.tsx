@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Users, History, Settings2, Sparkles, Loader2 } from "lucide-react";
+import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
+import { Settings2, Sparkles, Loader2 } from "lucide-react";
 import { ProspectingSearch, SearchPrefill } from "@/components/professional-prospecting/ProspectingSearch";
 import { ProspectingResults } from "@/components/professional-prospecting/ProspectingResults";
 import { ProspectingHistory } from "@/components/professional-prospecting/ProspectingHistory";
@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 interface OfferSuggestion {
   label: string;
