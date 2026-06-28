@@ -109,7 +109,7 @@ export default function PerformanceDashboardPage() {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-sm text-muted-foreground mt-1">{t("description")}</p>
           </div>
           <Button
@@ -126,9 +126,9 @@ export default function PerformanceDashboardPage() {
 
         {/* KPIs */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <IXKpi label={t("closedRevenue")} value={formatCurrency(totalRevenue)} icon={<DollarSign className="h-4 w-4" />} tone="success" />
-          <IXKpi label={t("pipelineGenerated")} value={formatCurrency(totalPipeline)} icon={<TrendingUp className="h-4 w-4" />} tone="primary" />
-          <IXKpi label={t("meetingsHeld")} value={totalMeetings} icon={<Calendar className="h-4 w-4" />} tone="warning" />
+          <IXKpi label={t("closedRevenue")} value={formatCurrency(totalRevenue)} icon={<DollarSign className="h-4 w-4" />} />
+          <IXKpi label={t("pipelineGenerated")} value={formatCurrency(totalPipeline)} icon={<TrendingUp className="h-4 w-4" />} />
+          <IXKpi label={t("meetingsHeld")} value={totalMeetings} icon={<Calendar className="h-4 w-4" />} />
           <IXKpi label={t("activePerformers")} value={totalDeals} icon={<Users className="h-4 w-4" />} />
         </div>
 
@@ -164,13 +164,7 @@ export default function PerformanceDashboardPage() {
               <div className="divide-y divide-border">
                 {leaderboard.slice(0, 5).map((entry: any) => (
                   <div key={entry.id} className="flex items-center gap-3 py-3">
-                    <div className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold",
-                      entry.rank === 1 ? "bg-yellow-500/15 text-yellow-600" :
-                      entry.rank === 2 ? "bg-gray-300/30 text-gray-600" :
-                      entry.rank === 3 ? "bg-orange-400/15 text-orange-600" :
-                      "bg-muted text-muted-foreground"
-                    )}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold bg-muted text-muted-foreground">
                       {entry.rank}
                     </div>
                     <Avatar className="h-8 w-8">
