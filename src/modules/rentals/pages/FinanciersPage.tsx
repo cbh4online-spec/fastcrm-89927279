@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   useFinanciers, useCreateFinancier, useUpdateFinancier, useRemoveFinancier,
   type Financier, type FinancierInput,
@@ -83,8 +84,9 @@ export default function FinanciersPage() {
   const saving = createMut.isPending || updateMut.isPending;
 
   return (
-    <CapabilityGuard need="rentals.manage">
-      <div className="p-6 space-y-6">
+    <DashboardLayout>
+      <CapabilityGuard need="rentals.manage">
+        <div className="p-6 space-y-6">
         <header className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700">
@@ -245,7 +247,8 @@ export default function FinanciersPage() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
-    </CapabilityGuard>
+        </AlertDialog>
+      </CapabilityGuard>
+    </DashboardLayout>
   );
 }
