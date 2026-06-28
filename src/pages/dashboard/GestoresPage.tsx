@@ -594,10 +594,11 @@ export default function GestoresPage() {
 
           {/* ── TAB: Managers ── */}
           <TabsContent value="managers" className="space-y-4 mt-4">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar gestor..." className="pl-9" />
+            <div className="relative max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar gestor..." className="h-12 rounded-full border-border bg-card pl-11 pr-4 shadow-sm" />
             </div>
+
 
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
