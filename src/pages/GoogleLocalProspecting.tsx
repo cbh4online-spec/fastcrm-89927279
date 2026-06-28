@@ -910,15 +910,10 @@ export default function GoogleLocalProspecting() {
       />
 
       {/* Header IX */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <MapPin className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Google Local Services</h1>
-            <p className="text-sm text-muted-foreground">Pesquise e importe leads diretamente do Google Maps</p>
-          </div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Google Local Services</h1>
+          <p className="text-sm text-muted-foreground mt-1">Pesquise e importe leads diretamente do Google Maps</p>
         </div>
         <div className="flex items-center gap-2">
           <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
