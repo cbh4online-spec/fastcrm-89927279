@@ -202,6 +202,8 @@ export function ProductsCatalogSummary({
             variant="ghost"
             size="sm"
             onClick={() => setDetailOpen(!detailOpen)}
+            aria-expanded={detailOpen}
+            aria-controls="catalog-analytics-panel"
             className="ml-auto h-8 gap-1.5 text-xs text-muted-foreground"
           >
             <BarChart3 className="h-3.5 w-3.5" />
@@ -212,40 +214,87 @@ export function ProductsCatalogSummary({
       )}
 
       <Collapsible open={detailOpen} onOpenChange={setDetailOpen}>
-        <CollapsibleContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-            <IXCard title="Distribuição por Categoria" contentClassName="pt-2">
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={stats.byCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} innerRadius={30} paddingAngle={2}>
-                      {stats.byCategory.map((_, i) => (
-                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <RTooltip formatter={(v: number) => [v, "Produtos"]} />
-                  </PieChart>
-                </ResponsiveContainer>
+        <CollapsibleContent id="catalog-analytics-panel">
+          <IXCard
+            className="mt-1"
+            title="Analytics do catálogo"
+            description="Distribuição e performance dos produtos ativos"
+            actions={
+              <div className="flex items-center gap-1.5">
+                <Badge variant="secondary" className="h-6 rounded-full px-2 text-[11px] font-medium">
+                  {stats.byCategory.length} categorias
+                </Badge>
+                {canViewCostMargin && (
+                  <Badge variant="secondary" className="h-6 rounded-full px-2 text-[11px] font-medium">
+                    {stats.withCostCount} c/ margem
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDetailOpen(false)}
+                  className="h-7 px-2 text-xs text-muted-foreground"
+                >
+                  <ChevronUp className="h-3.5 w-3.5" />
+                </Button>
               </div>
-            </IXCard>
-            {canViewCostMargin && (
-              <IXCard title="Top 10 Margem" contentClassName="pt-2">
+            }
+            contentClassName="pt-2"
+          >
+            <div className={cn(
+              "grid gap-4",
+              canViewCostMargin ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+            )}>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    Distribuição por categoria
+                  </span>
+                  <Badge variant="secondary" className="h-5 rounded-full px-1.5 text-[10px]">
+                    Top {stats.byCategory.length}
+                  </Badge>
+                </div>
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.topMargin} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis type="number" tick={{ fontSize: 10 }} unit="%" />
-                      <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} width={100} />
-                      <RTooltip formatter={(v: number) => [`${v}%`, "Margem"]} />
-                      <Bar dataKey="margin" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                    </BarChart>
+                    <PieChart>
+                      <Pie data={stats.byCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} innerRadius={30} paddingAngle={2}>
+                        {stats.byCategory.map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RTooltip formatter={(v: number) => [v, "Produtos"]} />
+                    </PieChart>
                   </ResponsiveContainer>
                 </div>
-              </IXCard>
-            )}
-          </div>
+              </div>
+              {canViewCostMargin && (
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Top 10 margem
+                    </span>
+                    <Badge variant="secondary" className="h-5 rounded-full px-1.5 text-[10px]">
+                      {stats.topMargin.length} produtos
+                    </Badge>
+                  </div>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats.topMargin} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis type="number" tick={{ fontSize: 10 }} unit="%" />
+                        <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} width={100} />
+                        <RTooltip formatter={(v: number) => [`${v}%`, "Margem"]} />
+                        <Bar dataKey="margin" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </div>
+          </IXCard>
         </CollapsibleContent>
       </Collapsible>
+
     </div>
   );
 }
