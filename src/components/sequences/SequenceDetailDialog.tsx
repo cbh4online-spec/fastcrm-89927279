@@ -335,49 +335,78 @@ export function SequenceDetailDialog({ open, onOpenChange, sequence }: SequenceD
 
           {/* Stats row */}
           <div className="grid grid-cols-4 gap-3">
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-              <Mail className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card">
+              <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
               <div>
-                <p className="text-lg font-bold">{steps?.length || 0}</p>
-                <p className="text-[10px] text-muted-foreground">Etapas</p>
+                <p className="text-lg font-bold leading-tight">{steps?.length || 0}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Etapas</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-              <Users className="h-4 w-4 text-emerald-500" />
+            <div className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card">
+              <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
               <div>
-                <p className="text-lg font-bold">{activeEnrollments.length}</p>
-                <p className="text-[10px] text-muted-foreground">Ativos</p>
+                <p className="text-lg font-bold leading-tight">{activeEnrollments.length}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Ativos</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-              <BarChart3 className="h-4 w-4 text-blue-500" />
+            <div className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card">
+              <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+                <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
               <div>
-                <p className="text-lg font-bold">{completedEnrollments.length}</p>
-                <p className="text-[10px] text-muted-foreground">Concluídos</p>
+                <p className="text-lg font-bold leading-tight">{completedEnrollments.length}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Concluídos</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-              <Zap className="h-4 w-4 text-amber-500" />
+            <div className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card">
+              <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+                <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
               <div>
-                <p className="text-lg font-bold">{exitedEnrollments.length}</p>
-                <p className="text-[10px] text-muted-foreground">Saídas</p>
+                <p className="text-lg font-bold leading-tight">{exitedEnrollments.length}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saídas</p>
               </div>
             </div>
           </div>
 
           <Tabs defaultValue="steps" className="flex-1 overflow-hidden flex flex-col">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="steps">Etapas</TabsTrigger>
-              <TabsTrigger value="flow" className="gap-1">
+            <TabsList className="w-full justify-start gap-6 bg-transparent border-b border-border rounded-none h-auto p-0">
+              <TabsTrigger
+                value="steps"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-1 pb-2 text-sm"
+              >
+                Etapas
+              </TabsTrigger>
+              <TabsTrigger
+                value="flow"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-1 pb-2 text-sm gap-1"
+              >
                 <GitBranch className="h-3 w-3" />
                 Fluxo
               </TabsTrigger>
-              <TabsTrigger value="enrollments">Inscritos ({allEnrollments.length})</TabsTrigger>
-              <TabsTrigger value="analytics" className="gap-1">
+              <TabsTrigger
+                value="enrollments"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-1 pb-2 text-sm"
+              >
+                Inscritos ({allEnrollments.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="analytics"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-1 pb-2 text-sm gap-1"
+              >
                 <BarChart3 className="h-3 w-3" />
                 Analytics
               </TabsTrigger>
-              <TabsTrigger value="settings">Config</TabsTrigger>
+              <TabsTrigger
+                value="settings"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-1 pb-2 text-sm"
+              >
+                Config
+              </TabsTrigger>
             </TabsList>
 
             {/* Steps tab */}
