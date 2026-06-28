@@ -24,8 +24,8 @@ export function ConnectionUnlockedDialog({ open, onOpenChange, companyName, oppo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="text-center">
-          <div className="mx-auto mb-4 p-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 w-fit">
-            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+          <div className="mx-auto mb-4 p-3 rounded-2xl bg-muted w-fit">
+            <CheckCircle2 className="w-8 h-8 text-foreground" />
           </div>
           <DialogTitle>Conexão Desbloqueada</DialogTitle>
           <DialogDescription>
