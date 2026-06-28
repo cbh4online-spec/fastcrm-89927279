@@ -308,24 +308,3 @@ function QuickAction({
     </button>
   );
 }
-
-
-function QuickAction({
-  icon: Icon, label, description, onClick,
-}: { icon: any; label: string; description: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-muted/50 transition-colors text-left group"
-    >
-      <div className="p-2 rounded-md bg-muted/60 group-hover:bg-background transition-colors">
-        <Icon className="w-4 h-4 text-foreground" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium truncate">{label}</p>
-        <p className="text-xs text-muted-foreground truncate">{description}</p>
-      </div>
-      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-    </button>
-  );
-}
