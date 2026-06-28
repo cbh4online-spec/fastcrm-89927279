@@ -108,7 +108,8 @@ export default function RentalsListPage() {
             </TableBody>
           </Table>
         </IXCard>
-      </div>
-    </CapabilityGuard>
+        </div>
+      </CapabilityGuard>
+    </DashboardLayout>
   );
 }
