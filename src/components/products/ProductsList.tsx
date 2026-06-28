@@ -23,9 +23,8 @@ import {
   Plus, PanelLeft, PanelLeftClose, Store, RefreshCw,
   Upload, ScanLine, Columns, AlertTriangle, Trash2,
   Package, Repeat, FileBox, Tag, CircleDollarSign,
-  Calendar, Layers, Download, ScanText,
+  Calendar, Layers, Download, ScanText, MoreHorizontal,
 } from "lucide-react";
-import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
 import { BarcodeResultPanel } from "@/components/barcode/BarcodeResultPanel";
@@ -37,6 +36,7 @@ import { PricingTabContent } from "./PricingTabContent";
 import { ProductSettingsTabContent } from "./settings/ProductSettingsTabContent";
 import { ColumnSelector } from "@/components/common/ColumnSelector";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
 
 // Sub-components
 import { ProductBulkActions } from "./table/ProductBulkActions";
@@ -317,23 +317,62 @@ export function ProductsList() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 p-6 overflow-y-auto">
-        <PageHeader
-          title="Produtos"
-          count={state.activeTab === "products" ? state.totalProducts : undefined}
-          description="Gerencie os seus produtos e serviços"
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto">
+        <div className="px-4 sm:px-8 pt-6 pb-5 bg-background">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Produtos</h1>
+                {state.activeTab === "products" && typeof state.totalProducts === "number" && (
+                  <Badge variant="secondary" className="rounded-full h-6 px-2.5 text-xs">{state.totalProducts}</Badge>
+                )}
+              </div>
+              <p className="mt-1.5 text-sm text-muted-foreground">Gerencie os seus produtos e serviços</p>
+            </div>
+            {state.activeTab === "products" && (
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  onClick={() => state.setCreateOpen(true)}
+                  className="h-10 gap-2 rounded-full px-5 font-semibold"
+                >
+                  <Plus className="h-4 w-4" /> Criar Produto
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-full border-border bg-card" aria-label="Mais ações">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => navigate("/dashboard/products/ocr-create")}>
+                      <ScanText className="h-4 w-4 mr-2" /> Criar por OCR
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => state.setScannerOpen(true)}>
+                      <ScanLine className="h-4 w-4 mr-2" /> Scan
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setImportWizardOpen(true)}>
+                      <Upload className="h-4 w-4 mr-2" /> Importar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => state.setBatchImportOpen(true)}>
+                      <Upload className="h-4 w-4 mr-2" /> Importar SKUs
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setExportOpen(true)}>
+                      <Download className="h-4 w-4 mr-2" /> Exportar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <IXEntityTabs
           tabs={pageTabs}
-          activeTab={state.activeTab}
-          onTabChange={state.setActiveTab}
-          actions={state.activeTab === "products" ? [
-            { label: "Scan", icon: <ScanLine className="h-4 w-4" />, onClick: () => state.setScannerOpen(true), variant: "outline" as const, className: "hidden md:inline-flex" },
-            { label: "Exportar", icon: <Download className="h-4 w-4" />, onClick: () => setExportOpen(true), variant: "outline" as const, className: "hidden md:inline-flex" },
-            { label: "Importar", icon: <Upload className="h-4 w-4" />, onClick: () => setImportWizardOpen(true), variant: "outline" as const, className: "hidden md:inline-flex" },
-            { label: "Importar SKUs", icon: <Upload className="h-4 w-4" />, onClick: () => state.setBatchImportOpen(true), variant: "outline" as const, className: "hidden md:inline-flex" },
-            { label: "Criar por OCR", icon: <ScanText className="h-4 w-4" />, onClick: () => navigate("/dashboard/products/ocr-create"), variant: "outline" as const },
-            { label: "Criar Produto", icon: <Plus className="h-4 w-4" />, onClick: () => state.setCreateOpen(true) },
-          ] : undefined}
+          activeId={state.activeTab}
+          onChange={(id) => state.setActiveTab(id as typeof state.activeTab)}
         />
+
+        <div className="px-4 sm:px-8 py-6 space-y-4">
 
         {state.activeTab === "products" && (
           <>
@@ -467,6 +506,7 @@ export function ProductsList() {
         {state.activeTab === "reports" && <ProductReportsTab />}
         {state.activeTab === "health" && <PricingHealthDashboard />}
         {state.activeTab === "settings" && <ProductSettingsTabContent />}
+        </div>
       </div>
 
       {/* Dialogs */}
