@@ -23,7 +23,7 @@ import {
   Plus, PanelLeft, PanelLeftClose, Store, RefreshCw,
   Upload, ScanLine, Columns, AlertTriangle, Trash2,
   Package, Repeat, FileBox, Tag, CircleDollarSign,
-  Calendar, Layers, Download, ScanText,
+  Calendar, Layers, Download, ScanText, MoreHorizontal,
 } from "lucide-react";
 import { Toolbar } from "@/components/common/Toolbar";
 import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
