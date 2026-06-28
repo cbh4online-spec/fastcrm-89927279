@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useEquipmentUnits } from "../hooks/useEquipmentUnits";
 import { EquipmentStatusBadge } from "../components/EquipmentStatusBadge";
 import { cn } from "@/lib/utils";
