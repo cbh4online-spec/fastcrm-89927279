@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Check, RefreshCw, Tag } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2, Sparkles, Check, RefreshCw, Tag, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { ProductType } from "@/types/product";
@@ -71,9 +73,19 @@ export function AIProductAssistant({
     }
   }, [debouncedName, isActive]);
 
+  const safeApply = (key: string, label: string, fn: () => void) => {
+    try {
+      fn();
+      setAppliedItems((prev) => new Set(prev).add(key));
+      toast.success(`${label} aplicado`);
+    } catch (err) {
+      console.error(`[AIProductAssistant] apply ${key} failed`, err);
+      toast.error(`Não foi possível aplicar ${label.toLowerCase()}`);
+    }
+  };
+
   const handleApplyCategory = (cat: string) => {
-    onApplyCategory(cat);
-    setAppliedItems((prev) => new Set(prev).add(`category-${cat}`));
+    safeApply(`category-${cat}`, "Categoria", () => onApplyCategory(cat));
   };
 
   const handleApplyExistingCategory = (matchedName: string) => {
@@ -81,40 +93,35 @@ export function AIProductAssistant({
       c => c.name.toLowerCase() === matchedName.toLowerCase()
     );
     if (matchedCategory && onApplyExistingCategory) {
-      onApplyExistingCategory(matchedCategory);
-      setAppliedItems((prev) => new Set(prev).add("existingCategory"));
+      safeApply("existingCategory", "Categoria", () => onApplyExistingCategory(matchedCategory));
     } else {
-      // Fallback to just setting the name
-      onApplyCategory(matchedName);
-      setAppliedItems((prev) => new Set(prev).add(`category-${matchedName}`));
+      safeApply(`category-${matchedName}`, "Categoria", () => onApplyCategory(matchedName));
     }
   };
 
   const handleApplyPrice = () => {
     if (suggestFromName.data?.suggestedPrice) {
-      onApplyPrice(suggestFromName.data.suggestedPrice);
-      setAppliedItems((prev) => new Set(prev).add("price"));
+      safeApply("price", "Preço", () => onApplyPrice(suggestFromName.data!.suggestedPrice!));
     }
   };
 
   const handleApplyDescription = () => {
     if (suggestFromName.data?.description) {
-      onApplyDescription(suggestFromName.data.description);
-      setAppliedItems((prev) => new Set(prev).add("description"));
+      safeApply("description", "Descrição", () => onApplyDescription(suggestFromName.data!.description!));
     }
   };
 
   const handleApplyProductType = () => {
     if (suggestFromName.data?.productType) {
-      onApplyProductType(suggestFromName.data.productType as ProductType);
-      setAppliedItems((prev) => new Set(prev).add("productType"));
+      safeApply("productType", "Tipo de produto", () =>
+        onApplyProductType(suggestFromName.data!.productType as ProductType)
+      );
     }
   };
 
   const handleApplyBillingType = () => {
     if (suggestFromName.data?.billingType && onApplyBillingType) {
-      onApplyBillingType(suggestFromName.data.billingType);
-      setAppliedItems((prev) => new Set(prev).add("billingType"));
+      safeApply("billingType", "Cobrança", () => onApplyBillingType(suggestFromName.data!.billingType!));
     }
   };
 
@@ -167,9 +174,27 @@ export function AIProductAssistant({
       </div>
 
       {suggestFromName.isPending ? (
-        <div className="flex items-center gap-2 text-muted-foreground py-4 justify-center">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-sm">A analisar "{productName}"...</span>
+        <div className="space-y-4" aria-busy="true" aria-live="polite">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <span>A analisar "{productName}"...</span>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-8 w-48 rounded-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-40" />
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-16 w-full rounded-md" />
+          </div>
         </div>
       ) : suggestFromName.data ? (
         <div className="space-y-4">
@@ -330,8 +355,27 @@ export function AIProductAssistant({
           )}
         </div>
       ) : suggestFromName.isError ? (
-        <div className="text-sm text-destructive py-2">
-          Erro ao obter sugestões. Tente novamente.
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2" role="alert">
+          <div className="flex items-start gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div className="space-y-0.5">
+              <p className="font-medium">Não foi possível gerar sugestões</p>
+              <p className="text-xs text-destructive/80">
+                {(suggestFromName.error as Error)?.message || "Verifique a ligação e tente novamente."}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs rounded-full"
+            onClick={handleRefresh}
+            disabled={suggestFromName.isPending}
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Tentar novamente
+          </Button>
         </div>
       ) : null}
     </Card>
