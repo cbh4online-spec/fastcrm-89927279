@@ -178,17 +178,17 @@ export default function RenewalsPage() {
   const summaryItems: SummaryItem[] = [
     { label: "ARR Total", value: formatCurrency(stats.arr), tone: "primary" },
     { label: "MRR Ativo", value: formatCurrency(stats.totalMRR), tone: "default" },
-    { label: "Contratos Ativos", value: String(stats.active), tone: "success" },
-    { label: "Próx. 30 dias", value: String(stats.upcoming30), tone: "warning" },
+    { label: "Contratos Ativos", value: String(stats.active), tone: "default" },
+    { label: "Próx. 30 dias", value: String(stats.upcoming30), tone: "default" },
     {
       label: "Em atraso",
       value: String(stats.overdue),
-      tone: stats.overdue > 0 ? "destructive" : "muted",
+      tone: stats.overdue > 0 ? "destructive" : "default",
     },
     {
       label: "Taxa Churn",
       value: `${stats.churnRate.toFixed(1)}%`,
-      tone: stats.churnRate > 10 ? "destructive" : "muted",
+      tone: stats.churnRate > 10 ? "destructive" : "default",
     },
   ];
 
