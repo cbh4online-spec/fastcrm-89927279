@@ -133,6 +133,7 @@ export default function GestoresPage() {
   const [activeTab, setActiveTab] = useState("managers");
   const [entityFilter, setEntityFilter] = useState<string>("all");
   const [detailEntitySearch, setDetailEntitySearch] = useState("");
+  const [detailTab, setDetailTab] = useState("entities");
   const queryClient = useQueryClient();
 
   const {
