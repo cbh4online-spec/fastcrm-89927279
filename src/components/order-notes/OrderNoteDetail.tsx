@@ -155,74 +155,71 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold font-mono">{order.order_number}</h1>
+      {/* Header IX */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-bold tracking-tight font-mono">{order.order_number}</h1>
             <OrderNoteStatusBadge status={order.status} size="lg" />
           </div>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Criada em{" "}
-            {format(new Date(order.created_at), "dd MMMM yyyy 'às' HH:mm", {
-              locale: pt,
-            })}
+            {format(new Date(order.created_at), "dd MMMM yyyy 'às' HH:mm", { locale: pt })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleDuplicateOrder}
-            disabled={isDuplicating}
-          >
-            {isDuplicating ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Copy className="h-4 w-4 mr-2" />
-            )}
-            Duplicar
-          </Button>
+        <div className="flex items-center gap-2 shrink-0">
           <OrderNotePDF order={order} workspaceName={currentWorkspace?.name} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Mais ações">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleDuplicateOrder} disabled={isDuplicating}>
+                {isDuplicating ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Copy className="h-4 w-4 mr-2" />
+                )}
+                Duplicar encomenda
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Status Flow */}
-      <Card>
-        <CardContent className="pt-6">
-          <OrderNoteStatusFlow
-            currentStatus={order.status}
-            hasInstallmentRequest={order.installment_requested}
-          />
-        </CardContent>
-      </Card>
+      <IXCard>
+        <OrderNoteStatusFlow
+          currentStatus={order.status}
+          hasInstallmentRequest={order.installment_requested}
+        />
+      </IXCard>
 
       {/* Installment Request Alert */}
       {order.installment_requested && <InstallmentApproval order={order} />}
 
       {/* Actions */}
-      <Card>
-        <CardContent className="pt-6">
-          <OrderNoteActions order={order} onSuccess={refetch} />
-        </CardContent>
-      </Card>
+      <IXCard>
+        <OrderNoteActions order={order} onSuccess={refetch} />
+      </IXCard>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Client Info */}
-        <Card>
-           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Dados do Cliente
-            </CardTitle>
-            {order.client_user && (
-              <Button variant="ghost" size="icon" onClick={() => setEditClientOpen(true)}>
+        <IXCard
+          title="Dados do Cliente"
+          actions={
+            order.client_user && (
+              <Button variant="ghost" size="icon" onClick={() => setEditClientOpen(true)} aria-label="Editar cliente">
                 <Pencil className="h-4 w-4" />
               </Button>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-4">
+            )
+          }
+        >
+          <div className="space-y-4">
             <div>
-              <p className="font-medium">{order.client_user?.name}</p>
+              <p className="font-medium text-foreground">{order.client_user?.name}</p>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <Mail className="h-4 w-4" />
                 {order.client_user?.email}
@@ -245,118 +242,96 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
               <>
                 <Separator />
                 <div>
-                  <p className="text-sm font-medium mb-1">Endereço de Faturação</p>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Endereço de Faturação</p>
                   <div className="text-sm text-muted-foreground">
                     {order.billing_address.street && <p>{order.billing_address.street}</p>}
                     {order.billing_address.postal_code && order.billing_address.city && (
-                      <p>
-                        {order.billing_address.postal_code} {order.billing_address.city}
-                      </p>
+                      <p>{order.billing_address.postal_code} {order.billing_address.city}</p>
                     )}
                     {order.billing_address.country && <p>{order.billing_address.country}</p>}
                   </div>
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </IXCard>
 
         {/* Order Items */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Produtos ({order.items?.length || 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="divide-y">
-              {order.items?.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 py-3">
-                  {item.product_image_url ? (
-                    <img
-                      src={item.product_image_url}
-                      alt={item.product_name}
-                      className="w-16 h-16 object-cover rounded-lg"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
-                      <Package className="h-6 w-6 text-muted-foreground" />
-                    </div>
+        <IXCard
+          className="lg:col-span-2"
+          title={`Produtos (${order.items?.length || 0})`}
+        >
+          <div className="divide-y divide-border">
+            {order.items?.map((item) => (
+              <div key={item.id} className="flex items-center gap-4 py-3 first:pt-0">
+                {item.product_image_url ? (
+                  <img
+                    src={item.product_image_url}
+                    alt={item.product_name}
+                    className="w-16 h-16 object-cover rounded-lg border border-border"
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
+                    <Package className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate text-foreground">{item.product_name}</p>
+                  {item.product_sku && (
+                    <p className="text-xs text-muted-foreground">SKU: {item.product_sku}</p>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{item.product_name}</p>
-                    {item.product_sku && (
-                      <p className="text-xs text-muted-foreground">
-                        SKU: {item.product_sku}
-                      </p>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {item.quantity} × €{item.unit_price_net?.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">€{item.line_total_net?.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      +€{item.vat_amount?.toFixed(2)} IVA
-                    </p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {item.quantity} × €{item.unit_price_net?.toFixed(2)}
+                  </p>
                 </div>
-              ))}
-            </div>
+                <div className="text-right">
+                  <p className="font-medium text-foreground">€{item.line_total_net?.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    +€{item.vat_amount?.toFixed(2)} IVA
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
 
-            <Separator className="my-4" />
+          <Separator className="my-4" />
 
-            {/* Totals */}
-            <div className="space-y-2 text-right">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal (s/ IVA)</span>
-                <span>€{order.total_net?.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">IVA</span>
-                <span>€{order.total_vat?.toFixed(2)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Total</span>
-                <span className="text-primary">€{order.total_gross?.toFixed(2)}</span>
-              </div>
+          {/* Totals */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Subtotal (s/ IVA)</span>
+              <span className="text-foreground">€{order.total_net?.toFixed(2)}</span>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">IVA</span>
+              <span className="text-foreground">€{order.total_vat?.toFixed(2)}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between text-lg font-bold">
+              <span className="text-foreground">Total</span>
+              <span className="text-primary">€{order.total_gross?.toFixed(2)}</span>
+            </div>
+          </div>
+        </IXCard>
       </div>
 
       {/* Notes Section */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Client Notes */}
         {order.client_notes && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MessageSquare className="h-5 w-5" />
-                Notas do Cliente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <IXCard title="Notas do Cliente">
+            <div className="flex items-start gap-2">
+              <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {order.client_notes}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </IXCard>
         )}
 
-        {/* Admin Notes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FileText className="h-5 w-5" />
-              Notas Internas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <IXCard title="Notas Internas">
+          <div className="space-y-4">
             {order.admin_notes && (
-              <div className="bg-muted/50 rounded-lg p-3 text-sm whitespace-pre-wrap">
+              <div className="bg-muted/50 rounded-lg p-3 text-sm whitespace-pre-wrap text-foreground">
                 {order.admin_notes}
               </div>
             )}
@@ -379,28 +354,21 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
                 )}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </IXCard>
       </div>
 
       {/* Rejection Reason */}
       {order.status === "rejected" && order.rejection_reason && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-700">Motivo da Rejeição</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-700">{order.rejection_reason}</p>
-            {order.rejected_at && (
-              <p className="text-sm text-red-500 mt-2">
-                Rejeitada em{" "}
-                {format(new Date(order.rejected_at), "dd/MM/yyyy 'às' HH:mm", {
-                  locale: pt,
-                })}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        <IXCard className="border-destructive/30 bg-destructive/5" title="Motivo da Rejeição">
+          <p className="text-sm text-foreground whitespace-pre-wrap">{order.rejection_reason}</p>
+          {order.rejected_at && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Rejeitada em{" "}
+              {format(new Date(order.rejected_at), "dd/MM/yyyy 'às' HH:mm", { locale: pt })}
+            </p>
+          )}
+        </IXCard>
       )}
 
       {/* Edit Client Dialog */}
