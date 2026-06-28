@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useEquipmentUnit, useEquipmentHistory } from "../hooks/useEquipmentUnits";
 import { EquipmentStatusBadge } from "../components/EquipmentStatusBadge";
 
