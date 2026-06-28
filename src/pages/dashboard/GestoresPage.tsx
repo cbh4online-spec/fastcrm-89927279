@@ -344,7 +344,7 @@ export default function GestoresPage() {
           </div>
 
           {/* KPIs — flat IX */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
             <StatCard label="Leads" value={selectedManagerData.totalLeads} icon={Target} />
             <StatCard label="Contactos" value={selectedManagerData.totalContacts} icon={Users} />
             <StatCard label="Empresas" value={selectedManagerData.totalCompanies} icon={Building2} />
@@ -379,7 +379,7 @@ export default function GestoresPage() {
             </Card>
 
             <Card>
-              <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Flame className="w-4 h-4 text-red-500" />Distribuição de Temperatura</CardTitle></CardHeader>
+              <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Flame className="w-4 h-4 text-muted-foreground" />Distribuição de Temperatura</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-3 gap-2 text-center">
                   {(["hot", "warm", "cold"] as const).map(t => {
@@ -806,24 +806,26 @@ function StatCard({ label, value, icon: Icon, loading, subtitle, variant = "defa
   variant?: "default" | "warning" | "danger";
 }) {
   const valueClass = cn(
-    "text-2xl font-bold leading-tight",
+    "text-xl font-bold leading-tight truncate",
     variant === "danger" && "text-red-600",
     variant === "warning" && "text-amber-600",
   );
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm p-4 flex items-center gap-3">
-      <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4 text-muted-foreground" />
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-4 flex flex-col gap-2 min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+          {label}
+        </span>
+        <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+        </div>
       </div>
-      <div className="min-w-0">
-        {loading ? (
-          <div className="h-6 w-10 rounded bg-muted animate-pulse mb-1" />
-        ) : (
-          <p className={valueClass}>{value}</p>
-        )}
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</p>
-        {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
-      </div>
+      {loading ? (
+        <div className="h-6 w-12 rounded bg-muted animate-pulse" />
+      ) : (
+        <p className={valueClass}>{value}</p>
+      )}
+      {subtitle && <p className="text-[10px] text-muted-foreground truncate">{subtitle}</p>}
     </div>
   );
 }
@@ -835,18 +837,18 @@ function StatCardAlert({ label, value, detail, onClick }: { label: string; value
       type="button"
       onClick={onClick}
       className={cn(
-        "text-left rounded-2xl border bg-card shadow-sm p-4 flex items-center gap-3 transition-colors hover:border-primary/40",
+        "text-left rounded-2xl border bg-card shadow-sm p-4 flex flex-col gap-2 min-w-0 transition-colors hover:border-primary/40",
         active ? "border-amber-300" : "border-border"
       )}
     >
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", active ? "bg-amber-100 dark:bg-amber-900/30" : "bg-muted")}>
-        <AlertTriangle className={cn("w-4 h-4", active ? "text-amber-600" : "text-muted-foreground")} />
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">{label}</span>
+        <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+          <AlertTriangle className={cn("w-3.5 h-3.5", active ? "text-amber-600" : "text-muted-foreground")} />
+        </div>
       </div>
-      <div className="min-w-0">
-        <p className={cn("text-2xl font-bold leading-tight", active && "text-amber-700 dark:text-amber-400")}>{value}</p>
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{detail}</p>
-      </div>
+      <p className={cn("text-xl font-bold leading-tight truncate", active && "text-amber-700 dark:text-amber-400")}>{value}</p>
+      <p className="text-[10px] text-muted-foreground truncate">{detail}</p>
     </button>
   );
 }
