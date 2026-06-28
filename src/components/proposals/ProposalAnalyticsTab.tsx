@@ -169,7 +169,6 @@ export function ProposalAnalyticsTab() {
           value={analytics?.conversionRate ? analytics.conversionRate.toFixed(1) : "0"}
           format="percentage"
           icon={<TrendingUp className="h-4 w-4" />}
-          highlight
         />
         <KPICard
           label="Receita Total"
