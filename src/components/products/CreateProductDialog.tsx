@@ -748,17 +748,25 @@ export function CreateProductDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              {isBundle ? (
-                <Layers className="h-5 w-5 text-primary" />
-              ) : (
-                <Package className="h-5 w-5" />
+        <DialogHeader className="pb-2 border-b border-border">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <DialogTitle className="text-2xl font-bold tracking-tight">
+                {isEditing ? "Editar produto" : "Criar produto"}
+              </DialogTitle>
+              {hasDraft && !isEditing && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Rascunho restaurado automaticamente
+                </p>
               )}
-              {isEditing ? "Editar Produto" : "Criar Produto"}
-            </DialogTitle>
+            </div>
             <div className="flex items-center gap-2">
+              {draftSavedAt && !isEditing && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Save className="h-3 w-3" />
+                  Guardado
+                </span>
+              )}
               {hasDraft && !isEditing && (
                 <Button
                   type="button"
@@ -771,19 +779,8 @@ export function CreateProductDialog({
                   Limpar rascunho
                 </Button>
               )}
-              {draftSavedAt && !isEditing && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Save className="h-3 w-3" />
-                  Guardado ✓
-                </span>
-              )}
             </div>
           </div>
-          {hasDraft && !isEditing && (
-            <p className="text-xs text-muted-foreground mt-1">
-              📝 Rascunho restaurado automaticamente
-            </p>
-          )}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
