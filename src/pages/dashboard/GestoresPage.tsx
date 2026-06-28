@@ -450,22 +450,38 @@ export default function GestoresPage() {
             <TabsContent value="entities" className="space-y-3 mt-4">
 
               <div className="flex items-center gap-3 flex-wrap">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input value={detailEntitySearch} onChange={e => setDetailEntitySearch(e.target.value)} placeholder="Pesquisar entidade..." className="pl-9" />
+                <div className="relative flex-1 min-w-[200px] max-w-md">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input value={detailEntitySearch} onChange={e => setDetailEntitySearch(e.target.value)} placeholder="Pesquisar entidade..." className="h-11 rounded-full border-border bg-card pl-11 pr-4 shadow-sm" />
                 </div>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {[
                     { value: "all", label: "Tudo" },
                     { value: "leads", label: `Leads (${selectedEntities?.filter(e => e.type === "lead").length || 0})` },
                     { value: "contacts", label: `Contactos (${selectedEntities?.filter(e => e.type === "contact").length || 0})` },
                     { value: "companies", label: `Empresas (${selectedEntities?.filter(e => e.type === "company").length || 0})` },
                     { value: "opportunities", label: `Oport. (${selectedEntities?.filter(e => e.type === "opportunity").length || 0})` },
-                  ].map(tab => (
-                    <Button key={tab.value} variant={entityFilter === tab.value ? "default" : "outline"} size="sm" onClick={() => setEntityFilter(tab.value)} className="text-xs">{tab.label}</Button>
-                  ))}
+                  ].map(tab => {
+                    const active = entityFilter === tab.value;
+                    return (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        onClick={() => setEntityFilter(tab.value)}
+                        className={cn(
+                          "h-8 px-3 rounded-full border text-xs font-medium transition-colors",
+                          active
+                            ? "border-primary text-primary bg-primary/5"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+
               <Card>
                 <CardContent className="p-0">
                   <div className="grid grid-cols-[1fr_80px_90px_100px_80px_90px] gap-2 px-4 py-2 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
