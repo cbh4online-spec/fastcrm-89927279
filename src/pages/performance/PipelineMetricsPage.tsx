@@ -4,9 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BarChart3, Target, Bell, Sparkles, Loader2, Check, Flag } from "lucide-react";
+import { Sparkles, Loader2, Check } from "lucide-react";
+import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
 import { usePipelineMetrics, MetricType, MetricFormula, MetricPeriod, AlertChannel } from "@/hooks/usePipelineMetrics";
 import { usePipelines, usePipelineStagesEnhanced } from "@/hooks/useOpportunitiesEnhanced";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -116,48 +116,50 @@ export default function PipelineMetricsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Centro de Métricas & Metas</h1>
-            <p className="text-sm text-muted-foreground">Métricas, metas, alertas e objetivos de performance num só lugar</p>
+            <h1 className="text-3xl font-bold tracking-tight">Centro de Métricas & Metas</h1>
+            <p className="text-sm text-muted-foreground mt-1">Métricas, metas, alertas e objetivos de performance num só lugar</p>
           </div>
         </div>
 
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList>
-            <TabsTrigger value="metrics" className="gap-1.5"><BarChart3 className="h-4 w-4" />Métricas ({metrics.length})</TabsTrigger>
-            <TabsTrigger value="targets" className="gap-1.5"><Target className="h-4 w-4" />Metas ({targets.length})</TabsTrigger>
-            <TabsTrigger value="alerts" className="gap-1.5"><Bell className="h-4 w-4" />Alertas ({alerts.length})</TabsTrigger>
-            <TabsTrigger value="goals" className="gap-1.5"><Flag className="h-4 w-4" />Objetivos</TabsTrigger>
-          </TabsList>
+        <IXEntityTabs
+          activeId={tab}
+          onChange={setTab}
+          className="px-0 sm:px-0"
+          tabs={[
+            { id: "metrics", label: "Métricas", count: metrics.length },
+            { id: "targets", label: "Metas", count: targets.length },
+            { id: "alerts", label: "Alertas", count: alerts.length },
+            { id: "goals", label: "Objetivos" },
+          ]}
+        />
 
-          <TabsContent value="metrics">
-            <MetricsTab
-              metrics={metrics} targets={targets} metricsLoading={metricsLoading}
-              pipelines={pipelines} stages={stages}
-              createMetric={createMetric} updateMetric={updateMetric} deleteMetric={deleteMetric}
-              createTarget={createTarget} aiLoading={aiLoading} onAISuggest={handleAISuggest}
-            />
-          </TabsContent>
+        {tab === "metrics" && (
+          <MetricsTab
+            metrics={metrics} targets={targets} metricsLoading={metricsLoading}
+            pipelines={pipelines} stages={stages}
+            createMetric={createMetric} updateMetric={updateMetric} deleteMetric={deleteMetric}
+            createTarget={createTarget} aiLoading={aiLoading} onAISuggest={handleAISuggest}
+          />
+        )}
 
-          <TabsContent value="targets">
-            <TargetsTab
-              metrics={metrics} targets={targets} pipelines={pipelines} stages={stages}
-              createTarget={createTarget} updateTarget={updateTarget} deleteTarget={deleteTarget}
-              aiLoading={aiLoading} onAISuggest={handleAISuggest}
-            />
-          </TabsContent>
+        {tab === "targets" && (
+          <TargetsTab
+            metrics={metrics} targets={targets} pipelines={pipelines} stages={stages}
+            createTarget={createTarget} updateTarget={updateTarget} deleteTarget={deleteTarget}
+            aiLoading={aiLoading} onAISuggest={handleAISuggest}
+          />
+        )}
 
-          <TabsContent value="alerts">
-            <AlertsTab
-              metrics={metrics} alerts={alerts}
-              createAlert={createAlert} updateAlert={updateAlert} deleteAlert={deleteAlert}
-              aiAlertLoading={aiAlertLoading} onAIAlertSuggest={handleAIAlertSuggest}
-            />
-          </TabsContent>
+        {tab === "alerts" && (
+          <AlertsTab
+            metrics={metrics} alerts={alerts}
+            createAlert={createAlert} updateAlert={updateAlert} deleteAlert={deleteAlert}
+            aiAlertLoading={aiAlertLoading} onAIAlertSuggest={handleAIAlertSuggest}
+          />
+        )}
 
-          <TabsContent value="goals">
-            <GoalPresetsTab />
-          </TabsContent>
-        </Tabs>
+        {tab === "goals" && <GoalPresetsTab />}
+
 
         {/* AI Metric Suggestions Dialog */}
         <Dialog open={aiOpen} onOpenChange={setAiOpen}>
