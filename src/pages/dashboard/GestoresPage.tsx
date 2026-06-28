@@ -518,29 +518,33 @@ export default function GestoresPage() {
   // ═══════════════════════════════════════════════════════════
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="space-y-6 p-6">
+        {/* Header IX */}
+        <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <UserCheck className="w-6 h-6 text-primary" />
-              Gestores — Cockpit Operacional
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight">Gestores</h1>
             <p className="text-sm text-muted-foreground mt-1">Distribuição, atribuição e performance do portfólio comercial</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAutoAssignDialogOpen(true)} className="gap-1.5">
-              <Zap className="w-3.5 h-3.5" />
-              Auto-Assign
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setRoundRobinDialogOpen(true)} className="gap-1.5">
-              <Shuffle className="w-3.5 h-3.5" />
-              Round Robin
-            </Button>
-            <Button onClick={() => setAssignDialogOpen(true)} className="gap-1.5" size="sm">
-              <UserPlus className="w-3.5 h-3.5" />
+            <Button onClick={() => setAssignDialogOpen(true)} className="gap-1.5 rounded-full px-5">
+              <UserPlus className="w-4 h-4" />
               Atribuir
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-full" aria-label="Mais ações">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setAutoAssignDialogOpen(true)}>
+                  <Zap className="w-4 h-4 mr-2" /> Auto-Assign
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setRoundRobinDialogOpen(true)}>
+                  <Shuffle className="w-4 h-4 mr-2" /> Round Robin
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -556,23 +560,34 @@ export default function GestoresPage() {
 
         {/* Health bar */}
         {health && (
-          <Card className="border-dashed">
-            <CardContent className="p-3 flex items-center gap-4">
-              <div className="flex items-center gap-2 shrink-0"><Activity className="w-4 h-4 text-muted-foreground" /><span className="text-xs font-medium text-muted-foreground">Saúde</span></div>
-              <div className="flex-1 flex items-center gap-3">
-                <div className="flex-1"><Progress value={health.coveragePct} className="h-2" /></div>
-                <span className={cn("text-sm font-semibold", health.coveragePct >= 80 ? "text-emerald-600" : health.coveragePct >= 50 ? "text-amber-600" : "text-red-600")}>{health.coveragePct}%</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground shrink-0">{health.assignedEntities} atribuídas / {health.totalEntities} total</span>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-border bg-card shadow-sm px-5 py-3 flex items-center gap-4">
+            <div className="flex items-center gap-2 shrink-0"><Activity className="w-4 h-4 text-muted-foreground" /><span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Saúde</span></div>
+            <div className="flex-1 flex items-center gap-3">
+              <div className="flex-1"><Progress value={health.coveragePct} className="h-2" /></div>
+              <span className={cn("text-sm font-semibold", health.coveragePct >= 80 ? "text-emerald-600" : health.coveragePct >= 50 ? "text-amber-600" : "text-red-600")}>{health.coveragePct}%</span>
+            </div>
+            <span className="text-[11px] text-muted-foreground shrink-0">{health.assignedEntities} atribuídas / {health.totalEntities} total</span>
+          </div>
         )}
 
-        {/* Tabs: Managers | Workload | Assignment Log */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="managers">Gestores ({managerStats.length})</TabsTrigger>
-            <TabsTrigger value="workload">Carga de Trabalho</TabsTrigger>
+        {/* Tabs IX underline */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <div className="-mx-6">
+            <IXEntityTabs
+              activeId={activeTab}
+              onChange={setActiveTab}
+              tabs={[
+                { id: "managers", label: "Gestores", count: managerStats.length },
+                { id: "workload", label: "Carga de Trabalho" },
+                { id: "categories", label: "Perfis & Categorias" },
+                { id: "logs", label: "Histórico" },
+              ]}
+            />
+          </div>
+          <TabsList className="hidden">
+            <TabsTrigger value="managers">x</TabsTrigger>
+            <TabsTrigger value="workload">x</TabsTrigger>
+
             <TabsTrigger value="categories">Perfis & Categorias</TabsTrigger>
             <TabsTrigger value="logs">Histórico</TabsTrigger>
           </TabsList>
