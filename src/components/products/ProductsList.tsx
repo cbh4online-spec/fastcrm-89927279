@@ -506,6 +506,7 @@ export function ProductsList() {
         {state.activeTab === "reports" && <ProductReportsTab />}
         {state.activeTab === "health" && <PricingHealthDashboard />}
         {state.activeTab === "settings" && <ProductSettingsTabContent />}
+        </div>
       </div>
 
       {/* Dialogs */}
