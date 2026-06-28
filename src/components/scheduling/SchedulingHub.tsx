@@ -1,23 +1,26 @@
 import { useState, useMemo } from 'react';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns';
-import { 
-  CalendarDays, 
-  Clock, 
-  Briefcase, 
+import {
+  CalendarDays,
+  Clock,
+  Briefcase,
   CalendarClock,
-  ExternalLink,
   Plus,
   PanelLeft,
   PanelLeftClose,
   RefreshCw,
   Settings,
-  BarChart3,
-  LayoutGrid,
-  Code,
+  MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 // Calendar components
 import { useCalendars, type Calendar, type CalendarEvent, type CreateCalendarData, type CreateEventData } from '@/hooks/useCalendars';
@@ -30,7 +33,7 @@ import { CalendarEventModal } from '@/components/calendars/CalendarEventModal';
 // Meetings components
 import { MeetingsDashboard } from '@/components/meetings/MeetingsDashboard';
 
-// Services components  
+// Services components
 import { ServicesDashboard } from '@/components/services/ServicesDashboard';
 
 // Availability components
@@ -45,11 +48,12 @@ import { EmbedWidgetGenerator } from '@/components/scheduling/EmbedWidgetGenerat
 import { OccupancyMapView } from '@/components/scheduling/OccupancyMapView';
 
 // Common components
-import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
 import { FilterSidebar, FilterGroup } from '@/components/common/FilterSidebar';
+import { IXEntityTabs, type IXTabDef } from '@/components/entity/ix/IXEntityTabs';
 
 import { Loader2 } from 'lucide-react';
+
 
 type TabValue = 'calendar' | 'meetings' | 'services' | 'availability' | 'booking-links' | 'analytics' | 'embed' | 'occupancy';
 
