@@ -164,13 +164,7 @@ export default function PerformanceDashboardPage() {
               <div className="divide-y divide-border">
                 {leaderboard.slice(0, 5).map((entry: any) => (
                   <div key={entry.id} className="flex items-center gap-3 py-3">
-                    <div className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold",
-                      entry.rank === 1 ? "bg-yellow-500/15 text-yellow-600" :
-                      entry.rank === 2 ? "bg-gray-300/30 text-gray-600" :
-                      entry.rank === 3 ? "bg-orange-400/15 text-orange-600" :
-                      "bg-muted text-muted-foreground"
-                    )}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold bg-muted text-muted-foreground">
                       {entry.rank}
                     </div>
                     <Avatar className="h-8 w-8">
