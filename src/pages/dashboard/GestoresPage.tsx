@@ -30,7 +30,7 @@ import {
   MessageSquare, Calendar, PhoneCall, Activity,
   CheckCircle2, Timer, TrendingUp, Zap, ShieldCheck,
   AlertCircle, RotateCw, Gauge, History, Shuffle,
-  Tag, MapPin, Briefcase, Plus, X, Settings2,
+  Tag, MapPin, Briefcase, Plus, X, Settings2, MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -39,6 +39,11 @@ import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
+import { IXCard } from "@/components/entity/ix/IXCard";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ─── Helpers ─────────────────────────────────────────────────
 
