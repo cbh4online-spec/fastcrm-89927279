@@ -25,7 +25,6 @@ import {
   Package, Repeat, FileBox, Tag, CircleDollarSign,
   Calendar, Layers, Download, ScanText,
 } from "lucide-react";
-import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
 import { BarcodeResultPanel } from "@/components/barcode/BarcodeResultPanel";
@@ -37,6 +36,7 @@ import { PricingTabContent } from "./PricingTabContent";
 import { ProductSettingsTabContent } from "./settings/ProductSettingsTabContent";
 import { ColumnSelector } from "@/components/common/ColumnSelector";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
 
 // Sub-components
 import { ProductBulkActions } from "./table/ProductBulkActions";
