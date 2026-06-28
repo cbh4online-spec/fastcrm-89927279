@@ -21,18 +21,18 @@ export function OpportunitiesFiltersBar({ state }: Props) {
     <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder={t('searchOpportunities')}
               value={state.searchQuery}
               onChange={(e) => state.setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="h-11 rounded-full border-border bg-card pl-11 pr-4 shadow-sm"
             />
           </div>
 
           <Select value={state.statusFilter} onValueChange={(v) => state.setStatusFilter(v as any)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="h-11 rounded-full w-[150px] bg-card">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
@@ -47,7 +47,7 @@ export function OpportunitiesFiltersBar({ state }: Props) {
           <Button
             variant={state.sortByScore ? "default" : "outline"}
             size="sm"
-            className="gap-2"
+            className="h-11 rounded-full gap-2 px-4"
             onClick={() => state.setSortByScore((v: boolean) => !v)}
           >
             <ArrowUpDown className="w-4 h-4" />
@@ -57,7 +57,7 @@ export function OpportunitiesFiltersBar({ state }: Props) {
           <Button
             variant={state.hotDealsOnly ? "default" : "outline"}
             size="sm"
-            className="gap-2"
+            className="h-11 rounded-full gap-2 px-4"
             onClick={() => state.setHotDealsOnly((v: boolean) => !v)}
           >
             <Flame className="w-4 h-4" />
@@ -71,18 +71,19 @@ export function OpportunitiesFiltersBar({ state }: Props) {
         </div>
 
         <Tabs value={state.viewMode} onValueChange={(v) => state.setViewMode(v as any)}>
-          <TabsList>
-            <TabsTrigger value="kanban" className="gap-2">
+          <TabsList className="h-11 rounded-full bg-muted p-1">
+            <TabsTrigger value="kanban" className="rounded-full gap-2 px-4">
               <LayoutGrid className="w-4 h-4" />
               {t('kanban')}
             </TabsTrigger>
-            <TabsTrigger value="list" className="gap-2">
+            <TabsTrigger value="list" className="rounded-full gap-2 px-4">
               <List className="w-4 h-4" />
               {t('list')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
+
 
       {(state.activeViewConditions.length > 0 || state.sortByScore) && (
         <div className="flex items-center gap-3 flex-wrap flex-shrink-0">
