@@ -5,7 +5,6 @@ import { OpportunitiesKanbanView } from "./module/OpportunitiesKanbanView";
 import { OpportunitiesListView } from "./module/OpportunitiesListView";
 import { OpportunitiesDialogs } from "./module/OpportunitiesDialogs";
 import { OpportunityKPICards } from "./OpportunityKPICards";
-import { PipelineSummaryBar } from "./PipelineSummaryBar";
 import { CommandPalette } from "./CommandPalette";
 import { PageLoading } from "@/components/design-system";
 import { useTranslation } from "react-i18next";
@@ -26,13 +25,8 @@ export function OpportunitiesModule() {
         onSelectView={state.handleSelectView}
         onCreateDeal={() => state.setIsCreateDialogOpen(true)}
       />
-      <div className="flex-1 min-w-0 space-y-4 md:space-y-6 h-full flex flex-col overflow-auto">
+      <div className="flex-1 min-w-0 space-y-6 h-full flex flex-col overflow-auto">
         <OpportunitiesHeader state={state} />
-
-        {state.stages && state.stages.length > 0 && state.opportunities && (
-          <PipelineSummaryBar opportunities={state.opportunities} stages={state.stages} />
-        )}
-
         <OpportunityKPICards />
         <OpportunitiesFiltersBar state={state} />
 
