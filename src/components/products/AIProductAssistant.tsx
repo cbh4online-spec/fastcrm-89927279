@@ -232,7 +232,7 @@ export function AIProductAssistant({
           {/* Price suggestion */}
           {suggestFromName.data.priceRange && (
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">Preço sugerido:</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Preço sugerido</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
                   €{suggestFromName.data.priceRange.min} - €{suggestFromName.data.priceRange.max}
@@ -259,7 +259,7 @@ export function AIProductAssistant({
           {/* Description */}
           {suggestFromName.data.description && (
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">Descrição sugerida:</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Descrição sugerida</span>
               <div className="flex flex-col gap-2">
                 <p className="text-sm text-muted-foreground bg-muted/50 rounded p-2">
                   "{suggestFromName.data.description}"
@@ -286,7 +286,7 @@ export function AIProductAssistant({
           {/* Product Type */}
           {suggestFromName.data.productType && (
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">Tipo sugerido:</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Tipo sugerido</span>
               <Button
                 type="button"
                 variant={appliedItems.has("productType") || suggestFromName.data.productType === currentProductType ? "secondary" : "outline"}
@@ -309,7 +309,7 @@ export function AIProductAssistant({
           {/* Billing Type */}
           {suggestFromName.data.billingType && onApplyBillingType && (
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">Cobrança sugerida:</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Cobrança sugerida</span>
               <Button
                 type="button"
                 variant={appliedItems.has("billingType") || suggestFromName.data.billingType === currentBillingType ? "secondary" : "outline"}
