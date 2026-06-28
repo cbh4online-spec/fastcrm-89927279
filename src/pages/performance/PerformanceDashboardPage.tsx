@@ -109,7 +109,7 @@ export default function PerformanceDashboardPage() {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-sm text-muted-foreground mt-1">{t("description")}</p>
           </div>
           <Button
@@ -126,9 +126,9 @@ export default function PerformanceDashboardPage() {
 
         {/* KPIs */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <IXKpi label={t("closedRevenue")} value={formatCurrency(totalRevenue)} icon={<DollarSign className="h-4 w-4" />} tone="success" />
-          <IXKpi label={t("pipelineGenerated")} value={formatCurrency(totalPipeline)} icon={<TrendingUp className="h-4 w-4" />} tone="primary" />
-          <IXKpi label={t("meetingsHeld")} value={totalMeetings} icon={<Calendar className="h-4 w-4" />} tone="warning" />
+          <IXKpi label={t("closedRevenue")} value={formatCurrency(totalRevenue)} icon={<DollarSign className="h-4 w-4" />} />
+          <IXKpi label={t("pipelineGenerated")} value={formatCurrency(totalPipeline)} icon={<TrendingUp className="h-4 w-4" />} />
+          <IXKpi label={t("meetingsHeld")} value={totalMeetings} icon={<Calendar className="h-4 w-4" />} />
           <IXKpi label={t("activePerformers")} value={totalDeals} icon={<Users className="h-4 w-4" />} />
         </div>
 
