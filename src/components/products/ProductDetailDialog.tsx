@@ -521,30 +521,30 @@ export function ProductDetailDialog({
                   const currentSubs = subTabs[group];
                   return (
                     <Tabs value={tab} onValueChange={setTab}>
-                      <div className="space-y-2">
-                        <TabsList className="h-auto flex flex-wrap gap-0.5 bg-muted/60 p-1 w-full justify-start">
-                          {groups.map((g) => {
-                            const Icon = g.icon;
-                            const active = group === g.value;
-                            return (
-                              <button
-                                key={g.value}
-                                type="button"
-                                onClick={() => setTab(groupDefault[g.value])}
-                                className={`inline-flex items-center text-xs px-3 py-1.5 h-8 rounded-md transition-colors ${
-                                  active
-                                    ? "bg-background text-foreground shadow-sm font-medium"
-                                    : "text-muted-foreground hover:text-foreground"
-                                }`}
-                              >
-                                <Icon className="h-3.5 w-3.5 mr-1.5" />
-                                {g.label}
-                              </button>
-                            );
-                          })}
-                        </TabsList>
+                      <div className="space-y-3">
+                        <div className="border-b border-border">
+                          <div className="flex flex-wrap items-center gap-1 -mb-px">
+                            {groups.map((g) => {
+                              const active = group === g.value;
+                              return (
+                                <button
+                                  key={g.value}
+                                  type="button"
+                                  onClick={() => setTab(groupDefault[g.value])}
+                                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                                    active
+                                      ? "border-primary text-foreground"
+                                      : "border-transparent text-muted-foreground hover:text-foreground"
+                                  }`}
+                                >
+                                  {g.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                         {currentSubs && currentSubs.length > 1 && (
-                          <div className="flex flex-wrap gap-1 border-b pb-1">
+                          <div className="flex flex-wrap gap-1.5">
                             {currentSubs.map((s) => {
                               const active = tab === s.value;
                               return (
@@ -552,10 +552,10 @@ export function ProductDetailDialog({
                                   key={s.value}
                                   type="button"
                                   onClick={() => setTab(s.value)}
-                                  className={`text-xs px-2.5 py-1 h-7 rounded-md transition-colors ${
+                                  className={`text-xs px-3 h-7 rounded-full border transition-colors ${
                                     active
-                                      ? "bg-primary/10 text-primary font-medium"
-                                      : "text-muted-foreground hover:bg-muted"
+                                      ? "border-primary text-primary bg-primary/5 font-medium"
+                                      : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
                                   }`}
                                 >
                                   {s.label}
