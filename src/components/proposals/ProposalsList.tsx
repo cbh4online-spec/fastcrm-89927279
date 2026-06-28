@@ -547,19 +547,12 @@ export function ProposalsList() {
         ) : undefined
       }
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-2 bg-transparent p-0 gap-1">
-          {pageTabs.map((tab) => (
-            <TabsTrigger
-              key={tab.id}
-              value={tab.id}
-              className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <IXEntityTabs
+        tabs={pageTabs.map((t) => ({ id: t.id, label: t.label }))}
+        activeId={activeTab}
+        onChange={setActiveTab}
+        className="-mx-4 sm:-mx-8 mb-2"
+      />
 
       {activeTab === "templates" ? (
         <ProposalTemplatesList />
