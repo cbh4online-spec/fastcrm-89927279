@@ -355,8 +355,27 @@ export function AIProductAssistant({
           )}
         </div>
       ) : suggestFromName.isError ? (
-        <div className="text-sm text-destructive py-2">
-          Erro ao obter sugestões. Tente novamente.
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2" role="alert">
+          <div className="flex items-start gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div className="space-y-0.5">
+              <p className="font-medium">Não foi possível gerar sugestões</p>
+              <p className="text-xs text-destructive/80">
+                {(suggestFromName.error as Error)?.message || "Verifique a ligação e tente novamente."}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs rounded-full"
+            onClick={handleRefresh}
+            disabled={suggestFromName.isPending}
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Tentar novamente
+          </Button>
         </div>
       ) : null}
     </Card>
