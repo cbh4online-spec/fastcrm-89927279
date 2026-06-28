@@ -30,7 +30,7 @@ import {
   MessageSquare, Calendar, PhoneCall, Activity,
   CheckCircle2, Timer, TrendingUp, Zap, ShieldCheck,
   AlertCircle, RotateCw, Gauge, History, Shuffle,
-  Tag, MapPin, Briefcase, Plus, X, Settings2,
+  Tag, MapPin, Briefcase, Plus, X, Settings2, MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -39,6 +39,11 @@ import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
+import { IXCard } from "@/components/entity/ix/IXCard";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -128,6 +133,7 @@ export default function GestoresPage() {
   const [activeTab, setActiveTab] = useState("managers");
   const [entityFilter, setEntityFilter] = useState<string>("all");
   const [detailEntitySearch, setDetailEntitySearch] = useState("");
+  const [detailTab, setDetailTab] = useState("entities");
   const queryClient = useQueryClient();
 
   const {
@@ -304,33 +310,40 @@ export default function GestoresPage() {
   if (selectedManager && selectedManagerData) {
     return (
       <DashboardLayout>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => setSelectedManager(null)}>
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="text-lg bg-primary/10 text-primary font-semibold">
-                  {getInitials(selectedManagerData.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-xl font-bold">{selectedManagerData.name}</h1>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  {selectedManagerData.email && <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{selectedManagerData.email}</span>}
-                  <Badge variant="outline" className="capitalize">{selectedManagerData.role}</Badge>
-                  <Badge variant="outline" className={cn("text-[10px]", WORKLOAD_COLORS[selectedManagerData.workload.workloadBucket])}>
-                    <Gauge className="w-3 h-3 mr-1" />
-                    Carga: {WORKLOAD_LABELS[selectedManagerData.workload.workloadBucket]}
-                  </Badge>
+        <div className="space-y-6 p-6">
+          {/* Header IX */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setSelectedManager(null)}
+              className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" /> Voltar
+            </button>
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4 min-w-0">
+                <Avatar className="h-14 w-14">
+                  <AvatarFallback className="text-lg bg-muted text-foreground font-semibold">
+                    {getInitials(selectedManagerData.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <h1 className="text-3xl font-bold tracking-tight truncate">{selectedManagerData.name}</h1>
+                  <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                    {selectedManagerData.email && <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{selectedManagerData.email}</span>}
+                    <span>·</span>
+                    <span className="capitalize">{selectedManagerData.role}</span>
+                    <span>·</span>
+                    <span className={cn("font-medium", WORKLOAD_COLORS[selectedManagerData.workload.workloadBucket])}>
+                      Carga: {WORKLOAD_LABELS[selectedManagerData.workload.workloadBucket]}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* KPIs */}
+          {/* KPIs — flat IX */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
             <StatCard label="Leads" value={selectedManagerData.totalLeads} icon={Target} />
             <StatCard label="Contactos" value={selectedManagerData.totalContacts} icon={Users} />
@@ -341,6 +354,7 @@ export default function GestoresPage() {
             <StatCard label="SLA" value={`${detailAnalytics?.slaCompliance || 0}%`} icon={ShieldCheck} variant={detailAnalytics && detailAnalytics.slaCompliance < 50 ? "danger" : detailAnalytics && detailAnalytics.slaCompliance < 80 ? "warning" : "default"} />
             <StatCard label="Capacidade" value={`${selectedManagerData.workload.capacityScore}%`} icon={Gauge} variant={selectedManagerData.workload.workloadBucket === "overloaded" ? "danger" : selectedManagerData.workload.workloadBucket === "high" ? "warning" : "default"} />
           </div>
+
 
           {/* SLA + Temperature */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -418,29 +432,56 @@ export default function GestoresPage() {
           )}
 
           {/* Tabs: Portfolio + History */}
-          <Tabs defaultValue="entities">
-            <TabsList>
-              <TabsTrigger value="entities">Portfólio ({selectedEntities?.length || 0})</TabsTrigger>
-              <TabsTrigger value="history">Histórico ({interactions?.length || 0})</TabsTrigger>
+          <Tabs value={detailTab} onValueChange={setDetailTab}>
+            <div className="-mx-6">
+              <IXEntityTabs
+                activeId={detailTab}
+                onChange={setDetailTab}
+                tabs={[
+                  { id: "entities", label: "Portfólio", count: selectedEntities?.length || 0 },
+                  { id: "history", label: "Histórico", count: interactions?.length || 0 },
+                ]}
+              />
+            </div>
+            <TabsList className="hidden">
+              <TabsTrigger value="entities">x</TabsTrigger>
+              <TabsTrigger value="history">x</TabsTrigger>
             </TabsList>
-            <TabsContent value="entities" className="space-y-3 mt-3">
+            <TabsContent value="entities" className="space-y-3 mt-4">
+
               <div className="flex items-center gap-3 flex-wrap">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input value={detailEntitySearch} onChange={e => setDetailEntitySearch(e.target.value)} placeholder="Pesquisar entidade..." className="pl-9" />
+                <div className="relative flex-1 min-w-[200px] max-w-md">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input value={detailEntitySearch} onChange={e => setDetailEntitySearch(e.target.value)} placeholder="Pesquisar entidade..." className="h-11 rounded-full border-border bg-card pl-11 pr-4 shadow-sm" />
                 </div>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {[
                     { value: "all", label: "Tudo" },
                     { value: "leads", label: `Leads (${selectedEntities?.filter(e => e.type === "lead").length || 0})` },
                     { value: "contacts", label: `Contactos (${selectedEntities?.filter(e => e.type === "contact").length || 0})` },
                     { value: "companies", label: `Empresas (${selectedEntities?.filter(e => e.type === "company").length || 0})` },
                     { value: "opportunities", label: `Oport. (${selectedEntities?.filter(e => e.type === "opportunity").length || 0})` },
-                  ].map(tab => (
-                    <Button key={tab.value} variant={entityFilter === tab.value ? "default" : "outline"} size="sm" onClick={() => setEntityFilter(tab.value)} className="text-xs">{tab.label}</Button>
-                  ))}
+                  ].map(tab => {
+                    const active = entityFilter === tab.value;
+                    return (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        onClick={() => setEntityFilter(tab.value)}
+                        className={cn(
+                          "h-8 px-3 rounded-full border text-xs font-medium transition-colors",
+                          active
+                            ? "border-primary text-primary bg-primary/5"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+
               <Card>
                 <CardContent className="p-0">
                   <div className="grid grid-cols-[1fr_80px_90px_100px_80px_90px] gap-2 px-4 py-2 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
@@ -505,29 +546,33 @@ export default function GestoresPage() {
   // ═══════════════════════════════════════════════════════════
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="space-y-6 p-6">
+        {/* Header IX */}
+        <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <UserCheck className="w-6 h-6 text-primary" />
-              Gestores — Cockpit Operacional
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight">Gestores</h1>
             <p className="text-sm text-muted-foreground mt-1">Distribuição, atribuição e performance do portfólio comercial</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAutoAssignDialogOpen(true)} className="gap-1.5">
-              <Zap className="w-3.5 h-3.5" />
-              Auto-Assign
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setRoundRobinDialogOpen(true)} className="gap-1.5">
-              <Shuffle className="w-3.5 h-3.5" />
-              Round Robin
-            </Button>
-            <Button onClick={() => setAssignDialogOpen(true)} className="gap-1.5" size="sm">
-              <UserPlus className="w-3.5 h-3.5" />
+            <Button onClick={() => setAssignDialogOpen(true)} className="gap-1.5 rounded-full px-5">
+              <UserPlus className="w-4 h-4" />
               Atribuir
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-full" aria-label="Mais ações">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setAutoAssignDialogOpen(true)}>
+                  <Zap className="w-4 h-4 mr-2" /> Auto-Assign
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setRoundRobinDialogOpen(true)}>
+                  <Shuffle className="w-4 h-4 mr-2" /> Round Robin
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -543,33 +588,45 @@ export default function GestoresPage() {
 
         {/* Health bar */}
         {health && (
-          <Card className="border-dashed">
-            <CardContent className="p-3 flex items-center gap-4">
-              <div className="flex items-center gap-2 shrink-0"><Activity className="w-4 h-4 text-muted-foreground" /><span className="text-xs font-medium text-muted-foreground">Saúde</span></div>
-              <div className="flex-1 flex items-center gap-3">
-                <div className="flex-1"><Progress value={health.coveragePct} className="h-2" /></div>
-                <span className={cn("text-sm font-semibold", health.coveragePct >= 80 ? "text-emerald-600" : health.coveragePct >= 50 ? "text-amber-600" : "text-red-600")}>{health.coveragePct}%</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground shrink-0">{health.assignedEntities} atribuídas / {health.totalEntities} total</span>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-border bg-card shadow-sm px-5 py-3 flex items-center gap-4">
+            <div className="flex items-center gap-2 shrink-0"><Activity className="w-4 h-4 text-muted-foreground" /><span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Saúde</span></div>
+            <div className="flex-1 flex items-center gap-3">
+              <div className="flex-1"><Progress value={health.coveragePct} className="h-2" /></div>
+              <span className={cn("text-sm font-semibold", health.coveragePct >= 80 ? "text-emerald-600" : health.coveragePct >= 50 ? "text-amber-600" : "text-red-600")}>{health.coveragePct}%</span>
+            </div>
+            <span className="text-[11px] text-muted-foreground shrink-0">{health.assignedEntities} atribuídas / {health.totalEntities} total</span>
+          </div>
         )}
 
-        {/* Tabs: Managers | Workload | Assignment Log */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="managers">Gestores ({managerStats.length})</TabsTrigger>
-            <TabsTrigger value="workload">Carga de Trabalho</TabsTrigger>
+        {/* Tabs IX underline */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <div className="-mx-6">
+            <IXEntityTabs
+              activeId={activeTab}
+              onChange={setActiveTab}
+              tabs={[
+                { id: "managers", label: "Gestores", count: managerStats.length },
+                { id: "workload", label: "Carga de Trabalho" },
+                { id: "categories", label: "Perfis & Categorias" },
+                { id: "logs", label: "Histórico" },
+              ]}
+            />
+          </div>
+          <TabsList className="hidden">
+            <TabsTrigger value="managers">x</TabsTrigger>
+            <TabsTrigger value="workload">x</TabsTrigger>
+
             <TabsTrigger value="categories">Perfis & Categorias</TabsTrigger>
             <TabsTrigger value="logs">Histórico</TabsTrigger>
           </TabsList>
 
           {/* ── TAB: Managers ── */}
           <TabsContent value="managers" className="space-y-4 mt-4">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar gestor..." className="pl-9" />
+            <div className="relative max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar gestor..." className="h-12 rounded-full border-border bg-card pl-11 pr-4 shadow-sm" />
             </div>
+
 
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -748,32 +805,52 @@ function StatCard({ label, value, icon: Icon, loading, subtitle, variant = "defa
   label: string; value: string | number; icon: React.ElementType; loading?: boolean; subtitle?: string;
   variant?: "default" | "warning" | "danger";
 }) {
+  const valueClass = cn(
+    "text-2xl font-bold leading-tight",
+    variant === "danger" && "text-red-600",
+    variant === "warning" && "text-amber-600",
+  );
   return (
-    <Card className={cn(variant === "danger" && "border-red-200 dark:border-red-800", variant === "warning" && "border-amber-200 dark:border-amber-800")}>
-      <CardContent className="p-3 flex items-center gap-3">
-        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", variant === "danger" ? "bg-red-100 dark:bg-red-900/40" : variant === "warning" ? "bg-amber-100 dark:bg-amber-900/40" : "bg-primary/10")}>
-          <Icon className={cn("w-4 h-4", variant === "danger" ? "text-red-600" : variant === "warning" ? "text-amber-600" : "text-primary")} />
-        </div>
-        <div>
-          {loading ? <div className="h-6 w-10 rounded bg-muted animate-pulse mb-1" /> : <p className={cn("text-lg font-bold", variant === "danger" && "text-red-700 dark:text-red-400", variant === "warning" && "text-amber-700 dark:text-amber-400")}>{value}</p>}
-          <p className="text-[10px] text-muted-foreground">{label}</p>
-          {subtitle && <p className="text-[9px] text-muted-foreground">{subtitle}</p>}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-4 flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-muted-foreground" />
+      </div>
+      <div className="min-w-0">
+        {loading ? (
+          <div className="h-6 w-10 rounded bg-muted animate-pulse mb-1" />
+        ) : (
+          <p className={valueClass}>{value}</p>
+        )}
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</p>
+        {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
+      </div>
+    </div>
   );
 }
 
 function StatCardAlert({ label, value, detail, onClick }: { label: string; value: number; detail: string; onClick: () => void }) {
+  const active = value > 0;
   return (
-    <Card className={cn("cursor-pointer hover:border-amber-500/50 transition-all", value > 0 && "border-amber-300 bg-amber-50/50 dark:bg-amber-950/20")} onClick={onClick}>
-      <CardContent className="p-3 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0"><AlertTriangle className="w-4 h-4 text-amber-600" /></div>
-        <div><p className="text-lg font-bold text-amber-700 dark:text-amber-400">{value}</p><p className="text-[10px] text-muted-foreground">{label}</p><p className="text-[9px] text-muted-foreground mt-0.5">{detail}</p></div>
-      </CardContent>
-    </Card>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "text-left rounded-2xl border bg-card shadow-sm p-4 flex items-center gap-3 transition-colors hover:border-primary/40",
+        active ? "border-amber-300" : "border-border"
+      )}
+    >
+      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", active ? "bg-amber-100 dark:bg-amber-900/30" : "bg-muted")}>
+        <AlertTriangle className={cn("w-4 h-4", active ? "text-amber-600" : "text-muted-foreground")} />
+      </div>
+      <div className="min-w-0">
+        <p className={cn("text-2xl font-bold leading-tight", active && "text-amber-700 dark:text-amber-400")}>{value}</p>
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{detail}</p>
+      </div>
+    </button>
   );
 }
+
 
 // ─── Bulk Assign Dialog ──────────────────────────────────────
 
