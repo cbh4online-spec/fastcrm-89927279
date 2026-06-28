@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Users, History, Settings2, Sparkles, Loader2 } from "lucide-react";
+import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
+import { Settings2, Sparkles, Loader2 } from "lucide-react";
 import { ProspectingSearch, SearchPrefill } from "@/components/professional-prospecting/ProspectingSearch";
 import { ProspectingResults } from "@/components/professional-prospecting/ProspectingResults";
 import { ProspectingHistory } from "@/components/professional-prospecting/ProspectingHistory";
@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 interface OfferSuggestion {
   label: string;
@@ -160,41 +161,45 @@ export default function ProfessionalProspecting() {
   return (
     <ModuleGuard moduleSlug="prospecting-pro" moduleName="Prospecção Profissional">
       <DashboardLayout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Prospecção Profissional</h1>
-            <p className="text-muted-foreground mt-1">
+      <div className="p-6 space-y-6 max-w-7xl">
+        {/* Header IX */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight">Prospecção Profissional</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Descubra profissionais individuais por profissão e localização
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant={hasServiceConfig ? "outline" : "default"}
-              size="sm"
-              onClick={handleOpenOfferDialog}
-              className="gap-1"
+          <Button
+            variant={hasServiceConfig ? "outline" : "default"}
+            size="sm"
+            onClick={handleOpenOfferDialog}
+            className="gap-2 shrink-0"
+          >
+            <Settings2 className="w-4 h-4" />
+            {hasServiceConfig ? "Oferta configurada" : "Configurar Oferta"}
+          </Button>
+        </div>
+
+        {/* Secondary toolbar — tom + usage */}
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground whitespace-nowrap">Tom:</span>
+            <Select
+              value={defaultTone}
+              onValueChange={(value) => updateSettings.mutate({ default_prospecting_tone: value })}
             >
-              <Settings2 className="w-4 h-4" />
-              {hasServiceConfig ? "Oferta configurada" : "Configurar Oferta"}
-            </Button>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Tom:</span>
-              <Select
-                value={defaultTone}
-                onValueChange={(value) => updateSettings.mutate({ default_prospecting_tone: value })}
-              >
-                <SelectTrigger className="w-[130px] h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="formal">👔 Formal</SelectItem>
-                  <SelectItem value="casual">😊 Casual</SelectItem>
-                  <SelectItem value="direto">🎯 Direto</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <SelectTrigger className="w-[140px] h-9 text-sm rounded-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="formal">👔 Formal</SelectItem>
+                <SelectItem value="casual">😊 Casual</SelectItem>
+                <SelectItem value="direto">🎯 Direto</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="ml-auto">
             <ProspectingUsage />
           </div>
         </div>
@@ -202,25 +207,21 @@ export default function ProfessionalProspecting() {
         {/* Pending Outreach Panel */}
         <PendingOutreachPanel />
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="search" className="gap-2">
-              <Search className="w-4 h-4" />
-              Pesquisar
-            </TabsTrigger>
-            <TabsTrigger value="results" className="gap-2">
-              <Users className="w-4 h-4" />
-              Resultados
-            </TabsTrigger>
-            <TabsTrigger value="history" className="gap-2">
-              <History className="w-4 h-4" />
-              Histórico
-            </TabsTrigger>
-          </TabsList>
+        {/* Tabs — underline IX */}
+        <div className="space-y-4">
+          <IXEntityTabs
+            tabs={[
+              { id: "search", label: "Pesquisar" },
+              { id: "results", label: "Resultados" },
+              { id: "history", label: "Histórico" },
+            ]}
+            activeId={activeTab}
+            onChange={setActiveTab}
+            className="px-0 sm:px-0"
+          />
 
-          <TabsContent value="search" className="space-y-4">
-            <ProspectingSearch 
+          {activeTab === "search" && (
+            <ProspectingSearch
               onSearchComplete={(searchId) => {
                 setCurrentSearchId(searchId);
                 setActiveTab("results");
@@ -228,31 +229,31 @@ export default function ProfessionalProspecting() {
               }}
               prefill={searchPrefill}
             />
-          </TabsContent>
+          )}
 
-          <TabsContent value="results" className="space-y-4">
-            <ProspectingResults 
-              searchId={currentSearchId} 
+          {activeTab === "results" && (
+            <ProspectingResults
+              searchId={currentSearchId}
               onGoToSearch={() => setActiveTab("search")}
               defaultTone={defaultTone}
               onStartBulkOutreach={handleStartBulkOutreach}
             />
-          </TabsContent>
+          )}
 
-          <TabsContent value="history" className="space-y-4">
-            <ProspectingHistory 
+          {activeTab === "history" && (
+            <ProspectingHistory
               onSelectSearch={(searchId) => {
                 setCurrentSearchId(searchId);
                 setActiveTab("results");
               }}
               onRepeatSearch={handleRepeatSearch}
             />
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
 
         {/* Disclaimer */}
-        <div className="bg-muted/50 border rounded-lg p-4 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground mb-1">⚠️ Informação importante</p>
+        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground shadow-sm">
+          <p className="font-medium text-foreground mb-1">Informação importante</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Todos os dados são públicos e inferidos por IA</li>
             <li>As informações podem conter imprecisões</li>
@@ -261,6 +262,7 @@ export default function ProfessionalProspecting() {
           </ul>
         </div>
       </div>
+
 
       {/* Offer Configuration Dialog */}
       <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
