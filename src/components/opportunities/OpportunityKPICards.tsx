@@ -38,7 +38,7 @@ export function OpportunityKPICards() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <Skeleton className="h-4 w-20 mb-3" />
@@ -50,16 +50,16 @@ export function OpportunityKPICards() {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
       {cards.map((card) => {
         const Icon = card.icon;
         return (
           <div
             key={card.title}
-            className="rounded-2xl border border-border bg-card p-4 shadow-sm flex flex-col gap-2"
+            className="rounded-2xl border border-border bg-card p-4 shadow-sm flex flex-col gap-2 min-w-0"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight line-clamp-2">
                 {card.title}
               </span>
               <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
