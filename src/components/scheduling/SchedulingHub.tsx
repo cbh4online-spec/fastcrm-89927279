@@ -265,71 +265,96 @@ export function SchedulingHub() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 p-6">
-        {/* Page Header */}
-        <PageHeader
-          title="Centro de Agendamento"
-          count={stats.events}
-          description={`${stats.calendars} calendários ativos`}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* IX Header */}
+        <header className="px-6 pt-6 pb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Centro de Agendamento</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {stats.calendars} calendários ativos · {stats.events} eventos
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {getActionForTab() && (
+                <Button onClick={getActionForTab()!.onClick} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  {getActionForTab()!.label}
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={handleCreateCalendar}>
+                    <Settings className="h-4 w-4 mr-2" /> Gerir calendários
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowFilterSidebar(!showFilterSidebar)}>
+                    {showFilterSidebar ? <PanelLeftClose className="h-4 w-4 mr-2" /> : <PanelLeft className="h-4 w-4 mr-2" />}
+                    {showFilterSidebar ? 'Ocultar filtros' : 'Mostrar filtros'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </header>
+
+        {/* IX Tabs */}
+        <IXEntityTabs
           tabs={pageTabs}
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as TabValue)}
-          actions={getActionForTab() ? [getActionForTab()!] : []}
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as TabValue)}
+          className="px-6"
         />
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Eventos</p>
-                <p className="text-2xl font-bold">{stats.events}</p>
+        {/* KPI Tiles - neutral */}
+        <div className="px-6 pt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Eventos', value: stats.events, Icon: CalendarDays },
+            { label: 'Calendários', value: stats.calendars, Icon: CalendarClock },
+            {
+              label: 'Hoje',
+              value: events.filter(e => {
+                const d = new Date(e.start_time);
+                return d.toDateString() === new Date().toDateString();
+              }).length,
+              Icon: Clock,
+            },
+            {
+              label: 'Esta Semana',
+              value: events.filter(e => {
+                const d = new Date(e.start_time);
+                const now = new Date();
+                const end = new Date(now);
+                end.setDate(end.getDate() + 7);
+                return d >= now && d <= end;
+              }).length,
+              Icon: Briefcase,
+            },
+          ].map(({ label, value, Icon }) => (
+            <div key={label} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
+                </div>
+                <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                  <Icon className="h-4 w-4" />
+                </div>
               </div>
-              <CalendarDays className="h-8 w-8 text-primary/50" />
             </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Calendários</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.calendars}</p>
-              </div>
-              <CalendarClock className="h-8 w-8 text-blue-500/50" />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Hoje</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {events.filter(e => {
-                    const eventDate = new Date(e.start_time);
-                    const today = new Date();
-                    return eventDate.toDateString() === today.toDateString();
-                  }).length}
-                </p>
-              </div>
-              <Clock className="h-8 w-8 text-green-500/50" />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Esta Semana</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {events.filter(e => {
-                    const eventDate = new Date(e.start_time);
-                    const now = new Date();
-                    const weekEnd = new Date(now);
-                    weekEnd.setDate(weekEnd.getDate() + 7);
-                    return eventDate >= now && eventDate <= weekEnd;
-                  }).length}
-                </p>
-              </div>
-              <Briefcase className="h-8 w-8 text-purple-500/50" />
-            </div>
-          </Card>
+          ))}
         </div>
+
+        <div className="px-6 pt-4 flex-1 flex flex-col min-h-0">
+
 
         {/* Toolbar - Only shown for calendar tab */}
         {activeTab === 'calendar' && (
