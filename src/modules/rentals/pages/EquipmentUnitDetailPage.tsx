@@ -90,7 +90,8 @@ export default function EquipmentUnitDetailPage() {
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{unit.notes}</p>
           </IXCard>
         )}
-      </div>
-    </CapabilityGuard>
+        </div>
+      </CapabilityGuard>
+    </DashboardLayout>
   );
 }
