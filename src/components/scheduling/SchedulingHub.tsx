@@ -57,16 +57,17 @@ import { Loader2 } from 'lucide-react';
 
 type TabValue = 'calendar' | 'meetings' | 'services' | 'availability' | 'booking-links' | 'analytics' | 'embed' | 'occupancy';
 
-const pageTabs = [
-  { id: 'calendar', label: 'Agenda', icon: <CalendarDays className="h-4 w-4" /> },
-  { id: 'meetings', label: 'Reuniões', icon: <Clock className="h-4 w-4" /> },
-  { id: 'services', label: 'Serviços', icon: <Briefcase className="h-4 w-4" /> },
-  { id: 'availability', label: 'Disponibilidade', icon: <CalendarClock className="h-4 w-4" /> },
-  { id: 'booking-links', label: 'Links', icon: <ExternalLink className="h-4 w-4" /> },
-  { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
-  { id: 'embed', label: 'Embed', icon: <Code className="h-4 w-4" /> },
-  { id: 'occupancy', label: 'Ocupação', icon: <LayoutGrid className="h-4 w-4" /> },
+const pageTabs: IXTabDef[] = [
+  { id: 'calendar', label: 'Agenda' },
+  { id: 'meetings', label: 'Reuniões' },
+  { id: 'services', label: 'Serviços' },
+  { id: 'availability', label: 'Disponibilidade' },
+  { id: 'booking-links', label: 'Links' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'embed', label: 'Embed' },
+  { id: 'occupancy', label: 'Ocupação' },
 ];
+
 
 const sortOptions = [
   { value: 'date_asc', label: 'Data (próximos)' },
