@@ -309,33 +309,40 @@ export default function GestoresPage() {
   if (selectedManager && selectedManagerData) {
     return (
       <DashboardLayout>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => setSelectedManager(null)}>
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="text-lg bg-primary/10 text-primary font-semibold">
-                  {getInitials(selectedManagerData.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-xl font-bold">{selectedManagerData.name}</h1>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  {selectedManagerData.email && <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{selectedManagerData.email}</span>}
-                  <Badge variant="outline" className="capitalize">{selectedManagerData.role}</Badge>
-                  <Badge variant="outline" className={cn("text-[10px]", WORKLOAD_COLORS[selectedManagerData.workload.workloadBucket])}>
-                    <Gauge className="w-3 h-3 mr-1" />
-                    Carga: {WORKLOAD_LABELS[selectedManagerData.workload.workloadBucket]}
-                  </Badge>
+        <div className="space-y-6 p-6">
+          {/* Header IX */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setSelectedManager(null)}
+              className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" /> Voltar
+            </button>
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4 min-w-0">
+                <Avatar className="h-14 w-14">
+                  <AvatarFallback className="text-lg bg-muted text-foreground font-semibold">
+                    {getInitials(selectedManagerData.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <h1 className="text-3xl font-bold tracking-tight truncate">{selectedManagerData.name}</h1>
+                  <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                    {selectedManagerData.email && <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{selectedManagerData.email}</span>}
+                    <span>·</span>
+                    <span className="capitalize">{selectedManagerData.role}</span>
+                    <span>·</span>
+                    <span className={cn("font-medium", WORKLOAD_COLORS[selectedManagerData.workload.workloadBucket])}>
+                      Carga: {WORKLOAD_LABELS[selectedManagerData.workload.workloadBucket]}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* KPIs */}
+          {/* KPIs — flat IX */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
             <StatCard label="Leads" value={selectedManagerData.totalLeads} icon={Target} />
             <StatCard label="Contactos" value={selectedManagerData.totalContacts} icon={Users} />
@@ -346,6 +353,7 @@ export default function GestoresPage() {
             <StatCard label="SLA" value={`${detailAnalytics?.slaCompliance || 0}%`} icon={ShieldCheck} variant={detailAnalytics && detailAnalytics.slaCompliance < 50 ? "danger" : detailAnalytics && detailAnalytics.slaCompliance < 80 ? "warning" : "default"} />
             <StatCard label="Capacidade" value={`${selectedManagerData.workload.capacityScore}%`} icon={Gauge} variant={selectedManagerData.workload.workloadBucket === "overloaded" ? "danger" : selectedManagerData.workload.workloadBucket === "high" ? "warning" : "default"} />
           </div>
+
 
           {/* SLA + Temperature */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
