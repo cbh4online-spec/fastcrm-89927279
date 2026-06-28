@@ -174,9 +174,27 @@ export function AIProductAssistant({
       </div>
 
       {suggestFromName.isPending ? (
-        <div className="flex items-center gap-2 text-muted-foreground py-4 justify-center">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-sm">A analisar "{productName}"...</span>
+        <div className="space-y-4" aria-busy="true" aria-live="polite">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <span>A analisar "{productName}"...</span>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-8 w-48 rounded-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-40" />
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-16 w-full rounded-md" />
+          </div>
         </div>
       ) : suggestFromName.data ? (
         <div className="space-y-4">
