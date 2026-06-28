@@ -74,88 +74,57 @@ export function ProductKPICards({ productId, currency = "EUR" }: ProductKPICards
     "1y": "12 meses",
   };
 
+  const tiles = [
+    { label: "Receita", icon: DollarSign, value: formatCurrency(getRevenueByPeriod()), hint: periodLabels[period] },
+    { label: "Vendas", icon: ShoppingCart, value: String(getSalesByPeriod()), hint: periodLabels[period] },
+    { label: "Ticket Médio", icon: Target, value: stats?.avg_ticket ? formatCurrency(stats.avg_ticket) : "—" },
+    { label: "Margem Média", icon: Percent, value: stats?.avg_margin_pct != null ? `${stats.avg_margin_pct.toFixed(1)}%` : "—" },
+    { label: "Comissão Total", icon: TrendingUp, value: stats?.total_commission ? formatCurrency(stats.total_commission) : "—" },
+    {
+      label: "Taxa Aceitação",
+      icon: CheckCircle2,
+      value: stats?.acceptance_rate !== undefined ? `${stats.acceptance_rate.toFixed(0)}%` : "—",
+      hint: `${stats?.accepted_proposals || 0} de ${stats?.total_proposals || 0}`,
+    },
+  ];
+
   return (
     <div className="space-y-4">
-      {/* Period Filter */}
-      <div className="flex gap-2">
+      {/* Period filter — pill segmented */}
+      <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
         {(["30d", "90d", "1y"] as Period[]).map((p) => (
-          <Button
+          <button
             key={p}
-            variant={period === p ? "default" : "outline"}
-            size="sm"
+            type="button"
             onClick={() => setPeriod(p)}
+            className={`px-3 h-8 text-xs rounded-full transition-colors ${
+              period === p
+                ? "bg-primary text-primary-foreground font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             {periodLabels[p]}
-          </Button>
+          </button>
         ))}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-4 w-4 text-green-500" />
-            <span className="text-xs text-muted-foreground">Receita</span>
-          </div>
-          <p className="text-lg font-bold">{formatCurrency(getRevenueByPeriod())}</p>
-          <p className="text-xs text-muted-foreground">{periodLabels[period]}</p>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <ShoppingCart className="h-4 w-4 text-blue-500" />
-            <span className="text-xs text-muted-foreground">Vendas</span>
-          </div>
-          <p className="text-lg font-bold">{getSalesByPeriod()}</p>
-          <p className="text-xs text-muted-foreground">{periodLabels[period]}</p>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Target className="h-4 w-4 text-purple-500" />
-            <span className="text-xs text-muted-foreground">Ticket Médio</span>
-          </div>
-          <p className="text-lg font-bold">
-            {stats?.avg_ticket ? formatCurrency(stats.avg_ticket) : "-"}
-          </p>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Percent className="h-4 w-4 text-orange-500" />
-            <span className="text-xs text-muted-foreground">Margem Média</span>
-          </div>
-          <p className="text-lg font-bold">
-            {stats?.avg_margin_pct !== null
-              ? `${stats.avg_margin_pct.toFixed(1)}%`
-              : "-"}
-          </p>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-4 w-4 text-cyan-500" />
-            <span className="text-xs text-muted-foreground">Comissão Total</span>
-          </div>
-          <p className="text-lg font-bold">
-            {stats?.total_commission ? formatCurrency(stats.total_commission) : "-"}
-          </p>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span className="text-xs text-muted-foreground">Taxa Aceitação</span>
-          </div>
-          <p className="text-lg font-bold">
-            {stats?.acceptance_rate !== undefined
-              ? `${stats.acceptance_rate.toFixed(0)}%`
-              : "-"}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {stats?.accepted_proposals || 0} de {stats?.total_proposals || 0}
-          </p>
-        </Card>
+      {/* KPI tiles — neutral IX */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {tiles.map((t) => {
+          const Icon = t.icon;
+          return (
+            <div key={t.label} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{t.label}</span>
+                <div className="h-7 w-7 rounded-lg bg-muted flex items-center justify-center">
+                  <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold tracking-tight text-foreground">{t.value}</p>
+              {t.hint && <p className="text-[11px] text-muted-foreground mt-1">{t.hint}</p>}
+            </div>
+          );
+        })}
       </div>
 
       {!stats?.total_sales && (
