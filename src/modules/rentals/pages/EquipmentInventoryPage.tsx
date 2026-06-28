@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useEquipmentUnits } from "../hooks/useEquipmentUnits";
 import { EquipmentStatusBadge } from "../components/EquipmentStatusBadge";
 import { cn } from "@/lib/utils";
@@ -60,8 +61,9 @@ export default function EquipmentInventoryPage() {
   };
 
   return (
-    <CapabilityGuard need="rentals.view">
-      <div className="space-y-6 px-4 sm:px-8 py-6">
+    <DashboardLayout>
+      <CapabilityGuard need="rentals.view">
+        <div className="space-y-6 px-4 sm:px-8 py-6">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Parque instalado</h1>
@@ -177,7 +179,8 @@ export default function EquipmentInventoryPage() {
             </TableBody>
           </Table>
         </IXCard>
-      </div>
-    </CapabilityGuard>
+        </div>
+      </CapabilityGuard>
+    </DashboardLayout>
   );
 }

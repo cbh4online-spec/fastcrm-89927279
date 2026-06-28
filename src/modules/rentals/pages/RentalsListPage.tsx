@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useRentalContracts } from "../hooks/useRentalContracts";
 import { ContractStatusBadge } from "../components/EquipmentStatusBadge";
 
@@ -18,9 +19,10 @@ export default function RentalsListPage() {
   const { data: contracts = [], isLoading } = useRentalContracts();
 
   return (
-    <CapabilityGuard need="rentals.view">
-      <div className="space-y-6 px-4 sm:px-8 py-6">
-        <header className="flex flex-wrap items-start justify-between gap-3">
+    <DashboardLayout>
+      <CapabilityGuard need="rentals.view">
+        <div className="space-y-6 px-4 sm:px-8 py-6">
+          <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Contratos de Renting</h1>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -106,7 +108,8 @@ export default function RentalsListPage() {
             </TableBody>
           </Table>
         </IXCard>
-      </div>
-    </CapabilityGuard>
+        </div>
+      </CapabilityGuard>
+    </DashboardLayout>
   );
 }

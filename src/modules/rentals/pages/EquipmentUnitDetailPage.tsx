@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useEquipmentUnit, useEquipmentHistory } from "../hooks/useEquipmentUnits";
 import { EquipmentStatusBadge } from "../components/EquipmentStatusBadge";
 
@@ -20,13 +21,14 @@ export default function EquipmentUnitDetailPage() {
   const { data: unit, isLoading } = useEquipmentUnit(id);
   const { data: history = [] } = useEquipmentHistory(id);
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">A carregar…</div>;
-  if (!unit) return <div className="p-6">Equipamento não encontrado.</div>;
+  if (isLoading) return <DashboardLayout><div className="p-6 text-muted-foreground">A carregar…</div></DashboardLayout>;
+  if (!unit) return <DashboardLayout><div className="p-6">Equipamento não encontrado.</div></DashboardLayout>;
 
   return (
-    <CapabilityGuard need="rentals.view">
-      <div className="space-y-6 px-4 sm:px-8 py-6">
-        <Button variant="ghost" size="sm" asChild className="-ml-2">
+    <DashboardLayout>
+      <CapabilityGuard need="rentals.view">
+        <div className="space-y-6 px-4 sm:px-8 py-6">
+          <Button variant="ghost" size="sm" asChild className="-ml-2">
           <Link to="/dashboard/rentals/equipment">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Parque instalado
@@ -88,7 +90,8 @@ export default function EquipmentUnitDetailPage() {
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{unit.notes}</p>
           </IXCard>
         )}
-      </div>
-    </CapabilityGuard>
+        </div>
+      </CapabilityGuard>
+    </DashboardLayout>
   );
 }
