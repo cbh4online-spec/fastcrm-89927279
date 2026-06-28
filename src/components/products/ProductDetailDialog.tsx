@@ -248,7 +248,7 @@ export function ProductDetailDialog({
         <DialogContent className="max-w-4xl h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
           <TooltipProvider delayDuration={200}>
             {/* ═══ HERO HEADER — compacto ═══ */}
-            <div className="relative bg-gradient-to-br from-muted/80 via-muted/40 to-background">
+            <div className="relative bg-card border-b border-border">
               <div className="flex flex-col sm:flex-row gap-0">
                 {/* Image area — reduzido para 180px */}
                 <div className="relative w-full sm:w-[240px] h-[180px] sm:h-[180px] shrink-0 bg-muted/60 overflow-hidden">
