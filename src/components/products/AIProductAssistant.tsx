@@ -73,9 +73,19 @@ export function AIProductAssistant({
     }
   }, [debouncedName, isActive]);
 
+  const safeApply = (key: string, label: string, fn: () => void) => {
+    try {
+      fn();
+      setAppliedItems((prev) => new Set(prev).add(key));
+      toast.success(`${label} aplicado`);
+    } catch (err) {
+      console.error(`[AIProductAssistant] apply ${key} failed`, err);
+      toast.error(`Não foi possível aplicar ${label.toLowerCase()}`);
+    }
+  };
+
   const handleApplyCategory = (cat: string) => {
-    onApplyCategory(cat);
-    setAppliedItems((prev) => new Set(prev).add(`category-${cat}`));
+    safeApply(`category-${cat}`, "Categoria", () => onApplyCategory(cat));
   };
 
   const handleApplyExistingCategory = (matchedName: string) => {
@@ -83,40 +93,35 @@ export function AIProductAssistant({
       c => c.name.toLowerCase() === matchedName.toLowerCase()
     );
     if (matchedCategory && onApplyExistingCategory) {
-      onApplyExistingCategory(matchedCategory);
-      setAppliedItems((prev) => new Set(prev).add("existingCategory"));
+      safeApply("existingCategory", "Categoria", () => onApplyExistingCategory(matchedCategory));
     } else {
-      // Fallback to just setting the name
-      onApplyCategory(matchedName);
-      setAppliedItems((prev) => new Set(prev).add(`category-${matchedName}`));
+      safeApply(`category-${matchedName}`, "Categoria", () => onApplyCategory(matchedName));
     }
   };
 
   const handleApplyPrice = () => {
     if (suggestFromName.data?.suggestedPrice) {
-      onApplyPrice(suggestFromName.data.suggestedPrice);
-      setAppliedItems((prev) => new Set(prev).add("price"));
+      safeApply("price", "Preço", () => onApplyPrice(suggestFromName.data!.suggestedPrice!));
     }
   };
 
   const handleApplyDescription = () => {
     if (suggestFromName.data?.description) {
-      onApplyDescription(suggestFromName.data.description);
-      setAppliedItems((prev) => new Set(prev).add("description"));
+      safeApply("description", "Descrição", () => onApplyDescription(suggestFromName.data!.description!));
     }
   };
 
   const handleApplyProductType = () => {
     if (suggestFromName.data?.productType) {
-      onApplyProductType(suggestFromName.data.productType as ProductType);
-      setAppliedItems((prev) => new Set(prev).add("productType"));
+      safeApply("productType", "Tipo de produto", () =>
+        onApplyProductType(suggestFromName.data!.productType as ProductType)
+      );
     }
   };
 
   const handleApplyBillingType = () => {
     if (suggestFromName.data?.billingType && onApplyBillingType) {
-      onApplyBillingType(suggestFromName.data.billingType);
-      setAppliedItems((prev) => new Set(prev).add("billingType"));
+      safeApply("billingType", "Cobrança", () => onApplyBillingType(suggestFromName.data!.billingType!));
     }
   };
 
