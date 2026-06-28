@@ -777,32 +777,52 @@ function StatCard({ label, value, icon: Icon, loading, subtitle, variant = "defa
   label: string; value: string | number; icon: React.ElementType; loading?: boolean; subtitle?: string;
   variant?: "default" | "warning" | "danger";
 }) {
+  const valueClass = cn(
+    "text-2xl font-bold leading-tight",
+    variant === "danger" && "text-red-600",
+    variant === "warning" && "text-amber-600",
+  );
   return (
-    <Card className={cn(variant === "danger" && "border-red-200 dark:border-red-800", variant === "warning" && "border-amber-200 dark:border-amber-800")}>
-      <CardContent className="p-3 flex items-center gap-3">
-        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", variant === "danger" ? "bg-red-100 dark:bg-red-900/40" : variant === "warning" ? "bg-amber-100 dark:bg-amber-900/40" : "bg-primary/10")}>
-          <Icon className={cn("w-4 h-4", variant === "danger" ? "text-red-600" : variant === "warning" ? "text-amber-600" : "text-primary")} />
-        </div>
-        <div>
-          {loading ? <div className="h-6 w-10 rounded bg-muted animate-pulse mb-1" /> : <p className={cn("text-lg font-bold", variant === "danger" && "text-red-700 dark:text-red-400", variant === "warning" && "text-amber-700 dark:text-amber-400")}>{value}</p>}
-          <p className="text-[10px] text-muted-foreground">{label}</p>
-          {subtitle && <p className="text-[9px] text-muted-foreground">{subtitle}</p>}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-4 flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-muted-foreground" />
+      </div>
+      <div className="min-w-0">
+        {loading ? (
+          <div className="h-6 w-10 rounded bg-muted animate-pulse mb-1" />
+        ) : (
+          <p className={valueClass}>{value}</p>
+        )}
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</p>
+        {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
+      </div>
+    </div>
   );
 }
 
 function StatCardAlert({ label, value, detail, onClick }: { label: string; value: number; detail: string; onClick: () => void }) {
+  const active = value > 0;
   return (
-    <Card className={cn("cursor-pointer hover:border-amber-500/50 transition-all", value > 0 && "border-amber-300 bg-amber-50/50 dark:bg-amber-950/20")} onClick={onClick}>
-      <CardContent className="p-3 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0"><AlertTriangle className="w-4 h-4 text-amber-600" /></div>
-        <div><p className="text-lg font-bold text-amber-700 dark:text-amber-400">{value}</p><p className="text-[10px] text-muted-foreground">{label}</p><p className="text-[9px] text-muted-foreground mt-0.5">{detail}</p></div>
-      </CardContent>
-    </Card>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "text-left rounded-2xl border bg-card shadow-sm p-4 flex items-center gap-3 transition-colors hover:border-primary/40",
+        active ? "border-amber-300" : "border-border"
+      )}
+    >
+      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", active ? "bg-amber-100 dark:bg-amber-900/30" : "bg-muted")}>
+        <AlertTriangle className={cn("w-4 h-4", active ? "text-amber-600" : "text-muted-foreground")} />
+      </div>
+      <div className="min-w-0">
+        <p className={cn("text-2xl font-bold leading-tight", active && "text-amber-700 dark:text-amber-400")}>{value}</p>
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{detail}</p>
+      </div>
+    </button>
   );
 }
+
 
 // ─── Bulk Assign Dialog ──────────────────────────────────────
 
