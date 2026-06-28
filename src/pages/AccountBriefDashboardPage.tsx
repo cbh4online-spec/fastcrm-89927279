@@ -2,11 +2,10 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { PageHeader } from "@/components/common/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { useAccountBriefDashboard } from "@/hooks/useAccountBriefDashboard";
 import { useAccountBriefOnboarding } from "@/hooks/useAccountBriefOnboarding";
 import { useAccountBriefWatchlist } from "@/hooks/useAccountBriefWatchlist";
@@ -22,12 +21,13 @@ import {
 
 const scoreColor = (label: string) => {
   switch (label) {
-    case "Muito Alto": return "bg-emerald-500/15 text-emerald-600 border-emerald-200";
-    case "Alto": return "bg-blue-500/15 text-blue-600 border-blue-200";
-    case "Médio": return "bg-amber-500/15 text-amber-600 border-amber-200";
-    default: return "bg-muted text-muted-foreground border-border";
+    case "Muito Alto": return "border-border bg-muted text-foreground";
+    case "Alto": return "border-border bg-muted text-foreground";
+    case "Médio": return "border-border bg-muted text-muted-foreground";
+    default: return "border-border bg-muted text-muted-foreground";
   }
 };
+
 
 export default function AccountBriefDashboardPage() {
   const navigate = useNavigate();
@@ -60,10 +60,10 @@ export default function AccountBriefDashboardPage() {
 
   // Primary KPIs (4) — métricas mais importantes para o dia-a-dia
   const primaryKpis = [
-    { label: "Total Contas", value: dashboard?.totalAccounts || 0, icon: Briefcase, accent: "text-indigo-600", bg: "bg-indigo-500/10", onClick: () => navigate("/dashboard/account-brief/accounts") },
-    { label: "Score Alto+", value: dashboard?.highScoreCount || 0, icon: TrendingUp, accent: "text-emerald-600", bg: "bg-emerald-500/10" },
-    { label: "Analisadas", value: analyzedCount, icon: BarChart3, accent: "text-blue-600", bg: "bg-blue-500/10" },
-    { label: "Sem Análise", value: unanalyzedCount, icon: AlertCircle, accent: "text-orange-600", bg: "bg-orange-500/10" },
+    { label: "Total Contas", value: dashboard?.totalAccounts || 0, icon: Briefcase, onClick: () => navigate("/dashboard/account-brief/accounts") },
+    { label: "Score Alto+", value: dashboard?.highScoreCount || 0, icon: TrendingUp },
+    { label: "Analisadas", value: analyzedCount, icon: BarChart3 },
+    { label: "Sem Análise", value: unanalyzedCount, icon: AlertCircle },
   ];
 
   // Secondary chips — informação operacional, mais leve
@@ -92,9 +92,9 @@ export default function AccountBriefDashboardPage() {
 
           {/* Banda de alertas no topo — só aparece se houver algo a tratar */}
           {totalAlerts > 0 && (
-            <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50/60 dark:bg-amber-950/10 dark:border-amber-900/40">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
+            <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl border border-border bg-muted/40">
+              <AlertTriangle className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium text-foreground">
                 {totalAlerts} {totalAlerts === 1 ? "item requer" : "itens requerem"} a tua atenção
               </span>
               <div className="flex flex-wrap gap-1.5 ml-auto">
@@ -119,30 +119,25 @@ export default function AccountBriefDashboardPage() {
 
           {/* SECÇÃO 1 — Visão geral */}
           <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Visão geral
-              </h2>
-            </div>
+            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Visão geral
+            </h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {primaryKpis.map((k) => (
-                <Card
+                <button
                   key={k.label}
-                  className={`border-border/60 ${k.onClick ? "cursor-pointer hover:border-border hover:shadow-sm transition-all" : ""}`}
                   onClick={k.onClick}
+                  disabled={!k.onClick}
+                  className={`text-left rounded-2xl border border-border bg-card p-5 shadow-sm ${k.onClick ? "hover:border-foreground/20 transition-colors cursor-pointer" : "cursor-default"}`}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground font-medium">{k.label}</p>
-                        <p className="text-2xl font-semibold mt-1 tabular-nums">{k.value}</p>
-                      </div>
-                      <div className={`p-2 rounded-md ${k.bg}`}>
-                        <k.icon className={`w-4 h-4 ${k.accent}`} />
-                      </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{k.label}</p>
+                    <div className="p-1.5 rounded-md bg-muted">
+                      <k.icon className="w-4 h-4 text-muted-foreground" />
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <p className="text-2xl font-bold mt-3 tabular-nums">{k.value}</p>
+                </button>
               ))}
             </div>
 
@@ -152,7 +147,7 @@ export default function AccountBriefDashboardPage() {
                 <button
                   key={s.label}
                   onClick={s.onClick}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/60 bg-card hover:bg-muted/50 transition-colors text-sm"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted/50 transition-colors text-sm"
                 >
                   <s.icon className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-muted-foreground">{s.label}</span>
@@ -164,13 +159,11 @@ export default function AccountBriefDashboardPage() {
 
           {/* SECÇÃO 2 — Conteúdo principal em 2 colunas */}
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Top scored — 2/3 da largura */}
-            <Card className="border-border/60 lg:col-span-2">
-              <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
-                <div>
-                  <CardTitle className="text-base">Contas com melhor score</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">Prioridades para a tua próxima abordagem</p>
-                </div>
+            <IXCard
+              className="lg:col-span-2"
+              title="Contas com melhor score"
+              description="Prioridades para a tua próxima abordagem"
+              actions={
                 <Button
                   variant="ghost"
                   size="sm"
@@ -179,61 +172,55 @@ export default function AccountBriefDashboardPage() {
                 >
                   Ver todas <ArrowRight className="w-3.5 h-3.5" />
                 </Button>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {isLoading ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : dashboard?.topScored?.length ? (
-                  <div className="divide-y divide-border/60">
-                    {dashboard.topScored.map((account) => (
-                      <div
-                        key={account.id}
-                        className="flex items-center justify-between py-3 px-1 -mx-1 rounded-md hover:bg-muted/40 cursor-pointer transition-colors"
-                        onClick={() => navigate(`/dashboard/account-brief/accounts/${account.id}`)}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs shrink-0">
-                            {account.name?.substring(0, 2).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{account.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{account.domain || "—"}</p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className={`shrink-0 ${scoreColor(account.score_label)}`}>
-                          <span className="tabular-nums font-semibold">{account.total_score}</span>
-                          <span className="mx-1.5 opacity-50">·</span>
-                          <span>{account.score_label}</span>
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Briefcase className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">Ainda sem contas analisadas.</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-4"
-                      onClick={() => navigate("/dashboard/account-brief/accounts")}
+              }
+            >
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : dashboard?.topScored?.length ? (
+                <div className="divide-y divide-border">
+                  {dashboard.topScored.map((account) => (
+                    <div
+                      key={account.id}
+                      className="flex items-center justify-between py-3 cursor-pointer hover:bg-muted/40 -mx-2 px-2 rounded-md transition-colors"
+                      onClick={() => navigate(`/dashboard/account-brief/accounts/${account.id}`)}
                     >
-                      <Plus className="w-3.5 h-3.5 mr-1.5" /> Adicionar contas
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-md bg-muted flex items-center justify-center text-foreground font-semibold text-xs shrink-0">
+                          {account.name?.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{account.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{account.domain || "—"}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={`shrink-0 ${scoreColor(account.score_label)}`}>
+                        <span className="tabular-nums font-semibold">{account.total_score}</span>
+                        <span className="mx-1.5 opacity-50">·</span>
+                        <span>{account.score_label}</span>
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Briefcase className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">Ainda sem contas analisadas.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate("/dashboard/account-brief/accounts")}
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1.5" /> Adicionar contas
+                  </Button>
+                </div>
+              )}
+            </IXCard>
 
-            {/* Ações rápidas + atalhos — 1/3 da largura */}
-            <Card className="border-border/60">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Ações rápidas</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Atalhos para fluxos comuns</p>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            <IXCard title="Ações rápidas" description="Atalhos para fluxos comuns">
+              <div className="space-y-2">
                 <QuickAction
                   icon={GitCompareArrows}
                   label="Comparar Contas"
@@ -258,45 +245,43 @@ export default function AccountBriefDashboardPage() {
                   description={notifCount > 0 ? `${notifCount} por ler` : "Tudo em dia"}
                   onClick={() => navigate("/dashboard/account-brief/notifications")}
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </IXCard>
           </section>
 
-          {/* SECÇÃO 3 — Consumo (movido para o fim, informação de gestão) */}
+          {/* SECÇÃO 3 — Consumo */}
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Consumo do mês
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Período: {currentPeriod}</p>
               </div>
               <Gauge className="w-4 h-4 text-muted-foreground" />
             </div>
-            <Card className="border-border/60">
-              <CardContent className="p-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-                  {allMetrics.slice(0, 6).map((m) => {
-                    const unlimited = m.units_limit >= 99999;
-                    const statusColor =
-                      m.status === "blocked" ? "text-destructive" :
-                      m.status === "danger" ? "text-orange-600" :
-                      m.status === "warning" ? "text-amber-600" : "text-foreground";
-                    return (
-                      <div key={m.metric_key} className="space-y-1.5">
-                        <div className="flex justify-between items-baseline text-xs">
-                          <span className="text-muted-foreground truncate">{m.label}</span>
-                          <span className={`font-medium tabular-nums ${statusColor}`}>
-                            {unlimited ? `${m.units_used} / ∞` : `${m.units_used} / ${m.units_limit}`}
-                          </span>
-                        </div>
-                        <Progress value={unlimited ? 0 : m.percentage} className="h-1" />
+            <IXCard>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+                {allMetrics.slice(0, 6).map((m) => {
+                  const unlimited = m.units_limit >= 99999;
+                  const statusColor =
+                    m.status === "blocked" ? "text-destructive" :
+                    m.status === "danger" ? "text-destructive" :
+                    m.status === "warning" ? "text-muted-foreground" : "text-foreground";
+                  return (
+                    <div key={m.metric_key} className="space-y-1.5">
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-muted-foreground truncate">{m.label}</span>
+                        <span className={`font-medium tabular-nums ${statusColor}`}>
+                          {unlimited ? `${m.units_used} / ∞` : `${m.units_used} / ${m.units_limit}`}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                      <Progress value={unlimited ? 0 : m.percentage} className="h-1" />
+                    </div>
+                  );
+                })}
+              </div>
+            </IXCard>
           </section>
         </div>
       </DashboardLayout>
@@ -312,7 +297,7 @@ function QuickAction({
       onClick={onClick}
       className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-muted/50 transition-colors text-left group"
     >
-      <div className="p-2 rounded-md bg-muted/60 group-hover:bg-background transition-colors">
+      <div className="p-2 rounded-md bg-muted">
         <Icon className="w-4 h-4 text-foreground" />
       </div>
       <div className="min-w-0 flex-1">
