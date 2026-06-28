@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { CapabilityGuard } from "@/components/guards/CapabilityGuard";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useRentalContracts } from "../hooks/useRentalContracts";
 import { ContractStatusBadge } from "../components/EquipmentStatusBadge";
 
