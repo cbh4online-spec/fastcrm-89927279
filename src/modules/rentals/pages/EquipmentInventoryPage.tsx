@@ -179,7 +179,8 @@ export default function EquipmentInventoryPage() {
             </TableBody>
           </Table>
         </IXCard>
-      </div>
-    </CapabilityGuard>
+        </div>
+      </CapabilityGuard>
+    </DashboardLayout>
   );
 }
