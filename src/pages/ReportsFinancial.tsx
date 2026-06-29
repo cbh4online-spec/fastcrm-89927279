@@ -180,7 +180,7 @@ export default function ReportsFinancial() {
 
 
         {/* FILTERS BAR */}
-        <Card className="border-dashed">
+        <Card className="rounded-2xl shadow-sm">
           <CardContent className="p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
