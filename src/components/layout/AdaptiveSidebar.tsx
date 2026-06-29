@@ -174,12 +174,13 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   );
 
   const isGroupOpen = useCallback(
-    (key: string, items: RouteEntry[]) => {
+    (key: string, _items: RouteEntry[]) => {
       if (!style.collapsibleGroups) return true;
       if (openGroups[key] !== undefined) return openGroups[key];
-      return sectionHasActive(items);
+      // Por defeito abrir — menos cliques para chegar aos itens
+      return true;
     },
-    [openGroups, sectionHasActive, style.collapsibleGroups]
+    [openGroups, style.collapsibleGroups]
   );
 
   const toggleGroup = useCallback((name: string) => {
