@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, RotateCcw, Save, Info, TrendingUp, Globe } from 'lucide-react';
 import { toast } from 'sonner';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { OwnerOnlyRoute } from '@/components/auth/OwnerOnlyRoute';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -121,6 +123,8 @@ export default function PitchExchangeRatesPage() {
   };
 
   return (
+    <DashboardLayout>
+      <OwnerOnlyRoute>
     <div className="container max-w-4xl py-8 space-y-6">
       <div className="space-y-1">
         <Button asChild variant="ghost" size="sm" className="-ml-2 mb-1 h-7 px-2 text-muted-foreground">
@@ -298,5 +302,7 @@ export default function PitchExchangeRatesPage() {
         </Button>
       </div>
     </div>
+      </OwnerOnlyRoute>
+    </DashboardLayout>
   );
 }
