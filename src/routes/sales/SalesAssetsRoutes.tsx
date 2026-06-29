@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import { Route } from "react-router-dom";
+import { OwnerOnlyRoute } from "@/components/auth/OwnerOnlyRoute";
 
 const Proposals = lazy(() => import("@/pages/Proposals"));
 const PitchPage = lazy(() => import("@/pages/dashboard/PitchPage"));
