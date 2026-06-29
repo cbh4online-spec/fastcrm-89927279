@@ -403,7 +403,7 @@ export default function ReportsFinancial() {
         </div>
 
         {/* Monthly evolution */}
-        <Card className="overflow-hidden">
+        <Card className="rounded-2xl shadow-sm overflow-hidden">
           <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
               <CardTitle className="text-base flex items-center gap-2">
@@ -449,7 +449,7 @@ export default function ReportsFinancial() {
 
         {/* Top clients + Top products */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="h-4 w-4 text-primary" /> Top 10 Clientes
@@ -493,7 +493,7 @@ export default function ReportsFinancial() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Package className="h-4 w-4 text-primary" /> Top 10 Produtos
@@ -536,7 +536,7 @@ export default function ReportsFinancial() {
         </div>
 
         {/* Aging */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Clock className="h-4 w-4 text-amber-600" /> Aging de Contas a Receber
@@ -660,7 +660,7 @@ function BigKPI({
 
 function MiniStat({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: "emerald" }) {
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm">
       <CardContent className="p-3 flex items-center gap-3">
         <div className={cn(
           "h-9 w-9 rounded-lg grid place-items-center",
