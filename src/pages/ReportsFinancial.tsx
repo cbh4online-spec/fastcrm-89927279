@@ -145,54 +145,42 @@ export default function ReportsFinancial() {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        {/* HERO HEADER */}
-        <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-emerald-500/5 p-6">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-          <div className="absolute -left-16 -bottom-16 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-          <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary/15 grid place-items-center">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                </div>
-                <Badge variant="secondary" className="font-mono text-[10px]">FINANCEIRO · VENDAS</Badge>
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight">Relatórios Financeiros</h1>
-              <p className="text-sm text-muted-foreground max-w-xl">
-                Visão consolidada de faturação, cobranças, clientes e produtos —
-                com aging de dívida e tendências mensais em tempo real.
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={verifyMode ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setVerifyMode((v) => !v)}
-                  className="gap-2 h-9"
-                  title="Compara KPIs com totais reais de invoice_payments"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  {verifyMode ? "Verificação ativa" : "Verificar valores"}
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => { refetch(); if (verifyMode) refetchVerify(); }} disabled={isFetching} className="h-9 w-9">
-                  <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-                </Button>
-                <Button size="sm" onClick={exportCSV} disabled={!data} className="gap-2">
-                  <Download className="h-4 w-4" /> Exportar CSV
-                </Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                {dateRange.from && dateRange.to
-                  ? `${format(new Date(dateRange.from), "dd MMM yyyy", { locale: pt })} → ${format(new Date(dateRange.to), "dd MMM yyyy", { locale: pt })}`
-                  : "Período não definido"}
-              </p>
-            </div>
+        {/* HEADER IX */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Relatórios Financeiros</h1>
+            <p className="text-sm text-muted-foreground max-w-xl">
+              Visão consolidada de faturação, cobranças, clientes e produtos — com aging de dívida e tendências mensais.
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {dateRange.from && dateRange.to
+                ? `${format(new Date(dateRange.from), "dd MMM yyyy", { locale: pt })} → ${format(new Date(dateRange.to), "dd MMM yyyy", { locale: pt })}`
+                : "Período não definido"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={verifyMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setVerifyMode((v) => !v)}
+              className="gap-2 h-9 rounded-full"
+              title="Compara KPIs com totais reais de invoice_payments"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              {verifyMode ? "Verificação ativa" : "Verificar valores"}
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => { refetch(); if (verifyMode) refetchVerify(); }} disabled={isFetching} className="h-9 w-9 rounded-full">
+              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+            </Button>
+            <Button size="sm" onClick={exportCSV} disabled={!data} className="gap-2 rounded-full h-9">
+              <Download className="h-4 w-4" /> Exportar CSV
+            </Button>
           </div>
         </div>
 
+
         {/* FILTERS BAR */}
-        <Card className="border-dashed">
+        <Card className="rounded-2xl shadow-sm">
           <CardContent className="p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
@@ -415,7 +403,7 @@ export default function ReportsFinancial() {
         </div>
 
         {/* Monthly evolution */}
-        <Card className="overflow-hidden">
+        <Card className="rounded-2xl shadow-sm overflow-hidden">
           <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
               <CardTitle className="text-base flex items-center gap-2">
@@ -461,7 +449,7 @@ export default function ReportsFinancial() {
 
         {/* Top clients + Top products */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="h-4 w-4 text-primary" /> Top 10 Clientes
@@ -481,7 +469,7 @@ export default function ReportsFinancial() {
                         <div className="flex items-center gap-3">
                           <span className={cn(
                             "text-[10px] font-bold w-6 h-6 rounded-md grid place-items-center",
-                            i < 3 ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                            i < 3 ? "bg-muted text-foreground" : "bg-muted text-muted-foreground"
                           )}>{i + 1}</span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{c.name}</p>
@@ -495,7 +483,7 @@ export default function ReportsFinancial() {
                           </div>
                         </div>
                         <div className="ml-9 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full" style={{ width: `${pct}%` }} />
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     );
@@ -505,7 +493,7 @@ export default function ReportsFinancial() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Package className="h-4 w-4 text-primary" /> Top 10 Produtos
@@ -524,7 +512,7 @@ export default function ReportsFinancial() {
                         <div className="flex items-center gap-3">
                           <span className={cn(
                             "text-[10px] font-bold w-6 h-6 rounded-md grid place-items-center",
-                            i < 3 ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"
+                            i < 3 ? "bg-muted text-muted-foreground" : "bg-muted text-muted-foreground"
                           )}>{i + 1}</span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{p.name}</p>
@@ -536,7 +524,7 @@ export default function ReportsFinancial() {
                           <p className="text-sm font-semibold">{fmtEUR(p.total)}</p>
                         </div>
                         <div className="ml-9 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{ width: `${pct}%` }} />
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     );
@@ -548,7 +536,7 @@ export default function ReportsFinancial() {
         </div>
 
         {/* Aging */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Clock className="h-4 w-4 text-amber-600" /> Aging de Contas a Receber
@@ -627,27 +615,26 @@ function BigKPI({
   tone: "primary" | "emerald" | "amber" | "destructive";
   trend?: number; trendLabel?: string; progress?: number;
 }) {
-  const toneMap = {
-    primary: { bg: "from-primary/10 to-primary/0", icon: "bg-primary/15 text-primary", ring: "ring-primary/10" },
-    emerald: { bg: "from-emerald-500/10 to-emerald-500/0", icon: "bg-emerald-500/15 text-emerald-600", ring: "ring-emerald-500/10" },
-    amber: { bg: "from-amber-500/10 to-amber-500/0", icon: "bg-amber-500/15 text-amber-600", ring: "ring-amber-500/10" },
-    destructive: { bg: "from-red-500/10 to-red-500/0", icon: "bg-red-500/15 text-red-600", ring: "ring-red-500/10" },
+  const trendColor = {
+    primary: "text-primary",
+    emerald: "text-emerald-600",
+    amber: "text-amber-600",
+    destructive: "text-destructive",
   }[tone];
   const showTrend = typeof trend === "number" && Math.abs(trend) > 0.05;
   const trendUp = (trend || 0) >= 0;
 
   return (
-    <Card className={cn("relative overflow-hidden ring-1", toneMap.ring)}>
-      <div className={cn("absolute inset-0 bg-gradient-to-br pointer-events-none", toneMap.bg)} />
-      <CardContent className="relative p-5 space-y-3">
+    <Card className="rounded-2xl shadow-sm">
+      <CardContent className="p-5 space-y-3">
         <div className="flex items-start justify-between">
-          <div className={cn("h-9 w-9 rounded-xl grid place-items-center", toneMap.icon)}>
+          <div className="h-9 w-9 rounded-lg grid place-items-center bg-muted text-muted-foreground">
             <Icon className="h-4 w-4" />
           </div>
           {showTrend && (
             <div className={cn(
-              "flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-md",
-              trendUp ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"
+              "flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-md bg-muted",
+              trendUp ? "text-emerald-600" : "text-destructive"
             )}>
               {trendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
               {Math.abs(trend!).toFixed(1)}%
@@ -656,15 +643,16 @@ function BigKPI({
         </div>
         <div>
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold tracking-tight mt-1">{value}</p>
+          <p className={cn("text-2xl font-bold tracking-tight mt-1", tone === "destructive" && "text-destructive")}>{value}</p>
           {subtitle && <p className="text-[11px] text-muted-foreground mt-1">{subtitle}</p>}
         </div>
         {typeof progress === "number" && (
           <Progress value={Math.min(100, Math.max(0, progress))} className="h-1.5" />
         )}
         {showTrend && trendLabel && (
-          <p className="text-[10px] text-muted-foreground -mt-1">vs mês anterior · {trendLabel}</p>
+          <p className={cn("text-[10px] text-muted-foreground -mt-1")}>vs mês anterior · <span className={trendColor}>{trendLabel}</span></p>
         )}
+
       </CardContent>
     </Card>
   );
@@ -672,11 +660,11 @@ function BigKPI({
 
 function MiniStat({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: "emerald" }) {
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm">
       <CardContent className="p-3 flex items-center gap-3">
         <div className={cn(
           "h-9 w-9 rounded-lg grid place-items-center",
-          accent === "emerald" ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"
+          accent === "emerald" ? "bg-muted text-muted-foreground" : "bg-muted text-muted-foreground"
         )}>
           <Icon className="h-4 w-4" />
         </div>
