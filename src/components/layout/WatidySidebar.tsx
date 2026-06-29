@@ -15,6 +15,7 @@ import {
   type RouteEntry,
   type MegaGroup,
 } from "@/config/routeManifest";
+import { OWNER_ONLY_ROUTE_KEYS, isOwnerWorkspace } from "@/config/ownerOnlyRoutes";
 import { megaGroupColor } from "./sidebar/megaGroupColors";
 import { useDepartmentVisibility } from "@/hooks/useDepartmentVisibility";
 import {
