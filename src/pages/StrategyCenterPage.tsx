@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, RefreshCw, Target, TrendingUp, AlertTriangle, Check, X, ArrowRight, History, Settings, Brain } from "lucide-react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   useStrategicState,
   useStrategicHypotheses,
@@ -52,6 +53,7 @@ export default function StrategyCenterPage() {
   const pendingRecs = recommendations.filter((r: any) => r.status === "pending");
 
   return (
+    <DashboardLayout>
     <div className="container mx-auto p-4 md:p-6 space-y-6 max-w-7xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -360,5 +362,6 @@ export default function StrategyCenterPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }
