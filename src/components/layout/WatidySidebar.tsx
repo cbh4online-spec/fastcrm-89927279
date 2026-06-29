@@ -131,11 +131,23 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
     [installedModuleIds, canAccessMenu],
   );
 
+  const isOwner = isOwnerWorkspace(currentWorkspace?.slug);
+
   const megaGroups = useMemo(() => {
     return megaGroupsAll
-      .map((mg) => ({ ...mg, _visibility: getDepartmentState(mg.key) }))
+      .map((mg) => ({
+        ...mg,
+        sections: mg.sections.map((s) => ({
+          ...s,
+          items: isOwner
+            ? s.items
+            : s.items.filter((it) => !OWNER_ONLY_ROUTE_KEYS.has(it.key)),
+        })).filter((s) => s.items.length > 0),
+        _visibility: getDepartmentState(mg.key),
+      }))
+      .filter((mg) => mg.sections.length > 0)
       .filter((mg) => mg._visibility.visible || mg._visibility.lockedByPlan);
-  }, [megaGroupsAll, getDepartmentState]);
+  }, [megaGroupsAll, getDepartmentState, isOwner]);
 
   const itemByKey = useMemo(() => {
     const map = new Map<string, RouteEntry>();
