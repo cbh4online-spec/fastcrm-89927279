@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Check, Search, Sparkles, X } from 'lucide-react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { OwnerOnlyRoute } from '@/components/auth/OwnerOnlyRoute';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -123,6 +125,8 @@ export default function PitchComparePage() {
   const clearSelection = () => setSelected(new Set());
 
   return (
+    <DashboardLayout>
+      <OwnerOnlyRoute>
     <div className="container mx-auto max-w-7xl px-4 py-6 md:py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -413,6 +417,8 @@ export default function PitchComparePage() {
         </p>
       </Card>
     </div>
+      </OwnerOnlyRoute>
+    </DashboardLayout>
   );
 }
 

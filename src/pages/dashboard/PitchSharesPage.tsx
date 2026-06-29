@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { OwnerOnlyRoute } from '@/components/auth/OwnerOnlyRoute';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChevronLeft, Copy, Ban, ArrowLeft, Smartphone, Monitor, Tablet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -72,7 +74,9 @@ export default function PitchSharesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <OwnerOnlyRoute>
+    <div className="min-h-full bg-background">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -233,5 +237,7 @@ export default function PitchSharesPage() {
         )}
       </div>
     </div>
+      </OwnerOnlyRoute>
+    </DashboardLayout>
   );
 }
