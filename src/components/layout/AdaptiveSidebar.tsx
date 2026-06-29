@@ -292,14 +292,15 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
 
 
   // ── Render Section ──
-  const renderSection = (section: NavGroupMeta & { items: RouteEntry[] }, idx: number) => {
+  const renderSection = (section: NavGroupMeta & { items: RouteEntry[] }, idx: number, total: number) => {
     const hasActive = sectionHasActive(section.items);
     const SectionIcon = section.icon;
+    const singleSection = total === 1;
 
-    if (!section.collapsible || !style.collapsibleGroups) {
+    if (singleSection || !section.collapsible || !style.collapsibleGroups) {
       return (
         <div key={section.key} className={cn(idx > 0 && "mt-3")} role="group" aria-label={section.label}>
-          {!isCollapsed && (
+          {!isCollapsed && !singleSection && (
             <div className="px-3 pb-2 pt-1">
               <SidebarSectionLabel>{section.label}</SidebarSectionLabel>
             </div>
