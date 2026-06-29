@@ -145,51 +145,39 @@ export default function ReportsFinancial() {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        {/* HERO HEADER */}
-        <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-emerald-500/5 p-6">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-          <div className="absolute -left-16 -bottom-16 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-          <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary/15 grid place-items-center">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                </div>
-                <Badge variant="secondary" className="font-mono text-[10px]">FINANCEIRO · VENDAS</Badge>
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight">Relatórios Financeiros</h1>
-              <p className="text-sm text-muted-foreground max-w-xl">
-                Visão consolidada de faturação, cobranças, clientes e produtos —
-                com aging de dívida e tendências mensais em tempo real.
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={verifyMode ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setVerifyMode((v) => !v)}
-                  className="gap-2 h-9"
-                  title="Compara KPIs com totais reais de invoice_payments"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  {verifyMode ? "Verificação ativa" : "Verificar valores"}
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => { refetch(); if (verifyMode) refetchVerify(); }} disabled={isFetching} className="h-9 w-9">
-                  <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-                </Button>
-                <Button size="sm" onClick={exportCSV} disabled={!data} className="gap-2">
-                  <Download className="h-4 w-4" /> Exportar CSV
-                </Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                {dateRange.from && dateRange.to
-                  ? `${format(new Date(dateRange.from), "dd MMM yyyy", { locale: pt })} → ${format(new Date(dateRange.to), "dd MMM yyyy", { locale: pt })}`
-                  : "Período não definido"}
-              </p>
-            </div>
+        {/* HEADER IX */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Relatórios Financeiros</h1>
+            <p className="text-sm text-muted-foreground max-w-xl">
+              Visão consolidada de faturação, cobranças, clientes e produtos — com aging de dívida e tendências mensais.
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {dateRange.from && dateRange.to
+                ? `${format(new Date(dateRange.from), "dd MMM yyyy", { locale: pt })} → ${format(new Date(dateRange.to), "dd MMM yyyy", { locale: pt })}`
+                : "Período não definido"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={verifyMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setVerifyMode((v) => !v)}
+              className="gap-2 h-9 rounded-full"
+              title="Compara KPIs com totais reais de invoice_payments"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              {verifyMode ? "Verificação ativa" : "Verificar valores"}
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => { refetch(); if (verifyMode) refetchVerify(); }} disabled={isFetching} className="h-9 w-9 rounded-full">
+              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+            </Button>
+            <Button size="sm" onClick={exportCSV} disabled={!data} className="gap-2 rounded-full h-9">
+              <Download className="h-4 w-4" /> Exportar CSV
+            </Button>
           </div>
         </div>
+
 
         {/* FILTERS BAR */}
         <Card className="border-dashed">
