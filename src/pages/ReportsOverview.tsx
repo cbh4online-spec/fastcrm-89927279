@@ -1,35 +1,52 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { 
-  useExecutiveKPIs, 
-  useReportAIInsights, 
-  useScenarioAnalysis 
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  useExecutiveKPIs,
+  useReportAIInsights,
+  useScenarioAnalysis,
 } from "@/hooks/useForecastsReports";
 import { useSalesPerformance } from "@/hooks/useSalesPerformance";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  AlertTriangle, 
-  Target, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  AlertTriangle,
+  Target,
   Euro,
-  ArrowUpRight,
   Lightbulb,
   BarChart3,
   PieChart as PieChartIcon,
   Activity,
   LayoutDashboard,
   Trophy,
-  Globe
+  Globe,
+  MoreHorizontal,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 
 const CHART_COLORS = [
@@ -42,74 +59,97 @@ const CHART_COLORS = [
 ];
 
 function formatCurrency(value: number): string {
-  if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `€${(value / 1000).toFixed(1)}K`;
+  if (value >= 1_000_000) return `€${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `€${(value / 1_000).toFixed(1)}K`;
   return `€${value.toFixed(0)}`;
 }
 
-function KPICard({ 
-  title, 
-  value, 
-  subtitle, 
-  icon: Icon, 
-  trend, 
-  highlight,
-  href 
-}: { 
-  title: string; 
-  value: string | number; 
-  subtitle?: string;
-  icon: typeof TrendingUp; 
-  trend?: 'up' | 'down' | 'neutral';
-  highlight?: boolean;
+function KPITile({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  trend,
+  emphasis,
+  href,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  icon: typeof TrendingUp;
+  trend?: "up" | "down" | "neutral";
+  emphasis?: boolean;
   href?: string;
 }) {
   const content = (
-    <Card className={cn(
-      "transition-all hover:shadow-md cursor-pointer",
-      highlight && "border-primary/50 bg-primary/5"
-    )}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-xs text-muted-foreground mb-1">{title}</p>
-            <p className={cn(
-              "text-2xl font-bold",
-              highlight && "text-primary"
-            )}>
-              {typeof value === 'number' ? formatCurrency(value) : value}
-            </p>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
-            )}
-          </div>
-          <div className={cn(
-            "p-2 rounded-lg",
-            highlight ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-          )}>
-            <Icon className="w-4 h-4" />
-          </div>
+    <div
+      className={cn(
+        "group rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors",
+        href && "hover:border-primary/40",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <Icon className="h-4 w-4" />
         </div>
-        {trend && (
-          <div className={cn(
-            "flex items-center gap-1 mt-2 text-xs",
-            trend === 'up' && "text-green-600",
-            trend === 'down' && "text-red-600",
-            trend === 'neutral' && "text-muted-foreground"
-          )}>
-            {trend === 'up' && <TrendingUp className="w-3 h-3" />}
-            {trend === 'down' && <TrendingDown className="w-3 h-3" />}
-            <span>vs mês anterior</span>
-          </div>
+      </div>
+      <p
+        className={cn(
+          "mt-3 text-2xl font-bold tracking-tight text-foreground",
+          emphasis && "text-primary",
         )}
-      </CardContent>
-    </Card>
+      >
+        {typeof value === "number" ? formatCurrency(value) : value}
+      </p>
+      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+      {trend && (
+        <div
+          className={cn(
+            "mt-3 inline-flex items-center gap-1 text-xs",
+            trend === "up" && "text-emerald-600",
+            trend === "down" && "text-destructive",
+            trend === "neutral" && "text-muted-foreground",
+          )}
+        >
+          {trend === "up" && <TrendingUp className="h-3 w-3" />}
+          {trend === "down" && <TrendingDown className="h-3 w-3" />}
+          <span>vs mês anterior</span>
+        </div>
+      )}
+    </div>
   );
 
-  if (href) {
-    return <Link to={href}>{content}</Link>;
-  }
-  return content;
+  return href ? <Link to={href}>{content}</Link> : content;
+}
+
+function DeepDiveCard({
+  title,
+  description,
+  icon: Icon,
+  href,
+}: {
+  title: string;
+  description: string;
+  icon: typeof TrendingUp;
+  href: string;
+}) {
+  return (
+    <Link to={href} className="group block">
+      <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/40">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        </div>
+        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+      </div>
+    </Link>
+  );
 }
 
 function InsightCard({ insight }: { insight: any }) {
@@ -121,37 +161,38 @@ function InsightCard({ insight }: { insight: any }) {
   };
   const Icon = iconMap[insight.type as keyof typeof iconMap] || Lightbulb;
 
-  const colorMap = {
-    warning: "border-orange-200 bg-orange-50 text-orange-700",
-    opportunity: "border-green-200 bg-green-50 text-green-700",
-    success: "border-blue-200 bg-blue-50 text-blue-700",
-    info: "border-gray-200 bg-gray-50 text-gray-700",
+  const accentMap: Record<string, string> = {
+    warning: "text-amber-600",
+    opportunity: "text-emerald-600",
+    success: "text-primary",
+    info: "text-muted-foreground",
   };
 
   return (
-    <Card className={cn("border", colorMap[insight.type as keyof typeof colorMap])}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm">{insight.title}</p>
-            <p className="text-xs mt-1 opacity-80">{insight.description}</p>
-            {insight.explanation && (
-              <p className="text-[10px] mt-2 opacity-60 italic">{insight.explanation}</p>
-            )}
-            {insight.suggestion && (
-              <div className="mt-2 pt-2 border-t border-current/10">
-                <p className="text-[10px] font-medium">💡 {insight.suggestion}</p>
-              </div>
-            )}
-          </div>
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", accentMap[insight.type])} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">{insight.title}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{insight.description}</p>
+          {insight.explanation && (
+            <p className="mt-2 text-[11px] italic text-muted-foreground/80">
+              {insight.explanation}
+            </p>
+          )}
+          {insight.suggestion && (
+            <p className="mt-2 border-t border-border pt-2 text-[11px] font-medium text-foreground">
+              💡 {insight.suggestion}
+            </p>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
 export default function ReportsOverview() {
+  const navigate = useNavigate();
   const { data: kpis, isLoading } = useExecutiveKPIs();
   const { data: salesData, isLoading: salesLoading } = useSalesPerformance();
   const insights = useReportAIInsights(kpis);
@@ -159,63 +200,107 @@ export default function ReportsOverview() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold">Visão Geral</h1>
-          <p className="text-muted-foreground">
-            KPIs executivos baseados em dados reais de consumo
-          </p>
-        </div>
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Visão Geral
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              KPIs executivos baseados em dados reais de consumo
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              className="rounded-full px-5"
+              onClick={() => navigate("/dashboard/reports/dashboards")}
+            >
+              Dashboards
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-full">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate("/dashboard/reports/forecasts")}>
+                  Previsões
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/reports/sales")}>
+                  Performance de vendas
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/reports/financial")}>
+                  Relatório financeiro
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/reports/consumption")}>
+                  Consumo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/reports/retention")}>
+                  Retenção & churn
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/reports/kpis")}>
+                  KPIs detalhados
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/reports/growth")}>
+                  Crescimento
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/reports/goals")}>
+                  Objetivos
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
 
-        {/* Main KPIs Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* KPI Grid */}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           {isLoading ? (
             Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-[100px] rounded-lg" />
+              <Skeleton key={i} className="h-[140px] rounded-2xl" />
             ))
           ) : (
             <>
-              <KPICard
-                title="Receita MTD"
+              <KPITile
+                label="Receita MTD"
                 value={kpis?.realizedRevenueMTD || 0}
-                subtitle="Este mês"
+                hint="Este mês"
                 icon={Euro}
                 trend="up"
               />
-              <KPICard
-                title="Receita YTD"
+              <KPITile
+                label="Receita YTD"
                 value={kpis?.realizedRevenueYTD || 0}
-                subtitle="Este ano"
+                hint="Este ano"
                 icon={Euro}
               />
-              <KPICard
-                title="Previsão 30d"
+              <KPITile
+                label="Previsão 30d"
                 value={kpis?.forecastedRevenue30d || 0}
-                subtitle="Próximos 30 dias"
+                hint="Próximos 30 dias"
                 icon={TrendingUp}
-                highlight
+                emphasis
                 href="/dashboard/reports/forecasts"
               />
-              <KPICard
-                title="Produtos Ativos"
+              <KPITile
+                label="Produtos Ativos"
                 value={kpis?.activeProducts || 0}
-                subtitle="Em consumo"
+                hint="Em consumo"
                 icon={BarChart3}
                 href="/dashboard/reports/consumption"
               />
-              <KPICard
-                title="Clientes em Risco"
+              <KPITile
+                label="Clientes em Risco"
                 value={kpis?.clientsAtRisk || 0}
-                subtitle={`${kpis?.churnRate.toFixed(1) || 0}% churn`}
+                hint={`${kpis?.churnRate.toFixed(1) || 0}% churn`}
                 icon={AlertTriangle}
-                highlight={kpis?.clientsAtRisk ? kpis.clientsAtRisk > 0 : false}
                 href="/dashboard/reports/retention"
               />
-              <KPICard
-                title="Potencial Upsell"
+              <KPITile
+                label="Potencial Upsell"
                 value={kpis?.upsellPotential || 0}
-                subtitle="Prontos para renovar"
+                hint="Prontos para renovar"
                 icon={Target}
                 href="/dashboard/reports/financial"
               />
@@ -223,337 +308,273 @@ export default function ReportsOverview() {
           )}
         </div>
 
-        {/* Quick links to deep-dive reports */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Link to="/dashboard/reports/financial" className="block">
-            <Card className="hover:border-primary/50 transition-colors">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Euro className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">Relatório Financeiro</p>
-                  <p className="text-xs text-muted-foreground">Faturação, recebimentos, aging, top clientes/produtos</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link to="/dashboard/reports/sales" className="block">
-            <Card className="hover:border-primary/50 transition-colors">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <Trophy className="h-5 w-5 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">Performance de Vendas</p>
-                  <p className="text-xs text-muted-foreground">Pipeline, conversões, win rate, velocidade</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link to="/dashboard/reports/forecasts" className="block">
-            <Card className="hover:border-primary/50 transition-colors">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">Previsões</p>
-                  <p className="text-xs text-muted-foreground">Forecast 30/60/90 dias, cenários</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+        {/* Deep dives */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <DeepDiveCard
+            title="Relatório Financeiro"
+            description="Faturação, recebimentos, aging, top clientes/produtos"
+            icon={Euro}
+            href="/dashboard/reports/financial"
+          />
+          <DeepDiveCard
+            title="Performance de Vendas"
+            description="Pipeline, conversões, win rate, velocidade"
+            icon={Trophy}
+            href="/dashboard/reports/sales"
+          />
+          <DeepDiveCard
+            title="Previsões"
+            description="Forecast 30/60/90 dias, cenários"
+            icon={TrendingUp}
+            href="/dashboard/reports/forecasts"
+          />
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Trend */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-amber-500" />
-                Receita Ganha por Mês
-              </CardTitle>
-              <CardDescription>Últimos 12 meses</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {salesLoading ? (
-                <Skeleton className="h-[260px]" />
-              ) : !salesData?.wonRevenueByMonth?.length ? (
-                <div className="flex items-center justify-center h-[260px] text-muted-foreground text-sm">
-                  Sem dados de receita
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={salesData.wonRevenueByMonth}>
-                    <defs>
-                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                    <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                    <Tooltip
-                      formatter={(value: number) => [formatCurrency(value), "Receita"]}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--background))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke="hsl(217, 91%, 60%)"
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                      fill="url(#revenueGrad)"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+        {/* Charts row */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <IXCard title="Receita Ganha por Mês" description="Últimos 12 meses">
+            {salesLoading ? (
+              <Skeleton className="h-[260px]" />
+            ) : !salesData?.wonRevenueByMonth?.length ? (
+              <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+                Sem dados de receita
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={salesData.wonRevenueByMonth}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                  />
+                  <YAxis
+                    tickFormatter={(v: number) => formatCurrency(v)}
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [formatCurrency(value), "Receita"]}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </IXCard>
 
-          {/* Pipeline by Stage */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                Pipeline por Etapa
-              </CardTitle>
-              <CardDescription>Valor total vs ponderado</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {salesLoading ? (
-                <Skeleton className="h-[260px]" />
-              ) : !salesData?.dealForecast?.length ? (
-                <div className="flex items-center justify-center h-[260px] text-muted-foreground text-sm">
-                  Sem deals ativos
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={Math.max(200, salesData.dealForecast.length * 50 + 40)}>
-                  <BarChart data={salesData.dealForecast} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
-                    <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} />
-                    <YAxis type="category" dataKey="stage_name" width={100} tick={{ fontSize: 11 }} />
-                    <Tooltip
-                      formatter={(value: number, name: string) => [
-                        formatCurrency(value),
-                        name === "total_value" ? "Total" : "Ponderado"
-                      ]}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--background))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Bar dataKey="total_value" name="total_value" radius={[0, 4, 4, 0]} barSize={14}>
-                      {salesData.dealForecast.map((entry, i) => (
-                        <Cell key={i} fill={entry.stage_color} fillOpacity={0.25} />
-                      ))}
-                    </Bar>
-                    <Bar dataKey="weighted_value" name="weighted_value" radius={[0, 4, 4, 0]} barSize={14}>
-                      {salesData.dealForecast.map((entry, i) => (
-                        <Cell key={i} fill={entry.stage_color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Row 2: Pie + Scenarios */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Lead Sources Pie */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Globe className="h-4 w-4 text-primary" />
-                Fontes de Leads
-              </CardTitle>
-              <CardDescription>Distribuição por origem</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {salesLoading ? (
-                <Skeleton className="h-[260px]" />
-              ) : !salesData?.sourceBreakdown?.length ? (
-                <div className="flex items-center justify-center h-[260px] text-muted-foreground text-sm">
-                  Sem leads
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie
-                      data={salesData.sourceBreakdown}
-                      dataKey="count"
-                      nameKey="source"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={90}
-                      paddingAngle={2}
-                      label={({ source, percentage }) => `${source} ${percentage}%`}
-                    >
-                      {salesData.sourceBreakdown.map((_, i) => (
-                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--background))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Scenario Analysis */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <PieChartIcon className="w-4 h-4 text-primary" />
-                Cenários "E se..."
-              </CardTitle>
-              <CardDescription>
-                Projeções baseadas em diferentes ações
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {isLoading ? (
-                  <Skeleton className="h-16" />
-                ) : scenarios.map((scenario, i) => (
-                  <div 
-                    key={i} 
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+          <IXCard title="Pipeline por Etapa" description="Valor total vs ponderado">
+            {salesLoading ? (
+              <Skeleton className="h-[260px]" />
+            ) : !salesData?.dealForecast?.length ? (
+              <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+                Sem deals ativos
+              </div>
+            ) : (
+              <ResponsiveContainer
+                width="100%"
+                height={Math.max(200, salesData.dealForecast.length * 50 + 40)}
+              >
+                <BarChart
+                  data={salesData.dealForecast}
+                  layout="vertical"
+                  margin={{ top: 0, right: 20, left: 10, bottom: 0 }}
+                >
+                  <XAxis
+                    type="number"
+                    tickFormatter={(v: number) => formatCurrency(v)}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="stage_name"
+                    width={100}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [
+                      formatCurrency(value),
+                      name === "total_value" ? "Total" : "Ponderado",
+                    ]}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="total_value" name="total_value" radius={[0, 4, 4, 0]} barSize={14}>
+                    {salesData.dealForecast.map((entry, i) => (
+                      <Cell key={i} fill={entry.stage_color} fillOpacity={0.25} />
+                    ))}
+                  </Bar>
+                  <Bar
+                    dataKey="weighted_value"
+                    name="weighted_value"
+                    radius={[0, 4, 4, 0]}
+                    barSize={14}
                   >
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{scenario.scenario}</p>
-                      <p className="text-xs text-muted-foreground">{scenario.description}</p>
+                    {salesData.dealForecast.map((entry, i) => (
+                      <Cell key={i} fill={entry.stage_color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </IXCard>
+        </div>
+
+        {/* Sources + Scenarios */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <IXCard title="Fontes de Leads" description="Distribuição por origem">
+            {salesLoading ? (
+              <Skeleton className="h-[260px]" />
+            ) : !salesData?.sourceBreakdown?.length ? (
+              <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+                <Globe className="mr-2 h-4 w-4 opacity-50" />
+                Sem leads
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={salesData.sourceBreakdown}
+                    dataKey="count"
+                    nameKey="source"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={2}
+                    label={({ source, percentage }) => `${source} ${percentage}%`}
+                  >
+                    {salesData.sourceBreakdown.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </IXCard>
+
+          <IXCard
+            title="Cenários “E se…”"
+            description="Projeções baseadas em diferentes ações"
+          >
+            <div className="space-y-2">
+              {isLoading ? (
+                <Skeleton className="h-16" />
+              ) : (
+                scenarios.map((scenario, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card px-4 py-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {scenario.scenario}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {scenario.description}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-green-600">
+                      <p className="text-sm font-bold text-emerald-600">
                         +{formatCurrency(scenario.revenueImpact)}
                       </p>
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="mt-1 text-[10px]">
                         {scenario.probability}% probabilidade
                       </Badge>
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Row 3: AI Insights (full width) */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-amber-500" />
-              Insights da IA
-            </CardTitle>
-            <CardDescription>
-              Análises baseadas nos seus dados reais
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-20" />
-            ) : insights.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {insights.map(insight => (
-                  <InsightCard key={insight.id} insight={insight} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground">
-                <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Sem insights disponíveis</p>
-                <p className="text-xs mt-1">
-                  Os insights melhoram com mais dados de consumo
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Row 4: Quick Links (horizontal grid) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link to="/dashboard/reports/forecasts">
-            <Card className="hover:shadow-md transition-all hover:border-primary/30 h-full">
-              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                </div>
-                <p className="text-sm font-medium">Previsões de Receita</p>
-                <p className="text-xs text-muted-foreground">30, 60 e 90 dias</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link to="/dashboard/reports/consumption">
-            <Card className="hover:shadow-md transition-all hover:border-primary/30 h-full">
-              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <BarChart3 className="w-5 h-5 text-blue-500" />
-                </div>
-                <p className="text-sm font-medium">Consumo & Capacidade</p>
-                <p className="text-xs text-muted-foreground">Sessões e produtos</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link to="/dashboard/reports/retention">
-            <Card className="hover:shadow-md transition-all hover:border-primary/30 h-full">
-              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-                <div className="p-2 rounded-lg bg-orange-500/10">
-                  <Users className="w-5 h-5 text-orange-500" />
-                </div>
-                <p className="text-sm font-medium">Retenção & Churn</p>
-                <p className="text-xs text-muted-foreground">Clientes em risco</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link to="/dashboard/reports/dashboards">
-            <Card className="hover:shadow-md transition-all hover:border-primary/30 h-full">
-              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <LayoutDashboard className="w-5 h-5 text-purple-500" />
-                </div>
-                <p className="text-sm font-medium">Dashboards</p>
-                <p className="text-xs text-muted-foreground">Relatórios personalizados</p>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-
-        {/* Row 5: Metrics Governance (full width banner) */}
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Lightbulb className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Métricas Governadas</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Todos os valores usam definições únicas e consistentes em todo o sistema.
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-2 italic">
-                  "Previsões baseadas em consumo real, não suposições."
-                </p>
-              </div>
+                ))
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </IXCard>
+        </div>
+
+        {/* AI Insights */}
+        <IXCard title="Insights da IA" description="Análises baseadas nos seus dados reais">
+          {isLoading ? (
+            <Skeleton className="h-20" />
+          ) : insights.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {insights.map((insight) => (
+                <InsightCard key={insight.id} insight={insight} />
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">
+              <Activity className="mx-auto mb-2 h-8 w-8 opacity-50" />
+              <p className="text-sm">Sem insights disponíveis</p>
+              <p className="mt-1 text-xs">
+                Os insights melhoram com mais dados de consumo
+              </p>
+            </div>
+          )}
+        </IXCard>
+
+        {/* Quick links */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <DeepDiveCard
+            title="Previsões de Receita"
+            description="30, 60 e 90 dias"
+            icon={TrendingUp}
+            href="/dashboard/reports/forecasts"
+          />
+          <DeepDiveCard
+            title="Consumo & Capacidade"
+            description="Sessões e produtos"
+            icon={BarChart3}
+            href="/dashboard/reports/consumption"
+          />
+          <DeepDiveCard
+            title="Retenção & Churn"
+            description="Clientes em risco"
+            icon={Users}
+            href="/dashboard/reports/retention"
+          />
+          <DeepDiveCard
+            title="Dashboards"
+            description="Relatórios personalizados"
+            icon={LayoutDashboard}
+            href="/dashboard/reports/dashboards"
+          />
+        </div>
+
+        {/* Governance banner */}
+        <IXCard>
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <PieChartIcon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">Métricas governadas</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Todos os valores usam definições únicas e consistentes em todo o sistema.
+              </p>
+              <p className="mt-2 text-[11px] italic text-muted-foreground/80">
+                “Previsões baseadas em consumo real, não suposições.”
+              </p>
+            </div>
+          </div>
+        </IXCard>
       </div>
     </DashboardLayout>
   );
