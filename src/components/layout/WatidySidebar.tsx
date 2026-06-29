@@ -468,14 +468,18 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   >
                     <div className="pl-2 pr-1 pb-1 pt-0.5 space-y-1">
                       {sections.map((section) => {
-                        if (!section.collapsible) {
+                        // Salta o cabeçalho da secção quando há apenas uma — evita clique extra
+                        const singleSection = sections.length === 1;
+                        if (singleSection || !section.collapsible) {
                           return (
-                            <div key={section.key} className="pt-2">
-                              <div className="px-3 pb-1">
-                                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/35">
-                                  {section.label}
-                                </span>
-                              </div>
+                            <div key={section.key} className={singleSection ? "pt-1" : "pt-2"}>
+                              {!singleSection && (
+                                <div className="px-3 pb-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/35">
+                                    {section.label}
+                                  </span>
+                                </div>
+                              )}
                               <div className="space-y-0.5">{section.items.map(renderItem)}</div>
                             </div>
                           );
