@@ -472,7 +472,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
             {/* ═══ BLOCK 2: Navigation ═══ */}
             <nav className={cn("flex-1 overflow-y-auto scrollbar-thin", isCollapsed ? "px-1 py-2" : "px-2 py-2")} aria-label="Navegação principal">
               <div className="space-y-0.5">
-                {filteredSections.map((section, idx) => renderSection(section, idx))}
+                {filteredSections.map((section, idx) => renderSection(section, idx, filteredSections.length))}
               </div>
             </nav>
 
