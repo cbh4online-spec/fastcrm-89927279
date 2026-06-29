@@ -174,12 +174,13 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   );
 
   const isGroupOpen = useCallback(
-    (key: string, items: RouteEntry[]) => {
+    (key: string, _items: RouteEntry[]) => {
       if (!style.collapsibleGroups) return true;
       if (openGroups[key] !== undefined) return openGroups[key];
-      return sectionHasActive(items);
+      // Por defeito abrir — menos cliques para chegar aos itens
+      return true;
     },
-    [openGroups, sectionHasActive, style.collapsibleGroups]
+    [openGroups, style.collapsibleGroups]
   );
 
   const toggleGroup = useCallback((name: string) => {
@@ -291,14 +292,15 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
 
 
   // ── Render Section ──
-  const renderSection = (section: NavGroupMeta & { items: RouteEntry[] }, idx: number) => {
+  const renderSection = (section: NavGroupMeta & { items: RouteEntry[] }, idx: number, total: number) => {
     const hasActive = sectionHasActive(section.items);
     const SectionIcon = section.icon;
+    const singleSection = total === 1;
 
-    if (!section.collapsible || !style.collapsibleGroups) {
+    if (singleSection || !section.collapsible || !style.collapsibleGroups) {
       return (
         <div key={section.key} className={cn(idx > 0 && "mt-3")} role="group" aria-label={section.label}>
-          {!isCollapsed && (
+          {!isCollapsed && !singleSection && (
             <div className="px-3 pb-2 pt-1">
               <SidebarSectionLabel>{section.label}</SidebarSectionLabel>
             </div>
@@ -470,7 +472,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
             {/* ═══ BLOCK 2: Navigation ═══ */}
             <nav className={cn("flex-1 overflow-y-auto scrollbar-thin", isCollapsed ? "px-1 py-2" : "px-2 py-2")} aria-label="Navegação principal">
               <div className="space-y-0.5">
-                {filteredSections.map((section, idx) => renderSection(section, idx))}
+                {filteredSections.map((section, idx) => renderSection(section, idx, filteredSections.length))}
               </div>
             </nav>
 
