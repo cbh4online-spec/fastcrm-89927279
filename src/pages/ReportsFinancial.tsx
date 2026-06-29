@@ -615,27 +615,26 @@ function BigKPI({
   tone: "primary" | "emerald" | "amber" | "destructive";
   trend?: number; trendLabel?: string; progress?: number;
 }) {
-  const toneMap = {
-    primary: { bg: "from-primary/10 to-primary/0", icon: "bg-primary/15 text-primary", ring: "ring-primary/10" },
-    emerald: { bg: "from-emerald-500/10 to-emerald-500/0", icon: "bg-emerald-500/15 text-emerald-600", ring: "ring-emerald-500/10" },
-    amber: { bg: "from-amber-500/10 to-amber-500/0", icon: "bg-amber-500/15 text-amber-600", ring: "ring-amber-500/10" },
-    destructive: { bg: "from-red-500/10 to-red-500/0", icon: "bg-red-500/15 text-red-600", ring: "ring-red-500/10" },
+  const trendColor = {
+    primary: "text-primary",
+    emerald: "text-emerald-600",
+    amber: "text-amber-600",
+    destructive: "text-destructive",
   }[tone];
   const showTrend = typeof trend === "number" && Math.abs(trend) > 0.05;
   const trendUp = (trend || 0) >= 0;
 
   return (
-    <Card className={cn("relative overflow-hidden ring-1", toneMap.ring)}>
-      <div className={cn("absolute inset-0 bg-gradient-to-br pointer-events-none", toneMap.bg)} />
-      <CardContent className="relative p-5 space-y-3">
+    <Card className="rounded-2xl shadow-sm">
+      <CardContent className="p-5 space-y-3">
         <div className="flex items-start justify-between">
-          <div className={cn("h-9 w-9 rounded-xl grid place-items-center", toneMap.icon)}>
+          <div className="h-9 w-9 rounded-lg grid place-items-center bg-muted text-muted-foreground">
             <Icon className="h-4 w-4" />
           </div>
           {showTrend && (
             <div className={cn(
-              "flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-md",
-              trendUp ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"
+              "flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-md bg-muted",
+              trendUp ? "text-emerald-600" : "text-destructive"
             )}>
               {trendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
               {Math.abs(trend!).toFixed(1)}%
@@ -644,15 +643,16 @@ function BigKPI({
         </div>
         <div>
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold tracking-tight mt-1">{value}</p>
+          <p className={cn("text-2xl font-bold tracking-tight mt-1", tone === "destructive" && "text-destructive")}>{value}</p>
           {subtitle && <p className="text-[11px] text-muted-foreground mt-1">{subtitle}</p>}
         </div>
         {typeof progress === "number" && (
           <Progress value={Math.min(100, Math.max(0, progress))} className="h-1.5" />
         )}
         {showTrend && trendLabel && (
-          <p className="text-[10px] text-muted-foreground -mt-1">vs mês anterior · {trendLabel}</p>
+          <p className={cn("text-[10px] text-muted-foreground -mt-1")}>vs mês anterior · <span className={trendColor}>{trendLabel}</span></p>
         )}
+
       </CardContent>
     </Card>
   );
