@@ -469,7 +469,7 @@ export default function ReportsFinancial() {
                         <div className="flex items-center gap-3">
                           <span className={cn(
                             "text-[10px] font-bold w-6 h-6 rounded-md grid place-items-center",
-                            i < 3 ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                            i < 3 ? "bg-muted text-foreground" : "bg-muted text-muted-foreground"
                           )}>{i + 1}</span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{c.name}</p>
@@ -483,7 +483,7 @@ export default function ReportsFinancial() {
                           </div>
                         </div>
                         <div className="ml-9 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full" style={{ width: `${pct}%` }} />
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     );
@@ -512,7 +512,7 @@ export default function ReportsFinancial() {
                         <div className="flex items-center gap-3">
                           <span className={cn(
                             "text-[10px] font-bold w-6 h-6 rounded-md grid place-items-center",
-                            i < 3 ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"
+                            i < 3 ? "bg-muted text-muted-foreground" : "bg-muted text-muted-foreground"
                           )}>{i + 1}</span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{p.name}</p>
@@ -524,7 +524,7 @@ export default function ReportsFinancial() {
                           <p className="text-sm font-semibold">{fmtEUR(p.total)}</p>
                         </div>
                         <div className="ml-9 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{ width: `${pct}%` }} />
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     );
@@ -664,7 +664,7 @@ function MiniStat({ icon: Icon, label, value, accent }: { icon: any; label: stri
       <CardContent className="p-3 flex items-center gap-3">
         <div className={cn(
           "h-9 w-9 rounded-lg grid place-items-center",
-          accent === "emerald" ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"
+          accent === "emerald" ? "bg-muted text-muted-foreground" : "bg-muted text-muted-foreground"
         )}>
           <Icon className="h-4 w-4" />
         </div>
