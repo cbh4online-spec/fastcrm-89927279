@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { lazy, type ReactNode } from "react";
 import { Route } from "react-router-dom";
 import { OwnerOnlyRoute } from "@/components/auth/OwnerOnlyRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -18,7 +18,7 @@ const CompositeProductDetailPage = lazy(() => import("@/pages/CompositeProductDe
 const StockValuationPage = lazy(() => import("@/pages/StockValuationPage"));
 
 export function SalesAssetsRoutes() {
-  const pitchRoute = (children: React.ReactNode) => (
+  const pitchRoute = (children: ReactNode) => (
     <DashboardLayout>
       <OwnerOnlyRoute>{children}</OwnerOnlyRoute>
     </DashboardLayout>
