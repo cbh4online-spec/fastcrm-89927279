@@ -469,45 +469,19 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
                   >
                     <div className="pl-2 pr-1 pb-1 pt-0.5 space-y-1">
                       {sections.map((section) => {
-                        // Salta o cabeçalho da secção quando há apenas uma — evita clique extra
+                        // Sempre expandido — sem contadores nem chevrons para reduzir cliques
                         const singleSection = sections.length === 1;
-                        if (singleSection || !section.collapsible) {
-                          return (
-                            <div key={section.key} className={singleSection ? "pt-1" : "pt-2"}>
-                              {!singleSection && (
-                                <div className="px-3 pb-1">
-                                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/35">
-                                    {section.label}
-                                  </span>
-                                </div>
-                              )}
-                              <div className="space-y-0.5">{section.items.map(renderItem)}</div>
-                            </div>
-                          );
-                        }
-                        const sectionOpen = isSectionOpen(`${mg.key}:${section.key}`, section.items);
                         return (
-                          <Collapsible
-                            key={section.key}
-                            open={sectionOpen}
-                            onOpenChange={() => toggleSection(`${mg.key}:${section.key}`)}
-                          >
-                            <CollapsibleTrigger className="w-full mt-1.5 group">
-                              <div className="flex items-center gap-2 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/35 hover:text-sidebar-foreground/70 transition-colors">
-                                <span className="flex-1 text-left truncate">{section.label}</span>
-                                <span className="text-[10px] font-medium opacity-60">{section.items.length}</span>
-                                <ChevronRight
-                                  className={cn(
-                                    "w-3 h-3 opacity-60 transition-transform duration-200",
-                                    sectionOpen && "rotate-90",
-                                  )}
-                                />
+                          <div key={section.key} className={singleSection ? "pt-1" : "pt-2"}>
+                            {!singleSection && (
+                              <div className="px-3 pb-1">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/35">
+                                  {section.label}
+                                </span>
                               </div>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="space-y-0.5 mt-0.5 overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                              {section.items.map(renderItem)}
-                            </CollapsibleContent>
-                          </Collapsible>
+                            )}
+                            <div className="space-y-0.5">{section.items.map(renderItem)}</div>
+                          </div>
                         );
                       })}
                     </div>
