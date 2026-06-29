@@ -231,12 +231,12 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const toggleSection = useCallback((k: string) => setOpenSections((p) => ({ ...p, [k]: !p[k] })), []);
   const isSectionOpen = useCallback(
-    (key: string, items: RouteEntry[]) => {
+    (key: string, _items: RouteEntry[]) => {
       if (openSections[key] !== undefined) return openSections[key];
-      if (filter.trim()) return true;
-      return items.some((i) => isActive(i.href, i.end));
+      // Por defeito, secções abrem com o mega-grupo (menos cliques para chegar aos itens)
+      return true;
     },
-    [openSections, isActive, filter],
+    [openSections],
   );
 
   const getBadge = useCallback(
