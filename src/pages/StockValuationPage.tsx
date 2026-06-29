@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,21 +13,22 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import {
   Package, TrendingUp, AlertTriangle, Coins, Download, RefreshCw, Search, Layers,
-  ArrowLeft, SlidersHorizontal, Mic, MicOff, Sparkles, X, ChevronLeft, ChevronRight, Loader2,
+  ArrowLeft, SlidersHorizontal, Mic, MicOff, Sparkles, X, ChevronLeft, ChevronRight, Loader2, MoreHorizontal,
 } from "lucide-react";
 import { useInventoryValuation, type InventoryValuationRow } from "@/hooks/useInventoryValuation";
 import { useStockEnrichment } from "@/hooks/useStockEnrichment";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { IXCard } from "@/components/entity/ix/IXCard";
 
 const fmt = (n: number, currency = true) =>
   currency
@@ -100,9 +100,7 @@ export default function StockValuationPage() {
     }
   };
 
-  const handleBack = () => {
-    navigate("/dashboard/products");
-  };
+  const handleBack = () => navigate("/dashboard/products");
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -113,7 +111,6 @@ export default function StockValuationPage() {
   const suppliers = enrichment?.suppliers || [];
   const brands = enrichment?.brands || [];
 
-  // bounds para sliders
   const bounds = useMemo(() => {
     let maxCost = 0;
     let maxSale = 0;
@@ -135,32 +132,20 @@ export default function StockValuationPage() {
     return rows
       .filter((r) => {
         if (filters.category !== "all" && r.category !== filters.category) return false;
-
-        // search tokens (todos têm de bater no nome ou sku)
         if (tokens.length) {
           const hay = `${r.product_name || ""} ${r.sku || ""}`.toLowerCase();
           if (!tokens.every((t) => hay.includes(t))) return false;
         }
-
-        // stock state
         const min = r.low_stock_threshold || 0;
         switch (filters.stockState) {
-          case "zero":
-            if (r.current_stock > 0) return false;
-            break;
-          case "low":
-            if (!(min > 0 && r.current_stock > 0 && r.current_stock <= min)) return false;
-            break;
+          case "zero": if (r.current_stock > 0) return false; break;
+          case "low": if (!(min > 0 && r.current_stock > 0 && r.current_stock <= min)) return false; break;
           case "normal":
             if (r.current_stock <= 0) return false;
             if (min > 0 && (r.current_stock <= min || r.current_stock > min * 3)) return false;
             break;
-          case "excess":
-            if (!(min > 0 && r.current_stock > min * 3)) return false;
-            break;
+          case "excess": if (!(min > 0 && r.current_stock > min * 3)) return false; break;
         }
-
-        // markup band
         const mk = r.markup_pct;
         switch (filters.markupBand) {
           case "negative": if (!(mk < 0)) return false; break;
@@ -168,14 +153,10 @@ export default function StockValuationPage() {
           case "mid": if (!(mk >= 15 && mk <= 50)) return false; break;
           case "high": if (!(mk > 50)) return false; break;
         }
-
-        // valor custo
         if (filters.costMin != null && r.total_cost_value < filters.costMin) return false;
         if (filters.costMax != null && r.total_cost_value > filters.costMax) return false;
         if (filters.saleMin != null && r.total_sale_value < filters.saleMin) return false;
         if (filters.saleMax != null && r.total_sale_value > filters.saleMax) return false;
-
-        // supplier / brand
         if (filters.suppliers.length || filters.brands.length) {
           const e = enrichMap?.get(r.product_id);
           if (filters.suppliers.length) {
@@ -185,7 +166,6 @@ export default function StockValuationPage() {
             if (!e?.brand || !filters.brands.includes(e.brand)) return false;
           }
         }
-
         return true;
       })
       .sort((a, b) => {
@@ -206,7 +186,6 @@ export default function StockValuationPage() {
       });
   }, [rows, filters, sortKey, sortDir, enrichment]);
 
-  // reset page quando filtros mudam
   useEffect(() => { setPage(1); }, [filters, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -230,7 +209,6 @@ export default function StockValuationPage() {
     (filters.suppliers.length ? 1 : 0) +
     (filters.brands.length ? 1 : 0);
 
-  // ===== Voz =====
   const startListening = () => {
     const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
@@ -242,17 +220,12 @@ export default function StockValuationPage() {
     rec.continuous = false;
     rec.interimResults = false;
     rec.onresult = (e: any) => {
-      const transcript = Array.from(e.results)
-        .map((r: any) => r[0]?.transcript || "")
-        .join(" ")
-        .trim();
+      const transcript = Array.from(e.results).map((r: any) => r[0]?.transcript || "").join(" ").trim();
       if (transcript) setAiPrompt((prev) => (prev ? prev + " " : "") + transcript);
     };
     rec.onerror = (e: any) => {
       setListening(false);
-      if (e.error !== "aborted" && e.error !== "no-speech") {
-        toast.error(`Erro de voz: ${e.error}`);
-      }
+      if (e.error !== "aborted" && e.error !== "no-speech") toast.error(`Erro de voz: ${e.error}`);
     };
     rec.onend = () => setListening(false);
     recognitionRef.current = rec;
@@ -264,44 +237,24 @@ export default function StockValuationPage() {
     setListening(false);
   };
 
-  // ===== IA =====
   const runAiFilter = async (text: string) => {
     const prompt = text.trim();
-    if (!prompt) {
-      toast.error("Escreva ou dite o que pretende encontrar");
-      return;
-    }
+    if (!prompt) { toast.error("Escreva ou dite o que pretende encontrar"); return; }
     setAiLoading(true);
     setAiExplanation(null);
     try {
       const { data, error } = await supabase.functions.invoke("stock-ai-filter", {
-        body: {
-          prompt,
-          categories,
-          suppliers: suppliers.map((s) => s.name),
-          brands,
-        },
+        body: { prompt, categories, suppliers: suppliers.map((s) => s.name), brands },
       });
       if (error) throw error;
-      if (data?.error && !data?.fallback) {
-        toast.error(data.error);
-        return;
-      }
+      if (data?.error && !data?.fallback) { toast.error(data.error); return; }
       const f = data?.filters;
-      if (!f) {
-        toast.error("Não foi possível interpretar o pedido");
-        return;
-      }
-
-      // map suppliers (nomes → ids)
+      if (!f) { toast.error("Não foi possível interpretar o pedido"); return; }
       const supByName = new Map(suppliers.map((s) => [s.name.toLowerCase(), s.id]));
       const supplierIds = (f.suppliers || [])
         .map((n: string) => supByName.get(String(n).toLowerCase()))
         .filter(Boolean) as string[];
-
-      // categoria principal (1ª que bater)
       const catMatch = (f.categories || []).find((c: string) => categories.includes(c));
-
       setFilters({
         search: f.search || "",
         category: catMatch || "all",
@@ -323,13 +276,11 @@ export default function StockValuationPage() {
     }
   };
 
-  // ===== CSV =====
   const exportCsv = () => {
     const headers = [
       "SKU", "Produto", "Categoria", "Stock", "Stock mínimo",
       "Custo unit.", "Custo operacional unit.", "Custo total unit.",
-      "Valor stock a custo",
-      "PVP unit.", "Valor a PVP",
+      "Valor stock a custo", "PVP unit.", "Valor a PVP",
       "Margem €", "Markup % s/Custo",
     ];
     const lines = filtered.map((r) => [
@@ -370,357 +321,379 @@ export default function StockValuationPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
       <Helmet>
         <title>Stock Valorizado (FIFO) | FastCRM</title>
         <meta name="description" content="Valorização de inventário pelo método FIFO com filtros avançados e pesquisa por IA." />
       </Helmet>
 
-      <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <Button variant="ghost" size="sm" onClick={handleBack} className="mb-3 -ml-2">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
-          </Button>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Coins className="h-7 w-7 text-primary" />
-            Stock Valorizado
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Valorização do inventário em tempo real pelo método FIFO (First-In, First-Out)
+      {/* Header IX */}
+      <header className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Stock Valorizado</h1>
+          <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
+            Valorização do inventário em tempo real pelo método FIFO (First-In, First-Out).
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || isFetching}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing || isFetching ? "animate-spin" : ""}`} /> Atualizar
-          </Button>
-          <Button size="sm" onClick={exportCsv} disabled={!filtered.length}>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button onClick={exportCsv} disabled={!filtered.length} className="rounded-full">
             <Download className="h-4 w-4 mr-2" /> Exportar CSV
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="rounded-full">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleRefresh} disabled={refreshing || isFetching}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing || isFetching ? "animate-spin" : ""}`} />
+                Atualizar dados
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao catálogo
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
+      {/* KPIs neutros */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiTile
           title="Valor a Custo"
           value={fmt(summary?.total_cost_value || 0)}
-          icon={<Coins className="h-5 w-5" />}
+          icon={Coins}
           loading={isLoading}
           hint={`${fmt(summary?.total_units || 0, false)} unidades`}
         />
-        <KpiCard
+        <KpiTile
           title="Valor a PVP"
           value={fmt(summary?.total_sale_value || 0)}
-          icon={<TrendingUp className="h-5 w-5" />}
+          icon={TrendingUp}
           loading={isLoading}
           hint={`${summary?.total_products || 0} produtos`}
         />
-        <KpiCard
+        <KpiTile
           title="Margem Latente"
           value={fmt(summary?.total_latent_margin || 0)}
-          icon={<Layers className="h-5 w-5" />}
+          icon={Layers}
           loading={isLoading}
           hint={`${(summary?.avg_margin_pct || 0).toFixed(1)}% média`}
-          accent={(summary?.total_latent_margin || 0) >= 0 ? "positive" : "negative"}
+          valueTone={(summary?.total_latent_margin || 0) >= 0 ? "default" : "danger"}
         />
-        <KpiCard
+        <KpiTile
           title="Alertas"
           value={`${summary?.zero_stock_count || 0} sem stock`}
-          icon={<AlertTriangle className="h-5 w-5" />}
+          icon={AlertTriangle}
           loading={isLoading}
           hint={`${summary?.negative_margin_count || 0} com margem negativa`}
-          accent={(summary?.negative_margin_count || 0) > 0 ? "negative" : "neutral"}
+          valueTone={(summary?.negative_margin_count || 0) > 0 ? "danger" : "default"}
         />
       </div>
 
-      {/* Filtros + Tabela */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" /> Inventário valorizado
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Linha 1: pesquisa rápida + categoria + filtros avançados */}
-          <div className="flex gap-2 flex-wrap">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Procurar nome ou SKU..."
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="pl-9 pr-9"
-              />
-              {filters.search && (
-                <button
-                  onClick={() => setFilters({ ...filters, search: "" })}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label="Limpar pesquisa"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <Select value={filters.category} onValueChange={(v) => setFilters({ ...filters, category: v })}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as categorias</SelectItem>
-                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            <AdvancedFiltersSheet
-              filters={filters}
-              setFilters={setFilters}
-              bounds={bounds}
-              suppliers={suppliers}
-              brands={brands}
-              activeCount={activeFilterCount}
+      {/* Pesquisa por IA */}
+      <IXCard
+        title="Pesquisa por IA"
+        description="Descreva por funcionalidade, marca, intervalo de preço ou estado de stock."
+      >
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[240px]">
+            <Sparkles className="h-4 w-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder='ex: "terminais de presença com stock baixo e margem < 15%"'
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !aiLoading) runAiFilter(aiPrompt); }}
+              className="pl-10 pr-12 h-12 rounded-full"
+              disabled={aiLoading}
             />
+            <Button
+              type="button"
+              size="icon"
+              variant={listening ? "destructive" : "ghost"}
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
+              onClick={listening ? stopListening : startListening}
+              title={listening ? "Parar gravação" : "Falar (pt-PT)"}
+            >
+              {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
+          </div>
+          <Button
+            onClick={() => runAiFilter(aiPrompt)}
+            disabled={aiLoading || !aiPrompt.trim()}
+            className="rounded-full h-12 px-5"
+          >
+            {aiLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            Aplicar
+          </Button>
+        </div>
+        {listening && (
+          <div className="text-xs text-destructive flex items-center gap-1.5 mt-3">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+            </span>
+            A ouvir… fale agora
+          </div>
+        )}
+        {aiExplanation && (
+          <div className="text-xs text-muted-foreground flex items-start gap-1.5 mt-3">
+            <Sparkles className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+            <span>{aiExplanation}</span>
+          </div>
+        )}
+      </IXCard>
 
-            {activeFilterCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearAll}>
-                <X className="h-4 w-4 mr-1" /> Limpar
-              </Button>
+      {/* Inventário valorizado */}
+      <IXCard
+        title="Inventário valorizado"
+        description={filtered.length ? `${filtered.length} produtos · custo ${fmt(pageTotals.cost)} · PVP ${fmt(pageTotals.sale)}` : undefined}
+      >
+        {/* Toolbar */}
+        <div className="flex gap-2 flex-wrap mb-4">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="h-4 w-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Procurar nome ou SKU..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="pl-10 pr-10 h-12 rounded-full"
+            />
+            {filters.search && (
+              <button
+                onClick={() => setFilters({ ...filters, search: "" })}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Limpar pesquisa"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
+          <Select value={filters.category} onValueChange={(v) => setFilters({ ...filters, category: v })}>
+            <SelectTrigger className="w-[180px] h-12 rounded-full"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as categorias</SelectItem>
+              {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
 
-          {/* Linha 2: pesquisa IA */}
-          <div className="rounded-lg border bg-gradient-to-r from-primary/5 to-transparent p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Pesquisa por IA</span>
-              <span className="text-xs text-muted-foreground hidden sm:inline">
-                — descreva por funcionalidade, marca, intervalo de preço…
-              </span>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <div className="relative flex-1 min-w-[240px]">
-                <Input
-                  placeholder='ex: "terminais de controlo de presença com stock baixo e margem < 15%"'
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !aiLoading) runAiFilter(aiPrompt); }}
-                  className="pr-10"
-                  disabled={aiLoading}
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={listening ? "destructive" : "ghost"}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={listening ? stopListening : startListening}
-                  title={listening ? "Parar gravação" : "Falar (pt-PT)"}
-                >
-                  {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </Button>
-              </div>
-              <Button onClick={() => runAiFilter(aiPrompt)} disabled={aiLoading || !aiPrompt.trim()} size="sm">
-                {aiLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                Aplicar
-              </Button>
-            </div>
-            {listening && (
-              <div className="text-xs text-destructive flex items-center gap-1.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
-                </span>
-                A ouvir… fale agora
-              </div>
-            )}
-            {aiExplanation && (
-              <div className="text-xs text-muted-foreground flex items-start gap-1.5">
-                <Sparkles className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
-                <span>{aiExplanation}</span>
-              </div>
-            )}
-          </div>
+          <AdvancedFiltersSheet
+            filters={filters}
+            setFilters={setFilters}
+            bounds={bounds}
+            suppliers={suppliers}
+            brands={brands}
+            activeCount={activeFilterCount}
+          />
 
-          {/* Desktop / tablet: tabela completa */}
-          <div className="rounded-md border overflow-x-auto hidden md:block">
-            <Table className="text-xs [&_th]:h-9 [&_th]:px-2 [&_td]:p-2 [&_td]:align-top table-fixed w-full min-w-0">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="cursor-pointer w-[34%]" onClick={() => toggleSort("name")}>Produto / SKU</TableHead>
-                  <TableHead className="text-right cursor-pointer w-[90px]" onClick={() => toggleSort("stock")}>Stock</TableHead>
-                  <TableHead className="text-right w-[110px] bg-amber-50/40 dark:bg-amber-950/20">Custo un.</TableHead>
-                  <TableHead className="text-right cursor-pointer w-[110px] bg-amber-50/40 dark:bg-amber-950/20 border-r" onClick={() => toggleSort("cost_value")}>Valor custo</TableHead>
-                  <TableHead className="text-right w-[120px] bg-blue-50/40 dark:bg-blue-950/20">PVP un.</TableHead>
-                  <TableHead className="text-right cursor-pointer w-[110px] bg-blue-50/40 dark:bg-blue-950/20 border-r" onClick={() => toggleSort("sale_value")}>Valor PVP</TableHead>
-                  <TableHead className="text-right cursor-pointer w-[100px] bg-emerald-50/40 dark:bg-emerald-950/20" onClick={() => toggleSort("margin")}>€ lucro</TableHead>
-                  <TableHead className="text-right cursor-pointer w-[80px] bg-emerald-50/40 dark:bg-emerald-950/20" onClick={() => toggleSort("margin_pct")}>Markup</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((_, j) => (
-                        <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : pageRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                      Sem produtos para mostrar
-                    </TableCell>
+          {activeFilterCount > 0 && (
+            <Button variant="ghost" className="rounded-full h-12" onClick={clearAll}>
+              <X className="h-4 w-4 mr-1" /> Limpar
+            </Button>
+          )}
+        </div>
+
+        {/* Desktop / tablet */}
+        <div className="rounded-xl border border-border overflow-x-auto hidden md:block">
+          <Table className="text-xs [&_th]:h-9 [&_th]:px-2 [&_td]:p-2 [&_td]:align-top table-fixed w-full min-w-0">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="cursor-pointer w-[34%]" onClick={() => toggleSort("name")}>Produto / SKU</TableHead>
+                <TableHead className="text-right cursor-pointer w-[90px]" onClick={() => toggleSort("stock")}>Stock</TableHead>
+                <TableHead className="text-right w-[110px]">Custo un.</TableHead>
+                <TableHead className="text-right cursor-pointer w-[110px] border-r border-border" onClick={() => toggleSort("cost_value")}>Valor custo</TableHead>
+                <TableHead className="text-right w-[120px]">PVP un.</TableHead>
+                <TableHead className="text-right cursor-pointer w-[110px] border-r border-border" onClick={() => toggleSort("sale_value")}>Valor PVP</TableHead>
+                <TableHead className="text-right cursor-pointer w-[100px]" onClick={() => toggleSort("margin")}>€ lucro</TableHead>
+                <TableHead className="text-right cursor-pointer w-[80px]" onClick={() => toggleSort("margin_pct")}>Markup</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 8 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
+                    ))}
                   </TableRow>
-                ) : (
-                  pageRows.map((r) => {
-                    const suggested = r.suggested_base_price;
-                    const delta = suggested != null ? r.unit_sale_price - suggested : null;
-                    const belowMin = r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold;
-                    return (
-                      <TableRow key={r.product_id}>
-                        <TableCell>
-                          <div className="font-medium leading-snug line-clamp-2 break-words whitespace-normal" title={r.product_name}>{r.product_name}</div>
-                          {r.sku && <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {r.current_stock <= 0 ? (
-                            <Badge variant="destructive" className="text-[10px] px-1.5">0</Badge>
-                          ) : (
-                            <span className={belowMin ? "text-amber-600 font-medium" : ""}>{fmt(r.current_stock, false)}</span>
-                          )}
-                          {r.low_stock_threshold > 0 && (
-                            <div className="text-[10px] text-muted-foreground">min {fmt(r.low_stock_threshold, false)}</div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="font-medium">{fmt(r.total_unit_cost)}</div>
-                          {r.operational_cost_unit > 0 && (
-                            <div className="text-[10px] text-muted-foreground">+{fmt(r.operational_cost_unit)} op.</div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-medium border-r">{fmt(r.total_cost_value)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="font-medium">{fmt(r.unit_sale_price)}</div>
-                          {suggested != null && delta != null && Math.abs(delta) >= 0.01 && (
-                            <div className={`text-[10px] ${delta < 0 ? "text-destructive" : "text-emerald-600"}`}>
-                              sug. {fmt(suggested)}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-medium border-r">{fmt(r.total_sale_value)}</TableCell>
-                        <TableCell className={`text-right font-medium ${r.latent_margin < 0 ? "text-destructive" : "text-emerald-600"}`}>
-                          {fmt(r.latent_margin)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant={r.markup_pct < 0 ? "destructive" : r.markup_pct < 15 ? "secondary" : "default"} className="text-[10px] px-1.5">
-                            {r.markup_pct.toFixed(1)}%
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile: cards */}
-          <div className="md:hidden space-y-2">
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="rounded-md border p-3"><Skeleton className="h-16 w-full" /></div>
-              ))
-            ) : pageRows.length === 0 ? (
-              <div className="text-center text-muted-foreground py-10 border rounded-md text-sm">
-                Sem produtos para mostrar
-              </div>
-            ) : (
-              pageRows.map((r) => {
-                const suggested = r.suggested_base_price;
-                const delta = suggested != null ? r.unit_sale_price - suggested : null;
-                const belowMin = r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold;
-                return (
-                  <div key={r.product_id} className="rounded-md border p-3 bg-card">
-                    <div className="font-medium text-sm leading-snug break-words" title={r.product_name}>{r.product_name}</div>
-                    {r.sku && <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
-                    <div className="mt-2 flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Stock</span>
-                      <span className="flex items-center gap-2">
+                ))
+              ) : pageRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                    Sem produtos para mostrar
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pageRows.map((r) => {
+                  const suggested = r.suggested_base_price;
+                  const delta = suggested != null ? r.unit_sale_price - suggested : null;
+                  const belowMin = r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold;
+                  return (
+                    <TableRow key={r.product_id}>
+                      <TableCell>
+                        <div className="font-medium leading-snug line-clamp-2 break-words whitespace-normal" title={r.product_name}>{r.product_name}</div>
+                        {r.sku && <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
+                      </TableCell>
+                      <TableCell className="text-right">
                         {r.current_stock <= 0 ? (
-                          <Badge variant="destructive" className="text-[10px] px-1.5">0</Badge>
+                          <Badge variant="outline" className="text-[10px] px-1.5 border-destructive/40 text-destructive">0</Badge>
                         ) : (
-                          <span className={belowMin ? "text-amber-600 font-medium" : "font-medium"}>{fmt(r.current_stock, false)}</span>
+                          <span className={belowMin ? "text-foreground font-medium" : ""}>{fmt(r.current_stock, false)}</span>
                         )}
                         {r.low_stock_threshold > 0 && (
-                          <span className="text-[10px] text-muted-foreground">min {fmt(r.low_stock_threshold, false)}</span>
+                          <div className="text-[10px] text-muted-foreground">min {fmt(r.low_stock_threshold, false)}</div>
                         )}
-                      </span>
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded bg-amber-50/60 dark:bg-amber-950/20 p-2">
-                        <div className="text-[10px] text-muted-foreground">Custo un.</div>
+                      </TableCell>
+                      <TableCell className="text-right">
                         <div className="font-medium">{fmt(r.total_unit_cost)}</div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">Valor: {fmt(r.total_cost_value)}</div>
-                      </div>
-                      <div className="rounded bg-blue-50/60 dark:bg-blue-950/20 p-2">
-                        <div className="text-[10px] text-muted-foreground">PVP un.</div>
+                        {r.operational_cost_unit > 0 && (
+                          <div className="text-[10px] text-muted-foreground">+{fmt(r.operational_cost_unit)} op.</div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-medium border-r border-border">{fmt(r.total_cost_value)}</TableCell>
+                      <TableCell className="text-right">
                         <div className="font-medium">{fmt(r.unit_sale_price)}</div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">Valor: {fmt(r.total_sale_value)}</div>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-xs pt-2 border-t">
-                      <span className="text-muted-foreground">Lucro</span>
-                      <span className="flex items-center gap-2">
-                        <span className={`font-medium ${r.latent_margin < 0 ? "text-destructive" : "text-emerald-600"}`}>{fmt(r.latent_margin)}</span>
-                        <Badge variant={r.markup_pct < 0 ? "destructive" : r.markup_pct < 15 ? "secondary" : "default"} className="text-[10px] px-1.5">
+                        {suggested != null && delta != null && Math.abs(delta) >= 0.01 && (
+                          <div className={`text-[10px] ${delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            sug. {fmt(suggested)}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-medium border-r border-border">{fmt(r.total_sale_value)}</TableCell>
+                      <TableCell className={`text-right font-medium ${r.latent_margin < 0 ? "text-destructive" : "text-foreground"}`}>
+                        {fmt(r.latent_margin)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge
+                          variant="outline"
+                          className={
+                            r.markup_pct < 0
+                              ? "text-[10px] px-1.5 border-destructive/40 text-destructive"
+                              : r.markup_pct < 15
+                              ? "text-[10px] px-1.5 border-border text-muted-foreground"
+                              : "text-[10px] px-1.5 border-primary/30 text-primary"
+                          }
+                        >
                           {r.markup_pct.toFixed(1)}%
                         </Badge>
-                      </span>
-                    </div>
-                    {suggested != null && delta != null && Math.abs(delta) >= 0.01 && (
-                      <div className={`mt-1 text-[10px] text-right ${delta < 0 ? "text-destructive" : "text-emerald-600"}`}>
-                        PVP sugerido: {fmt(suggested)}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-          {/* Paginação + totais */}
-          {!isLoading && filtered.length > 0 && (
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between pt-3 border-t text-sm">
-              <div className="text-muted-foreground">
-                <span className="font-medium text-foreground">{filtered.length}</span> produtos
-                {" · "}
-                <span className="hidden sm:inline">Total custo: </span>
-                <strong className="text-foreground">{fmt(pageTotals.cost)}</strong>
-                {" · "}
-                <span className="hidden sm:inline">Total PVP: </span>
-                <strong className="text-foreground">{fmt(pageTotals.sale)}</strong>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-                  <SelectTrigger className="w-[110px] h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAGE_SIZES.map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n} / página</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="sm" className="h-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {page} / {totalPages}
-                </span>
-                <Button variant="outline" size="sm" className="h-8" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+        {/* Mobile */}
+        <div className="md:hidden space-y-2">
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-border p-3"><Skeleton className="h-16 w-full" /></div>
+            ))
+          ) : pageRows.length === 0 ? (
+            <div className="text-center text-muted-foreground py-10 border border-border rounded-xl text-sm">
+              Sem produtos para mostrar
             </div>
+          ) : (
+            pageRows.map((r) => {
+              const suggested = r.suggested_base_price;
+              const delta = suggested != null ? r.unit_sale_price - suggested : null;
+              const belowMin = r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold;
+              return (
+                <div key={r.product_id} className="rounded-xl border border-border p-3 bg-card">
+                  <div className="font-medium text-sm leading-snug break-words" title={r.product_name}>{r.product_name}</div>
+                  {r.sku && <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
+                  <div className="mt-2 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Stock</span>
+                    <span className="flex items-center gap-2">
+                      {r.current_stock <= 0 ? (
+                        <Badge variant="outline" className="text-[10px] px-1.5 border-destructive/40 text-destructive">0</Badge>
+                      ) : (
+                        <span className={belowMin ? "font-medium" : "font-medium"}>{fmt(r.current_stock, false)}</span>
+                      )}
+                      {r.low_stock_threshold > 0 && (
+                        <span className="text-[10px] text-muted-foreground">min {fmt(r.low_stock_threshold, false)}</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg bg-muted/60 p-2">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Custo un.</div>
+                      <div className="font-medium">{fmt(r.total_unit_cost)}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Valor: {fmt(r.total_cost_value)}</div>
+                    </div>
+                    <div className="rounded-lg bg-muted/60 p-2">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">PVP un.</div>
+                      <div className="font-medium">{fmt(r.unit_sale_price)}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Valor: {fmt(r.total_sale_value)}</div>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs pt-2 border-t border-border">
+                    <span className="text-muted-foreground">Lucro</span>
+                    <span className="flex items-center gap-2">
+                      <span className={`font-medium ${r.latent_margin < 0 ? "text-destructive" : "text-foreground"}`}>{fmt(r.latent_margin)}</span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          r.markup_pct < 0
+                            ? "text-[10px] px-1.5 border-destructive/40 text-destructive"
+                            : r.markup_pct < 15
+                            ? "text-[10px] px-1.5 border-border text-muted-foreground"
+                            : "text-[10px] px-1.5 border-primary/30 text-primary"
+                        }
+                      >
+                        {r.markup_pct.toFixed(1)}%
+                      </Badge>
+                    </span>
+                  </div>
+                  {suggested != null && delta != null && Math.abs(delta) >= 0.01 && (
+                    <div className={`mt-1 text-[10px] text-right ${delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                      PVP sugerido: {fmt(suggested)}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Paginação */}
+        {!isLoading && filtered.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between pt-4 mt-4 border-t border-border text-sm">
+            <div className="text-muted-foreground">
+              <span className="font-medium text-foreground">{filtered.length}</span> produtos
+              {" · "}
+              <span className="hidden sm:inline">Total custo: </span>
+              <strong className="text-foreground">{fmt(pageTotals.cost)}</strong>
+              {" · "}
+              <span className="hidden sm:inline">Total PVP: </span>
+              <strong className="text-foreground">{fmt(pageTotals.sale)}</strong>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="w-[110px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZES.map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n} / página</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="h-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {page} / {totalPages}
+              </span>
+              <Button variant="outline" size="sm" className="h-8" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </IXCard>
     </div>
   );
 }
@@ -772,7 +745,7 @@ function AdvancedFiltersSheet({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="default" className="gap-2">
+        <Button variant="outline" className="gap-2 rounded-full h-12">
           <SlidersHorizontal className="h-4 w-4" /> Filtros
           {activeCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeCount}</Badge>}
         </Button>
@@ -785,7 +758,6 @@ function AdvancedFiltersSheet({
 
         <ScrollArea className="flex-1 -mx-6 px-6 my-4">
           <div className="space-y-6">
-            {/* Stock */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Estado de stock</Label>
               <Select value={local.stockState} onValueChange={(v: StockState) => setLocal({ ...local, stockState: v })}>
@@ -800,7 +772,6 @@ function AdvancedFiltersSheet({
               </Select>
             </div>
 
-            {/* Markup */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Banda de markup</Label>
               <Select value={local.markupBand} onValueChange={(v: MarkupBand) => setLocal({ ...local, markupBand: v })}>
@@ -815,7 +786,6 @@ function AdvancedFiltersSheet({
               </Select>
             </div>
 
-            {/* Valor a custo */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Valor a custo (€)</Label>
@@ -832,7 +802,6 @@ function AdvancedFiltersSheet({
               />
             </div>
 
-            {/* Valor a PVP */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Valor a PVP (€)</Label>
@@ -849,7 +818,6 @@ function AdvancedFiltersSheet({
               />
             </div>
 
-            {/* Fornecedores */}
             {suppliers.length > 0 && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
@@ -873,7 +841,6 @@ function AdvancedFiltersSheet({
               </div>
             )}
 
-            {/* Marcas */}
             {brands.length > 0 && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
@@ -908,28 +875,29 @@ function AdvancedFiltersSheet({
   );
 }
 
-function KpiCard({
-  title, value, icon, hint, loading, accent = "neutral",
+// ===== KPI tile neutro =====
+function KpiTile({
+  title, value, icon: Icon, hint, loading, valueTone = "default",
 }: {
-  title: string; value: string; icon: React.ReactNode; hint?: string; loading?: boolean;
-  accent?: "neutral" | "positive" | "negative";
+  title: string; value: string; icon: any; hint?: string; loading?: boolean;
+  valueTone?: "default" | "danger";
 }) {
-  const accentClass =
-    accent === "positive" ? "text-emerald-600" : accent === "negative" ? "text-destructive" : "text-foreground";
   return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-2">
-          <span className="text-sm text-muted-foreground">{title}</span>
-          <span className="text-muted-foreground">{icon}</span>
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1.5 min-w-0">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{title}</p>
+          {loading ? (
+            <Skeleton className="h-8 w-32" />
+          ) : (
+            <p className={`text-2xl font-bold ${valueTone === "danger" ? "text-destructive" : "text-foreground"}`}>{value}</p>
+          )}
+          {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
         </div>
-        {loading ? (
-          <Skeleton className="h-8 w-32" />
-        ) : (
-          <div className={`text-2xl font-bold ${accentClass}`}>{value}</div>
-        )}
-        {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
-      </CardContent>
-    </Card>
+        <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </div>
+    </div>
   );
 }
