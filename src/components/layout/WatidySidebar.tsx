@@ -223,7 +223,8 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
     (k: MegaGroup) => {
       if (filter.trim()) return true;
       if (expandedGroups[k] !== undefined) return expandedGroups[k];
-      return activeMegaFromRoute === k;
+      // Abrir por defeito — reduz cliques para chegar a qualquer item (consistente com as secções)
+      return true;
     },
     [expandedGroups, filter, activeMegaFromRoute],
   );
