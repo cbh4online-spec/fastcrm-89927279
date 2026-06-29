@@ -28,6 +28,7 @@ import { useInventoryValuation, type InventoryValuationRow } from "@/hooks/useIn
 import { useStockEnrichment } from "@/hooks/useStockEnrichment";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { IXCard } from "@/components/entity/ix/IXCard";
 
 const fmt = (n: number, currency = true) =>
@@ -321,6 +322,7 @@ export default function StockValuationPage() {
   };
 
   return (
+    <DashboardLayout>
     <div className="container mx-auto p-4 md:p-6 space-y-6">
       <Helmet>
         <title>Stock Valorizado (FIFO) | FastCRM</title>
@@ -695,6 +697,7 @@ export default function StockValuationPage() {
         )}
       </IXCard>
     </div>
+    </DashboardLayout>
   );
 }
 
