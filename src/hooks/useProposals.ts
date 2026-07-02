@@ -569,6 +569,7 @@ export interface ProposalItem {
     images: string[] | null;
     primary_image_index: number | null;
     status?: string | null;
+    sku?: string | null;
   } | null;
 }
 
