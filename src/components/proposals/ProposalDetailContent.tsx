@@ -1101,6 +1101,7 @@ export function ProposalDetailContent({
                         operational_cost_snapshot: item.operational_cost_snapshot,
                         product_id: item.product_id,
                         product_status: item.product?.status,
+                        sku: item.product?.sku,
                       }))}
                       onItemToggle={handleItemToggle}
                       onQuantityChange={handleItemQuantityChange}
