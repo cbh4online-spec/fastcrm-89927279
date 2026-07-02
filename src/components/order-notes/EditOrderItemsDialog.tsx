@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -36,6 +36,8 @@ interface Props {
 export function EditOrderItemsDialog({ open, onOpenChange, orderId, items, onSuccess }: Props) {
   const [rows, setRows] = useState<EditableItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [overrideGross, setOverrideGross] = useState<number | null>(null);
+  const [editingTotal, setEditingTotal] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -49,21 +51,31 @@ export function EditOrderItemsDialog({ open, onOpenChange, orderId, items, onSuc
           vat_rate: Number(it.vat_rate ?? 23),
         }))
       );
+      setOverrideGross(null);
+      setEditingTotal(false);
     }
   }, [open, items]);
 
   const activeRows = rows.filter((r) => !r._delete);
+  // Compute two totals: "unrounded" (matches dialog global sum) and "line-rounded" (matches invoice/detail)
   const totals = activeRows.reduce(
     (acc, r) => {
       const net = r.quantity * r.unit_price_net;
       const vat = net * (r.vat_rate / 100);
+      const lineNet = +(r.quantity * r.unit_price_net).toFixed(2);
+      const lineVat = +(lineNet * (r.vat_rate / 100)).toFixed(2);
       acc.net += net;
       acc.vat += vat;
+      acc.lineNet += lineNet;
+      acc.lineVat += lineVat;
+      acc.lineGross += +(lineNet + lineVat).toFixed(2);
       return acc;
     },
-    { net: 0, vat: 0 }
+    { net: 0, vat: 0, lineNet: 0, lineVat: 0, lineGross: 0 }
   );
-  const gross = totals.net + totals.vat;
+  const computedGross = +(totals.net + totals.vat).toFixed(2);
+  const gross = overrideGross ?? computedGross;
+  const hasRoundingDiff = Math.abs(totals.lineGross - computedGross) >= 0.01;
 
   const update = (id: string, patch: Partial<EditableItem>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -97,13 +109,16 @@ export function EditOrderItemsDialog({ open, onOpenChange, orderId, items, onSuc
         if (error) throw error;
       }
 
-      // Order totals
+      // Order totals — use override if defined, else the summed (unrounded) totals
+      const finalGross = overrideGross ?? +(totals.net + totals.vat).toFixed(2);
+      const finalNet = +totals.net.toFixed(2);
+      const finalVat = +(finalGross - finalNet).toFixed(2);
       const { error: orderErr } = await supabase
         .from("order_notes")
         .update({
-          total_net: +totals.net.toFixed(2),
-          total_vat: +totals.vat.toFixed(2),
-          total_gross: +gross.toFixed(2),
+          total_net: finalNet,
+          total_vat: finalVat,
+          total_gross: finalGross,
         })
         .eq("id", orderId);
       if (orderErr) throw orderErr;
@@ -209,12 +224,59 @@ export function EditOrderItemsDialog({ open, onOpenChange, orderId, items, onSuc
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">IVA</span>
-            <span>€{totals.vat.toFixed(2)}</span>
+            <span>€{(gross - totals.net).toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-base font-bold pt-1">
+          <div className="flex justify-between items-center text-base font-bold pt-1">
             <span>Total</span>
-            <span className="text-primary">€{gross.toFixed(2)}</span>
+            <div className="flex items-center gap-2">
+              {editingTotal ? (
+                <>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="h-8 w-28 text-right"
+                    value={overrideGross ?? computedGross}
+                    onChange={(e) => setOverrideGross(Number(e.target.value) || 0)}
+                    autoFocus
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      setOverrideGross(null);
+                      setEditingTotal(false);
+                    }}
+                    aria-label="Repor total calculado"
+                    title="Repor total calculado"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="text-primary">€{gross.toFixed(2)}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setEditingTotal(true)}
+                    aria-label="Editar total manualmente"
+                    title="Ajustar total manualmente"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
+          {hasRoundingDiff && overrideGross === null && (
+            <p className="text-xs text-muted-foreground pt-1">
+              Nota: a soma linha a linha (com IVA arredondado por linha) dá €{totals.lineGross.toFixed(2)}.
+              Diferença de €{Math.abs(totals.lineGross - computedGross).toFixed(2)} por arredondamento.
+              Usa o lápis para forçar o total pretendido.
+            </p>
+          )}
         </div>
 
         <DialogFooter>
