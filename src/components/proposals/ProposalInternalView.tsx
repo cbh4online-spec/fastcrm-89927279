@@ -526,20 +526,6 @@ export function ProposalInternalView({
                 )}>
                   {formatCurrency(totalMargin, proposal.currency)} ({marginPct.toFixed(0)}%)
                 </TableCell>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={5} className="text-right font-semibold">
-                  TOTAL {disabledCount > 0 && <span className="text-xs text-muted-foreground font-normal">(itens activos)</span>}
-                </TableCell>
-                <TableCell className="text-right text-muted-foreground font-medium">
-                  {formatCurrency(totalCost, proposal.currency)}
-                </TableCell>
-                <TableCell className={cn(
-                  "text-right font-semibold",
-                  marginPct >= 30 ? "text-green-600" : "text-red-600"
-                )}>
-                  {formatCurrency(totalMargin, proposal.currency)} ({marginPct.toFixed(0)}%)
-                </TableCell>
                 <TableCell className="text-right font-semibold">
                   {formatCurrency(itemsTotal, proposal.currency)}
                 </TableCell>
