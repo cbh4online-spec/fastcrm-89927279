@@ -57,12 +57,13 @@ import { cn } from "@/lib/utils";
 
 interface ProposalInternalViewProps {
   proposal: Proposal;
-  items?: (PreviewItem & { 
+  items?: (PreviewItem & {
     is_enabled?: boolean;
     cost_snapshot?: number | null;
     operational_cost_snapshot?: number | null;
     product_id?: string | null;
     product_status?: string | null;
+    sku?: string | null;
   })[];
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onQuantityChange?: (itemId: string, quantity: number) => void;
