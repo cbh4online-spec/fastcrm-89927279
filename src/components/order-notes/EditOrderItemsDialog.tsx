@@ -224,12 +224,59 @@ export function EditOrderItemsDialog({ open, onOpenChange, orderId, items, onSuc
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">IVA</span>
-            <span>€{totals.vat.toFixed(2)}</span>
+            <span>€{(gross - totals.net).toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-base font-bold pt-1">
+          <div className="flex justify-between items-center text-base font-bold pt-1">
             <span>Total</span>
-            <span className="text-primary">€{gross.toFixed(2)}</span>
+            <div className="flex items-center gap-2">
+              {editingTotal ? (
+                <>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="h-8 w-28 text-right"
+                    value={overrideGross ?? computedGross}
+                    onChange={(e) => setOverrideGross(Number(e.target.value) || 0)}
+                    autoFocus
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      setOverrideGross(null);
+                      setEditingTotal(false);
+                    }}
+                    aria-label="Repor total calculado"
+                    title="Repor total calculado"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="text-primary">€{gross.toFixed(2)}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setEditingTotal(true)}
+                    aria-label="Editar total manualmente"
+                    title="Ajustar total manualmente"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
+          {hasRoundingDiff && overrideGross === null && (
+            <p className="text-xs text-muted-foreground pt-1">
+              Nota: a soma linha a linha (com IVA arredondado por linha) dá €{totals.lineGross.toFixed(2)}.
+              Diferença de €{Math.abs(totals.lineGross - computedGross).toFixed(2)} por arredondamento.
+              Usa o lápis para forçar o total pretendido.
+            </p>
+          )}
         </div>
 
         <DialogFooter>
