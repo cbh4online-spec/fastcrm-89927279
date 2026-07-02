@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { EditClientDataDialog } from "./EditClientDataDialog";
+import { EditOrderItemsDialog } from "./EditOrderItemsDialog";
 import {
   Mail,
   Phone,
@@ -49,6 +50,7 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
   const [newNote, setNewNote] = useState("");
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [editClientOpen, setEditClientOpen] = useState(false);
+  const [editItemsOpen, setEditItemsOpen] = useState(false);
 
   if (loading) {
     return (
@@ -260,6 +262,11 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
         <IXCard
           className="lg:col-span-2"
           title={`Produtos (${order.items?.length || 0})`}
+          actions={
+            <Button variant="ghost" size="icon" onClick={() => setEditItemsOpen(true)} aria-label="Editar valores">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          }
         >
           <div className="divide-y divide-border">
             {order.items?.map((item) => (
@@ -380,6 +387,14 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
           onSuccess={refetch}
         />
       )}
+
+      <EditOrderItemsDialog
+        open={editItemsOpen}
+        onOpenChange={setEditItemsOpen}
+        orderId={orderId}
+        items={order.items || []}
+        onSuccess={refetch}
+      />
     </div>
   );
 }
