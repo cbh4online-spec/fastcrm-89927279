@@ -23,6 +23,7 @@ import {
   Ban,
   Loader2,
   Receipt,
+  Send,
 } from "lucide-react";
 
 interface OrderNoteActionsProps {
