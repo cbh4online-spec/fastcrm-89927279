@@ -50,6 +50,7 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
   const [newNote, setNewNote] = useState("");
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [editClientOpen, setEditClientOpen] = useState(false);
+  const [editItemsOpen, setEditItemsOpen] = useState(false);
 
   if (loading) {
     return (
