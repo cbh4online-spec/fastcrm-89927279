@@ -90,18 +90,24 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
     onSuccess?.();
   };
 
+  const handleSubmit = async () => {
+    await changeStatus({ orderId: order.id, newStatus: "submitted" });
+    onSuccess?.();
+  };
+
   const status = order.status as OrderNoteStatus;
 
   // Define available actions based on current status
+  const showSubmit = status === "draft";
   const showApprove = ["submitted", "awaiting_approval"].includes(status);
   const showReject = status === "awaiting_approval";
   const showInPreparation = ["submitted", "approved"].includes(status);
   const showConvertToInvoice = status === "in_preparation";
-  const showCancel = ["submitted", "awaiting_approval"].includes(status);
+  const showCancel = ["draft", "submitted", "awaiting_approval"].includes(status);
 
   const isProcessing = isChanging || convertToInvoice.isPending;
 
-  if (!showApprove && !showReject && !showInPreparation && !showConvertToInvoice && !showCancel) {
+  if (!showSubmit && !showApprove && !showReject && !showInPreparation && !showConvertToInvoice && !showCancel) {
     return null;
   }
 
