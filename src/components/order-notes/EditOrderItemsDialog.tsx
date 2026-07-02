@@ -109,13 +109,16 @@ export function EditOrderItemsDialog({ open, onOpenChange, orderId, items, onSuc
         if (error) throw error;
       }
 
-      // Order totals
+      // Order totals — use override if defined, else the summed (unrounded) totals
+      const finalGross = overrideGross ?? +(totals.net + totals.vat).toFixed(2);
+      const finalNet = +totals.net.toFixed(2);
+      const finalVat = +(finalGross - finalNet).toFixed(2);
       const { error: orderErr } = await supabase
         .from("order_notes")
         .update({
-          total_net: +totals.net.toFixed(2),
-          total_vat: +totals.vat.toFixed(2),
-          total_gross: +gross.toFixed(2),
+          total_net: finalNet,
+          total_vat: finalVat,
+          total_gross: finalGross,
         })
         .eq("id", orderId);
       if (orderErr) throw orderErr;
