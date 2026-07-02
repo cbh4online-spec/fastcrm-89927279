@@ -187,7 +187,7 @@ export function POSProductSelector({
       {/* Products Grid */}
       <ScrollArea className="flex-1">
         {isLoadingProducts ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-32 rounded-lg" />
             ))}
@@ -201,7 +201,7 @@ export function POSProductSelector({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pr-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 pr-4">
             {filteredProducts.map((product) => {
               const isSelected = selectedProductIds.includes(product.id);
               const currentQty = quantities[product.id] || 0;
