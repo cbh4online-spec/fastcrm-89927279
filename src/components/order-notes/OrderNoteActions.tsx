@@ -42,6 +42,7 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
   const [invoiceNotes, setInvoiceNotes] = useState("");
 
   const {
+    changeStatus,
     approve,
     reject,
     markInPreparation,
