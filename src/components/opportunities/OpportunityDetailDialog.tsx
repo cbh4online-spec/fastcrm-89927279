@@ -31,6 +31,7 @@ import { OpportunityContactsSidebar } from "./detail/OpportunityContactsSidebar"
 import { OpportunityActivityTimeline } from "./detail/OpportunityActivityTimeline";
 import { OpportunityDetailsGrid } from "./detail/OpportunityDetailsGrid";
 import { BillingAssistantButton } from "@/components/billing-assistant";
+import { NotesSection } from "@/components/leads/sections/NotesSection";
 
 interface OpportunityDetailDialogProps {
   opportunity: Opportunity;
