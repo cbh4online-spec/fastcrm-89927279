@@ -521,7 +521,7 @@ export function ProposalInternalView({
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={5} className="text-right font-semibold">
+                <TableCell colSpan={6} className="text-right font-semibold">
                   TOTAL {disabledCount > 0 && <span className="text-xs text-muted-foreground font-normal">(itens activos)</span>}
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground font-medium">
@@ -539,7 +539,7 @@ export function ProposalInternalView({
               </TableRow>
               {totalDiscount > 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="text-right text-sm text-muted-foreground">
                     Descontos aplicados
                   </TableCell>
                   <TableCell className="text-right text-sm text-red-600">
@@ -548,7 +548,7 @@ export function ProposalInternalView({
                 </TableRow>
               )}
               <TableRow>
-                <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="text-right text-sm text-muted-foreground">
                   Subtotal (s/ IVA)
                 </TableCell>
                 <TableCell className="text-right text-sm font-medium">
@@ -556,7 +556,7 @@ export function ProposalInternalView({
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="text-right text-sm text-muted-foreground">
                   IVA ({(VAT_RATE * 100).toFixed(0)}%)
                 </TableCell>
                 <TableCell className="text-right text-sm font-medium">
@@ -564,7 +564,7 @@ export function ProposalInternalView({
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell colSpan={7} className="text-right font-bold">
+                <TableCell colSpan={8} className="text-right font-bold">
                   Total (c/ IVA)
                 </TableCell>
                 <TableCell className="text-right font-bold text-primary text-lg">
