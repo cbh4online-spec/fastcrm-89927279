@@ -23,6 +23,7 @@ import {
   Ban,
   Loader2,
   Receipt,
+  Send,
 } from "lucide-react";
 
 interface OrderNoteActionsProps {
@@ -41,6 +42,7 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
   const [invoiceNotes, setInvoiceNotes] = useState("");
 
   const {
+    changeStatus,
     approve,
     reject,
     markInPreparation,
@@ -88,18 +90,24 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
     onSuccess?.();
   };
 
+  const handleSubmit = async () => {
+    await changeStatus({ orderId: order.id, newStatus: "submitted" });
+    onSuccess?.();
+  };
+
   const status = order.status as OrderNoteStatus;
 
   // Define available actions based on current status
+  const showSubmit = status === "draft";
   const showApprove = ["submitted", "awaiting_approval"].includes(status);
   const showReject = status === "awaiting_approval";
   const showInPreparation = ["submitted", "approved"].includes(status);
   const showConvertToInvoice = status === "in_preparation";
-  const showCancel = ["submitted", "awaiting_approval"].includes(status);
+  const showCancel = ["draft", "submitted", "awaiting_approval"].includes(status);
 
   const isProcessing = isChanging || convertToInvoice.isPending;
 
-  if (!showApprove && !showReject && !showInPreparation && !showConvertToInvoice && !showCancel) {
+  if (!showSubmit && !showApprove && !showReject && !showInPreparation && !showConvertToInvoice && !showCancel) {
     return null;
   }
 
@@ -110,6 +118,21 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
       </h3>
       
       <div className="flex flex-wrap gap-2">
+        {showSubmit && (
+          <Button
+            onClick={handleSubmit}
+            disabled={isChanging}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isChanging ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4 mr-2" />
+            )}
+            Submeter
+          </Button>
+        )}
+
         {showApprove && (
           <Button
             onClick={handleApprove}
