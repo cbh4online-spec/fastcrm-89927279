@@ -77,8 +77,8 @@ export function CreateOpportunityDialog({
   const createOpportunity = useCreateOpportunity();
   const { data: stages } = usePipelineStages();
   const { data: leads } = useLeads();
-  const { data: contacts } = useContacts();
-  const { data: companies } = useCompanies();
+  const { contacts } = useContacts();
+  const { companies } = useCompanies();
   const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
