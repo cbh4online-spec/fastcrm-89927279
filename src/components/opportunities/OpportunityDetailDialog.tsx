@@ -276,8 +276,9 @@ export function OpportunityDetailDialog({
                     </div>
                   </TabsContent>
                 </Tabs>
-
+              </div>
             </ScrollArea>
+
           </div>
 
           {/* Right Sidebar */}
