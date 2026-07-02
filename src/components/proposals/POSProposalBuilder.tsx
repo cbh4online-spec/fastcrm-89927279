@@ -127,7 +127,7 @@ export function POSProposalBuilder({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full min-h-[500px]">
       {/* Product Selector - Main Area */}
-      <div className="lg:col-span-6 flex flex-col min-h-0">
+      <div className="lg:col-span-7 flex flex-col min-h-0">
         <POSProductSelector
           selectedProductIds={getSelectedProductIds()}
           quantities={quantities}
@@ -137,34 +137,36 @@ export function POSProposalBuilder({
         />
       </div>
 
-      {/* AI Suggestions */}
-      <div className="lg:col-span-3 min-h-0">
-        <AIProductSuggestions
-          opportunityTitle={opportunityTitle}
-          opportunityValue={opportunityValue}
-          leadName={leadName}
-          companyName={companyName}
-          existingProductIds={getSelectedProductIds()}
-          onAddProduct={handleAddProduct}
-        />
-      </div>
+      {/* Right Column: AI Suggestions + Cart stacked */}
+      <div className="lg:col-span-5 flex flex-col gap-4 min-h-0">
+        <div className="shrink-0 max-h-[35%] overflow-hidden">
+          <AIProductSuggestions
+            opportunityTitle={opportunityTitle}
+            opportunityValue={opportunityValue}
+            leadName={leadName}
+            companyName={companyName}
+            existingProductIds={getSelectedProductIds()}
+            onAddProduct={handleAddProduct}
+          />
+        </div>
 
-      {/* Cart */}
-      <div className="lg:col-span-3 min-h-0">
-        <ProposalCart
-          items={items}
-          onUpdateQuantity={handleUpdateQuantity}
-          onUpdatePrice={handleUpdatePrice}
-          onUpdateDiscount={handleUpdateDiscount}
-          onUpdateName={handleUpdateName}
-          onUpdateDescription={handleUpdateDescription}
-          onRemoveItem={handleRemoveProduct}
-          onClear={handleClear}
-          tierName={tier?.name}
-          tierColor={tier?.color}
-          discountPercentage={discountPercentage}
-        />
+        <div className="flex-1 min-h-0">
+          <ProposalCart
+            items={items}
+            onUpdateQuantity={handleUpdateQuantity}
+            onUpdatePrice={handleUpdatePrice}
+            onUpdateDiscount={handleUpdateDiscount}
+            onUpdateName={handleUpdateName}
+            onUpdateDescription={handleUpdateDescription}
+            onRemoveItem={handleRemoveProduct}
+            onClear={handleClear}
+            tierName={tier?.name}
+            tierColor={tier?.color}
+            discountPercentage={discountPercentage}
+          />
+        </div>
       </div>
     </div>
   );
 }
+
