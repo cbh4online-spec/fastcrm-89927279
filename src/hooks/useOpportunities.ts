@@ -36,6 +36,8 @@ export interface Opportunity {
 export interface CreateOpportunityInput {
   title: string;
   lead_id?: string;
+  contact_id?: string;
+  company_id?: string;
   value?: number;
   stage_id: string;
   status?: OpportunityStatus;
