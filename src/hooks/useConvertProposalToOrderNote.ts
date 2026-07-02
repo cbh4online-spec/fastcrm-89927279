@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ interface ConvertToOrderNoteInput {
 
 export function useConvertProposalToOrderNote() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
 
   return useMutation({
@@ -222,7 +224,15 @@ export function useConvertProposalToOrderNote() {
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       queryClient.invalidateQueries({ queryKey: ["converted-proposal-ids"] });
-      toast.success(`Nota de Encomenda #${orderNote.order_number} criada com sucesso`);
+      toast.success(`Nota de Encomenda #${orderNote.order_number} criada com sucesso`, {
+        action: {
+          label: "Ver encomenda",
+          onClick: () => navigate(`/dashboard/order-notes/${orderNote.id}`),
+        },
+        duration: 8000,
+      });
+      // Auto-navigate to the newly created order note
+      navigate(`/dashboard/order-notes/${orderNote.id}`);
     },
     onError: (error) => {
       console.error("Error converting proposal to order note:", error);
