@@ -12,6 +12,7 @@ interface ConvertToOrderNoteInput {
 
 export function useConvertProposalToOrderNote() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
 
   return useMutation({
