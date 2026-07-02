@@ -252,31 +252,11 @@ export function OpportunityDetailDialog({
                       </TabsContent>
 
                       <TabsContent value="notes" className="mt-6">
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              Notas
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            <Textarea
-                              value={notes}
-                              onChange={(e) => setNotes(e.target.value)}
-                              placeholder="Adicione notas sobre esta oportunidade..."
-                              className="min-h-[200px]"
-                            />
-                            <div className="flex justify-end">
-                              <Button 
-                                size="sm" 
-                                onClick={handleSaveNotes}
-                                disabled={isSavingNotes}
-                              >
-                                {isSavingNotes ? "A guardar..." : "Guardar Notas"}
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                        <NotesSection
+                          entityType="opportunity"
+                          entityId={opp.id}
+                          entityName={opp.title}
+                        />
                       </TabsContent>
                     </Tabs>
                   </div>
