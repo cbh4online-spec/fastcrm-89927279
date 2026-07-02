@@ -194,72 +194,7 @@ export function OpportunityDetailDialog({
               <div className="p-6 space-y-6">
                 {/* Title and Actions */}
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h1 className="text-2xl font-bold">{opp.title}</h1>
-                    <Tabs defaultValue="overview" className="mt-2">
-                      <TabsList className="h-9 bg-transparent p-0 gap-4">
-                        <TabsTrigger 
-                          value="overview"
-                          className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 h-9 border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
-                        >
-                          Resumo
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="tasks"
-                          className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 h-9 border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
-                        >
-                          Tarefas
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="notes"
-                          className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 h-9 border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
-                        >
-                          Notas
-                        </TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="overview" className="mt-6 space-y-6">
-                        {/* Stages Stepper */}
-                        <OpportunityStagesStepper
-                          stages={stages}
-                          currentStageId={opp.stage_id}
-                          onMoveToNext={handleMoveToNextStage}
-                          isLoading={isMovingStage}
-                        />
-
-                        {/* Details Grid */}
-                        <Card className="border shadow-sm">
-                          <CardContent className="p-5">
-                            <OpportunityDetailsGrid opportunity={opp} />
-                          </CardContent>
-                        </Card>
-
-                        {/* Activity Timeline */}
-                        <OpportunityActivityTimeline
-                          activities={formattedActivities}
-                          opportunityId={opp.id}
-                        />
-                      </TabsContent>
-
-                      <TabsContent value="tasks" className="mt-6">
-                        <Card className="border-dashed">
-                          <CardContent className="p-8 text-center text-muted-foreground">
-                            <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>Tarefas relacionadas</p>
-                            <p className="text-xs mt-1">Em breve disponível</p>
-                          </CardContent>
-                        </Card>
-                      </TabsContent>
-
-                      <TabsContent value="notes" className="mt-6">
-                        <NotesSection
-                          entityType="opportunity"
-                          entityId={opp.id}
-                          entityName={opp.title}
-                        />
-                      </TabsContent>
-                    </Tabs>
-                  </div>
+                  <h1 className="text-2xl font-bold">{opp.title}</h1>
 
                   {/* Status Actions */}
                   <div className="flex gap-2 shrink-0">
@@ -278,7 +213,70 @@ export function OpportunityDetailDialog({
                     )}
                   </div>
                 </div>
-              </div>
+
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="h-9 bg-transparent p-0 gap-4">
+                    <TabsTrigger
+                      value="overview"
+                      className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 h-9 border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
+                    >
+                      Resumo
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="tasks"
+                      className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 h-9 border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
+                    >
+                      Tarefas
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="notes"
+                      className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 h-9 border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
+                    >
+                      Notas
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="mt-6 space-y-6">
+                    <OpportunityStagesStepper
+                      stages={stages}
+                      currentStageId={opp.stage_id}
+                      onMoveToNext={handleMoveToNextStage}
+                      isLoading={isMovingStage}
+                    />
+
+                    <Card className="border shadow-sm">
+                      <CardContent className="p-5">
+                        <OpportunityDetailsGrid opportunity={opp} />
+                      </CardContent>
+                    </Card>
+
+                    <OpportunityActivityTimeline
+                      activities={formattedActivities}
+                      opportunityId={opp.id}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="tasks" className="mt-6">
+                    <Card className="border-dashed">
+                      <CardContent className="p-8 text-center text-muted-foreground">
+                        <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>Tarefas relacionadas</p>
+                        <p className="text-xs mt-1">Em breve disponível</p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="notes" className="mt-6">
+                    <div className="w-full">
+                      <NotesSection
+                        entityType="opportunity"
+                        entityId={opp.id}
+                        entityName={opp.title}
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
             </ScrollArea>
           </div>
 
