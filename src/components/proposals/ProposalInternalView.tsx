@@ -526,8 +526,56 @@ export function ProposalInternalView({
                 )}>
                   {formatCurrency(totalMargin, proposal.currency)} ({marginPct.toFixed(0)}%)
                 </TableCell>
-                <TableCell className="text-right font-bold text-primary text-lg">
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={5} className="text-right font-semibold">
+                  TOTAL {disabledCount > 0 && <span className="text-xs text-muted-foreground font-normal">(itens activos)</span>}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground font-medium">
+                  {formatCurrency(totalCost, proposal.currency)}
+                </TableCell>
+                <TableCell className={cn(
+                  "text-right font-semibold",
+                  marginPct >= 30 ? "text-green-600" : "text-red-600"
+                )}>
+                  {formatCurrency(totalMargin, proposal.currency)} ({marginPct.toFixed(0)}%)
+                </TableCell>
+                <TableCell className="text-right font-semibold">
                   {formatCurrency(itemsTotal, proposal.currency)}
+                </TableCell>
+              </TableRow>
+              {totalDiscount > 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                    Descontos aplicados
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-red-600">
+                    −{formatCurrency(totalDiscount, proposal.currency)}
+                  </TableCell>
+                </TableRow>
+              )}
+              <TableRow>
+                <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                  Subtotal (s/ IVA)
+                </TableCell>
+                <TableCell className="text-right text-sm font-medium">
+                  {formatCurrency(itemsTotal, proposal.currency)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                  IVA ({(VAT_RATE * 100).toFixed(0)}%)
+                </TableCell>
+                <TableCell className="text-right text-sm font-medium">
+                  {formatCurrency(vatAmount, proposal.currency)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell colSpan={7} className="text-right font-bold">
+                  Total (c/ IVA)
+                </TableCell>
+                <TableCell className="text-right font-bold text-primary text-lg">
+                  {formatCurrency(totalWithVat, proposal.currency)}
                 </TableCell>
               </TableRow>
             </TableFooter>
