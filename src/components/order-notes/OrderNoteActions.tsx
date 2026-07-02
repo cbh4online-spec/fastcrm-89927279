@@ -118,7 +118,22 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
       </h3>
       
       <div className="flex flex-wrap gap-2">
-        {showApprove && (
+        {showSubmit && (
+          <Button
+            onClick={handleSubmit}
+            disabled={isChanging}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isChanging ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4 mr-2" />
+            )}
+            Submeter
+          </Button>
+        )}
+
+
           <Button
             onClick={handleApprove}
             disabled={isChanging}
