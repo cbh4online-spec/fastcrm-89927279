@@ -36,6 +36,8 @@ interface Props {
 export function EditOrderItemsDialog({ open, onOpenChange, orderId, items, onSuccess }: Props) {
   const [rows, setRows] = useState<EditableItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [overrideGross, setOverrideGross] = useState<number | null>(null);
+  const [editingTotal, setEditingTotal] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -49,21 +51,31 @@ export function EditOrderItemsDialog({ open, onOpenChange, orderId, items, onSuc
           vat_rate: Number(it.vat_rate ?? 23),
         }))
       );
+      setOverrideGross(null);
+      setEditingTotal(false);
     }
   }, [open, items]);
 
   const activeRows = rows.filter((r) => !r._delete);
+  // Compute two totals: "unrounded" (matches dialog global sum) and "line-rounded" (matches invoice/detail)
   const totals = activeRows.reduce(
     (acc, r) => {
       const net = r.quantity * r.unit_price_net;
       const vat = net * (r.vat_rate / 100);
+      const lineNet = +(r.quantity * r.unit_price_net).toFixed(2);
+      const lineVat = +(lineNet * (r.vat_rate / 100)).toFixed(2);
       acc.net += net;
       acc.vat += vat;
+      acc.lineNet += lineNet;
+      acc.lineVat += lineVat;
+      acc.lineGross += +(lineNet + lineVat).toFixed(2);
       return acc;
     },
-    { net: 0, vat: 0 }
+    { net: 0, vat: 0, lineNet: 0, lineVat: 0, lineGross: 0 }
   );
-  const gross = totals.net + totals.vat;
+  const computedGross = +(totals.net + totals.vat).toFixed(2);
+  const gross = overrideGross ?? computedGross;
+  const hasRoundingDiff = Math.abs(totals.lineGross - computedGross) >= 0.01;
 
   const update = (id: string, patch: Partial<EditableItem>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
