@@ -383,6 +383,7 @@ export function ProposalInternalView({
               <TableRow>
                 <TableHead className="w-14 text-center">Activo</TableHead>
                 <TableHead>Item</TableHead>
+                <TableHead className="w-28">SKU</TableHead>
                 <TableHead className="w-20 text-center">Qtd.</TableHead>
                 <TableHead className="w-28 text-right">Preço</TableHead>
                 <TableHead className="w-20 text-right">Desc.%</TableHead>
