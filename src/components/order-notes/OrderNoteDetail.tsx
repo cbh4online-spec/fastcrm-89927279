@@ -262,6 +262,11 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
         <IXCard
           className="lg:col-span-2"
           title={`Produtos (${order.items?.length || 0})`}
+          actions={
+            <Button variant="ghost" size="icon" onClick={() => setEditItemsOpen(true)} aria-label="Editar valores">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          }
         >
           <div className="divide-y divide-border">
             {order.items?.map((item) => (
