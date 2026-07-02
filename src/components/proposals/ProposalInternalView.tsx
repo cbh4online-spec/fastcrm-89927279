@@ -173,6 +173,18 @@ export function ProposalInternalView({
   const totalMargin = itemsTotal - totalCost;
   const marginPct = itemsTotal > 0 ? (totalMargin / itemsTotal) * 100 : 0;
 
+  // VAT calculation (standard PT rate: 23%)
+  const VAT_RATE = 0.23;
+  const vatAmount = itemsTotal * VAT_RATE;
+  const totalWithVat = itemsTotal + vatAmount;
+
+  // Discounts applied (sum of positive differences between original price and current)
+  const totalGrossBeforeDiscount = enabledItems.reduce((sum, item) => {
+    const original = (item as any).original_unit_price ?? item.unit_price;
+    return sum + original * item.quantity;
+  }, 0);
+  const totalDiscount = Math.max(0, totalGrossBeforeDiscount - itemsTotal);
+
   // Navigation and action handlers
   const handleNavigateToOpportunity = () => {
     if (proposal.opportunity?.id) {
@@ -514,8 +526,42 @@ export function ProposalInternalView({
                 )}>
                   {formatCurrency(totalMargin, proposal.currency)} ({marginPct.toFixed(0)}%)
                 </TableCell>
-                <TableCell className="text-right font-bold text-primary text-lg">
+                <TableCell className="text-right font-semibold">
                   {formatCurrency(itemsTotal, proposal.currency)}
+                </TableCell>
+              </TableRow>
+              {totalDiscount > 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                    Descontos aplicados
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-red-600">
+                    −{formatCurrency(totalDiscount, proposal.currency)}
+                  </TableCell>
+                </TableRow>
+              )}
+              <TableRow>
+                <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                  Subtotal (s/ IVA)
+                </TableCell>
+                <TableCell className="text-right text-sm font-medium">
+                  {formatCurrency(itemsTotal, proposal.currency)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                  IVA ({(VAT_RATE * 100).toFixed(0)}%)
+                </TableCell>
+                <TableCell className="text-right text-sm font-medium">
+                  {formatCurrency(vatAmount, proposal.currency)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell colSpan={7} className="text-right font-bold">
+                  Total (c/ IVA)
+                </TableCell>
+                <TableCell className="text-right font-bold text-primary text-lg">
+                  {formatCurrency(totalWithVat, proposal.currency)}
                 </TableCell>
               </TableRow>
             </TableFooter>
