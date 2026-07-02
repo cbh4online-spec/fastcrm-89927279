@@ -160,7 +160,7 @@ export function OpportunityDetailDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full max-w-6xl p-0 flex flex-col">
+      <SheetContent side="right" className="w-full sm:max-w-6xl p-0 flex flex-col">
         {/* Header */}
         <SheetHeader className="p-4 border-b bg-background">
           <div className="flex items-center justify-between">
