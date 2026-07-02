@@ -458,6 +458,11 @@ export function ProposalInternalView({
                         placeholder="Descrição"
                       />
                     </TableCell>
+                    <TableCell className="max-w-[7rem]">
+                      <span className={cn("text-xs text-muted-foreground font-mono truncate block", !isEnabled && "line-through opacity-50")}>
+                        {item.sku || "—"}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-center">
                       <Input
                         type="number"
