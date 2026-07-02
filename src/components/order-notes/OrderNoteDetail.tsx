@@ -387,6 +387,14 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
           onSuccess={refetch}
         />
       )}
+
+      <EditOrderItemsDialog
+        open={editItemsOpen}
+        onOpenChange={setEditItemsOpen}
+        orderId={orderId}
+        items={order.items || []}
+        onSuccess={refetch}
+      />
     </div>
   );
 }
