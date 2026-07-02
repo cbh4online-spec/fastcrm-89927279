@@ -119,6 +119,8 @@ export function useCreateOpportunity() {
           owner_id: user.id,
           title: input.title,
           lead_id: input.lead_id || null,
+          contact_id: input.contact_id || null,
+          company_id: input.company_id || null,
           value: input.value || 0,
           stage_id: input.stage_id,
           status: input.status || "open",
