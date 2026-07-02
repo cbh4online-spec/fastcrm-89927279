@@ -582,7 +582,7 @@ export function useProposalItems(proposalId: string | undefined) {
         .from("proposal_items")
         .select(`
           *,
-          product:products(id, name, base_price, direct_cost, operational_cost, images, primary_image_index, status)
+          product:products(id, name, base_price, direct_cost, operational_cost, images, primary_image_index, status, sku)
         `)
         .eq("proposal_id", proposalId)
         .order("position", { ascending: true });
