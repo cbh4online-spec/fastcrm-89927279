@@ -173,6 +173,18 @@ export function ProposalInternalView({
   const totalMargin = itemsTotal - totalCost;
   const marginPct = itemsTotal > 0 ? (totalMargin / itemsTotal) * 100 : 0;
 
+  // VAT calculation (standard PT rate: 23%)
+  const VAT_RATE = 0.23;
+  const vatAmount = itemsTotal * VAT_RATE;
+  const totalWithVat = itemsTotal + vatAmount;
+
+  // Discounts applied (sum of positive differences between original price and current)
+  const totalGrossBeforeDiscount = enabledItems.reduce((sum, item) => {
+    const original = (item as any).original_unit_price ?? item.unit_price;
+    return sum + original * item.quantity;
+  }, 0);
+  const totalDiscount = Math.max(0, totalGrossBeforeDiscount - itemsTotal);
+
   // Navigation and action handlers
   const handleNavigateToOpportunity = () => {
     if (proposal.opportunity?.id) {
