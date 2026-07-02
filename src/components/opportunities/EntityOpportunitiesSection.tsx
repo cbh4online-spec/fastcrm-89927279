@@ -467,6 +467,7 @@ export function EntityOpportunitiesSection({
       <CreateOpportunityDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
+        prefill={{ entityType, entityId, entityName }}
       />
     </div>
   );
