@@ -133,7 +133,7 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
           </Button>
         )}
 
-
+        {showApprove && (
           <Button
             onClick={handleApprove}
             disabled={isChanging}
