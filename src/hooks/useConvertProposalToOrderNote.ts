@@ -218,6 +218,21 @@ export function useConvertProposalToOrderNote() {
         throw new Error("Erro ao criar itens da encomenda: " + orderItemsError.message);
       }
 
+      // 8. Mark proposal as accepted (auto-transition on conversion)
+      if (proposal.status !== "accepted") {
+        const { error: proposalUpdateError } = await supabase
+          .from("proposals")
+          .update({
+            status: "accepted",
+            accepted_at: new Date().toISOString(),
+          })
+          .eq("id", proposalId);
+
+        if (proposalUpdateError) {
+          console.warn("Falha ao marcar proposta como aceite:", proposalUpdateError);
+        }
+      }
+
       return orderNote;
     },
     onSuccess: (orderNote) => {
