@@ -57,12 +57,13 @@ import { cn } from "@/lib/utils";
 
 interface ProposalInternalViewProps {
   proposal: Proposal;
-  items?: (PreviewItem & { 
+  items?: (PreviewItem & {
     is_enabled?: boolean;
     cost_snapshot?: number | null;
     operational_cost_snapshot?: number | null;
     product_id?: string | null;
     product_status?: string | null;
+    sku?: string | null;
   })[];
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onQuantityChange?: (itemId: string, quantity: number) => void;
@@ -382,6 +383,7 @@ export function ProposalInternalView({
               <TableRow>
                 <TableHead className="w-14 text-center">Activo</TableHead>
                 <TableHead>Item</TableHead>
+                <TableHead className="w-28">SKU</TableHead>
                 <TableHead className="w-20 text-center">Qtd.</TableHead>
                 <TableHead className="w-28 text-right">Preço</TableHead>
                 <TableHead className="w-20 text-right">Desc.%</TableHead>
@@ -456,6 +458,11 @@ export function ProposalInternalView({
                         placeholder="Descrição"
                       />
                     </TableCell>
+                    <TableCell className="max-w-[7rem]">
+                      <span className={cn("text-xs text-muted-foreground font-mono truncate block", !isEnabled && "line-through opacity-50")}>
+                        {item.sku || "—"}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-center">
                       <Input
                         type="number"
@@ -514,7 +521,7 @@ export function ProposalInternalView({
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={5} className="text-right font-semibold">
+                <TableCell colSpan={6} className="text-right font-semibold">
                   TOTAL {disabledCount > 0 && <span className="text-xs text-muted-foreground font-normal">(itens activos)</span>}
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground font-medium">
@@ -532,7 +539,7 @@ export function ProposalInternalView({
               </TableRow>
               {totalDiscount > 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="text-right text-sm text-muted-foreground">
                     Descontos aplicados
                   </TableCell>
                   <TableCell className="text-right text-sm text-red-600">
@@ -541,7 +548,7 @@ export function ProposalInternalView({
                 </TableRow>
               )}
               <TableRow>
-                <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="text-right text-sm text-muted-foreground">
                   Subtotal (s/ IVA)
                 </TableCell>
                 <TableCell className="text-right text-sm font-medium">
@@ -549,7 +556,7 @@ export function ProposalInternalView({
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell colSpan={7} className="text-right text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="text-right text-sm text-muted-foreground">
                   IVA ({(VAT_RATE * 100).toFixed(0)}%)
                 </TableCell>
                 <TableCell className="text-right text-sm font-medium">
@@ -557,7 +564,7 @@ export function ProposalInternalView({
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell colSpan={7} className="text-right font-bold">
+                <TableCell colSpan={8} className="text-right font-bold">
                   Total (c/ IVA)
                 </TableCell>
                 <TableCell className="text-right font-bold text-primary text-lg">
