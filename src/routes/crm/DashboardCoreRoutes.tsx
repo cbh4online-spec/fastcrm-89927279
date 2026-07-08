@@ -12,7 +12,7 @@ const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const OnboardingHubPage = lazy(() => import("@/pages/OnboardingHubPage"));
 
 const ActivationAdminPage = lazy(() => import("@/pages/ActivationAdminPage"));
-const WeeklyDashboard = lazy(() => import("@/pages/WeeklyDashboard"));
+const WeeklyDashboard = lazy(() => import("@/pages/dashboard/DashboardEntry"));
 const CommandCenter = lazy(() => import("@/pages/CommandCenter"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const ObjectsHomePage = lazy(() => import("@/pages/ObjectsHomePage"));
