@@ -1,29 +1,25 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useMenuPermissions } from "@/hooks/useMenuPermissions";
+import { useInstalledModules } from "@/hooks/useInstalledModules";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
 import {
-  LayoutGrid,
-  Euro,
-  Users,
-  Package,
-  Calendar,
-  FileText,
-  Truck,
-  BarChart3,
-  Settings,
-  LogOut,
+  ChevronDown,
   ChevronRight,
-  X,
-  Sun,
+  LogOut,
   Monitor,
   Moon,
+  Sun,
+  X,
 } from "lucide-react";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { IX_NAV_SECTIONS, type IXNavGroup } from "@/config/navigation/ixNavigation";
+import { ROUTE_MANIFEST, type RouteEntry } from "@/config/routeManifest";
 
 interface InvoiceXpressSidebarProps {
   open: boolean;
@@ -31,19 +27,13 @@ interface InvoiceXpressSidebarProps {
   onOpen?: () => void;
 }
 
-type NavItem = {
-  key: string;
-  label: string;
-  href?: string;
-  icon: typeof LayoutGrid;
-  onClick?: () => void;
-};
-
-type NavSection = {
-  key: string;
-  label: string;
-  items: NavItem[];
-};
+const ROUTE_INDEX: Record<string, RouteEntry> = ROUTE_MANIFEST.reduce(
+  (acc, r) => {
+    acc[r.key] = r;
+    return acc;
+  },
+  {} as Record<string, RouteEntry>,
+);
 
 function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
@@ -86,6 +76,9 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { data: storeSettings } = useStoreSettings();
+  const { canAccessMenu } = useMenuPermissions();
+  const { installedSlugs } = useInstalledModules();
+  const isModuleInstalled = (slug: string) => installedSlugs.includes(slug);
 
   const workspaceName = storeSettings?.store_name || currentWorkspace?.name || "Workspace";
   const logoUrl = storeSettings?.logo_url;
@@ -96,33 +89,15 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
     navigate("/login", { replace: true });
   };
 
-  const sections: NavSection[] = useMemo(
-    () => [
-      {
-        key: "vendas",
-        label: "Vendas",
-        items: [
-          { key: "overview", label: "Visão Global", href: "/dashboard", icon: LayoutGrid },
-          { key: "invoices", label: "Faturas", href: "/dashboard/invoices", icon: Euro },
-          { key: "contacts", label: "Contactos", href: "/dashboard/contacts", icon: Users },
-          { key: "items", label: "Itens", href: "/dashboard/products", icon: Package },
-          { key: "scheduling", label: "Agendamentos", href: "/dashboard/scheduling", icon: Calendar },
-          { key: "proposals", label: "Orçamentos", href: "/dashboard/proposals", icon: FileText },
-          { key: "guides", label: "Guias", href: "/dashboard/rentals", icon: Truck },
-          { key: "reports", label: "Relatórios", href: "/dashboard/reports", icon: BarChart3 },
-        ],
-      },
-      {
-        key: "conta",
-        label: "Conta",
-        items: [
-          { key: "settings", label: "Configurações", href: "/settings", icon: Settings },
-          { key: "logout", label: "Logout", icon: LogOut, onClick: handleLogout },
-        ],
-      },
-    ],
-    [],
-  );
+  const canShow = (routeKey?: string) => {
+    if (!routeKey) return true;
+    const entry = ROUTE_INDEX[routeKey];
+    if (!entry) return true; // desconhecido → não bloquear
+    if (entry.status !== "active") return false;
+    if (entry.moduleSlug && !isModuleInstalled(entry.moduleSlug)) return false;
+    if (entry.menuKey && !canAccessMenu(entry.menuKey)) return false;
+    return true;
+  };
 
   const isActive = (href?: string) => {
     if (!href) return false;
@@ -130,44 +105,106 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
     return pathname === href || pathname.startsWith(href + "/");
   };
 
-  const renderItem = (item: NavItem) => {
-    const Icon = item.icon;
-    const active = isActive(item.href);
-    const className = cn(
-      "flex items-center gap-3 pl-3 pr-4 py-2 rounded-full text-[13.5px] font-semibold transition-colors w-full",
-      active
-        ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
-        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-    );
-    const inner = (
-      <>
-        <Icon
-          className={cn(
-            "w-[18px] h-[18px] shrink-0",
-            active ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70",
-          )}
-          strokeWidth={1.75}
-        />
-        <span className="flex-1 truncate text-left">{item.label}</span>
-      </>
-    );
-    if (item.onClick) {
-      return (
-        <button key={item.key} type="button" onClick={item.onClick} className={className}>
-          {inner}
-        </button>
-      );
+  // Grupo activo (para auto-expandir o accordion certo)
+  const activeGroupKey = useMemo(() => {
+    for (const section of IX_NAV_SECTIONS) {
+      for (const g of section.groups) {
+        if (isActive(g.href)) return g.key;
+        const child = g.children?.find((c) => {
+          const entry = ROUTE_INDEX[c.key];
+          return entry && isActive(entry.href);
+        });
+        if (child) return g.key;
+      }
     }
+    return "overview";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    setExpanded((prev) => ({ ...prev, [activeGroupKey]: true }));
+  }, [activeGroupKey]);
+
+  const toggleGroup = (key: string) =>
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const renderGroup = (group: IXNavGroup) => {
+    if (!canShow(group.primaryKey)) return null;
+
+    const Icon = group.icon;
+    const primaryActive = isActive(group.href);
+    const isOpen = expanded[group.key] ?? primaryActive;
+
+    const children = (group.children ?? [])
+      .map((c) => ({ ...c, entry: ROUTE_INDEX[c.key] }))
+      .filter((c) => c.entry && canShow(c.key));
+
     return (
-      <Link
-        key={item.key}
-        to={item.href!}
-        onClick={onClose}
-        aria-current={active ? "page" : undefined}
-        className={className}
-      >
-        {inner}
-      </Link>
+      <div key={group.key} className="space-y-0.5">
+        <div className="flex items-stretch">
+          <Link
+            to={group.href}
+            onClick={onClose}
+            aria-current={primaryActive ? "page" : undefined}
+            className={cn(
+              "flex-1 flex items-center gap-3 pl-3 pr-2 py-2 rounded-full text-[13.5px] font-semibold transition-colors",
+              primaryActive
+                ? "bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))] shadow-sm"
+                : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            )}
+          >
+            <Icon
+              className={cn(
+                "w-[18px] h-[18px] shrink-0",
+                primaryActive ? "text-[hsl(var(--sidebar-active-fg))]" : "text-sidebar-foreground/70",
+              )}
+              strokeWidth={1.75}
+            />
+            <span className="flex-1 truncate text-left">{group.label}</span>
+          </Link>
+          {children.length > 0 && (
+            <button
+              type="button"
+              aria-label={isOpen ? "Colapsar" : "Expandir"}
+              aria-expanded={isOpen}
+              onClick={() => toggleGroup(group.key)}
+              className="ml-1 w-7 flex items-center justify-center rounded-full text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              {isOpen ? (
+                <ChevronDown className="w-4 h-4" strokeWidth={2} />
+              ) : (
+                <ChevronRight className="w-4 h-4" strokeWidth={2} />
+              )}
+            </button>
+          )}
+        </div>
+
+        {isOpen && children.length > 0 && (
+          <div className="ml-4 pl-4 border-l border-sidebar-border/60 space-y-0.5 py-1">
+            {children.map((c) => {
+              const entry = c.entry!;
+              const active = isActive(entry.href);
+              return (
+                <Link
+                  key={c.key}
+                  to={entry.href}
+                  onClick={onClose}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "block px-3 py-1.5 rounded-md text-[12.5px] font-medium transition-colors truncate",
+                    active
+                      ? "text-[hsl(var(--sidebar-active-fg))] bg-sidebar-accent"
+                      : "text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent/60",
+                  )}
+                >
+                  {c.label ?? entry.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -219,30 +256,44 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
 
           {/* Workspace switcher */}
           <div className="px-3 py-2 border-b border-sidebar-border">
-            <button
-              type="button"
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-sidebar-accent transition-colors text-left"
-            >
-              <Users className="w-4 h-4 text-sidebar-foreground/60" strokeWidth={1.75} />
-              <div className="flex-1 min-w-0">
-                <WorkspaceSwitcher collapsed={false} />
-              </div>
-              <ChevronRight className="w-3.5 h-3.5 text-sidebar-foreground/40" />
-            </button>
+            <WorkspaceSwitcher collapsed={false} />
           </div>
 
           {/* Sections */}
-          <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-5" aria-label="Navegação">
-            {sections.map((section) => (
-              <div key={section.key}>
-                <div className="px-3 pb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/40">
-                    {section.label}
-                  </span>
+          <nav
+            className="flex-1 overflow-y-auto px-3 py-3 space-y-5"
+            aria-label="Navegação"
+          >
+            {IX_NAV_SECTIONS.map((section) => {
+              const renderedGroups = section.groups
+                .map((g) => renderGroup(g))
+                .filter(Boolean);
+              if (renderedGroups.length === 0) return null;
+              return (
+                <div key={section.key}>
+                  <div className="px-3 pb-2">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/40">
+                      {section.label}
+                    </span>
+                  </div>
+                  <div className="space-y-1">{renderedGroups}</div>
                 </div>
-                <div className="space-y-1">{section.items.map(renderItem)}</div>
+              );
+            })}
+
+            {/* Logout (sempre visível) */}
+            <div>
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 pl-3 pr-4 py-2 rounded-full text-[13.5px] font-semibold text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+                >
+                  <LogOut className="w-[18px] h-[18px] shrink-0 text-sidebar-foreground/70" strokeWidth={1.75} />
+                  <span className="flex-1 text-left">Terminar sessão</span>
+                </button>
               </div>
-            ))}
+            </div>
           </nav>
 
           {/* Footer */}

@@ -7,6 +7,7 @@ let hadWorkspacesEver = false;
 import { AdaptiveDashboardProvider } from "@/contexts/AdaptiveDashboardContext";
 import { AdaptiveSidebar } from "./AdaptiveSidebar";
 import { WatidySidebar } from "./WatidySidebar";
+import { InvoiceXpressSidebar } from "./InvoiceXpressSidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
@@ -38,8 +39,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const { enabled: adaptiveSidebar } = useFeatureFlag("ui.adaptive_sidebar_enabled");
   const { enabled: watidySidebar } = useFeatureFlag("ui.watidy_sidebar_enabled");
+  // IX sidebar toggle: ?nav=ix (activa) / ?nav=legacy (desactiva). Persistido em localStorage.
+  const navParam = new URLSearchParams(location.search).get("nav");
+  if (navParam === "ix") {
+    try { localStorage.setItem("fastcrm.sidebar", "ix"); } catch { /* ignore */ }
+  } else if (navParam === "legacy" || navParam === "watidy" || navParam === "adaptive") {
+    try { localStorage.removeItem("fastcrm.sidebar"); } catch { /* ignore */ }
+  }
+  const useIX = (() => {
+    try { return localStorage.getItem("fastcrm.sidebar") === "ix"; } catch { return false; }
+  })();
   // Default to Watidy unless explicitly forced to Adaptive (legacy SidebarV1/Sidebar removidos na Fase 2)
-  const useWatidy = watidySidebar || !adaptiveSidebar;
+  const useWatidy = !useIX && (watidySidebar || !adaptiveSidebar);
   // (AdaptiveSidebar é o fallback automático quando Watidy está desligado)
   const { collapsed } = useSidebarCollapse();
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
@@ -75,12 +86,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <DirectMessagesProvider>
           <AppModeGuard>
             <div className="h-screen flex bg-background overflow-hidden">
-              {useWatidy ? (
+              {useIX ? (
+                <InvoiceXpressSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
+              ) : useWatidy ? (
                 <WatidySidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
               ) : (
                 <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
               )}
-              <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useWatidy ? (collapsed ? "lg:pl-14" : "lg:pl-[304px]") : (collapsed ? "lg:pl-16" : "lg:pl-[280px]")}`}>
+              <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useIX ? "lg:pl-[280px]" : useWatidy ? (collapsed ? "lg:pl-14" : "lg:pl-[304px]") : (collapsed ? "lg:pl-16" : "lg:pl-[280px]")}`}>
 
 
                 <TopBar onMenuClick={() => setSidebarOpen(true)} />
