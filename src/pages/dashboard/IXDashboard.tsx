@@ -4,12 +4,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { IXEntityTabs, type IXTabDef } from "@/components/entity/ix/IXEntityTabs";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Plus, FileText, AlertTriangle, Users, Package, Percent, ArrowRight,
-} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Percent, ArrowRight } from "lucide-react";
 import { useInvoices, useInvoiceStats } from "@/hooks/useInvoices";
 import { useCollectionCases } from "@/modules/collections/hooks/useCollectionCases";
 import { formatEUR } from "@/lib/currency";
@@ -105,34 +101,41 @@ export default function IXDashboard() {
       <div className="min-h-full bg-background">
         {/* Header */}
         <div className="border-b border-border bg-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-5 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+            <div className="min-w-0">
               <h1 className="text-3xl font-bold tracking-tight text-foreground">Visão Global</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 Faturação, cobranças, clientes, itens e impostos num só ecrã.
               </p>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="gap-1.5">
-                  <Plus className="h-4 w-4" /> Novo
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onClick={() => navigate("/dashboard/invoices/new")}>
-                  <FileText className="h-4 w-4 mr-2" /> Nova Fatura
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/dashboard/collections")}>
-                  <AlertTriangle className="h-4 w-4 mr-2" /> Nova Cobrança
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/dashboard/contacts")}>
-                  <Users className="h-4 w-4 mr-2" /> Novo Contacto
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/dashboard/products")}>
-                  <Package className="h-4 w-4 mr-2" /> Novo Item
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Atalhos rápidos — estilo IX */}
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { label: "Novo Orçamento", to: "/dashboard/proposals/new" },
+                { label: "Nova Guia de Transporte", to: "/dashboard/invoices/new?type=transport" },
+                { label: "Novo Contacto", to: "/dashboard/contacts" },
+                { label: "Novo Item", to: "/dashboard/products" },
+                { label: "Exportar SAF-T", to: "/dashboard/imports/saft" },
+                { label: "Lote de Faturas", to: "/dashboard/invoices?bulk=1" },
+              ].map((a) => (
+                <button
+                  key={a.label}
+                  onClick={() => navigate(a.to)}
+                  className={cn(
+                    "h-10 px-4 rounded-full border border-border bg-card text-sm font-semibold text-foreground",
+                    "shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors whitespace-nowrap",
+                  )}
+                >
+                  {a.label}
+                </button>
+              ))}
+              <button
+                onClick={() => navigate("/dashboard/invoices/new")}
+                className="h-10 px-5 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
+              >
+                Nova Fatura
+              </button>
+            </div>
           </div>
           <div className="max-w-7xl mx-auto">
             <IXEntityTabs tabs={tabs} activeId={active} onChange={(id) => setActive(id as SectionId)} />
