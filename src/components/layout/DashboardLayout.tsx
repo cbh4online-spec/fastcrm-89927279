@@ -7,6 +7,7 @@ let hadWorkspacesEver = false;
 import { AdaptiveDashboardProvider } from "@/contexts/AdaptiveDashboardContext";
 import { AdaptiveSidebar } from "./AdaptiveSidebar";
 import { WatidySidebar } from "./WatidySidebar";
+import { InvoiceXpressSidebar } from "./InvoiceXpressSidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
