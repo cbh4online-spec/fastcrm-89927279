@@ -76,7 +76,7 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { data: storeSettings } = useStoreSettings();
-  const permissions = useMenuPermissions();
+  const { canAccessMenu } = useMenuPermissions();
   const { installedSlugs } = useInstalledModules();
   const isModuleInstalled = (slug: string) => installedSlugs.includes(slug);
 
@@ -95,7 +95,7 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
     if (!entry) return true; // desconhecido → não bloquear
     if (entry.status !== "active") return false;
     if (entry.moduleSlug && !isModuleInstalled(entry.moduleSlug)) return false;
-    if (entry.menuKey && permissions?.[entry.menuKey as keyof typeof permissions] === false) return false;
+    if (entry.menuKey && !canAccessMenu(entry.menuKey)) return false;
     return true;
   };
 
