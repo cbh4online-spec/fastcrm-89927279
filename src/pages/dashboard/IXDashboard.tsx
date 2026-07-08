@@ -54,7 +54,7 @@ export default function IXDashboard() {
 
   // Cobranças — agregado dos casos abertos
   const collectionsMetrics = useMemo(() => {
-    const open = cases.filter((c) => c.status !== "closed" && c.status !== "cancelled");
+    const open = cases.filter((c) => c.status !== "paid");
     const totalDue = open.reduce((s, c) => s + Number(c.total_due || 0), 0);
     const buckets = { d030: 0, d3160: 0, d6190: 0, d90: 0 };
     open.forEach((c) => {
