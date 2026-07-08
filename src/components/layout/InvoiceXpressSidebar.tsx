@@ -77,7 +77,8 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
   const { currentWorkspace } = useWorkspace();
   const { data: storeSettings } = useStoreSettings();
   const permissions = useMenuPermissions();
-  const { isModuleInstalled } = useInstalledModules();
+  const { installedSlugs } = useInstalledModules();
+  const isModuleInstalled = (slug: string) => installedSlugs.includes(slug);
 
   const workspaceName = storeSettings?.store_name || currentWorkspace?.name || "Workspace";
   const logoUrl = storeSettings?.logo_url;
