@@ -4,12 +4,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { IXEntityTabs, type IXTabDef } from "@/components/entity/ix/IXEntityTabs";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Plus, FileText, AlertTriangle, Users, Package, Percent, ArrowRight,
-} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Percent, ArrowRight } from "lucide-react";
 import { useInvoices, useInvoiceStats } from "@/hooks/useInvoices";
 import { useCollectionCases } from "@/modules/collections/hooks/useCollectionCases";
 import { formatEUR } from "@/lib/currency";
