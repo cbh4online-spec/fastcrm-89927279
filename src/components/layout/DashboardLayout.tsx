@@ -39,8 +39,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const { enabled: adaptiveSidebar } = useFeatureFlag("ui.adaptive_sidebar_enabled");
   const { enabled: watidySidebar } = useFeatureFlag("ui.watidy_sidebar_enabled");
+  // IX sidebar toggle: ?nav=ix (activa) / ?nav=legacy (desactiva). Persistido em localStorage.
+  const navParam = new URLSearchParams(location.search).get("nav");
+  if (navParam === "ix") {
+    try { localStorage.setItem("fastcrm.sidebar", "ix"); } catch { /* ignore */ }
+  } else if (navParam === "legacy" || navParam === "watidy" || navParam === "adaptive") {
+    try { localStorage.removeItem("fastcrm.sidebar"); } catch { /* ignore */ }
+  }
+  const useIX = (() => {
+    try { return localStorage.getItem("fastcrm.sidebar") === "ix"; } catch { return false; }
+  })();
   // Default to Watidy unless explicitly forced to Adaptive (legacy SidebarV1/Sidebar removidos na Fase 2)
-  const useWatidy = watidySidebar || !adaptiveSidebar;
+  const useWatidy = !useIX && (watidySidebar || !adaptiveSidebar);
   // (AdaptiveSidebar é o fallback automático quando Watidy está desligado)
   const { collapsed } = useSidebarCollapse();
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
