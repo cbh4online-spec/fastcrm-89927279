@@ -20263,9 +20263,10 @@ export type Database = {
         Row: {
           action_type: Database["public"]["Enums"]["collection_action_type"]
           body: string | null
-          case_id: string
+          case_id: string | null
           channel: Database["public"]["Enums"]["collection_channel"] | null
           created_at: string
+          document_id: string | null
           id: string
           is_automated: boolean
           metadata: Json
@@ -20278,9 +20279,10 @@ export type Database = {
         Insert: {
           action_type: Database["public"]["Enums"]["collection_action_type"]
           body?: string | null
-          case_id: string
+          case_id?: string | null
           channel?: Database["public"]["Enums"]["collection_channel"] | null
           created_at?: string
+          document_id?: string | null
           id?: string
           is_automated?: boolean
           metadata?: Json
@@ -20293,9 +20295,10 @@ export type Database = {
         Update: {
           action_type?: Database["public"]["Enums"]["collection_action_type"]
           body?: string | null
-          case_id?: string
+          case_id?: string | null
           channel?: Database["public"]["Enums"]["collection_channel"] | null
           created_at?: string
+          document_id?: string | null
           id?: string
           is_automated?: boolean
           metadata?: Json
@@ -20311,6 +20314,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "collection_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_actions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "collection_documents"
             referencedColumns: ["id"]
           },
           {
@@ -20597,6 +20607,204 @@ export type Database = {
           },
           {
             foreignKeyName: "collection_client_mappings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_documents: {
+        Row: {
+          batch_id: string | null
+          client_email: string | null
+          client_external_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          client_tax_id: string | null
+          created_at: string
+          currency: string
+          document_number: string | null
+          document_series: string | null
+          document_type: string | null
+          due_date: string | null
+          external_id: string | null
+          id: string
+          import_key: string
+          issue_date: string | null
+          metadata: Json
+          open_amount: number
+          overdue_days: number | null
+          paid_amount: number
+          raw_payload: Json
+          source: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          client_email?: string | null
+          client_external_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          client_tax_id?: string | null
+          created_at?: string
+          currency?: string
+          document_number?: string | null
+          document_series?: string | null
+          document_type?: string | null
+          due_date?: string | null
+          external_id?: string | null
+          id?: string
+          import_key: string
+          issue_date?: string | null
+          metadata?: Json
+          open_amount?: number
+          overdue_days?: number | null
+          paid_amount?: number
+          raw_payload?: Json
+          source?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          batch_id?: string | null
+          client_email?: string | null
+          client_external_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          client_tax_id?: string | null
+          created_at?: string
+          currency?: string
+          document_number?: string | null
+          document_series?: string | null
+          document_type?: string | null
+          due_date?: string | null
+          external_id?: string | null
+          id?: string
+          import_key?: string
+          issue_date?: string | null
+          metadata?: Json
+          open_amount?: number
+          overdue_days?: number | null
+          paid_amount?: number
+          raw_payload?: Json
+          source?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_documents_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "collection_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "collection_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_import_batches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          failed_rows: number
+          file_hash: string | null
+          file_name: string | null
+          finished_at: string | null
+          id: string
+          imported_rows: number
+          metadata: Json
+          source: string
+          started_at: string | null
+          status: string
+          total_rows: number
+          updated_at: string
+          updated_rows: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          failed_rows?: number
+          file_hash?: string | null
+          file_name?: string | null
+          finished_at?: string | null
+          id?: string
+          imported_rows?: number
+          metadata?: Json
+          source: string
+          started_at?: string | null
+          status?: string
+          total_rows?: number
+          updated_at?: string
+          updated_rows?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          failed_rows?: number
+          file_hash?: string | null
+          file_name?: string | null
+          finished_at?: string | null
+          id?: string
+          imported_rows?: number
+          metadata?: Json
+          source?: string
+          started_at?: string | null
+          status?: string
+          total_rows?: number
+          updated_at?: string
+          updated_rows?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_import_batches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "collection_import_batches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_import_batches_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces_public"
