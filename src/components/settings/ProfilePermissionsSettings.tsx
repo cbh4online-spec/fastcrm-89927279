@@ -13,8 +13,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "sonner";
 import {
   Shield, Save, RefreshCw, User, Eye, Briefcase, Crown,
-  ChevronRight, Search, Plus, Trash2, History,
+  ChevronRight, Search, Plus, Trash2, History, X,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { ROUTE_MANIFEST, NAV_GROUPS, type RouteEntry } from "@/config/routeManifest";
 import { PermissionAuditTab } from "./PermissionAuditTab";
 import { FieldDefaultsDialog } from "./FieldDefaultsDialog";
