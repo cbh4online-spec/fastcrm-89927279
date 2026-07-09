@@ -87,6 +87,7 @@ export function ProfilePermissionsSettings() {
   const [menuSearch, setMenuSearch] = useState("");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [activeProfile, setActiveProfile] = useState<string>("vendedor");
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
 
   // ── Menu permissions ──
   const { data: menuPerms, isLoading: menuLoading } = useQuery({
