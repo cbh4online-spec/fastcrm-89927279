@@ -16,6 +16,7 @@ import {
   ChevronRight, Search, Plus, Trash2, History, X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { ROUTE_MANIFEST, NAV_GROUPS, type RouteEntry } from "@/config/routeManifest";
 import { PermissionAuditTab } from "./PermissionAuditTab";
 import { FieldDefaultsDialog } from "./FieldDefaultsDialog";
