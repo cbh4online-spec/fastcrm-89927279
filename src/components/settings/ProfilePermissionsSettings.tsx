@@ -13,8 +13,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "sonner";
 import {
   Shield, Save, RefreshCw, User, Eye, Briefcase, Crown,
-  ChevronRight, Search, Plus, Trash2, History,
+  ChevronRight, Search, Plus, Trash2, History, X,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { ROUTE_MANIFEST, NAV_GROUPS, type RouteEntry } from "@/config/routeManifest";
 import { PermissionAuditTab } from "./PermissionAuditTab";
 import { FieldDefaultsDialog } from "./FieldDefaultsDialog";
@@ -74,6 +76,7 @@ export function ProfilePermissionsSettings() {
   const groupedRoutes = useMemo(getGroupedRoutes, []);
   const [menuSearch, setMenuSearch] = useState("");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [activeProfile, setActiveProfile] = useState<string>("vendedor");
 
   // ── Menu permissions ──
   const { data: menuPerms, isLoading: menuLoading } = useQuery({
@@ -336,123 +339,194 @@ export function ProfilePermissionsSettings() {
           <TabsTrigger value="audit"><History className="h-3.5 w-3.5 mr-1" />Auditoria</TabsTrigger>
         </TabsList>
 
-        {/* ── TAB: Menus & Sub-menus ── */}
-        <TabsContent value="menus">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">Visibilidade de Menus & Sub-menus</CardTitle>
-                  <CardDescription>Controle cada item da sidebar para cada perfil comercial</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  {menuChanges.size > 0 && (
-                    <Badge variant="secondary">{menuChanges.size} alteração(ões)</Badge>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => queryClient.refetchQueries({ queryKey: ["profile-menu-permissions", workspaceId] })}
-                    title="Recarregar do servidor"
+        {/* ── TAB: Menus & Sub-menus (estilo IX — um perfil de cada vez) ── */}
+        <TabsContent value="menus" className="space-y-4">
+          {/* Seletor de perfil — chips grandes tipo IX */}
+          <div className="rounded-2xl border bg-card p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Escolhe o perfil a configurar
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SALES_FUNCTIONS.map((fn) => {
+                const active = activeProfile === fn.value;
+                const Icon = fn.icon;
+                return (
+                  <button
+                    key={fn.value}
+                    type="button"
+                    onClick={() => setActiveProfile(fn.value)}
+                    className={cn(
+                      "flex items-center gap-2 h-10 px-4 rounded-full border text-sm font-medium transition-colors",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background hover:bg-muted text-foreground"
+                    )}
                   >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setMenuChanges(new Map())} disabled={menuChanges.size === 0}>
-                    Repor
-                  </Button>
-                  <Button size="sm" onClick={() => saveMenus.mutate()} disabled={menuChanges.size === 0 || saveMenus.isPending}>
-                    <Save className="h-4 w-4 mr-1" /> Guardar
-                  </Button>
-                </div>
-              </div>
-              <div className="mt-3 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Icon className={cn("h-4 w-4", active ? "" : fn.color)} />
+                    {fn.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Pesquisa + ações principais */}
+          <div className="rounded-2xl border bg-card p-4">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Pesquisar menus..."
-                  className="pl-9 h-9 text-sm"
+                  placeholder="Pesquisar menus…"
+                  className="pl-10 h-12 rounded-full border-border"
                   value={menuSearch}
                   onChange={(e) => setMenuSearch(e.target.value)}
                 />
+                {menuSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setMenuSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted"
+                    aria-label="Limpar pesquisa"
+                  >
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                )}
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                {/* Column headers */}
-                <div className="flex items-center border-b pb-2 mb-2">
-                  <div className="flex-1 text-xs font-medium text-muted-foreground">Menu / Sub-menu</div>
-                  {SALES_FUNCTIONS.map((fn) => (
-                    <div key={fn.value} className="w-20 text-center">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <fn.icon className={`h-3.5 w-3.5 ${fn.color}`} />
-                        <span className="text-[10px] font-medium">{fn.label}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 rounded-full"
+                onClick={() => queryClient.refetchQueries({ queryKey: ["profile-menu-permissions", workspaceId] })}
+                title="Recarregar"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Lista de menus agrupados */}
+          <div className="rounded-2xl border bg-card divide-y">
+            {filteredGroups.length === 0 && (
+              <div className="p-10 text-center text-sm text-muted-foreground">
+                Sem resultados para "{menuSearch}".
+              </div>
+            )}
+            {filteredGroups.map((group) => {
+              const isOpen = openGroups[group.groupKey] ?? true;
+              const GroupIcon = group.groupIcon;
+              const allVisible = isGroupAllVisible(activeProfile, group.items);
+              const visibleCount = group.items.filter((i) => getMenuVisible(activeProfile, i.key)).length;
+
+              return (
+                <Collapsible
+                  key={group.groupKey}
+                  open={isOpen}
+                  onOpenChange={(val) => setOpenGroups((prev) => ({ ...prev, [group.groupKey]: val }))}
+                >
+                  {/* Header do grupo */}
+                  <div className="flex items-center gap-3 px-5 py-4 hover:bg-muted/30">
+                    <CollapsibleTrigger className="flex items-center gap-3 flex-1 text-left">
+                      <ChevronRight
+                        className={cn(
+                          "h-4 w-4 text-muted-foreground transition-transform",
+                          isOpen && "rotate-90"
+                        )}
+                      />
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                        <GroupIcon className="h-4 w-4 text-muted-foreground" />
                       </div>
-                    </div>
-                  ))}
-                </div>
-
-                {filteredGroups.map((group) => {
-                  const isOpen = openGroups[group.groupKey] ?? true;
-                  const GroupIcon = group.groupIcon;
-
-                  return (
-                    <Collapsible
-                      key={group.groupKey}
-                      open={isOpen}
-                      onOpenChange={(val) => setOpenGroups((prev) => ({ ...prev, [group.groupKey]: val }))}
+                      <div>
+                        <div className="text-sm font-semibold text-foreground">{group.groupLabel}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {visibleCount} de {group.items.length} ativos
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <button
+                      type="button"
+                      onClick={() => toggleGroupAll(activeProfile, group.items, !allVisible)}
+                      className={cn(
+                        "h-8 px-3 rounded-full border text-xs font-medium transition-colors",
+                        allVisible
+                          ? "border-border text-muted-foreground hover:bg-muted"
+                          : "border-primary text-primary hover:bg-primary/5"
+                      )}
                     >
-                      {/* Group header row with bulk toggle */}
-                      <div className="flex items-center py-1.5 hover:bg-muted/30 rounded-md px-1">
-                        <CollapsibleTrigger className="flex items-center gap-2 flex-1 text-sm font-medium">
-                          <ChevronRight className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-90" : ""}`} />
-                          <GroupIcon className="h-4 w-4 text-muted-foreground" />
-                          <span>{group.groupLabel}</span>
-                          <Badge variant="outline" className="text-[10px] ml-1">{group.items.length}</Badge>
-                        </CollapsibleTrigger>
-                        {SALES_FUNCTIONS.map((fn) => {
-                          const allVisible = isGroupAllVisible(fn.value, group.items);
-                          const noneVisible = isGroupNoneVisible(fn.value, group.items);
-                          return (
-                            <div key={fn.value} className="w-20 text-center">
-                              <Checkbox
-                                checked={allVisible ? true : noneVisible ? false : "indeterminate"}
-                                onCheckedChange={(checked) =>
-                                  toggleGroupAll(fn.value, group.items, !!checked)
-                                }
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
+                      {allVisible ? "Desativar todos" : "Ativar todos"}
+                    </button>
+                  </div>
 
-                      <CollapsibleContent>
-                        {group.items.map((item) => {
-                          const ItemIcon = item.icon;
-                          return (
-                            <div key={item.key} className="flex items-center py-1 pl-8 pr-1 hover:bg-muted/20 rounded-sm">
-                              <div className="flex items-center gap-2 flex-1 text-sm">
-                                <ItemIcon className="h-3.5 w-3.5 text-muted-foreground/70" />
-                                <span className="text-muted-foreground">{item.label}</span>
-                                {item.isPro && <Badge variant="outline" className="text-[9px] px-1 py-0">PRO</Badge>}
-                                {item.isBeta && <Badge variant="outline" className="text-[9px] px-1 py-0">BETA</Badge>}
-                              </div>
-                              {SALES_FUNCTIONS.map((fn) => (
-                                <div key={fn.value} className="w-20 text-center">
-                                  <Checkbox
-                                    checked={getMenuVisible(fn.value, item.key)}
-                                    onCheckedChange={() => toggleMenu(fn.value, item.key)}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })}
-                      </CollapsibleContent>
-                    </Collapsible>
-                  );
-                })}
+                  <CollapsibleContent>
+                    <div className="divide-y border-t bg-muted/10">
+                      {group.items.map((item) => {
+                        const ItemIcon = item.icon;
+                        const visible = getMenuVisible(activeProfile, item.key);
+                        return (
+                          <label
+                            key={item.key}
+                            className="flex items-center gap-3 pl-16 pr-5 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                          >
+                            <ItemIcon
+                              className={cn(
+                                "h-4 w-4 shrink-0 transition-colors",
+                                visible ? "text-foreground" : "text-muted-foreground/50"
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                "flex-1 text-sm transition-colors",
+                                visible ? "text-foreground" : "text-muted-foreground line-through decoration-muted-foreground/40"
+                              )}
+                            >
+                              {item.label}
+                            </span>
+                            {item.isPro && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">PRO</Badge>
+                            )}
+                            {item.isBeta && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">BETA</Badge>
+                            )}
+                            <Switch
+                              checked={visible}
+                              onCheckedChange={() => toggleMenu(activeProfile, item.key)}
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
+          </div>
+
+          {/* Barra de guardar fixa em baixo quando há alterações */}
+          {menuChanges.size > 0 && (
+            <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 shadow-lg">
+              <div className="flex items-center gap-2 text-sm">
+                <Badge variant="secondary" className="rounded-full">
+                  {menuChanges.size}
+                </Badge>
+                <span className="text-muted-foreground">
+                  {menuChanges.size === 1 ? "alteração por guardar" : "alterações por guardar"}
+                </span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setMenuChanges(new Map())}>
+                  Descartar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => saveMenus.mutate()}
+                  disabled={saveMenus.isPending}
+                  className="rounded-full px-5"
+                >
+                  <Save className="h-4 w-4 mr-1.5" />
+                  Guardar alterações
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* ── TAB: Fields ── */}
