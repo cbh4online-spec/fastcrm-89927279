@@ -13,17 +13,10 @@ const IXDashboard = lazy(() => import("@/pages/dashboard/IXDashboard"));
 export default function DashboardEntry() {
   const location = useLocation();
   const nav = new URLSearchParams(location.search).get("nav");
-  let useLegacy = false;
-  if (nav === "legacy" || nav === "watidy" || nav === "adaptive") useLegacy = true;
-  else if (nav === "ix") useLegacy = false;
-  else {
-    try {
-      const stored = localStorage.getItem("fastcrm.sidebar");
-      useLegacy = stored != null && stored !== "ix";
-    } catch {
-      useLegacy = false;
-    }
-  }
+  // Por omissão: IX. Só cai para o dashboard legado se for pedido explicitamente
+  // via ?nav=legacy|watidy|adaptive.
+  const useLegacy = nav === "legacy" || nav === "watidy" || nav === "adaptive";
+
   return (
     <Suspense fallback={null}>
       {useLegacy ? <WeeklyDashboard /> : <IXDashboard />}
