@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -11,6 +11,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Shield, Save, RefreshCw, User, Eye, Briefcase, Crown,
   ChevronRight, Search, Plus, Trash2, History, X,
@@ -77,6 +87,7 @@ export function ProfilePermissionsSettings() {
   const [menuSearch, setMenuSearch] = useState("");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [activeProfile, setActiveProfile] = useState<string>("vendedor");
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
 
   // ── Menu permissions ──
   const { data: menuPerms, isLoading: menuLoading } = useQuery({
@@ -211,6 +222,18 @@ export function ProfilePermissionsSettings() {
 
   const [fieldChanges, setFieldChanges] = useState<Map<string, boolean>>(new Map());
   const [newFieldForm, setNewFieldForm] = useState<{ page_key: string; field_key: string; label: string } | null>(null);
+
+  // Avisar ao sair da página com alterações por guardar
+  useEffect(() => {
+    const hasPending = menuChanges.size > 0 || fieldChanges.size > 0;
+    if (!hasPending) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [menuChanges.size, fieldChanges.size]);
 
   const getFieldVisible = (fn: string, pageKey: string, fieldKey: string): boolean => {
     const changeKey = `${fn}:${pageKey}:${fieldKey}`;
@@ -512,7 +535,7 @@ export function ProfilePermissionsSettings() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setMenuChanges(new Map())}>
+                <Button variant="ghost" size="sm" onClick={() => setDiscardDialogOpen(true)}>
                   Descartar
                 </Button>
                 <Button
@@ -527,6 +550,31 @@ export function ProfilePermissionsSettings() {
               </div>
             </div>
           )}
+
+          {/* Confirmação antes de descartar alterações */}
+          <AlertDialog open={discardDialogOpen} onOpenChange={setDiscardDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Descartar alterações?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tens {menuChanges.size} {menuChanges.size === 1 ? "alteração por guardar" : "alterações por guardar"}.
+                  Se descartares, perdes todas as mudanças feitas nos menus.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDiscardDialogOpen(false)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setMenuChanges(new Map());
+                    setDiscardDialogOpen(false);
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Descartar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </TabsContent>
 
         {/* ── TAB: Fields ── */}
