@@ -89,7 +89,17 @@ export function ProfilePermissionsSettings() {
   const [activeProfile, setActiveProfile] = useState<string>("vendedor");
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
 
-  // ── Menu permissions ──
+  // Avisar ao sair da página com alterações por guardar
+  useEffect(() => {
+    const hasPending = menuChanges.size > 0 || fieldChanges.size > 0;
+    if (!hasPending) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [menuChanges.size, fieldChanges.size]);
   const { data: menuPerms, isLoading: menuLoading } = useQuery({
     queryKey: ["profile-menu-permissions", workspaceId],
     queryFn: async () => {
