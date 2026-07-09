@@ -75,6 +75,7 @@ export function ProfilePermissionsSettings() {
   const groupedRoutes = useMemo(getGroupedRoutes, []);
   const [menuSearch, setMenuSearch] = useState("");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [activeProfile, setActiveProfile] = useState<string>("vendedor");
 
   // ── Menu permissions ──
   const { data: menuPerms, isLoading: menuLoading } = useQuery({
