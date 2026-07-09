@@ -89,17 +89,7 @@ export function ProfilePermissionsSettings() {
   const [activeProfile, setActiveProfile] = useState<string>("vendedor");
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
 
-  // Avisar ao sair da página com alterações por guardar
-  useEffect(() => {
-    const hasPending = menuChanges.size > 0 || fieldChanges.size > 0;
-    if (!hasPending) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [menuChanges.size, fieldChanges.size]);
+  // ── Menu permissions ──
   const { data: menuPerms, isLoading: menuLoading } = useQuery({
     queryKey: ["profile-menu-permissions", workspaceId],
     queryFn: async () => {
@@ -232,6 +222,18 @@ export function ProfilePermissionsSettings() {
 
   const [fieldChanges, setFieldChanges] = useState<Map<string, boolean>>(new Map());
   const [newFieldForm, setNewFieldForm] = useState<{ page_key: string; field_key: string; label: string } | null>(null);
+
+  // Avisar ao sair da página com alterações por guardar
+  useEffect(() => {
+    const hasPending = menuChanges.size > 0 || fieldChanges.size > 0;
+    if (!hasPending) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [menuChanges.size, fieldChanges.size]);
 
   const getFieldVisible = (fn: string, pageKey: string, fieldKey: string): boolean => {
     const changeKey = `${fn}:${pageKey}:${fieldKey}`;
@@ -533,7 +535,7 @@ export function ProfilePermissionsSettings() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setMenuChanges(new Map())}>
+                <Button variant="ghost" size="sm" onClick={() => setDiscardDialogOpen(true)}>
                   Descartar
                 </Button>
                 <Button
@@ -548,6 +550,31 @@ export function ProfilePermissionsSettings() {
               </div>
             </div>
           )}
+
+          {/* Confirmação antes de descartar alterações */}
+          <AlertDialog open={discardDialogOpen} onOpenChange={setDiscardDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Descartar alterações?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tens {menuChanges.size} {menuChanges.size === 1 ? "alteração por guardar" : "alterações por guardar"}.
+                  Se descartares, perdes todas as mudanças feitas nos menus.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDiscardDialogOpen(false)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setMenuChanges(new Map());
+                    setDiscardDialogOpen(false);
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Descartar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </TabsContent>
 
         {/* ── TAB: Fields ── */}
