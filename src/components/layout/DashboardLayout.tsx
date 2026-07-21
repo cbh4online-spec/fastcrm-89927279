@@ -37,21 +37,33 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { loading: workspaceLoading, workspaces } = useWorkspace();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { enabled: adaptiveSidebar } = useFeatureFlag("ui.adaptive_sidebar_enabled");
-  const { enabled: watidySidebar } = useFeatureFlag("ui.watidy_sidebar_enabled");
-  // IX sidebar toggle: ?nav=ix (activa) / ?nav=legacy (desactiva). Persistido em localStorage.
+  // Feature flags mantidos por compatibilidade, mas já não forçam Watidy quando desligados.
+  useFeatureFlag("ui.adaptive_sidebar_enabled");
+  useFeatureFlag("ui.watidy_sidebar_enabled");
+
+  // Selecção da sidebar:
+  // 1) Override explícito por URL: ?nav=adaptive|watidy|ix
+  // 2) Escolha explícita persistida em localStorage.fastcrm.sidebar (apenas adaptive|watidy|ix)
+  // 3) Padrão: AdaptiveSidebar
   const navParam = new URLSearchParams(location.search).get("nav");
-  if (navParam === "ix") {
-    try { localStorage.setItem("fastcrm.sidebar", "ix"); } catch { /* ignore */ }
-  } else if (navParam === "legacy" || navParam === "watidy" || navParam === "adaptive") {
+  const VALID_NAV = ["adaptive", "watidy", "ix"] as const;
+  type NavChoice = typeof VALID_NAV[number];
+  if (navParam && (VALID_NAV as readonly string[]).includes(navParam)) {
+    try { localStorage.setItem("fastcrm.sidebar", navParam); } catch { /* ignore */ }
+  } else if (navParam === "legacy") {
     try { localStorage.removeItem("fastcrm.sidebar"); } catch { /* ignore */ }
   }
-  const useIX = (() => {
-    try { return localStorage.getItem("fastcrm.sidebar") === "ix"; } catch { return false; }
+  const storedChoice: NavChoice | null = (() => {
+    try {
+      const v = localStorage.getItem("fastcrm.sidebar");
+      return v && (VALID_NAV as readonly string[]).includes(v) ? (v as NavChoice) : null;
+    } catch { return null; }
   })();
-  // Default to Watidy unless explicitly forced to Adaptive (legacy SidebarV1/Sidebar removidos na Fase 2)
-  const useWatidy = !useIX && (watidySidebar || !adaptiveSidebar);
-  // (AdaptiveSidebar é o fallback automático quando Watidy está desligado)
+  const activeNav: NavChoice = (navParam && (VALID_NAV as readonly string[]).includes(navParam))
+    ? (navParam as NavChoice)
+    : (storedChoice ?? "adaptive");
+  const useIX = activeNav === "ix";
+  const useWatidy = activeNav === "watidy";
   const { collapsed } = useSidebarCollapse();
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
   const isMobile = useIsMobile();
