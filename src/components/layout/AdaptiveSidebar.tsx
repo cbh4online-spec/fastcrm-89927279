@@ -141,20 +141,27 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const isSenior = ageGroup === "senior";
   const isCollapsed = !isSenior && collapsed && !open;
 
-  // ── Build sidebar sections from manifest ──
-  const sections = useMemo(
-    () => buildSidebarSections(installedModuleIds, canAccessMenu, mode),
+  // ── Build top-level (IX) sections from manifest ──
+  const topSections = useMemo(
+    () => buildTopLevelSections(installedModuleIds, canAccessMenu, mode),
     [installedModuleIds, canAccessMenu, salesFunction, mode]
   );
 
-  // ── Filter sections by search ──
-  const filteredSections = useMemo(() => {
-    if (!menuFilter.trim()) return sections;
+  // ── Filter top sections by search (menu filter across all items) ──
+  const filteredTopSections = useMemo(() => {
+    if (!menuFilter.trim()) return topSections;
     const q = menuFilter.toLowerCase();
-    return sections
-      .map((s) => ({ ...s, items: s.items.filter((i) => i.label.toLowerCase().includes(q)) }))
-      .filter((s) => s.items.length > 0);
-  }, [sections, menuFilter]);
+    return topSections
+      .map((tg) => {
+        const items = tg.items.filter((i) => i.label.toLowerCase().includes(q));
+        const subSections = tg.subSections
+          .map((s) => ({ ...s, items: s.items.filter((i) => i.label.toLowerCase().includes(q)) }))
+          .filter((s) => s.items.length > 0);
+        return { ...tg, items, subSections };
+      })
+      .filter((tg) => tg.items.length > 0);
+  }, [topSections, menuFilter]);
+
 
   // ── Collapsible group state ──
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
