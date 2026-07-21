@@ -302,52 +302,141 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   };
 
 
-  // ── Render Section ──
-  const renderSection = (section: NavGroupMeta & { items: RouteEntry[] }, idx: number, total: number) => {
+  // ── Render Top-level Group (IX-style, 9 grupos) ──
+  const renderTopSection = (
+    section: TopLevelGroupMeta & {
+      items: RouteEntry[];
+      subSections: Array<NavGroupMeta & { items: RouteEntry[] }>;
+    },
+    idx: number,
+  ) => {
     const hasActive = sectionHasActive(section.items);
     const SectionIcon = section.icon;
-    const singleSection = total === 1;
 
-    if (singleSection || !section.collapsible || !style.collapsibleGroups) {
+    // Colapsado: apenas ícones dos itens.
+    if (isCollapsed) {
       return (
-        <div key={section.key} className={cn(idx > 0 && "mt-3")} role="group" aria-label={section.label}>
-          {!isCollapsed && !singleSection && (
-            <div className="px-3 pb-2 pt-1">
-              <SidebarSectionLabel>{section.label}</SidebarSectionLabel>
-            </div>
-          )}
-          {isCollapsed && idx > 0 && <div className="my-2 mx-2 border-t border-sidebar-border" />}
-          <div className="space-y-1">{section.items.map((item) => renderLink(item))}</div>
+        <div key={section.key}>
+          {idx > 0 && <div className="my-2 mx-2 border-t border-sidebar-border" />}
+          {section.items.map((item) => renderLink(item))}
         </div>
       );
     }
 
-    const groupOpen = isGroupOpen(section.key, section.items);
-    return (
-      <Collapsible key={section.key} open={groupOpen} onOpenChange={() => toggleGroup(section.key)} className={cn(idx > 0 && "mt-1")}>
-        {!isCollapsed ? (
-          <div role="group" aria-label={section.label}>
-            <CollapsibleTrigger className="w-full">
-              <div className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-[13.5px] font-semibold cursor-pointer transition-colors",
-                hasActive ? "text-sidebar-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              )}>
-                <SectionIcon className={cn("w-[18px] h-[18px] shrink-0", hasActive && "text-sidebar-primary")} strokeWidth={1.75} />
-                <span className="flex-1 text-left truncate">{section.label}</span>
-                <ChevronRight className={cn("w-3.5 h-3.5 text-sidebar-foreground/30 transition-transform duration-200", groupOpen && "rotate-90")} />
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-1 mt-0.5">
-              {section.items.map((item) => renderLink(item, true))}
-            </CollapsibleContent>
+    // Sub-secções significativas = mais que 1 sub-secção com itens.
+    const showSubHeaders = section.subSections.length > 1;
+    const groupOpen = style.collapsibleGroups
+      ? (openGroups[section.key] !== undefined ? openGroups[section.key] : hasActive || section.key === "inicio")
+      : true;
+
+    const bodyContent = showSubHeaders ? (
+      <div className="space-y-2 mt-0.5">
+        {section.subSections.map((sub) => (
+          <div key={sub.key} role="group" aria-label={sub.label}>
+            <div className="px-3 pt-1.5 pb-1">
+              <SidebarSectionLabel>{sub.label}</SidebarSectionLabel>
+            </div>
+            <div className="space-y-1">
+              {sub.items.map((item) => renderLink(item, true))}
+            </div>
           </div>
-        ) : (
-          <>
-            {idx > 0 && <div className="my-2 mx-2 border-t border-sidebar-border" />}
-            {section.items.map((item) => renderLink(item))}
-          </>
-        )}
+        ))}
+      </div>
+    ) : (
+      <div className="space-y-1 mt-0.5">
+        {section.items.map((item) => renderLink(item, true))}
+      </div>
+    );
+
+    if (!style.collapsibleGroups) {
+      return (
+        <div key={section.key} className={cn(idx > 0 && "mt-3")} role="group" aria-label={section.label}>
+          <div className="px-3 pb-1 pt-1 flex items-center gap-2">
+            <SectionIcon className="w-[16px] h-[16px] shrink-0 text-sidebar-foreground/60" strokeWidth={1.75} />
+            <SidebarSectionLabel>{section.label}</SidebarSectionLabel>
+          </div>
+          {bodyContent}
+        </div>
+      );
+    }
+
+    return (
+      <Collapsible
+        key={section.key}
+        open={groupOpen}
+        onOpenChange={() => toggleGroup(section.key)}
+        className={cn(idx > 0 && "mt-1")}
+      >
+        <div role="group" aria-label={section.label}>
+          <CollapsibleTrigger className="w-full">
+            <div className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-[13.5px] font-semibold cursor-pointer transition-colors",
+              hasActive ? "text-sidebar-foreground" : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+            )}>
+              <SectionIcon className={cn("w-[18px] h-[18px] shrink-0", hasActive && "text-sidebar-primary")} strokeWidth={1.75} />
+              <span className="flex-1 text-left truncate">{section.label}</span>
+              <ChevronRight className={cn("w-3.5 h-3.5 text-sidebar-foreground/30 transition-transform duration-200", groupOpen && "rotate-90")} />
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>{bodyContent}</CollapsibleContent>
+        </div>
       </Collapsible>
+    );
+  };
+
+  // ── Botão global "+ Criar" ──
+  // Acções declaradas por route key; se a rota não estiver visível/permitida, não aparece.
+  const createActions: Array<{ label: string; group: string; routeKey: string; href?: string }> = [
+    { label: "Lead", group: "Comercial", routeKey: "leads" },
+    { label: "Contacto", group: "Comercial", routeKey: "contacts" },
+    { label: "Empresa", group: "Comercial", routeKey: "companies" },
+    { label: "Oportunidade", group: "Comercial", routeKey: "opportunities" },
+    { label: "Proposta", group: "Venda", routeKey: "proposals" },
+    { label: "Nota de encomenda", group: "Venda", routeKey: "order-notes" },
+    { label: "Fatura", group: "Venda", routeKey: "invoices" },
+    { label: "Pagamento", group: "Venda", routeKey: "payments" },
+    { label: "Processo de cobrança", group: "Venda", routeKey: "collections" },
+    { label: "Mensagem", group: "Comunicação", routeKey: "inbox" },
+    { label: "Campanha email", group: "Comunicação", routeKey: "email-campaigns" },
+    { label: "Sequência", group: "Comunicação", routeKey: "sequences" },
+    { label: "Tarefa", group: "Operação", routeKey: "tasks" },
+    { label: "Reunião", group: "Operação", routeKey: "calendar" },
+    { label: "Evento", group: "Operação", routeKey: "events" },
+    { label: "Ticket", group: "Operação", routeKey: "helpdesk-tickets" },
+    { label: "Produto", group: "Produto", routeKey: "products" },
+    { label: "Pacote", group: "Produto", routeKey: "bundles" },
+    { label: "Fornecedor", group: "Compras", routeKey: "procurement-suppliers" },
+    { label: "Ordem de compra", group: "Compras", routeKey: "procurement-orders" },
+    { label: "RFQ", group: "Compras", routeKey: "procurement-rfqs" },
+  ];
+
+  const availableCreateActions = useMemo(() => {
+    const byKey = new Map(ROUTE_MANIFEST.map((r) => [r.key, r]));
+    const installed = new Set(installedModuleIds);
+    return createActions
+      .map((a) => {
+        const r = byKey.get(a.routeKey);
+        if (!r) return null;
+        if (r.status !== "active") return null;
+        if (r.moduleSlug && !installed.has(r.moduleSlug)) return null;
+        if (r.menuKey && !canAccessMenu(r.menuKey)) return null;
+        if (!canAccessMenu(r.key)) return null;
+        return { ...a, href: r.href };
+      })
+      .filter((a): a is typeof createActions[number] & { href: string } => !!a);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [installedModuleIds, canAccessMenu]);
+
+  const groupedCreateActions = useMemo(() => {
+    const map = new Map<string, typeof availableCreateActions>();
+    availableCreateActions.forEach((a) => {
+      const arr = map.get(a.group) ?? [];
+      arr.push(a);
+      map.set(a.group, arr);
+    });
+    return Array.from(map.entries());
+  }, [availableCreateActions]);
+
     );
   };
 
