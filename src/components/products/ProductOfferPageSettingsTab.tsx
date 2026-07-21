@@ -93,7 +93,7 @@ export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }
       const nextMetadata = { ...(metadata || {}), offer_page: next };
       const { error } = await supabase
         .from("products")
-        .update({ metadata: nextMetadata })
+        .update({ metadata: nextMetadata as any })
         .eq("id", productId);
       if (error) throw error;
     },
