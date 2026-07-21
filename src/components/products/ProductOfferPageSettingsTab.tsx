@@ -496,9 +496,3 @@ export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }
   );
 }
 
-// Small helper hook — resolves the workspace store slug for a preview link.
-function useResolveWorkspaceStoreSlug(workspaceId: string) {
-  const { data } = useResolveStoreWorkspace(workspaceId);
-  // Reuse the workspace resolution helper — returns { slug } when found.
-  return { data: data ? { slug: (data as any).slug } : null };
-}
