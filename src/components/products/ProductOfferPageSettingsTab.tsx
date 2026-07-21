@@ -170,10 +170,10 @@ export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }
     }));
   };
 
-  // Public URL preview
-  const { data: wsSettings } = useResolveWorkspaceStoreSlug(workspaceId);
-  const publicUrl = wsSettings?.slug
-    ? `/store/${wsSettings.slug}/product/${productId}`
+  // Public URL preview — falls back to workspaceId if slug not resolved.
+  const wsResolved = useResolveStoreWorkspace(workspaceId);
+  const publicUrl = wsResolved.slug
+    ? `/store/${wsResolved.slug}/product/${productId}`
     : `/store/${workspaceId}/product/${productId}`;
 
   return (
