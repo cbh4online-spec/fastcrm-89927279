@@ -11,10 +11,13 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { useAppMode } from "@/hooks/useAppMode";
 import {
-  buildSidebarSections,
+  buildTopLevelSections,
+  ROUTE_MANIFEST,
   type RouteEntry,
   type NavGroupMeta,
+  type TopLevelGroupMeta,
 } from "@/config/routeManifest";
+
 import type { AgeGroup, SalesFunction } from "@/data/adaptiveDashboardMock";
 import {
   X, PanelLeftClose, PanelLeftOpen, ChevronRight,
