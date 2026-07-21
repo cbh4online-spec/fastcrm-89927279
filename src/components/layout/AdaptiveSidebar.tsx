@@ -437,8 +437,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
     return Array.from(map.entries());
   }, [availableCreateActions]);
 
-    );
-  };
+
 
   return (
     <TooltipProvider delayDuration={0}>
