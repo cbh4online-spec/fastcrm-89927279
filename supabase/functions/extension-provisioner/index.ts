@@ -79,7 +79,19 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .maybeSingle();
 
+    // Super admin bypass
+    let isSuperAdmin = false;
     if (!membership) {
+      const { data: superAdminRole } = await serviceClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "super_admin")
+        .maybeSingle();
+      isSuperAdmin = !!superAdminRole;
+    }
+
+    if (!membership && !isSuperAdmin) {
       return new Response(JSON.stringify({ error: "Not a workspace member" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
