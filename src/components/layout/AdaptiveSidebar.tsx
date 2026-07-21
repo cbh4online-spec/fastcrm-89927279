@@ -563,7 +563,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                     type="text"
                     value={menuFilter}
                     onChange={(e) => setMenuFilter(e.target.value)}
-                    placeholder="Pesquisar menu... (⌘K)"
+                    placeholder="Filtrar menu..."
                     className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-sidebar-accent/50 border border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/30 focus:outline-none focus:ring-1 focus:ring-sidebar-primary/50"
                   />
                 </div>

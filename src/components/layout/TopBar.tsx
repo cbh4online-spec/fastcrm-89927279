@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -35,17 +35,6 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const { t } = useTranslation('nav');
   const { t: tc } = useTranslation('common');
 
-  // ⌘K shortcut to navigate to Ask page
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        navigate("/dashboard/ask");
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -87,7 +76,6 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             >
               <Sparkles className="h-3.5 w-3.5" />
               <span className="hidden md:inline">{t('ask')}</span>
-              <kbd className="hidden lg:flex items-center text-[10px] bg-muted px-1 py-0.5 rounded">⌘K</kbd>
             </Button>
           </TooltipTrigger>
           <TooltipContent>

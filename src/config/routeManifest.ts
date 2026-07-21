@@ -723,4 +723,25 @@ export function buildTopLevelSections(
   }).filter((tg) => tg.items.length > 0);
 }
 
+/**
+ * Devolve o grupo top-level (dos 9) ao qual pertence uma RouteEntry.
+ * Respeita `includeRouteKeys` (prioridade), `navGroups` e `excludeRouteKeys`.
+ * Devolve `null` se a rota não pertencer a nenhum grupo top-level.
+ */
+export function getTopLevelGroupForRoute(route: RouteEntry): TopLevelGroup | null {
+  // 1) includeRouteKeys tem prioridade absoluta.
+  for (const tg of TOP_LEVEL_GROUPS) {
+    if (tg.includeRouteKeys?.includes(route.key) && !tg.excludeRouteKeys?.includes(route.key)) {
+      return tg.key;
+    }
+  }
+  // 2) match por navGroups (excluindo excludeRouteKeys).
+  for (const tg of TOP_LEVEL_GROUPS) {
+    if (tg.excludeRouteKeys?.includes(route.key)) continue;
+    if (tg.navGroups.includes(route.group)) return tg.key;
+  }
+  return null;
+}
+
+
 
