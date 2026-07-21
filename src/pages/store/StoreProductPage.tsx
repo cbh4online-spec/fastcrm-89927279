@@ -335,6 +335,12 @@ export default function StoreProductPage() {
     );
   }
 
+  // Smart Offer Page — new engine (backoffice-configurable via products.metadata.offer_page).
+  const offerConfig = parseOfferPageConfig((product as any).metadata);
+  if (offerConfig) {
+    return <StoreSmartOfferPage config={offerConfig} product={product} workspaceSlug={wsSlug} />;
+  }
+
   const images = product.images?.length ? product.images : [];
   const rawSpecs = product.specifications || {};
   const specs = filterValidSpecs(rawSpecs);
