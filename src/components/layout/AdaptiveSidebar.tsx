@@ -568,12 +568,82 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
               </div>
             )}
 
+            {/* ═══ BLOCK 1b: Botão global "+ Criar" ═══ */}
+            {!isCollapsed && availableCreateActions.length > 0 && (
+              <div className="px-3 pt-2 pb-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground px-3 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
+                      aria-label="Criar novo"
+                    >
+                      <Plus className="w-4 h-4" strokeWidth={2} />
+                      <span>Criar</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="bottom" className="w-64 max-h-[70vh] overflow-y-auto">
+                    {groupedCreateActions.map(([group, actions], gi) => (
+                      <div key={group}>
+                        {gi > 0 && <DropdownMenuSeparator />}
+                        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          {group}
+                        </DropdownMenuLabel>
+                        {actions.map((a) => (
+                          <DropdownMenuItem key={a.routeKey} asChild>
+                            <NavLink to={a.href} className="cursor-pointer">
+                              <Plus className="w-3.5 h-3.5 mr-2 opacity-60" />
+                              <span>{a.label}</span>
+                            </NavLink>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+            {isCollapsed && availableCreateActions.length > 0 && (
+              <div className="px-1 pt-2 pb-1 flex justify-center">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:opacity-90 transition-opacity"
+                      aria-label="Criar novo"
+                    >
+                      <Plus className="w-4 h-4" strokeWidth={2} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="right" className="w-64 max-h-[70vh] overflow-y-auto">
+                    {groupedCreateActions.map(([group, actions], gi) => (
+                      <div key={group}>
+                        {gi > 0 && <DropdownMenuSeparator />}
+                        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          {group}
+                        </DropdownMenuLabel>
+                        {actions.map((a) => (
+                          <DropdownMenuItem key={a.routeKey} asChild>
+                            <NavLink to={a.href} className="cursor-pointer">
+                              <Plus className="w-3.5 h-3.5 mr-2 opacity-60" />
+                              <span>{a.label}</span>
+                            </NavLink>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+
             {/* ═══ BLOCK 2: Navigation ═══ */}
             <nav className={cn("flex-1 overflow-y-auto scrollbar-thin", isCollapsed ? "px-1 py-2" : "px-2 py-2")} aria-label="Navegação principal">
               <div className="space-y-0.5">
-                {filteredSections.map((section, idx) => renderSection(section, idx, filteredSections.length))}
+                {filteredTopSections.map((section, idx) => renderTopSection(section, idx))}
               </div>
             </nav>
+
 
             {/* ═══ BLOCK 3: Footer ═══ */}
             <div className={cn("border-t border-sidebar-border", isCollapsed ? "px-1 py-2" : "px-2 py-2")}>
