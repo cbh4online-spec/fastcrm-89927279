@@ -92,6 +92,8 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { trackViewItem, trackAddToCart } from "@/lib/ecommerceTracking";
+import { parseOfferPageConfig } from "@/components/store/offer-page/offerPageTypes";
+import { StoreSmartOfferPage } from "@/components/store/offer-page/StoreSmartOfferPage";
 
 // Spec icon mapping
 const SPEC_ICON_MAP: Record<string, LucideIcon> = {
@@ -331,6 +333,12 @@ export default function StoreProductPage() {
         </div>
       </div>
     );
+  }
+
+  // Smart Offer Page — new engine (backoffice-configurable via products.metadata.offer_page).
+  const offerConfig = parseOfferPageConfig((product as any).metadata);
+  if (offerConfig) {
+    return <StoreSmartOfferPage config={offerConfig} product={product} workspaceSlug={wsSlug} />;
   }
 
   const images = product.images?.length ? product.images : [];
