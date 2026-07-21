@@ -134,7 +134,8 @@ export function OfferSections({ config, product, workspaceSlug }: Props) {
           <StoreBoughtTogether
             workspaceId={product.workspace_id}
             productId={product.id}
-            workspaceSlug={workspaceSlug}
+            currentPrice={product.base_price}
+            currency={product.currency}
           />
           <StoreRelatedProducts
             workspaceId={product.workspace_id}
