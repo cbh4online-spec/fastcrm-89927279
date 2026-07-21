@@ -102,7 +102,7 @@ export function OfferSections({ config, product, workspaceSlug }: Props) {
 
       {isEnabled("documents") && (
         <AccordionBlock title={SECTION_LABELS.documents}>
-          <StoreProductDocuments productId={product.id} workspaceId={product.workspace_id} />
+          <StoreProductDocuments productId={product.id} />
         </AccordionBlock>
       )}
 
