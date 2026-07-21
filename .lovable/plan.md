@@ -1,64 +1,79 @@
-## Objetivo
+## Diagnóstico
 
-Alinhar mobile bottom nav, pesquisa global, command palette e placeholder do filtro da sidebar com a nova taxonomia de 9 grupos (Início, Clientes, Vendas, Produtos, Comunicação, Operações, Relatórios, Aplicações, Definições) — sem tocar em páginas, rotas nem backend.
+- Rota pública `/store/:workspaceSlug/product/:productId` já existe em `StoreProductPage.tsx` (930 linhas).
+- `ProductDetailDialog.tsx` é o local do backoffice para gerir o produto.
+- Campo JSONB `products.metadata` existe e é semanticamente adequado — **sem migration necessária**.
+- Componentes reutilizáveis: variantes (`useProductVariants` / `usePublicProductVariants`), bundles (`useBundles`), pedido de preço (`StorePriceRequestDialog`), carrinho (`StoreCartContext`), tracking (`ecommerceTracking`), avaliações e FAQ existentes.
 
-## Ficheiros a alterar (5)
+## Persistência
 
-### 1. `src/config/routeManifest.ts` — helper mínimo
-Adicionar um único helper reutilizável, sem alterar dados existentes:
-
-- `getTopLevelGroupForRoute(route: RouteEntry): TopLevelGroup | null` — devolve o grupo top-level de uma rota, respeitando `navGroups`, `includeRouteKeys` e `excludeRouteKeys` (a ordem `includeRouteKeys` tem prioridade sobre `navGroups`, e `excludeRouteKeys` invalida). Iterar `TOP_LEVEL_GROUPS` e devolver o primeiro match.
-
-Usado por `MobileBottomNav` (ativo por grupo) e `GlobalSearch` (agrupar resultados).
-
-### 2. `src/components/layout/MobileBottomNav.tsx` — reescrito
-- Substituir a lista fixa `TABS` pela derivação a partir de `buildTopLevelSections(installedModuleSlugs, canAccess, mode)`.
-- Fontes: `useWorkspaceModules().installedModuleIds`, `useMenuPermissions().canAccessMenu`, `useAppMode().mode`.
-- Ordem prioritária de tabs: `inicio`, `clientes`, `vendas`, `comunicacao`. Fallback (se algum estiver vazio): `produtos`, `operacoes`, `relatorios`, `aplicacoes`. Máximo 4 tabs + "Mais".
-- Cada tab navega para `items[0].href` do respetivo grupo (a primeira rota permitida real).
-- Ícones e labels do próprio `TopLevelGroupMeta` (Início, Clientes, Vendas, Comunicação).
-- Estado ativo: uma rota está ativa se `getTopLevelGroupForRoute(rota-atual) === tab.key`. Isto elimina os prefixos manuais — Pipeline/Oportunidades passam automaticamente a marcar Clientes, Faturas/Propostas marcam Vendas, WhatsApp/Marketing marcam Comunicação.
-- Match por `location.pathname`: procurar no `ROUTE_MANIFEST` a rota cujo `href` seja igual ou seja o prefixo mais longo do pathname, e obter o grupo desse route.
-- Grelha `grid-cols-{n+1}` dinâmica (n = número de tabs visíveis, +1 do "Mais").
-- Botão "Mais" preservado: chama `onMenuClick()` (abre `AdaptiveSidebar`).
-
-### 3. `src/components/layout/GlobalSearch.tsx` — pesquisa alinhada
-- Remover `import { getAllSearchablePages }` e o snapshot module-level `ALL_PAGES`.
-- Passar a usar `getSearchableRoutes(installedModuleIds, canAccessMenu, mode)` via hooks `useWorkspaceModules`, `useMenuPermissions`, `useAppMode` — memoizado.
-- Filtrar rotas com parâmetros: excluir `href` que contém `:` (ex.: `:id`, `:slug`).
-- Agrupar `filteredPages` por `getTopLevelGroupForRoute(...)`, respeitando a ordem `TOP_LEVEL_GROUPS`. Renderizar um `CommandGroup` por grupo top-level com `heading = tg.label`. Nunca usar títulos legados (MEGA_GROUPS/NAV_GROUPS).
-- Matching mantém `label` + também o `label` do grupo top-level (contém, case-insensitive). Sem fuzzy novo.
-- Estado vazio (`!search`): mostrar no máximo 8 rotas totais, escolhidas do topo dos grupos `inicio`, `clientes`, `vendas`, `comunicacao` (2 por grupo, ignorando duplicados). Evita "20 páginas técnicas".
-- Adicionar listener `Cmd/Ctrl + K` (além do `Cmd/Ctrl + /` já existente). Guardar contra input focado: se `document.activeElement` for `input/textarea/select/contenteditable` e o diálogo ainda não estiver aberto, ignorar. Se `open === true`, permitir toggle.
-- Preservar integralmente as pesquisas de Leads, Contactos, Empresas, Oportunidades e todos os `CommandGroup`/`CommandSeparator` associados.
-
-### 4. `src/components/layout/TopBar.tsx` — libertar Cmd/Ctrl+K
-- Remover o `useEffect` (linhas 38–48) que captura `Cmd/Ctrl + K` e navega para `/dashboard/ask`.
-- Remover o `<kbd>⌘K</kbd>` (linha 90) do botão Ask FastCRM.
-- Manter o botão Ask FastCRM (click continua a navegar para `/dashboard/ask`) e o tooltip.
-
-### 5. `src/components/layout/AdaptiveSidebar.tsx` — placeholder
-- Alterar `placeholder="Pesquisar menu... (⌘K)"` para `placeholder="Filtrar menu..."` (linha 566). Nenhuma outra alteração.
-
-## Lógica de seleção da tab mobile (resumo)
-
-```text
-tabs = buildTopLevelSections(...)
-priority = ["inicio","clientes","vendas","comunicacao"]
-fallback = ["produtos","operacoes","relatorios","aplicacoes"]
-visible = priority.filter(tg exists & tg.items.length>0)
-while visible.length < 4 and fallback tem candidatos:
-  adicionar próximo fallback disponível
-render min(visible.length, 4) tabs + botão "Mais"
+Guardar em `products.metadata.offer_page` com estrutura tipada:
 ```
+{ version, enabled, preset, conversionGoal, headline, subheadline, ctaLabel,
+  secondaryCtaLabel, trustBadges[], sections{}, sectorConfig{}, faqItems[] }
+```
+Presets: `cosmetics | training | security | dropshipping | generic`.
+Objetivos: `add_to_cart | buy_now | request_quote | request_contact | enroll | book_assessment | book_demo`.
+Default: `enabled=false` → sem alterações a produtos existentes.
 
-## Validação
+## Ficheiros a alterar / criar
 
-- `bunx tsgo --noEmit`.
-- Smoke visual (mental): `/dashboard/pipeline` marca Clientes; `/dashboard/proposals` marca Vendas; `/dashboard/whatsapp` marca Comunicação.
+**Novos:**
+- `src/components/store/offer-page/offerPageTypes.ts` — tipos + defaults por preset + validação.
+- `src/components/store/offer-page/StoreSmartOfferPage.tsx` — layout principal (2 colunas desktop, empilhado mobile).
+- `src/components/store/offer-page/OfferProductGallery.tsx`
+- `src/components/store/offer-page/OfferDecisionPanel.tsx` — passos numerados por preset.
+- `src/components/store/offer-page/OfferOptionStep.tsx`
+- `src/components/store/offer-page/OfferTrustBadges.tsx`
+- `src/components/store/offer-page/OfferStickyCTA.tsx` — barra fixa mobile (preço + CTA).
+- `src/components/store/offer-page/OfferSections.tsx` — accordion de secções configuráveis.
+- `src/components/store/offer-page/OfferPresetRenderer.tsx` — mapeia preset → passos + secções ativas.
+- `src/components/store/offer-page/useOfferConversion.ts` — camada de ação (add_to_cart/buy_now/request_quote/etc) reutilizando carrinho, checkout e `StorePriceRequestDialog`.
+- `src/components/products/ProductOfferPageSettingsTab.tsx` — separador de configuração no backoffice.
 
-## Fora de âmbito
+**Alterados:**
+- `src/pages/store/StoreProductPage.tsx` — lê `metadata.offer_page`; se `enabled` → renderiza `StoreSmartOfferPage`; senão mantém render atual (fallback seguro).
+- `src/components/products/ProductDetailDialog.tsx` — adiciona novo `TabsTrigger` "Página de Oferta" ligado ao componente isolado (sem inflacionar o ficheiro).
 
-- Alterações a páginas, rotas, backend, autenticação, migrations, styling global, feature flags e à estrutura dos 9 grupos.
-- Novo atalho dedicado para Ask FastCRM (fase posterior).
-- Remoção dos flags legados `ui.adaptive_sidebar_enabled` / `ui.watidy_sidebar_enabled`.
+## Estrutura visual
+
+**Desktop:** grelha 2 colunas; esquerda = galeria + benefícios + conteúdo detalhado; direita = painel sticky (rating real, título, selos, passos numerados, resumo de preço com poupança real, quantidade, CTA principal).
+**Mobile:** ordem imagem → título/rating → painel → CTA → benefícios → conteúdo → avaliações → FAQ → relacionados; `OfferStickyCTA` fixa em baixo.
+
+## Presets (comportamento)
+
+- **Cosmetics** — variantes (tamanho/aroma/pele) + quantity breaks reais + bundles reais; sem opção "subscrever" (ainda não há checkout recorrente funcional detectado).
+- **Training** — modalidade + edição/sessão (só mostra dados reais) + plano; CTA "Inscrever-me" → checkout se preço existir, senão `request_contact`.
+- **Security** — tipo de espaço + necessidade + tipo de solução; CTA "Pedir orçamento" via `StorePriceRequestDialog`; sem carrinho quando preço sob consulta.
+- **Dropshipping** — variante + quantidade + confirmação de entrega (só dados reais); CTA `add_to_cart`/`buy_now`.
+- **Generic** — imagem + título + descrição + preço + qty + variantes se existirem.
+
+Passos vazios ocultos automaticamente. Objetivos de conversão sem implementação real ficam ocultos no seletor do backoffice.
+
+## Backoffice
+
+`ProductOfferPageSettingsTab` com:
+- Switch on/off (default off).
+- Select preset + select objetivo.
+- Inputs de texto comercial (com fallback para dados existentes do produto).
+- Editor de até 4 trust badges (icon Lucide + título + descrição).
+- Lista de secções com switches (sem drag-and-drop; setas cima/baixo).
+- Editor mínimo de FAQ (pergunta/resposta/ordem/ativo).
+- Pré-visualização resumida + link "Abrir página pública".
+
+Persistência via update ao `products.metadata` preservando outras chaves.
+
+## Analytics
+
+Reutiliza `ecommerceTracking` + adiciona eventos `smart_offer_view`, `smart_offer_option_selected`, `smart_offer_conversion_mode_selected`, `smart_offer_bundle_selected`, `smart_offer_cta_clicked`, `smart_offer_quote_requested` via `pushGA4` existente.
+
+## Migration
+**Nenhuma** — reutiliza `products.metadata` (JSONB já existente e apropriado).
+
+## Riscos
+- Produtos sem imagem/rating/stock — tratados com estados vazios; sem números fictícios.
+- Extensão do carrinho para `variantId` se ainda não suportar — feita de forma retrocompatível apenas se necessário para preset cosmetics/dropshipping.
+- `ProductDetailDialog` grande — o novo separador fica num componente isolado para não inchar o ficheiro.
+
+## Critérios de aceitação
+Todos os 22 pontos do briefing; fallback preserva a página atual; typecheck final sem novos erros.
