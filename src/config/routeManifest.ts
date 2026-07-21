@@ -593,6 +593,134 @@ export function buildMegaGroupSections(
   return MEGA_GROUPS.map((mg) => ({
     ...mg,
     sections: allSections.filter((s) => mg.navGroups.includes(s.key)),
-  })).filter((mg) => mg.sections.some((s) => s.items.length > 0));
+})).filter((mg) => mg.sections.some((s) => s.items.length > 0));
 }
+
+// ─── TOP-LEVEL NAVIGATION (IX-style, 9 grupos) ───────────────────────────────
+// Novo agrupamento minimalista da barra lateral. Vive ao lado do `MEGA_GROUPS`
+// legado (que continua a ser consumido por departments/WatidySidebar) e não
+// substitui nenhuma `RouteEntry`: apenas reagrupa por referência.
+
+export type TopLevelGroup =
+  | "inicio"
+  | "clientes"
+  | "vendas"
+  | "produtos"
+  | "comunicacao"
+  | "operacoes"
+  | "relatorios"
+  | "aplicacoes"
+  | "definicoes";
+
+export interface TopLevelGroupMeta {
+  key: TopLevelGroup;
+  label: string;
+  icon: LucideIcon;
+  order: number;
+  /** NavGroups agregados neste grupo-topo. */
+  navGroups: NavGroup[];
+  /** Route keys extra a incluir (não pertencem a `navGroups` mas fazem parte semanticamente). */
+  includeRouteKeys?: string[];
+  /** Route keys a excluir (mesmo pertencendo a `navGroups`). */
+  excludeRouteKeys?: string[];
+}
+
+// Route keys de produtos, actualmente no NavGroup "vendas", que passam para "Produtos".
+const PRODUTOS_KEYS = [
+  "products", "products-ocr", "products-ocr-drafts",
+  "bundles", "composite-products", "stock-valuation",
+];
+// Route keys de relatórios, actualmente em "vendas"/"ai-strategy", que passam para "Relatórios".
+const RELATORIOS_KEYS = [
+  "reports", "reports-financial", "kpis",
+  "daily-brief", "revenue-flight-control", "exec-command",
+];
+// Route keys de verticais dentro de "operacoes", que passam para "Aplicações".
+const VERTICAIS_KEYS = [
+  "imo-ai", "student-journey", "metodo-vision", "credit", "community",
+];
+
+export const TOP_LEVEL_GROUPS: TopLevelGroupMeta[] = [
+  { key: "inicio",      label: "Início",       icon: LayoutDashboard, order: 1,
+    navGroups: ["inicio"] },
+  { key: "clientes",    label: "Clientes",     icon: Users,           order: 2,
+    navGroups: ["comercial-crm", "comercial-pipeline", "comercial-prospecting"] },
+  { key: "vendas",      label: "Vendas",       icon: Receipt,         order: 3,
+    navGroups: ["vendas"],
+    excludeRouteKeys: [...PRODUTOS_KEYS, ...RELATORIOS_KEYS, "strategy"] },
+  { key: "produtos",    label: "Produtos",     icon: Package,         order: 4,
+    navGroups: [],
+    includeRouteKeys: PRODUTOS_KEYS },
+  { key: "comunicacao", label: "Comunicação",  icon: Radio,           order: 5,
+    navGroups: ["comunicacao", "agenda", "marketing"] },
+  { key: "operacoes",   label: "Operações",    icon: ClipboardList,   order: 6,
+    navGroups: ["operacoes", "suporte", "compras", "rh", "performance"],
+    excludeRouteKeys: VERTICAIS_KEYS },
+  { key: "relatorios",  label: "Relatórios",   icon: BarChart3,       order: 7,
+    navGroups: [],
+    includeRouteKeys: RELATORIOS_KEYS },
+  { key: "aplicacoes",  label: "Aplicações",   icon: Puzzle,          order: 8,
+    navGroups: ["loja-online", "marketplace-c2c", "portal-b2b", "seguranca", "inteligencia", "ai-strategy"],
+    includeRouteKeys: VERTICAIS_KEYS,
+    excludeRouteKeys: ["daily-brief", "revenue-flight-control", "exec-command"] },
+  { key: "definicoes",  label: "Definições",   icon: Settings,        order: 9,
+    navGroups: ["administracao"] },
+];
+
+/**
+ * Constrói secções top-level (9 grupos IX) para a sidebar.
+ * Cada grupo devolve os seus itens já filtrados por permissões, módulos e modo,
+ * e opcionalmente as sub-secções internas (para renderizar sub-headers quando útil).
+ */
+export function buildTopLevelSections(
+  installedModuleSlugs: string[],
+  canAccess: (menuKey: string) => boolean,
+  mode: AppMode = "fastcrm"): Array<TopLevelGroupMeta & {
+    items: RouteEntry[];
+    subSections: Array<NavGroupMeta & { items: RouteEntry[] }>;
+  }> {
+  const allSections = buildSidebarSections(installedModuleSlugs, canAccess, mode);
+  const byGroup = new Map(allSections.map((s) => [s.key, s]));
+  const installed = new Set(installedModuleSlugs);
+
+  // Helper: aplica os mesmos filtros de sidebar a uma RouteEntry.
+  const passes = (r: RouteEntry): boolean => {
+    if (!r.visibleInSidebar) return false;
+    if (r.status !== "active") return false;
+    if (r.moduleSlug && !installed.has(r.moduleSlug)) return false;
+    if (r.menuKey && !canAccess(r.menuKey)) return false;
+    if (!canAccess(r.key)) return false;
+    return true;
+  };
+  const byKey = new Map(ROUTE_MANIFEST.map((r) => [r.key, r]));
+
+  return TOP_LEVEL_GROUPS.map((tg) => {
+    const exclude = new Set(tg.excludeRouteKeys ?? []);
+    const subSections = tg.navGroups
+      .map((ng) => byGroup.get(ng))
+      .filter((s): s is NavGroupMeta & { items: RouteEntry[] } => !!s)
+      .map((s) => ({ ...s, items: s.items.filter((i) => !exclude.has(i.key)) }))
+      .filter((s) => s.items.length > 0);
+
+    const extraItems: RouteEntry[] = (tg.includeRouteKeys ?? [])
+      .map((k) => byKey.get(k))
+      .filter((r): r is RouteEntry => !!r && passes(r) && !exclude.has(r.key));
+
+    const items: RouteEntry[] = [
+      ...subSections.flatMap((s) => s.items),
+      ...extraItems,
+    ];
+
+    // Deduplicação por key (segurança).
+    const seen = new Set<string>();
+    const deduped = items.filter((i) => {
+      if (seen.has(i.key)) return false;
+      seen.add(i.key);
+      return true;
+    });
+
+    return { ...tg, items: deduped, subSections };
+  }).filter((tg) => tg.items.length > 0);
+}
+
 
