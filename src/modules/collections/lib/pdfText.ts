@@ -3,10 +3,8 @@
  * Returns a single string with line breaks between text items to feed the ARTSOFT parser.
  */
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
-import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
 
-
-(pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
+(pdfjsLib as any).GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${(pdfjsLib as any).version}/legacy/build/pdf.worker.min.mjs`;
 
 export async function extractPdfText(file: File | Blob): Promise<string> {
   const buf = await file.arrayBuffer();
