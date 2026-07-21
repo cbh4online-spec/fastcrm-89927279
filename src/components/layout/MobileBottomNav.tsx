@@ -1,59 +1,97 @@
 import * as React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Users, Inbox, BarChart3, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/hooks/useHaptics";
+import {
+  ROUTE_MANIFEST,
+  buildTopLevelSections,
+  getTopLevelGroupForRoute,
+  type TopLevelGroup,
+} from "@/config/routeManifest";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useMenuPermissions } from "@/hooks/useMenuPermissions";
+import { useAppMode } from "@/hooks/useAppMode";
 
 interface MobileBottomNavProps {
   onMenuClick: () => void;
 }
 
-interface Tab {
-  to: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  match?: (path: string) => boolean;
-}
-
-const TABS: Tab[] = [
-  {
-    to: "/dashboard",
-    label: "Início",
-    icon: Home,
-    match: (p) => p === "/dashboard" || p === "/dashboard/",
-  },
-  {
-    to: "/dashboard/pipeline",
-    label: "Vendas",
-    icon: BarChart3,
-    match: (p) => p.startsWith("/dashboard/pipeline") || p.startsWith("/dashboard/deals") || p.startsWith("/dashboard/proposals") || p.startsWith("/dashboard/opportunities"),
-  },
-  {
-    to: "/dashboard/contacts",
-    label: "Contactos",
-    icon: Users,
-    match: (p) => p.startsWith("/dashboard/contacts") || p.startsWith("/dashboard/leads") || p.startsWith("/dashboard/clients"),
-  },
-  {
-    to: "/dashboard/inbox",
-    label: "Inbox",
-    icon: Inbox,
-    match: (p) => p.startsWith("/dashboard/inbox") || p.startsWith("/dashboard/whatsapp") || p.startsWith("/dashboard/sms"),
-  },
-];
+const PRIORITY: TopLevelGroup[] = ["inicio", "clientes", "vendas", "comunicacao"];
+const FALLBACK: TopLevelGroup[] = ["produtos", "operacoes", "relatorios", "aplicacoes"];
+const MAX_TABS = 4;
 
 /**
  * Native-app-style bottom navigation (mobile only).
- * 4 fixed primary tabs + a "Mais" button that opens the full drawer
- * (the existing AdaptiveSidebar) for everything else.
- *
- * Hidden on tablet/desktop (≥ md breakpoint).
+ * Deriva os tabs dinamicamente a partir de `buildTopLevelSections`, respeitando
+ * permissões, módulos e modo. Máximo 4 tabs + "Mais" (abre a AdaptiveSidebar).
  */
 export const MobileBottomNav = React.forwardRef<HTMLElement, MobileBottomNavProps>(function MobileBottomNav(
   { onMenuClick },
   _ref,
 ) {
   const location = useLocation();
+  const { installedModuleIds } = useWorkspaceModules();
+  const { canAccessMenu } = useMenuPermissions();
+  const { mode } = useAppMode();
+
+  const sections = React.useMemo(
+    () => buildTopLevelSections(installedModuleIds, canAccessMenu, mode),
+    [installedModuleIds, canAccessMenu, mode],
+  );
+
+  const byKey = React.useMemo(() => {
+    const m = new Map<TopLevelGroup, (typeof sections)[number]>();
+    sections.forEach((s) => m.set(s.key, s));
+    return m;
+  }, [sections]);
+
+  const tabs = React.useMemo(() => {
+    const chosen: TopLevelGroup[] = [];
+    for (const key of PRIORITY) {
+      const s = byKey.get(key);
+      if (s && s.items.length > 0) chosen.push(key);
+    }
+    for (const key of FALLBACK) {
+      if (chosen.length >= MAX_TABS) break;
+      const s = byKey.get(key);
+      if (s && s.items.length > 0 && !chosen.includes(key)) chosen.push(key);
+    }
+    return chosen
+      .slice(0, MAX_TABS)
+      .map((k) => {
+        const s = byKey.get(k)!;
+        return {
+          key: k,
+          label: s.label,
+          icon: s.icon,
+          to: s.items[0].href,
+        };
+      });
+  }, [byKey]);
+
+  // Grupo top-level da rota actual (para estado activo).
+  const activeGroup = React.useMemo<TopLevelGroup | null>(() => {
+    const path = location.pathname;
+    let best: { len: number; group: TopLevelGroup | null } = { len: -1, group: null };
+    for (const r of ROUTE_MANIFEST) {
+      if (!r.href) continue;
+      const matches = path === r.href || path.startsWith(r.href + "/");
+      if (!matches) continue;
+      if (r.href.length > best.len) {
+        best = { len: r.href.length, group: getTopLevelGroupForRoute(r) };
+      }
+    }
+    return best.group;
+  }, [location.pathname]);
+
+  const colCount = tabs.length + 1; // +1 para "Mais"
+  const gridColsClass =
+    colCount === 5 ? "grid-cols-5"
+    : colCount === 4 ? "grid-cols-4"
+    : colCount === 3 ? "grid-cols-3"
+    : colCount === 2 ? "grid-cols-2"
+    : "grid-cols-1";
 
   return (
     <nav
@@ -64,14 +102,12 @@ export const MobileBottomNav = React.forwardRef<HTMLElement, MobileBottomNavProp
         "safe-area-pb mobile-tap-highlight-none"
       )}
     >
-      <ul className="grid grid-cols-5 h-16">
-        {TABS.map((tab) => {
+      <ul className={cn("grid h-16", gridColsClass)}>
+        {tabs.map((tab) => {
           const Icon = tab.icon;
-          const active = tab.match
-            ? tab.match(location.pathname)
-            : location.pathname.startsWith(tab.to);
+          const active = activeGroup === tab.key;
           return (
-            <li key={tab.to} className="flex">
+            <li key={tab.key} className="flex">
               <NavLink
                 to={tab.to}
                 onClick={() => haptics.selection()}

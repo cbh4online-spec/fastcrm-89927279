@@ -4,7 +4,16 @@ import { useLeads } from "@/hooks/useLeads";
 import { useContacts } from "@/hooks/useContacts";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useOpportunities } from "@/hooks/useOpportunities";
-import { getAllSearchablePages } from "@/config/routeManifest";
+import {
+  getSearchableRoutes,
+  getTopLevelGroupForRoute,
+  TOP_LEVEL_GROUPS,
+  type RouteEntry,
+  type TopLevelGroup,
+} from "@/config/routeManifest";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useMenuPermissions } from "@/hooks/useMenuPermissions";
+import { useAppMode } from "@/hooks/useAppMode";
 import {
   CommandDialog,
   CommandEmpty,
@@ -24,13 +33,23 @@ import {
   Kanban,
   ArrowRight,
   FileText,
-  type LucideIcon,
 } from "lucide-react";
-
-const ALL_PAGES = getAllSearchablePages();
 
 interface GlobalSearchProps {
   trigger?: React.ReactNode;
+}
+
+const DEFAULT_GROUPS: TopLevelGroup[] = ["inicio", "clientes", "vendas", "comunicacao"];
+const DEFAULT_PER_GROUP = 2;
+const DEFAULT_MAX = 8;
+
+function isTypingContext() {
+  const el = document.activeElement as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName?.toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") return true;
+  if (el.isContentEditable) return true;
+  return false;
 }
 
 export function GlobalSearch({ trigger }: GlobalSearchProps) {
@@ -43,16 +62,36 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
   const { companies = [] } = useCompanies();
   const { data: opportunities = [] } = useOpportunities();
 
+  const { installedModuleIds } = useWorkspaceModules();
+  const { canAccessMenu } = useMenuPermissions();
+  const { mode } = useAppMode();
+
+  // Rotas pesquisáveis, respeitando permissões, módulos e modo. Sem rotas parametrizadas.
+  const searchableRoutes = useMemo<RouteEntry[]>(() => {
+    return getSearchableRoutes(installedModuleIds, canAccessMenu, mode).filter(
+      (r) => !!r.href && !r.href.includes(":"),
+    );
+  }, [installedModuleIds, canAccessMenu, mode]);
+
+  const groupLabelByKey = useMemo(() => {
+    const m = new Map<TopLevelGroup, string>();
+    TOP_LEVEL_GROUPS.forEach((tg) => m.set(tg.key, tg.label));
+    return m;
+  }, []);
+
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "/" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setOpen((open) => !open);
-      }
+      const isCmdSlash = (e.metaKey || e.ctrlKey) && e.key === "/";
+      const isCmdK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
+      if (!isCmdSlash && !isCmdK) return;
+      // Se não estiver aberto e o utilizador estiver a escrever noutro sítio, ignorar.
+      if (!open && isTypingContext()) return;
+      e.preventDefault();
+      setOpen((o) => !o);
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, []);
+  }, [open]);
 
   const filteredLeads = useMemo(() => {
     if (!search) return leads.slice(0, 5);
@@ -104,14 +143,68 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
       .slice(0, 5);
   }, [opportunities, search]);
 
-  const filteredPages = useMemo(() => {
-    if (!search) return ALL_PAGES.slice(0, 20);
-    const query = search.toLowerCase();
-    return ALL_PAGES.filter((p) => p.label.toLowerCase().includes(query)).slice(0, 10);
-  }, [search]);
+  // Páginas agrupadas por top-level group.
+  const groupedPages = useMemo<Array<{ group: TopLevelGroup; label: string; items: RouteEntry[] }>>(() => {
+    const query = search.trim().toLowerCase();
 
+    // Estado vazio: 2 rotas por grupo em Início/Clientes/Vendas/Comunicação, máx 8.
+    if (!query) {
+      const seen = new Set<string>();
+      const groups: Array<{ group: TopLevelGroup; label: string; items: RouteEntry[] }> = [];
+      let total = 0;
+      for (const gk of DEFAULT_GROUPS) {
+        if (total >= DEFAULT_MAX) break;
+        const items: RouteEntry[] = [];
+        for (const r of searchableRoutes) {
+          if (items.length >= DEFAULT_PER_GROUP) break;
+          if (seen.has(r.key)) continue;
+          if (getTopLevelGroupForRoute(r) !== gk) continue;
+          items.push(r);
+          seen.add(r.key);
+          total++;
+          if (total >= DEFAULT_MAX) break;
+        }
+        if (items.length > 0) {
+          groups.push({ group: gk, label: groupLabelByKey.get(gk) ?? gk, items });
+        }
+      }
+      return groups;
+    }
+
+    // Com query: match por label ou label do grupo top-level, ordenado pelos TOP_LEVEL_GROUPS.
+    const matches = searchableRoutes.filter((r) => {
+      const gk = getTopLevelGroupForRoute(r);
+      const groupLabel = gk ? (groupLabelByKey.get(gk) ?? "") : "";
+      return (
+        r.label.toLowerCase().includes(query) ||
+        groupLabel.toLowerCase().includes(query)
+      );
+    });
+
+    const bucket = new Map<TopLevelGroup, RouteEntry[]>();
+    for (const r of matches) {
+      const gk = getTopLevelGroupForRoute(r);
+      if (!gk) continue;
+      const arr = bucket.get(gk) ?? [];
+      arr.push(r);
+      bucket.set(gk, arr);
+    }
+    const out: Array<{ group: TopLevelGroup; label: string; items: RouteEntry[] }> = [];
+    let total = 0;
+    for (const tg of TOP_LEVEL_GROUPS) {
+      const items = bucket.get(tg.key);
+      if (!items || items.length === 0) continue;
+      const capped = items.slice(0, 5);
+      out.push({ group: tg.key, label: tg.label, items: capped });
+      total += capped.length;
+      if (total >= 15) break;
+    }
+    return out;
+  }, [search, searchableRoutes, groupLabelByKey]);
+
+  const anyPage = groupedPages.some((g) => g.items.length > 0);
   const hasResults =
-    filteredPages.length > 0 ||
+    anyPage ||
     filteredLeads.length > 0 ||
     filteredContacts.length > 0 ||
     filteredCompanies.length > 0 ||
@@ -146,7 +239,7 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
           <span className="hidden lg:inline-flex">Pesquisar...</span>
           <span className="inline-flex lg:hidden">Pesquisar...</span>
           <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-            <span className="text-xs">⌘</span>/
+            <span className="text-xs">⌘</span>K
           </kbd>
         </Button>
       )}
@@ -158,31 +251,34 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
           onValueChange={setSearch}
         />
         <CommandList>
-          <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
+          {!hasResults && <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>}
 
-          {filteredPages.length > 0 && (
-            <CommandGroup heading="Páginas">
-              {filteredPages.map((page) => {
-                const Icon = page.icon || FileText;
-                return (
-                  <CommandItem
-                    key={page.path}
-                    value={`page-${page.label}`}
-                    onSelect={() => handleSelect(page.path)}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <span>{page.label}</span>
-                    </div>
-                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          )}
+          {groupedPages.map((g, idx) => (
+            <div key={g.group}>
+              {idx > 0 && <CommandSeparator />}
+              <CommandGroup heading={g.label}>
+                {g.items.map((page) => {
+                  const Icon = page.icon || FileText;
+                  return (
+                    <CommandItem
+                      key={page.key}
+                      value={`page-${g.group}-${page.key}`}
+                      onSelect={() => handleSelect(page.href)}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <span>{page.label}</span>
+                      </div>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </div>
+          ))}
 
-          {filteredPages.length > 0 && filteredLeads.length > 0 && <CommandSeparator />}
+          {anyPage && filteredLeads.length > 0 && <CommandSeparator />}
 
           {filteredLeads.length > 0 && (
             <CommandGroup heading="Leads">
