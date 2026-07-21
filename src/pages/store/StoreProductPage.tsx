@@ -92,6 +92,8 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { trackViewItem, trackAddToCart } from "@/lib/ecommerceTracking";
+import { parseOfferPageConfig } from "@/components/store/offer-page/offerPageTypes";
+import { StoreSmartOfferPage } from "@/components/store/offer-page/StoreSmartOfferPage";
 
 // Spec icon mapping
 const SPEC_ICON_MAP: Record<string, LucideIcon> = {
