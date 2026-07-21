@@ -35,17 +35,6 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const { t } = useTranslation('nav');
   const { t: tc } = useTranslation('common');
 
-  // ⌘K shortcut to navigate to Ask page
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        navigate("/dashboard/ask");
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [navigate]);
 
   const handleSignOut = async () => {
     await signOut();
