@@ -593,10 +593,10 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                         </DropdownMenuLabel>
                         {actions.map((a) => (
                           <DropdownMenuItem key={a.routeKey} asChild>
-                            <NavLink to={a.href} className="cursor-pointer">
+                            <Link to={a.href} className="cursor-pointer">
                               <Plus className="w-3.5 h-3.5 mr-2 opacity-60" />
                               <span>{a.label}</span>
-                            </NavLink>
+                            </Link>
                           </DropdownMenuItem>
                         ))}
                       </div>
@@ -626,10 +626,10 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                         </DropdownMenuLabel>
                         {actions.map((a) => (
                           <DropdownMenuItem key={a.routeKey} asChild>
-                            <NavLink to={a.href} className="cursor-pointer">
+                            <Link to={a.href} className="cursor-pointer">
                               <Plus className="w-3.5 h-3.5 mr-2 opacity-60" />
                               <span>{a.label}</span>
-                            </NavLink>
+                            </Link>
                           </DropdownMenuItem>
                         ))}
                       </div>
