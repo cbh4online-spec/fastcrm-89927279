@@ -260,7 +260,7 @@ export function StoreSmartOfferPage({ config, product, workspaceSlug }: Props) {
 
         <StoreFooter workspaceSlug={workspaceSlug} storeName={storeSettings?.store_name} />
         <StoreCartDrawer workspaceSlug={workspaceSlug} />
-        <StoreCookieConsent workspaceId={product.workspace_id} />
+        <StoreCookieConsent />
 
         {/* Mobile sticky CTA */}
         <OfferStickyCTA
