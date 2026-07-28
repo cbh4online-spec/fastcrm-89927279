@@ -35,10 +35,17 @@ export function LoginForm() {
     navigate(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/dashboard");
   };
 
+  const safeRedirect = redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+    ? redirectTo
+    : null;
+  const oauthRedirectUri = safeRedirect
+    ? `${window.location.origin}/login?redirect=${encodeURIComponent(safeRedirect)}`
+    : window.location.origin;
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: oauthRedirectUri,
     });
     if (error) {
       toast.error("Erro ao iniciar sessão com Google");
@@ -49,7 +56,7 @@ export function LoginForm() {
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
+      redirect_uri: oauthRedirectUri,
     });
     if (error) {
       toast.error("Erro ao iniciar sessão com Apple");
