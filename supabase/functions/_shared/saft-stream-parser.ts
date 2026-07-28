@@ -503,3 +503,75 @@ export async function collectSaftStream(
   if (!header) throw new Error("Não é um SAF-T válido (Header não encontrado)");
   return { header, customers, products, invoices, payments };
 }
+
+export function analyzeSaftText(xml: string): {
+  header: SaftHeader;
+  stats: {
+    customers: number;
+    products: number;
+    invoices: number;
+    invoice_lines: number;
+    payments: number;
+    total_gross: number;
+    total_net: number;
+    total_tax: number;
+    cancelled: number;
+  };
+  invoiceNos: string[];
+} {
+  if (xml.charCodeAt(0) === 0xfeff) xml = xml.slice(1);
+  if (!xml.includes("<AuditFile")) throw new Error("Não é um SAF-T válido (AuditFile não encontrado)");
+  const headerFrag = tagFragment(xml, "Header");
+  if (!headerFrag) throw new Error("Não é um SAF-T válido (Header não encontrado)");
+
+  const header = parseHeaderXml(headerFrag);
+  header.saft_type = xml.includes("<GeneralLedgerEntries")
+    ? "accounting"
+    : xml.includes("<WorkingDocuments")
+    ? "self_billing"
+    : "billing";
+
+  const stats = {
+    customers: countTags(xml, "Customer"),
+    products: countTags(xml, "Product"),
+    invoices: 0,
+    invoice_lines: 0,
+    payments: 0,
+    total_gross: 0,
+    total_net: 0,
+    total_tax: 0,
+    cancelled: 0,
+  };
+  const invoiceNos: string[] = [];
+
+  const consumeDocument = (fragment: string, kind: "invoice" | "work") => {
+    const docTotals = tagFragment(fragment, "DocumentTotals") ?? "";
+    const docStatus = tagFragment(fragment, "DocumentStatus") ?? "";
+    const no = kind === "work"
+      ? tagValue(fragment, "DocumentNumber") ?? tagValue(fragment, "WorkDocumentNumber") ?? tagValue(fragment, "WorkDocumentNo") ?? tagValue(fragment, "InvoiceNo")
+      : tagValue(fragment, "InvoiceNo");
+    const status = kind === "work"
+      ? tagValue(docStatus, "WorkStatus") ?? tagValue(docStatus, "InvoiceStatus")
+      : tagValue(docStatus, "InvoiceStatus");
+    stats.invoices++;
+    stats.invoice_lines += countTags(fragment, "Line");
+    stats.total_gross += toNum(tagValue(docTotals, "GrossTotal"));
+    stats.total_net += toNum(tagValue(docTotals, "NetTotal"));
+    stats.total_tax += toNum(tagValue(docTotals, "TaxPayable"));
+    if (status === "A") stats.cancelled++;
+    if (no) invoiceNos.push(no);
+  };
+
+  const invoiceRe = /<Invoice(?:\s[^>]*)?>[\s\S]*?<\/Invoice>/gi;
+  for (const match of xml.matchAll(invoiceRe)) consumeDocument(match[0], "invoice");
+  const workRe = /<WorkDocument(?:\s[^>]*)?>[\s\S]*?<\/WorkDocument>/gi;
+  for (const match of xml.matchAll(workRe)) consumeDocument(match[0], "work");
+
+  const paymentRe = /<Payment(?:\s[^>]*)?>[\s\S]*?<\/Payment>/gi;
+  for (const match of xml.matchAll(paymentRe)) {
+    const pays = parsePaymentXml(match[0]);
+    stats.payments += pays.length;
+  }
+
+  return { header, stats, invoiceNos };
+}
