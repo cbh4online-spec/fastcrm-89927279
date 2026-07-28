@@ -285,9 +285,13 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     for (const r of data ?? []) if (r.saft_invoice_no) existingInv.set(r.saft_invoice_no, r.id);
   }
 
+  const customerNameById = new Map<string, string>();
+  for (const c of parsed.customers) if (c.customer_id) customerNameById.set(c.customer_id, c.name ?? "");
+
   const newInvRows: any[] = [];
   const newInvKeys: string[] = [];
   const linesByKey = new Map<string, any[]>();
+
 
   for (const inv of parsed.invoices) {
     const existId = existingInv.get(inv.invoice_no);
@@ -297,7 +301,8 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
       continue;
     }
     const cust = customerMap.get(inv.customer_id);
-    const custName = parsed.customers.find((c) => c.customer_id === inv.customer_id)?.name ?? "Consumidor final";
+    const custName = customerNameById.get(inv.customer_id) ?? "Consumidor final";
+
     // Salvaguarda anti-IVA-duplicado: alguns softwares exportam NetTotal já c/ IVA.
     // A verdade são as linhas: se o NetTotal do ficheiro ≈ soma dos brutos das linhas,
     // recalculamos subtotal/IVA/total a partir das linhas (net = s/ IVA, gross = c/ IVA).
@@ -511,29 +516,31 @@ Deno.serve(async (req) => {
 
     await admin.from("saft_imports").update({ status: "importing", options }).eq("id", import_id);
 
-    // Re-download + parse (could be optimised by caching)
-    const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
-    if (dlErr || !file) {
-      await admin.from("saft_imports").update({ status: "failed", error_message: "download failed" }).eq("id", import_id);
-      return ok({ ok: false, error: "download failed" }, 200);
-    }
-    // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const header = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
-    const encMatch = header.match(/encoding=["']([^"']+)["']/);
-    const declared = (encMatch?.[1] ?? "utf-8").toLowerCase();
-    const useEnc = declared.includes("8859") || declared.includes("1252") || declared.includes("windows")
-      ? "windows-1252"
-      : "utf-8";
-    const xml = new TextDecoder(useEnc).decode(bytes);
-    const parsed = parseSaftXml(xml);
-
-    // Run heavy work in background so we don't hit WORKER_RESOURCE_LIMIT on the request.
-    // Frontend polls saft_imports.status + saft_import_items for progress.
+    // Todo o trabalho pesado (download + decode + parse + inserts) corre em background.
+    // Fazê-lo no handler do pedido esgotava a memória do worker (WORKER_RESOURCE_LIMIT / 546).
+    // Frontend faz polling a saft_imports.status + saft_import_items para o progresso.
     // @ts-ignore EdgeRuntime is a Deno deploy global
     EdgeRuntime.waitUntil((async () => {
       try {
+        const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
+        if (dlErr || !file) throw new Error("download failed");
+
+        // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
+        let bytes: Uint8Array | null = new Uint8Array(await file.arrayBuffer());
+        const header = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
+        const encMatch = header.match(/encoding=["']([^"']+)["']/);
+        const declared = (encMatch?.[1] ?? "utf-8").toLowerCase();
+        const useEnc = declared.includes("8859") || declared.includes("1252") || declared.includes("windows")
+          ? "windows-1252"
+          : "utf-8";
+        let xml: string | null = new TextDecoder(useEnc).decode(bytes);
+        bytes = null; // liberta ~15MB antes do parse
+
+        const parsed = parseSaftXml(xml!);
+        xml = null; // liberta a string original antes dos inserts
+
         await processImport(admin, imp, options, parsed, user.id);
+
 
         // Paginar para contornar o limite de 1000 linhas por defeito do PostgREST
         const summary: Record<string, Record<string, number>> = {};
