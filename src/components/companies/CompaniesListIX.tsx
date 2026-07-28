@@ -139,13 +139,21 @@ function renderCell(col: string, c: Company, fin: CompanyFinancials | undefined)
       return <div className="text-right"><span className="text-xs text-muted-foreground">PARE</span><div className="text-sm font-semibold">{c.pare_score ?? 0}</div></div>;
     case "icp_fit_score":
       return <div className="text-right"><span className="text-xs text-muted-foreground">ICP</span><div className="text-sm font-semibold">{c.icp_fit_score ?? 0}</div></div>;
-    case "total_revenue": return moneyCell("Faturação", c.total_revenue);
-    case "average_ticket": return moneyCell("Ticket médio", c.average_ticket);
-    case "sales_2026": return moneyCell("2026", c.sales_2026);
-    case "sales_2025": return moneyCell("2025", c.sales_2025);
-    case "sales_2024": return moneyCell("2024", c.sales_2024);
+    case "total_revenue": return moneyCell("Faturação", fin?.net_total ?? c.total_revenue);
+    case "average_ticket":
+      return moneyCell("Ticket médio", fin && fin.invoice_count > 0 ? fin.net_total / fin.invoice_count : c.average_ticket);
+    case "sales_2026": return moneyCell("2026", fin?.sales_2026 ?? c.sales_2026);
+    case "sales_2025": return moneyCell("2025", fin?.sales_2025 ?? c.sales_2025);
+    case "sales_2024": return moneyCell("2024", fin?.sales_2024 ?? c.sales_2024);
+    case "payment_status": return paymentStatusCell(fin);
+    case "paid_total": return moneyCell("Pago", fin?.paid_total ?? 0);
+    case "pending_total": return moneyCell("Pendente", fin?.pending_total ?? 0);
+    case "overdue_total": return moneyCell("Vencido", fin?.overdue_total ?? 0);
+    case "invoice_count":
+      return <div className="text-right"><span className="text-xs text-muted-foreground">Faturas</span><div className="text-sm font-semibold">{fin?.invoice_count ?? 0}</div></div>;
     case "last_purchase_date":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Última compra</div><div className="font-medium text-foreground">{formatDate(c.last_purchase_date)}</div></div>;
+      return <div className="text-right text-xs"><div className="text-muted-foreground">Última compra</div><div className="font-medium text-foreground">{formatDate(fin?.last_invoice_date ?? c.last_purchase_date)}</div></div>;
+
     case "created_at":
       return <div className="text-right text-xs"><div className="text-muted-foreground">Criado</div><div className="font-medium text-foreground">{formatDate(c.created_at)}</div></div>;
     case "tags":
