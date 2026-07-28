@@ -120,11 +120,13 @@ export default function SafTImportPage() {
         {phase === "progress" && imp && (
           <>
             <SafTProgressPanel imp={imp} />
+            <SafTPaymentsReport importId={imp.id} isLive={imp.status === "importing"} />
             <Button variant="outline" onClick={() => setCurrentId(null)}>
               Nova importação
             </Button>
           </>
         )}
+
 
         <Separator />
 
