@@ -233,20 +233,26 @@ Deno.serve(async (req) => {
         }
         await logStep("dedupe_check_done", { existing: existingInvoices });
 
+        const fullStats = {
+          ...stats,
+          existing_invoices: existingInvoices,
+          new_invoices: stats.invoices - existingInvoices,
+        };
 
         await logStep("persist_preview_start");
         const { error: upErr } = await admin.from("saft_imports").update({
           status: "preview_ready",
-          saft_type: parsed.header.saft_type,
-          saft_version: parsed.header.saft_version,
-          software_company: parsed.header.software_company,
-          software_id: parsed.header.software_id,
-          tax_registration_number: parsed.header.tax_registration_number,
-          fiscal_year: parsed.header.fiscal_year,
-          period_start: parsed.header.period_start,
-          period_end: parsed.header.period_end,
+          saft_type: header.saft_type,
+          saft_version: header.saft_version,
+          software_company: header.software_company,
+          software_id: header.software_id,
+          tax_registration_number: header.tax_registration_number,
+          fiscal_year: header.fiscal_year,
+          period_start: header.period_start,
+          period_end: header.period_end,
           stats: fullStats,
         }).eq("id", import_id);
+
         if (upErr) {
           await failAt("persist_preview", upErr.message);
           return;
