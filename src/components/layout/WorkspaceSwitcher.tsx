@@ -154,67 +154,96 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
             </Button>
           )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-72" align="start">
-          {/* Own Workspaces */}
-          {ownWorkspaces.length > 0 && (
-            <>
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                {isSuperAdmin ? "Meus Workspaces" : "Workspaces"}
-              </DropdownMenuLabel>
-              {ownWorkspaces.map(renderWorkspaceItem)}
-            </>
-          )}
+        <DropdownMenuContent className="w-72 max-h-[80vh] p-0 flex flex-col" align="start">
+          <div className="p-2 border-b border-border">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+                placeholder="Pesquisar workspace..."
+                className="h-8 pl-8 text-sm"
+                aria-label="Pesquisar workspace"
+              />
+            </div>
+          </div>
 
-          {/* Agency Managed Workspaces (only for super admins) */}
-          {isSuperAdmin && managedWorkspaces.length > 0 && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal flex items-center gap-1.5">
-                <Shield className="w-3 h-3 text-amber-500" />
-                Clientes (Gestão)
-              </DropdownMenuLabel>
-              {managedWorkspaces.map(renderWorkspaceItem)}
-            </>
-          )}
+          <div className="flex-1 overflow-y-auto max-h-[50vh] py-1">
+            {/* Workspaces próprios */}
+            {filteredOwn.length > 0 && (
+              <>
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                  {isSuperAdmin ? "Meus Workspaces" : "Workspaces"}
+                </DropdownMenuLabel>
+                {filteredOwn.map(renderWorkspaceItem)}
+              </>
+            )}
 
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create workspace
-          </DropdownMenuItem>
+            {/* Workspaces geridos (apenas super admins) */}
+            {isSuperAdmin && filteredManaged.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal flex items-center gap-1.5">
+                  <Shield className="w-3 h-3 text-amber-500" />
+                  Clientes (Gestão)
+                </DropdownMenuLabel>
+                {filteredManaged.map(renderWorkspaceItem)}
+              </>
+            )}
+
+            {filteredOwn.length === 0 && filteredManaged.length === 0 && (
+              <p className="px-3 py-6 text-sm text-muted-foreground text-center">
+                Sem resultados para "{search}"
+              </p>
+            )}
+          </div>
+
+          <div className="border-t border-border p-1">
+            <DropdownMenuItem onClick={() => setDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Criar workspace
+            </DropdownMenuItem>
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create workspace</DialogTitle>
+            <DialogTitle>Criar workspace</DialogTitle>
             <DialogDescription>
-              Create a new workspace for your team or organization.
+              Cria um novo workspace para a tua equipa ou organização.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="workspaceName">Workspace name</Label>
+              <Label htmlFor="workspaceName">Nome do workspace</Label>
               <Input
                 id="workspaceName"
-                placeholder="Acme Inc."
+                placeholder="Acme Lda."
                 value={newWorkspaceName}
                 onChange={(e) => setNewWorkspaceName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newWorkspaceName.trim() && !creating) {
+                    handleCreateWorkspace();
+                  }
+                }}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
+              Cancelar
             </Button>
             <Button onClick={handleCreateWorkspace} disabled={creating || !newWorkspaceName.trim()}>
               {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create
+              Criar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </>
   );
 }
