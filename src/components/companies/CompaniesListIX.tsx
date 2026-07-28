@@ -12,6 +12,8 @@ import {
   type ListColumnDef,
 } from "@/components/documents/listing/ListColumnsPicker";
 import { useCompanies, type Company } from "@/hooks/useCompanies";
+import { useCompaniesFinancials, type CompanyFinancials } from "@/hooks/useCompaniesFinancials";
+
 import { CreateCompanyDialog } from "@/components/companies/CreateCompanyDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
 import { cn } from "@/lib/utils";
