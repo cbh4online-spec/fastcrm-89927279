@@ -1,0 +1,370 @@
+{
+  "version": 1,
+  "sdk_version": "0.25.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://eumnfkccyvlyoyjchiwe.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "fastcrm-mcp",
+      "version": "0.1.0",
+      "title": "FastCRM"
+    },
+    "tools": [
+      {
+        "name": "list_workspaces",
+        "title": "Listar workspaces",
+        "description": "Lista os workspaces a que o utilizador autenticado pertence, com o respetivo papel.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_contacts",
+        "title": "Procurar contactos",
+        "description": "Procura contactos do CRM num workspace por nome, email, telefone ou NIF.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "query": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Texto a procurar em nome, email ou telefone."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Número máximo de resultados."
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_companies",
+        "title": "Procurar empresas",
+        "description": "Procura empresas/clientes do CRM num workspace por nome, NIF, email ou website.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "query": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Texto a procurar em nome, NIF ou email."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Número máximo de resultados."
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_leads",
+        "title": "Listar leads",
+        "description": "Lista as leads mais recentes de um workspace, com filtro opcional por estado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "status": {
+              "type": "string",
+              "maxLength": 40,
+              "description": "Estado da lead (ex.: new, qualified)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Número máximo de resultados."
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_opportunities",
+        "title": "Listar oportunidades",
+        "description": "Lista oportunidades (negócios) de um workspace, com filtro opcional por estado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "status": {
+              "type": "string",
+              "maxLength": 40,
+              "description": "Estado da oportunidade (ex.: open, won, lost)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Número máximo de resultados."
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_invoices",
+        "title": "Listar faturas",
+        "description": "Lista faturas de um workspace, com filtros opcionais por estado, empresa e datas de emissão.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "status": {
+              "type": "string",
+              "maxLength": 40,
+              "description": "Estado da fatura (ex.: draft, sent, paid)."
+            },
+            "company_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Filtrar por empresa/cliente."
+            },
+            "issued_from": {
+              "type": "string",
+              "maxLength": 10,
+              "description": "Data mínima de emissão (YYYY-MM-DD)."
+            },
+            "issued_to": {
+              "type": "string",
+              "maxLength": 10,
+              "description": "Data máxima de emissão (YYYY-MM-DD)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "description": "Número máximo de resultados."
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_lead",
+        "title": "Criar lead",
+        "description": "Cria uma nova lead no CRM para um workspace do utilizador autenticado.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "Nome da lead."
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 160,
+              "description": "Email de contacto."
+            },
+            "phone": {
+              "type": "string",
+              "maxLength": 40,
+              "description": "Telefone de contacto."
+            },
+            "company_name": {
+              "type": "string",
+              "maxLength": 160,
+              "description": "Empresa associada."
+            },
+            "source": {
+              "type": "string",
+              "maxLength": 60,
+              "description": "Origem da lead (ex.: website, referral)."
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 2000,
+              "description": "Notas iniciais."
+            }
+          },
+          "required": [
+            "workspace_id",
+            "name"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_task",
+        "title": "Criar tarefa",
+        "description": "Cria uma tarefa num workspace, opcionalmente associada a um contacto, empresa ou oportunidade.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Título da tarefa."
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 2000,
+              "description": "Descrição da tarefa."
+            },
+            "due_at": {
+              "type": "string",
+              "maxLength": 40,
+              "description": "Data/hora limite em ISO 8601."
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Prioridade da tarefa."
+            },
+            "related_type": {
+              "type": "string",
+              "enum": [
+                "contact",
+                "company",
+                "lead",
+                "opportunity"
+              ],
+              "description": "Tipo de registo associado."
+            },
+            "related_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do registo associado."
+            }
+          },
+          "required": [
+            "workspace_id",
+            "title"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
