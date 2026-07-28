@@ -12,11 +12,13 @@ import {
   type ListColumnDef,
 } from "@/components/documents/listing/ListColumnsPicker";
 import { useCompanies, type Company } from "@/hooks/useCompanies";
+import { useCompaniesFinancials, type CompanyFinancials } from "@/hooks/useCompaniesFinancials";
+
 import { CreateCompanyDialog } from "@/components/companies/CreateCompanyDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
 import { cn } from "@/lib/utils";
 
-type SortKey = "name" | "created_at" | "total_revenue";
+type SortKey = "name" | "created_at" | "total_revenue" | "pending_total";
 
 const COLUMNS: ListColumnDef[] = [
   { key: "name", label: "Nome", required: true },
@@ -31,15 +33,21 @@ const COLUMNS: ListColumnDef[] = [
   { key: "abc_category", label: "Categoria ABC", defaultVisible: false },
   { key: "pare_score", label: "Score PARE", defaultVisible: false },
   { key: "icp_fit_score", label: "ICP Fit", defaultVisible: false },
-  { key: "total_revenue", label: "Faturação total", defaultVisible: true },
+  { key: "total_revenue", label: "Faturação total (s/IVA)", defaultVisible: true },
   { key: "average_ticket", label: "Ticket médio", defaultVisible: false },
   { key: "sales_2026", label: "Vendas 2026", defaultVisible: false },
   { key: "sales_2025", label: "Vendas 2025", defaultVisible: false },
   { key: "sales_2024", label: "Vendas 2024", defaultVisible: false },
+  { key: "payment_status", label: "Estado pagamento", defaultVisible: true },
+  { key: "paid_total", label: "Pago", defaultVisible: false },
+  { key: "pending_total", label: "Pendente", defaultVisible: false },
+  { key: "overdue_total", label: "Vencido", defaultVisible: false },
+  { key: "invoice_count", label: "Nº faturas", defaultVisible: false },
   { key: "last_purchase_date", label: "Última compra", defaultVisible: false },
   { key: "created_at", label: "Data de criação", defaultVisible: true },
   { key: "tags", label: "Tags", defaultVisible: false },
 ];
+
 
 const COLUMN_WIDTH: Record<string, string> = {
   name: "min-w-[200px] flex-1",
@@ -59,7 +67,13 @@ const COLUMN_WIDTH: Record<string, string> = {
   sales_2026: "w-[130px] shrink-0",
   sales_2025: "w-[130px] shrink-0",
   sales_2024: "w-[130px] shrink-0",
+  payment_status: "w-[130px] shrink-0",
+  paid_total: "w-[120px] shrink-0",
+  pending_total: "w-[120px] shrink-0",
+  overdue_total: "w-[120px] shrink-0",
+  invoice_count: "w-[90px] shrink-0",
   last_purchase_date: "w-[130px] shrink-0",
+
   created_at: "w-[120px] shrink-0",
   tags: "min-w-[140px] flex-1",
 };
@@ -81,7 +95,29 @@ function moneyCell(label: string, value: number | null | undefined) {
   );
 }
 
-function renderCell(col: string, c: Company) {
+function paymentStatusCell(fin: CompanyFinancials | undefined) {
+  if (!fin || fin.invoice_count === 0) {
+    return <div className="text-right"><span className="text-xs text-muted-foreground">Pagamento</span><div className="text-sm text-muted-foreground">—</div></div>;
+  }
+  let label = "Liquidado";
+  let tone = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  if (fin.overdue_total > 0.01) {
+    label = "Vencido";
+    tone = "bg-destructive/10 text-destructive";
+  } else if (fin.pending_total > 0.01) {
+    label = fin.paid_total > 0.01 ? "Parcial" : "Em dívida";
+    tone = "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+  }
+  return (
+    <div className="text-right">
+      <span className="text-xs text-muted-foreground">Pagamento</span>
+      <div className={cn("mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-semibold", tone)}>{label}</div>
+    </div>
+  );
+}
+
+function renderCell(col: string, c: Company, fin: CompanyFinancials | undefined) {
+
   switch (col) {
     case "name":
       return (
@@ -105,13 +141,21 @@ function renderCell(col: string, c: Company) {
       return <div className="text-right"><span className="text-xs text-muted-foreground">PARE</span><div className="text-sm font-semibold">{c.pare_score ?? 0}</div></div>;
     case "icp_fit_score":
       return <div className="text-right"><span className="text-xs text-muted-foreground">ICP</span><div className="text-sm font-semibold">{c.icp_fit_score ?? 0}</div></div>;
-    case "total_revenue": return moneyCell("Faturação", c.total_revenue);
-    case "average_ticket": return moneyCell("Ticket médio", c.average_ticket);
-    case "sales_2026": return moneyCell("2026", c.sales_2026);
-    case "sales_2025": return moneyCell("2025", c.sales_2025);
-    case "sales_2024": return moneyCell("2024", c.sales_2024);
+    case "total_revenue": return moneyCell("Faturação", fin?.net_total ?? c.total_revenue);
+    case "average_ticket":
+      return moneyCell("Ticket médio", fin && fin.invoice_count > 0 ? fin.net_total / fin.invoice_count : c.average_ticket);
+    case "sales_2026": return moneyCell("2026", fin?.sales_2026 ?? c.sales_2026);
+    case "sales_2025": return moneyCell("2025", fin?.sales_2025 ?? c.sales_2025);
+    case "sales_2024": return moneyCell("2024", fin?.sales_2024 ?? c.sales_2024);
+    case "payment_status": return paymentStatusCell(fin);
+    case "paid_total": return moneyCell("Pago", fin?.paid_total ?? 0);
+    case "pending_total": return moneyCell("Pendente", fin?.pending_total ?? 0);
+    case "overdue_total": return moneyCell("Vencido", fin?.overdue_total ?? 0);
+    case "invoice_count":
+      return <div className="text-right"><span className="text-xs text-muted-foreground">Faturas</span><div className="text-sm font-semibold">{fin?.invoice_count ?? 0}</div></div>;
     case "last_purchase_date":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Última compra</div><div className="font-medium text-foreground">{formatDate(c.last_purchase_date)}</div></div>;
+      return <div className="text-right text-xs"><div className="text-muted-foreground">Última compra</div><div className="font-medium text-foreground">{formatDate(fin?.last_invoice_date ?? c.last_purchase_date)}</div></div>;
+
     case "created_at":
       return <div className="text-right text-xs"><div className="text-muted-foreground">Criado</div><div className="font-medium text-foreground">{formatDate(c.created_at)}</div></div>;
     case "tags":
@@ -130,6 +174,8 @@ function renderCell(col: string, c: Company) {
 export function CompaniesListIX() {
   const navigate = useNavigate();
   const { companies, isLoading } = useCompanies();
+  const { financialsById } = useCompaniesFinancials();
+
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
@@ -155,11 +201,15 @@ export function CompaniesListIX() {
       if (sortBy === "name") cmp = (a.name || "").localeCompare(b.name || "");
       else if (sortBy === "created_at")
         cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      else if (sortBy === "total_revenue") cmp = (a.total_revenue || 0) - (b.total_revenue || 0);
+      else if (sortBy === "total_revenue")
+        cmp = (financialsById.get(a.id)?.net_total ?? a.total_revenue ?? 0) - (financialsById.get(b.id)?.net_total ?? b.total_revenue ?? 0);
+      else if (sortBy === "pending_total")
+        cmp = (financialsById.get(a.id)?.pending_total ?? 0) - (financialsById.get(b.id)?.pending_total ?? 0);
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [all, search, sortBy, sortDir]);
+  }, [all, search, sortBy, sortDir, financialsById]);
+
 
   const totalCount = filtered.length;
   const pageItems = filtered.slice(page * pageSize, page * pageSize + pageSize);
@@ -189,6 +239,8 @@ export function CompaniesListIX() {
             { value: "name", label: "Nome" },
             { value: "created_at", label: "Data de criação" },
             { value: "total_revenue", label: "Faturação" },
+            { value: "pending_total", label: "Valor pendente" },
+
           ]}
           sortValue={sortBy}
           onSortChange={(v) => setSortBy(v as SortKey)}
@@ -218,7 +270,7 @@ export function CompaniesListIX() {
             >
               {orderedColumns.map((col) => (
                 <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
-                  {renderCell(col, c)}
+                  {renderCell(col, c, financialsById.get(c.id))}
                 </div>
               ))}
             </div>
