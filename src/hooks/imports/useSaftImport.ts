@@ -36,6 +36,7 @@ export interface SaftImport {
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 async function sha256(file: File): Promise<string> {
