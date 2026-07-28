@@ -201,11 +201,15 @@ export function CompaniesListIX() {
       if (sortBy === "name") cmp = (a.name || "").localeCompare(b.name || "");
       else if (sortBy === "created_at")
         cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      else if (sortBy === "total_revenue") cmp = (a.total_revenue || 0) - (b.total_revenue || 0);
+      else if (sortBy === "total_revenue")
+        cmp = (financialsById.get(a.id)?.net_total ?? a.total_revenue ?? 0) - (financialsById.get(b.id)?.net_total ?? b.total_revenue ?? 0);
+      else if (sortBy === "pending_total")
+        cmp = (financialsById.get(a.id)?.pending_total ?? 0) - (financialsById.get(b.id)?.pending_total ?? 0);
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [all, search, sortBy, sortDir]);
+  }, [all, search, sortBy, sortDir, financialsById]);
+
 
   const totalCount = filtered.length;
   const pageItems = filtered.slice(page * pageSize, page * pageSize + pageSize);
