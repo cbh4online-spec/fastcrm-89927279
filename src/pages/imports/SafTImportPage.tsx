@@ -84,7 +84,12 @@ export default function SafTImportPage() {
           <AnalyzingCard
             startedAt={imp?.started_at ?? imp?.created_at}
             status={imp?.status}
-            error={analyze.error instanceof Error ? analyze.error.message : undefined}
+            progress={(imp?.stats as any)?.progress}
+            error={
+              analyze.error instanceof Error
+                ? analyze.error.message
+                : (imp?.status === "failed" ? imp?.error_message ?? undefined : undefined)
+            }
             onRetry={() => {
               if (!imp) return;
               setAutoAnalyzeId(null);
@@ -92,6 +97,7 @@ export default function SafTImportPage() {
             }}
           />
         )}
+
 
         {phase === "preview" && imp && (
           <>
@@ -131,15 +137,24 @@ export default function SafTImportPage() {
   );
 }
 
+interface AnalyzeProgress {
+  customers?: number;
+  products?: number;
+  invoices?: number;
+  payments?: number;
+}
+
 function AnalyzingCard({
   startedAt,
   status,
   error,
+  progress,
   onRetry,
 }: {
   startedAt?: string;
   status?: string;
   error?: string;
+  progress?: AnalyzeProgress;
   onRetry?: () => void;
 }) {
   const [elapsed, setElapsed] = useState(0);
@@ -158,6 +173,14 @@ function AnalyzingCard({
     ? Math.min(25, Math.round((1 - Math.exp(-elapsed / 10)) * 100))
     : Math.min(95, Math.round((1 - Math.exp(-elapsed / 15)) * 100));
 
+  const counts = progress
+    ? [
+        progress.invoices ? `${progress.invoices.toLocaleString("pt-PT")} faturas` : null,
+        progress.customers ? `${progress.customers.toLocaleString("pt-PT")} clientes` : null,
+        progress.products ? `${progress.products.toLocaleString("pt-PT")} artigos` : null,
+      ].filter(Boolean).join(" · ")
+    : "";
+
   return (
     <Card className="p-8 space-y-4">
       <div className="flex items-center gap-3">
@@ -165,9 +188,14 @@ function AnalyzingCard({
         <div className="flex-1">
           <p className="font-medium">{error ? "Não foi possível analisar o ficheiro" : status === "uploaded" ? "A iniciar análise…" : "A analisar o ficheiro…"}</p>
           <p className="text-sm text-muted-foreground">
-            {error ? error : `Validação do header AT e contagem de documentos. Decorrido: ${elapsed}s`}
+            {error
+              ? error
+              : counts
+              ? `Lidos ${counts}. Decorrido: ${elapsed}s`
+              : `Validação do header AT e contagem de documentos. Decorrido: ${elapsed}s`}
           </p>
         </div>
+
         <span className="font-mono text-sm text-muted-foreground">{pct}%</span>
       </div>
       <Progress value={pct} className="h-2" />

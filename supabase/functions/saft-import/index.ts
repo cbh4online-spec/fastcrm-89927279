@@ -1,5 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { parseSaftXml, type SaftParsed } from "../_shared/saft-parser.ts";
+import type { SaftParsed } from "../_shared/saft-parser.ts";
+import { collectSaftStream, decodeStream, detectEncoding } from "../_shared/saft-stream-parser.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,13 +76,20 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   // ---- Batched logging (saft_import_items) ----
   const logBuffer: any[] = [];
   const pushLog = (row: any) => logBuffer.push({ ...row, import_id: importId, workspace_id: ws });
+  const heartbeat = async (step: string) => {
+    await admin.from("saft_imports")
+      .update({ last_step: step, last_step_at: new Date().toISOString() })
+      .eq("id", importId);
+  };
   const flushLogs = async () => {
     if (!logBuffer.length) return;
     const rows = logBuffer.splice(0, logBuffer.length);
     for (const c of chunk(rows, 500)) {
       await admin.from("saft_import_items").insert(c);
     }
+    await heartbeat("persist_progress");
   };
+
 
   const isPersonalNif = (nif?: string | null) => {
     const d = (nif ?? "").replace(/\D/g, "");
@@ -525,21 +534,27 @@ Deno.serve(async (req) => {
         const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
         if (dlErr || !file) throw new Error("download failed");
 
-        // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
-        let bytes: Uint8Array | null = new Uint8Array(await file.arrayBuffer());
-        const header = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
-        const encMatch = header.match(/encoding=["']([^"']+)["']/);
-        const declared = (encMatch?.[1] ?? "utf-8").toLowerCase();
-        const useEnc = declared.includes("8859") || declared.includes("1252") || declared.includes("windows")
-          ? "windows-1252"
-          : "utf-8";
-        let xml: string | null = new TextDecoder(useEnc).decode(bytes);
-        bytes = null; // liberta ~15MB antes do parse
+        // Leitura incremental (streaming): evita carregar o XML inteiro e a árvore
+        // em memória, que era a causa do WORKER_RESOURCE_LIMIT em ficheiros grandes.
+        const headBytes = new Uint8Array(await file.slice(0, 200).arrayBuffer());
+        const useEnc = detectEncoding(headBytes);
 
-        const parsed = parseSaftXml(xml!);
-        xml = null; // liberta a string original antes dos inserts
+        const parsed = await collectSaftStream(
+          decodeStream(file.stream(), useEnc),
+          async (c) => {
+            await admin.from("saft_imports")
+              .update({ last_step: "parse_xml_progress", last_step_at: new Date().toISOString() })
+              .eq("id", import_id);
+            console.log("[saft-import] parse progress", JSON.stringify(c));
+          },
+        );
+
+        await admin.from("saft_imports")
+          .update({ last_step: "persist_start", last_step_at: new Date().toISOString() })
+          .eq("id", import_id);
 
         await processImport(admin, imp, options, parsed, user.id);
+
 
 
         // Paginar para contornar o limite de 1000 linhas por defeito do PostgREST
