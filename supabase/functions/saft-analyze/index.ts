@@ -129,14 +129,18 @@ Deno.serve(async (req) => {
     await admin.from("saft_imports").update({
       status: "analyzing",
       started_at: new Date().toISOString(),
+      completed_at: null,
       error_message: null,
       last_error_step: null,
+      last_step: null,
+      last_step_at: new Date().toISOString(),
+      stats: {},
       debug_log: [],
     }).eq("id", import_id);
     await logStep("analyze_started", { file_size: imp.file_size, correlation_id: correlationId });
 
-    // Run heavy parsing in background to avoid WORKER_RESOURCE_LIMIT on large SAF-T files.
-    // Frontend polls saft_imports.status (analyzing → preview_ready | failed).
+    // Para ficheiros até 25MB fazemos a análise no próprio pedido. Assim evitamos
+    // que o runtime termine uma tarefa em background sem propagar erro à UI.
     const runAnalysis = async () => {
       try {
         await logStep("download_start");
@@ -191,6 +195,9 @@ Deno.serve(async (req) => {
             onPayment: () => { stats.payments++; },
             progressEvery: 500,
             onProgress: async (c) => {
+              if (Date.now() - t0 > 110_000) {
+                throw new Error("Tempo limite excedido durante a leitura do SAF-T. Tente novamente ou divida o ficheiro por períodos mais curtos.");
+              }
               await admin.from("saft_imports")
                 .update({ last_step: "parse_xml_progress", last_step_at: new Date().toISOString(), stats: { ...stats, progress: c } })
                 .eq("id", import_id);
@@ -251,6 +258,7 @@ Deno.serve(async (req) => {
           period_start: header.period_start,
           period_end: header.period_end,
           stats: fullStats,
+          completed_at: null,
         }).eq("id", import_id);
 
         if (upErr) {
@@ -266,10 +274,9 @@ Deno.serve(async (req) => {
       }
     };
 
-    // @ts-ignore EdgeRuntime is provided by Deno Deploy runtime
-    EdgeRuntime.waitUntil(runAnalysis());
+    await runAnalysis();
 
-    return ok({ ok: true, queued: true, import_id, correlation_id: correlationId });
+    return ok({ ok: true, queued: false, import_id, correlation_id: correlationId });
   } catch (e) {
     console.error("[saft-analyze] error", e);
     const msg = e instanceof Error ? e.message : "internal error";
