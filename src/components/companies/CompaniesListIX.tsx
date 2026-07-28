@@ -18,7 +18,7 @@ import { CreateCompanyDialog } from "@/components/companies/CreateCompanyDialog"
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
 import { cn } from "@/lib/utils";
 
-type SortKey = "name" | "created_at" | "total_revenue";
+type SortKey = "name" | "created_at" | "total_revenue" | "pending_total";
 
 const COLUMNS: ListColumnDef[] = [
   { key: "name", label: "Nome", required: true },
