@@ -1,5 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { parseSaftXml, type SaftParsed } from "../_shared/saft-parser.ts";
+import type { SaftParsed } from "../_shared/saft-parser.ts";
+import { collectSaftStream, decodeStream, detectEncoding } from "../_shared/saft-stream-parser.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
