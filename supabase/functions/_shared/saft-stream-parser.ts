@@ -171,6 +171,16 @@ export interface SaftStreamHandlers {
 const TARGETS = ["Header", "Customer", "Product", "Invoice", "WorkDocument", "Payment"] as const;
 type Target = typeof TARGETS[number];
 
+function findBestOpen(buf: string, from: number, skipHeader: boolean): { tag: Target; start: number; end: number; selfClosing: boolean } | null {
+  let best: { tag: Target; start: number; end: number; selfClosing: boolean } | null = null;
+  for (const tag of TARGETS) {
+    if (tag === "Header" && skipHeader) continue;
+    const found = findOpen(buf, tag, from);
+    if (found && (!best || found.start < best.start)) best = { tag, ...found };
+  }
+  return best;
+}
+
 function findOpen(buf: string, tag: string, from: number): { start: number; end: number; selfClosing: boolean } | null {
   let idx = from;
   while (true) {
@@ -230,6 +240,7 @@ export async function streamSaftXml(
   const counts = { customers: 0, products: 0, invoices: 0, payments: 0 };
   const progressEvery = handlers.progressEvery ?? 500;
   let sinceProgress = 0;
+  const maxPendingFragment = 512 * 1024;
 
   const buildHeader = (h: any): SaftHeader => ({
     saft_version: h.AuditFileVersion ?? null,
@@ -245,12 +256,7 @@ export async function streamSaftXml(
   const drain = async (final: boolean) => {
     while (true) {
       // encontrar o primeiro elemento-alvo presente no buffer
-      let best: { tag: Target; start: number; end: number; selfClosing: boolean } | null = null;
-      for (const tag of TARGETS) {
-        if (tag === "Header" && headerDone) continue;
-        const found = findOpen(buf, tag, 0);
-        if (found && (!best || found.start < best.start)) best = { tag, ...found };
-      }
+      const best = findBestOpen(buf, 0, headerDone);
       if (!best) {
         // nada de interesse: manter apenas a cauda (pode conter uma tag partida)
         if (buf.length > 4096) buf = buf.slice(-4096);
@@ -263,8 +269,20 @@ export async function streamSaftXml(
       const closeTag = `</${best.tag}>`;
       const end = buf.indexOf(closeTag, best.start);
       if (end === -1) {
-        // elemento incompleto: descartar o que vem antes e esperar mais dados
+        // Elemento incompleto: pode ser só uma tag partida entre chunks, mas em
+        // alguns SAF-T reais aparecem sequências inválidas que parecem um alvo e
+        // nunca fecham. Se já existe outro alvo mais à frente, descartamos o falso
+        // positivo; se o fragmento cresce demasiado, falhamos de forma controlada
+        // em vez de deixar o worker rebentar por memória.
+        const next = findBestOpen(buf, best.end + 1, headerDone);
+        if (next) {
+          buf = buf.slice(next.start);
+          continue;
+        }
         buf = buf.slice(best.start);
+        if (buf.length > maxPendingFragment) {
+          throw new Error(`Fragmento XML incompleto em <${best.tag}> excedeu o limite seguro de leitura`);
+        }
         if (final) return;
         return;
       }
