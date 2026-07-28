@@ -90,6 +90,50 @@ export function mapInvoice(inv: any): SaftInvoice {
   };
 }
 
+// SAF-T de autofaturação/WorkingDocuments usa <WorkDocument> em vez de
+// <SalesInvoices><Invoice>. Para o motor de importação interno tratamos estes
+// documentos como faturas normalizadas, preservando o número/tipo/estado.
+export function mapWorkDocument(doc: any): SaftInvoice {
+  const docTotals = doc.DocumentTotals ?? {};
+  const status = doc.DocumentStatus ?? {};
+  const lines: SaftInvoiceLine[] = (doc.Line ?? []).filter(Boolean).map((l: any, idx: number) => {
+    const qty = toNum(l.Quantity);
+    const unit = toNum(l.UnitPrice);
+    const tax = l.Tax ?? {};
+    const taxPct = toNum(tax.TaxPercentage);
+    const credit = toNum(l.CreditAmount);
+    const debit = toNum(l.DebitAmount);
+    const lineNet = credit || debit || qty * unit;
+    const taxAmount = (lineNet * taxPct) / 100;
+    return {
+      line_number: Number(l.LineNumber ?? idx + 1),
+      product_code: l.ProductCode ? String(l.ProductCode) : null,
+      description: l.Description ?? "",
+      quantity: qty,
+      unit_price: unit,
+      tax_percentage: taxPct,
+      tax_amount: taxAmount,
+      line_total: lineNet + taxAmount,
+    };
+  });
+
+  return {
+    invoice_no: String(doc.DocumentNumber ?? doc.WorkDocumentNumber ?? doc.WorkDocumentNo ?? doc.InvoiceNo ?? ""),
+    atcud: doc.ATCUD ?? null,
+    invoice_type: doc.WorkType ?? doc.DocumentType ?? "WD",
+    invoice_status: status.WorkStatus ?? status.InvoiceStatus ?? "N",
+    invoice_date: doc.WorkDate ?? doc.InvoiceDate ?? doc.SystemEntryDate?.slice(0, 10) ?? null,
+    due_date: doc.PaymentTerms ?? null,
+    customer_id: String(doc.CustomerID ?? ""),
+    currency: docTotals.Currency?.CurrencyCode ?? "EUR",
+    gross_total: toNum(docTotals.GrossTotal),
+    net_total: toNum(docTotals.NetTotal),
+    tax_payable: toNum(docTotals.TaxPayable),
+    lines,
+    hash: doc.Hash ?? null,
+  };
+}
+
 // Um recibo SAF-T pode liquidar várias faturas → achatamos em 1 SaftPayment por linha.
 export function mapPayment(p: any): SaftPayment[] {
   const out: SaftPayment[] = [];
@@ -124,10 +168,10 @@ export interface SaftStreamHandlers {
   progressEvery?: number;
 }
 
-const TARGETS = ["Header", "Customer", "Product", "Invoice", "Payment"] as const;
+const TARGETS = ["Header", "Customer", "Product", "Invoice", "WorkDocument", "Payment"] as const;
 type Target = typeof TARGETS[number];
 
-function findOpen(buf: string, tag: string, from: number): { start: number; selfClosing: boolean } | null {
+function findOpen(buf: string, tag: string, from: number): { start: number; end: number; selfClosing: boolean } | null {
   let idx = from;
   while (true) {
     idx = buf.indexOf(`<${tag}`, idx);
@@ -136,7 +180,7 @@ function findOpen(buf: string, tag: string, from: number): { start: number; self
     if (next === ">" || next === " " || next === "\t" || next === "\n" || next === "\r" || next === "/") {
       const close = buf.indexOf(">", idx);
       if (close === -1) return null;
-      return { start: idx, selfClosing: buf[close - 1] === "/" };
+      return { start: idx, end: close, selfClosing: buf[close - 1] === "/" };
     }
     idx += 1;
   }
@@ -201,16 +245,20 @@ export async function streamSaftXml(
   const drain = async (final: boolean) => {
     while (true) {
       // encontrar o primeiro elemento-alvo presente no buffer
-      let best: { tag: Target; start: number } | null = null;
+      let best: { tag: Target; start: number; end: number; selfClosing: boolean } | null = null;
       for (const tag of TARGETS) {
         if (tag === "Header" && headerDone) continue;
         const found = findOpen(buf, tag, 0);
-        if (found && (!best || found.start < best.start)) best = { tag, start: found.start };
+        if (found && (!best || found.start < best.start)) best = { tag, ...found };
       }
       if (!best) {
         // nada de interesse: manter apenas a cauda (pode conter uma tag partida)
         if (buf.length > 4096) buf = buf.slice(-4096);
         return;
+      }
+      if (best.selfClosing) {
+        buf = buf.slice(best.end + 1);
+        continue;
       }
       const closeTag = `</${best.tag}>`;
       const end = buf.indexOf(closeTag, best.start);
@@ -243,6 +291,9 @@ export async function streamSaftXml(
         } else if (best.tag === "Invoice") {
           counts.invoices++;
           await handlers.onInvoice?.(mapInvoice(obj));
+        } else if (best.tag === "WorkDocument") {
+          counts.invoices++;
+          await handlers.onInvoice?.(mapWorkDocument(obj));
         } else if (best.tag === "Payment") {
           const pays = mapPayment(obj);
           counts.payments += pays.length;
