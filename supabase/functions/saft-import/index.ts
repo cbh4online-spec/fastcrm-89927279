@@ -525,21 +525,27 @@ Deno.serve(async (req) => {
         const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
         if (dlErr || !file) throw new Error("download failed");
 
-        // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
-        let bytes: Uint8Array | null = new Uint8Array(await file.arrayBuffer());
-        const header = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
-        const encMatch = header.match(/encoding=["']([^"']+)["']/);
-        const declared = (encMatch?.[1] ?? "utf-8").toLowerCase();
-        const useEnc = declared.includes("8859") || declared.includes("1252") || declared.includes("windows")
-          ? "windows-1252"
-          : "utf-8";
-        let xml: string | null = new TextDecoder(useEnc).decode(bytes);
-        bytes = null; // liberta ~15MB antes do parse
+        // Leitura incremental (streaming): evita carregar o XML inteiro e a árvore
+        // em memória, que era a causa do WORKER_RESOURCE_LIMIT em ficheiros grandes.
+        const headBytes = new Uint8Array(await file.slice(0, 200).arrayBuffer());
+        const useEnc = detectEncoding(headBytes);
 
-        const parsed = parseSaftXml(xml!);
-        xml = null; // liberta a string original antes dos inserts
+        const parsed = await collectSaftStream(
+          decodeStream(file.stream(), useEnc),
+          async (c) => {
+            await admin.from("saft_imports")
+              .update({ last_step: "parse_xml_progress", last_step_at: new Date().toISOString() })
+              .eq("id", import_id);
+            console.log("[saft-import] parse progress", JSON.stringify(c));
+          },
+        );
+
+        await admin.from("saft_imports")
+          .update({ last_step: "persist_start", last_step_at: new Date().toISOString() })
+          .eq("id", import_id);
 
         await processImport(admin, imp, options, parsed, user.id);
+
 
 
         // Paginar para contornar o limite de 1000 linhas por defeito do PostgREST
