@@ -285,3 +285,26 @@ export async function streamSaftXml(
   await handlers.onProgress?.({ ...counts });
   return { header, counts };
 }
+
+/**
+ * Conveniência: percorre o stream e devolve a estrutura completa (SaftParsed).
+ * Usa muito menos memória que o parser legado porque nunca cria a árvore XML.
+ */
+export async function collectSaftStream(
+  chunks: AsyncIterable<string>,
+  onProgress?: SaftStreamHandlers["onProgress"],
+) {
+  const customers: SaftCustomer[] = [];
+  const products: SaftProduct[] = [];
+  const invoices: SaftInvoice[] = [];
+  const payments: SaftPayment[] = [];
+  const { header } = await streamSaftXml(chunks, {
+    onCustomer: (c) => { customers.push(c); },
+    onProduct: (p) => { products.push(p); },
+    onInvoice: (i) => { invoices.push(i); },
+    onPayment: (p) => { payments.push(p); },
+    onProgress,
+  });
+  if (!header) throw new Error("Não é um SAF-T válido (Header não encontrado)");
+  return { header, customers, products, invoices, payments };
+}
