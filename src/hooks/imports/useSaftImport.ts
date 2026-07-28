@@ -127,16 +127,18 @@ export function useUploadSaft() {
         .eq("file_hash", hash)
         .maybeSingle();
       if (existing) {
-        toast.info("Este ficheiro SAF-T já foi importado anteriormente.");
-        if (["uploaded", "failed"].includes(existing.status)) {
-          const { data: analyzeData, error: fnErr } = await supabase.functions.invoke("saft-analyze", {
-            body: { import_id: existing.id },
-          });
-          if (fnErr) throw fnErr;
-          if (analyzeData?.ok === false) throw new Error(analyzeData.error || "Falha na análise SAF-T");
-        }
+        // Reimportação: reanalisar sempre para voltar a pré-visualização.
+        // As faturas já existentes são desduplicadas por número, por isso é
+        // seguro correr de novo (útil, por exemplo, para importar os recibos).
+        toast.info("Este ficheiro já tinha sido importado — a reanalisar para poderes reimportar.");
+        const { data: analyzeData, error: fnErr } = await supabase.functions.invoke("saft-analyze", {
+          body: { import_id: existing.id },
+        });
+        if (fnErr) throw fnErr;
+        if (analyzeData?.ok === false) throw new Error(analyzeData.error || "Falha na análise SAF-T");
         return existing.id;
       }
+
 
       // Reservar id e fazer upload
       const importId = crypto.randomUUID();
