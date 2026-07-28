@@ -85,6 +85,7 @@ export default function SafTImportPage() {
         {phase === "analyzing" && (
           <AnalyzingCard
             startedAt={imp?.started_at ?? imp?.created_at}
+            lastStepAt={imp?.last_step_at ?? imp?.updated_at ?? imp?.started_at ?? imp?.created_at}
             status={imp?.status}
             progress={(imp?.stats as any)?.progress}
             error={
@@ -150,12 +151,14 @@ interface AnalyzeProgress {
 
 function AnalyzingCard({
   startedAt,
+  lastStepAt,
   status,
   error,
   progress,
   onRetry,
 }: {
   startedAt?: string;
+  lastStepAt?: string;
   status?: string;
   error?: string;
   progress?: AnalyzeProgress;
@@ -185,15 +188,20 @@ function AnalyzingCard({
       ].filter(Boolean).join(" · ")
     : "";
 
+  const stale = !error && status === "analyzing" && lastStepAt
+    ? Date.now() - new Date(lastStepAt).getTime() > 5 * 60 * 1000
+    : false;
+  const displayError = error || (stale ? "A análise está sem progresso há mais de 5 minutos. Podes repetir a análise sem duplicar documentos." : undefined);
+
   return (
     <Card className="p-8 space-y-4">
       <div className="flex items-center gap-3">
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
         <div className="flex-1">
-          <p className="font-medium">{error ? "Não foi possível analisar o ficheiro" : status === "uploaded" ? "A iniciar análise…" : "A analisar o ficheiro…"}</p>
+          <p className="font-medium">{displayError ? "Não foi possível concluir a análise" : status === "uploaded" ? "A iniciar análise…" : "A analisar o ficheiro…"}</p>
           <p className="text-sm text-muted-foreground">
-            {error
-              ? error
+            {displayError
+              ? displayError
               : counts
               ? `Lidos ${counts}. Decorrido: ${elapsed}s`
               : `Validação do header AT e contagem de documentos. Decorrido: ${elapsed}s`}
@@ -203,7 +211,7 @@ function AnalyzingCard({
         <span className="font-mono text-sm text-muted-foreground">{pct}%</span>
       </div>
       <Progress value={pct} className="h-2" />
-      {error && onRetry && (
+      {displayError && onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry}>
           Repetir análise
         </Button>

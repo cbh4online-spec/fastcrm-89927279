@@ -543,7 +543,15 @@ Deno.serve(async (req) => {
 
     if (imp.status === "completed") return ok({ ok: false, error: "já importado" }, 200);
 
-    await admin.from("saft_imports").update({ status: "importing", options }).eq("id", import_id);
+    await admin.from("saft_imports").update({
+      status: "importing",
+      options,
+      completed_at: null,
+      error_message: null,
+      last_error_step: null,
+      last_step: "import_started",
+      last_step_at: new Date().toISOString(),
+    }).eq("id", import_id);
 
     // Todo o trabalho pesado (download + decode + parse + inserts) corre em background.
     // Fazê-lo no handler do pedido esgotava a memória do worker (WORKER_RESOURCE_LIMIT / 546).
@@ -551,8 +559,15 @@ Deno.serve(async (req) => {
     // @ts-ignore EdgeRuntime is a Deno deploy global
     EdgeRuntime.waitUntil((async () => {
       try {
+        const t0 = Date.now();
+        await admin.from("saft_imports")
+          .update({ last_step: "download_start", last_step_at: new Date().toISOString() })
+          .eq("id", import_id);
         const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
         if (dlErr || !file) throw new Error("download failed");
+        await admin.from("saft_imports")
+          .update({ last_step: "download_done", last_step_at: new Date().toISOString() })
+          .eq("id", import_id);
 
         // Leitura incremental (streaming): evita carregar o XML inteiro e a árvore
         // em memória, que era a causa do WORKER_RESOURCE_LIMIT em ficheiros grandes.
@@ -562,6 +577,9 @@ Deno.serve(async (req) => {
         const parsed = await collectSaftStream(
           decodeStream(file.stream(), useEnc),
           async (c) => {
+            if (Date.now() - t0 > 110_000) {
+              throw new Error("Tempo limite excedido durante a importação do SAF-T. Tente novamente ou divida o ficheiro por períodos mais curtos.");
+            }
             await admin.from("saft_imports")
               .update({ last_step: "parse_xml_progress", last_step_at: new Date().toISOString() })
               .eq("id", import_id);

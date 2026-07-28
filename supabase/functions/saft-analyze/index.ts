@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { streamSaftXml, decodeStream, detectEncoding } from "../_shared/saft-stream-parser.ts";
+import { analyzeSaftText, detectEncoding } from "../_shared/saft-stream-parser.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -129,14 +129,18 @@ Deno.serve(async (req) => {
     await admin.from("saft_imports").update({
       status: "analyzing",
       started_at: new Date().toISOString(),
+      completed_at: null,
       error_message: null,
       last_error_step: null,
+      last_step: null,
+      last_step_at: new Date().toISOString(),
+      stats: {},
       debug_log: [],
     }).eq("id", import_id);
     await logStep("analyze_started", { file_size: imp.file_size, correlation_id: correlationId });
 
-    // Run heavy parsing in background to avoid WORKER_RESOURCE_LIMIT on large SAF-T files.
-    // Frontend polls saft_imports.status (analyzing → preview_ready | failed).
+    // Para ficheiros até 25MB fazemos a análise no próprio pedido. Assim evitamos
+    // que o runtime termine uma tarefa em background sem propagar erro à UI.
     const runAnalysis = async () => {
       try {
         await logStep("download_start");
@@ -162,45 +166,15 @@ Deno.serve(async (req) => {
         await logStep("decode_done", { encoding: useEnc });
 
         await logStep("parse_xml_start");
-        const invoiceNos: string[] = [];
-        const stats = {
-          customers: 0,
-          products: 0,
-          invoices: 0,
-          invoice_lines: 0,
-          payments: 0,
-          total_gross: 0,
-          total_net: 0,
-          total_tax: 0,
-          cancelled: 0,
-        };
-        const { header } = await streamSaftXml(
-          decodeStream(file.stream(), useEnc),
-          {
-            onCustomer: () => { stats.customers++; },
-            onProduct: () => { stats.products++; },
-            onInvoice: (inv) => {
-              stats.invoices++;
-              stats.invoice_lines += inv.lines.length;
-              stats.total_gross += inv.gross_total;
-              stats.total_net += inv.net_total;
-              stats.total_tax += inv.tax_payable;
-              if (inv.invoice_status === "A") stats.cancelled++;
-              if (inv.invoice_no) invoiceNos.push(inv.invoice_no);
-            },
-            onPayment: () => { stats.payments++; },
-            progressEvery: 500,
-            onProgress: async (c) => {
-              await admin.from("saft_imports")
-                .update({ last_step: "parse_xml_progress", last_step_at: new Date().toISOString(), stats: { ...stats, progress: c } })
-                .eq("id", import_id);
-            },
-          },
-        );
-        if (!header) {
-          await failAt("parse_xml", "Não é um SAF-T válido (Header não encontrado)");
-          return;
-        }
+        const xml = new TextDecoder(useEnc).decode(await file.arrayBuffer());
+        const { header, stats, invoiceNos } = analyzeSaftText(xml);
+        await admin.from("saft_imports")
+          .update({
+            last_step: "parse_xml_progress",
+            last_step_at: new Date().toISOString(),
+            stats: { ...stats, progress: { customers: stats.customers, products: stats.products, invoices: stats.invoices, payments: stats.payments } },
+          })
+          .eq("id", import_id);
         await logStep("parse_xml_done", {
           invoices: stats.invoices,
           customers: stats.customers,
@@ -251,6 +225,7 @@ Deno.serve(async (req) => {
           period_start: header.period_start,
           period_end: header.period_end,
           stats: fullStats,
+          completed_at: null,
         }).eq("id", import_id);
 
         if (upErr) {
@@ -266,10 +241,9 @@ Deno.serve(async (req) => {
       }
     };
 
-    // @ts-ignore EdgeRuntime is provided by Deno Deploy runtime
-    EdgeRuntime.waitUntil(runAnalysis());
+    await runAnalysis();
 
-    return ok({ ok: true, queued: true, import_id, correlation_id: correlationId });
+    return ok({ ok: true, queued: false, import_id, correlation_id: correlationId });
   } catch (e) {
     console.error("[saft-analyze] error", e);
     const msg = e instanceof Error ? e.message : "internal error";
