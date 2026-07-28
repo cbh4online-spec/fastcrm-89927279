@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
             },
             onPayment: () => { stats.payments++; },
             includeInvoiceLines: false,
-            progressEvery: 500,
+            progressEvery: 5000,
             onProgress: async (c) => {
               if (Date.now() - t0 > 110_000) {
                 throw new Error("Tempo limite excedido durante a leitura do SAF-T. Tente novamente ou divida o ficheiro por períodos mais curtos.");
