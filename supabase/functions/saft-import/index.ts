@@ -312,18 +312,25 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     const cust = customerMap.get(inv.customer_id);
     const custName = customerNameById.get(inv.customer_id) ?? "Consumidor final";
 
-    // Salvaguarda anti-IVA-duplicado: alguns softwares exportam NetTotal já c/ IVA.
-    // A verdade são as linhas: se o NetTotal do ficheiro ≈ soma dos brutos das linhas,
-    // recalculamos subtotal/IVA/total a partir das linhas (net = s/ IVA, gross = c/ IVA).
+    // As linhas são a fonte de verdade: net = s/ IVA, gross = c/ IVA.
+    // Os totais do ficheiro só são usados quando não há linhas (alguns softwares
+    // exportam o NetTotal já com IVA, o que provocava IVA sobre IVA).
     const r2 = (n: number) => Math.round(n * 100) / 100;
     const linesNet = r2(inv.lines.reduce((s, l) => s + (l.line_total - l.tax_amount), 0));
     const linesGross = r2(inv.lines.reduce((s, l) => s + l.line_total, 0));
     let subtotal = inv.net_total, taxAmount = inv.tax_payable, total = inv.gross_total;
-    if (inv.lines.length > 0 && Math.abs(r2(inv.net_total) - linesGross) <= 0.02 && linesGross > linesNet) {
+    if (inv.lines.length > 0) {
       subtotal = linesNet;
       taxAmount = r2(linesGross - linesNet);
       total = linesGross;
+      if (Math.abs(r2(inv.gross_total) - linesGross) > 0.05) {
+        pushLog({
+          entity_type: "invoice", source_key: inv.invoice_no, action: "warning",
+          error_message: `Totais do ficheiro divergem das linhas (ficheiro ${r2(inv.gross_total)} vs linhas ${linesGross}); usadas as linhas`,
+        });
+      }
     }
+
     newInvRows.push({
       workspace_id: ws, created_by: userId,
       invoice_number: inv.invoice_no,
