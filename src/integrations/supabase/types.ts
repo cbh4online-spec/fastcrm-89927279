@@ -99313,6 +99313,13 @@ export type Database = {
         }[]
       }
       recompute_case_totals: { Args: { p_case_id: string }; Returns: undefined }
+      reconcile_invoice_payments: {
+        Args: { _invoice_ids?: string[]; _workspace_id?: string }
+        Returns: {
+          overpaid_count: number
+          updated_count: number
+        }[]
+      }
       redeem_partner_coupon: {
         Args: {
           p_code: string
