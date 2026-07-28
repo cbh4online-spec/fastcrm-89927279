@@ -536,7 +536,7 @@ Deno.serve(async (req) => {
         let xml: string | null = new TextDecoder(useEnc).decode(bytes);
         bytes = null; // liberta ~15MB antes do parse
 
-        const parsed = parseSaftXml(xml);
+        const parsed = parseSaftXml(xml!);
         xml = null; // liberta a string original antes dos inserts
 
         await processImport(admin, imp, options, parsed, user.id);
