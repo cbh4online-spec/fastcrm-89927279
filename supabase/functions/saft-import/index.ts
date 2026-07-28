@@ -457,38 +457,21 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   }
 
   // ===========================================================
-  // 5) Recompute amount_paid + status (em lote, paralelo)
+  // 5) Reconciliação amount_paid + status (função única na BD)
   // ===========================================================
   const touchedInvIds = [...new Set(
     parsed.payments.map((p) => invoiceIdByNo.get(p.invoice_no ?? "")).filter(Boolean) as string[]
   )];
   if (touchedInvIds.length) {
-    const paidByInv = new Map<string, number>();
-    const invMeta = new Map<string, { total: number; status: string }>();
-    for (const cnk of chunk(touchedInvIds, 500)) {
-      const { data: pays } = await admin
-        .from("invoice_payments").select("invoice_id, amount").in("invoice_id", cnk);
-      for (const r of pays ?? []) paidByInv.set(r.invoice_id, (paidByInv.get(r.invoice_id) ?? 0) + Number(r.amount || 0));
-      const { data: invs } = await admin
-        .from("invoices").select("id, total, status").in("id", cnk);
-      for (const r of invs ?? []) invMeta.set(r.id, { total: Number(r.total || 0), status: r.status });
+    for (const cnk of chunk(touchedInvIds, 1000)) {
+      const { error } = await admin.rpc("reconcile_invoice_payments", {
+        _workspace_id: ws,
+        _invoice_ids: cnk,
+      });
+      if (error) console.warn("[saft-import] reconcile failed", error.message);
     }
-
-    const MAX_PARALLEL = 20;
-    let pending: Promise<any>[] = [];
-    for (const invId of touchedInvIds) {
-      const meta = invMeta.get(invId); if (!meta) continue;
-      const paid = paidByInv.get(invId) ?? 0;
-      let status = meta.status;
-      if (status !== "cancelled") {
-        if (paid >= meta.total - 0.005) status = "paid";
-        else if (paid > 0) status = "partially_paid";
-      }
-      pending.push(admin.from("invoices").update({ amount_paid: paid, status }).eq("id", invId));
-      if (pending.length >= MAX_PARALLEL) { await Promise.all(pending); pending = []; }
-    }
-    if (pending.length) await Promise.all(pending);
   }
+
 
   await flushLogs();
 }

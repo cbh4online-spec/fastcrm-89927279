@@ -9,6 +9,8 @@ import { SafTUploader } from "@/components/imports/saft/SafTUploader";
 import { SafTPreviewPanel } from "@/components/imports/saft/SafTPreviewPanel";
 import { SafTMappingPanel, type SafTImportOpts } from "@/components/imports/saft/SafTMappingPanel";
 import { SafTProgressPanel } from "@/components/imports/saft/SafTProgressPanel";
+import { SafTPaymentsReport } from "@/components/imports/saft/SafTPaymentsReport";
+
 import { SafTStageIndicator } from "@/components/imports/saft/SafTStageIndicator";
 import { SafTHistoryTable } from "@/components/imports/saft/SafTHistoryTable";
 import {
@@ -120,11 +122,13 @@ export default function SafTImportPage() {
         {phase === "progress" && imp && (
           <>
             <SafTProgressPanel imp={imp} />
+            <SafTPaymentsReport importId={imp.id} isLive={imp.status === "importing"} />
             <Button variant="outline" onClick={() => setCurrentId(null)}>
               Nova importação
             </Button>
           </>
         )}
+
 
         <Separator />
 
