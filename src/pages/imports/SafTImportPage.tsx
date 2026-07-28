@@ -84,7 +84,12 @@ export default function SafTImportPage() {
           <AnalyzingCard
             startedAt={imp?.started_at ?? imp?.created_at}
             status={imp?.status}
-            error={analyze.error instanceof Error ? analyze.error.message : undefined}
+            progress={(imp?.stats as any)?.progress}
+            error={
+              analyze.error instanceof Error
+                ? analyze.error.message
+                : (imp?.status === "failed" ? imp?.error_message ?? undefined : undefined)
+            }
             onRetry={() => {
               if (!imp) return;
               setAutoAnalyzeId(null);
@@ -92,6 +97,7 @@ export default function SafTImportPage() {
             }}
           />
         )}
+
 
         {phase === "preview" && imp && (
           <>
