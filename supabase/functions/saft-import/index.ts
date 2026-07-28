@@ -285,9 +285,13 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     for (const r of data ?? []) if (r.saft_invoice_no) existingInv.set(r.saft_invoice_no, r.id);
   }
 
+  const customerNameById = new Map<string, string>();
+  for (const c of parsed.customers) if (c.customer_id) customerNameById.set(c.customer_id, c.name ?? "");
+
   const newInvRows: any[] = [];
   const newInvKeys: string[] = [];
   const linesByKey = new Map<string, any[]>();
+
 
   for (const inv of parsed.invoices) {
     const existId = existingInv.get(inv.invoice_no);
