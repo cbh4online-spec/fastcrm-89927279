@@ -174,6 +174,8 @@ function renderCell(col: string, c: Company, fin: CompanyFinancials | undefined)
 export function CompaniesListIX() {
   const navigate = useNavigate();
   const { companies, isLoading } = useCompanies();
+  const { financialsById } = useCompaniesFinancials();
+
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
