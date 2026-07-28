@@ -1,79 +1,30 @@
 ## Diagnóstico
 
-- Rota pública `/store/:workspaceSlug/product/:productId` já existe em `StoreProductPage.tsx` (930 linhas).
-- `ProductDetailDialog.tsx` é o local do backoffice para gerir o produto.
-- Campo JSONB `products.metadata` existe e é semanticamente adequado — **sem migration necessária**.
-- Componentes reutilizáveis: variantes (`useProductVariants` / `usePublicProductVariants`), bundles (`useBundles`), pedido de preço (`StorePriceRequestDialog`), carrinho (`StoreCartContext`), tracking (`ecommerceTracking`), avaliações e FAQ existentes.
+O botão existe: em `src/components/layout/WorkspaceSwitcher.tsx` o dropdown termina com um `DropdownMenuItem` "Create workspace" (com ícone `Plus`), ligado a `createWorkspace` do `WorkspaceContext`.
 
-## Persistência
+O problema é de layout, não de permissões: o `DropdownMenuContent` não define altura máxima nem scroll. Com a quantidade de workspaces desta conta (secção "Meus Workspaces" + secção "Clientes (Gestão)", visível no screenshot com mais de uma dezena de entradas), a lista ultrapassa a altura do ecrã e o item de criação fica empurrado para fora da área visível — nunca é alcançável.
 
-Guardar em `products.metadata.offer_page` com estrutura tipada:
-```
-{ version, enabled, preset, conversionGoal, headline, subheadline, ctaLabel,
-  secondaryCtaLabel, trustBadges[], sections{}, sectorConfig{}, faqItems[] }
-```
-Presets: `cosmetics | training | security | dropshipping | generic`.
-Objetivos: `add_to_cart | buy_now | request_quote | request_contact | enroll | book_assessment | book_demo`.
-Default: `enabled=false` → sem alterações a produtos existentes.
+## Alterações
 
-## Ficheiros a alterar / criar
+`src/components/layout/WorkspaceSwitcher.tsx`:
 
-**Novos:**
-- `src/components/store/offer-page/offerPageTypes.ts` — tipos + defaults por preset + validação.
-- `src/components/store/offer-page/StoreSmartOfferPage.tsx` — layout principal (2 colunas desktop, empilhado mobile).
-- `src/components/store/offer-page/OfferProductGallery.tsx`
-- `src/components/store/offer-page/OfferDecisionPanel.tsx` — passos numerados por preset.
-- `src/components/store/offer-page/OfferOptionStep.tsx`
-- `src/components/store/offer-page/OfferTrustBadges.tsx`
-- `src/components/store/offer-page/OfferStickyCTA.tsx` — barra fixa mobile (preço + CTA).
-- `src/components/store/offer-page/OfferSections.tsx` — accordion de secções configuráveis.
-- `src/components/store/offer-page/OfferPresetRenderer.tsx` — mapeia preset → passos + secções ativas.
-- `src/components/store/offer-page/useOfferConversion.ts` — camada de ação (add_to_cart/buy_now/request_quote/etc) reutilizando carrinho, checkout e `StorePriceRequestDialog`.
-- `src/components/products/ProductOfferPageSettingsTab.tsx` — separador de configuração no backoffice.
+1. Estruturar o conteúdo do dropdown em três zonas:
+   - Zona de lista com scroll próprio (`max-h-[50vh] overflow-y-auto`), contendo "Meus Workspaces" e "Clientes (Gestão)".
+   - Rodapé fixo (fora da zona scrollável) com o separador e a ação de criar workspace, sempre visível.
+   - Limitar também a altura total do `DropdownMenuContent` para nunca exceder o viewport.
+2. Adicionar um campo de pesquisa rápida no topo do dropdown (filtro por nome), útil dado o número de workspaces — filtra ambas as secções em simultâneo e mostra estado vazio quando não há resultados.
+3. Traduzir para português de Portugal os textos ainda em inglês deste componente: "Create workspace" → "Criar workspace", "Select workspace" → "Selecionar workspace", "No role" → "Sem função", título/descrição do diálogo, labels e botões, e as mensagens de toast ("Workspace criado!" / "Erro ao criar workspace").
 
-**Alterados:**
-- `src/pages/store/StoreProductPage.tsx` — lê `metadata.offer_page`; se `enabled` → renderiza `StoreSmartOfferPage`; senão mantém render atual (fallback seguro).
-- `src/components/products/ProductDetailDialog.tsx` — adiciona novo `TabsTrigger` "Página de Oferta" ligado ao componente isolado (sem inflacionar o ficheiro).
-
-## Estrutura visual
-
-**Desktop:** grelha 2 colunas; esquerda = galeria + benefícios + conteúdo detalhado; direita = painel sticky (rating real, título, selos, passos numerados, resumo de preço com poupança real, quantidade, CTA principal).
-**Mobile:** ordem imagem → título/rating → painel → CTA → benefícios → conteúdo → avaliações → FAQ → relacionados; `OfferStickyCTA` fixa em baixo.
-
-## Presets (comportamento)
-
-- **Cosmetics** — variantes (tamanho/aroma/pele) + quantity breaks reais + bundles reais; sem opção "subscrever" (ainda não há checkout recorrente funcional detectado).
-- **Training** — modalidade + edição/sessão (só mostra dados reais) + plano; CTA "Inscrever-me" → checkout se preço existir, senão `request_contact`.
-- **Security** — tipo de espaço + necessidade + tipo de solução; CTA "Pedir orçamento" via `StorePriceRequestDialog`; sem carrinho quando preço sob consulta.
-- **Dropshipping** — variante + quantidade + confirmação de entrega (só dados reais); CTA `add_to_cart`/`buy_now`.
-- **Generic** — imagem + título + descrição + preço + qty + variantes se existirem.
-
-Passos vazios ocultos automaticamente. Objetivos de conversão sem implementação real ficam ocultos no seletor do backoffice.
-
-## Backoffice
-
-`ProductOfferPageSettingsTab` com:
-- Switch on/off (default off).
-- Select preset + select objetivo.
-- Inputs de texto comercial (com fallback para dados existentes do produto).
-- Editor de até 4 trust badges (icon Lucide + título + descrição).
-- Lista de secções com switches (sem drag-and-drop; setas cima/baixo).
-- Editor mínimo de FAQ (pergunta/resposta/ordem/ativo).
-- Pré-visualização resumida + link "Abrir página pública".
-
-Persistência via update ao `products.metadata` preservando outras chaves.
-
-## Analytics
-
-Reutiliza `ecommerceTracking` + adiciona eventos `smart_offer_view`, `smart_offer_option_selected`, `smart_offer_conversion_mode_selected`, `smart_offer_bundle_selected`, `smart_offer_cta_clicked`, `smart_offer_quote_requested` via `pushGA4` existente.
-
-## Migration
-**Nenhuma** — reutiliza `products.metadata` (JSONB já existente e apropriado).
-
-## Riscos
-- Produtos sem imagem/rating/stock — tratados com estados vazios; sem números fictícios.
-- Extensão do carrinho para `variantId` se ainda não suportar — feita de forma retrocompatível apenas se necessário para preset cosmetics/dropshipping.
-- `ProductDetailDialog` grande — o novo separador fica num componente isolado para não inchar o ficheiro.
+Nada muda na lógica de criação, permissões ou base de dados.
 
 ## Critérios de aceitação
-Todos os 22 pontos do briefing; fallback preserva a página atual; typecheck final sem novos erros.
+
+- Com muitos workspaces, o botão "Criar workspace" está sempre visível no fundo do dropdown, sem necessidade de scroll da página.
+- A lista de workspaces faz scroll interno e o rodapé mantém-se fixo.
+- A pesquisa filtra as duas secções e o item selecionado continua marcado com o visto.
+- Criar um workspace continua a funcionar e o novo workspace passa a ficar disponível na lista.
+- Sem erros de consola; funciona em desktop e mobile, e no estado colapsado da sidebar.
+
+## Riscos
+
+- Nenhum risco funcional relevante; a mudança é de apresentação. A verificar apenas que o scroll interno não entra em conflito com o fecho do dropdown ao clicar fora.
