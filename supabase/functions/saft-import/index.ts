@@ -76,13 +76,20 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   // ---- Batched logging (saft_import_items) ----
   const logBuffer: any[] = [];
   const pushLog = (row: any) => logBuffer.push({ ...row, import_id: importId, workspace_id: ws });
+  const heartbeat = async (step: string) => {
+    await admin.from("saft_imports")
+      .update({ last_step: step, last_step_at: new Date().toISOString() })
+      .eq("id", importId);
+  };
   const flushLogs = async () => {
     if (!logBuffer.length) return;
     const rows = logBuffer.splice(0, logBuffer.length);
     for (const c of chunk(rows, 500)) {
       await admin.from("saft_import_items").insert(c);
     }
+    await heartbeat("persist_progress");
   };
+
 
   const isPersonalNif = (nif?: string | null) => {
     const d = (nif ?? "").replace(/\D/g, "");
