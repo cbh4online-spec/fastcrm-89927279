@@ -98649,6 +98649,23 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      get_companies_financials: {
+        Args: { _workspace_id: string }
+        Returns: {
+          company_id: string
+          gross_total: number
+          invoice_count: number
+          last_invoice_date: string
+          net_total: number
+          overdue_total: number
+          paid_total: number
+          pending_total: number
+          sales_2023: number
+          sales_2024: number
+          sales_2025: number
+          sales_2026: number
+        }[]
+      }
       get_composite_kit_stock: { Args: { _kit_id: string }; Returns: Json }
       get_entity_memory_stats: {
         Args: {
