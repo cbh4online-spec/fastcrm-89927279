@@ -93,7 +93,29 @@ function moneyCell(label: string, value: number | null | undefined) {
   );
 }
 
-function renderCell(col: string, c: Company) {
+function paymentStatusCell(fin: CompanyFinancials | undefined) {
+  if (!fin || fin.invoice_count === 0) {
+    return <div className="text-right"><span className="text-xs text-muted-foreground">Pagamento</span><div className="text-sm text-muted-foreground">—</div></div>;
+  }
+  let label = "Liquidado";
+  let tone = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  if (fin.overdue_total > 0.01) {
+    label = "Vencido";
+    tone = "bg-destructive/10 text-destructive";
+  } else if (fin.pending_total > 0.01) {
+    label = fin.paid_total > 0.01 ? "Parcial" : "Em dívida";
+    tone = "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+  }
+  return (
+    <div className="text-right">
+      <span className="text-xs text-muted-foreground">Pagamento</span>
+      <div className={cn("mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-semibold", tone)}>{label}</div>
+    </div>
+  );
+}
+
+function renderCell(col: string, c: Company, fin: CompanyFinancials | undefined) {
+
   switch (col) {
     case "name":
       return (
