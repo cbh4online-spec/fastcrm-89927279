@@ -100171,6 +100171,8 @@ export type Database = {
         | "skipped_duplicate"
         | "merged"
         | "failed"
+        | "skipped"
+        | "warning"
       saft_type: "billing" | "accounting" | "self_billing"
       session_status: "active" | "completed" | "abandoned" | "handed_off"
       sso_token_status: "pending" | "active" | "used" | "expired" | "revoked"
@@ -100850,6 +100852,8 @@ export const Constants = {
         "skipped_duplicate",
         "merged",
         "failed",
+        "skipped",
+        "warning",
       ],
       saft_type: ["billing", "accounting", "self_billing"],
       session_status: ["active", "completed", "abandoned", "handed_off"],

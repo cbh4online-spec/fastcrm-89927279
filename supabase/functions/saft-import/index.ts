@@ -312,18 +312,25 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     const cust = customerMap.get(inv.customer_id);
     const custName = customerNameById.get(inv.customer_id) ?? "Consumidor final";
 
-    // Salvaguarda anti-IVA-duplicado: alguns softwares exportam NetTotal já c/ IVA.
-    // A verdade são as linhas: se o NetTotal do ficheiro ≈ soma dos brutos das linhas,
-    // recalculamos subtotal/IVA/total a partir das linhas (net = s/ IVA, gross = c/ IVA).
+    // As linhas são a fonte de verdade: net = s/ IVA, gross = c/ IVA.
+    // Os totais do ficheiro só são usados quando não há linhas (alguns softwares
+    // exportam o NetTotal já com IVA, o que provocava IVA sobre IVA).
     const r2 = (n: number) => Math.round(n * 100) / 100;
     const linesNet = r2(inv.lines.reduce((s, l) => s + (l.line_total - l.tax_amount), 0));
     const linesGross = r2(inv.lines.reduce((s, l) => s + l.line_total, 0));
     let subtotal = inv.net_total, taxAmount = inv.tax_payable, total = inv.gross_total;
-    if (inv.lines.length > 0 && Math.abs(r2(inv.net_total) - linesGross) <= 0.02 && linesGross > linesNet) {
+    if (inv.lines.length > 0) {
       subtotal = linesNet;
       taxAmount = r2(linesGross - linesNet);
       total = linesGross;
+      if (Math.abs(r2(inv.gross_total) - linesGross) > 0.05) {
+        pushLog({
+          entity_type: "invoice", source_key: inv.invoice_no, action: "warning",
+          error_message: `Totais do ficheiro divergem das linhas (ficheiro ${r2(inv.gross_total)} vs linhas ${linesGross}); usadas as linhas`,
+        });
+      }
     }
+
     newInvRows.push({
       workspace_id: ws, created_by: userId,
       invoice_number: inv.invoice_no,
@@ -395,7 +402,37 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   // 4) PAYMENTS — pré-carrega existentes
   // ===========================================================
   if (opts.import_payments !== false && parsed.payments.length) {
+    // Um recibo pode liquidar faturas de períodos anteriores que NÃO vêm neste ficheiro.
+    // Resolvemos essas faturas diretamente na base de dados, por saft_invoice_no.
+    const missingNos = [...new Set(
+      parsed.payments
+        .map((p) => p.invoice_no ?? "")
+        .filter((no) => no && !invoiceIdByNo.has(no)),
+    )];
+    for (const cnk of chunk(missingNos, 500)) {
+      const { data } = await admin
+        .from("invoices").select("id, saft_invoice_no")
+        .eq("workspace_id", ws).in("saft_invoice_no", cnk);
+      for (const r of data ?? []) if (r.saft_invoice_no) invoiceIdByNo.set(r.saft_invoice_no, r.id);
+    }
+    // fallback: numeração curta (ex.: "V100/5232" para "FT V100.02/5232")
+    const stillMissing = missingNos.filter((no) => !invoiceIdByNo.has(no));
+    if (stillMissing.length) {
+      for (const cnk of chunk(stillMissing, 200)) {
+        const suffixes = cnk.map((no) => no.split("/").pop() ?? "").filter(Boolean);
+        const { data } = await admin
+          .from("invoices").select("id, invoice_number, saft_invoice_no")
+          .eq("workspace_id", ws)
+          .or(suffixes.map((s) => `invoice_number.ilike.%/${s}`).join(","));
+        for (const no of cnk) {
+          const sfx = no.split("/").pop();
+          const hit = (data ?? []).find((r: any) => String(r.invoice_number ?? "").endsWith(`/${sfx}`));
+          if (hit) invoiceIdByNo.set(no, hit.id);
+        }
+      }
+    }
     const invoiceIds = [...new Set(parsed.payments.map((p) => invoiceIdByNo.get(p.invoice_no ?? "")).filter(Boolean) as string[])];
+
     const existingPay = new Set<string>();
     for (const cnk of chunk(invoiceIds, 500)) {
       const { data } = await admin
