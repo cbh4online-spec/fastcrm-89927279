@@ -239,6 +239,8 @@ export function CompaniesListIX() {
             { value: "name", label: "Nome" },
             { value: "created_at", label: "Data de criação" },
             { value: "total_revenue", label: "Faturação" },
+            { value: "pending_total", label: "Valor pendente" },
+
           ]}
           sortValue={sortBy}
           onSortChange={(v) => setSortBy(v as SortKey)}
