@@ -395,7 +395,37 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   // 4) PAYMENTS — pré-carrega existentes
   // ===========================================================
   if (opts.import_payments !== false && parsed.payments.length) {
+    // Um recibo pode liquidar faturas de períodos anteriores que NÃO vêm neste ficheiro.
+    // Resolvemos essas faturas diretamente na base de dados, por saft_invoice_no.
+    const missingNos = [...new Set(
+      parsed.payments
+        .map((p) => p.invoice_no ?? "")
+        .filter((no) => no && !invoiceIdByNo.has(no)),
+    )];
+    for (const cnk of chunk(missingNos, 500)) {
+      const { data } = await admin
+        .from("invoices").select("id, saft_invoice_no")
+        .eq("workspace_id", ws).in("saft_invoice_no", cnk);
+      for (const r of data ?? []) if (r.saft_invoice_no) invoiceIdByNo.set(r.saft_invoice_no, r.id);
+    }
+    // fallback: numeração curta (ex.: "V100/5232" para "FT V100.02/5232")
+    const stillMissing = missingNos.filter((no) => !invoiceIdByNo.has(no));
+    if (stillMissing.length) {
+      for (const cnk of chunk(stillMissing, 200)) {
+        const suffixes = cnk.map((no) => no.split("/").pop() ?? "").filter(Boolean);
+        const { data } = await admin
+          .from("invoices").select("id, invoice_number, saft_invoice_no")
+          .eq("workspace_id", ws)
+          .or(suffixes.map((s) => `invoice_number.ilike.%/${s}`).join(","));
+        for (const no of cnk) {
+          const sfx = no.split("/").pop();
+          const hit = (data ?? []).find((r: any) => String(r.invoice_number ?? "").endsWith(`/${sfx}`));
+          if (hit) invoiceIdByNo.set(no, hit.id);
+        }
+      }
+    }
     const invoiceIds = [...new Set(parsed.payments.map((p) => invoiceIdByNo.get(p.invoice_no ?? "")).filter(Boolean) as string[])];
+
     const existingPay = new Set<string>();
     for (const cnk of chunk(invoiceIds, 500)) {
       const { data } = await admin
