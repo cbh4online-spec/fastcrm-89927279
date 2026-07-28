@@ -2,7 +2,6 @@
 // Percorre o XML por blocos e emite cada <Customer>, <Product>, <Invoice> e
 // <Payment> assim que o elemento fecha, sem nunca construir a árvore completa
 // em memória. Mantém exatamente os mesmos tipos do saft-parser legado.
-import { XMLParser } from "npm:fast-xml-parser@4";
 import type {
   SaftCustomer,
   SaftHeader,
@@ -13,19 +12,150 @@ import type {
   SaftType,
 } from "./saft-parser.ts";
 
-const fragmentParser = new XMLParser({
-  ignoreAttributes: false,
-  parseAttributeValue: false,
-  parseTagValue: false,
-  trimValues: true,
-  removeNSPrefix: true,
-  isArray: (name) => ["Line", "PaymentMethod", "SourceDocumentID"].includes(name),
-});
-
 export function toNum(v: unknown): number {
   if (v == null) return 0;
   const n = Number(String(v).replace(",", "."));
   return isNaN(n) ? 0 : n;
+}
+
+function unescapeXml(v: string | null): string | null {
+  if (v == null) return null;
+  return v
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+    .trim();
+}
+
+function tagValue(xml: string, tag: string): string | null {
+  const re = new RegExp(`<(?:\\w+:)?${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:\\w+:)?${tag}>`, "i");
+  return unescapeXml(xml.match(re)?.[1] ?? null);
+}
+
+function tagFragment(xml: string, tag: string): string | null {
+  const re = new RegExp(`<(?:\\w+:)?${tag}(?:\\s[^>]*)?>[\\s\\S]*?<\\/(?:\\w+:)?${tag}>`, "i");
+  return xml.match(re)?.[0] ?? null;
+}
+
+function tagFragments(xml: string, tag: string): string[] {
+  const re = new RegExp(`<(?:\\w+:)?${tag}(?:\\s[^>]*)?>[\\s\\S]*?<\\/(?:\\w+:)?${tag}>`, "gi");
+  return xml.match(re) ?? [];
+}
+
+function parseLine(l: string, idx: number): SaftInvoiceLine {
+  const qty = toNum(tagValue(l, "Quantity"));
+  const unit = toNum(tagValue(l, "UnitPrice"));
+  const taxFrag = tagFragment(l, "Tax") ?? "";
+  const taxPct = toNum(tagValue(taxFrag, "TaxPercentage"));
+  const credit = toNum(tagValue(l, "CreditAmount"));
+  const debit = toNum(tagValue(l, "DebitAmount"));
+  const lineNet = credit || debit || qty * unit;
+  const taxAmount = (lineNet * taxPct) / 100;
+  return {
+    line_number: Number(tagValue(l, "LineNumber") ?? idx + 1),
+    product_code: tagValue(l, "ProductCode"),
+    description: tagValue(l, "Description") ?? "",
+    quantity: qty,
+    unit_price: unit,
+    tax_percentage: taxPct,
+    tax_amount: taxAmount,
+    line_total: lineNet + taxAmount,
+  };
+}
+
+function parseHeaderXml(h: string): SaftHeader {
+  return {
+    saft_version: tagValue(h, "AuditFileVersion"),
+    software_company: tagValue(h, "SoftwareCompanyName") ?? tagValue(h, "ProductCompanyTaxID"),
+    software_id: tagValue(h, "ProductID"),
+    tax_registration_number: tagValue(h, "TaxRegistrationNumber"),
+    fiscal_year: tagValue(h, "FiscalYear") ? Number(tagValue(h, "FiscalYear")) : null,
+    period_start: tagValue(h, "StartDate"),
+    period_end: tagValue(h, "EndDate"),
+    saft_type: "billing" as SaftType,
+  };
+}
+
+function parseCustomerXml(c: string): SaftCustomer {
+  const addr = tagFragment(c, "BillingAddress") ?? tagFragment(c, "CompanyAddress") ?? "";
+  return {
+    customer_id: String(tagValue(c, "CustomerID") ?? ""),
+    name: tagValue(c, "CompanyName") ?? "",
+    tax_id: tagValue(c, "CustomerTaxID"),
+    email: tagValue(c, "Email"),
+    phone: tagValue(c, "Telephone"),
+    address: tagValue(addr, "AddressDetail"),
+    city: tagValue(addr, "City"),
+    postal_code: tagValue(addr, "PostalCode"),
+    country: tagValue(addr, "Country"),
+  };
+}
+
+function parseProductXml(p: string): SaftProduct {
+  return {
+    product_code: String(tagValue(p, "ProductCode") ?? ""),
+    product_description: tagValue(p, "ProductDescription") ?? "",
+    product_type: tagValue(p, "ProductType"),
+  };
+}
+
+function parseInvoiceXml(inv: string): SaftInvoice {
+  const docTotals = tagFragment(inv, "DocumentTotals") ?? "";
+  const docStatus = tagFragment(inv, "DocumentStatus") ?? "";
+  const currency = tagFragment(docTotals, "Currency") ?? "";
+  return {
+    invoice_no: String(tagValue(inv, "InvoiceNo") ?? ""),
+    atcud: tagValue(inv, "ATCUD"),
+    invoice_type: tagValue(inv, "InvoiceType") ?? "FT",
+    invoice_status: tagValue(docStatus, "InvoiceStatus") ?? "N",
+    invoice_date: tagValue(inv, "InvoiceDate") ?? tagValue(inv, "SystemEntryDate")?.slice(0, 10) ?? null,
+    due_date: tagValue(inv, "SelfBillingIndicator") ? null : tagValue(inv, "PaymentTerms"),
+    customer_id: String(tagValue(inv, "CustomerID") ?? ""),
+    currency: tagValue(currency, "CurrencyCode") ?? "EUR",
+    gross_total: toNum(tagValue(docTotals, "GrossTotal")),
+    net_total: toNum(tagValue(docTotals, "NetTotal")),
+    tax_payable: toNum(tagValue(docTotals, "TaxPayable")),
+    lines: tagFragments(inv, "Line").map(parseLine),
+    hash: tagValue(inv, "Hash"),
+  };
+}
+
+function parseWorkDocumentXml(doc: string): SaftInvoice {
+  const docTotals = tagFragment(doc, "DocumentTotals") ?? "";
+  const docStatus = tagFragment(doc, "DocumentStatus") ?? "";
+  const currency = tagFragment(docTotals, "Currency") ?? "";
+  return {
+    invoice_no: String(tagValue(doc, "DocumentNumber") ?? tagValue(doc, "WorkDocumentNumber") ?? tagValue(doc, "WorkDocumentNo") ?? tagValue(doc, "InvoiceNo") ?? ""),
+    atcud: tagValue(doc, "ATCUD"),
+    invoice_type: tagValue(doc, "WorkType") ?? tagValue(doc, "DocumentType") ?? "WD",
+    invoice_status: tagValue(docStatus, "WorkStatus") ?? tagValue(docStatus, "InvoiceStatus") ?? "N",
+    invoice_date: tagValue(doc, "WorkDate") ?? tagValue(doc, "InvoiceDate") ?? tagValue(doc, "SystemEntryDate")?.slice(0, 10) ?? null,
+    due_date: tagValue(doc, "PaymentTerms"),
+    customer_id: String(tagValue(doc, "CustomerID") ?? ""),
+    currency: tagValue(currency, "CurrencyCode") ?? "EUR",
+    gross_total: toNum(tagValue(docTotals, "GrossTotal")),
+    net_total: toNum(tagValue(docTotals, "NetTotal")),
+    tax_payable: toNum(tagValue(docTotals, "TaxPayable")),
+    lines: tagFragments(doc, "Line").map(parseLine),
+    hash: tagValue(doc, "Hash"),
+  };
+}
+
+function parsePaymentXml(p: string): SaftPayment[] {
+  const out: SaftPayment[] = [];
+  const ref = String(tagValue(p, "PaymentRefNo") ?? "");
+  const date = tagValue(p, "TransactionDate") ?? tagValue(p, "SystemEntryDate")?.slice(0, 10) ?? "";
+  const method = tagValue(tagFragment(p, "PaymentMethod") ?? "", "PaymentMechanism");
+  const custId = tagValue(p, "CustomerID");
+  for (const ln of tagFragments(p, "Line")) {
+    const invoiceNo = tagValue(tagFragment(ln, "SourceDocumentID") ?? "", "OriginatingON");
+    const amount = toNum(tagValue(ln, "CreditAmount")) - toNum(tagValue(ln, "DebitAmount"));
+    if (!invoiceNo || amount === 0) continue;
+    out.push({ payment_ref: ref, payment_date: date, payment_method: method, amount, invoice_no: String(invoiceNo), customer_id: custId });
+  }
+  return out;
 }
 
 export function mapCustomer(c: any): SaftCustomer {
@@ -242,17 +372,6 @@ export async function streamSaftXml(
   let sinceProgress = 0;
   const maxPendingFragment = 512 * 1024;
 
-  const buildHeader = (h: any): SaftHeader => ({
-    saft_version: h.AuditFileVersion ?? null,
-    software_company: h.SoftwareCompanyName ?? h.ProductCompanyTaxID ?? null,
-    software_id: h.ProductID ?? null,
-    tax_registration_number: h.TaxRegistrationNumber ? String(h.TaxRegistrationNumber) : null,
-    fiscal_year: h.FiscalYear ? Number(h.FiscalYear) : null,
-    period_start: h.StartDate ?? null,
-    period_end: h.EndDate ?? null,
-    saft_type: "billing" as SaftType,
-  });
-
   const drain = async (final: boolean) => {
     while (true) {
       // encontrar o primeiro elemento-alvo presente no buffer
@@ -289,39 +408,36 @@ export async function streamSaftXml(
       const fragment = buf.slice(best.start, end + closeTag.length);
       buf = buf.slice(end + closeTag.length);
 
-      let obj: any = null;
       try {
-        obj = fragmentParser.parse(fragment)?.[best.tag];
-      } catch {
-        obj = null;
-      }
-      if (obj) {
         if (best.tag === "Header") {
-          header = buildHeader(obj);
+          header = parseHeaderXml(fragment);
           headerDone = true;
           // saft_type só é definitivo no fim (depende de WorkingDocuments / GL)
         } else if (best.tag === "Customer") {
           counts.customers++;
-          await handlers.onCustomer?.(mapCustomer(obj));
+          await handlers.onCustomer?.(parseCustomerXml(fragment));
         } else if (best.tag === "Product") {
           counts.products++;
-          await handlers.onProduct?.(mapProduct(obj));
+          await handlers.onProduct?.(parseProductXml(fragment));
         } else if (best.tag === "Invoice") {
           counts.invoices++;
-          await handlers.onInvoice?.(mapInvoice(obj));
+          await handlers.onInvoice?.(parseInvoiceXml(fragment));
         } else if (best.tag === "WorkDocument") {
           counts.invoices++;
-          await handlers.onInvoice?.(mapWorkDocument(obj));
+          await handlers.onInvoice?.(parseWorkDocumentXml(fragment));
         } else if (best.tag === "Payment") {
-          const pays = mapPayment(obj);
+          const pays = parsePaymentXml(fragment);
           counts.payments += pays.length;
           for (const pay of pays) await handlers.onPayment?.(pay);
         }
-        sinceProgress++;
-        if (sinceProgress >= progressEvery) {
-          sinceProgress = 0;
-          await handlers.onProgress?.({ ...counts });
-        }
+      } catch {
+        // Fragmento inválido ou inesperado: ignorar e continuar a stream para
+        // evitar bloquear toda a importação por um elemento defeituoso.
+      }
+      sinceProgress++;
+      if (sinceProgress >= progressEvery) {
+        sinceProgress = 0;
+        await handlers.onProgress?.({ ...counts });
       }
     }
   };
