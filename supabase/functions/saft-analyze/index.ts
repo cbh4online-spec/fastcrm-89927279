@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { streamSaftXml, decodeStream, detectEncoding } from "../_shared/saft-stream-parser.ts";
+import { analyzeSaftText, detectEncoding } from "../_shared/saft-stream-parser.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -166,49 +166,15 @@ Deno.serve(async (req) => {
         await logStep("decode_done", { encoding: useEnc });
 
         await logStep("parse_xml_start");
-        const invoiceNos: string[] = [];
-        const stats = {
-          customers: 0,
-          products: 0,
-          invoices: 0,
-          invoice_lines: 0,
-          payments: 0,
-          total_gross: 0,
-          total_net: 0,
-          total_tax: 0,
-          cancelled: 0,
-        };
-        const { header } = await streamSaftXml(
-          decodeStream(file.stream(), useEnc),
-          {
-            onCustomer: () => { stats.customers++; },
-            onProduct: () => { stats.products++; },
-            onInvoice: (inv) => {
-              stats.invoices++;
-              stats.invoice_lines += (inv as any).line_count ?? inv.lines.length;
-              stats.total_gross += inv.gross_total;
-              stats.total_net += inv.net_total;
-              stats.total_tax += inv.tax_payable;
-              if (inv.invoice_status === "A") stats.cancelled++;
-              if (inv.invoice_no) invoiceNos.push(inv.invoice_no);
-            },
-            onPayment: () => { stats.payments++; },
-            includeInvoiceLines: false,
-            progressEvery: 5000,
-            onProgress: async (c) => {
-              if (Date.now() - t0 > 110_000) {
-                throw new Error("Tempo limite excedido durante a leitura do SAF-T. Tente novamente ou divida o ficheiro por períodos mais curtos.");
-              }
-              await admin.from("saft_imports")
-                .update({ last_step: "parse_xml_progress", last_step_at: new Date().toISOString(), stats: { ...stats, progress: c } })
-                .eq("id", import_id);
-            },
-          },
-        );
-        if (!header) {
-          await failAt("parse_xml", "Não é um SAF-T válido (Header não encontrado)");
-          return;
-        }
+        const xml = new TextDecoder(useEnc).decode(await file.arrayBuffer());
+        const { header, stats, invoiceNos } = analyzeSaftText(xml);
+        await admin.from("saft_imports")
+          .update({
+            last_step: "parse_xml_progress",
+            last_step_at: new Date().toISOString(),
+            stats: { ...stats, progress: { customers: stats.customers, products: stats.products, invoices: stats.invoices, payments: stats.payments } },
+          })
+          .eq("id", import_id);
         await logStep("parse_xml_done", {
           invoices: stats.invoices,
           customers: stats.customers,
