@@ -7,6 +7,7 @@ const FastCRMWhatsAppSalesLanding = lazy(() => import("@/pages/FastCRMWhatsAppSa
 const Login = lazy(() => import("@/pages/Login"));
 const Signup = lazy(() => import("@/pages/Signup"));
 const Auth = lazy(() => import("@/pages/Auth"));
+const OAuthConsentPage = lazy(() => import("@/pages/OAuthConsentPage"));
 const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const OnboardingHubPage = lazy(() => import("@/pages/OnboardingHubPage"));
