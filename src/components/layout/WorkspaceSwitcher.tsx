@@ -41,6 +41,12 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const matches = (w: Workspace) =>
+    w.name?.toLowerCase().includes(search.trim().toLowerCase());
+  const filteredOwn = ownWorkspaces.filter(matches);
+  const filteredManaged = managedWorkspaces.filter(matches);
 
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) return;
