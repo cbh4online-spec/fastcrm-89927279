@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
             onProduct: () => { stats.products++; },
             onInvoice: (inv) => {
               stats.invoices++;
-              stats.invoice_lines += inv.lines.length;
+              stats.invoice_lines += (inv as any).line_count ?? inv.lines.length;
               stats.total_gross += inv.gross_total;
               stats.total_net += inv.net_total;
               stats.total_tax += inv.tax_payable;
@@ -193,6 +193,7 @@ Deno.serve(async (req) => {
               if (inv.invoice_no) invoiceNos.push(inv.invoice_no);
             },
             onPayment: () => { stats.payments++; },
+            includeInvoiceLines: false,
             progressEvery: 500,
             onProgress: async (c) => {
               if (Date.now() - t0 > 110_000) {
