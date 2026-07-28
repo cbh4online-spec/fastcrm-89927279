@@ -65,7 +65,13 @@ const COLUMN_WIDTH: Record<string, string> = {
   sales_2026: "w-[130px] shrink-0",
   sales_2025: "w-[130px] shrink-0",
   sales_2024: "w-[130px] shrink-0",
+  payment_status: "w-[130px] shrink-0",
+  paid_total: "w-[120px] shrink-0",
+  pending_total: "w-[120px] shrink-0",
+  overdue_total: "w-[120px] shrink-0",
+  invoice_count: "w-[90px] shrink-0",
   last_purchase_date: "w-[130px] shrink-0",
+
   created_at: "w-[120px] shrink-0",
   tags: "min-w-[140px] flex-1",
 };
