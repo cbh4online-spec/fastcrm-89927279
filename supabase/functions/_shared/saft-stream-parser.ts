@@ -44,6 +44,11 @@ function tagFragments(xml: string, tag: string): string[] {
   return xml.match(re) ?? [];
 }
 
+function countTags(xml: string, tag: string): number {
+  const re = new RegExp(`<(?:\\w+:)?${tag}(?:\\s|>)`, "gi");
+  return xml.match(re)?.length ?? 0;
+}
+
 function parseLine(l: string, idx: number): SaftInvoiceLine {
   const qty = toNum(tagValue(l, "Quantity"));
   const unit = toNum(tagValue(l, "UnitPrice"));
@@ -101,10 +106,11 @@ function parseProductXml(p: string): SaftProduct {
   };
 }
 
-function parseInvoiceXml(inv: string): SaftInvoice {
+function parseInvoiceXml(inv: string, includeLines = true): SaftInvoice & { line_count?: number } {
   const docTotals = tagFragment(inv, "DocumentTotals") ?? "";
   const docStatus = tagFragment(inv, "DocumentStatus") ?? "";
   const currency = tagFragment(docTotals, "Currency") ?? "";
+  const line_count = countTags(inv, "Line");
   return {
     invoice_no: String(tagValue(inv, "InvoiceNo") ?? ""),
     atcud: tagValue(inv, "ATCUD"),
@@ -117,15 +123,17 @@ function parseInvoiceXml(inv: string): SaftInvoice {
     gross_total: toNum(tagValue(docTotals, "GrossTotal")),
     net_total: toNum(tagValue(docTotals, "NetTotal")),
     tax_payable: toNum(tagValue(docTotals, "TaxPayable")),
-    lines: tagFragments(inv, "Line").map(parseLine),
+    lines: includeLines ? tagFragments(inv, "Line").map(parseLine) : [],
+    line_count,
     hash: tagValue(inv, "Hash"),
   };
 }
 
-function parseWorkDocumentXml(doc: string): SaftInvoice {
+function parseWorkDocumentXml(doc: string, includeLines = true): SaftInvoice & { line_count?: number } {
   const docTotals = tagFragment(doc, "DocumentTotals") ?? "";
   const docStatus = tagFragment(doc, "DocumentStatus") ?? "";
   const currency = tagFragment(docTotals, "Currency") ?? "";
+  const line_count = countTags(doc, "Line");
   return {
     invoice_no: String(tagValue(doc, "DocumentNumber") ?? tagValue(doc, "WorkDocumentNumber") ?? tagValue(doc, "WorkDocumentNo") ?? tagValue(doc, "InvoiceNo") ?? ""),
     atcud: tagValue(doc, "ATCUD"),
@@ -138,7 +146,8 @@ function parseWorkDocumentXml(doc: string): SaftInvoice {
     gross_total: toNum(tagValue(docTotals, "GrossTotal")),
     net_total: toNum(tagValue(docTotals, "NetTotal")),
     tax_payable: toNum(tagValue(docTotals, "TaxPayable")),
-    lines: tagFragments(doc, "Line").map(parseLine),
+    lines: includeLines ? tagFragments(doc, "Line").map(parseLine) : [],
+    line_count,
     hash: tagValue(doc, "Hash"),
   };
 }
@@ -296,6 +305,7 @@ export interface SaftStreamHandlers {
   /** Chamado a cada N documentos processados (heartbeat de progresso). */
   onProgress?: (counts: { customers: number; products: number; invoices: number; payments: number }) => void | Promise<void>;
   progressEvery?: number;
+  includeInvoiceLines?: boolean;
 }
 
 const TARGETS = ["Header", "Customer", "Product", "Invoice", "WorkDocument", "Payment"] as const;
@@ -421,10 +431,10 @@ export async function streamSaftXml(
           await handlers.onProduct?.(parseProductXml(fragment));
         } else if (best.tag === "Invoice") {
           counts.invoices++;
-          await handlers.onInvoice?.(parseInvoiceXml(fragment));
+          await handlers.onInvoice?.(parseInvoiceXml(fragment, handlers.includeInvoiceLines !== false));
         } else if (best.tag === "WorkDocument") {
           counts.invoices++;
-          await handlers.onInvoice?.(parseWorkDocumentXml(fragment));
+          await handlers.onInvoice?.(parseWorkDocumentXml(fragment, handlers.includeInvoiceLines !== false));
         } else if (best.tag === "Payment") {
           const pays = parsePaymentXml(fragment);
           counts.payments += pays.length;
