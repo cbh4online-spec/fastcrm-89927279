@@ -155,34 +155,59 @@ Deno.serve(async (req) => {
           return;
         }
 
-        // Detectar encoding pelo header XML (SAF-T PT é frequentemente ISO-8859-1 / Windows-1252)
+        // Leitura incremental: nunca carregamos o XML inteiro nem a árvore em memória.
         await logStep("decode_start");
-        let bytes: Uint8Array | null = new Uint8Array(await file.arrayBuffer());
-        const head = new TextDecoder("ascii").decode(bytes.slice(0, 200)).toLowerCase();
-        const encMatch = head.match(/encoding=["']([^"']+)["']/);
-        const declared = (encMatch?.[1] ?? "utf-8").toLowerCase();
-        const useEnc = declared.includes("8859") || declared.includes("1252") || declared.includes("windows")
-          ? "windows-1252"
-          : "utf-8";
-        let xml: string | null = new TextDecoder(useEnc).decode(bytes);
-        bytes = null; // libertar buffer binário antes do parse para reduzir pico de memória
-        await logStep("decode_done", { encoding: useEnc, xml_chars: xml.length });
+        const headBytes = new Uint8Array(await file.slice(0, 200).arrayBuffer());
+        const useEnc = detectEncoding(headBytes);
+        await logStep("decode_done", { encoding: useEnc });
 
         await logStep("parse_xml_start");
-        const parsed = parseSaftXml(xml);
-        xml = null; // libertar string original; parsed já tem o necessário
+        const invoiceNos: string[] = [];
+        const stats = {
+          customers: 0,
+          products: 0,
+          invoices: 0,
+          invoice_lines: 0,
+          payments: 0,
+          total_gross: 0,
+          total_net: 0,
+          total_tax: 0,
+          cancelled: 0,
+        };
+        const { header } = await streamSaftXml(
+          decodeStream(file.stream(), useEnc),
+          {
+            onCustomer: () => { stats.customers++; },
+            onProduct: () => { stats.products++; },
+            onInvoice: (inv) => {
+              stats.invoices++;
+              stats.invoice_lines += inv.lines.length;
+              stats.total_gross += inv.gross_total;
+              stats.total_net += inv.net_total;
+              stats.total_tax += inv.tax_payable;
+              if (inv.invoice_status === "A") stats.cancelled++;
+              if (inv.invoice_no) invoiceNos.push(inv.invoice_no);
+            },
+            onPayment: () => { stats.payments++; },
+            progressEvery: 500,
+            onProgress: async (c) => {
+              await admin.from("saft_imports")
+                .update({ last_step: "parse_xml_progress", last_step_at: new Date().toISOString(), stats: { ...stats, progress: c } })
+                .eq("id", import_id);
+            },
+          },
+        );
+        if (!header) {
+          await failAt("parse_xml", "Não é um SAF-T válido (Header não encontrado)");
+          return;
+        }
         await logStep("parse_xml_done", {
-          invoices: parsed.invoices.length,
-          customers: parsed.customers?.length ?? 0,
-          products: parsed.products?.length ?? 0,
+          invoices: stats.invoices,
+          customers: stats.customers,
+          products: stats.products,
         });
 
-        await logStep("compute_stats_start");
-        const stats = computeStats(parsed);
-        await logStep("compute_stats_done");
-
-        await logStep("dedupe_check_start", { invoice_count: parsed.invoices.length });
-        const invoiceNos = parsed.invoices.map(i => i.invoice_no);
+        await logStep("dedupe_check_start", { invoice_count: invoiceNos.length });
         let existingInvoices = 0;
         if (invoiceNos.length) {
           // Chunk IN() para evitar URLs gigantes em SAF-T anuais
@@ -199,11 +224,15 @@ Deno.serve(async (req) => {
               return;
             }
             existingInvoices += count ?? 0;
+            if (i % 2500 === 0) {
+              await admin.from("saft_imports")
+                .update({ last_step: "dedupe_check", last_step_at: new Date().toISOString() })
+                .eq("id", import_id);
+            }
           }
         }
         await logStep("dedupe_check_done", { existing: existingInvoices });
 
-        const fullStats = { ...stats, existing_invoices: existingInvoices, new_invoices: stats.invoices - existingInvoices };
 
         await logStep("persist_preview_start");
         const { error: upErr } = await admin.from("saft_imports").update({
