@@ -268,7 +268,7 @@ export function CompaniesListIX() {
             >
               {orderedColumns.map((col) => (
                 <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
-                  {renderCell(col, c)}
+                  {renderCell(col, c, financialsById.get(c.id))}
                 </div>
               ))}
             </div>
