@@ -297,7 +297,8 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
       continue;
     }
     const cust = customerMap.get(inv.customer_id);
-    const custName = parsed.customers.find((c) => c.customer_id === inv.customer_id)?.name ?? "Consumidor final";
+    const custName = customerNameById.get(inv.customer_id) ?? "Consumidor final";
+
     // Salvaguarda anti-IVA-duplicado: alguns softwares exportam NetTotal já c/ IVA.
     // A verdade são as linhas: se o NetTotal do ficheiro ≈ soma dos brutos das linhas,
     // recalculamos subtotal/IVA/total a partir das linhas (net = s/ IVA, gross = c/ IVA).
