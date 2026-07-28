@@ -31,15 +31,21 @@ const COLUMNS: ListColumnDef[] = [
   { key: "abc_category", label: "Categoria ABC", defaultVisible: false },
   { key: "pare_score", label: "Score PARE", defaultVisible: false },
   { key: "icp_fit_score", label: "ICP Fit", defaultVisible: false },
-  { key: "total_revenue", label: "Faturação total", defaultVisible: true },
+  { key: "total_revenue", label: "Faturação total (s/IVA)", defaultVisible: true },
   { key: "average_ticket", label: "Ticket médio", defaultVisible: false },
   { key: "sales_2026", label: "Vendas 2026", defaultVisible: false },
   { key: "sales_2025", label: "Vendas 2025", defaultVisible: false },
   { key: "sales_2024", label: "Vendas 2024", defaultVisible: false },
+  { key: "payment_status", label: "Estado pagamento", defaultVisible: true },
+  { key: "paid_total", label: "Pago", defaultVisible: false },
+  { key: "pending_total", label: "Pendente", defaultVisible: false },
+  { key: "overdue_total", label: "Vencido", defaultVisible: false },
+  { key: "invoice_count", label: "Nº faturas", defaultVisible: false },
   { key: "last_purchase_date", label: "Última compra", defaultVisible: false },
   { key: "created_at", label: "Data de criação", defaultVisible: true },
   { key: "tags", label: "Tags", defaultVisible: false },
 ];
+
 
 const COLUMN_WIDTH: Record<string, string> = {
   name: "min-w-[200px] flex-1",
