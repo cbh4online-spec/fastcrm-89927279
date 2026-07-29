@@ -28,6 +28,19 @@ import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { isValidPhone, toE164 } from "@/utils/phone";
 import { useQueryClient } from "@tanstack/react-query";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
+import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
+import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 const contactSchema = z.object({
   name: z.string().trim().max(100),
