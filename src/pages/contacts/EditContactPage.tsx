@@ -118,6 +118,17 @@ export default function EditContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
+  const initialFormRef = useRef<string>(JSON.stringify(emptyForm));
+  const [pendingDirection, setPendingDirection] = useState<"prev" | "next" | null>(null);
+  const pendingResolveRef = useRef<((ok: boolean) => void) | null>(null);
+
+  const contactNavigation = useEntityListNavigation(
+    "contact",
+    id,
+    (targetId) => `/dashboard/contacts/${targetId}/edit`,
+  );
+
+  const isDirty = JSON.stringify(form) !== initialFormRef.current;
 
   const update = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
