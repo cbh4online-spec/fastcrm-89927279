@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = (body as any)?.workspace_id ?? (body as any)?.workspaceId ?? null;
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'heavy', 'instagram-ai-analyze');
       if (!gate.allowed) {

@@ -16,8 +16,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
 
+    const { workspace_id, opportunity_id } = body;
+
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = workspace_id ?? body?.workspaceId ?? null;
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'micro', 'compute-deal-score');
       if (!gate.allowed) {
@@ -28,7 +30,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { workspace_id, opportunity_id } = body;
 
     if (!workspace_id || !opportunity_id) {
       return new Response(
