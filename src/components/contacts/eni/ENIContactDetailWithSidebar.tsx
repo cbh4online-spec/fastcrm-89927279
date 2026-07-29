@@ -104,8 +104,9 @@ export function ENIContactDetailWithSidebar() {
         .map((c) => c.id),
     [contacts],
   );
+  const contactNavIds = useEntityNavIds("contacts");
   const contactNavigation = useEntityListNavigation('contact', id, undefined, {
-    fallbackIds: allContactIds,
+    fallbackIds: allContactIds.length > 1 ? allContactIds : contactNavIds,
     fallbackBasePath: "/dashboard/contacts",
   });
 
