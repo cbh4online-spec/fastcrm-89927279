@@ -501,6 +501,7 @@ export function CompanyDetailWithSidebar() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/companies")} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
+            <EntityRecordPager navigation={companyNavigation} label="Empresa" className="shrink-0" />
             <EntityAvatarUpload
               name={company.name}
               value={(company as any).avatar_url}
