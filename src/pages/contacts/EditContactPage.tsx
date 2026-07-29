@@ -332,13 +332,21 @@ export default function EditContactPage() {
   }
 
   return (
+    <>
     <IXFormLayout
       title="Editar Contacto"
       backTo={`/dashboard/contacts/${id}`}
-      onSubmit={handleSubmit}
+      onSubmit={() => { void handleSubmit(); }}
       isSubmitting={isSubmitting}
       canSubmit={canSubmit}
       submitLabel="Guardar alterações"
+      headerExtra={
+        <EntityRecordPager
+          navigation={contactNavigation}
+          label="Contacto"
+          onBeforeNavigate={requestNavigate}
+        />
+      }
     >
       {/* Informação Fiscal */}
       <IXFormSection
