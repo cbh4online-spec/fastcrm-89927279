@@ -89,6 +89,11 @@ export function LeadDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: lead, isLoading, isFetching, isPending } = useLead(id);
+  const leadNavIds = useEntityNavIds("leads");
+  const leadNavigation = useEntityListNavigation("lead", id, undefined, {
+    fallbackIds: leadNavIds,
+    fallbackBasePath: "/dashboard/leads",
+  });
   const { currentWorkspace } = useWorkspace();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
