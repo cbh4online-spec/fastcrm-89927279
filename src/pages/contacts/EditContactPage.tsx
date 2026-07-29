@@ -30,6 +30,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
 import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import { useContacts } from "@/hooks/useContacts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,11 +136,22 @@ export default function EditContactPage() {
   const [pendingDirection, setPendingDirection] = useState<"prev" | "next" | null>(null);
   const pendingResolveRef = useRef<((ok: boolean) => void) | null>(null);
 
+  const { contacts: allContacts } = useContacts();
+  const allContactIds = useMemo(
+    () =>
+      [...(allContacts ?? [])]
+        .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "pt", { sensitivity: "base" }))
+        .map((c) => c.id),
+    [allContacts],
+  );
+
   const contactNavigation = useEntityListNavigation(
     "contact",
     id,
     (targetId) => `/dashboard/contacts/${targetId}/edit`,
+    { fallbackIds: allContactIds, fallbackBasePath: "/dashboard/contacts" },
   );
+
 
   const isDirty = JSON.stringify(form) !== initialFormRef.current;
 

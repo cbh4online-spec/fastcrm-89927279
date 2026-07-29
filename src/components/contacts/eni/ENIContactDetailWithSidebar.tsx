@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useContacts } from "@/hooks/useContacts";
@@ -97,7 +97,18 @@ export function ENIContactDetailWithSidebar() {
   const { currentWorkspace } = useWorkspace();
   const analyzeContact = useAnalyzeContact();
   const { data: counts } = useEntityCounts('contact', id);
-  const contactNavigation = useEntityListNavigation('contact', id);
+  const allContactIds = useMemo(
+    () =>
+      [...(contacts ?? [])]
+        .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "pt", { sensitivity: "base" }))
+        .map((c) => c.id),
+    [contacts],
+  );
+  const contactNavigation = useEntityListNavigation('contact', id, undefined, {
+    fallbackIds: allContactIds,
+    fallbackBasePath: "/dashboard/contacts",
+  });
+
   const { setCurrentEntityProfile } = useActivityProfileContext();
   const { data: entityProfile } = useEntityActivityProfile('contact', id);
   
