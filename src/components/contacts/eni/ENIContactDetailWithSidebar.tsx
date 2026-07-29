@@ -97,6 +97,7 @@ export function ENIContactDetailWithSidebar() {
   const { currentWorkspace } = useWorkspace();
   const analyzeContact = useAnalyzeContact();
   const { data: counts } = useEntityCounts('contact', id);
+  const contactNavigation = useEntityListNavigation('contact', id);
   const { setCurrentEntityProfile } = useActivityProfileContext();
   const { data: entityProfile } = useEntityActivityProfile('contact', id);
   
