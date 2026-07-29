@@ -14,6 +14,7 @@ import {
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
+import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "created_at" | "pare_score";
