@@ -548,5 +548,33 @@ export default function EditContactPage() {
         </div>
       </IXFormSection>
     </IXFormLayout>
+
+    <AlertDialog open={pendingDirection !== null} onOpenChange={(open) => { if (!open) resolvePending(false); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Tem alterações por guardar</AlertDialogTitle>
+          <AlertDialogDescription>
+            Quer guardar as alterações antes de ir para o contacto {pendingDirection === "prev" ? "anterior" : "seguinte"}?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => resolvePending(false)}>Cancelar</AlertDialogCancel>
+          <Button variant="outline" onClick={() => resolvePending(true)}>
+            Descartar
+          </Button>
+          <AlertDialogAction
+            onClick={async (e) => {
+              e.preventDefault();
+              const ok = await handleSubmit({ redirect: false });
+              resolvePending(ok);
+            }}
+          >
+            Guardar e continuar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
+
