@@ -208,19 +208,20 @@ export default function EditContactPage() {
     return !!(form.name.trim() || form.email.trim() || form.phone.trim());
   }, [form.name, form.email, form.phone]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (options?: { redirect?: boolean }): Promise<boolean> => {
+    const redirect = options?.redirect ?? true;
     if (!id || !currentWorkspace || !user) {
       toast.error("Sessão inválida");
-      return;
+      return false;
     }
     const parsed = contactSchema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.errors[0]?.message ?? "Dados inválidos");
-      return;
+      return false;
     }
     if (form.phone && !isValidPhone(form.phone)) {
       toast.error("Número de telefone inválido");
-      return;
+      return false;
     }
 
     setIsSubmitting(true);
