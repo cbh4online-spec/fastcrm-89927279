@@ -490,6 +490,7 @@ export function ENIContactDetailWithSidebar() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/contacts")} className="shrink-0 h-8 w-8">
               <ArrowLeft className="w-4 h-4" />
             </Button>
+            <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
             <EntityAvatarUpload
               name={contact.name}
               value={(contact as any).avatar_url}
