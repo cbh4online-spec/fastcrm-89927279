@@ -115,6 +115,11 @@ export function CompanyDetailWithSidebar() {
   const { currentWorkspace } = useWorkspace();
   const { isModuleInstalled } = useWorkspaceModules();
   const { data: counts } = useEntityCounts('company', id);
+  const companyNavIds = useEntityNavIds("companies");
+  const companyNavigation = useEntityListNavigation("company", id, undefined, {
+    fallbackIds: companyNavIds,
+    fallbackBasePath: "/dashboard/companies",
+  });
   const { setCurrentEntityProfile } = useActivityProfileContext();
   const { data: entityProfile } = useEntityActivityProfile('company', id);
   
