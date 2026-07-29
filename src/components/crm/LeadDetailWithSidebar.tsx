@@ -1,6 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLead, useUpdateLead, useDeleteLead, Lead } from "@/hooks/useLeads";
+import { useEntityNavIds } from "@/hooks/useEntityNavIds";
+import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
 import { Button } from "@/components/ui/button";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import {
