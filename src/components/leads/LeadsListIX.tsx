@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -265,7 +266,10 @@ export function LeadsListIX() {
             <div
               key={lead.id}
               role="button"
-              onClick={() => navigate(`/dashboard/leads/${lead.id}`)}
+              onClick={() => {
+                saveEntityListNavigation("lead", sortedLeads.map((l) => l.id), "/dashboard/leads");
+                navigate(`/dashboard/leads/${lead.id}`);
+              }}
               className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
             >
               {orderedColumns.map((col) => (

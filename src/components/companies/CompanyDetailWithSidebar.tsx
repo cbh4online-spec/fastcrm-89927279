@@ -2,6 +2,9 @@ import { useCallback, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCompanies, Company } from "@/hooks/useCompanies";
+import { useEntityNavIds } from "@/hooks/useEntityNavIds";
+import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { checkDuplicate } from "@/utils/duplicateCheck";
 import { Button } from "@/components/ui/button";
@@ -115,6 +118,11 @@ export function CompanyDetailWithSidebar() {
   const { currentWorkspace } = useWorkspace();
   const { isModuleInstalled } = useWorkspaceModules();
   const { data: counts } = useEntityCounts('company', id);
+  const companyNavIds = useEntityNavIds("companies");
+  const companyNavigation = useEntityListNavigation("company", id, undefined, {
+    fallbackIds: companyNavIds,
+    fallbackBasePath: "/dashboard/companies",
+  });
   const { setCurrentEntityProfile } = useActivityProfileContext();
   const { data: entityProfile } = useEntityActivityProfile('company', id);
   
@@ -493,6 +501,7 @@ export function CompanyDetailWithSidebar() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/companies")} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
+            <EntityRecordPager navigation={companyNavigation} label="Empresa" className="shrink-0" />
             <EntityAvatarUpload
               name={company.name}
               value={(company as any).avatar_url}

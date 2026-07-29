@@ -1,6 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLead, useUpdateLead, useDeleteLead, Lead } from "@/hooks/useLeads";
+import { useEntityNavIds } from "@/hooks/useEntityNavIds";
+import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
 import { Button } from "@/components/ui/button";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import {
@@ -86,6 +89,11 @@ export function LeadDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: lead, isLoading, isFetching, isPending } = useLead(id);
+  const leadNavIds = useEntityNavIds("leads");
+  const leadNavigation = useEntityListNavigation("lead", id, undefined, {
+    fallbackIds: leadNavIds,
+    fallbackBasePath: "/dashboard/leads",
+  });
   const { currentWorkspace } = useWorkspace();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
@@ -443,6 +451,7 @@ export function LeadDetailWithSidebar() {
             onClick: () => setConfirmDelete(true),
           },
         ]}
+        rightExtras={<EntityRecordPager navigation={leadNavigation} label="Lead" className="shrink-0" />}
       />
 
       {/* Hidden ConvertLeadDialog trigger to preserve existing dialog flow */}

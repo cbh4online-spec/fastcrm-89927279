@@ -77,6 +77,7 @@ import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSum
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
 import { EntityTicketsSection } from "@/components/helpdesk/EntityTicketsSection";
 import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
+import { useEntityNavIds } from "@/hooks/useEntityNavIds";
 import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
 
 // Role labels are now translated via t()
@@ -104,8 +105,9 @@ export function ENIContactDetailWithSidebar() {
         .map((c) => c.id),
     [contacts],
   );
+  const contactNavIds = useEntityNavIds("contacts");
   const contactNavigation = useEntityListNavigation('contact', id, undefined, {
-    fallbackIds: allContactIds,
+    fallbackIds: allContactIds.length > 1 ? allContactIds : contactNavIds,
     fallbackBasePath: "/dashboard/contacts",
   });
 
