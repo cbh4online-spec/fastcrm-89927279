@@ -12,6 +12,8 @@ interface IXFormLayoutProps {
   submitLabel?: string;
   isSubmitting?: boolean;
   canSubmit?: boolean;
+  /** Conteúdo extra no cabeçalho (ex.: navegação entre registos) */
+  headerExtra?: ReactNode;
   children: ReactNode;
 }
 
@@ -23,6 +25,7 @@ export function IXFormLayout({
   submitLabel = "Guardar",
   isSubmitting,
   canSubmit = true,
+  headerExtra,
   children,
 }: IXFormLayoutProps) {
   const navigate = useNavigate();
@@ -31,16 +34,20 @@ export function IXFormLayout({
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-muted/20 pb-32">
       <div className="mx-auto max-w-5xl px-6 pt-8">
-        <button
-          type="button"
-          onClick={handleCancel}
-          className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </button>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </button>
+          {headerExtra}
+        </div>
         <h1 className="text-4xl font-bold tracking-tight text-foreground">{title}</h1>
       </div>
+
 
       <form
         onSubmit={(e) => {

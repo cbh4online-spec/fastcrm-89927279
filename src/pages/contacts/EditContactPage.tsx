@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -28,6 +28,19 @@ import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { isValidPhone, toE164 } from "@/utils/phone";
 import { useQueryClient } from "@tanstack/react-query";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
+import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
+import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 const contactSchema = z.object({
   name: z.string().trim().max(100),
@@ -118,6 +131,17 @@ export default function EditContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
+  const initialFormRef = useRef<string>(JSON.stringify(emptyForm));
+  const [pendingDirection, setPendingDirection] = useState<"prev" | "next" | null>(null);
+  const pendingResolveRef = useRef<((ok: boolean) => void) | null>(null);
+
+  const contactNavigation = useEntityListNavigation(
+    "contact",
+    id,
+    (targetId) => `/dashboard/contacts/${targetId}/edit`,
+  );
+
+  const isDirty = JSON.stringify(form) !== initialFormRef.current;
 
   const update = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
@@ -141,7 +165,7 @@ export default function EditContactPage() {
       }
       const c = data as Record<string, unknown>;
       const billing = (c.billing_preferences ?? {}) as BillingPrefs;
-      setForm({
+      const next = {
         nif_country: (c.nif_country as string) || "PT",
         tax_id: (c.tax_id as string) || "",
         external_code: (c.external_code as string) || "",
@@ -170,7 +194,9 @@ export default function EditContactPage() {
         job_title: (c.job_title as string) || "",
         tags: Array.isArray(c.tags) ? (c.tags as string[]).join(", ") : "",
         notes: (c.notes as string) || "",
-      });
+      };
+      initialFormRef.current = JSON.stringify(next);
+      setForm(next);
       setIsLoading(false);
     })();
     return () => {
@@ -182,19 +208,20 @@ export default function EditContactPage() {
     return !!(form.name.trim() || form.email.trim() || form.phone.trim());
   }, [form.name, form.email, form.phone]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (options?: { redirect?: boolean }): Promise<boolean> => {
+    const redirect = options?.redirect ?? true;
     if (!id || !currentWorkspace || !user) {
       toast.error("Sessão inválida");
-      return;
+      return false;
     }
     const parsed = contactSchema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.errors[0]?.message ?? "Dados inválidos");
-      return;
+      return false;
     }
     if (form.phone && !isValidPhone(form.phone)) {
       toast.error("Número de telefone inválido");
-      return;
+      return false;
     }
 
     setIsSubmitting(true);
@@ -249,7 +276,7 @@ export default function EditContactPage() {
           toast.error("Erro ao atualizar contacto");
           console.warn("[EDIT_CONTACT] update failed", error);
         }
-        return;
+        return false;
       }
 
       emitKernelEvent({
@@ -263,12 +290,29 @@ export default function EditContactPage() {
 
       qc.invalidateQueries({ queryKey: ["contacts"] });
       qc.invalidateQueries({ queryKey: ["contact", id] });
+      initialFormRef.current = JSON.stringify(form);
       toast.success("Contacto atualizado");
-      navigate(`/dashboard/contacts/${id}`);
+      if (redirect) navigate(`/dashboard/contacts/${id}`);
+      return true;
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const requestNavigate = (direction: "prev" | "next"): Promise<boolean> => {
+    if (!isDirty) return Promise.resolve(true);
+    setPendingDirection(direction);
+    return new Promise<boolean>((resolve) => {
+      pendingResolveRef.current = resolve;
+    });
+  };
+
+  const resolvePending = (ok: boolean) => {
+    pendingResolveRef.current?.(ok);
+    pendingResolveRef.current = null;
+    setPendingDirection(null);
+  };
+
 
   if (isLoading) {
     return (
@@ -288,13 +332,21 @@ export default function EditContactPage() {
   }
 
   return (
+    <>
     <IXFormLayout
       title="Editar Contacto"
       backTo={`/dashboard/contacts/${id}`}
-      onSubmit={handleSubmit}
+      onSubmit={() => { void handleSubmit(); }}
       isSubmitting={isSubmitting}
       canSubmit={canSubmit}
       submitLabel="Guardar alterações"
+      headerExtra={
+        <EntityRecordPager
+          navigation={contactNavigation}
+          label="Contacto"
+          onBeforeNavigate={requestNavigate}
+        />
+      }
     >
       {/* Informação Fiscal */}
       <IXFormSection
@@ -496,5 +548,33 @@ export default function EditContactPage() {
         </div>
       </IXFormSection>
     </IXFormLayout>
+
+    <AlertDialog open={pendingDirection !== null} onOpenChange={(open) => { if (!open) resolvePending(false); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Tem alterações por guardar</AlertDialogTitle>
+          <AlertDialogDescription>
+            Quer guardar as alterações antes de ir para o contacto {pendingDirection === "prev" ? "anterior" : "seguinte"}?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => resolvePending(false)}>Cancelar</AlertDialogCancel>
+          <Button variant="outline" onClick={() => resolvePending(true)}>
+            Descartar
+          </Button>
+          <AlertDialogAction
+            onClick={async (e) => {
+              e.preventDefault();
+              const ok = await handleSubmit({ redirect: false });
+              resolvePending(ok);
+            }}
+          >
+            Guardar e continuar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
+

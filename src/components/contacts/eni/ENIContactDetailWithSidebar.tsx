@@ -76,6 +76,8 @@ import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSummaryCard";
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
 import { EntityTicketsSection } from "@/components/helpdesk/EntityTicketsSection";
+import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
+import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
 
 // Role labels are now translated via t()
 function getTimeAgo(date: Date, t: (key: string, opts?: any) => string): string {
@@ -95,6 +97,7 @@ export function ENIContactDetailWithSidebar() {
   const { currentWorkspace } = useWorkspace();
   const analyzeContact = useAnalyzeContact();
   const { data: counts } = useEntityCounts('contact', id);
+  const contactNavigation = useEntityListNavigation('contact', id);
   const { setCurrentEntityProfile } = useActivityProfileContext();
   const { data: entityProfile } = useEntityActivityProfile('contact', id);
   
@@ -490,6 +493,7 @@ export function ENIContactDetailWithSidebar() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/contacts")} className="shrink-0 h-8 w-8">
               <ArrowLeft className="w-4 h-4" />
             </Button>
+            <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
             <EntityAvatarUpload
               name={contact.name}
               value={(contact as any).avatar_url}
