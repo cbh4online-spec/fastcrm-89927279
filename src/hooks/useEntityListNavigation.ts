@@ -57,38 +57,54 @@ export interface EntityListNavigation {
   nextId: string | null;
   goPrev: () => void;
   goNext: () => void;
+  /** "list" = ordem da listagem de origem; "all" = ordem global por omissão */
+  source: "list" | "all";
+}
+
+export interface EntityListNavigationOptions {
+  /** Lista de IDs usada quando não existe contexto guardado da listagem */
+  fallbackIds?: string[];
+  /** basePath usado com fallbackIds (ex.: "/dashboard/contacts") */
+  fallbackBasePath?: string;
 }
 
 /**
  * @param entity  identificador do tipo de entidade (ex.: "contact")
  * @param currentId  id do registo atualmente aberto
  * @param buildPath  opcional — constrói o caminho de destino (default: `${basePath}/${id}`)
+ * @param options  fallback quando não há contexto de listagem
  */
 export function useEntityListNavigation(
   entity: string,
   currentId: string | undefined,
   buildPath?: (id: string, basePath: string) => string,
+  options?: EntityListNavigationOptions,
 ): EntityListNavigation {
   const navigate = useNavigate();
+  const fallbackIds = options?.fallbackIds;
+  const fallbackBasePath = options?.fallbackBasePath;
 
   const ctx = useMemo(() => (currentId ? readContext(entity) : null), [entity, currentId]);
 
-  const ids = ctx?.ids ?? [];
-  const index = currentId ? ids.indexOf(currentId) : -1;
-  const hasContext = index >= 0 && ids.length > 1;
+  const storedIds = ctx?.ids ?? [];
+  const storedIndex = currentId ? storedIds.indexOf(currentId) : -1;
+  const usesStored = storedIndex >= 0 && storedIds.length > 1;
+
+  const ids = usesStored ? storedIds : fallbackIds ?? [];
+  const basePath = usesStored ? ctx!.basePath : fallbackBasePath ?? "";
+  const index = usesStored ? storedIndex : currentId ? ids.indexOf(currentId) : -1;
+  const hasContext = index >= 0 && ids.length > 1 && !!basePath;
 
   const prevId = hasContext && index > 0 ? ids[index - 1] : null;
   const nextId = hasContext && index < ids.length - 1 ? ids[index + 1] : null;
 
   const go = useCallback(
     (targetId: string | null) => {
-      if (!targetId || !ctx) return;
-      const path = buildPath
-        ? buildPath(targetId, ctx.basePath)
-        : `${ctx.basePath}/${targetId}`;
+      if (!targetId || !basePath) return;
+      const path = buildPath ? buildPath(targetId, basePath) : `${basePath}/${targetId}`;
       navigate(path);
     },
-    [ctx, buildPath, navigate],
+    [basePath, buildPath, navigate],
   );
 
   return {
@@ -99,5 +115,7 @@ export function useEntityListNavigation(
     nextId,
     goPrev: () => go(prevId),
     goNext: () => go(nextId),
+    source: usesStored ? "list" : "all",
   };
 }
+

@@ -33,7 +33,9 @@ export function EntityRecordPager({
   className,
   enableShortcuts = true,
 }: EntityRecordPagerProps) {
-  const { hasContext, index, total, prevId, nextId, goPrev, goNext } = navigation;
+  const { hasContext, index, total, prevId, nextId, goPrev, goNext, source } = navigation;
+  const scopeHint = source === "all" ? ` — todos os ${label.toLowerCase()}s` : "";
+
 
   const run = async (direction: "prev" | "next") => {
     if (onBeforeNavigate) {
@@ -89,7 +91,7 @@ export function EntityRecordPager({
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent>{prevId ? `${label} anterior (Alt + ←)` : "Já está no primeiro"}</TooltipContent>
+        <TooltipContent>{prevId ? `${label} anterior (Alt + ←)${scopeHint}` : "Já está no primeiro"}</TooltipContent>
       </Tooltip>
 
       <span className="whitespace-nowrap px-1 text-xs text-muted-foreground tabular-nums">
@@ -113,7 +115,7 @@ export function EntityRecordPager({
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent>{nextId ? `${label} seguinte (Alt + →)` : "Já está no último"}</TooltipContent>
+        <TooltipContent>{nextId ? `${label} seguinte (Alt + →)${scopeHint}` : "Já está no último"}</TooltipContent>
       </Tooltip>
     </div>
   );
