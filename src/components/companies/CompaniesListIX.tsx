@@ -265,7 +265,10 @@ export function CompaniesListIX() {
             <div
               key={c.id}
               role="button"
-              onClick={() => navigate(`/dashboard/companies/${c.id}`)}
+              onClick={() => {
+                saveEntityListNavigation("company", filtered.map((x) => x.id), "/dashboard/companies");
+                navigate(`/dashboard/companies/${c.id}`);
+              }}
               className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
             >
               {orderedColumns.map((col) => (
