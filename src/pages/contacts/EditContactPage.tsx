@@ -141,7 +141,7 @@ export default function EditContactPage() {
       }
       const c = data as Record<string, unknown>;
       const billing = (c.billing_preferences ?? {}) as BillingPrefs;
-      setForm({
+      const next = {
         nif_country: (c.nif_country as string) || "PT",
         tax_id: (c.tax_id as string) || "",
         external_code: (c.external_code as string) || "",
@@ -170,7 +170,9 @@ export default function EditContactPage() {
         job_title: (c.job_title as string) || "",
         tags: Array.isArray(c.tags) ? (c.tags as string[]).join(", ") : "",
         notes: (c.notes as string) || "",
-      });
+      };
+      initialFormRef.current = JSON.stringify(next);
+      setForm(next);
       setIsLoading(false);
     })();
     return () => {
