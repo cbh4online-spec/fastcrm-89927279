@@ -276,7 +276,7 @@ export default function EditContactPage() {
           toast.error("Erro ao atualizar contacto");
           console.warn("[EDIT_CONTACT] update failed", error);
         }
-        return;
+        return false;
       }
 
       emitKernelEvent({
@@ -290,12 +290,29 @@ export default function EditContactPage() {
 
       qc.invalidateQueries({ queryKey: ["contacts"] });
       qc.invalidateQueries({ queryKey: ["contact", id] });
+      initialFormRef.current = JSON.stringify(form);
       toast.success("Contacto atualizado");
-      navigate(`/dashboard/contacts/${id}`);
+      if (redirect) navigate(`/dashboard/contacts/${id}`);
+      return true;
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const requestNavigate = (direction: "prev" | "next"): Promise<boolean> => {
+    if (!isDirty) return Promise.resolve(true);
+    setPendingDirection(direction);
+    return new Promise<boolean>((resolve) => {
+      pendingResolveRef.current = resolve;
+    });
+  };
+
+  const resolvePending = (ok: boolean) => {
+    pendingResolveRef.current?.(ok);
+    pendingResolveRef.current = null;
+    setPendingDirection(null);
+  };
+
 
   if (isLoading) {
     return (
