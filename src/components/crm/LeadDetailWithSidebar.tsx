@@ -451,6 +451,7 @@ export function LeadDetailWithSidebar() {
             onClick: () => setConfirmDelete(true),
           },
         ]}
+        rightExtras={<EntityRecordPager navigation={leadNavigation} label="Lead" className="shrink-0" />}
       />
 
       {/* Hidden ConvertLeadDialog trigger to preserve existing dialog flow */}
