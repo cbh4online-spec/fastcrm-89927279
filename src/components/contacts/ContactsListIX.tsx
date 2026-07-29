@@ -183,7 +183,14 @@ export function ContactsListIX() {
             <div
               key={c.id}
               role="button"
-              onClick={() => navigate(`/dashboard/contacts/${c.id}`)}
+              onClick={() => {
+                saveEntityListNavigation(
+                  "contact",
+                  filtered.map((f) => f.id),
+                  "/dashboard/contacts",
+                );
+                navigate(`/dashboard/contacts/${c.id}`);
+              }}
               className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
             >
               {orderedColumns.map((col) => (
