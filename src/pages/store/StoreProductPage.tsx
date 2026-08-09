@@ -44,6 +44,7 @@ import { StoreProductSections } from "@/components/store/sections/StoreProductSe
 import { StoreProductBundles } from "@/components/store/sections/StoreProductBundles";
 import { StoreProductQA } from "@/components/store/sections/StoreProductQA";
 import { StoreCheaperAlternatives } from "@/components/store/sections/StoreCheaperAlternatives";
+import { parseProductPageConfig } from "@/lib/store/productPageConfig";
 
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreReviewsSection } from "@/components/store/StoreReviewsSection";
@@ -242,6 +243,7 @@ export default function StoreProductPage() {
   const [cartAnimTrigger, setCartAnimTrigger] = useState(0);
   const { data: tierPricing } = useStoreTierPricing(resolvedWsId);
   const { data: storeSettings } = usePublicStoreSettings(resolvedWsId || "");
+  const pageConfig = parseProductPageConfig((storeSettings as any)?.product_page_config);
   const storeName = storeSettings?.store_name || "Loja";
   const isOutOfStock = product?.stock_status === "out_of_stock";
   const isPriceOnRequest = !!product?.price_on_request;
@@ -683,7 +685,7 @@ export default function StoreProductPage() {
                 )}
 
                 {/* Aviso único de decisão (stock baixo, fim de promoção ou vendas) */}
-                {!isPriceOnRequest && (
+                {!isPriceOnRequest && pageConfig.decision_nudge_enabled && (
                   <StoreDecisionNudge
                     trackStock={product.track_stock}
                     stockQuantity={product.stock_quantity}
@@ -857,10 +859,12 @@ export default function StoreProductPage() {
             )}
 
             {/* 4. Secções estruturadas publicadas (com âncoras) */}
-            <StoreProductSections productId={product.id} />
+            {pageConfig.sections_enabled && <StoreProductSections productId={product.id} />}
 
             {/* 5. Faixa de confiança */}
-            <StoreTrustStrip workspaceId={(product as any).workspace_id} />
+            {pageConfig.trust_enabled && (
+              <StoreTrustStrip workspaceId={(product as any).workspace_id} config={pageConfig} />
+            )}
           </motion.div>
 
 
@@ -909,25 +913,33 @@ export default function StoreProductPage() {
           />
 
           {/* Packs configurados com poupança real */}
-          <StoreProductBundles
-            productId={product.id}
-            workspaceId={(product as any).workspace_id}
-          />
+          {pageConfig.bundles_enabled && (
+            <StoreProductBundles
+              productId={product.id}
+              workspaceId={(product as any).workspace_id}
+            />
+          )}
 
           {/* Alternativas mais baratas (down-sell) */}
-          <StoreCheaperAlternatives
-            productId={product.id}
-            categoryId={product.store_category_id}
-            workspaceId={(product as any).workspace_id}
-            workspaceSlug={wsSlug}
-            currentPrice={pricing?.price ?? product.base_price}
-          />
+          {pageConfig.cheaper_alternatives_enabled && (
+            <StoreCheaperAlternatives
+              productId={product.id}
+              categoryId={product.store_category_id}
+              workspaceId={(product as any).workspace_id}
+              workspaceSlug={wsSlug}
+              currentPrice={pricing?.price ?? product.base_price}
+            />
+          )}
 
           {/* Perguntas e respostas */}
-          <StoreProductQA
-            productId={product.id}
-            workspaceId={(product as any).workspace_id}
-          />
+          {pageConfig.qa_enabled && (
+            <StoreProductQA
+              productId={product.id}
+              workspaceId={(product as any).workspace_id}
+              allowQuestions={pageConfig.qa_allow_questions}
+            />
+          )}
+
 
 
           {/* Related */}

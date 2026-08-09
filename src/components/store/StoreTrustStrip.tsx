@@ -1,10 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, RotateCcw, ShieldCheck, Headset } from "lucide-react";
+import {
+  DEFAULT_PRODUCT_PAGE_CONFIG,
+  type ProductPageConfig,
+} from "@/lib/store/productPageConfig";
 
 interface StoreTrustStripProps {
   workspaceId: string;
   className?: string;
+  /** Configuração da loja; usa defaults quando omitida. */
+  config?: ProductPageConfig;
 }
 
 /**
@@ -12,7 +18,11 @@ interface StoreTrustStripProps {
  * Só mostra informação real: métodos de envio ativos configurados na loja.
  * Os restantes sinais são factuais (direito de livre resolução PT e pagamento seguro).
  */
-export function StoreTrustStrip({ workspaceId, className }: StoreTrustStripProps) {
+export function StoreTrustStrip({
+  workspaceId,
+  className,
+  config = DEFAULT_PRODUCT_PAGE_CONFIG,
+}: StoreTrustStripProps) {
   const { data: shipping } = useQuery({
     queryKey: ["store-trust-shipping", workspaceId],
     enabled: !!workspaceId,
@@ -41,16 +51,25 @@ export function StoreTrustStrip({ workspaceId, className }: StoreTrustStripProps
     .sort((a, b) => a - b)[0];
 
   const items = [
-    cheapest?.estimated_delivery
+    config.trust_delivery && cheapest?.estimated_delivery
       ? { icon: Truck, title: "Entrega", text: cheapest.estimated_delivery }
       : null,
-    threshold
+    config.trust_free_shipping && threshold
       ? { icon: Truck, title: "Portes grátis", text: `Em compras acima de €${threshold.toFixed(2)}` }
       : null,
-    { icon: RotateCcw, title: "Devoluções", text: "14 dias para devolver (direito de livre resolução)" },
-    { icon: ShieldCheck, title: "Pagamento seguro", text: "Dados encriptados no checkout" },
-    { icon: Headset, title: "Apoio ao cliente", text: "Respondemos a todas as questões" },
+    config.trust_returns
+      ? { icon: RotateCcw, title: "Devoluções", text: config.trust_returns_text }
+      : null,
+    config.trust_secure_payment
+      ? { icon: ShieldCheck, title: "Pagamento seguro", text: "Dados encriptados no checkout" }
+      : null,
+    config.trust_support
+      ? { icon: Headset, title: "Apoio ao cliente", text: config.trust_support_text }
+      : null,
   ].filter(Boolean) as Array<{ icon: typeof Truck; title: string; text: string }>;
+
+  if (items.length === 0) return null;
+
 
   return (
     <ul className={`grid gap-3 sm:grid-cols-2 ${className || ""}`}>

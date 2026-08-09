@@ -5,7 +5,7 @@ import { useStoreSettings, useUpsertStoreSettings } from "@/hooks/useStoreSettin
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, Truck, TrendingUp, ShoppingBag, CreditCard } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, TrendingUp, ShoppingBag, CreditCard, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StoreShareCard } from "@/components/store-settings/StoreShareCard";
@@ -16,6 +16,7 @@ import { StoreBrandingSettings } from "@/components/store-settings/sections/Stor
 import { StoreNotificationSettings } from "@/components/store-settings/sections/StoreNotificationSettings";
 import { StoreGrowthSettings } from "@/components/store-settings/sections/StoreGrowthSettings";
 import { StorePaymentSettings } from "@/components/store-settings/sections/StorePaymentSettings";
+import { StoreProductPageSettings } from "@/components/store/settings/StoreProductPageSettings";
 
 export default function StoreSettingsPage() {
   const { currentWorkspace } = useWorkspace();
@@ -198,6 +199,7 @@ export default function StoreSettingsPage() {
               <TabsTrigger value="shipping" className="gap-1"><Truck className="h-4 w-4" /> Envio</TabsTrigger>
               <TabsTrigger value="growth" className="gap-1"><TrendingUp className="h-4 w-4" /> Crescimento</TabsTrigger>
               <TabsTrigger value="marketplace" className="gap-1"><ShoppingBag className="h-4 w-4" /> Marketplace</TabsTrigger>
+              <TabsTrigger value="product-page" className="gap-1"><FileText className="h-4 w-4" /> Ficha de Produto</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-4 mt-4">
@@ -236,6 +238,10 @@ export default function StoreSettingsPage() {
 
             <TabsContent value="marketplace" className="mt-4">
               <StoreC2CSettings />
+            </TabsContent>
+
+            <TabsContent value="product-page" className="mt-4">
+              <StoreProductPageSettings />
             </TabsContent>
           </Tabs>
         </div>

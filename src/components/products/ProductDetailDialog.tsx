@@ -93,6 +93,7 @@ import { ProductSalesPlaybookTab } from "./ProductSalesPlaybookTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
 import { ProductOCRContentSection } from "./ProductOCRContentSection";
+import { ProductPublicSheetTab } from "./ProductPublicSheetTab";
 import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
 import { ProductActivityLog } from "./ProductActivityLog";
 import { ProductPublishingPanel } from "./ProductPublishingPanel";
@@ -457,7 +458,7 @@ export function ProductDetailDialog({
                   const tabToGroup: Record<string, string> = {
                     details: "general", components: "general", sessions: "general",
                     sheet: "content", images: "content", specs: "content",
-                    "ai-content": "content", progressions: "content",
+                    "ai-content": "content", progressions: "content", "public-sheet": "content",
                     financial: "pricing", "price-history": "pricing", cycles: "pricing",
                     stock: "stock", variants: "stock",
                     analytics: "sales", usage: "sales", lifecycle: "sales", playbook: "sales",
@@ -489,6 +490,7 @@ export function ProductDetailDialog({
                     ],
                     content: [
                       { value: "sheet", label: "Ficha" },
+                      { value: "public-sheet", label: "Ficha pública" },
                       { value: "images", label: "Imagens" },
                       { value: "specs", label: "Specs" },
                       { value: "ai-content", label: "Conteúdo IA" },
@@ -820,6 +822,10 @@ export function ProductDetailDialog({
 
                   <TabsContent value="sheet" className="mt-4">
                     <ProductSheetSettings product={product} />
+                  </TabsContent>
+
+                  <TabsContent value="public-sheet" className="mt-4">
+                    <ProductPublicSheetTab product={product} />
                   </TabsContent>
 
                   <TabsContent value="publishing" className="mt-4">
