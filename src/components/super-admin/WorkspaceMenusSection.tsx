@@ -288,9 +288,10 @@ export function WorkspaceMenusSection() {
 
                     <VisibilitySelect
                       value={groupState}
-                      inherited={false}
+                      inherited={!getOverride(map, "top_group", tg.key)}
                       onChange={(v) => apply("top_group", tg.key, v)}
-                      disabled={setVisibility.isPending}
+                      onInherit={() => inherit("top_group", tg.key)}
+                      disabled={setVisibility.isPending || clearOverride.isPending}
                     />
                   </div>
 
