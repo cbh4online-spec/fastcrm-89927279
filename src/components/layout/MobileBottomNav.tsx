@@ -12,6 +12,12 @@ import {
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { useAppMode } from "@/hooks/useAppMode";
+import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
+import {
+  resolveRouteVisibility,
+  resolveNavGroupVisibility,
+  resolveTopGroupVisibility,
+} from "@/config/menuOverrides";
 
 interface MobileBottomNavProps {
   onMenuClick: () => void;
