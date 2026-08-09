@@ -38,6 +38,13 @@ import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtToge
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
 import { StoreProductDocuments } from "@/components/store/sections/StoreProductDocuments";
+import { StoreTrustStrip } from "@/components/store/StoreTrustStrip";
+import { StoreDecisionNudge } from "@/components/store/StoreDecisionNudge";
+import { StoreProductSections } from "@/components/store/sections/StoreProductSections";
+import { StoreProductBundles } from "@/components/store/sections/StoreProductBundles";
+import { StoreProductQA } from "@/components/store/sections/StoreProductQA";
+import { StoreCheaperAlternatives } from "@/components/store/sections/StoreCheaperAlternatives";
+
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreReviewsSection } from "@/components/store/StoreReviewsSection";
 import { useStoreReviewStats, useStoreWishlist, useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
