@@ -21,6 +21,10 @@ export interface ProductPageConfig {
   qa_enabled: boolean;
   /** Permitir submissão pública de perguntas (mantém moderação) */
   qa_allow_questions: boolean;
+  /** Painel de decisão: escolha entre compra direta e proposta de preço */
+  purchase_modes_enabled: boolean;
+  /** Painel de decisão: bloco de contacto com a loja */
+  seller_contact_enabled: boolean;
 }
 
 export const DEFAULT_PRODUCT_PAGE_CONFIG: ProductPageConfig = {
@@ -38,6 +42,8 @@ export const DEFAULT_PRODUCT_PAGE_CONFIG: ProductPageConfig = {
   cheaper_alternatives_enabled: true,
   qa_enabled: true,
   qa_allow_questions: true,
+  purchase_modes_enabled: true,
+  seller_contact_enabled: true,
 };
 
 /** Normaliza o JSON guardado, aplicando defaults a campos em falta. */
@@ -65,5 +71,7 @@ export function parseProductPageConfig(raw: unknown): ProductPageConfig {
     cheaper_alternatives_enabled: bool("cheaper_alternatives_enabled"),
     qa_enabled: bool("qa_enabled"),
     qa_allow_questions: bool("qa_allow_questions"),
+    purchase_modes_enabled: bool("purchase_modes_enabled"),
+    seller_contact_enabled: bool("seller_contact_enabled"),
   };
 }

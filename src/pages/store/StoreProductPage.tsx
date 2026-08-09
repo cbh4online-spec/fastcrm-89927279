@@ -32,6 +32,8 @@ import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing"
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreOfferDialog } from "@/components/store/StoreOfferDialog";
+import { StorePurchasePanel } from "@/components/store/purchase/StorePurchasePanel";
+
 import { StorePriceRequestDialog } from "@/components/store/StorePriceRequestDialog";
 import { StoreProductAlertWidget } from "@/components/store/StoreProductAlertWidget";
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
@@ -767,16 +769,45 @@ export default function StoreProductPage() {
                         </Button>
                       </div>
 
-                      <Button
-                        ref={addToCartRef}
-                        size="lg"
-                        className="w-full gap-2 text-base h-12 rounded-xl transition-transform duration-200 active:scale-[0.98]"
-                        onClick={handleAddToCart}
+                      <StorePurchasePanel
+                        productId={product.id}
+                        productName={product.name}
+                        workspaceId={(product as any).workspace_id}
+                        workspaceSlug={wsSlug}
+                        categoryId={product.store_category_id}
+                        price={pricing?.price ?? product.base_price}
                         disabled={isOutOfStock}
-                      >
-                        <ShoppingBag className="h-5 w-5" />
-                        Adicionar ao Carrinho
-                      </Button>
+                        onAddToCart={handleAddToCart}
+                        config={pageConfig}
+                        storeName={storeName}
+                        contactEmail={storeSettings?.notification_email}
+                        directBullets={[
+                          `Entrega estimada: ${getEstimatedDelivery()}`,
+                          pageConfig.trust_returns_text,
+                          "Pagamento seguro",
+                        ]}
+                        currentProduct={{
+                          id: product.id,
+                          name: product.name,
+                          base_price: pricing?.price ?? product.base_price,
+                          currency: product.currency,
+                          images: (product.images as string[] | null) ?? null,
+                          primary_image_index: product.primary_image_index ?? 0,
+                          sku: product.sku || null,
+                          quantity: quantity,
+                        }}
+                        offerSlot={
+                          <StoreOfferDialog
+                            productId={product.id}
+                            productName={product.name}
+                            originalPrice={pricing?.price ?? product.base_price}
+                            currency={product.currency}
+                            workspaceId={(product as any).workspace_id}
+                          />
+                        }
+                      />
+
+                      <span ref={addToCartRef} aria-hidden="true" className="block h-0" />
 
                       <StoreQuickBuyButton
                         product={{
@@ -793,14 +824,6 @@ export default function StoreProductPage() {
                         className="w-full h-12 text-base"
                       />
 
-                      <StoreOfferDialog
-                        productId={product.id}
-                        productName={product.name}
-                        originalPrice={pricing?.price ?? product.base_price}
-                        currency={product.currency}
-                        workspaceId={(product as any).workspace_id}
-                      />
-
                       <StoreProductAlertWidget
                         productId={product.id}
                         workspaceId={(product as any).workspace_id}
@@ -811,6 +834,7 @@ export default function StoreProductPage() {
                     </>
                   )}
                 </div>
+
 
                 {/* Trust signals — compact inline */}
                 <Separator />
@@ -912,24 +936,8 @@ export default function StoreProductPage() {
             currency={product.currency}
           />
 
-          {/* Packs configurados com poupança real */}
-          {pageConfig.bundles_enabled && (
-            <StoreProductBundles
-              productId={product.id}
-              workspaceId={(product as any).workspace_id}
-            />
-          )}
+          {/* Packs e alternativas agora vivem no painel de decisão da buy box */}
 
-          {/* Alternativas mais baratas (down-sell) */}
-          {pageConfig.cheaper_alternatives_enabled && (
-            <StoreCheaperAlternatives
-              productId={product.id}
-              categoryId={product.store_category_id}
-              workspaceId={(product as any).workspace_id}
-              workspaceSlug={wsSlug}
-              currentPrice={pricing?.price ?? product.base_price}
-            />
-          )}
 
           {/* Perguntas e respostas */}
           {pageConfig.qa_enabled && (
