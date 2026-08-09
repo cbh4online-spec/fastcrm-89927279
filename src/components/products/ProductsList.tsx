@@ -47,6 +47,7 @@ import { ProductComparisonSheet } from "./ProductComparisonSheet";
 import { LayoutPresetsManager, type LayoutPreset } from "./table/LayoutPresetsManager";
 import { ProductImportWizard } from "./ProductImportWizard";
 import { BundlesManager } from "./BundlesManager";
+import { ProductQAModeration } from "./ProductQAModeration";
 import { PricingRulesManager } from "./PricingRulesManager";
 import { StockAlertsManager } from "./StockAlertsManager";
 import { ProductReportsTab } from "./ProductReportsTab";
