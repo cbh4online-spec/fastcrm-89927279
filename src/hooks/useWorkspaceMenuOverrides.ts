@@ -155,6 +155,7 @@ export function useWorkspaceMenuOverridesAdmin(workspaceId?: string) {
     isLoading: query.isLoading,
     error: query.error,
     setVisibility,
+    clearOverride,
     setBulk,
     resetAll,
   };
