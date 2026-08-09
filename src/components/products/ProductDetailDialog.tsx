@@ -458,7 +458,7 @@ export function ProductDetailDialog({
                   const tabToGroup: Record<string, string> = {
                     details: "general", components: "general", sessions: "general",
                     sheet: "content", images: "content", specs: "content",
-                    "ai-content": "content", progressions: "content",
+                    "ai-content": "content", progressions: "content", "public-sheet": "content",
                     financial: "pricing", "price-history": "pricing", cycles: "pricing",
                     stock: "stock", variants: "stock",
                     analytics: "sales", usage: "sales", lifecycle: "sales", playbook: "sales",
