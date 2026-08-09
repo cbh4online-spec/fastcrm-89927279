@@ -1,10 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, RotateCcw, ShieldCheck, Headset } from "lucide-react";
+import {
+  DEFAULT_PRODUCT_PAGE_CONFIG,
+  type ProductPageConfig,
+} from "@/lib/store/productPageConfig";
 
 interface StoreTrustStripProps {
   workspaceId: string;
   className?: string;
+  /** Configuração da loja; usa defaults quando omitida. */
+  config?: ProductPageConfig;
 }
 
 /**
@@ -12,7 +18,11 @@ interface StoreTrustStripProps {
  * Só mostra informação real: métodos de envio ativos configurados na loja.
  * Os restantes sinais são factuais (direito de livre resolução PT e pagamento seguro).
  */
-export function StoreTrustStrip({ workspaceId, className }: StoreTrustStripProps) {
+export function StoreTrustStrip({
+  workspaceId,
+  className,
+  config = DEFAULT_PRODUCT_PAGE_CONFIG,
+}: StoreTrustStripProps) {
   const { data: shipping } = useQuery({
     queryKey: ["store-trust-shipping", workspaceId],
     enabled: !!workspaceId,
