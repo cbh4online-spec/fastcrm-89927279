@@ -336,7 +336,8 @@ export function WorkspaceMenusSection() {
                                       value={state}
                                       inherited={!own}
                                       onChange={(v) => apply("route", r.key, v)}
-                                      disabled={setVisibility.isPending}
+                                      onInherit={() => inherit("route", r.key)}
+                                      disabled={setVisibility.isPending || clearOverride.isPending}
                                     />
                                   </div>
                                 );
