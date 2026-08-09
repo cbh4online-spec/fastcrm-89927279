@@ -44,6 +44,7 @@ import { StoreProductSections } from "@/components/store/sections/StoreProductSe
 import { StoreProductBundles } from "@/components/store/sections/StoreProductBundles";
 import { StoreProductQA } from "@/components/store/sections/StoreProductQA";
 import { StoreCheaperAlternatives } from "@/components/store/sections/StoreCheaperAlternatives";
+import { parseProductPageConfig } from "@/lib/store/productPageConfig";
 
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreReviewsSection } from "@/components/store/StoreReviewsSection";
