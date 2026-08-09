@@ -192,6 +192,21 @@ export function StoreProductPageSettings() {
 
       <IXCard title="Blocos da ficha" description="Ativar ou desativar secções da ficha de produto pública.">
         <ToggleRow
+          id="purchase-modes"
+          label="Painel de decisão (como comprar)"
+          hint="Cartões lado a lado com compra direta e proposta de preço."
+          checked={form.purchase_modes_enabled}
+          onChange={(v) => set("purchase_modes_enabled", v)}
+        />
+        <ToggleRow
+          id="seller-contact"
+          label="Contactar a loja"
+          hint="Botão de email no fim do painel de decisão."
+          checked={form.seller_contact_enabled}
+          onChange={(v) => set("seller_contact_enabled", v)}
+        />
+        <ToggleRow
+
           id="nudge"
           label="Aviso de decisão"
           hint="Stock baixo ou fim de promoção."
