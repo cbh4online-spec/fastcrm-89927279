@@ -118,7 +118,7 @@ export function WorkspaceMenusSection() {
     },
   });
 
-  const { map, isLoading, setVisibility, setBulk, resetAll } =
+  const { map, isLoading, setVisibility, clearOverride, setBulk, resetAll } =
     useWorkspaceMenuOverridesAdmin(workspaceId || undefined);
 
   const tree = useMemo(() => {
