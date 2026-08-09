@@ -181,7 +181,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           .map((s) => ({ ...s, items: s.items.filter(keep) }))
           .filter((s) => s.items.length > 0),
       }))
-      .filter((tg) => tg.items.length > 0);
+      .filter((tg) => tg.items.length > 0 || tg.subSections.length > 0);
   }, [rawTopSections, menuOverrideMap]);
 
 
