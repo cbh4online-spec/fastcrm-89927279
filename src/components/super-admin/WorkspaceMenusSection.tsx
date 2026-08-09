@@ -41,6 +41,7 @@ interface WorkspaceOption {
 }
 
 const VISIBILITY_OPTIONS: MenuVisibility[] = ["visible", "locked", "hidden"];
+const INHERIT = "__inherit__";
 
 function VisibilityIcon({ state }: { state: MenuVisibility }) {
   if (state === "hidden") return <EyeOff className="h-3.5 w-3.5 text-destructive" />;
@@ -52,11 +53,13 @@ function VisibilitySelect({
   value,
   inherited,
   onChange,
+  onInherit,
   disabled,
 }: {
   value: MenuVisibility;
   inherited: boolean;
   onChange: (v: MenuVisibility) => void;
+  onInherit?: () => void;
   disabled?: boolean;
 }) {
   return (
@@ -66,7 +69,11 @@ function VisibilitySelect({
           herdado
         </Badge>
       )}
-      <Select value={value} onValueChange={(v) => onChange(v as MenuVisibility)} disabled={disabled}>
+      <Select
+        value={value}
+        onValueChange={(v) => (v === INHERIT ? onInherit?.() : onChange(v as MenuVisibility))}
+        disabled={disabled}
+      >
         <SelectTrigger className="h-8 w-[168px] text-xs">
           <SelectValue />
         </SelectTrigger>
@@ -79,6 +86,14 @@ function VisibilitySelect({
               </span>
             </SelectItem>
           ))}
+          {onInherit && (
+            <SelectItem value={INHERIT} className="text-xs">
+              <span className="flex items-center gap-2">
+                <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                Herdar (predefinido)
+              </span>
+            </SelectItem>
+          )}
         </SelectContent>
       </Select>
     </div>
