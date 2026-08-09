@@ -913,25 +913,33 @@ export default function StoreProductPage() {
           />
 
           {/* Packs configurados com poupança real */}
-          <StoreProductBundles
-            productId={product.id}
-            workspaceId={(product as any).workspace_id}
-          />
+          {pageConfig.bundles_enabled && (
+            <StoreProductBundles
+              productId={product.id}
+              workspaceId={(product as any).workspace_id}
+            />
+          )}
 
           {/* Alternativas mais baratas (down-sell) */}
-          <StoreCheaperAlternatives
-            productId={product.id}
-            categoryId={product.store_category_id}
-            workspaceId={(product as any).workspace_id}
-            workspaceSlug={wsSlug}
-            currentPrice={pricing?.price ?? product.base_price}
-          />
+          {pageConfig.cheaper_alternatives_enabled && (
+            <StoreCheaperAlternatives
+              productId={product.id}
+              categoryId={product.store_category_id}
+              workspaceId={(product as any).workspace_id}
+              workspaceSlug={wsSlug}
+              currentPrice={pricing?.price ?? product.base_price}
+            />
+          )}
 
           {/* Perguntas e respostas */}
-          <StoreProductQA
-            productId={product.id}
-            workspaceId={(product as any).workspace_id}
-          />
+          {pageConfig.qa_enabled && (
+            <StoreProductQA
+              productId={product.id}
+              workspaceId={(product as any).workspace_id}
+              allowQuestions={pageConfig.qa_allow_questions}
+            />
+          )}
+
 
 
           {/* Related */}
