@@ -310,7 +310,8 @@ export function WorkspaceMenusSection() {
                                 value={sgState}
                                 inherited={!sgOwn}
                                 onChange={(v) => apply("nav_group", sg.navGroup, v)}
-                                disabled={setVisibility.isPending}
+                                onInherit={() => inherit("nav_group", sg.navGroup)}
+                                disabled={setVisibility.isPending || clearOverride.isPending}
                               />
                             </div>
 
