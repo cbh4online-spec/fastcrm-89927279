@@ -4,7 +4,6 @@ import { Lock } from "lucide-react";
 import { ROUTE_MANIFEST, type RouteEntry } from "@/config/routeManifest";
 import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
 import { resolveRouteVisibility } from "@/config/menuOverrides";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -28,15 +27,16 @@ function matchRoute(pathname: string): RouteEntry | undefined {
 
 export function MenuVisibilityGuard({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { isSuperAdmin } = useWorkspace();
   const { map, isLoading } = useMenuOverrideMap();
 
   const state = useMemo(() => {
-    if (isSuperAdmin || isLoading) return "visible" as const;
+    // Um super admin a pré-visualizar uma workspace deve ver exactamente o
+    // mesmo menu e bloqueios configurados para os restantes utilizadores.
+    if (isLoading) return "visible" as const;
     const entry = matchRoute(location.pathname);
     if (!entry) return "visible" as const;
     return resolveRouteVisibility(map, entry);
-  }, [isSuperAdmin, isLoading, location.pathname, map]);
+  }, [isLoading, location.pathname, map]);
 
   if (state === "hidden") {
     return <Navigate to="/dashboard" replace />;
