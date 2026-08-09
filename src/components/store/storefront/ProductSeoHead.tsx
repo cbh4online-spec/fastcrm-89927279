@@ -39,6 +39,12 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
   const description = product.short_description || product.name;
   const primaryImage = images[primaryIndex] || images[0];
 
+  // Fichas incompletas (sem descrição própria ou sem imagem) não devem ser
+  // indexadas nem emitir dados estruturados de produto — evita thin content.
+  const hasDescription = !!product.short_description && product.short_description.trim().length >= 40;
+  const isComplete = hasDescription && !!primaryImage;
+
+
   // Build rich image array for JSON-LD
   const imageJsonLd = productImages?.length
     ? productImages.map((img) => ({
@@ -108,7 +114,9 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
     <Helmet>
       <title>{product.name} | {storeName}</title>
       <meta name="description" content={description} />
+      {!isComplete && <meta name="robots" content="noindex,follow" />}
       <link rel="canonical" href={canonical} />
+
       <meta property="og:title" content={product.name} />
       <meta property="og:description" content={description} />
       <meta property="og:type" content="product" />
@@ -129,7 +137,7 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
       <meta name="twitter:description" content={description} />
       {primaryImage && <meta name="twitter:image" content={primaryImage} />}
       {primaryImage && <meta name="twitter:image:alt" content={primaryAlt} />}
-      <script type="application/ld+json">{JSON.stringify(productJsonLd)}</script>
+      {isComplete && <script type="application/ld+json">{JSON.stringify(productJsonLd)}</script>}
       <script type="application/ld+json">{JSON.stringify(breadcrumbJsonLd)}</script>
     </Helmet>
   );

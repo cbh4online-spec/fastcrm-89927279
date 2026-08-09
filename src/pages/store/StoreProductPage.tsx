@@ -38,6 +38,13 @@ import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtToge
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
 import { StoreProductDocuments } from "@/components/store/sections/StoreProductDocuments";
+import { StoreTrustStrip } from "@/components/store/StoreTrustStrip";
+import { StoreDecisionNudge } from "@/components/store/StoreDecisionNudge";
+import { StoreProductSections } from "@/components/store/sections/StoreProductSections";
+import { StoreProductBundles } from "@/components/store/sections/StoreProductBundles";
+import { StoreProductQA } from "@/components/store/sections/StoreProductQA";
+import { StoreCheaperAlternatives } from "@/components/store/sections/StoreCheaperAlternatives";
+
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreReviewsSection } from "@/components/store/StoreReviewsSection";
 import { useStoreReviewStats, useStoreWishlist, useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
@@ -675,6 +682,19 @@ export default function StoreProductPage() {
                   )
                 )}
 
+                {/* Aviso único de decisão (stock baixo, fim de promoção ou vendas) */}
+                {!isPriceOnRequest && (
+                  <StoreDecisionNudge
+                    trackStock={product.track_stock}
+                    stockQuantity={product.stock_quantity}
+                    isOutOfStock={isOutOfStock}
+                    promoEndsAt={(product as any).offer_ends_at || pricing?.promoEndAt || null}
+                    soldLabel={soldLabel}
+                  />
+                )}
+
+
+
                 {/* Delivery */}
                 {!isPriceOnRequest && (
                   <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-xl p-3">
@@ -835,7 +855,14 @@ export default function StoreProductPage() {
             {Object.keys(specs).length > 0 && (
               <StoreProductSpecs specs={specs} />
             )}
+
+            {/* 4. Secções estruturadas publicadas (com âncoras) */}
+            <StoreProductSections productId={product.id} />
+
+            {/* 5. Faixa de confiança */}
+            <StoreTrustStrip workspaceId={(product as any).workspace_id} />
           </motion.div>
+
 
           {/* Price Comparison & History */}
           <div className="mt-12 grid md:grid-cols-2 gap-8">
@@ -880,6 +907,28 @@ export default function StoreProductPage() {
             currentPrice={pricing?.price ?? product.base_price}
             currency={product.currency}
           />
+
+          {/* Packs configurados com poupança real */}
+          <StoreProductBundles
+            productId={product.id}
+            workspaceId={(product as any).workspace_id}
+          />
+
+          {/* Alternativas mais baratas (down-sell) */}
+          <StoreCheaperAlternatives
+            productId={product.id}
+            categoryId={product.store_category_id}
+            workspaceId={(product as any).workspace_id}
+            workspaceSlug={wsSlug}
+            currentPrice={pricing?.price ?? product.base_price}
+          />
+
+          {/* Perguntas e respostas */}
+          <StoreProductQA
+            productId={product.id}
+            workspaceId={(product as any).workspace_id}
+          />
+
 
           {/* Related */}
           <StoreRelatedProducts
