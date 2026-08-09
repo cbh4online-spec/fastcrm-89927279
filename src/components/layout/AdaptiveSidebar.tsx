@@ -197,7 +197,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           .filter((s) => s.items.length > 0);
         return { ...tg, items, subSections };
       })
-      .filter((tg) => tg.items.length > 0);
+      .filter((tg) => tg.items.length > 0 || tg.subSections.length > 0);
   }, [topSections, menuFilter]);
 
 
