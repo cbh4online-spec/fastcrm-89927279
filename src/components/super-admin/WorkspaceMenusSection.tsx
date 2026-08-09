@@ -151,6 +151,9 @@ export function WorkspaceMenusSection() {
   const apply = (itemType: MenuItemType, itemKey: string, visibility: MenuVisibility) =>
     setVisibility.mutate({ itemType, itemKey, visibility });
 
+  const inherit = (itemType: MenuItemType, itemKey: string) =>
+    clearOverride.mutate({ itemType, itemKey });
+
   const applyGroupToAll = (topGroupKey: string, visibility: MenuVisibility) => {
     const node = tree.find((n) => n.tg.key === topGroupKey);
     if (!node) return;
