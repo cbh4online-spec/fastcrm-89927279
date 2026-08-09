@@ -171,36 +171,42 @@ export default function StoreSettingsPage() {
         <title>Configurações da Loja | FastCRM</title>
       </Helmet>
       <DashboardLayout>
-        <div className="p-6 space-y-6 max-w-3xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Store className="h-6 w-6" />
-                Configurações da Loja
-              </h1>
-              <p className="text-sm text-muted-foreground">Personalizar a loja online do workspace</p>
+        <div className="mx-auto w-full max-w-5xl px-4 pb-10 sm:px-6">
+          <div className="sticky top-0 z-20 -mx-4 mb-6 border-b bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/75 sm:-mx-6 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
+                  <Store className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <span className="truncate">Configurações da Loja</span>
+                </h1>
+                <p className="mt-0.5 text-sm text-muted-foreground">Personalizar a loja online do workspace</p>
+              </div>
+              <Button onClick={handleSave} disabled={upsert.isPending} className="gap-2 sm:shrink-0">
+                {upsert.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Guardar
+              </Button>
             </div>
-            <Button onClick={handleSave} disabled={upsert.isPending} className="gap-2">
-              {upsert.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Guardar
-            </Button>
           </div>
 
-          {storeUrl && (
-            <StoreShareCard storeUrl={storeUrl} storeName={form.store_name || currentWorkspace?.name} />
-          )}
+          <div className="space-y-6">
+            {storeUrl && (
+              <StoreShareCard storeUrl={storeUrl} storeName={form.store_name || currentWorkspace?.name} />
+            )}
 
-          <Tabs defaultValue="general">
-            <TabsList className="flex-wrap">
-              <TabsTrigger value="general" className="gap-1"><Store className="h-4 w-4" /> Geral</TabsTrigger>
-              <TabsTrigger value="branding" className="gap-1"><Palette className="h-4 w-4" /> Branding</TabsTrigger>
-              <TabsTrigger value="notifications" className="gap-1"><Bell className="h-4 w-4" /> Notificações</TabsTrigger>
-              <TabsTrigger value="payments" className="gap-1"><CreditCard className="h-4 w-4" /> Pagamentos</TabsTrigger>
-              <TabsTrigger value="shipping" className="gap-1"><Truck className="h-4 w-4" /> Envio</TabsTrigger>
-              <TabsTrigger value="growth" className="gap-1"><TrendingUp className="h-4 w-4" /> Crescimento</TabsTrigger>
-              <TabsTrigger value="marketplace" className="gap-1"><ShoppingBag className="h-4 w-4" /> Marketplace</TabsTrigger>
-              <TabsTrigger value="product-page" className="gap-1"><FileText className="h-4 w-4" /> Ficha de Produto</TabsTrigger>
-            </TabsList>
+            <Tabs defaultValue="general">
+              <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <TabsList className="inline-flex w-max min-w-full justify-start gap-1">
+                  <TabsTrigger value="general" className="shrink-0 gap-1.5 whitespace-nowrap"><Store className="h-4 w-4" /> Geral</TabsTrigger>
+                  <TabsTrigger value="branding" className="shrink-0 gap-1.5 whitespace-nowrap"><Palette className="h-4 w-4" /> Branding</TabsTrigger>
+                  <TabsTrigger value="notifications" className="shrink-0 gap-1.5 whitespace-nowrap"><Bell className="h-4 w-4" /> Notificações</TabsTrigger>
+                  <TabsTrigger value="payments" className="shrink-0 gap-1.5 whitespace-nowrap"><CreditCard className="h-4 w-4" /> Pagamentos</TabsTrigger>
+                  <TabsTrigger value="shipping" className="shrink-0 gap-1.5 whitespace-nowrap"><Truck className="h-4 w-4" /> Envio</TabsTrigger>
+                  <TabsTrigger value="growth" className="shrink-0 gap-1.5 whitespace-nowrap"><TrendingUp className="h-4 w-4" /> Crescimento</TabsTrigger>
+                  <TabsTrigger value="marketplace" className="shrink-0 gap-1.5 whitespace-nowrap"><ShoppingBag className="h-4 w-4" /> Marketplace</TabsTrigger>
+                  <TabsTrigger value="product-page" className="shrink-0 gap-1.5 whitespace-nowrap"><FileText className="h-4 w-4" /> Ficha de Produto</TabsTrigger>
+                </TabsList>
+              </div>
+
 
             <TabsContent value="general" className="space-y-4 mt-4">
               <StoreIdentitySettings form={form} setForm={setForm} slugError={slugError} />
