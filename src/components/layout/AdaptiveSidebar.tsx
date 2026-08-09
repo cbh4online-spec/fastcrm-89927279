@@ -144,10 +144,40 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const isCollapsed = !isSenior && collapsed && !open;
 
   // ── Build top-level (IX) sections from manifest ──
-  const topSections = useMemo(
+  const rawTopSections = useMemo(
     () => buildTopLevelSections(installedModuleIds, canAccessMenu, mode),
     [installedModuleIds, canAccessMenu, salesFunction, mode]
   );
+
+  // ── Overrides de menu por workspace (Super Admin) ──
+  const { map: menuOverrideMap } = useMenuOverrideMap();
+
+  const lockedKeys = useMemo(() => {
+    const s = new Set<string>();
+    for (const tg of rawTopSections) {
+      for (const item of tg.items) {
+        if (resolveRouteVisibility(menuOverrideMap, item) === "locked") s.add(item.key);
+      }
+    }
+    return s;
+  }, [rawTopSections, menuOverrideMap]);
+
+  const topSections = useMemo(() => {
+    const keep = (item: RouteEntry) =>
+      resolveRouteVisibility(menuOverrideMap, item) !== "hidden";
+    return rawTopSections
+      .filter((tg) => resolveTopGroupVisibility(menuOverrideMap, tg.key) !== "hidden")
+      .map((tg) => ({
+        ...tg,
+        items: tg.items.filter(keep),
+        subSections: tg.subSections
+          .filter((s) => resolveNavGroupVisibility(menuOverrideMap, s.key) !== "hidden")
+          .map((s) => ({ ...s, items: s.items.filter(keep) }))
+          .filter((s) => s.items.length > 0),
+      }))
+      .filter((tg) => tg.items.length > 0);
+  }, [rawTopSections, menuOverrideMap]);
+
 
   // ── Filter top sections by search (menu filter across all items) ──
   const filteredTopSections = useMemo(() => {
