@@ -35,6 +35,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { SidebarNavItem, SidebarSectionLabel } from "./sidebar/SidebarNavItem";
+import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
+import {
+  resolveRouteVisibility,
+  resolveNavGroupVisibility,
+  resolveTopGroupVisibility,
+} from "@/config/menuOverrides";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -290,6 +296,34 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
     const active = isActive(item.href, item.end);
     const badgeCount = getBadge(item.badgeKey);
     const hasTag = item.isPro || item.isBeta;
+    const locked = lockedKeys.has(item.key);
+
+    if (locked) {
+      const ItemIcon = item.icon;
+      const lockedNode = (
+        <div
+          key={item.key}
+          aria-disabled="true"
+          title={`${item.label} — indisponível nesta workspace`}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] text-sidebar-foreground/40 cursor-not-allowed select-none",
+            indent && !isCollapsed && "ml-3",
+            isCollapsed && "justify-center px-0",
+          )}
+        >
+          <ItemIcon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
+          {!isCollapsed && <span className="flex-1 truncate">{item.label}</span>}
+          <Lock className="w-3.5 h-3.5 shrink-0" />
+        </div>
+      );
+      if (!isCollapsed) return lockedNode;
+      return (
+        <Tooltip key={item.key}>
+          <TooltipTrigger asChild>{lockedNode}</TooltipTrigger>
+          <TooltipContent side="right">{item.label} — indisponível</TooltipContent>
+        </Tooltip>
+      );
+    }
 
     if (isCollapsed) {
       return (
