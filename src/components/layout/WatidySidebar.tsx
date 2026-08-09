@@ -125,6 +125,7 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
   const { recents } = useSidebarRecents();
 
   const { getState: getDepartmentState } = useDepartmentVisibility();
+  const { map: menuOverrideMap } = useMenuOverrideMap();
 
   const megaGroupsAll = useMemo(
     () => buildMegaGroupSections(installedModuleIds, canAccessMenu),
@@ -137,17 +138,19 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
     return megaGroupsAll
       .map((mg) => ({
         ...mg,
-        sections: mg.sections.map((s) => ({
-          ...s,
-          items: isOwner
-            ? s.items
-            : s.items.filter((it) => !OWNER_ONLY_ROUTE_KEYS.has(it.key)),
-        })).filter((s) => s.items.length > 0),
+        sections: mg.sections
+          .filter((s) => resolveNavGroupVisibility(menuOverrideMap, s.key) !== "hidden")
+          .map((s) => ({
+            ...s,
+            items: (isOwner ? s.items : s.items.filter((it) => !OWNER_ONLY_ROUTE_KEYS.has(it.key)))
+              .filter((it) => resolveRouteVisibility(menuOverrideMap, it) !== "hidden"),
+          }))
+          .filter((s) => s.items.length > 0),
         _visibility: getDepartmentState(mg.key),
       }))
       .filter((mg) => mg.sections.length > 0)
       .filter((mg) => mg._visibility.visible || mg._visibility.lockedByPlan);
-  }, [megaGroupsAll, getDepartmentState, isOwner]);
+  }, [megaGroupsAll, getDepartmentState, isOwner, menuOverrideMap]);
 
   const itemByKey = useMemo(() => {
     const map = new Map<string, RouteEntry>();
