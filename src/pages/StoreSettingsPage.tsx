@@ -239,6 +239,10 @@ export default function StoreSettingsPage() {
             <TabsContent value="marketplace" className="mt-4">
               <StoreC2CSettings />
             </TabsContent>
+
+            <TabsContent value="product-page" className="mt-4">
+              <StoreProductPageSettings />
+            </TabsContent>
           </Tabs>
         </div>
       </DashboardLayout>
