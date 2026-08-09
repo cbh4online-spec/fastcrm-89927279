@@ -22,7 +22,7 @@ import type { AgeGroup, SalesFunction } from "@/data/adaptiveDashboardMock";
 import {
   X, PanelLeftClose, PanelLeftOpen, ChevronRight,
   Eye, ChevronDown, RotateCcw, Search, Sparkles, Crown,
-  Sun, Monitor, Moon, Plus,
+  Sun, Monitor, Moon, Plus, Lock,
 } from "lucide-react";
 
 import { useTheme } from "next-themes";
