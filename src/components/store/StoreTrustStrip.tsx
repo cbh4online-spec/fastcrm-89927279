@@ -51,16 +51,25 @@ export function StoreTrustStrip({
     .sort((a, b) => a - b)[0];
 
   const items = [
-    cheapest?.estimated_delivery
+    config.trust_delivery && cheapest?.estimated_delivery
       ? { icon: Truck, title: "Entrega", text: cheapest.estimated_delivery }
       : null,
-    threshold
+    config.trust_free_shipping && threshold
       ? { icon: Truck, title: "Portes grátis", text: `Em compras acima de €${threshold.toFixed(2)}` }
       : null,
-    { icon: RotateCcw, title: "Devoluções", text: "14 dias para devolver (direito de livre resolução)" },
-    { icon: ShieldCheck, title: "Pagamento seguro", text: "Dados encriptados no checkout" },
-    { icon: Headset, title: "Apoio ao cliente", text: "Respondemos a todas as questões" },
+    config.trust_returns
+      ? { icon: RotateCcw, title: "Devoluções", text: config.trust_returns_text }
+      : null,
+    config.trust_secure_payment
+      ? { icon: ShieldCheck, title: "Pagamento seguro", text: "Dados encriptados no checkout" }
+      : null,
+    config.trust_support
+      ? { icon: Headset, title: "Apoio ao cliente", text: config.trust_support_text }
+      : null,
   ].filter(Boolean) as Array<{ icon: typeof Truck; title: string; text: string }>;
+
+  if (items.length === 0) return null;
+
 
   return (
     <ul className={`grid gap-3 sm:grid-cols-2 ${className || ""}`}>
