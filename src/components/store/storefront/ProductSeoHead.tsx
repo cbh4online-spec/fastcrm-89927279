@@ -39,6 +39,12 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
   const description = product.short_description || product.name;
   const primaryImage = images[primaryIndex] || images[0];
 
+  // Fichas incompletas (sem descrição própria ou sem imagem) não devem ser
+  // indexadas nem emitir dados estruturados de produto — evita thin content.
+  const hasDescription = !!product.short_description && product.short_description.trim().length >= 40;
+  const isComplete = hasDescription && !!primaryImage;
+
+
   // Build rich image array for JSON-LD
   const imageJsonLd = productImages?.length
     ? productImages.map((img) => ({
