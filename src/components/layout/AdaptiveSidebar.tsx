@@ -22,7 +22,7 @@ import type { AgeGroup, SalesFunction } from "@/data/adaptiveDashboardMock";
 import {
   X, PanelLeftClose, PanelLeftOpen, ChevronRight,
   Eye, ChevronDown, RotateCcw, Search, Sparkles, Crown,
-  Sun, Monitor, Moon, Plus,
+  Sun, Monitor, Moon, Plus, Lock,
 } from "lucide-react";
 
 import { useTheme } from "next-themes";
@@ -35,6 +35,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { SidebarNavItem, SidebarSectionLabel } from "./sidebar/SidebarNavItem";
+import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
+import {
+  resolveRouteVisibility,
+  resolveNavGroupVisibility,
+  resolveTopGroupVisibility,
+} from "@/config/menuOverrides";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -144,10 +150,40 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const isCollapsed = !isSenior && collapsed && !open;
 
   // ── Build top-level (IX) sections from manifest ──
-  const topSections = useMemo(
+  const rawTopSections = useMemo(
     () => buildTopLevelSections(installedModuleIds, canAccessMenu, mode),
     [installedModuleIds, canAccessMenu, salesFunction, mode]
   );
+
+  // ── Overrides de menu por workspace (Super Admin) ──
+  const { map: menuOverrideMap } = useMenuOverrideMap();
+
+  const lockedKeys = useMemo(() => {
+    const s = new Set<string>();
+    for (const tg of rawTopSections) {
+      for (const item of tg.items) {
+        if (resolveRouteVisibility(menuOverrideMap, item) === "locked") s.add(item.key);
+      }
+    }
+    return s;
+  }, [rawTopSections, menuOverrideMap]);
+
+  const topSections = useMemo(() => {
+    const keep = (item: RouteEntry) =>
+      resolveRouteVisibility(menuOverrideMap, item) !== "hidden";
+    return rawTopSections
+      .filter((tg) => resolveTopGroupVisibility(menuOverrideMap, tg.key) !== "hidden")
+      .map((tg) => ({
+        ...tg,
+        items: tg.items.filter(keep),
+        subSections: tg.subSections
+          .filter((s) => resolveNavGroupVisibility(menuOverrideMap, s.key) !== "hidden")
+          .map((s) => ({ ...s, items: s.items.filter(keep) }))
+          .filter((s) => s.items.length > 0),
+      }))
+      .filter((tg) => tg.items.length > 0);
+  }, [rawTopSections, menuOverrideMap]);
+
 
   // ── Filter top sections by search (menu filter across all items) ──
   const filteredTopSections = useMemo(() => {
@@ -260,6 +296,34 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
     const active = isActive(item.href, item.end);
     const badgeCount = getBadge(item.badgeKey);
     const hasTag = item.isPro || item.isBeta;
+    const locked = lockedKeys.has(item.key);
+
+    if (locked) {
+      const ItemIcon = item.icon;
+      const lockedNode = (
+        <div
+          key={item.key}
+          aria-disabled="true"
+          title={`${item.label} — indisponível nesta workspace`}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] text-sidebar-foreground/40 cursor-not-allowed select-none",
+            indent && !isCollapsed && "ml-3",
+            isCollapsed && "justify-center px-0",
+          )}
+        >
+          <ItemIcon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
+          {!isCollapsed && <span className="flex-1 truncate">{item.label}</span>}
+          <Lock className="w-3.5 h-3.5 shrink-0" />
+        </div>
+      );
+      if (!isCollapsed) return lockedNode;
+      return (
+        <Tooltip key={item.key}>
+          <TooltipTrigger asChild>{lockedNode}</TooltipTrigger>
+          <TooltipContent side="right">{item.label} — indisponível</TooltipContent>
+        </Tooltip>
+      );
+    }
 
     if (isCollapsed) {
       return (

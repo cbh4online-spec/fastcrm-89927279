@@ -20,6 +20,8 @@ import {
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { IX_NAV_SECTIONS, type IXNavGroup } from "@/config/navigation/ixNavigation";
 import { ROUTE_MANIFEST, type RouteEntry } from "@/config/routeManifest";
+import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
+import { resolveRouteVisibility } from "@/config/menuOverrides";
 
 interface InvoiceXpressSidebarProps {
   open: boolean;
@@ -89,10 +91,13 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
     navigate("/login", { replace: true });
   };
 
+  const { map: menuOverrideMap } = useMenuOverrideMap();
+
   const canShow = (routeKey?: string) => {
     if (!routeKey) return true;
     const entry = ROUTE_INDEX[routeKey];
     if (!entry) return true; // desconhecido → não bloquear
+    if (resolveRouteVisibility(menuOverrideMap, entry) === "hidden") return false;
     if (entry.status !== "active") return false;
     if (entry.moduleSlug && !isModuleInstalled(entry.moduleSlug)) return false;
     if (entry.menuKey && !canAccessMenu(entry.menuKey)) return false;

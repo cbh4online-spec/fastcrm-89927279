@@ -22,6 +22,7 @@ import {
   FeatureRegistrySection,
   RolloutDashboardSection,
   PricingManagementSection,
+  WorkspaceMenusSection,
 } from "@/components/super-admin";
 import BugReportsAdminPage from "@/components/super-admin/BugReportsSection";
 import { AdminSettingsPanel } from "@/components/admin/AdminSettingsPanel";
@@ -122,6 +123,8 @@ export default function SuperAdmin() {
         return <RolloutDashboardSection />;
       case "permissions":
         return <MenuPermissionsSection />;
+      case "workspace-menus":
+        return <WorkspaceMenusSection />;
       case "settings":
         return (
           <div className="space-y-6">

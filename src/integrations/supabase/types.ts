@@ -94524,6 +94524,61 @@ export type Database = {
           },
         ]
       }
+      workspace_menu_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          item_key: string
+          item_type: string
+          note: string | null
+          updated_at: string
+          visibility: Database["public"]["Enums"]["menu_visibility"]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_key: string
+          item_type: string
+          note?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["menu_visibility"]
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_key?: string
+          item_type?: string
+          note?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["menu_visibility"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_menu_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_menu_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_menu_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_missions: {
         Row: {
           completed_at: string | null
@@ -100048,6 +100103,7 @@ export type Database = {
       leave_request_status: "pending" | "approved" | "rejected" | "cancelled"
       leave_type: "vacation" | "sick" | "personal" | "remote" | "other"
       manager_category_dimension: "segment" | "territory" | "client_type"
+      menu_visibility: "visible" | "locked" | "hidden"
       opportunity_subscription_status:
         | "draft"
         | "active"
@@ -100713,6 +100769,7 @@ export const Constants = {
       leave_request_status: ["pending", "approved", "rejected", "cancelled"],
       leave_type: ["vacation", "sick", "personal", "remote", "other"],
       manager_category_dimension: ["segment", "territory", "client_type"],
+      menu_visibility: ["visible", "locked", "hidden"],
       opportunity_subscription_status: [
         "draft",
         "active",
