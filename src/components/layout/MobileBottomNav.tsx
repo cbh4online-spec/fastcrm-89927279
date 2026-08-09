@@ -40,9 +40,10 @@ export const MobileBottomNav = React.forwardRef<HTMLElement, MobileBottomNavProp
   const { installedModuleIds } = useWorkspaceModules();
   const { canAccessMenu } = useMenuPermissions();
   const { mode } = useAppMode();
-  const { map: menuOverrideMap } = useMenuOverrideMap();
+  const { map: menuOverrideMap, isReady: menuOverridesReady } = useMenuOverrideMap();
 
   const sections = React.useMemo(() => {
+    if (!menuOverridesReady) return [];
     const keep = (item: { key: string }) =>
       resolveRouteVisibility(menuOverrideMap, item.key) === "visible";
     return buildTopLevelSections(installedModuleIds, canAccessMenu, mode)
@@ -54,7 +55,7 @@ export const MobileBottomNav = React.forwardRef<HTMLElement, MobileBottomNavProp
           .filter((s) => resolveNavGroupVisibility(menuOverrideMap, s.key) === "visible")
           .map((s) => ({ ...s, items: s.items.filter(keep) })),
       }));
-  }, [installedModuleIds, canAccessMenu, mode, menuOverrideMap]);
+  }, [installedModuleIds, canAccessMenu, mode, menuOverrideMap, menuOverridesReady]);
 
   const byKey = React.useMemo(() => {
     const m = new Map<TopLevelGroup, (typeof sections)[number]>();

@@ -19,24 +19,31 @@ async function fetchOverrides(workspaceId: string): Promise<MenuOverride[]> {
     .select("item_type, item_key, visibility")
     .eq("workspace_id", workspaceId);
   if (error) {
-    console.warn("[useWorkspaceMenuOverrides]", error.message);
-    return [];
+    throw error;
   }
   return (data ?? []) as MenuOverride[];
 }
 
 /** Overrides da workspace activa — consumido pelas sidebars e pesquisa global. */
-export function useMenuOverrideMap(): { map: MenuOverrideMap; isLoading: boolean } {
+export function useMenuOverrideMap(): {
+  map: MenuOverrideMap;
+  isLoading: boolean;
+  isReady: boolean;
+  error: Error | null;
+} {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   const queryClient = useQueryClient();
 
-  const { data = [], isLoading } = useQuery({
+  const { data = [], isLoading, isError, error } = useQuery({
     queryKey: [KEY, wsId],
     enabled: !!wsId,
     staleTime: 5_000,
     refetchOnWindowFocus: true,
-    queryFn: () => fetchOverrides(wsId!),
+    queryFn: () => {
+      if (!wsId) throw new Error("Workspace não selecionada");
+      return fetchOverrides(wsId);
+    },
   });
 
   // Realtime: aplicar imediatamente as alterações feitas no backoffice.
@@ -63,7 +70,12 @@ export function useMenuOverrideMap(): { map: MenuOverrideMap; isLoading: boolean
   }, [wsId, queryClient]);
 
   const map = useMemo(() => buildOverrideMap(data), [data]);
-  return { map, isLoading };
+  return {
+    map,
+    isLoading,
+    isReady: !!wsId && !isLoading && !isError,
+    error: error instanceof Error ? error : null,
+  };
 }
 
 /** Leitura + escrita para o backoffice de Super Admin (workspace escolhida). */
@@ -74,11 +86,23 @@ export function useWorkspaceMenuOverridesAdmin(workspaceId?: string) {
     queryKey: [KEY, workspaceId],
     enabled: !!workspaceId,
     staleTime: 10_000,
-    queryFn: () => fetchOverrides(workspaceId!),
+    queryFn: () => {
+      if (!workspaceId) throw new Error("Workspace não selecionada");
+      return fetchOverrides(workspaceId);
+    },
   });
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: [KEY, workspaceId] });
+
+  const updateCachedOverrides = (
+    updater: (current: MenuOverride[]) => MenuOverride[],
+  ) => {
+    if (!workspaceId) return;
+    queryClient.setQueryData<MenuOverride[]>([KEY, workspaceId], (current = []) =>
+      updater(current),
+    );
+  };
 
   const setVisibility = useMutation({
     mutationFn: async (input: {
@@ -101,7 +125,17 @@ export function useWorkspaceMenuOverridesAdmin(workspaceId?: string) {
         );
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, input) => {
+      updateCachedOverrides((current) => [
+        ...current.filter(
+          (item) => item.item_type !== input.itemType || item.item_key !== input.itemKey,
+        ),
+        {
+          item_type: input.itemType,
+          item_key: input.itemKey,
+          visibility: input.visibility,
+        },
+      ]);
       invalidate();
       toast.success("Definição guardada");
     },
@@ -121,7 +155,12 @@ export function useWorkspaceMenuOverridesAdmin(workspaceId?: string) {
         .eq("item_key", input.itemKey);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, input) => {
+      updateCachedOverrides((current) =>
+        current.filter(
+          (item) => item.item_type !== input.itemType || item.item_key !== input.itemKey,
+        ),
+      );
       invalidate();
       toast.success("Regra removida (passa a herdar)");
     },
@@ -147,7 +186,16 @@ export function useWorkspaceMenuOverridesAdmin(workspaceId?: string) {
       );
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, items) => {
+      const changed = new Set(items.map((item) => `${item.itemType}:${item.itemKey}`));
+      updateCachedOverrides((current) => [
+        ...current.filter((item) => !changed.has(`${item.item_type}:${item.item_key}`)),
+        ...items.map((item) => ({
+          item_type: item.itemType,
+          item_key: item.itemKey,
+          visibility: item.visibility,
+        })),
+      ]);
       invalidate();
       toast.success("Menus actualizados");
     },
@@ -165,6 +213,7 @@ export function useWorkspaceMenuOverridesAdmin(workspaceId?: string) {
       if (error) throw error;
     },
     onSuccess: () => {
+      updateCachedOverrides(() => []);
       invalidate();
       toast.success("Predefinições repostas");
     },

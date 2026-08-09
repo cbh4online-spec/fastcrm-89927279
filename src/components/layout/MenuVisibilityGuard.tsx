@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { ROUTE_MANIFEST, type RouteEntry } from "@/config/routeManifest";
 import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
 import { resolveRouteVisibility } from "@/config/menuOverrides";
@@ -27,16 +27,33 @@ function matchRoute(pathname: string): RouteEntry | undefined {
 
 export function MenuVisibilityGuard({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { map, isLoading } = useMenuOverrideMap();
+  const { map, isReady, error } = useMenuOverrideMap();
 
   const state = useMemo(() => {
     // Um super admin a pré-visualizar uma workspace deve ver exactamente o
     // mesmo menu e bloqueios configurados para os restantes utilizadores.
-    if (isLoading) return "visible" as const;
+    if (!isReady) return "pending" as const;
     const entry = matchRoute(location.pathname);
     if (!entry) return "visible" as const;
     return resolveRouteVisibility(map, entry);
-  }, [isLoading, location.pathname, map]);
+  }, [isReady, location.pathname, map]);
+
+  if (state === "pending") {
+    return (
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center" role="status">
+        {error ? (
+          <p className="max-w-md text-sm text-destructive">
+            Não foi possível validar os acessos desta workspace. Tente atualizar a página.
+          </p>
+        ) : (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+            <span className="text-sm text-muted-foreground">A validar acessos…</span>
+          </>
+        )}
+      </div>
+    );
+  }
 
   if (state === "hidden") {
     return <Navigate to="/dashboard" replace />;
