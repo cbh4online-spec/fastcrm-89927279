@@ -114,7 +114,9 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
     <Helmet>
       <title>{product.name} | {storeName}</title>
       <meta name="description" content={description} />
+      {!isComplete && <meta name="robots" content="noindex,follow" />}
       <link rel="canonical" href={canonical} />
+
       <meta property="og:title" content={product.name} />
       <meta property="og:description" content={description} />
       <meta property="og:type" content="product" />
