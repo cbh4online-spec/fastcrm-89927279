@@ -80944,6 +80944,7 @@ export type Database = {
           payment_methods: Json
           prices_include_vat: boolean
           primary_color: string | null
+          product_page_config: Json
           show_categories: boolean | null
           show_search: boolean | null
           store_description: string | null
@@ -80978,6 +80979,7 @@ export type Database = {
           payment_methods?: Json
           prices_include_vat?: boolean
           primary_color?: string | null
+          product_page_config?: Json
           show_categories?: boolean | null
           show_search?: boolean | null
           store_description?: string | null
@@ -81012,6 +81014,7 @@ export type Database = {
           payment_methods?: Json
           prices_include_vat?: boolean
           primary_color?: string | null
+          product_page_config?: Json
           show_categories?: boolean | null
           show_search?: boolean | null
           store_description?: string | null
