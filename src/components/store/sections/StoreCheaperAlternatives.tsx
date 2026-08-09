@@ -10,6 +10,8 @@ interface StoreCheaperAlternativesProps {
   workspaceId: string;
   workspaceSlug: string;
   currentPrice: number;
+  /** Versão compacta em lista, para usar dentro do painel de compra. */
+  compact?: boolean;
 }
 
 /**
@@ -22,6 +24,7 @@ export function StoreCheaperAlternatives({
   workspaceId,
   workspaceSlug,
   currentPrice,
+  compact = false,
 }: StoreCheaperAlternativesProps) {
   const { data: items = [] } = useQuery({
     queryKey: ["store-cheaper-alternatives", productId, categoryId, currentPrice],
@@ -46,6 +49,42 @@ export function StoreCheaperAlternatives({
   });
 
   if (!items.length) return null;
+
+  if (compact) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          Se o orçamento é apertado, estas opções da mesma categoria custam menos.
+        </p>
+        {items.map((p: any) => {
+          const idx = p.primary_image_index ?? 0;
+          const img = p.images?.[idx] || p.images?.[0];
+          const saving = currentPrice - p.base_price;
+          const pct = currentPrice > 0 ? Math.round((saving / currentPrice) * 100) : 0;
+          return (
+            <Link
+              key={p.id}
+              to={`/store/${workspaceSlug}/product/${p.id}`}
+              className="flex items-center gap-3 rounded-xl border p-2 transition-colors hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              <span className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border bg-muted">
+                {img ? (
+                  <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" />
+                ) : (
+                  <Package className="m-2 h-6 w-6 text-muted-foreground/40" aria-hidden="true" />
+                )}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-xs font-medium">{p.name}</span>
+              <span className="text-right">
+                <span className="block text-sm font-semibold">€{Number(p.base_price).toFixed(2)}</span>
+                {pct > 0 && <span className="block text-[10px] text-destructive">-{pct}%</span>}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <section className="mt-12" aria-labelledby="alternatives-heading">
