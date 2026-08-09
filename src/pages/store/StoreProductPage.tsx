@@ -685,7 +685,7 @@ export default function StoreProductPage() {
                 )}
 
                 {/* Aviso único de decisão (stock baixo, fim de promoção ou vendas) */}
-                {!isPriceOnRequest && (
+                {!isPriceOnRequest && pageConfig.decision_nudge_enabled && (
                   <StoreDecisionNudge
                     trackStock={product.track_stock}
                     stockQuantity={product.stock_quantity}
