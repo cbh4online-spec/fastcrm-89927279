@@ -137,7 +137,7 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
       <meta name="twitter:description" content={description} />
       {primaryImage && <meta name="twitter:image" content={primaryImage} />}
       {primaryImage && <meta name="twitter:image:alt" content={primaryAlt} />}
-      <script type="application/ld+json">{JSON.stringify(productJsonLd)}</script>
+      {isComplete && <script type="application/ld+json">{JSON.stringify(productJsonLd)}</script>}
       <script type="application/ld+json">{JSON.stringify(breadcrumbJsonLd)}</script>
     </Helmet>
   );
