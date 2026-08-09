@@ -18,6 +18,8 @@ import {
 import { OWNER_ONLY_ROUTE_KEYS, isOwnerWorkspace } from "@/config/ownerOnlyRoutes";
 import { megaGroupColor } from "./sidebar/megaGroupColors";
 import { useDepartmentVisibility } from "@/hooks/useDepartmentVisibility";
+import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
+import { resolveRouteVisibility, resolveNavGroupVisibility } from "@/config/menuOverrides";
 import {
   X, ChevronRight, Search, Star, Clock, Pin, Lock, Sun, Monitor, Moon,
 } from "lucide-react";
