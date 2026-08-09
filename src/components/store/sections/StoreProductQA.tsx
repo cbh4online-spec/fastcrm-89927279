@@ -18,10 +18,12 @@ const askSchema = z.object({
 interface StoreProductQAProps {
   productId: string;
   workspaceId: string;
+  /** Permitir submissão de novas perguntas (mantém moderação). */
+  allowQuestions?: boolean;
 }
 
 /** Perguntas e respostas públicas do produto. Novas perguntas ficam por moderar. */
-export function StoreProductQA({ productId, workspaceId }: StoreProductQAProps) {
+export function StoreProductQA({ productId, workspaceId, allowQuestions = true }: StoreProductQAProps) {
   const qc = useQueryClient();
   const [question, setQuestion] = useState("");
   const [name, setName] = useState("");
