@@ -93,6 +93,7 @@ import { ProductSalesPlaybookTab } from "./ProductSalesPlaybookTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
 import { ProductOCRContentSection } from "./ProductOCRContentSection";
+import { ProductPublicSheetTab } from "./ProductPublicSheetTab";
 import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
 import { ProductActivityLog } from "./ProductActivityLog";
 import { ProductPublishingPanel } from "./ProductPublishingPanel";
