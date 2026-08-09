@@ -118,7 +118,7 @@ export function WorkspaceMenusSection() {
     },
   });
 
-  const { map, isLoading, setVisibility, clearOverride, setBulk, resetAll } =
+  const { map, isLoading, error, setVisibility, clearOverride, setBulk, resetAll } =
     useWorkspaceMenuOverridesAdmin(workspaceId || undefined);
 
   const tree = useMemo(() => {
@@ -236,7 +236,13 @@ export function WorkspaceMenusSection() {
             <Skeleton key={i} className="h-14 w-full" />
           ))}
         </div>
-      ) : tree.length === 0 ? (
+       ) : error ? (
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-destructive">
+            Não foi possível carregar as regras desta workspace. Atualize a página e tente novamente.
+          </CardContent>
+        </Card>
+       ) : tree.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             Sem resultados para “{search}”.
@@ -246,6 +252,7 @@ export function WorkspaceMenusSection() {
         <div className="space-y-2">
           {tree.map(({ tg, subGroups }) => {
             const groupState = resolveTopGroupVisibility(map, tg.key);
+             const groupOwn = getOverride(map, "top_group", tg.key);
             const isOpen = openGroups[tg.key] ?? !!search;
             const GroupIcon = tg.icon;
 
@@ -280,7 +287,8 @@ export function WorkspaceMenusSection() {
                       variant="ghost"
                       size="sm"
                       className="hidden text-xs sm:inline-flex"
-                      disabled={setBulk.isPending}
+                       disabled={setBulk.isPending || !groupOwn}
+                       title={groupOwn ? "Aplicar esta regra a todos os descendentes" : "Defina primeiro uma regra própria para o grupo"}
                       onClick={() => applyGroupToAll(tg.key, groupState)}
                     >
                       Aplicar a tudo
@@ -288,7 +296,7 @@ export function WorkspaceMenusSection() {
 
                     <VisibilitySelect
                       value={groupState}
-                      inherited={!getOverride(map, "top_group", tg.key)}
+                       inherited={!groupOwn}
                       onChange={(v) => apply("top_group", tg.key, v)}
                       onInherit={() => inherit("top_group", tg.key)}
                       disabled={setVisibility.isPending || clearOverride.isPending}
