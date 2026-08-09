@@ -91,9 +91,10 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
     navigate("/login", { replace: true });
   };
 
-  const { map: menuOverrideMap } = useMenuOverrideMap();
+  const { map: menuOverrideMap, isReady: menuOverridesReady } = useMenuOverrideMap();
 
   const canShow = (routeKey?: string) => {
+    if (!menuOverridesReady) return false;
     if (!routeKey) return true;
     const entry = ROUTE_INDEX[routeKey];
     if (!entry) return true; // desconhecido → não bloquear

@@ -67,17 +67,18 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
   const { installedModuleIds } = useWorkspaceModules();
   const { canAccessMenu } = useMenuPermissions();
   const { mode } = useAppMode();
-  const { map: menuOverrideMap } = useMenuOverrideMap();
+  const { map: menuOverrideMap, isReady: menuOverridesReady } = useMenuOverrideMap();
 
   // Rotas pesquisáveis, respeitando permissões, módulos e modo. Sem rotas parametrizadas.
   const searchableRoutes = useMemo<RouteEntry[]>(() => {
+    if (!menuOverridesReady) return [];
     return getSearchableRoutes(installedModuleIds, canAccessMenu, mode).filter(
       (r) =>
         !!r.href &&
         !r.href.includes(":") &&
         resolveRouteVisibility(menuOverrideMap, r) === "visible",
     );
-  }, [installedModuleIds, canAccessMenu, mode, menuOverrideMap]);
+  }, [installedModuleIds, canAccessMenu, mode, menuOverrideMap, menuOverridesReady]);
 
   const groupLabelByKey = useMemo(() => {
     const m = new Map<TopLevelGroup, string>();

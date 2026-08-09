@@ -156,7 +156,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   );
 
   // ── Overrides de menu por workspace (Super Admin) ──
-  const { map: menuOverrideMap } = useMenuOverrideMap();
+  const { map: menuOverrideMap, isReady: menuOverridesReady } = useMenuOverrideMap();
 
   const lockedKeys = useMemo(() => {
     const s = new Set<string>();
@@ -169,6 +169,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   }, [rawTopSections, menuOverrideMap]);
 
   const topSections = useMemo(() => {
+    if (!menuOverridesReady) return [];
     const keep = (item: RouteEntry) =>
       resolveRouteVisibility(menuOverrideMap, item) !== "hidden";
     return rawTopSections
@@ -182,7 +183,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           .filter((s) => s.items.length > 0),
       }))
       .filter((tg) => tg.items.length > 0 || tg.subSections.length > 0);
-  }, [rawTopSections, menuOverrideMap]);
+  }, [rawTopSections, menuOverrideMap, menuOverridesReady]);
 
 
   // ── Filter top sections by search (menu filter across all items) ──
@@ -477,6 +478,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   ];
 
   const availableCreateActions = useMemo(() => {
+    if (!menuOverridesReady) return [];
     const byKey = new Map(ROUTE_MANIFEST.map((r) => [r.key, r]));
     const installed = new Set(installedModuleIds);
     return createActions
@@ -492,7 +494,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
       })
       .filter((a): a is typeof createActions[number] & { href: string } => !!a);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [installedModuleIds, canAccessMenu, menuOverrideMap]);
+  }, [installedModuleIds, canAccessMenu, menuOverrideMap, menuOverridesReady]);
 
   const groupedCreateActions = useMemo(() => {
     const map = new Map<string, typeof availableCreateActions>();
