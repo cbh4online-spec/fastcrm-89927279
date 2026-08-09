@@ -242,6 +242,7 @@ export default function StoreProductPage() {
   const [cartAnimTrigger, setCartAnimTrigger] = useState(0);
   const { data: tierPricing } = useStoreTierPricing(resolvedWsId);
   const { data: storeSettings } = usePublicStoreSettings(resolvedWsId || "");
+  const pageConfig = resolveProductPageConfig((storeSettings as any)?.product_page_config);
   const storeName = storeSettings?.store_name || "Loja";
   const isOutOfStock = product?.stock_status === "out_of_stock";
   const isPriceOnRequest = !!product?.price_on_request;
