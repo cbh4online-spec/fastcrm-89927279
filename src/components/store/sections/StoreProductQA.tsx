@@ -116,41 +116,43 @@ export function StoreProductQA({ productId, workspaceId, allowQuestions = true }
         </ul>
       )}
 
-      <form
-        className="mt-6 space-y-3 rounded-2xl border p-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          ask.mutate();
-        }}
-      >
-        <div className="space-y-1.5">
-          <Label htmlFor="qa-question">A sua pergunta</Label>
-          <Textarea
-            id="qa-question"
-            value={question}
-            maxLength={500}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Ex.: este produto é compatível com…?"
-            aria-invalid={!!errors.question}
-          />
-          {errors.question && <p className="text-xs text-destructive">{errors.question}</p>}
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="qa-name">Nome (opcional)</Label>
-          <Input
-            id="qa-name"
-            value={name}
-            maxLength={60}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Como quer ser identificado"
-            aria-invalid={!!errors.asker_name}
-          />
-          {errors.asker_name && <p className="text-xs text-destructive">{errors.asker_name}</p>}
-        </div>
-        <Button type="submit" disabled={ask.isPending}>
-          {ask.isPending ? "A enviar…" : "Enviar pergunta"}
-        </Button>
-      </form>
+      {allowQuestions && (
+        <form
+          className="mt-6 space-y-3 rounded-2xl border p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            ask.mutate();
+          }}
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="qa-question">A sua pergunta</Label>
+            <Textarea
+              id="qa-question"
+              value={question}
+              maxLength={500}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Ex.: este produto é compatível com…?"
+              aria-invalid={!!errors.question}
+            />
+            {errors.question && <p className="text-xs text-destructive">{errors.question}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="qa-name">Nome (opcional)</Label>
+            <Input
+              id="qa-name"
+              value={name}
+              maxLength={60}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Como quer ser identificado"
+              aria-invalid={!!errors.asker_name}
+            />
+            {errors.asker_name && <p className="text-xs text-destructive">{errors.asker_name}</p>}
+          </div>
+          <Button type="submit" disabled={ask.isPending}>
+            {ask.isPending ? "A enviar…" : "Enviar pergunta"}
+          </Button>
+        </form>
+      )}
     </section>
   );
 }
