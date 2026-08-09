@@ -24,6 +24,7 @@ import { GlobalNoCreditsDialog } from "@/components/credits/GlobalNoCreditsDialo
 import { CopilotDrawer } from "@/components/copilot/CopilotDrawer";
 import { useSessionTracker } from "@/hooks/useSessionTracker";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { MenuVisibilityGuard } from "./MenuVisibilityGuard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DirectMessagesProvider } from "@/contexts/DirectMessagesProvider";
 import { AppModeGuard } from "./AppModeGuard";
