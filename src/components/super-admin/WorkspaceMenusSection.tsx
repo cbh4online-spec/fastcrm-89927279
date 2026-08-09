@@ -41,6 +41,7 @@ interface WorkspaceOption {
 }
 
 const VISIBILITY_OPTIONS: MenuVisibility[] = ["visible", "locked", "hidden"];
+const INHERIT = "__inherit__";
 
 function VisibilityIcon({ state }: { state: MenuVisibility }) {
   if (state === "hidden") return <EyeOff className="h-3.5 w-3.5 text-destructive" />;
@@ -52,11 +53,13 @@ function VisibilitySelect({
   value,
   inherited,
   onChange,
+  onInherit,
   disabled,
 }: {
   value: MenuVisibility;
   inherited: boolean;
   onChange: (v: MenuVisibility) => void;
+  onInherit?: () => void;
   disabled?: boolean;
 }) {
   return (
@@ -66,7 +69,11 @@ function VisibilitySelect({
           herdado
         </Badge>
       )}
-      <Select value={value} onValueChange={(v) => onChange(v as MenuVisibility)} disabled={disabled}>
+      <Select
+        value={value}
+        onValueChange={(v) => (v === INHERIT ? onInherit?.() : onChange(v as MenuVisibility))}
+        disabled={disabled}
+      >
         <SelectTrigger className="h-8 w-[168px] text-xs">
           <SelectValue />
         </SelectTrigger>
@@ -79,6 +86,14 @@ function VisibilitySelect({
               </span>
             </SelectItem>
           ))}
+          {onInherit && (
+            <SelectItem value={INHERIT} className="text-xs">
+              <span className="flex items-center gap-2">
+                <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                Herdar (predefinido)
+              </span>
+            </SelectItem>
+          )}
         </SelectContent>
       </Select>
     </div>
@@ -103,7 +118,7 @@ export function WorkspaceMenusSection() {
     },
   });
 
-  const { map, isLoading, setVisibility, setBulk, resetAll } =
+  const { map, isLoading, setVisibility, clearOverride, setBulk, resetAll } =
     useWorkspaceMenuOverridesAdmin(workspaceId || undefined);
 
   const tree = useMemo(() => {
@@ -135,6 +150,9 @@ export function WorkspaceMenusSection() {
 
   const apply = (itemType: MenuItemType, itemKey: string, visibility: MenuVisibility) =>
     setVisibility.mutate({ itemType, itemKey, visibility });
+
+  const inherit = (itemType: MenuItemType, itemKey: string) =>
+    clearOverride.mutate({ itemType, itemKey });
 
   const applyGroupToAll = (topGroupKey: string, visibility: MenuVisibility) => {
     const node = tree.find((n) => n.tg.key === topGroupKey);
@@ -270,9 +288,10 @@ export function WorkspaceMenusSection() {
 
                     <VisibilitySelect
                       value={groupState}
-                      inherited={false}
+                      inherited={!getOverride(map, "top_group", tg.key)}
                       onChange={(v) => apply("top_group", tg.key, v)}
-                      disabled={setVisibility.isPending}
+                      onInherit={() => inherit("top_group", tg.key)}
+                      disabled={setVisibility.isPending || clearOverride.isPending}
                     />
                   </div>
 
@@ -291,7 +310,8 @@ export function WorkspaceMenusSection() {
                                 value={sgState}
                                 inherited={!sgOwn}
                                 onChange={(v) => apply("nav_group", sg.navGroup, v)}
-                                disabled={setVisibility.isPending}
+                                onInherit={() => inherit("nav_group", sg.navGroup)}
+                                disabled={setVisibility.isPending || clearOverride.isPending}
                               />
                             </div>
 
@@ -316,7 +336,8 @@ export function WorkspaceMenusSection() {
                                       value={state}
                                       inherited={!own}
                                       onChange={(v) => apply("route", r.key, v)}
-                                      disabled={setVisibility.isPending}
+                                      onInherit={() => inherit("route", r.key)}
+                                      disabled={setVisibility.isPending || clearOverride.isPending}
                                     />
                                   </div>
                                 );
