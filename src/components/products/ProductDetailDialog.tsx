@@ -824,6 +824,10 @@ export function ProductDetailDialog({
                     <ProductSheetSettings product={product} />
                   </TabsContent>
 
+                  <TabsContent value="public-sheet" className="mt-4">
+                    <ProductPublicSheetTab product={product} />
+                  </TabsContent>
+
                   <TabsContent value="publishing" className="mt-4">
                     <ProductPublishingPanel productId={product.id} />
                   </TabsContent>
