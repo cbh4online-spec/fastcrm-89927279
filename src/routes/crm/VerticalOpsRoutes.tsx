@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { Route } from "react-router-dom";
+import { Navigate, Route } from "react-router-dom";
 import { RequireSuperAdmin } from "@/components/backoffice-v2/RequireSuperAdmin";
 
 const PublicLandingPage = lazy(() => import("@/pages/PublicLandingPage"));
@@ -11,6 +11,21 @@ const BackofficeWorkspacesV2 = lazy(() => import("@/pages/backoffice-v2/Backoffi
 const BackofficeUsersV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeUsersV2"));
 const BackofficeSubscriptionsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSubscriptionsV2"));
 const BackofficePermissionsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficePermissionsV2"));
+const BackofficePricingV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficePricingV2 })));
+const BackofficeLimitsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeLimitsV2 })));
+const BackofficeAIUsageV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeAIUsageV2 })));
+const BackofficePaymentsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficePaymentsV2 })));
+const BackofficeStripeSyncV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeStripeSyncV2 })));
+const BackofficeAlertsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeAlertsV2 })));
+const BackofficeIncidentsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeIncidentsV2 })));
+const BackofficeModerationV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeModerationV2 })));
+const BackofficeBugsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeBugsV2 })));
+const BackofficeLogsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeLogsV2 })));
+const BackofficeActivityLogsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeActivityLogsV2 })));
+const BackofficeFeaturesV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeFeaturesV2 })));
+const BackofficeRolloutV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeRolloutV2 })));
+const BackofficeWorkspaceMenusV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeWorkspaceMenusV2 })));
+const BackofficeSettingsV2 = lazy(() => import("@/pages/backoffice-v2/BackofficeSectionsV2").then((m) => ({ default: m.BackofficeSettingsV2 })));
 const ModuleOnboardingAdminPage = lazy(() => import("@/pages/super-admin/ModuleOnboardingAdminPage"));
 const ModulePresentationsAdminPage = lazy(() => import("@/pages/super-admin/ModulePresentationsAdminPage"));
 const TeamProgressionPage = lazy(() => import("@/pages/team/TeamProgressionPage"));
@@ -35,6 +50,22 @@ export function VerticalOpsRoutes() {
       <Route path="/super-admin-v2/subscriptions" element={<RequireSuperAdmin><BackofficeSubscriptionsV2 /></RequireSuperAdmin>} />
       <Route path="/super-admin-v2/billing" element={<RequireSuperAdmin><BackofficeSubscriptionsV2 /></RequireSuperAdmin>} />
       <Route path="/super-admin-v2/permissions" element={<RequireSuperAdmin><BackofficePermissionsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/pricing" element={<RequireSuperAdmin><BackofficePricingV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/limits" element={<RequireSuperAdmin><BackofficeLimitsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/ai" element={<RequireSuperAdmin><BackofficeAIUsageV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/payments" element={<RequireSuperAdmin><BackofficePaymentsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/stripe" element={<RequireSuperAdmin><BackofficeStripeSyncV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/alerts" element={<RequireSuperAdmin><BackofficeAlertsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/incidents" element={<RequireSuperAdmin><BackofficeIncidentsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/moderation" element={<RequireSuperAdmin><BackofficeModerationV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/bugs" element={<RequireSuperAdmin><BackofficeBugsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/logs" element={<RequireSuperAdmin><BackofficeLogsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/activity" element={<RequireSuperAdmin><BackofficeActivityLogsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/features" element={<RequireSuperAdmin><BackofficeFeaturesV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/rollout" element={<RequireSuperAdmin><BackofficeRolloutV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/workspace-menus" element={<RequireSuperAdmin><BackofficeWorkspaceMenusV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/settings" element={<RequireSuperAdmin><BackofficeSettingsV2 /></RequireSuperAdmin>} />
+      <Route path="/super-admin-v2/*" element={<Navigate to="/super-admin-v2" replace />} />
       <Route path="/dashboard/super-admin/module-onboarding" element={<RequireSuperAdmin><ModuleOnboardingAdminPage /></RequireSuperAdmin>} />
       <Route path="/dashboard/super-admin/module-presentations" element={<RequireSuperAdmin><ModulePresentationsAdminPage /></RequireSuperAdmin>} />
       <Route path="/dashboard/team/progression" element={<TeamProgressionPage />} />

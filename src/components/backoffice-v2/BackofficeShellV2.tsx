@@ -63,6 +63,7 @@ const NAV: NavGroup[] = [
       { id: "features", label: "Feature Registry", icon: Package, to: "/super-admin-v2/features" },
       { id: "rollout", label: "Rollout", icon: FlaskConical, to: "/super-admin-v2/rollout" },
       { id: "perms", label: "Permissões", icon: Lock, to: "/super-admin-v2/permissions" },
+      { id: "workspace-menus", label: "Menus por Workspace", icon: Menu, to: "/super-admin-v2/workspace-menus" },
       { id: "settings", label: "Configurações", icon: Settings, to: "/super-admin-v2/settings" },
     ],
   },
