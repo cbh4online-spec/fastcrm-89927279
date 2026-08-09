@@ -855,7 +855,14 @@ export default function StoreProductPage() {
             {Object.keys(specs).length > 0 && (
               <StoreProductSpecs specs={specs} />
             )}
+
+            {/* 4. Secções estruturadas publicadas (com âncoras) */}
+            <StoreProductSections productId={product.id} />
+
+            {/* 5. Faixa de confiança */}
+            <StoreTrustStrip workspaceId={(product as any).workspace_id} />
           </motion.div>
+
 
           {/* Price Comparison & History */}
           <div className="mt-12 grid md:grid-cols-2 gap-8">
