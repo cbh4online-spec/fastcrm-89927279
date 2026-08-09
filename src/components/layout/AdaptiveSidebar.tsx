@@ -478,6 +478,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   ];
 
   const availableCreateActions = useMemo(() => {
+    if (!menuOverridesReady) return [];
     const byKey = new Map(ROUTE_MANIFEST.map((r) => [r.key, r]));
     const installed = new Set(installedModuleIds);
     return createActions
@@ -493,7 +494,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
       })
       .filter((a): a is typeof createActions[number] & { href: string } => !!a);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [installedModuleIds, canAccessMenu, menuOverrideMap]);
+  }, [installedModuleIds, canAccessMenu, menuOverrideMap, menuOverridesReady]);
 
   const groupedCreateActions = useMemo(() => {
     const map = new Map<string, typeof availableCreateActions>();
