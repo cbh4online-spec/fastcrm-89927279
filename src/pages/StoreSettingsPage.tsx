@@ -5,7 +5,7 @@ import { useStoreSettings, useUpsertStoreSettings } from "@/hooks/useStoreSettin
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, Truck, TrendingUp, ShoppingBag, CreditCard } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, TrendingUp, ShoppingBag, CreditCard, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StoreShareCard } from "@/components/store-settings/StoreShareCard";
