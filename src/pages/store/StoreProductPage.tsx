@@ -682,6 +682,19 @@ export default function StoreProductPage() {
                   )
                 )}
 
+                {/* Aviso único de decisão (stock baixo, fim de promoção ou vendas) */}
+                {!isPriceOnRequest && (
+                  <StoreDecisionNudge
+                    trackStock={product.track_stock}
+                    stockQuantity={product.stock_quantity}
+                    isOutOfStock={isOutOfStock}
+                    promoEndsAt={(product as any).offer_ends_at || pricing?.promoEndAt || null}
+                    soldLabel={soldLabel}
+                  />
+                )}
+
+
+
                 {/* Delivery */}
                 {!isPriceOnRequest && (
                   <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-xl p-3">
