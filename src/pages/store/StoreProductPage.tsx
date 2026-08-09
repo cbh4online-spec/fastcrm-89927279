@@ -859,10 +859,12 @@ export default function StoreProductPage() {
             )}
 
             {/* 4. Secções estruturadas publicadas (com âncoras) */}
-            <StoreProductSections productId={product.id} />
+            {pageConfig.sections_enabled && <StoreProductSections productId={product.id} />}
 
             {/* 5. Faixa de confiança */}
-            <StoreTrustStrip workspaceId={(product as any).workspace_id} />
+            {pageConfig.trust_enabled && (
+              <StoreTrustStrip workspaceId={(product as any).workspace_id} config={pageConfig} />
+            )}
           </motion.div>
 
 
