@@ -24,6 +24,7 @@ import { GlobalNoCreditsDialog } from "@/components/credits/GlobalNoCreditsDialo
 import { CopilotDrawer } from "@/components/copilot/CopilotDrawer";
 import { useSessionTracker } from "@/hooks/useSessionTracker";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { MenuVisibilityGuard } from "./MenuVisibilityGuard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DirectMessagesProvider } from "@/contexts/DirectMessagesProvider";
 import { AppModeGuard } from "./AppModeGuard";
@@ -114,7 +115,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   className={`flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background mobile-scroll-momentum ${isMobile ? "with-mobile-nav-pb" : ""}`}
                 >
                   <WhatsAppHealthBanner />
-                  {children}
+                  <MenuVisibilityGuard>{children}</MenuVisibilityGuard>
                 </main>
                 {showFAB && <MQPCFloatingButton />}
                 <VoiceConversationWidget />

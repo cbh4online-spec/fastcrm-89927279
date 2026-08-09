@@ -181,7 +181,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           .map((s) => ({ ...s, items: s.items.filter(keep) }))
           .filter((s) => s.items.length > 0),
       }))
-      .filter((tg) => tg.items.length > 0);
+      .filter((tg) => tg.items.length > 0 || tg.subSections.length > 0);
   }, [rawTopSections, menuOverrideMap]);
 
 
@@ -197,7 +197,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           .filter((s) => s.items.length > 0);
         return { ...tg, items, subSections };
       })
-      .filter((tg) => tg.items.length > 0);
+      .filter((tg) => tg.items.length > 0 || tg.subSections.length > 0);
   }, [topSections, menuFilter]);
 
 
@@ -487,11 +487,12 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
         if (r.moduleSlug && !installed.has(r.moduleSlug)) return null;
         if (r.menuKey && !canAccessMenu(r.menuKey)) return null;
         if (!canAccessMenu(r.key)) return null;
+        if (resolveRouteVisibility(menuOverrideMap, r) !== "visible") return null;
         return { ...a, href: r.href };
       })
       .filter((a): a is typeof createActions[number] & { href: string } => !!a);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [installedModuleIds, canAccessMenu]);
+  }, [installedModuleIds, canAccessMenu, menuOverrideMap]);
 
   const groupedCreateActions = useMemo(() => {
     const map = new Map<string, typeof availableCreateActions>();
