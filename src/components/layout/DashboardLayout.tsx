@@ -114,7 +114,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   className={`flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background mobile-scroll-momentum ${isMobile ? "with-mobile-nav-pb" : ""}`}
                 >
                   <WhatsAppHealthBanner />
-                  {children}
+                  <MenuVisibilityGuard>{children}</MenuVisibilityGuard>
                 </main>
                 {showFAB && <MQPCFloatingButton />}
                 <VoiceConversationWidget />
