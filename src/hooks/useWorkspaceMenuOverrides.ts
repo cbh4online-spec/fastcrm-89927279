@@ -29,13 +29,38 @@ async function fetchOverrides(workspaceId: string): Promise<MenuOverride[]> {
 export function useMenuOverrideMap(): { map: MenuOverrideMap; isLoading: boolean } {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
+  const queryClient = useQueryClient();
 
   const { data = [], isLoading } = useQuery({
     queryKey: [KEY, wsId],
     enabled: !!wsId,
-    staleTime: 60_000,
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
     queryFn: () => fetchOverrides(wsId!),
   });
+
+  // Realtime: aplicar imediatamente as alterações feitas no backoffice.
+  useEffect(() => {
+    if (!wsId) return;
+    const channel = supabase
+      .channel(`workspace-menu-overrides-${wsId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workspace_menu_overrides",
+          filter: `workspace_id=eq.${wsId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: [KEY, wsId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [wsId, queryClient]);
 
   const map = useMemo(() => buildOverrideMap(data), [data]);
   return { map, isLoading };
