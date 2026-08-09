@@ -490,6 +490,7 @@ export function ProductDetailDialog({
                     ],
                     content: [
                       { value: "sheet", label: "Ficha" },
+                      { value: "public-sheet", label: "Ficha pública" },
                       { value: "images", label: "Imagens" },
                       { value: "specs", label: "Specs" },
                       { value: "ai-content", label: "Conteúdo IA" },
