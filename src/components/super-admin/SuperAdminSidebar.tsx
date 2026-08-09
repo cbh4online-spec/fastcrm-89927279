@@ -115,6 +115,7 @@ const navigation: NavSection[] = [
       { id: "feature-registry", label: "Feature Registry", icon: PackageIcon },
       { id: "rollout", label: "Rollout", icon: FlaskConical },
       { id: "permissions", label: "Permissões", icon: Lock },
+      { id: "workspace-menus", label: "Menus por Workspace", icon: Lock },
       { id: "settings", label: "Configurações", icon: Settings },
       { id: "audit", label: "Auditoria", icon: FileText },
     ],
