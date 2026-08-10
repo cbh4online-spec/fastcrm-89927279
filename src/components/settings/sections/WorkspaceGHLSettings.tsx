@@ -936,12 +936,16 @@ function WorkspaceGHLSettingsInner() {
                   </Link>
                 )}
                 
+                {lastConversationResult.partial && lastConversationResult.errors.length === 0 && (
+                  <div className="mt-2 rounded-md border border-blue-300/50 bg-blue-50 dark:bg-blue-950/20 p-2 text-xs text-blue-700 dark:text-blue-300">
+                    Ainda há conversas por processar. A próxima sincronização continua automaticamente do último ponto.
+                  </div>
+                )}
+
                 {lastConversationResult.errors.length > 0 && (
                   <details className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2">
                     <summary className="cursor-pointer text-xs font-medium text-destructive">
-                      {lastConversationResult.partial
-                        ? "Sincronização parcial — ver detalhes"
-                        : `${lastConversationResult.errors.length} aviso(s) — ver detalhes`}
+                      {`${lastConversationResult.errors.length} aviso(s) — ver detalhes`}
                     </summary>
                     <ul className="mt-2 space-y-1 text-xs text-destructive/90 list-disc pl-4">
                       {lastConversationResult.errors.map((error, index) => (
@@ -950,6 +954,7 @@ function WorkspaceGHLSettingsInner() {
                     </ul>
                   </details>
                 )}
+
 
                 {(lastConversationResult.skipped_details?.length ?? 0) > 0 && (
                   <details className="mt-2 rounded-md border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 p-2">
