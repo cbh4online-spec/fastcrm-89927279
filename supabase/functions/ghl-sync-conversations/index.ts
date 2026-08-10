@@ -665,11 +665,42 @@ Deno.serve(async (req) => {
             messages_created: 0,
             messages_skipped: 0,
             errors: [],
+            skipped_details: [],
             total_processed: 0,
+            partial: false,
+            resumed_from: null,
           };
 
           const startTime = Date.now();
           const maxExecutionTime = 50000;
+          const CURSOR_SYNC_TYPE = "conversations";
+
+          const saveCursor = async (value: string | undefined, partialRun: boolean) => {
+            try {
+              if (!value) return;
+              await supabase.from("ghl_sync_cursors").upsert({
+                workspace_id,
+                sync_type: CURSOR_SYNC_TYPE,
+                cursor: { last_sort_date: value, days_back },
+                partial_runs: partialRun ? 1 : 0,
+                updated_at: new Date().toISOString(),
+              }, { onConflict: "workspace_id,sync_type" });
+            } catch (e) {
+              console.error("[GHL Sync] Failed to save cursor:", e);
+            }
+          };
+
+          const clearCursor = async () => {
+            try {
+              await supabase
+                .from("ghl_sync_cursors")
+                .delete()
+                .eq("workspace_id", workspace_id)
+                .eq("sync_type", CURSOR_SYNC_TYPE);
+            } catch (e) {
+              console.error("[GHL Sync] Failed to clear cursor:", e);
+            }
+          };
 
           try {
             // Fetch conversations from GHL
@@ -683,11 +714,33 @@ Deno.serve(async (req) => {
 
             let lastSortDate: string | undefined;
 
+            // Retomar de onde a execução anterior parou (se o janela days_back for a mesma)
+            try {
+              const { data: savedCursor } = await supabase
+                .from("ghl_sync_cursors")
+                .select("cursor")
+                .eq("workspace_id", workspace_id)
+                .eq("sync_type", CURSOR_SYNC_TYPE)
+                .maybeSingle();
+
+              const c = savedCursor?.cursor as { last_sort_date?: string; days_back?: number } | undefined;
+              if (c?.last_sort_date && (c.days_back === undefined || c.days_back === days_back)) {
+                lastSortDate = c.last_sort_date;
+                result.resumed_from = c.last_sort_date;
+                console.log(`[GHL Sync] Resuming conversations sync from ${lastSortDate}`);
+              }
+            } catch (e) {
+              console.error("[GHL Sync] Failed to load cursor:", e);
+            }
+
             while (hasMore && pageCount < maxPages) {
               if (Date.now() - startTime > maxExecutionTime) {
-                result.errors.push(`Sincronização parcial: timeout após ${pageCount} páginas.`);
+                result.partial = true;
+                result.errors.push(`Sincronização parcial: tempo máximo atingido após ${pageCount} páginas. Retoma automática do último ponto.`);
+                await saveCursor(lastSortDate, true);
                 break;
               }
+
 
               pageCount++;
               
