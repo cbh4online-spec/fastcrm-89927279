@@ -1255,6 +1255,11 @@ Deno.serve(async (req) => {
                 });
               }
 
+              // Interrompido a meio da página: o cursor intermédio já foi gravado
+              if (result.partial) {
+                break;
+              }
+
               // Update pagination cursor using sort date
               if (conversations.length > 0) {
                 const lastConv = conversations[conversations.length - 1];
@@ -1264,7 +1269,7 @@ Deno.serve(async (req) => {
               }
 
               // Continue if we got a full page
-              hasMore = conversations.length >= 50;
+              hasMore = conversations.length >= PAGE_SIZE;
             }
 
             // Se ainda há páginas por processar, a passagem é parcial
