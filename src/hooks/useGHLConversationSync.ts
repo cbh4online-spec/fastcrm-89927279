@@ -203,7 +203,7 @@ export function useGHLConversationSync() {
 
           if (aggregated.errors.length > 0) {
             const detail = aggregated.errors[0];
-            toast.warning(`Sincronização parcial: ${summary}`, {
+            toast.warning(`Sincronização com avisos: ${summary}`, {
               description:
                 aggregated.errors.length > 1
                   ? `${detail} (+${aggregated.errors.length - 1} outros avisos)`
@@ -217,6 +217,12 @@ export function useGHLConversationSync() {
             toast.info("Nenhuma conversa nova para sincronizar", {
               description:
                 skippedCount > 0 ? `${skippedCount} conversa(s) ignorada(s).` : undefined,
+            });
+          } else if (aggregated.partial) {
+            toast.info(`Sincronização em curso: ${summary}`, {
+              description:
+                "Ainda há conversas por processar. Volte a sincronizar para continuar do último ponto.",
+              duration: 8000,
             });
           } else {
             toast.success(`Sincronização concluída: ${summary}`, {
