@@ -1288,7 +1288,7 @@ Deno.serve(async (req) => {
             // Se ainda há páginas por processar, a passagem é parcial
             if (hasMore && pageCount >= maxPages) {
               result.partial = true;
-              result.errors.push(`Sincronização parcial: limite de ${maxPages} páginas por execução. Retoma automática do último ponto.`);
+              console.log(`[GHL Sync] Page limit (${maxPages}) reached; will resume from cursor`);
               await saveCursor(lastSortDate, true);
             }
 
