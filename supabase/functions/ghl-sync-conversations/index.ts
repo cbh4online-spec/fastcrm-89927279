@@ -800,8 +800,55 @@ Deno.serve(async (req) => {
                 break;
               }
 
+              // Pré-carregar em paralelo (lotes pequenos) as mensagens de cada conversa.
+              // É a chamada dominante por conversa; paralelizar reduz muito o tempo por página.
+              const prefetchedMessages = new Map<string, unknown>();
+              if (include_messages) {
+                for (let i = 0; i < conversations.length; i += FETCH_CONCURRENCY) {
+                  if (Date.now() - startTime > maxExecutionTime) break;
+                  const batch = conversations.slice(i, i + FETCH_CONCURRENCY);
+                  await Promise.all(batch.map(async (c) => {
+                    try {
+                      const r = await fetch(
+                        `https://services.leadconnectorhq.com/conversations/${c.id}/messages`,
+                        {
+                          method: "GET",
+                          headers: {
+                            Authorization: `Bearer ${apiKey}`,
+                            Version: "2021-04-15",
+                            Accept: "application/json",
+                          },
+                        },
+                      );
+                      if (r.ok) prefetchedMessages.set(c.id, await r.json());
+                    } catch (e) {
+                      console.error(`[GHL Sync] Prefetch messages failed for conv ${c.id}`, e);
+                    }
+                  }));
+                }
+              }
+
+              let processedInPage = 0;
+
               for (const ghlConv of conversations) {
+                // Orçamento de tempo verificado por conversa (e não só por página):
+                // grava o cursor da última conversa processada para retomar sem repetir.
+                if (Date.now() - startTime > maxExecutionTime) {
+                  result.partial = true;
+                  const cursorValue = processedInPage > 0
+                    ? (conversations[processedInPage - 1].lastMessageDate
+                      || conversations[processedInPage - 1].dateUpdated
+                      || conversations[processedInPage - 1].id)
+                    : lastSortDate;
+                  await saveCursor(cursorValue, true);
+                  console.log(`[GHL Sync] Time budget reached mid-page after ${processedInPage} conversations`);
+                  hasMore = true;
+                  break;
+                }
+
+                processedInPage++;
                 result.total_processed++;
+
 
                 // Find or auto-create lead for this conversation
                 let leadId = leadsByGhlId.get(ghlConv.contactId);
