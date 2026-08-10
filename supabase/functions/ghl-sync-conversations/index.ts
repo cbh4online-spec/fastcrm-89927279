@@ -1084,18 +1084,28 @@ Deno.serve(async (req) => {
                 if (include_messages && conversationId) {
                   try {
                     const messagesUrl = `https://services.leadconnectorhq.com/conversations/${ghlConv.id}/messages`;
-                    
-                    const msgResponse = await fetch(messagesUrl, {
-                      method: "GET",
-                      headers: {
-                        Authorization: `Bearer ${apiKey}`,
-                        Version: "2021-04-15",
-                        Accept: "application/json",
-                      },
-                    });
 
-                    if (msgResponse.ok) {
-                      const msgData = await msgResponse.json();
+                    // Usar o resultado pré-carregado em paralelo quando disponível
+                    let msgData: Record<string, unknown> | null =
+                      (prefetchedMessages.get(ghlConv.id) as Record<string, unknown> | undefined) ?? null;
+                    let msgStatus = msgData ? 200 : 0;
+
+                    if (!msgData) {
+                      const msgResponse = await fetch(messagesUrl, {
+                        method: "GET",
+                        headers: {
+                          Authorization: `Bearer ${apiKey}`,
+                          Version: "2021-04-15",
+                          Accept: "application/json",
+                        },
+                      });
+                      msgStatus = msgResponse.status;
+                      if (msgResponse.ok) msgData = await msgResponse.json();
+                    }
+
+                    if (msgData) {
+                      const msgDataAny = msgData as any;
+
                       
                       // Robust parsing: handle multiple response formats from GHL API
                       let rawMessages = msgData.messages;
