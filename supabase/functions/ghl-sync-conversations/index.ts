@@ -749,7 +749,7 @@ Deno.serve(async (req) => {
               // Use GET /conversations/search with query params (correct GHL API endpoint)
               const queryParams = new URLSearchParams({
                 locationId,
-                limit: "50",
+                limit: String(PAGE_SIZE),
                 status: "all",
               });
               if (lastSortDate) {
