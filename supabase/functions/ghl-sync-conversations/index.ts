@@ -1250,8 +1250,9 @@ Deno.serve(async (req) => {
                         }
                       }
                     } else {
-                      console.error(`[GHL Sync] Messages API error for conv ${ghlConv.id}: ${msgResponse.status}`);
+                      console.error(`[GHL Sync] Messages API error for conv ${ghlConv.id}: ${msgStatus}`);
                     }
+
                   } catch (msgErr) {
                     console.error(`[GHL Sync Conversations] Error fetching messages`, msgErr);
                   }
