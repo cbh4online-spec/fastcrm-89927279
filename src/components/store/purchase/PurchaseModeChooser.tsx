@@ -45,13 +45,9 @@ export function PurchaseModeChooser({
           </span>
         </div>
         <p className="font-semibold">Comprar agora</p>
-        <p className="mt-1 text-2xl font-bold text-primary">
-          €{price.toFixed(2)} <StoreVatLabel />
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-2xl font-bold text-primary">
+          <span>€{price.toFixed(2)}</span> <StoreVatLabel />
         </p>
-        <ul className="mt-3 space-y-1.5">
-          {directBullets.map((b) => (
-            <li key={b} className="flex items-start gap-2 text-xs text-muted-foreground">
-              <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" aria-hidden="true" />
               <span>{b}</span>
             </li>
           ))}
