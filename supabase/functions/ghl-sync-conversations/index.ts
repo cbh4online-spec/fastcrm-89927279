@@ -737,8 +737,9 @@ Deno.serve(async (req) => {
 
             while (hasMore && pageCount < maxPages) {
               if (Date.now() - startTime > maxExecutionTime) {
+                // Não é um erro: apenas ainda há mais para processar. O frontend continua automaticamente.
                 result.partial = true;
-                result.errors.push(`Sincronização parcial: tempo máximo atingido após ${pageCount} páginas. Retoma automática do último ponto.`);
+                console.log(`[GHL Sync] Time budget reached after ${pageCount} pages`);
                 await saveCursor(lastSortDate, true);
                 break;
               }
