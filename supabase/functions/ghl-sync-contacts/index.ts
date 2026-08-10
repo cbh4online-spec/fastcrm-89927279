@@ -194,25 +194,39 @@ async function fetchContactsPage(
   apiKey: string,
   locationId: string,
   cursor?: ContactsCursor,
+  mode: PaginationMode = "get",
 ): Promise<
   | { ok: true; data: GHLContactsResponse; url: string }
   | { ok: false; status: number; errorText: string; url: string; attempts: number }
 > {
   let attempt = 0;
+  const isSearch = mode === "search";
+  const url = isSearch
+    ? "https://services.leadconnectorhq.com/contacts/search"
+    : buildContactsUrl(locationId, cursor);
 
   while (attempt < MAX_429_RETRIES) {
     attempt += 1;
-    const url = buildContactsUrl(locationId, cursor);
 
-    console.log(`[GHL Sync] Fetching contacts page: ${url} (attempt ${attempt}/${MAX_429_RETRIES})`);
+    console.log(
+      `[GHL Sync] Fetching contacts page (${mode}): ${url} cursor=${describeCursor(cursor)} (attempt ${attempt}/${MAX_429_RETRIES})`,
+    );
 
     const ghlResponse = await fetch(url, {
-      method: "GET",
+      method: isSearch ? "POST" : "GET",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         Version: "2021-07-28",
         Accept: "application/json",
+        ...(isSearch ? { "Content-Type": "application/json" } : {}),
       },
+      body: isSearch
+        ? JSON.stringify({
+          locationId,
+          pageLimit: CONTACTS_PAGE_LIMIT,
+          ...(cursor?.searchAfter ? { searchAfter: cursor.searchAfter } : {}),
+        })
+        : undefined,
     });
 
     const responseText = await ghlResponse.text();
@@ -262,10 +276,11 @@ async function fetchContactsPage(
     ok: false,
     status: 429,
     errorText: "Rate limit persistente após várias tentativas.",
-    url: buildContactsUrl(locationId, cursor),
+    url,
     attempts: MAX_429_RETRIES,
   };
 }
+
 
 Deno.serve(async (req) => {
   // VERSION MARKER - confirms deployment success
