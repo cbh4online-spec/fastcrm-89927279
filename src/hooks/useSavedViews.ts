@@ -52,9 +52,9 @@ export function useCreateSavedView() {
       filters?: Record<string, unknown>;
       sort_config?: Record<string, unknown>;
       visible_columns?: string[];
-      view_mode?: string;
+      view_mode?: "table" | "board";
     }) => {
-      if (!currentWorkspace) throw new Error("No workspace");
+      if (!currentWorkspace) throw new Error("Nenhuma workspace selecionada");
       const userId = (await supabase.auth.getUser()).data.user?.id;
       const { data, error } = await (supabase
         .from("crm_saved_views")
@@ -70,14 +70,17 @@ export function useCreateSavedView() {
         } as any) as any)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as SavedView;
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
-      toast.success("View saved");
+      toast.success("Vista guardada");
     },
-    onError: () => toast.error("Failed to save view"),
+    onError: (error: unknown) =>
+      toast.error("Não foi possível guardar a vista", {
+        description: error instanceof Error ? error.message : undefined,
+      }),
   });
 }
 
