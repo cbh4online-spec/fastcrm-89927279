@@ -629,7 +629,7 @@ export default function StoreProductPage() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="md:col-span-2 lg:col-span-1"
             >
-              <div className="lg:sticky lg:top-24 space-y-4 border rounded-2xl p-5 bg-card shadow-sm">
+              <div className="@container lg:sticky lg:top-24 space-y-4 border rounded-2xl p-4 sm:p-5 bg-card shadow-sm">
                 {/* Price in Buy Box (desktop only) */}
                 {isPriceOnRequest ? (
                   <div className="hidden lg:flex items-center gap-2">
@@ -638,8 +638,9 @@ export default function StoreProductPage() {
                   </div>
                 ) : (
                   <div className="hidden lg:block">
-                    <div className="flex items-baseline gap-2">
-                       <span className="text-3xl font-bold text-primary">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                       <span className="text-3xl font-bold text-primary break-words">
+
                          €{(pricing?.price ?? product.base_price).toFixed(2)}
                        </span>
                        <StoreVatLabel />
@@ -733,7 +734,7 @@ export default function StoreProductPage() {
                     </>
                   ) : (
                     <>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                         <span className="text-sm font-medium">Qtd:</span>
                         <div className="flex items-center border rounded-xl overflow-hidden">
                           <Button

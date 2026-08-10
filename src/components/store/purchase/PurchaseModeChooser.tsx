@@ -31,7 +31,7 @@ export function PurchaseModeChooser({
   const hasOffer = !!offerSlot;
 
   return (
-    <div className={cn("grid gap-3", hasOffer && "sm:grid-cols-2")}>
+    <div className={cn("@container grid gap-3", hasOffer && "@md:grid-cols-2")}>
       <div className="relative rounded-2xl border border-primary/40 bg-primary/[0.03] p-4">
         {hasOffer && (
           <Badge className="absolute -top-2 left-4 border-0 bg-primary text-primary-foreground text-[10px]">
@@ -45,20 +45,24 @@ export function PurchaseModeChooser({
           </span>
         </div>
         <p className="font-semibold">Comprar agora</p>
-        <p className="mt-1 text-2xl font-bold text-primary">
-          €{price.toFixed(2)} <StoreVatLabel />
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-2xl font-bold text-primary">
+          <span>€{price.toFixed(2)}</span> <StoreVatLabel />
         </p>
         <ul className="mt-3 space-y-1.5">
           {directBullets.map((b) => (
             <li key={b} className="flex items-start gap-2 text-xs text-muted-foreground">
               <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" aria-hidden="true" />
-              <span>{b}</span>
+              <span className="min-w-0">{b}</span>
             </li>
           ))}
         </ul>
-        <Button className="mt-4 h-11 w-full gap-2 rounded-xl" onClick={onAddToCart} disabled={disabled}>
-          <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-          Adicionar ao carrinho
+        <Button
+          className="mt-4 h-auto min-h-11 w-full gap-2 whitespace-normal rounded-xl px-3 py-2 text-sm leading-tight"
+          onClick={onAddToCart}
+          disabled={disabled}
+        >
+          <ShoppingBag className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+          <span className="min-w-0">Adicionar ao carrinho</span>
         </Button>
       </div>
 
@@ -78,11 +82,13 @@ export function PurchaseModeChooser({
             {offerBullets.map((b) => (
               <li key={b} className="flex items-start gap-2 text-xs text-muted-foreground">
                 <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" aria-hidden="true" />
-                <span>{b}</span>
+                <span className="min-w-0">{b}</span>
               </li>
             ))}
           </ul>
-          <div className="mt-4 [&_button]:h-11 [&_button]:w-full [&_button]:rounded-xl">{offerSlot}</div>
+          <div className="mt-4 [&_button]:h-auto [&_button]:min-h-11 [&_button]:w-full [&_button]:whitespace-normal [&_button]:rounded-xl [&_button]:px-3 [&_button]:py-2 [&_button]:leading-tight">
+            {offerSlot}
+          </div>
         </div>
       )}
     </div>

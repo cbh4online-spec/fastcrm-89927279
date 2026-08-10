@@ -76,7 +76,7 @@ export function BundleTierSelector({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="@container/tiers grid grid-cols-2 gap-2 @md/tiers:grid-cols-3">
         {tiers.map((t) => {
           const active = t.id === selected.id;
           return (
@@ -165,9 +165,12 @@ export function BundleTierSelector({
             </span>
           </div>
         </div>
-        <Button className="mt-3 h-11 w-full gap-2 rounded-xl" onClick={addSelection}>
-          <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-          Adicionar ao carrinho
+        <Button
+          className="mt-3 h-auto min-h-11 w-full gap-2 whitespace-normal rounded-xl px-3 py-2 text-sm leading-tight"
+          onClick={addSelection}
+        >
+          <ShoppingBag className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+          <span className="min-w-0">Adicionar ao carrinho</span>
         </Button>
         {shippingCost !== null && (
           <p className="mt-2 text-[10px] text-muted-foreground">
