@@ -1210,10 +1210,24 @@ Deno.serve(async (req) => {
               if (conversations.length > 0) {
                 const lastConv = conversations[conversations.length - 1];
                 lastSortDate = lastConv.lastMessageDate || lastConv.dateUpdated || lastConv.id;
+                // Persistir a cada página para permitir retoma
+                await saveCursor(lastSortDate, true);
               }
-              
+
               // Continue if we got a full page
               hasMore = conversations.length >= 50;
+            }
+
+            // Se ainda há páginas por processar, a passagem é parcial
+            if (hasMore && pageCount >= maxPages) {
+              result.partial = true;
+              result.errors.push(`Sincronização parcial: limite de ${maxPages} páginas por execução. Retoma automática do último ponto.`);
+              await saveCursor(lastSortDate, true);
+            }
+
+            // Passagem concluída sem interrupções → limpar cursor
+            if (!result.partial) {
+              await clearCursor();
             }
 
             // Update last_sync_at
@@ -1221,6 +1235,7 @@ Deno.serve(async (req) => {
               .from("workspace_ghl_config")
               .update({ last_sync_at: new Date().toISOString() })
               .eq("workspace_id", workspace_id);
+
 
             // Log sync
             await supabase.from("ghl_sync_log").insert({
