@@ -286,8 +286,15 @@ interface SyncResult {
   messages_created: number;
   messages_skipped: number;
   errors: string[];
+  /** Conversas ignoradas (não fatais) com o motivo real */
+  skipped_details: string[];
   total_processed: number;
+  /** true quando a passagem foi interrompida e há mais para sincronizar */
+  partial: boolean;
+  /** cursor a partir do qual esta execução retomou (se aplicável) */
+  resumed_from?: string | null;
 }
+
 
 // GHL message type numeric codes
 const GHL_TYPE_CODES: Record<number, string> = {
