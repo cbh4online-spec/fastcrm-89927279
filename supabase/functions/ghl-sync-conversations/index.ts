@@ -672,7 +672,9 @@ Deno.serve(async (req) => {
           };
 
           const startTime = Date.now();
-          const maxExecutionTime = 50000;
+          const maxExecutionTime = 45000;
+          const PAGE_SIZE = 20;
+          const FETCH_CONCURRENCY = 4;
           const CURSOR_SYNC_TYPE = "conversations";
 
           const saveCursor = async (value: string | undefined, partialRun: boolean) => {
