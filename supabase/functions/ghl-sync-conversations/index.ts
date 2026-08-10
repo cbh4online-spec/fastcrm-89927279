@@ -91,21 +91,56 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
   return result;
 }
 
-async function fetchGHLContact(apiKey: string, contactId: string): Promise<GHLContactData | null> {
-  try {
-    const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Version: "2021-04-15",
-        Accept: "application/json",
-      },
-    });
+// Motivo da última falha ao obter um contacto (para mensagens de erro úteis)
+let lastContactFetchReason: string | null = null;
 
-    if (!response.ok) {
-      console.error(`[GHL Sync] Failed to fetch contact ${contactId}: ${response.status}`);
+async function fetchGHLContact(apiKey: string, contactId: string): Promise<GHLContactData | null> {
+  const MAX_ATTEMPTS = 2;
+  let response: Response | null = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Version: "2021-04-15",
+          Accept: "application/json",
+        },
+      });
+    } catch (netErr) {
+      lastContactFetchReason = `erro de rede (${netErr instanceof Error ? netErr.message : "desconhecido"})`;
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+        continue;
+      }
+      console.error(`[GHL Sync] Network error fetching contact ${contactId}`, netErr);
       return null;
     }
+
+    // Retry apenas em falhas transitórias
+    if (!response.ok && (response.status === 429 || response.status >= 500) && attempt < MAX_ATTEMPTS) {
+      console.warn(`[GHL Sync] Transient ${response.status} fetching contact ${contactId}, retrying...`);
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+      continue;
+    }
+    break;
+  }
+
+  try {
+    if (!response || !response.ok) {
+      const status = response?.status ?? 0;
+      lastContactFetchReason =
+        status === 404 ? "contacto não existe no GHL (404)"
+        : status === 401 ? "API Key inválida (401)"
+        : status === 403 ? "sem permissões para ler contactos (403)"
+        : status === 429 ? "limite de pedidos do GHL (429)"
+        : `GHL respondeu ${status}`;
+      console.error(`[GHL Sync] Failed to fetch contact ${contactId}: ${status}`);
+      return null;
+    }
+    lastContactFetchReason = null;
+
 
     const data = await response.json();
     const contact = data.contact || data;
