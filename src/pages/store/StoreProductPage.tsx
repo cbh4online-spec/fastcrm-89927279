@@ -638,8 +638,9 @@ export default function StoreProductPage() {
                   </div>
                 ) : (
                   <div className="hidden lg:block">
-                    <div className="flex items-baseline gap-2">
-                       <span className="text-3xl font-bold text-primary">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                       <span className="text-3xl font-bold text-primary break-words">
+
                          €{(pricing?.price ?? product.base_price).toFixed(2)}
                        </span>
                        <StoreVatLabel />
