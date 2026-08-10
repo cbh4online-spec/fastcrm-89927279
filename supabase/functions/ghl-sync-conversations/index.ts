@@ -816,10 +816,13 @@ Deno.serve(async (req) => {
                     }
                   }
                   if (!leadId) {
-                    console.log(`[GHL Sync] Could not create lead for contact ${ghlConv.contactId}, skipping conversation`);
-                    result.errors.push(`Failed to create lead for contact ${ghlConv.contactId}`);
+                    const reason = lastContactFetchReason || "não foi possível criar o lead no FastCRM";
+                    console.log(`[GHL Sync] Could not create lead for contact ${ghlConv.contactId}: ${reason}`);
+                    result.skipped_details.push(`Conversa ignorada — contacto ${ghlConv.contactId}: ${reason}`);
+                    result.messages_skipped++;
                     continue;
                   }
+
                 }
 
                 // For existing leads, update missing social URLs from GHL contact data
