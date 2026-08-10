@@ -38731,6 +38731,58 @@ export type Database = {
         }
         Relationships: []
       }
+      ghl_sync_cursors: {
+        Row: {
+          created_at: string
+          cursor: Json
+          id: string
+          partial_runs: number
+          sync_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          cursor?: Json
+          id?: string
+          partial_runs?: number
+          sync_type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          cursor?: Json
+          id?: string
+          partial_runs?: number
+          sync_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ghl_sync_cursors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "ghl_sync_cursors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ghl_sync_cursors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ghl_sync_log: {
         Row: {
           event_type: string
