@@ -48,13 +48,21 @@ export function PurchaseModeChooser({
         <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-2xl font-bold text-primary">
           <span>€{price.toFixed(2)}</span> <StoreVatLabel />
         </p>
-              <span>{b}</span>
+        <ul className="mt-3 space-y-1.5">
+          {directBullets.map((b) => (
+            <li key={b} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" aria-hidden="true" />
+              <span className="min-w-0">{b}</span>
             </li>
           ))}
         </ul>
-        <Button className="mt-4 h-11 w-full gap-2 rounded-xl" onClick={onAddToCart} disabled={disabled}>
-          <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-          Adicionar ao carrinho
+        <Button
+          className="mt-4 h-auto min-h-11 w-full gap-2 whitespace-normal rounded-xl px-3 py-2 text-sm leading-tight"
+          onClick={onAddToCart}
+          disabled={disabled}
+        >
+          <ShoppingBag className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+          <span className="min-w-0">Adicionar ao carrinho</span>
         </Button>
       </div>
 
