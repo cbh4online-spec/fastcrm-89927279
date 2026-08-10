@@ -26,7 +26,9 @@ interface GHLContact {
   country?: string;
   socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string };
   customFields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>;
+  searchAfter?: unknown[];
 }
+
 
 interface GHLContactsResponse {
   contacts: GHLContact[];
