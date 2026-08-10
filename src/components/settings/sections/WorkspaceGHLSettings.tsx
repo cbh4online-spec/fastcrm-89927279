@@ -872,8 +872,11 @@ function WorkspaceGHLSettingsInner() {
                     <span className="font-medium">A sincronizar conversas...</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    Página {conversationProgress.page}
+                    {conversationProgress.pass && conversationProgress.pass > 1
+                      ? `Continuação ${conversationProgress.pass} · Página ${conversationProgress.page}`
+                      : `Página ${conversationProgress.page}`}
                   </span>
+
                 </div>
                 
                 <div className="grid grid-cols-3 gap-2 text-xs text-center">
@@ -934,10 +937,33 @@ function WorkspaceGHLSettingsInner() {
                 )}
                 
                 {lastConversationResult.errors.length > 0 && (
-                  <p className="text-xs text-destructive mt-2">
-                    {lastConversationResult.errors.length} erro(s) durante a sincronização
-                  </p>
+                  <details className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2">
+                    <summary className="cursor-pointer text-xs font-medium text-destructive">
+                      {lastConversationResult.partial
+                        ? "Sincronização parcial — ver detalhes"
+                        : `${lastConversationResult.errors.length} aviso(s) — ver detalhes`}
+                    </summary>
+                    <ul className="mt-2 space-y-1 text-xs text-destructive/90 list-disc pl-4">
+                      {lastConversationResult.errors.map((error, index) => (
+                        <li key={index} className="break-words">{error}</li>
+                      ))}
+                    </ul>
+                  </details>
                 )}
+
+                {(lastConversationResult.skipped_details?.length ?? 0) > 0 && (
+                  <details className="mt-2 rounded-md border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 p-2">
+                    <summary className="cursor-pointer text-xs font-medium text-amber-700 dark:text-amber-400">
+                      {lastConversationResult.skipped_details!.length} conversa(s) ignorada(s) — ver motivos
+                    </summary>
+                    <ul className="mt-2 space-y-1 text-xs text-amber-800 dark:text-amber-300 list-disc pl-4 max-h-40 overflow-y-auto">
+                      {lastConversationResult.skipped_details!.slice(0, 50).map((detail, index) => (
+                        <li key={index} className="break-words">{detail}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+
               </div>
             )}
 

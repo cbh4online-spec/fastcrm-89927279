@@ -91,21 +91,56 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
   return result;
 }
 
-async function fetchGHLContact(apiKey: string, contactId: string): Promise<GHLContactData | null> {
-  try {
-    const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Version: "2021-04-15",
-        Accept: "application/json",
-      },
-    });
+// Motivo da última falha ao obter um contacto (para mensagens de erro úteis)
+let lastContactFetchReason: string | null = null;
 
-    if (!response.ok) {
-      console.error(`[GHL Sync] Failed to fetch contact ${contactId}: ${response.status}`);
+async function fetchGHLContact(apiKey: string, contactId: string): Promise<GHLContactData | null> {
+  const MAX_ATTEMPTS = 2;
+  let response: Response | null = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Version: "2021-04-15",
+          Accept: "application/json",
+        },
+      });
+    } catch (netErr) {
+      lastContactFetchReason = `erro de rede (${netErr instanceof Error ? netErr.message : "desconhecido"})`;
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+        continue;
+      }
+      console.error(`[GHL Sync] Network error fetching contact ${contactId}`, netErr);
       return null;
     }
+
+    // Retry apenas em falhas transitórias
+    if (!response.ok && (response.status === 429 || response.status >= 500) && attempt < MAX_ATTEMPTS) {
+      console.warn(`[GHL Sync] Transient ${response.status} fetching contact ${contactId}, retrying...`);
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+      continue;
+    }
+    break;
+  }
+
+  try {
+    if (!response || !response.ok) {
+      const status = response?.status ?? 0;
+      lastContactFetchReason =
+        status === 404 ? "contacto não existe no GHL (404)"
+        : status === 401 ? "API Key inválida (401)"
+        : status === 403 ? "sem permissões para ler contactos (403)"
+        : status === 429 ? "limite de pedidos do GHL (429)"
+        : `GHL respondeu ${status}`;
+      console.error(`[GHL Sync] Failed to fetch contact ${contactId}: ${status}`);
+      return null;
+    }
+    lastContactFetchReason = null;
+
 
     const data = await response.json();
     const contact = data.contact || data;
@@ -251,8 +286,15 @@ interface SyncResult {
   messages_created: number;
   messages_skipped: number;
   errors: string[];
+  /** Conversas ignoradas (não fatais) com o motivo real */
+  skipped_details: string[];
   total_processed: number;
+  /** true quando a passagem foi interrompida e há mais para sincronizar */
+  partial: boolean;
+  /** cursor a partir do qual esta execução retomou (se aplicável) */
+  resumed_from?: string | null;
 }
+
 
 // GHL message type numeric codes
 const GHL_TYPE_CODES: Record<number, string> = {
@@ -623,11 +665,42 @@ Deno.serve(async (req) => {
             messages_created: 0,
             messages_skipped: 0,
             errors: [],
+            skipped_details: [],
             total_processed: 0,
+            partial: false,
+            resumed_from: null,
           };
 
           const startTime = Date.now();
           const maxExecutionTime = 50000;
+          const CURSOR_SYNC_TYPE = "conversations";
+
+          const saveCursor = async (value: string | undefined, partialRun: boolean) => {
+            try {
+              if (!value) return;
+              await supabase.from("ghl_sync_cursors").upsert({
+                workspace_id,
+                sync_type: CURSOR_SYNC_TYPE,
+                cursor: { last_sort_date: value, days_back },
+                partial_runs: partialRun ? 1 : 0,
+                updated_at: new Date().toISOString(),
+              }, { onConflict: "workspace_id,sync_type" });
+            } catch (e) {
+              console.error("[GHL Sync] Failed to save cursor:", e);
+            }
+          };
+
+          const clearCursor = async () => {
+            try {
+              await supabase
+                .from("ghl_sync_cursors")
+                .delete()
+                .eq("workspace_id", workspace_id)
+                .eq("sync_type", CURSOR_SYNC_TYPE);
+            } catch (e) {
+              console.error("[GHL Sync] Failed to clear cursor:", e);
+            }
+          };
 
           try {
             // Fetch conversations from GHL
@@ -641,11 +714,33 @@ Deno.serve(async (req) => {
 
             let lastSortDate: string | undefined;
 
+            // Retomar de onde a execução anterior parou (se o janela days_back for a mesma)
+            try {
+              const { data: savedCursor } = await supabase
+                .from("ghl_sync_cursors")
+                .select("cursor")
+                .eq("workspace_id", workspace_id)
+                .eq("sync_type", CURSOR_SYNC_TYPE)
+                .maybeSingle();
+
+              const c = savedCursor?.cursor as { last_sort_date?: string; days_back?: number } | undefined;
+              if (c?.last_sort_date && (c.days_back === undefined || c.days_back === days_back)) {
+                lastSortDate = c.last_sort_date;
+                result.resumed_from = c.last_sort_date;
+                console.log(`[GHL Sync] Resuming conversations sync from ${lastSortDate}`);
+              }
+            } catch (e) {
+              console.error("[GHL Sync] Failed to load cursor:", e);
+            }
+
             while (hasMore && pageCount < maxPages) {
               if (Date.now() - startTime > maxExecutionTime) {
-                result.errors.push(`Sincronização parcial: timeout após ${pageCount} páginas.`);
+                result.partial = true;
+                result.errors.push(`Sincronização parcial: tempo máximo atingido após ${pageCount} páginas. Retoma automática do último ponto.`);
+                await saveCursor(lastSortDate, true);
                 break;
               }
+
 
               pageCount++;
               
@@ -675,16 +770,23 @@ Deno.serve(async (req) => {
               if (!ghlResponse.ok) {
                 const errorText = await ghlResponse.text();
                 console.error(`[GHL Sync Conversations] API Error: ${ghlResponse.status} - ${errorText}`);
-                
+
                 if (ghlResponse.status === 401) {
-                  result.errors.push("API Key inválida ou expirada.");
+                  result.errors.push("API Key do GoHighLevel inválida ou expirada.");
                 } else if (ghlResponse.status === 403) {
-                  result.errors.push("Acesso negado. Verifique permissões da API.");
+                  result.errors.push("Acesso negado pelo GoHighLevel. Verifique as permissões da API.");
+                } else if (ghlResponse.status === 429) {
+                  result.partial = true;
+                  result.errors.push("Limite de pedidos do GoHighLevel atingido (429). A sincronização continua mais tarde do último ponto.");
+                  await saveCursor(lastSortDate, true);
                 } else {
-                  result.errors.push(`Erro GHL: ${ghlResponse.status}`);
+                  result.partial = true;
+                  result.errors.push(`Erro do GoHighLevel (${ghlResponse.status}) ao obter conversas.`);
+                  await saveCursor(lastSortDate, true);
                 }
                 break;
               }
+
 
               const data = await ghlResponse.json();
               const conversations: GHLConversation[] = data.conversations || [];
@@ -714,10 +816,13 @@ Deno.serve(async (req) => {
                     }
                   }
                   if (!leadId) {
-                    console.log(`[GHL Sync] Could not create lead for contact ${ghlConv.contactId}, skipping conversation`);
-                    result.errors.push(`Failed to create lead for contact ${ghlConv.contactId}`);
+                    const reason = lastContactFetchReason || "não foi possível criar o lead no FastCRM";
+                    console.log(`[GHL Sync] Could not create lead for contact ${ghlConv.contactId}: ${reason}`);
+                    result.skipped_details.push(`Conversa ignorada — contacto ${ghlConv.contactId}: ${reason}`);
+                    result.messages_skipped++;
                     continue;
                   }
+
                 }
 
                 // For existing leads, update missing social URLs from GHL contact data
@@ -1105,10 +1210,24 @@ Deno.serve(async (req) => {
               if (conversations.length > 0) {
                 const lastConv = conversations[conversations.length - 1];
                 lastSortDate = lastConv.lastMessageDate || lastConv.dateUpdated || lastConv.id;
+                // Persistir a cada página para permitir retoma
+                await saveCursor(lastSortDate, true);
               }
-              
+
               // Continue if we got a full page
               hasMore = conversations.length >= 50;
+            }
+
+            // Se ainda há páginas por processar, a passagem é parcial
+            if (hasMore && pageCount >= maxPages) {
+              result.partial = true;
+              result.errors.push(`Sincronização parcial: limite de ${maxPages} páginas por execução. Retoma automática do último ponto.`);
+              await saveCursor(lastSortDate, true);
+            }
+
+            // Passagem concluída sem interrupções → limpar cursor
+            if (!result.partial) {
+              await clearCursor();
             }
 
             // Update last_sync_at
@@ -1116,6 +1235,7 @@ Deno.serve(async (req) => {
               .from("workspace_ghl_config")
               .update({ last_sync_at: new Date().toISOString() })
               .eq("workspace_id", workspace_id);
+
 
             // Log sync
             await supabase.from("ghl_sync_log").insert({
