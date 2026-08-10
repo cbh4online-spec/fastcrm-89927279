@@ -48,7 +48,11 @@ interface SyncResult {
 type ContactsCursor = {
   startAfter?: number;
   startAfterId?: string;
+  searchAfter?: unknown[];
 };
+
+type PaginationMode = "get" | "search";
+
 
 const CONTACTS_PAGE_LIMIT = 100;
 const PAGE_REQUEST_DELAY_MS = 150;
