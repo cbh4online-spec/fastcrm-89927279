@@ -872,8 +872,11 @@ function WorkspaceGHLSettingsInner() {
                     <span className="font-medium">A sincronizar conversas...</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    Página {conversationProgress.page}
+                    {conversationProgress.pass && conversationProgress.pass > 1
+                      ? `Continuação ${conversationProgress.pass} · Página ${conversationProgress.page}`
+                      : `Página ${conversationProgress.page}`}
                   </span>
+
                 </div>
                 
                 <div className="grid grid-cols-3 gap-2 text-xs text-center">
