@@ -26,7 +26,9 @@ interface GHLContact {
   country?: string;
   socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string };
   customFields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>;
+  searchAfter?: unknown[];
 }
+
 
 interface GHLContactsResponse {
   contacts: GHLContact[];
@@ -48,7 +50,11 @@ interface SyncResult {
 type ContactsCursor = {
   startAfter?: number;
   startAfterId?: string;
+  searchAfter?: unknown[];
 };
+
+type PaginationMode = "get" | "search";
+
 
 const CONTACTS_PAGE_LIMIT = 100;
 const PAGE_REQUEST_DELAY_MS = 150;
@@ -96,9 +102,15 @@ function parseCursorNumber(value: unknown): number | undefined {
 
 function describeCursor(cursor?: ContactsCursor): string {
   if (!cursor) return "initial";
-  if (cursor.startAfter !== undefined) return `startAfter=${cursor.startAfter}`;
-  if (cursor.startAfterId) return `startAfterId=${cursor.startAfterId}`;
-  return "initial";
+  const parts: string[] = [];
+  if (cursor.startAfter !== undefined) parts.push(`startAfter=${cursor.startAfter}`);
+  if (cursor.startAfterId) parts.push(`startAfterId=${cursor.startAfterId}`);
+  if (cursor.searchAfter) parts.push(`searchAfter=${JSON.stringify(cursor.searchAfter)}`);
+  return parts.length ? parts.join("&") : "initial";
+}
+
+function cursorKey(mode: PaginationMode, cursor?: ContactsCursor): string {
+  return `${mode}:${describeCursor(cursor)}`;
 }
 
 function buildContactsUrl(locationId: string, cursor?: ContactsCursor): string {
@@ -107,47 +119,56 @@ function buildContactsUrl(locationId: string, cursor?: ContactsCursor): string {
     limit: String(CONTACTS_PAGE_LIMIT),
   });
 
+  // GHL requires BOTH cursor parts to advance the page. Sending only one of
+  // them makes the API return the same page over and over.
   if (cursor?.startAfter !== undefined) {
     params.set("startAfter", String(cursor.startAfter));
-  } else if (cursor?.startAfterId) {
+  }
+  if (cursor?.startAfterId) {
     params.set("startAfterId", cursor.startAfterId);
   }
 
   return `https://services.leadconnectorhq.com/contacts/?${params.toString()}`;
 }
 
-function getContactsPageSignature(contacts: GHLContact[]): string {
-  const firstId = contacts[0]?.id || "none";
-  const lastId = contacts[contacts.length - 1]?.id || "none";
-  return `${contacts.length}:${firstId}:${lastId}`;
-}
+function resolveNextCursor(
+  data: GHLContactsResponse,
+  contacts: GHLContact[],
+  mode: PaginationMode,
+): ContactsCursor | null {
+  if (contacts.length === 0) return null;
 
-function resolveNextCursor(data: GHLContactsResponse, contacts: GHLContact[]): ContactsCursor | null {
-  const metaStartAfter = parseCursorNumber(data.meta?.startAfter);
-  if (metaStartAfter !== undefined) {
-    return { startAfter: metaStartAfter };
+  const lastContact = contacts[contacts.length - 1];
+
+  if (mode === "search") {
+    const searchAfter = Array.isArray(lastContact?.searchAfter) ? lastContact.searchAfter : null;
+    if (!searchAfter || searchAfter.length === 0) return null;
+    return { searchAfter };
   }
 
+  const metaStartAfter = parseCursorNumber(data.meta?.startAfter);
   const metaStartAfterId = typeof data.meta?.startAfterId === "string"
     ? data.meta.startAfterId.trim()
     : "";
-  if (metaStartAfterId) {
-    return { startAfterId: metaStartAfterId };
-  }
 
-  if (contacts.length < CONTACTS_PAGE_LIMIT) {
+  const fallbackStartAfter = parseCursorNumber(lastContact?.dateAdded);
+  const fallbackStartAfterId = typeof lastContact?.id === "string" ? lastContact.id.trim() : "";
+
+  const startAfter = metaStartAfter ?? fallbackStartAfter;
+  const startAfterId = metaStartAfterId || fallbackStartAfterId;
+
+  if (contacts.length < CONTACTS_PAGE_LIMIT && metaStartAfter === undefined && !metaStartAfterId) {
     return null;
   }
 
-  const lastContact = contacts[contacts.length - 1];
-  const lastDateCursor = parseCursorNumber(lastContact?.dateAdded);
-  if (lastDateCursor !== undefined) {
-    return { startAfter: lastDateCursor };
-  }
+  if (startAfter === undefined && !startAfterId) return null;
 
-  const lastId = typeof lastContact?.id === "string" ? lastContact.id.trim() : "";
-  return lastId ? { startAfterId: lastId } : null;
+  const next: ContactsCursor = {};
+  if (startAfter !== undefined) next.startAfter = startAfter;
+  if (startAfterId) next.startAfterId = startAfterId;
+  return next;
 }
+
 
 function mapContactsApiError(status: number, errorText: string): string {
   if (status === 401) {
@@ -179,25 +200,39 @@ async function fetchContactsPage(
   apiKey: string,
   locationId: string,
   cursor?: ContactsCursor,
+  mode: PaginationMode = "get",
 ): Promise<
   | { ok: true; data: GHLContactsResponse; url: string }
   | { ok: false; status: number; errorText: string; url: string; attempts: number }
 > {
   let attempt = 0;
+  const isSearch = mode === "search";
+  const url = isSearch
+    ? "https://services.leadconnectorhq.com/contacts/search"
+    : buildContactsUrl(locationId, cursor);
 
   while (attempt < MAX_429_RETRIES) {
     attempt += 1;
-    const url = buildContactsUrl(locationId, cursor);
 
-    console.log(`[GHL Sync] Fetching contacts page: ${url} (attempt ${attempt}/${MAX_429_RETRIES})`);
+    console.log(
+      `[GHL Sync] Fetching contacts page (${mode}): ${url} cursor=${describeCursor(cursor)} (attempt ${attempt}/${MAX_429_RETRIES})`,
+    );
 
     const ghlResponse = await fetch(url, {
-      method: "GET",
+      method: isSearch ? "POST" : "GET",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         Version: "2021-07-28",
         Accept: "application/json",
+        ...(isSearch ? { "Content-Type": "application/json" } : {}),
       },
+      body: isSearch
+        ? JSON.stringify({
+          locationId,
+          pageLimit: CONTACTS_PAGE_LIMIT,
+          ...(cursor?.searchAfter ? { searchAfter: cursor.searchAfter } : {}),
+        })
+        : undefined,
     });
 
     const responseText = await ghlResponse.text();
@@ -247,10 +282,11 @@ async function fetchContactsPage(
     ok: false,
     status: 429,
     errorText: "Rate limit persistente após várias tentativas.",
-    url: buildContactsUrl(locationId, cursor),
+    url,
     attempts: MAX_429_RETRIES,
   };
 }
+
 
 Deno.serve(async (req) => {
   // VERSION MARKER - confirms deployment success
@@ -386,8 +422,9 @@ Deno.serve(async (req) => {
           const maxPages = 100;
           let timedOut = false;
           let estimatedTotal = 0;
-          const seenPageSignatures = new Set<string>();
+          const seenContactIds = new Set<string>();
           const seenCursorKeys = new Set<string>();
+          let mode: PaginationMode = "get";
 
           try {
             // First, get an estimate of total contacts
@@ -416,7 +453,7 @@ Deno.serve(async (req) => {
 
               pageCount++;
               
-              const pageResponse = await fetchContactsPage(apiKey, locationId, cursor);
+              const pageResponse = await fetchContactsPage(apiKey, locationId, cursor, mode);
 
               if (!pageResponse.ok) {
                 result.errors.push(mapContactsApiError(pageResponse.status, pageResponse.errorText));
@@ -426,20 +463,31 @@ Deno.serve(async (req) => {
               const data = pageResponse.data;
               const contacts = data.contacts || [];
 
-              const pageSignature = getContactsPageSignature(contacts);
-              if (seenPageSignatures.has(pageSignature)) {
-                console.warn(`[GHL Sync] Duplicate page detected on page ${pageCount}: ${pageSignature}`);
-                result.errors.push("A API do GHL devolveu páginas repetidas; a sincronização foi interrompida para evitar um ciclo infinito.");
-                break;
-              }
-              seenPageSignatures.add(pageSignature);
-
-              console.log(`[GHL Sync] Page ${pageCount}: ${contacts.length} contacts, cursor=${describeCursor(cursor)}, nextMeta=${JSON.stringify(data.meta || {})}`);
+              console.log(`[GHL Sync] Page ${pageCount} (${mode}): ${contacts.length} contacts, cursor=${describeCursor(cursor)}, nextMeta=${JSON.stringify(data.meta || {})}`);
 
               if (contacts.length === 0) {
                 hasMore = false;
                 break;
               }
+
+              const newIds = contacts.filter((c) => c?.id && !seenContactIds.has(c.id)).length;
+              if (newIds === 0) {
+                console.warn(`[GHL Sync] Page ${pageCount} brought no new contacts (${mode})`);
+                if (mode === "get") {
+                  mode = "search";
+                  cursor = undefined;
+                  await sleep(PAGE_REQUEST_DELAY_MS);
+                  continue;
+                }
+                result.errors.push(
+                  `A paginação do GHL deixou de avançar após ${result.total_processed} contactos processados. Volte a sincronizar para continuar.`,
+                );
+                break;
+              }
+              for (const c of contacts) {
+                if (c?.id) seenContactIds.add(c.id);
+              }
+
 
               // Prepare batch inserts - using local Set for deduplication (100% reliable)
               const leadsToInsert: Array<Record<string, unknown>> = [];
@@ -565,19 +613,29 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
               });
 
               // Check for more pages
-              const nextCursor = resolveNextCursor(data, contacts);
+              const nextCursor = resolveNextCursor(data, contacts, mode);
               if (!nextCursor) {
                 hasMore = false;
               } else {
-                const cursorKey = JSON.stringify(nextCursor);
-                if (seenCursorKeys.has(cursorKey)) {
-                  console.warn(`[GHL Sync] Duplicate cursor detected on page ${pageCount}: ${cursorKey}`);
-                  result.errors.push("A API do GHL devolveu o mesmo cursor de paginação; a sincronização foi interrompida para evitar pedidos em loop.");
-                  break;
+                const key = cursorKey(mode, nextCursor);
+                if (seenCursorKeys.has(key)) {
+                  console.warn(`[GHL Sync] Duplicate cursor detected on page ${pageCount}: ${key}`);
+                  if (mode === "get") {
+                    console.warn("[GHL Sync] Switching to /contacts/search pagination");
+                    mode = "search";
+                    cursor = undefined;
+                  } else {
+                    result.errors.push(
+                      `A paginação do GHL deixou de avançar após ${result.total_processed} contactos processados. Volte a sincronizar para continuar.`,
+                    );
+                    break;
+                  }
+                } else {
+                  seenCursorKeys.add(key);
+                  cursor = nextCursor;
                 }
-                seenCursorKeys.add(cursorKey);
-                cursor = nextCursor;
               }
+
 
               await sleep(PAGE_REQUEST_DELAY_MS);
             }
@@ -652,8 +710,9 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
     let pageCount = 0;
     const maxPages = 100;
     let timedOut = false;
-    const seenPageSignatures = new Set<string>();
+    const seenContactIds = new Set<string>();
     const seenCursorKeys = new Set<string>();
+    let mode: PaginationMode = "get";
 
     while (hasMore && pageCount < maxPages) {
       if (Date.now() - startTime > maxExecutionTime) {
@@ -664,7 +723,7 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
 
       pageCount++;
       
-      const pageResponse = await fetchContactsPage(apiKey, locationId, cursor);
+      const pageResponse = await fetchContactsPage(apiKey, locationId, cursor, mode);
 
       if (!pageResponse.ok) {
         result.errors.push(mapContactsApiError(pageResponse.status, pageResponse.errorText));
@@ -674,20 +733,31 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
       const data = pageResponse.data;
       const contacts = data.contacts || [];
 
-      const pageSignature = getContactsPageSignature(contacts);
-      if (seenPageSignatures.has(pageSignature)) {
-        console.warn(`[GHL Sync] Duplicate page detected on page ${pageCount}: ${pageSignature}`);
-        result.errors.push("A API do GHL devolveu páginas repetidas; a sincronização foi interrompida para evitar um ciclo infinito.");
-        break;
-      }
-      seenPageSignatures.add(pageSignature);
-
-      console.log(`[GHL Sync] Page ${pageCount}: ${contacts.length} contacts, cursor=${describeCursor(cursor)}, nextMeta=${JSON.stringify(data.meta || {})}`);
+      console.log(`[GHL Sync] Page ${pageCount} (${mode}): ${contacts.length} contacts, cursor=${describeCursor(cursor)}, nextMeta=${JSON.stringify(data.meta || {})}`);
 
       if (contacts.length === 0) {
         hasMore = false;
         break;
       }
+
+      const newIds = contacts.filter((c) => c?.id && !seenContactIds.has(c.id)).length;
+      if (newIds === 0) {
+        console.warn(`[GHL Sync] Page ${pageCount} brought no new contacts (${mode})`);
+        if (mode === "get") {
+          mode = "search";
+          cursor = undefined;
+          await sleep(PAGE_REQUEST_DELAY_MS);
+          continue;
+        }
+        result.errors.push(
+          `A paginação do GHL deixou de avançar após ${result.total_processed} contactos processados. Volte a sincronizar para continuar.`,
+        );
+        break;
+      }
+      for (const c of contacts) {
+        if (c?.id) seenContactIds.add(c.id);
+      }
+
 
       // Prepare batch inserts - using local Set for deduplication
       const leadsToInsert: Array<Record<string, unknown>> = [];
@@ -784,19 +854,29 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
         }
       }
 
-      const nextCursor = resolveNextCursor(data, contacts);
+      const nextCursor = resolveNextCursor(data, contacts, mode);
       if (!nextCursor) {
         hasMore = false;
       } else {
-        const cursorKey = JSON.stringify(nextCursor);
-        if (seenCursorKeys.has(cursorKey)) {
-          console.warn(`[GHL Sync] Duplicate cursor detected on page ${pageCount}: ${cursorKey}`);
-          result.errors.push("A API do GHL devolveu o mesmo cursor de paginação; a sincronização foi interrompida para evitar pedidos em loop.");
-          break;
+        const key = cursorKey(mode, nextCursor);
+        if (seenCursorKeys.has(key)) {
+          console.warn(`[GHL Sync] Duplicate cursor detected on page ${pageCount}: ${key}`);
+          if (mode === "get") {
+            console.warn("[GHL Sync] Switching to /contacts/search pagination");
+            mode = "search";
+            cursor = undefined;
+          } else {
+            result.errors.push(
+              `A paginação do GHL deixou de avançar após ${result.total_processed} contactos processados. Volte a sincronizar para continuar.`,
+            );
+            break;
+          }
+        } else {
+          seenCursorKeys.add(key);
+          cursor = nextCursor;
         }
-        seenCursorKeys.add(cursorKey);
-        cursor = nextCursor;
       }
+
 
       await sleep(PAGE_REQUEST_DELAY_MS);
     }
