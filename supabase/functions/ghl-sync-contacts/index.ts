@@ -96,9 +96,15 @@ function parseCursorNumber(value: unknown): number | undefined {
 
 function describeCursor(cursor?: ContactsCursor): string {
   if (!cursor) return "initial";
-  if (cursor.startAfter !== undefined) return `startAfter=${cursor.startAfter}`;
-  if (cursor.startAfterId) return `startAfterId=${cursor.startAfterId}`;
-  return "initial";
+  const parts: string[] = [];
+  if (cursor.startAfter !== undefined) parts.push(`startAfter=${cursor.startAfter}`);
+  if (cursor.startAfterId) parts.push(`startAfterId=${cursor.startAfterId}`);
+  if (cursor.searchAfter) parts.push(`searchAfter=${JSON.stringify(cursor.searchAfter)}`);
+  return parts.length ? parts.join("&") : "initial";
+}
+
+function cursorKey(mode: PaginationMode, cursor?: ContactsCursor): string {
+  return `${mode}:${describeCursor(cursor)}`;
 }
 
 function buildContactsUrl(locationId: string, cursor?: ContactsCursor): string {
@@ -107,47 +113,56 @@ function buildContactsUrl(locationId: string, cursor?: ContactsCursor): string {
     limit: String(CONTACTS_PAGE_LIMIT),
   });
 
+  // GHL requires BOTH cursor parts to advance the page. Sending only one of
+  // them makes the API return the same page over and over.
   if (cursor?.startAfter !== undefined) {
     params.set("startAfter", String(cursor.startAfter));
-  } else if (cursor?.startAfterId) {
+  }
+  if (cursor?.startAfterId) {
     params.set("startAfterId", cursor.startAfterId);
   }
 
   return `https://services.leadconnectorhq.com/contacts/?${params.toString()}`;
 }
 
-function getContactsPageSignature(contacts: GHLContact[]): string {
-  const firstId = contacts[0]?.id || "none";
-  const lastId = contacts[contacts.length - 1]?.id || "none";
-  return `${contacts.length}:${firstId}:${lastId}`;
-}
+function resolveNextCursor(
+  data: GHLContactsResponse,
+  contacts: GHLContact[],
+  mode: PaginationMode,
+): ContactsCursor | null {
+  if (contacts.length === 0) return null;
 
-function resolveNextCursor(data: GHLContactsResponse, contacts: GHLContact[]): ContactsCursor | null {
-  const metaStartAfter = parseCursorNumber(data.meta?.startAfter);
-  if (metaStartAfter !== undefined) {
-    return { startAfter: metaStartAfter };
+  const lastContact = contacts[contacts.length - 1];
+
+  if (mode === "search") {
+    const searchAfter = Array.isArray(lastContact?.searchAfter) ? lastContact.searchAfter : null;
+    if (!searchAfter || searchAfter.length === 0) return null;
+    return { searchAfter };
   }
 
+  const metaStartAfter = parseCursorNumber(data.meta?.startAfter);
   const metaStartAfterId = typeof data.meta?.startAfterId === "string"
     ? data.meta.startAfterId.trim()
     : "";
-  if (metaStartAfterId) {
-    return { startAfterId: metaStartAfterId };
-  }
 
-  if (contacts.length < CONTACTS_PAGE_LIMIT) {
+  const fallbackStartAfter = parseCursorNumber(lastContact?.dateAdded);
+  const fallbackStartAfterId = typeof lastContact?.id === "string" ? lastContact.id.trim() : "";
+
+  const startAfter = metaStartAfter ?? fallbackStartAfter;
+  const startAfterId = metaStartAfterId || fallbackStartAfterId;
+
+  if (contacts.length < CONTACTS_PAGE_LIMIT && metaStartAfter === undefined && !metaStartAfterId) {
     return null;
   }
 
-  const lastContact = contacts[contacts.length - 1];
-  const lastDateCursor = parseCursorNumber(lastContact?.dateAdded);
-  if (lastDateCursor !== undefined) {
-    return { startAfter: lastDateCursor };
-  }
+  if (startAfter === undefined && !startAfterId) return null;
 
-  const lastId = typeof lastContact?.id === "string" ? lastContact.id.trim() : "";
-  return lastId ? { startAfterId: lastId } : null;
+  const next: ContactsCursor = {};
+  if (startAfter !== undefined) next.startAfter = startAfter;
+  if (startAfterId) next.startAfterId = startAfterId;
+  return next;
 }
+
 
 function mapContactsApiError(status: number, errorText: string): string {
   if (status === 401) {
