@@ -28,7 +28,7 @@ export interface ConversationSyncProgress {
 }
 
 /** Número máximo de continuações automáticas após uma passagem parcial */
-const MAX_CONTINUATIONS = 5;
+const MAX_CONTINUATIONS = 20;
 
 function mergeResults(
   acc: ConversationSyncResult | null,
@@ -182,6 +182,14 @@ export function useGHLConversationSync() {
             (e) => e.includes("API Key") || e.includes("Acesso negado")
           );
           if (!passResult.partial || fatal) break;
+
+          // Parar cedo se a passagem não produziu qualquer progresso (evita ciclos inúteis)
+          const madeProgress =
+            passResult.total_processed > 0 ||
+            passResult.conversations_created > 0 ||
+            passResult.conversations_updated > 0 ||
+            passResult.messages_created > 0;
+          if (!madeProgress) break;
 
           pass++;
         }
