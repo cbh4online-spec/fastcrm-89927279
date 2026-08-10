@@ -29,10 +29,12 @@ export function CreateViewDialog({ open, onOpenChange, onCreated }: CreateViewDi
   const { t } = useTranslation("crm");
   const createView = useCreateSavedView();
   const [name, setName] = useState("");
-  const [viewMode, setViewMode] = useState("kanban");
+  const [viewMode, setViewMode] = useState<"board" | "table">("board");
+  const [error, setError] = useState<string | null>(null);
 
   const handleCreate = () => {
     if (!name.trim()) return;
+    setError(null);
     createView.mutate(
       {
         name: name.trim(),
@@ -44,7 +46,10 @@ export function CreateViewDialog({ open, onOpenChange, onCreated }: CreateViewDi
           onCreated?.(view.id);
           onOpenChange(false);
           setName("");
-          setViewMode("kanban");
+          setViewMode("board");
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Erro desconhecido");
         },
       }
     );
@@ -58,27 +63,33 @@ export function CreateViewDialog({ open, onOpenChange, onCreated }: CreateViewDi
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label>{t("dealName")}</Label>
+            <Label htmlFor="saved-view-name">{t("viewName")}</Label>
             <Input
+              id="saved-view-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Hot Deals, Enterprise Pipeline"
+              placeholder="Ex.: Hot Deals, Pipeline Enterprise"
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               autoFocus
             />
           </div>
           <div>
-            <Label>{t("kanbanView")}</Label>
-            <Select value={viewMode} onValueChange={setViewMode}>
+            <Label>{t("viewType")}</Label>
+            <Select value={viewMode} onValueChange={(v) => setViewMode(v as "board" | "table")}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="kanban">{t("kanban")}</SelectItem>
-                <SelectItem value="list">{t("list")}</SelectItem>
+                <SelectItem value="board">{t("kanban")}</SelectItem>
+                <SelectItem value="table">{t("list")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
           <Button
             onClick={handleCreate}
             disabled={!name.trim() || createView.isPending}

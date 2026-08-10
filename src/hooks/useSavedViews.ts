@@ -52,9 +52,9 @@ export function useCreateSavedView() {
       filters?: Record<string, unknown>;
       sort_config?: Record<string, unknown>;
       visible_columns?: string[];
-      view_mode?: string;
+      view_mode?: "table" | "board";
     }) => {
-      if (!currentWorkspace) throw new Error("No workspace");
+      if (!currentWorkspace) throw new Error("Nenhuma workspace selecionada");
       const userId = (await supabase.auth.getUser()).data.user?.id;
       const { data, error } = await (supabase
         .from("crm_saved_views")
@@ -70,14 +70,17 @@ export function useCreateSavedView() {
         } as any) as any)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as SavedView;
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
-      toast.success("View saved");
+      toast.success("Vista guardada");
     },
-    onError: () => toast.error("Failed to save view"),
+    onError: (error: unknown) =>
+      toast.error("Não foi possível guardar a vista", {
+        description: error instanceof Error ? error.message : undefined,
+      }),
   });
 }
 
@@ -91,13 +94,16 @@ export function useDeleteSavedView() {
         .from("crm_saved_views")
         .delete() as any)
         .eq("id", input.id);
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
-      toast.success("View deleted");
+      toast.success("Vista eliminada");
     },
-    onError: () => toast.error("Failed to delete view"),
+    onError: (error: unknown) =>
+      toast.error("Não foi possível eliminar a vista", {
+        description: error instanceof Error ? error.message : undefined,
+      }),
   });
 }
 
@@ -116,7 +122,10 @@ export function useToggleFavorite() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
     },
-    onError: () => toast.error("Failed to update favorite"),
+    onError: (error: unknown) =>
+      toast.error("Não foi possível atualizar o favorito", {
+        description: error instanceof Error ? error.message : undefined,
+      }),
   });
 }
 
@@ -134,9 +143,12 @@ export function useUpdateSavedView() {
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
-      toast.success("View updated");
+      toast.success("Vista atualizada");
     },
-    onError: () => toast.error("Failed to update view"),
+    onError: (error: unknown) =>
+      toast.error("Não foi possível atualizar a vista", {
+        description: error instanceof Error ? error.message : undefined,
+      }),
   });
 }
 
@@ -166,14 +178,17 @@ export function useDuplicateSavedView() {
         } as any) as any)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as SavedView;
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.view.entity_type] });
-      toast.success("View duplicated");
+      toast.success("Vista duplicada");
     },
-    onError: () => toast.error("Failed to duplicate view"),
+    onError: (error: unknown) =>
+      toast.error("Não foi possível duplicar a vista", {
+        description: error instanceof Error ? error.message : undefined,
+      }),
   });
 }
 
@@ -194,6 +209,9 @@ export function useReorderSavedViews() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
     },
-    onError: () => toast.error("Failed to reorder views"),
+    onError: (error: unknown) =>
+      toast.error("Não foi possível reordenar as vistas", {
+        description: error instanceof Error ? error.message : undefined,
+      }),
   });
 }
