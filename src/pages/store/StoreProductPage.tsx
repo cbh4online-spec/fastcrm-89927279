@@ -734,7 +734,7 @@ export default function StoreProductPage() {
                     </>
                   ) : (
                     <>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                         <span className="text-sm font-medium">Qtd:</span>
                         <div className="flex items-center border rounded-xl overflow-hidden">
                           <Button
