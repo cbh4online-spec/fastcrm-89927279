@@ -770,16 +770,23 @@ Deno.serve(async (req) => {
               if (!ghlResponse.ok) {
                 const errorText = await ghlResponse.text();
                 console.error(`[GHL Sync Conversations] API Error: ${ghlResponse.status} - ${errorText}`);
-                
+
                 if (ghlResponse.status === 401) {
-                  result.errors.push("API Key inválida ou expirada.");
+                  result.errors.push("API Key do GoHighLevel inválida ou expirada.");
                 } else if (ghlResponse.status === 403) {
-                  result.errors.push("Acesso negado. Verifique permissões da API.");
+                  result.errors.push("Acesso negado pelo GoHighLevel. Verifique as permissões da API.");
+                } else if (ghlResponse.status === 429) {
+                  result.partial = true;
+                  result.errors.push("Limite de pedidos do GoHighLevel atingido (429). A sincronização continua mais tarde do último ponto.");
+                  await saveCursor(lastSortDate, true);
                 } else {
-                  result.errors.push(`Erro GHL: ${ghlResponse.status}`);
+                  result.partial = true;
+                  result.errors.push(`Erro do GoHighLevel (${ghlResponse.status}) ao obter conversas.`);
+                  await saveCursor(lastSortDate, true);
                 }
                 break;
               }
+
 
               const data = await ghlResponse.json();
               const conversations: GHLConversation[] = data.conversations || [];
