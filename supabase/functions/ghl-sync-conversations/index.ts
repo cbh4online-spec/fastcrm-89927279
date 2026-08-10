@@ -1106,16 +1106,17 @@ Deno.serve(async (req) => {
                     if (msgData) {
                       const msgDataAny = msgData as any;
 
-                      
+
                       // Robust parsing: handle multiple response formats from GHL API
-                      let rawMessages = msgData.messages;
+                      let rawMessages = msgDataAny.messages;
                       if (rawMessages && !Array.isArray(rawMessages) && typeof rawMessages === "object") {
                         // Nested format: { messages: { messages: [...] } }
                         rawMessages = rawMessages.messages || Object.values(rawMessages);
                       }
                       if (!rawMessages) {
-                        rawMessages = msgData.data || [];
+                        rawMessages = msgDataAny.data || [];
                       }
+
                       const messages: GHLMessage[] = Array.isArray(rawMessages) ? rawMessages : [];
                       
                       console.log(`[GHL Sync] Conv ${ghlConv.id} messages response keys: ${Object.keys(msgData).join(",")}, parsed count: ${messages.length}`);
