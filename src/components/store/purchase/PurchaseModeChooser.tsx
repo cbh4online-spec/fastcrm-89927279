@@ -82,11 +82,13 @@ export function PurchaseModeChooser({
             {offerBullets.map((b) => (
               <li key={b} className="flex items-start gap-2 text-xs text-muted-foreground">
                 <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" aria-hidden="true" />
-                <span>{b}</span>
+                <span className="min-w-0">{b}</span>
               </li>
             ))}
           </ul>
-          <div className="mt-4 [&_button]:h-11 [&_button]:w-full [&_button]:rounded-xl">{offerSlot}</div>
+          <div className="mt-4 [&_button]:h-auto [&_button]:min-h-11 [&_button]:w-full [&_button]:whitespace-normal [&_button]:rounded-xl [&_button]:px-3 [&_button]:py-2 [&_button]:leading-tight">
+            {offerSlot}
+          </div>
         </div>
       )}
     </div>
