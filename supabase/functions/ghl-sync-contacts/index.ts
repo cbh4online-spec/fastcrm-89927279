@@ -688,8 +688,9 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
     let pageCount = 0;
     const maxPages = 100;
     let timedOut = false;
-    const seenPageSignatures = new Set<string>();
+    const seenContactIds = new Set<string>();
     const seenCursorKeys = new Set<string>();
+    let mode: PaginationMode = "get";
 
     while (hasMore && pageCount < maxPages) {
       if (Date.now() - startTime > maxExecutionTime) {
@@ -700,7 +701,7 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
 
       pageCount++;
       
-      const pageResponse = await fetchContactsPage(apiKey, locationId, cursor);
+      const pageResponse = await fetchContactsPage(apiKey, locationId, cursor, mode);
 
       if (!pageResponse.ok) {
         result.errors.push(mapContactsApiError(pageResponse.status, pageResponse.errorText));
@@ -710,20 +711,31 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
       const data = pageResponse.data;
       const contacts = data.contacts || [];
 
-      const pageSignature = getContactsPageSignature(contacts);
-      if (seenPageSignatures.has(pageSignature)) {
-        console.warn(`[GHL Sync] Duplicate page detected on page ${pageCount}: ${pageSignature}`);
-        result.errors.push("A API do GHL devolveu páginas repetidas; a sincronização foi interrompida para evitar um ciclo infinito.");
-        break;
-      }
-      seenPageSignatures.add(pageSignature);
-
-      console.log(`[GHL Sync] Page ${pageCount}: ${contacts.length} contacts, cursor=${describeCursor(cursor)}, nextMeta=${JSON.stringify(data.meta || {})}`);
+      console.log(`[GHL Sync] Page ${pageCount} (${mode}): ${contacts.length} contacts, cursor=${describeCursor(cursor)}, nextMeta=${JSON.stringify(data.meta || {})}`);
 
       if (contacts.length === 0) {
         hasMore = false;
         break;
       }
+
+      const newIds = contacts.filter((c) => c?.id && !seenContactIds.has(c.id)).length;
+      if (newIds === 0) {
+        console.warn(`[GHL Sync] Page ${pageCount} brought no new contacts (${mode})`);
+        if (mode === "get") {
+          mode = "search";
+          cursor = undefined;
+          await sleep(PAGE_REQUEST_DELAY_MS);
+          continue;
+        }
+        result.errors.push(
+          `A paginação do GHL deixou de avançar após ${result.total_processed} contactos processados. Volte a sincronizar para continuar.`,
+        );
+        break;
+      }
+      for (const c of contacts) {
+        if (c?.id) seenContactIds.add(c.id);
+      }
+
 
       // Prepare batch inserts - using local Set for deduplication
       const leadsToInsert: Array<Record<string, unknown>> = [];
