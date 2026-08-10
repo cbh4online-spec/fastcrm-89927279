@@ -20,6 +20,8 @@
   "contactName": "Nome do Contacto",
   "companyName": "Nome da Empresa",
   "dealName": "Nome do Negócio",
+  "viewName": "Nome da vista",
+  "viewType": "Tipo de vista",
   "dealValue": "Valor do Negócio",
   "stage": "Etapa",
   "pipeline": "Pipeline",
