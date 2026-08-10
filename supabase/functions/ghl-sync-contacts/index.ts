@@ -601,19 +601,29 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
               });
 
               // Check for more pages
-              const nextCursor = resolveNextCursor(data, contacts);
+              const nextCursor = resolveNextCursor(data, contacts, mode);
               if (!nextCursor) {
                 hasMore = false;
               } else {
-                const cursorKey = JSON.stringify(nextCursor);
-                if (seenCursorKeys.has(cursorKey)) {
-                  console.warn(`[GHL Sync] Duplicate cursor detected on page ${pageCount}: ${cursorKey}`);
-                  result.errors.push("A API do GHL devolveu o mesmo cursor de paginação; a sincronização foi interrompida para evitar pedidos em loop.");
-                  break;
+                const key = cursorKey(mode, nextCursor);
+                if (seenCursorKeys.has(key)) {
+                  console.warn(`[GHL Sync] Duplicate cursor detected on page ${pageCount}: ${key}`);
+                  if (mode === "get") {
+                    console.warn("[GHL Sync] Switching to /contacts/search pagination");
+                    mode = "search";
+                    cursor = undefined;
+                  } else {
+                    result.errors.push(
+                      `A paginação do GHL deixou de avançar após ${result.total_processed} contactos processados. Volte a sincronizar para continuar.`,
+                    );
+                    break;
+                  }
+                } else {
+                  seenCursorKeys.add(key);
+                  cursor = nextCursor;
                 }
-                seenCursorKeys.add(cursorKey);
-                cursor = nextCursor;
               }
+
 
               await sleep(PAGE_REQUEST_DELAY_MS);
             }
