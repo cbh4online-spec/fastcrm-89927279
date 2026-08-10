@@ -672,7 +672,9 @@ Deno.serve(async (req) => {
           };
 
           const startTime = Date.now();
-          const maxExecutionTime = 50000;
+          const maxExecutionTime = 45000;
+          const PAGE_SIZE = 20;
+          const FETCH_CONCURRENCY = 4;
           const CURSOR_SYNC_TYPE = "conversations";
 
           const saveCursor = async (value: string | undefined, partialRun: boolean) => {
@@ -735,8 +737,9 @@ Deno.serve(async (req) => {
 
             while (hasMore && pageCount < maxPages) {
               if (Date.now() - startTime > maxExecutionTime) {
+                // Não é um erro: apenas ainda há mais para processar. O frontend continua automaticamente.
                 result.partial = true;
-                result.errors.push(`Sincronização parcial: tempo máximo atingido após ${pageCount} páginas. Retoma automática do último ponto.`);
+                console.log(`[GHL Sync] Time budget reached after ${pageCount} pages`);
                 await saveCursor(lastSortDate, true);
                 break;
               }
@@ -747,7 +750,7 @@ Deno.serve(async (req) => {
               // Use GET /conversations/search with query params (correct GHL API endpoint)
               const queryParams = new URLSearchParams({
                 locationId,
-                limit: "50",
+                limit: String(PAGE_SIZE),
                 status: "all",
               });
               if (lastSortDate) {
@@ -798,8 +801,55 @@ Deno.serve(async (req) => {
                 break;
               }
 
+              // Pré-carregar em paralelo (lotes pequenos) as mensagens de cada conversa.
+              // É a chamada dominante por conversa; paralelizar reduz muito o tempo por página.
+              const prefetchedMessages = new Map<string, unknown>();
+              if (include_messages) {
+                for (let i = 0; i < conversations.length; i += FETCH_CONCURRENCY) {
+                  if (Date.now() - startTime > maxExecutionTime) break;
+                  const batch = conversations.slice(i, i + FETCH_CONCURRENCY);
+                  await Promise.all(batch.map(async (c) => {
+                    try {
+                      const r = await fetch(
+                        `https://services.leadconnectorhq.com/conversations/${c.id}/messages`,
+                        {
+                          method: "GET",
+                          headers: {
+                            Authorization: `Bearer ${apiKey}`,
+                            Version: "2021-04-15",
+                            Accept: "application/json",
+                          },
+                        },
+                      );
+                      if (r.ok) prefetchedMessages.set(c.id, await r.json());
+                    } catch (e) {
+                      console.error(`[GHL Sync] Prefetch messages failed for conv ${c.id}`, e);
+                    }
+                  }));
+                }
+              }
+
+              let processedInPage = 0;
+
               for (const ghlConv of conversations) {
+                // Orçamento de tempo verificado por conversa (e não só por página):
+                // grava o cursor da última conversa processada para retomar sem repetir.
+                if (Date.now() - startTime > maxExecutionTime) {
+                  result.partial = true;
+                  const cursorValue = processedInPage > 0
+                    ? (conversations[processedInPage - 1].lastMessageDate
+                      || conversations[processedInPage - 1].dateUpdated
+                      || conversations[processedInPage - 1].id)
+                    : lastSortDate;
+                  await saveCursor(cursorValue, true);
+                  console.log(`[GHL Sync] Time budget reached mid-page after ${processedInPage} conversations`);
+                  hasMore = true;
+                  break;
+                }
+
+                processedInPage++;
                 result.total_processed++;
+
 
                 // Find or auto-create lead for this conversation
                 let leadId = leadsByGhlId.get(ghlConv.contactId);
@@ -1035,28 +1085,39 @@ Deno.serve(async (req) => {
                 if (include_messages && conversationId) {
                   try {
                     const messagesUrl = `https://services.leadconnectorhq.com/conversations/${ghlConv.id}/messages`;
-                    
-                    const msgResponse = await fetch(messagesUrl, {
-                      method: "GET",
-                      headers: {
-                        Authorization: `Bearer ${apiKey}`,
-                        Version: "2021-04-15",
-                        Accept: "application/json",
-                      },
-                    });
 
-                    if (msgResponse.ok) {
-                      const msgData = await msgResponse.json();
-                      
+                    // Usar o resultado pré-carregado em paralelo quando disponível
+                    let msgData: Record<string, unknown> | null =
+                      (prefetchedMessages.get(ghlConv.id) as Record<string, unknown> | undefined) ?? null;
+                    let msgStatus = msgData ? 200 : 0;
+
+                    if (!msgData) {
+                      const msgResponse = await fetch(messagesUrl, {
+                        method: "GET",
+                        headers: {
+                          Authorization: `Bearer ${apiKey}`,
+                          Version: "2021-04-15",
+                          Accept: "application/json",
+                        },
+                      });
+                      msgStatus = msgResponse.status;
+                      if (msgResponse.ok) msgData = await msgResponse.json();
+                    }
+
+                    if (msgData) {
+                      const msgDataAny = msgData as any;
+
+
                       // Robust parsing: handle multiple response formats from GHL API
-                      let rawMessages = msgData.messages;
+                      let rawMessages = msgDataAny.messages;
                       if (rawMessages && !Array.isArray(rawMessages) && typeof rawMessages === "object") {
                         // Nested format: { messages: { messages: [...] } }
                         rawMessages = rawMessages.messages || Object.values(rawMessages);
                       }
                       if (!rawMessages) {
-                        rawMessages = msgData.data || [];
+                        rawMessages = msgDataAny.data || [];
                       }
+
                       const messages: GHLMessage[] = Array.isArray(rawMessages) ? rawMessages : [];
                       
                       console.log(`[GHL Sync] Conv ${ghlConv.id} messages response keys: ${Object.keys(msgData).join(",")}, parsed count: ${messages.length}`);
@@ -1190,8 +1251,9 @@ Deno.serve(async (req) => {
                         }
                       }
                     } else {
-                      console.error(`[GHL Sync] Messages API error for conv ${ghlConv.id}: ${msgResponse.status}`);
+                      console.error(`[GHL Sync] Messages API error for conv ${ghlConv.id}: ${msgStatus}`);
                     }
+
                   } catch (msgErr) {
                     console.error(`[GHL Sync Conversations] Error fetching messages`, msgErr);
                   }
@@ -1206,6 +1268,11 @@ Deno.serve(async (req) => {
                 });
               }
 
+              // Interrompido a meio da página: o cursor intermédio já foi gravado
+              if (result.partial) {
+                break;
+              }
+
               // Update pagination cursor using sort date
               if (conversations.length > 0) {
                 const lastConv = conversations[conversations.length - 1];
@@ -1215,13 +1282,13 @@ Deno.serve(async (req) => {
               }
 
               // Continue if we got a full page
-              hasMore = conversations.length >= 50;
+              hasMore = conversations.length >= PAGE_SIZE;
             }
 
             // Se ainda há páginas por processar, a passagem é parcial
             if (hasMore && pageCount >= maxPages) {
               result.partial = true;
-              result.errors.push(`Sincronização parcial: limite de ${maxPages} páginas por execução. Retoma automática do último ponto.`);
+              console.log(`[GHL Sync] Page limit (${maxPages}) reached; will resume from cursor`);
               await saveCursor(lastSortDate, true);
             }
 
