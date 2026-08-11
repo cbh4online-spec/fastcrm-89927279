@@ -541,12 +541,12 @@ export default function StoreProductPage() {
 
               {/* Price — visible on mobile/tablet, hidden on lg (shown in Buy Box) */}
               {isPriceOnRequest ? (
-                <div className="lg:hidden flex items-center gap-2">
+                <div className="xl:hidden flex items-center gap-2">
                   <MessageSquareText className="h-5 w-5 text-primary" />
                   <span className="text-lg font-semibold text-primary">Preço sob consulta</span>
                 </div>
               ) : (
-                <div className="lg:hidden">
+                <div className="xl:hidden">
                   <div className="flex items-baseline gap-2">
                      <span className="text-3xl font-bold text-primary">
                        €{(pricing?.price ?? product.base_price).toFixed(2)}
@@ -633,12 +633,12 @@ export default function StoreProductPage() {
 
                 {/* Price in Buy Box (desktop only) */}
                 {isPriceOnRequest ? (
-                  <div className="hidden lg:flex items-center gap-2">
+                  <div className="hidden xl:flex items-center gap-2">
                     <MessageSquareText className="h-5 w-5 text-primary" />
                     <span className="text-xl font-semibold text-primary">Preço sob consulta</span>
                   </div>
                 ) : (
-                  <div className="hidden lg:block">
+                  <div className="hidden xl:block">
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                        <span className="text-3xl font-bold text-primary break-words">
 
