@@ -393,7 +393,7 @@ export default function StoreProductPage() {
           />
         )}
 
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-6 pb-28 md:pb-6">
           {/* Breadcrumb */}
           <motion.nav
             initial={{ opacity: 0, y: -10 }}
