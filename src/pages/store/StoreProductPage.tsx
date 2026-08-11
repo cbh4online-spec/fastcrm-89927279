@@ -419,7 +419,7 @@ export default function StoreProductPage() {
           </motion.nav>
 
           {/* 3-Zone Layout: Gallery | Info | Buy Box */}
-          <div className="grid grid-cols-1 items-start md:grid-cols-2 lg:grid-cols-[1fr_1fr_320px] gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(360px,400px)] gap-6 lg:gap-8">
             {/* ZONE 1: Gallery with vertical thumbnails */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
