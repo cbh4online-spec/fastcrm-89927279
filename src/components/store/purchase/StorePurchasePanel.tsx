@@ -2,9 +2,13 @@ import type { ReactNode } from "react";
 import { PurchaseModeChooser } from "./PurchaseModeChooser";
 import { BundleTierSelector } from "./BundleTierSelector";
 import { SellerContactBlock } from "./SellerContactBlock";
-import { StoreCheaperAlternatives } from "@/components/store/sections/StoreCheaperAlternatives";
-import type { TierProduct } from "./useStorePurchaseTiers";
+import {
+  StoreCheaperAlternatives,
+  useStoreCheaperAlternatives,
+} from "@/components/store/sections/StoreCheaperAlternatives";
+import { useStorePurchaseTiers, type TierProduct } from "./useStorePurchaseTiers";
 import type { ProductPageConfig } from "@/lib/store/productPageConfig";
+
 
 interface StorePurchasePanelProps {
   productId: string;
