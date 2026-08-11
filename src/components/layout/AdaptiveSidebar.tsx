@@ -199,7 +199,8 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           .filter((s) => s.items.length > 0),
       }))
       .filter((tg) => tg.items.length > 0 || tg.subSections.length > 0);
-  }, [rawTopSections, menuOverrideMap, menuOverridesReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawTopSections, menuOverrideMap, menuOverridesReady, isSuperAdmin]);
 
 
   // ── Filter top sections by search (menu filter across all items) ──
