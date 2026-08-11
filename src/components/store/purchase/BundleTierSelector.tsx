@@ -75,8 +75,9 @@ export function BundleTierSelector({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="@container/tiers grid grid-cols-1 gap-2 @[300px]/tiers:grid-cols-2 @[420px]/tiers:grid-cols-3">
+    <div className="@container/tiers space-y-3">
+      <div className="grid grid-cols-1 gap-2 @[300px]/tiers:grid-cols-2 @[440px]/tiers:grid-cols-3">
+
         {tiers.map((t) => {
           const active = t.id === selected.id;
           return (
