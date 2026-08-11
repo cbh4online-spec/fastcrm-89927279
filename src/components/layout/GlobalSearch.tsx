@@ -15,7 +15,8 @@ import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { useAppMode } from "@/hooks/useAppMode";
 import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
-import { resolveRouteVisibility } from "@/config/menuOverrides";
+import { resolveRouteVisibility, isGlobalAdminRoute } from "@/config/menuOverrides";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   CommandDialog,
   CommandEmpty,
@@ -68,6 +69,7 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
   const { canAccessMenu } = useMenuPermissions();
   const { mode } = useAppMode();
   const { map: menuOverrideMap, isReady: menuOverridesReady } = useMenuOverrideMap();
+  const { isSuperAdmin } = useUserRole();
 
   // Rotas pesquisáveis, respeitando permissões, módulos e modo. Sem rotas parametrizadas.
   const searchableRoutes = useMemo<RouteEntry[]>(() => {
@@ -76,9 +78,10 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
       (r) =>
         !!r.href &&
         !r.href.includes(":") &&
-        resolveRouteVisibility(menuOverrideMap, r) === "visible",
+        ((isSuperAdmin && isGlobalAdminRoute(r)) ||
+          resolveRouteVisibility(menuOverrideMap, r) === "visible"),
     );
-  }, [installedModuleIds, canAccessMenu, mode, menuOverrideMap, menuOverridesReady]);
+  }, [installedModuleIds, canAccessMenu, mode, menuOverrideMap, menuOverridesReady, isSuperAdmin]);
 
   const groupLabelByKey = useMemo(() => {
     const m = new Map<TopLevelGroup, string>();
