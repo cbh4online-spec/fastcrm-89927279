@@ -40,14 +40,11 @@ export default function PublicProposalPage() {
     } else {
       setProposal(data as unknown as Proposal);
       
-      // Load workspace data
-      if (data?.workspace_id) {
-        const { data: wsData } = await supabase
-          .from("workspaces")
-          .select("*, logo_url, company_iban, signature_name, signature_title, payment_info")
-          .eq("id", data.workspace_id)
-          .single();
-        if (wsData) setWorkspace(wsData);
+      // Dados do emissor (inclui pagamento) via função dedicada à proposta publicada
+      if (slug) {
+        const { data: issuer } = await supabase.rpc("get_proposal_issuer", { _slug: slug });
+        const ws = Array.isArray(issuer) ? issuer[0] : issuer;
+        if (ws) setWorkspace(ws as Record<string, unknown>);
       }
       
       // Load proposal items
