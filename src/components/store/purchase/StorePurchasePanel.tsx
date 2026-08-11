@@ -2,9 +2,13 @@ import type { ReactNode } from "react";
 import { PurchaseModeChooser } from "./PurchaseModeChooser";
 import { BundleTierSelector } from "./BundleTierSelector";
 import { SellerContactBlock } from "./SellerContactBlock";
-import { StoreCheaperAlternatives } from "@/components/store/sections/StoreCheaperAlternatives";
-import type { TierProduct } from "./useStorePurchaseTiers";
+import {
+  StoreCheaperAlternatives,
+  useStoreCheaperAlternatives,
+} from "@/components/store/sections/StoreCheaperAlternatives";
+import { useStorePurchaseTiers, type TierProduct } from "./useStorePurchaseTiers";
 import type { ProductPageConfig } from "@/lib/store/productPageConfig";
+
 
 interface StorePurchasePanelProps {
   productId: string;
@@ -56,6 +60,23 @@ export function StorePurchasePanel({
   contactEmail,
   directBullets,
 }: StorePurchasePanelProps) {
+  // Só mostramos um passo quando há mesmo conteúdo para ele — evita cabeçalhos vazios.
+  const { data: tiers = [] } = useStorePurchaseTiers({
+    productId,
+    workspaceId,
+    currentProduct,
+    enabled: config.bundles_enabled,
+  });
+  const { data: alternatives = [] } = useStoreCheaperAlternatives({
+    productId,
+    categoryId,
+    workspaceId,
+    currentPrice: config.cheaper_alternatives_enabled ? price : 0,
+  });
+
+  const showBundles = config.bundles_enabled && tiers.length >= 2;
+  const showAlternatives = config.cheaper_alternatives_enabled && alternatives.length > 0;
+
   let step = 0;
 
   return (
@@ -72,7 +93,7 @@ export function StorePurchasePanel({
         </Step>
       ) : null}
 
-      {config.bundles_enabled && (
+      {showBundles && (
         <Step n={++step} title="Leva mais desta loja">
           <BundleTierSelector
             productId={productId}
@@ -82,7 +103,7 @@ export function StorePurchasePanel({
         </Step>
       )}
 
-      {config.cheaper_alternatives_enabled && (
+      {showAlternatives && (
         <Step n={++step} title="Alternativas mais acessíveis">
           <StoreCheaperAlternatives
             productId={productId}
@@ -94,6 +115,7 @@ export function StorePurchasePanel({
           />
         </Step>
       )}
+
 
       {config.seller_contact_enabled && contactEmail && (
         <Step n={++step} title="Fala com a loja">
