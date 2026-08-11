@@ -47,7 +47,13 @@ export default function StoreCheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptTerms) {
+      setTermsError("Tem de aceitar os Termos e Condições para continuar");
+      return;
+    }
+    setTermsError(null);
     if (!form.validateStep2()) return;
+
 
     trackEvent("checkout_submit", { workspaceSlug: wsSlug, subtotal, total: pricing.finalTotal, itemCount: items.length, currency: items[0]?.currency });
     form.setIsProcessing(true);
