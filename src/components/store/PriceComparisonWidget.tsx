@@ -49,7 +49,7 @@ export function PriceComparisonWidget({
               return (
                 <Link
                   key={p.id}
-                  to={`/store/${workspaceSlug}/product/${p.id}`}
+                  to={`/store/${workspaceSlug}/product/${(p as any).store_slug || p.id}`}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">

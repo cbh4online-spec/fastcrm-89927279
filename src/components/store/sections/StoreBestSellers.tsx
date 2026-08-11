@@ -57,7 +57,7 @@ export function StoreBestSellers({ products, salesCounts, workspaceSlug }: Store
                   transition={{ duration: 0.35, delay: i * 0.06 }}
                 >
                   <Link
-                    to={`/store/${workspaceSlug}/product/${product.id}`}
+                    to={`/store/${workspaceSlug}/product/${(product as any).store_slug || product.id}`}
                     className="flex-shrink-0 w-44 md:w-48 group block"
                   >
                     <div className="relative rounded-xl overflow-hidden border bg-card transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/20">

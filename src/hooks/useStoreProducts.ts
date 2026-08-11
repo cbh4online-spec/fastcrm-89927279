@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface StoreProduct {
   id: string;
+  /** Slug público usado no URL da loja (SEO). */
+  store_slug?: string | null;
   workspace_id: string;
   name: string;
   product_type: string;
@@ -66,7 +68,7 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
+        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
         .eq("status", "active");
@@ -119,7 +121,7 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
     queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from("products")
-        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
+        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
         .eq("status", "active");
@@ -172,29 +174,36 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
   });
 }
 
-export function useStoreProduct(productId: string | undefined, workspaceId?: string) {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Aceita o UUID do produto (legado) ou o slug público (store_slug). */
+export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId?: string) {
   return useQuery({
-    queryKey: ["store-product", productId, workspaceId || ""],
+    queryKey: ["store-product", productIdOrSlug, workspaceId || ""],
     queryFn: async () => {
-      if (!productId) return null;
+      if (!productIdOrSlug) return null;
 
       let query = supabase
         .from("products")
-        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, metadata")
-        .eq("id", productId)
+        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, metadata")
         .eq("store_published", true)
         .eq("status", "active");
+
+      query = UUID_RE.test(productIdOrSlug)
+        ? query.eq("id", productIdOrSlug)
+        : query.eq("store_slug", productIdOrSlug);
 
       if (workspaceId) {
         query = query.eq("workspace_id", workspaceId);
       }
+
 
       const { data, error } = await query.maybeSingle();
 
       if (error) throw error;
       return (data || null) as (StoreProduct & { workspace_id: string }) | null;
     },
-    enabled: !!productId,
+    enabled: !!productIdOrSlug,
   });
 }
 

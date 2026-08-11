@@ -30,7 +30,7 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
         const targetIds = relations.map((r: any) => r.target_product_id);
         const { data: prods } = await supabase
           .from("products")
-          .select("id, name, base_price, images, primary_image_index, category")
+          .select("id, store_slug, name, base_price, images, primary_image_index, category")
           .in("id", targetIds)
           .eq("store_published", true)
           .eq("status", "active");
@@ -47,7 +47,7 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
       if (!categoryId) return [];
       const { data } = await supabase
         .from("products")
-        .select("id, name, base_price, images, primary_image_index, category")
+        .select("id, store_slug, name, base_price, images, primary_image_index, category")
         .eq("workspace_id", workspaceId)
         .eq("store_category_id", categoryId)
         .eq("store_published", true)
@@ -73,7 +73,7 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
             return (
               <Link
                 key={p.id}
-                to={`/store/${workspaceSlug}/product/${p.id}`}
+                to={`/store/${workspaceSlug}/product/${(p as any).store_slug || p.id}`}
                 className="flex-shrink-0 w-40 group"
               >
                 <div className="h-40 w-40 rounded-lg overflow-hidden bg-muted border transition-shadow group-hover:shadow-md">

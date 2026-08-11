@@ -180,7 +180,7 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
                           {msg.products.map((p) => (
                             <Link
                               key={p.id}
-                              to={`/store/${workspaceSlug}/product/${p.id}`}
+                              to={`/store/${workspaceSlug}/product/${(p as any).store_slug || p.id}`}
                               className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                             >
                               {p.image ? (

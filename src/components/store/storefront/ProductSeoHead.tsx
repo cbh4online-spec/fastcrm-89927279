@@ -33,7 +33,7 @@ interface ProductSeoHeadProps {
 }
 
 export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg, reviewCount, images, primaryIndex, isOutOfStock, productImages }: ProductSeoHeadProps) {
-  const canonical = `${getPublicBaseUrl()}/store/${wsSlug}/product/${product.id}`;
+  const canonical = `${getPublicBaseUrl()}/store/${wsSlug}/product/${(product as any).store_slug || product.id}`;
   const price = (pricing?.price ?? product.base_price).toFixed(2);
   const currency = product.currency || "EUR";
   const description = product.short_description || product.name;

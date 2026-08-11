@@ -74166,6 +74166,7 @@ export type Database = {
           store_category_id: string | null
           store_featured: boolean | null
           store_published: boolean | null
+          store_slug: string | null
           store_sort_order: number | null
           store_visibility: string
           subcategory: string | null
@@ -74309,6 +74310,7 @@ export type Database = {
           store_category_id?: string | null
           store_featured?: boolean | null
           store_published?: boolean | null
+          store_slug?: string | null
           store_sort_order?: number | null
           store_visibility?: string
           subcategory?: string | null
@@ -74452,6 +74454,7 @@ export type Database = {
           store_category_id?: string | null
           store_featured?: boolean | null
           store_published?: boolean | null
+          store_slug?: string | null
           store_sort_order?: number | null
           store_visibility?: string
           subcategory?: string | null
@@ -106472,6 +106475,7 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: number
       }
+      slugify_text: { Args: { _txt: string }; Returns: string }
       snapshot_all_workspace_activations: {
         Args: never
         Returns: {
@@ -106551,6 +106555,7 @@ export type Database = {
         Returns: string
       }
       unaccent: { Args: { "": string }; Returns: string }
+      unaccent_safe: { Args: { _txt: string }; Returns: string }
       update_user_status_admin: {
         Args: { p_status: string; p_user_id: string }
         Returns: Json

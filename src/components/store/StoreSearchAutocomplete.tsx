@@ -63,7 +63,7 @@ export function StoreSearchAutocomplete({ workspaceSlug, onSearch, onClose }: St
   const handleSelectProduct = (product: StoreProduct) => {
     saveSearchHistory(product.name);
     setIsFocused(false);
-    navigate(`/store/${workspaceSlug}/product/${product.id}`);
+    navigate(`/store/${workspaceSlug}/product/${(product as any).store_slug || product.id}`);
   };
 
   const handleSelectHistory = (term: string) => {
