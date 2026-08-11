@@ -627,9 +627,10 @@ export default function StoreProductPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="md:col-span-2 lg:col-span-1"
+              className="md:col-span-2 xl:col-span-1"
             >
-              <div className="@container lg:sticky lg:top-24 space-y-4 border rounded-2xl p-4 sm:p-5 bg-card shadow-sm">
+              <div className="@container/buybox xl:sticky xl:top-24 space-y-4 border rounded-2xl p-4 sm:p-5 bg-card shadow-sm">
+
                 {/* Price in Buy Box (desktop only) */}
                 {isPriceOnRequest ? (
                   <div className="hidden lg:flex items-center gap-2">
