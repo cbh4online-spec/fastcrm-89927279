@@ -98,12 +98,16 @@ export function CheckoutPaymentStep({
           </p>
         </div>
 
-        <label className="flex items-start gap-2 cursor-pointer">
+        <label htmlFor="accept-terms" className="flex items-start gap-2 cursor-pointer">
           <input
+            id="accept-terms"
+            name="acceptTerms"
             type="checkbox"
             checked={acceptTerms}
             onChange={(e) => onAcceptTermsChange?.(e.target.checked)}
-            className="accent-primary mt-1 flex-shrink-0"
+            aria-invalid={!!fieldErrors.acceptTerms}
+            aria-describedby={fieldErrors.acceptTerms ? "accept-terms-error" : undefined}
+            className="accent-primary mt-1 flex-shrink-0 h-4 w-4 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           <span className="text-xs text-muted-foreground leading-relaxed">
             Li e aceito os{" "}
@@ -118,7 +122,7 @@ export function CheckoutPaymentStep({
           </span>
         </label>
         {fieldErrors.acceptTerms && (
-          <p className="text-xs text-destructive">{fieldErrors.acceptTerms}</p>
+          <p id="accept-terms-error" className="text-xs text-destructive">{fieldErrors.acceptTerms}</p>
         )}
       </div>
 
@@ -126,7 +130,8 @@ export function CheckoutPaymentStep({
         type="submit"
         size="lg"
         className="w-full gap-2"
-        disabled={isProcessing || !formData.email.trim() || !acceptTerms}
+        disabled={isProcessing || !formData.email.trim()}
+
       >
         {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
         {isProcessing ? "A processar..." : buttonLabel}
