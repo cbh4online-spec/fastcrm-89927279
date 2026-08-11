@@ -8,6 +8,7 @@ import { ExternalLink, CheckCircle2, AlertTriangle, Layers } from "lucide-react"
 import { ProductContentSectionsEditor } from "./ProductContentSectionsEditor";
 import { ProductOfferPageSettingsTab } from "./ProductOfferPageSettingsTab";
 import { ProductQAModeration } from "./ProductQAModeration";
+import { ProductStoreSlugCard } from "./ProductStoreSlugCard";
 
 const sb = supabase as any;
 
@@ -39,7 +40,9 @@ export function ProductPublicSheetTab({ product, onOpenBundles }: Props) {
     },
   });
 
-  const publicUrl = storeSlug ? `/store/${storeSlug}/product/${product.id}` : null;
+  const publicUrl = storeSlug
+    ? `/store/${storeSlug}/product/${product.store_slug || product.id}`
+    : null;
 
   /** Mesma regra usada para noindex na ficha pública. */
   const quality = useMemo(() => {
@@ -95,6 +98,13 @@ export function ProductPublicSheetTab({ product, onOpenBundles }: Props) {
           </p>
         )}
       </IXCard>
+
+      <ProductStoreSlugCard
+        productId={product.id}
+        productName={product.name}
+        storeSlug={storeSlug ?? null}
+        currentSlug={product.store_slug ?? null}
+      />
 
       <ProductContentSectionsEditor productId={product.id} />
 

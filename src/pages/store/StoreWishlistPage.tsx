@@ -77,7 +77,7 @@ export default function StoreWishlistPage() {
                 const isOut = p.stock_status === "out_of_stock";
                 return (
                   <div key={p.id} className="border rounded-xl p-4 flex gap-4">
-                    <Link to={`/store/${wsSlug}/product/${p.id}`} className="flex-shrink-0">
+                    <Link to={`/store/${wsSlug}/product/${(p as any).store_slug || p.id}`} className="flex-shrink-0">
                       <div className="h-24 w-24 rounded-lg overflow-hidden bg-muted">
                         {img ? (
                           <img src={img} alt={p.name} className="h-full w-full object-cover" />
@@ -89,7 +89,7 @@ export default function StoreWishlistPage() {
                       </div>
                     </Link>
                     <div className="flex-1 min-w-0 space-y-2">
-                      <Link to={`/store/${wsSlug}/product/${p.id}`} className="hover:text-primary transition-colors">
+                      <Link to={`/store/${wsSlug}/product/${(p as any).store_slug || p.id}`} className="hover:text-primary transition-colors">
                         <h3 className="font-medium text-sm line-clamp-2">{p.name}</h3>
                       </Link>
                       <p className="text-sm font-bold text-primary">€{p.base_price.toFixed(2)}</p>

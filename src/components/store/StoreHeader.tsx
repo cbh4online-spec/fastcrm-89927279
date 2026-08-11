@@ -138,7 +138,7 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
                       <div className="w-[200px] p-4 flex flex-col items-center justify-center">
                         {suggestedProduct ? (
                           <Link
-                            to={`/store/${workspaceSlug}/product/${suggestedProduct.id}`}
+                            to={`/store/${workspaceSlug}/product/${(suggestedProduct as any).store_slug || suggestedProduct.id}`}
                             className="group text-center space-y-2"
                           >
                             <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-muted">

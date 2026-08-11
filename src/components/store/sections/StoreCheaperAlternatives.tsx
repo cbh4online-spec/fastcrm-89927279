@@ -29,7 +29,7 @@ export function useStoreCheaperAlternatives(params: {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("products")
-        .select("id, name, base_price, currency, images, primary_image_index")
+        .select("id, store_slug, name, base_price, currency, images, primary_image_index")
         .eq("workspace_id", workspaceId)
         .eq("store_category_id", categoryId)
         .eq("store_published", true)
@@ -82,7 +82,7 @@ export function StoreCheaperAlternatives({
           return (
             <Link
               key={p.id}
-              to={`/store/${workspaceSlug}/product/${p.id}`}
+              to={`/store/${workspaceSlug}/product/${(p as any).store_slug || p.id}`}
               className="flex items-center gap-3 rounded-xl border p-2 transition-colors hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
             >
               <span className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border bg-muted">
@@ -120,7 +120,7 @@ export function StoreCheaperAlternatives({
           return (
             <Link
               key={p.id}
-              to={`/store/${workspaceSlug}/product/${p.id}`}
+              to={`/store/${workspaceSlug}/product/${(p as any).store_slug || p.id}`}
               className="group rounded-2xl border p-3 transition-colors hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
             >
               <div className="mb-3 aspect-square overflow-hidden rounded-xl bg-muted">

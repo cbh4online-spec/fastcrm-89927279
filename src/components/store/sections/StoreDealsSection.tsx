@@ -63,7 +63,7 @@ export function StoreDealsSection({ products, workspaceSlug }: StoreDealsSection
               return (
                 <Link
                   key={p.id}
-                  to={`/store/${workspaceSlug}/product/${p.id}`}
+                  to={`/store/${workspaceSlug}/product/${(p as any).store_slug || p.id}`}
                   className="flex-shrink-0 w-44 group"
                 >
                   <div className="relative h-44 w-44 rounded-xl overflow-hidden bg-muted border transition-shadow group-hover:shadow-md">

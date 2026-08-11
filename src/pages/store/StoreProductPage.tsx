@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ProductSeoHead } from "@/components/store/storefront/ProductSeoHead";
 import { StoreProductDescription } from "@/components/store/StoreProductDescription";
@@ -236,8 +236,19 @@ export default function StoreProductPage() {
     workspaceSlug: string;
     productId: string;
   }>();
+  const navigate = useNavigate();
   const { workspaceId: resolvedWsId, slug: wsSlug, isLoading: isResolving } = useResolveStoreWorkspace(workspaceSlug);
   const { data: product, isLoading: isProductLoading } = useStoreProduct(productId, resolvedWsId);
+  const productSlug = (product as any)?.store_slug || product?.id;
+
+  // URLs antigos com UUID passam a redirecionar para o slug (SEO + partilha legível)
+  useEffect(() => {
+    if (!product || !wsSlug) return;
+    const slug = (product as any).store_slug;
+    if (slug && productId !== slug) {
+      navigate(`/store/${wsSlug}/product/${slug}`, { replace: true });
+    }
+  }, [product?.id, (product as any)?.store_slug, wsSlug, productId]);
   const { addItem } = useStoreCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -250,13 +261,14 @@ export default function StoreProductPage() {
   const isOutOfStock = product?.stock_status === "out_of_stock";
   const isPriceOnRequest = !!product?.price_on_request;
   const pricing = product ? getStorePrice(product.base_price, product.id, tierPricing, product) : null;
-  const { average: reviewAvg, count: reviewCount } = useStoreReviewStats(productId);
+  const { average: reviewAvg, count: reviewCount } = useStoreReviewStats(product?.id);
   const { data: wishlist = [] } = useStoreWishlist((product as any)?.workspace_id);
   const toggleWishlist = useToggleWishlist();
   const isInWishlist = product ? wishlist.some((w) => w.product_id === product.id) : false;
   const { items: recentlyViewed, addItem: addRecentlyViewed } = useRecentlyViewed((product as any)?.workspace_id || "");
   const { data: salesCounts } = useProductSalesCount((product as any)?.workspace_id);
-  const { data: recentViewers = 0 } = useRecentViewers(productId);
+  const { data: recentViewers = 0 } = useRecentViewers(product?.id);
+
   const addToCartRef = useRef<HTMLButtonElement>(null);
 
   // Track recently viewed + product_view analytics
@@ -378,7 +390,7 @@ export default function StoreProductPage() {
         <StoreHeader workspaceSlug={wsSlug} />
         <StoreCartDrawer workspaceSlug={wsSlug} />
         <StoreProductViewTracker productId={product.id} workspaceId={(product as any).workspace_id} />
-        <StoreVisitorTracker workspaceId={(product as any).workspace_id} currentPage={`/store/${wsSlug}/product/${product.id}`} productId={product.id} />
+        <StoreVisitorTracker workspaceId={(product as any).workspace_id} currentPage={`/store/${wsSlug}/product/${productSlug}`} productId={product.id} />
 
         {/* Sticky Add to Cart bar — hidden for price on request */}
         {!isPriceOnRequest && (
@@ -629,7 +641,7 @@ export default function StoreProductPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="md:col-span-2 xl:col-span-1"
+              className="md:col-span-2 xl:col-span-1 xl:col-start-3 xl:row-start-1 xl:row-span-2 min-w-0"
             >
               <div className="@container/buybox xl:sticky xl:top-24 space-y-4 border rounded-2xl p-4 sm:p-5 bg-card shadow-sm">
 
@@ -860,14 +872,13 @@ export default function StoreProductPage() {
                 </div>
               </div>
             </motion.div>
-          </div>
 
-          {/* Details Section — Vertical stack (Amazon pattern) */}
+          {/* Details Section — flui por baixo da galeria/informação, ao lado da buy box */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="mt-8 space-y-8"
+            className="min-w-0 space-y-8 md:col-span-2 xl:col-span-2 xl:col-start-1 xl:row-start-2"
           >
             {/* 1. Highlights */}
             <StoreProductHighlights
@@ -894,11 +905,14 @@ export default function StoreProductPage() {
               <StoreTrustStrip workspaceId={(product as any).workspace_id} config={pageConfig} />
             )}
           </motion.div>
+          </div>
+
+
 
 
           {/* Price Comparison & History */}
-          <div className="mt-12 grid md:grid-cols-2 gap-8">
-            <div className="border rounded-xl p-5">
+          <div className="mt-12 grid md:grid-cols-2 gap-8 empty:hidden [&:has(>div:empty:only-child)]:hidden">
+            <div className="border rounded-xl p-5 empty:hidden empty:border-0 empty:p-0">
               <PriceComparisonWidget
                 productId={product.id}
                 productName={product.name}
@@ -909,7 +923,7 @@ export default function StoreProductPage() {
                 currency={product.currency}
               />
             </div>
-            <div className="border rounded-xl p-5">
+            <div className="border rounded-xl p-5 empty:hidden empty:border-0 empty:p-0">
               <PriceHistoryChart
                 productId={product.id}
                 currentPrice={pricing?.price ?? product.base_price}

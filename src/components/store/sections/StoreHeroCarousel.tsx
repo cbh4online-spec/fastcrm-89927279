@@ -123,7 +123,7 @@ export function StoreHeroCarousel({ products, workspaceSlug, storeName, storeDes
                   €{activeProduct.base_price.toFixed(2)} <StoreVatLabel className="text-xs text-muted-foreground" />
                 </span>
                 <Button asChild size="lg" className="gap-2 font-semibold shadow-lg hover:shadow-xl transition-all rounded-full px-8">
-                  <Link to={`/store/${workspaceSlug}/product/${activeProduct.id}`}>
+                  <Link to={`/store/${workspaceSlug}/product/${(activeProduct as any).store_slug || activeProduct.id}`}>
                     Ver Produto <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -145,7 +145,7 @@ export function StoreHeroCarousel({ products, workspaceSlug, storeName, storeDes
                 {heroImage ? (
                   <div className="relative group">
                     <div className="absolute -inset-4 bg-primary/5 rounded-[2rem] blur-2xl group-hover:bg-primary/10 transition-colors duration-500" />
-                    <Link to={`/store/${workspaceSlug}/product/${activeProduct.id}`}>
+                    <Link to={`/store/${workspaceSlug}/product/${(activeProduct as any).store_slug || activeProduct.id}`}>
                       <img
                         src={heroImage}
                         alt={activeProduct.name}

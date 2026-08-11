@@ -37,7 +37,7 @@ export function StoreSeoHead({ storeName, wsSlug, storeSettings, products }: Sto
       return {
         "@type": "ListItem",
         position: i + 1,
-        url: `${canonical}/product/${p.id}`,
+        url: `${canonical}/product/${(p as any).store_slug || p.id}`,
         name: p.name,
         ...(img ? { image: img } : {}),
       };

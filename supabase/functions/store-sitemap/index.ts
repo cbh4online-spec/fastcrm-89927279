@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     // Get published products
     const { data: products } = await supabase
       .from("products")
-      .select("id, updated_at")
+      .select("id, store_slug, updated_at")
       .eq("workspace_id", ws.id)
       .eq("store_published", true)
       .order("updated_at", { ascending: false })
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
         const lastmod = p.updated_at ? p.updated_at.split("T")[0] : now;
         xml += `
   <url>
-    <loc>${storeBase}/product/${p.id}</loc>
+    <loc>${storeBase}/product/${p.store_slug || p.id}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
