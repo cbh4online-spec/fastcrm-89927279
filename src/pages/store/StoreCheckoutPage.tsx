@@ -238,8 +238,9 @@ export default function StoreCheckoutPage() {
               ) : (
                 <CheckoutPaymentStep
                   formData={form.formData}
-                  fieldErrors={form.fieldErrors}
+                  fieldErrors={termsError ? { ...form.fieldErrors, acceptTerms: termsError } : form.fieldErrors}
                   isProcessing={form.isProcessing}
+
                   onFieldChange={form.handleEmailChange}
                   onEmailBlur={form.handleEmailBlur}
                   onStepBack={() => form.setStep(1)}
