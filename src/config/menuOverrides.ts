@@ -93,8 +93,31 @@ export function resolveTopGroupVisibility(
   return getOverride(map, "top_group", topGroup) ?? "visible";
 }
 
+/**
+ * Rotas de administração global (backoffice do FastCRM). Um super admin nunca
+ * pode perder o acesso a estas rotas por causa de overrides de menu de uma
+ * workspace específica.
+ */
+export const GLOBAL_ADMIN_ROUTE_KEYS = new Set(["n"]);
+
+export function isGlobalAdminRoute(route: RouteEntry | string | undefined): boolean {
+  if (!route) return false;
+  if (typeof route === "string") {
+    if (GLOBAL_ADMIN_ROUTE_KEYS.has(route)) return true;
+    return isGlobalAdminPath(route);
+  }
+  return GLOBAL_ADMIN_ROUTE_KEYS.has(route.key) || isGlobalAdminPath(route.href);
+}
+
+export function isGlobalAdminPath(pathname: string | undefined): boolean {
+  if (!pathname) return false;
+  const base = pathname.split("?")[0];
+  return base === "/n" || base === "/n-v2" || base.startsWith("/n/") || base.startsWith("/n-v2/");
+}
+
 export const MENU_VISIBILITY_LABELS: Record<MenuVisibility, string> = {
   visible: "Visível",
   locked: "Com cadeado",
   hidden: "Oculto",
 };
+
