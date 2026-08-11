@@ -36,8 +36,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { SidebarNavItem, SidebarSectionLabel } from "./sidebar/SidebarNavItem";
 import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   resolveRouteVisibility,
+  isGlobalAdminRoute,
   resolveNavGroupVisibility,
   resolveTopGroupVisibility,
 } from "@/config/menuOverrides";
@@ -157,6 +159,10 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
 
   // ── Overrides de menu por workspace (Super Admin) ──
   const { map: menuOverrideMap, isReady: menuOverridesReady } = useMenuOverrideMap();
+  const { isSuperAdmin } = useUserRole();
+
+  // Um super admin nunca pode perder a entrada de administração global.
+  const isForcedVisible = (item: RouteEntry) => isSuperAdmin && isGlobalAdminRoute(item);
 
   const lockedKeys = useMemo(() => {
     const s = new Set<string>();
@@ -171,14 +177,24 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const topSections = useMemo(() => {
     if (!menuOverridesReady) return [];
     const keep = (item: RouteEntry) =>
-      resolveRouteVisibility(menuOverrideMap, item) !== "hidden";
+      isForcedVisible(item) || resolveRouteVisibility(menuOverrideMap, item) !== "hidden";
+    const hasForced = (items: RouteEntry[]) => items.some(isForcedVisible);
     return rawTopSections
-      .filter((tg) => resolveTopGroupVisibility(menuOverrideMap, tg.key) !== "hidden")
+      .filter(
+        (tg) =>
+          resolveTopGroupVisibility(menuOverrideMap, tg.key) !== "hidden" ||
+          hasForced(tg.items) ||
+          tg.subSections.some((s) => hasForced(s.items)),
+      )
       .map((tg) => ({
         ...tg,
         items: tg.items.filter(keep),
         subSections: tg.subSections
-          .filter((s) => resolveNavGroupVisibility(menuOverrideMap, s.key) !== "hidden")
+          .filter(
+            (s) =>
+              resolveNavGroupVisibility(menuOverrideMap, s.key) !== "hidden" ||
+              hasForced(s.items),
+          )
           .map((s) => ({ ...s, items: s.items.filter(keep) }))
           .filter((s) => s.items.length > 0),
       }))
