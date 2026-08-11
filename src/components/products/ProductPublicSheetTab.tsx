@@ -8,6 +8,7 @@ import { ExternalLink, CheckCircle2, AlertTriangle, Layers } from "lucide-react"
 import { ProductContentSectionsEditor } from "./ProductContentSectionsEditor";
 import { ProductOfferPageSettingsTab } from "./ProductOfferPageSettingsTab";
 import { ProductQAModeration } from "./ProductQAModeration";
+import { ProductStoreSlugCard } from "./ProductStoreSlugCard";
 
 const sb = supabase as any;
 
