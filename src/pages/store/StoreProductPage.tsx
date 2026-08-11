@@ -911,8 +911,8 @@ export default function StoreProductPage() {
 
 
           {/* Price Comparison & History */}
-          <div className="mt-12 grid md:grid-cols-2 gap-8">
-            <div className="border rounded-xl p-5">
+          <div className="mt-12 grid md:grid-cols-2 gap-8 empty:hidden [&:has(>div:empty:only-child)]:hidden">
+            <div className="border rounded-xl p-5 empty:hidden empty:border-0 empty:p-0">
               <PriceComparisonWidget
                 productId={product.id}
                 productName={product.name}
@@ -923,7 +923,7 @@ export default function StoreProductPage() {
                 currency={product.currency}
               />
             </div>
-            <div className="border rounded-xl p-5">
+            <div className="border rounded-xl p-5 empty:hidden empty:border-0 empty:p-0">
               <PriceHistoryChart
                 productId={product.id}
                 currentPrice={pricing?.price ?? product.base_price}
