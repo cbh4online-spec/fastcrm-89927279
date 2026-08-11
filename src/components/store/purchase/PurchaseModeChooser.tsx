@@ -32,7 +32,7 @@ export function PurchaseModeChooser({
 
   return (
     <div className="@container/modes">
-      <div className={cn("grid gap-3", hasOffer && "@[420px]/modes:grid-cols-2")}>
+      <div className={cn("grid gap-3", hasOffer && "md:grid-cols-2 xl:grid-cols-1")}>
       <div className="relative rounded-2xl border border-primary/40 bg-primary/[0.03] p-4">
 
         {hasOffer && (
