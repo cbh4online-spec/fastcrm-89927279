@@ -98,6 +98,13 @@ export function ProductPublicSheetTab({ product, onOpenBundles }: Props) {
         )}
       </IXCard>
 
+      <ProductStoreSlugCard
+        productId={product.id}
+        productName={product.name}
+        storeSlug={storeSlug ?? null}
+        currentSlug={product.store_slug ?? null}
+      />
+
       <ProductContentSectionsEditor productId={product.id} />
 
       <ProductOfferPageSettingsTab
