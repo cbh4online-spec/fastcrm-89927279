@@ -254,7 +254,13 @@ export default function StoreCheckoutPage() {
                   enabledPaymentMethods={paymentMethods}
                   selectedPaymentMethod={selectedPaymentMethod}
                   onSelectPaymentMethod={setSelectedPaymentMethod}
+                  acceptTerms={acceptTerms}
+                  onAcceptTermsChange={(v) => {
+                    setAcceptTerms(v);
+                    if (v) setTermsError(null);
+                  }}
                 />
+
               )}
 
               {/* Trust badges below form */}
