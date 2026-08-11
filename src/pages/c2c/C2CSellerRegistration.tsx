@@ -25,7 +25,7 @@ function useWorkspaceBySlug(slug: string | undefined) {
     queryFn: async () => {
       if (!slug) return null;
       const { data, error } = await supabase
-        .from("workspaces")
+        .from("public_workspaces")
         .select("id, name, slug")
         .eq("slug", slug)
         .single();

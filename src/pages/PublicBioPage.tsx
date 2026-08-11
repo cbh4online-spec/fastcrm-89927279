@@ -640,7 +640,7 @@ export default function PublicBioPage() {
 
     (async () => {
       const { data: workspace, error: wsError } = await supabase
-        .from("workspaces")
+        .from("public_workspaces")
         .select("id")
         .eq("slug", workspaceSlug)
         .single();

@@ -18,7 +18,7 @@ export default function StoreWishlistPage() {
   const { data: workspace } = useQuery({
     queryKey: ["store-workspace-id", wsSlug],
     queryFn: async () => {
-      const { data } = await supabase.from("workspaces").select("id").eq("slug", wsSlug).single();
+      const { data } = await supabase.from("public_workspaces").select("id").eq("slug", wsSlug).single();
       return data;
     },
     enabled: !!wsSlug,

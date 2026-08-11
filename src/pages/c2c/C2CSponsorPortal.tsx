@@ -50,7 +50,7 @@ export default function C2CSponsorPortal() {
     queryFn: async () => {
       if (!workspaceSlug) return null;
       const { data, error } = await supabase
-        .from("workspaces")
+        .from("public_workspaces")
         .select("id, name, slug")
         .eq("slug", workspaceSlug)
         .maybeSingle();

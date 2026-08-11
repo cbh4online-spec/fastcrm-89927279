@@ -37,7 +37,7 @@ export default function PublicLandingPage() {
     queryFn: async () => {
       // First get workspace by slug
       const { data: workspace, error: workspaceError } = await supabase
-        .from("workspaces")
+        .from("public_workspaces")
         .select("id")
         .eq("slug", workspaceSlug)
         .single();

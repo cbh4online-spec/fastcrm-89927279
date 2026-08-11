@@ -77,7 +77,7 @@ export function PartnerLayout({ children }: PartnerLayoutProps) {
     async function fetchBranding() {
       if (!partnerUser?.workspace_id) return;
       const { data } = await supabase
-        .from("workspaces")
+        .from("public_workspaces")
         .select("name, logo_url, primary_color")
         .eq("id", partnerUser.workspace_id)
         .single();

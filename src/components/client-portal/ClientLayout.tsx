@@ -117,7 +117,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
       if (!clientUser?.workspace_id) return;
       
       const { data } = await supabase
-        .from("workspaces")
+        .from("public_workspaces")
         .select("name, logo_url, primary_color")
         .eq("id", clientUser.workspace_id)
         .single();
