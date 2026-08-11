@@ -39,7 +39,9 @@ export function ProductPublicSheetTab({ product, onOpenBundles }: Props) {
     },
   });
 
-  const publicUrl = storeSlug ? `/store/${storeSlug}/product/${product.id}` : null;
+  const publicUrl = storeSlug
+    ? `/store/${storeSlug}/product/${product.store_slug || product.id}`
+    : null;
 
   /** Mesma regra usada para noindex na ficha pública. */
   const quality = useMemo(() => {
