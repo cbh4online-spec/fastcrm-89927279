@@ -93,6 +93,8 @@ export function PurchaseModeChooser({
           </div>
         </div>
       )}
+      </div>
     </div>
+
   );
 }
