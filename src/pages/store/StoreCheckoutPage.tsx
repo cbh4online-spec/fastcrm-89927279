@@ -35,6 +35,9 @@ export default function StoreCheckoutPage() {
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>("stripe_card");
   const [bankTransferOrder, setBankTransferOrder] = useState<{ orderNumber: string; bankDetails: any } | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [termsError, setTermsError] = useState<string | null>(null);
+
 
   const form = useCheckoutForm({ wsId, wsSlug, items, subtotal });
   const pricing = useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmail: form.formData.email });
@@ -44,7 +47,13 @@ export default function StoreCheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptTerms) {
+      setTermsError("Tem de aceitar os Termos e Condições para continuar");
+      return;
+    }
+    setTermsError(null);
     if (!form.validateStep2()) return;
+
 
     trackEvent("checkout_submit", { workspaceSlug: wsSlug, subtotal, total: pricing.finalTotal, itemCount: items.length, currency: items[0]?.currency });
     form.setIsProcessing(true);
@@ -229,8 +238,9 @@ export default function StoreCheckoutPage() {
               ) : (
                 <CheckoutPaymentStep
                   formData={form.formData}
-                  fieldErrors={form.fieldErrors}
+                  fieldErrors={termsError ? { ...form.fieldErrors, acceptTerms: termsError } : form.fieldErrors}
                   isProcessing={form.isProcessing}
+
                   onFieldChange={form.handleEmailChange}
                   onEmailBlur={form.handleEmailBlur}
                   onStepBack={() => form.setStep(1)}
@@ -244,7 +254,13 @@ export default function StoreCheckoutPage() {
                   enabledPaymentMethods={paymentMethods}
                   selectedPaymentMethod={selectedPaymentMethod}
                   onSelectPaymentMethod={setSelectedPaymentMethod}
+                  acceptTerms={acceptTerms}
+                  onAcceptTermsChange={(v) => {
+                    setAcceptTerms(v);
+                    if (v) setTermsError(null);
+                  }}
                 />
+
               )}
 
               {/* Trust badges below form */}
