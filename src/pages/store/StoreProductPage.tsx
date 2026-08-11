@@ -393,7 +393,7 @@ export default function StoreProductPage() {
           />
         )}
 
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-6 pb-28 md:pb-6">
           {/* Breadcrumb */}
           <motion.nav
             initial={{ opacity: 0, y: -10 }}
@@ -419,13 +419,15 @@ export default function StoreProductPage() {
           </motion.nav>
 
           {/* 3-Zone Layout: Gallery | Info | Buy Box */}
-          <div className="grid grid-cols-1 items-start md:grid-cols-2 lg:grid-cols-[1fr_1fr_320px] gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(360px,400px)] gap-6 lg:gap-8">
             {/* ZONE 1: Gallery with vertical thumbnails */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
+              className="min-w-0"
             >
+
               <div className="flex flex-col lg:flex-row-reverse gap-3">
                 {/* Main image */}
                 <div className="flex-1">
@@ -496,7 +498,7 @@ export default function StoreProductPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="space-y-5"
+              className="min-w-0 space-y-5"
             >
               <div>
                 {product.category && (
@@ -541,12 +543,12 @@ export default function StoreProductPage() {
 
               {/* Price — visible on mobile/tablet, hidden on lg (shown in Buy Box) */}
               {isPriceOnRequest ? (
-                <div className="lg:hidden flex items-center gap-2">
+                <div className="xl:hidden flex items-center gap-2">
                   <MessageSquareText className="h-5 w-5 text-primary" />
                   <span className="text-lg font-semibold text-primary">Preço sob consulta</span>
                 </div>
               ) : (
-                <div className="lg:hidden">
+                <div className="xl:hidden">
                   <div className="flex items-baseline gap-2">
                      <span className="text-3xl font-bold text-primary">
                        €{(pricing?.price ?? product.base_price).toFixed(2)}
@@ -627,17 +629,18 @@ export default function StoreProductPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="md:col-span-2 lg:col-span-1"
+              className="md:col-span-2 xl:col-span-1"
             >
-              <div className="@container lg:sticky lg:top-24 space-y-4 border rounded-2xl p-4 sm:p-5 bg-card shadow-sm">
+              <div className="@container/buybox xl:sticky xl:top-24 space-y-4 border rounded-2xl p-4 sm:p-5 bg-card shadow-sm">
+
                 {/* Price in Buy Box (desktop only) */}
                 {isPriceOnRequest ? (
-                  <div className="hidden lg:flex items-center gap-2">
+                  <div className="hidden xl:flex items-center gap-2">
                     <MessageSquareText className="h-5 w-5 text-primary" />
                     <span className="text-xl font-semibold text-primary">Preço sob consulta</span>
                   </div>
                 ) : (
-                  <div className="hidden lg:block">
+                  <div className="hidden xl:block">
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                        <span className="text-3xl font-bold text-primary break-words">
 
