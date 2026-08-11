@@ -35,6 +35,9 @@ export default function StoreCheckoutPage() {
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>("stripe_card");
   const [bankTransferOrder, setBankTransferOrder] = useState<{ orderNumber: string; bankDetails: any } | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [termsError, setTermsError] = useState<string | null>(null);
+
 
   const form = useCheckoutForm({ wsId, wsSlug, items, subtotal });
   const pricing = useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmail: form.formData.email });
