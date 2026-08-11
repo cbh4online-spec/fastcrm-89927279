@@ -31,8 +31,10 @@ export function PurchaseModeChooser({
   const hasOffer = !!offerSlot;
 
   return (
-    <div className={cn("@container/modes grid gap-3", hasOffer && "@[420px]/modes:grid-cols-2")}>
+    <div className="@container/modes">
+      <div className={cn("grid gap-3", hasOffer && "@[420px]/modes:grid-cols-2")}>
       <div className="relative rounded-2xl border border-primary/40 bg-primary/[0.03] p-4">
+
         {hasOffer && (
           <Badge className="absolute -top-2 left-4 border-0 bg-primary text-primary-foreground text-[10px]">
             Melhor opção
