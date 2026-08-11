@@ -23,7 +23,7 @@ export default function PartnerLoginPage() {
   useEffect(() => {
     if (!workspaceSlug) { setWorkspaceResolved(true); return; }
     const resolve = async () => {
-      const { data } = await supabase.from("workspaces").select("id").eq("slug", workspaceSlug.toLowerCase()).maybeSingle();
+      const { data } = await supabase.from("public_workspaces").select("id").eq("slug", workspaceSlug.toLowerCase()).maybeSingle();
       if (data) { setWorkspaceId(data.id); localStorage.setItem("partner_workspace_id", data.id); }
       setWorkspaceResolved(true);
     };

@@ -30,7 +30,7 @@ export default function ClientLoginPage() {
     
     const resolveWorkspace = async () => {
       const { data } = await supabase
-        .from("workspaces")
+        .from("public_workspaces")
         .select("id")
         .eq("slug", workspaceSlug.toLowerCase())
         .maybeSingle();

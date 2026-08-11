@@ -72,7 +72,7 @@ async function findWorkspaceByStoreSlug(slug: string): Promise<PublicMarketplace
   if (!storeData?.workspace_id) return null;
 
   const { data: workspaceData } = await supabase
-    .from("workspaces")
+    .from("public_workspaces")
     .select("id, name, slug")
     .eq("id", storeData.workspace_id)
     .limit(1)
@@ -87,7 +87,7 @@ async function findWorkspaceByStoreSlug(slug: string): Promise<PublicMarketplace
 
 async function findWorkspaceByWorkspaceSlug(slug: string): Promise<PublicMarketplaceWorkspace | null> {
   const { data } = await supabase
-    .from("workspaces")
+    .from("public_workspaces")
     .select("id, name, slug")
     .eq("slug", slug)
     .limit(1)

@@ -44,7 +44,7 @@ export default function StoreOrderTrackingPage() {
     queryKey: ["store-settings-public", workspaceSlug],
     queryFn: async () => {
       const { data: ws } = await supabase
-        .from("workspaces")
+        .from("public_workspaces")
         .select("id")
         .eq("slug", workspaceSlug!)
         .single();

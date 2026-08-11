@@ -23,7 +23,7 @@ export default function PublicBioShortLink() {
 
       // Get workspace slug
       const { data: ws, error: wsErr } = await supabase
-        .from("workspaces")
+        .from("public_workspaces")
         .select("slug")
         .eq("id", page.workspace_id)
         .single();

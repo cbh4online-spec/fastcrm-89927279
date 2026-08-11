@@ -153,14 +153,15 @@ export function useTopReferrers(workspaceId: string | undefined) {
 export function useApplyReferralCode() {
   return useMutation({
     mutationFn: async ({ code, workspaceId }: { code: string; workspaceId: string }) => {
-      // Validate referral code exists
-      const { data: refCode, error } = await supabase
-        .from("store_referral_codes")
-        .select("*")
-        .eq("code", code.toUpperCase().trim())
-        .eq("workspace_id", workspaceId)
-        .maybeSingle();
+      // Validar o código sem expor a tabela completa
+      const { data: validated, error } = await supabase.rpc("validate_referral_code", {
+        _workspace_id: workspaceId,
+        _code: code,
+      });
       if (error) throw error;
+      const refCode = (Array.isArray(validated) ? validated[0] : validated) as
+        | { id: string; user_id: string; code: string }
+        | undefined;
       if (!refCode) throw new Error("Código de referral inválido");
 
       // Check if user is trying to use their own code
