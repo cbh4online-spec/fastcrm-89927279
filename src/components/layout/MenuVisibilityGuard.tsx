@@ -3,7 +3,8 @@ import { Navigate, useLocation } from "react-router-dom";
 import { Loader2, Lock } from "lucide-react";
 import { ROUTE_MANIFEST, type RouteEntry } from "@/config/routeManifest";
 import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
-import { resolveRouteVisibility } from "@/config/menuOverrides";
+import { resolveRouteVisibility, isGlobalAdminPath } from "@/config/menuOverrides";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -28,15 +29,22 @@ function matchRoute(pathname: string): RouteEntry | undefined {
 export function MenuVisibilityGuard({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { map, isReady, error } = useMenuOverrideMap();
+  const { isSuperAdmin, isLoading: roleLoading } = useUserRole();
 
   const state = useMemo(() => {
+    // Administração global: um super admin tem sempre acesso, independentemente
+    // dos overrides de menu configurados para a workspace activa.
+    if (isGlobalAdminPath(location.pathname)) {
+      if (roleLoading) return "pending" as const;
+      if (isSuperAdmin) return "visible" as const;
+    }
     // Um super admin a pré-visualizar uma workspace deve ver exactamente o
     // mesmo menu e bloqueios configurados para os restantes utilizadores.
     if (!isReady) return "pending" as const;
     const entry = matchRoute(location.pathname);
     if (!entry) return "visible" as const;
     return resolveRouteVisibility(map, entry);
-  }, [isReady, location.pathname, map]);
+  }, [isReady, location.pathname, map, isSuperAdmin, roleLoading]);
 
   if (state === "pending") {
     return (
