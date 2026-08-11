@@ -14,19 +14,15 @@ interface StoreCheaperAlternativesProps {
   compact?: boolean;
 }
 
-/**
- * Alternativas mais baratas da mesma categoria (down-sell).
- * Evita perder a venda quando o preço é o obstáculo.
- */
-export function StoreCheaperAlternatives({
-  productId,
-  categoryId,
-  workspaceId,
-  workspaceSlug,
-  currentPrice,
-  compact = false,
-}: StoreCheaperAlternativesProps) {
-  const { data: items = [] } = useQuery({
+/** Alternativas mais baratas da mesma categoria (partilhado com o painel de compra). */
+export function useStoreCheaperAlternatives(params: {
+  productId: string;
+  categoryId: string | null;
+  workspaceId: string;
+  currentPrice: number;
+}) {
+  const { productId, categoryId, workspaceId, currentPrice } = params;
+  return useQuery({
     queryKey: ["store-cheaper-alternatives", productId, categoryId, currentPrice],
     enabled: !!categoryId && !!workspaceId && currentPrice > 0,
     staleTime: 60_000,
@@ -44,9 +40,31 @@ export function StoreCheaperAlternatives({
         .order("base_price", { ascending: false })
         .limit(3);
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
   });
+}
+
+/**
+ * Alternativas mais baratas da mesma categoria (down-sell).
+ * Evita perder a venda quando o preço é o obstáculo.
+ */
+export function StoreCheaperAlternatives({
+  productId,
+  categoryId,
+  workspaceId,
+  workspaceSlug,
+  currentPrice,
+  compact = false,
+}: StoreCheaperAlternativesProps) {
+  const { data: items = [] } = useStoreCheaperAlternatives({
+    productId,
+    categoryId,
+    workspaceId,
+    currentPrice,
+  });
+
+
 
   if (!items.length) return null;
 
