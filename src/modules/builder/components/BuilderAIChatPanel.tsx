@@ -263,8 +263,16 @@ export function BuilderAIChatPanel({
           )}
 
           {isSending && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> A gerar…
+            <div className="rounded-lg border bg-muted/40 p-2 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {currentSummary() ?? "A gerar…"}
+              </div>
+              {streamText && (
+                <pre className="max-h-32 overflow-hidden text-[10px] leading-tight font-mono text-muted-foreground/80 whitespace-pre-wrap break-all">
+                  {stripSummaryLine(streamText).slice(-600)}
+                </pre>
+              )}
             </div>
           )}
         </div>
