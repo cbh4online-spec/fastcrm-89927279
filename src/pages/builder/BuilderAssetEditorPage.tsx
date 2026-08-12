@@ -684,7 +684,10 @@ export default function BuilderAssetEditorPage() {
                       />
                     ) : sidePanel === "ai" ? (
                       <BuilderAIPanel
+                        assetId={asset.id}
+                        workspaceId={asset.workspace_id}
                         assetType={asset.type}
+
                         fullHtml={html}
                         selection={selection}
                         selectionOuterHtml={selectionOuterHtml}

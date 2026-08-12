@@ -60,8 +60,9 @@ const corsHeaders = {
 };
 
 const MODEL_DEFAULT = "google/gemini-2.5-flash";
+const MODEL_CHAT = "google/gemini-3.6-flash";
 
-type Mode = "generate_page" | "generate_email" | "refactor" | "variants" | "translate";
+type Mode = "generate_page" | "generate_email" | "refactor" | "variants" | "translate" | "chat";
 
 interface ReqBody {
   mode: Mode;
@@ -73,7 +74,11 @@ interface ReqBody {
   model?: string;
   tone?: string; // persuasivo | profissional | casual | direto | entusiasta
   lang?: string; // pt | en | es | fr
+  assetType?: string;
+  workspaceId?: string | null;
+  history?: { role: "user" | "assistant"; content: string }[];
 }
+
 
 const LANG_LABEL: Record<string, string> = {
   pt: "português de Portugal",
@@ -98,6 +103,18 @@ REGRAS CRÍTICAS DE PRESERVAÇÃO DE LAYOUT:
 - Devolve APENAS o HTML refactorizado, sem markdown, sem comentários, sem explicação.`,
   variants: `És um copywriter de conversão. Recebes um snippet HTML e geras N variantes alternativas (mesma estrutura, copy diferente). Devolve um JSON com a forma {"variants":[{"label":"A","html":"..."},...]}. Sem markdown. Apenas JSON válido.`,
   translate: `És um tradutor profissional. Traduz o conteúdo de texto do HTML para o idioma indicado, preservando rigorosamente todas as tags, atributos e estrutura. Devolve apenas o HTML traduzido.`,
+  chat: `És um engenheiro/designer sénior de landing pages, a trabalhar num editor visual estilo Lovable. O utilizador conversa contigo em linguagem natural e tu devolves o HTML actualizado.
+
+REGRAS:
+- Devolves SEMPRE e APENAS JSON válido: {"summary":"frase curta em português de Portugal a descrever o que mudaste","html":"<...>"}
+- Se receberes "HTML DO BLOCO SELECCIONADO", devolves apenas esse bloco reescrito (mesma tag root, mesmo data-bid). Não devolvas a página inteira.
+- Se não houver bloco seleccionado, devolves o documento HTML completo (<!doctype html>...) já com as alterações pedidas, preservando todo o conteúdo que o utilizador não pediu para alterar.
+- Usa Tailwind via CDN quando criares algo de raiz; se a página já tiver um sistema de estilos, respeita-o.
+- Preserva atributos data-bid, id, href, src, alt, aria-*, e imagens existentes salvo pedido explícito.
+- Nunca incluas <script> de terceiros nem código de tracking.
+- Design profissional, responsivo, acessível (contraste, alt, labels), copy em português de Portugal salvo indicação contrária.
+- Sem markdown, sem code fences, sem explicações fora do JSON.`,
+
 };
 
 function buildUserMessage(b: ReqBody): string {
@@ -113,6 +130,16 @@ function buildUserMessage(b: ReqBody): string {
       return `Gera ${b.variants ?? 3} variantes. Instrução opcional: ${b.prompt ?? "—"}\n\nHTML base:\n${b.selectionHtml ?? b.fullHtml ?? ""}`;
     case "translate":
       return `Idioma alvo: ${b.targetLang ?? "en"}\n\nHTML:\n${b.selectionHtml ?? b.fullHtml ?? ""}`;
+    case "chat": {
+      const parts = [`Tipo de asset: ${b.assetType ?? "landing"}`, `Idioma: ${lang}`, `Pedido do utilizador: ${b.prompt ?? ""}`];
+      if (b.selectionHtml) {
+        parts.push(`HTML DO BLOCO SELECCIONADO (edita só isto):\n${b.selectionHtml}`);
+      } else {
+        parts.push(`HTML ACTUAL DA PÁGINA (devolve a página completa actualizada):\n${b.fullHtml ?? "(vazio — cria de raiz)"}`);
+      }
+      return parts.join("\n\n");
+    }
+
   }
 }
 
@@ -138,17 +165,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    const model = body.model || MODEL_DEFAULT;
+    const model = body.model || (body.mode === "chat" ? MODEL_CHAT : MODEL_DEFAULT);
+    const history = (body.history ?? [])
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .slice(-8)
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }));
+
     const messages = [
       { role: "system", content: SYSTEMS[body.mode] },
+      ...history,
       { role: "user", content: buildUserMessage(body) },
     ];
 
-    const res = await __loggedAIFetch(null, "builder-ai", {
+    const res = await __loggedAIFetch(body.workspaceId ?? null, "builder-ai", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model, messages, stream: false }),
     });
+
 
     if (res.status === 429) {
       return new Response(JSON.stringify({ error: "rate_limited", message: "Demasiados pedidos. Tenta novamente em alguns segundos." }), {
@@ -172,7 +206,33 @@ Deno.serve(async (req) => {
     const raw: string = data?.choices?.[0]?.message?.content ?? "";
     const cleaned = stripCodeFences(raw);
 
+    if (body.mode === "chat") {
+      // Esperado: {"summary": "...", "html": "..."}
+      let summary = "";
+      let outHtml = "";
+      try {
+        const parsed = JSON.parse(cleaned);
+        summary = String(parsed.summary ?? "");
+        outHtml = String(parsed.html ?? "");
+      } catch {
+        // fallback: o modelo devolveu HTML directo
+        if (/^\s*</.test(cleaned)) {
+          outHtml = cleaned;
+          summary = "Alteração aplicada.";
+        }
+      }
+      if (!outHtml) {
+        return new Response(JSON.stringify({ ok: false, error: "invalid_chat_response", message: "A IA não devolveu HTML válido. Tenta reformular o pedido.", raw: cleaned.slice(0, 500) }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true, mode: "chat", summary, html: stripCodeFences(outHtml), scope: body.selectionHtml ? "selection" : "page" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (body.mode === "variants") {
+
       try {
         const parsed = JSON.parse(cleaned);
         return new Response(JSON.stringify({ ok: true, mode: body.mode, variants: parsed.variants ?? [] }), {

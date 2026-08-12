@@ -74,6 +74,12 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
   const [uploading, setUploading] = useState(false);
   const [uploadInfo, setUploadInfo] = useState<string | null>(null);
 
+  // IA
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiTone, setAiTone] = useState("persuasivo");
+  const [aiLang, setAiLang] = useState("pt");
+  const [aiBusy, setAiBusy] = useState(false);
+
   // URL import
   const [urlValue, setUrlValue] = useState("");
   const [importingUrl, setImportingUrl] = useState(false);
@@ -89,6 +95,10 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
     setUploadInfo(null);
     setUrlValue("");
     setImportingUrl(false);
+    setAiPrompt("");
+    setAiTone("persuasivo");
+    setAiLang("pt");
+    setAiBusy(false);
     setCloneUrl("");
     setCloneIncludeSub(false);
     setCloneKeepScripts(false);
@@ -168,6 +178,40 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
     }
   };
 
+  const handleGenerateAI = async () => {
+    const prompt = aiPrompt.trim();
+    if (prompt.length < 10) {
+      setErrors({ ai: "Descreve com mais detalhe o que queres criar (mín. 10 caracteres)" });
+      return;
+    }
+    setErrors({});
+    setAiBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("builder-ai", {
+        body: {
+          mode: type === "newsletter" ? "generate_email" : "generate_page",
+          prompt,
+          tone: aiTone,
+          lang: aiLang,
+          assetType: type,
+        },
+      });
+      if (error) throw new Error(error.message);
+      const payload = data as { html?: string; error?: string; message?: string };
+      if (payload?.error) throw new Error(payload.message || payload.error);
+      if (!payload?.html) throw new Error("A IA não devolveu HTML");
+      setHtml(payload.html);
+      if (!name.trim()) setName(prompt.slice(0, 60));
+      setTab("paste");
+      toast({ title: "Página gerada", description: "Revê o resultado antes de criar." });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ title: "Geração falhou", description: msg, variant: "destructive" });
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const parsed = createSchema.safeParse({ name, type, description, html });
     if (!parsed.success) {
@@ -232,10 +276,62 @@ export function CreateBuilderAssetDialog({ open, onOpenChange, defaultType = "la
             <TabsTrigger value="templates" className="gap-2">
               <Layout className="h-4 w-4" /> Templates
             </TabsTrigger>
-            <TabsTrigger value="ai" disabled className="gap-2">
+            <TabsTrigger value="ai" className="gap-2">
               <Sparkles className="h-4 w-4" /> IA
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="ai" className="mt-4">
+            <div className="space-y-4 max-w-2xl">
+              <div>
+                <Label htmlFor="ai-prompt">Descreve o que queres criar</Label>
+                <Textarea
+                  id="ai-prompt"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  rows={6}
+                  className="mt-1"
+                  placeholder="Ex: landing page para uma clínica dentária em Lisboa, com hero, 3 benefícios, testemunhos, FAQ e formulário de marcação."
+                  disabled={aiBusy}
+                />
+                {errors.ai && <p className="text-xs text-destructive mt-1">{errors.ai}</p>}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Tom</Label>
+                  <Select value={aiTone} onValueChange={setAiTone} disabled={aiBusy}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="persuasivo">Persuasivo</SelectItem>
+                      <SelectItem value="profissional">Profissional</SelectItem>
+                      <SelectItem value="casual">Casual</SelectItem>
+                      <SelectItem value="direto">Direto</SelectItem>
+                      <SelectItem value="entusiasta">Entusiasta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Idioma</Label>
+                  <Select value={aiLang} onValueChange={setAiLang} disabled={aiBusy}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pt">Português (PT)</SelectItem>
+                      <SelectItem value="en">Inglês</SelectItem>
+                      <SelectItem value="es">Espanhol</SelectItem>
+                      <SelectItem value="fr">Francês</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button onClick={handleGenerateAI} disabled={aiBusy}>
+                {aiBusy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                Gerar com IA
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Depois de criar, podes continuar a conversar com a IA dentro do editor para ajustar a página.
+              </p>
+            </div>
+          </TabsContent>
 
           <TabsContent value="templates" className="flex-1 overflow-hidden mt-4">
             <ScrollArea className="h-full pr-2">
