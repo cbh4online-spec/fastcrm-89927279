@@ -62,16 +62,16 @@ export function BuilderPreviewFrame({ html, className, defaultDevice = "desktop"
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
+      <div className="flex-1 min-h-0 overflow-auto p-3 flex items-stretch justify-center">
         <div
-          className="bg-background shadow-lg transition-all duration-300 ease-out border rounded-md overflow-hidden"
-          style={{ width: deviceWidth, maxWidth: "100%", height: "100%" }}
+          className="bg-background shadow-lg transition-all duration-300 ease-out border rounded-md overflow-hidden flex-shrink-0"
+          style={{ width: deviceWidth, maxWidth: "100%" }}
         >
           <iframe
             title="Builder preview"
             sandbox="allow-same-origin"
             srcDoc={safeHtml}
-            className="w-full h-[640px] border-0 bg-white"
+            className="w-full h-full min-h-[600px] border-0 bg-white"
           />
         </div>
       </div>
