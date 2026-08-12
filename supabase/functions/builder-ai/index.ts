@@ -130,6 +130,16 @@ function buildUserMessage(b: ReqBody): string {
       return `Gera ${b.variants ?? 3} variantes. Instrução opcional: ${b.prompt ?? "—"}\n\nHTML base:\n${b.selectionHtml ?? b.fullHtml ?? ""}`;
     case "translate":
       return `Idioma alvo: ${b.targetLang ?? "en"}\n\nHTML:\n${b.selectionHtml ?? b.fullHtml ?? ""}`;
+    case "chat": {
+      const parts = [`Tipo de asset: ${b.assetType ?? "landing"}`, `Idioma: ${lang}`, `Pedido do utilizador: ${b.prompt ?? ""}`];
+      if (b.selectionHtml) {
+        parts.push(`HTML DO BLOCO SELECCIONADO (edita só isto):\n${b.selectionHtml}`);
+      } else {
+        parts.push(`HTML ACTUAL DA PÁGINA (devolve a página completa actualizada):\n${b.fullHtml ?? "(vazio — cria de raiz)"}`);
+      }
+      return parts.join("\n\n");
+    }
+
   }
 }
 
