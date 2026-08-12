@@ -41,17 +41,40 @@ export function BuilderAIChatPanel({
   onReplaceFullHtml,
   onPatch,
 }: Props) {
-  const { messages, isLoading, isSending, send, clear } = useBuilderAIChat(assetId, workspaceId);
+  const { messages, isLoading, isSending, send, sendStreaming, clear } = useBuilderAIChat(assetId, workspaceId);
   const [input, setInput] = useState("");
   const [lastUndo, setLastUndo] = useState<string | null>(null);
+  const [streamText, setStreamText] = useState("");
+  const [livePreview, setLivePreview] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const lastPreviewAt = useRef(0);
 
   const hasSelection = !!selection?.bid && !!selectionOuterHtml;
 
   useEffect(() => {
     const el = scrollRef.current?.querySelector("[data-radix-scroll-area-viewport]") as HTMLElement | null;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length, isSending]);
+  }, [messages.length, isSending, streamText]);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  function stripSummaryLine(text: string): string {
+    return text.replace(/^\s*SUMMARY:.*(?:\n|$)/i, "");
+  }
+
+  function currentSummary(): string | null {
+    const m = streamText.match(/^\s*SUMMARY:\s*(.*)$/im);
+    return m ? m[1] : null;
+  }
+
+  function applyResult(result: { html: string; scope: "selection" | "page" }) {
+    if (result.scope === "selection" && selection?.bid) {
+      onPatch({ type: "replaceOuter", bid: selection.bid, value: result.html });
+    } else {
+      onReplaceFullHtml(result.html);
+    }
+  }
 
   async function handleSend(text?: string) {
     const prompt = (text ?? input).trim();
@@ -62,26 +85,67 @@ export function BuilderAIChatPanel({
     if (isSending) return;
 
     const htmlBefore = fullHtml;
+    const usingSelection = hasSelection;
     setInput("");
-    try {
-      const result = await send({
-        prompt,
-        fullHtml,
-        selectionHtml: hasSelection ? selectionOuterHtml : null,
-        selectionBid: selection?.bid ?? null,
-        assetType,
-      });
+    setStreamText("");
 
-      if (result.scope === "selection" && selection?.bid) {
-        onPatch({ type: "replaceOuter", bid: selection.bid, value: result.html });
-      } else {
-        onReplaceFullHtml(result.html);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const args = {
+      prompt,
+      fullHtml,
+      selectionHtml: usingSelection ? selectionOuterHtml : null,
+      selectionBid: selection?.bid ?? null,
+      assetType,
+    };
+
+    try {
+      let result;
+      try {
+        result = await sendStreaming(args, {
+          signal: controller.signal,
+          onDelta: (full) => {
+            setStreamText(full);
+            if (!livePreview || usingSelection) return;
+            const now = Date.now();
+            if (now - lastPreviewAt.current < 300) return;
+            const partial = stripSummaryLine(full);
+            if (partial.trim().length > 200) {
+              lastPreviewAt.current = now;
+              onReplaceFullHtml(partial);
+            }
+          },
+        });
+      } catch (e) {
+        if (controller.signal.aborted) throw e;
+        const msg = e instanceof Error ? e.message : "";
+        if (msg.startsWith("stream_unavailable")) {
+          // fallback sem streaming
+          result = await send(args);
+        } else {
+          throw e;
+        }
       }
+
+      applyResult(result);
       setLastUndo(htmlBefore);
       toast.success(result.summary);
     } catch (e) {
-      toast.error("Falha na IA", { description: e instanceof Error ? e.message : undefined });
+      if (controller.signal.aborted) {
+        onReplaceFullHtml(htmlBefore);
+        toast.info("Geração interrompida");
+      } else {
+        toast.error("Falha na IA", { description: e instanceof Error ? e.message : undefined });
+      }
+    } finally {
+      abortRef.current = null;
+      setStreamText("");
     }
+  }
+
+  function handleStop() {
+    abortRef.current?.abort();
   }
 
   function handleUndo() {
