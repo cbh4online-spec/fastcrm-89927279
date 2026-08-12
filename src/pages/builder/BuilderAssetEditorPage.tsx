@@ -433,7 +433,7 @@ export default function BuilderAssetEditorPage() {
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="h-8 max-w-[220px] font-medium"
+                  className="h-8 w-full min-w-0 max-w-[220px] font-medium"
                   placeholder="Nome do asset"
                   aria-label="Nome do asset"
                   maxLength={120}
