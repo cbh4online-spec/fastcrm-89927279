@@ -419,8 +419,8 @@ export default function BuilderAssetEditorPage() {
 
       <div className="flex flex-col h-[calc(100vh-64px)]">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b bg-background">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 border-b bg-background">
+          <div className="flex items-center gap-2 min-w-0 flex-1 basis-[260px]">
             <Button asChild variant="ghost" size="sm" className="shrink-0">
               <Link to="/dashboard/builder">
                 <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
@@ -433,7 +433,7 @@ export default function BuilderAssetEditorPage() {
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="h-8 max-w-[220px] font-medium"
+                  className="h-8 w-full min-w-0 max-w-[220px] font-medium"
                   placeholder="Nome do asset"
                   aria-label="Nome do asset"
                   maxLength={120}
@@ -447,7 +447,7 @@ export default function BuilderAssetEditorPage() {
           </div>
 
           {asset && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
               <div className="flex items-center gap-0.5 rounded-md border bg-muted/40 p-0.5">
                 <Button
                   size="icon"
