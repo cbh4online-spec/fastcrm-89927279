@@ -218,11 +218,36 @@ interface BlockCardProps {
   onInsert: () => void;
   onCopy: () => void;
   onDelete?: () => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }
 
-function BlockCard({ name, description, category, scope, onInsert, onCopy, onDelete }: BlockCardProps) {
+function BlockCard({
+  name,
+  description,
+  category,
+  html,
+  scope,
+  onInsert,
+  onCopy,
+  onDelete,
+  onDragStart,
+  onDragEnd,
+}: BlockCardProps) {
   return (
-    <div className="group border rounded-lg p-2.5 hover:border-primary/50 transition-colors bg-card">
+    <div
+      draggable={!!onDragStart}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "copy";
+        e.dataTransfer.setData("text/html", html);
+        onDragStart?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      className={cn(
+        "group border rounded-lg p-2.5 hover:border-primary/50 transition-colors bg-card",
+        onDragStart && "cursor-grab active:cursor-grabbing",
+      )}
+    >
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
