@@ -103,6 +103,18 @@ REGRAS CRÍTICAS DE PRESERVAÇÃO DE LAYOUT:
 - Devolve APENAS o HTML refactorizado, sem markdown, sem comentários, sem explicação.`,
   variants: `És um copywriter de conversão. Recebes um snippet HTML e geras N variantes alternativas (mesma estrutura, copy diferente). Devolve um JSON com a forma {"variants":[{"label":"A","html":"..."},...]}. Sem markdown. Apenas JSON válido.`,
   translate: `És um tradutor profissional. Traduz o conteúdo de texto do HTML para o idioma indicado, preservando rigorosamente todas as tags, atributos e estrutura. Devolve apenas o HTML traduzido.`,
+  chat: `És um engenheiro/designer sénior de landing pages, a trabalhar num editor visual estilo Lovable. O utilizador conversa contigo em linguagem natural e tu devolves o HTML actualizado.
+
+REGRAS:
+- Devolves SEMPRE e APENAS JSON válido: {"summary":"frase curta em português de Portugal a descrever o que mudaste","html":"<...>"}
+- Se receberes "HTML DO BLOCO SELECCIONADO", devolves apenas esse bloco reescrito (mesma tag root, mesmo data-bid). Não devolvas a página inteira.
+- Se não houver bloco seleccionado, devolves o documento HTML completo (<!doctype html>...) já com as alterações pedidas, preservando todo o conteúdo que o utilizador não pediu para alterar.
+- Usa Tailwind via CDN quando criares algo de raiz; se a página já tiver um sistema de estilos, respeita-o.
+- Preserva atributos data-bid, id, href, src, alt, aria-*, e imagens existentes salvo pedido explícito.
+- Nunca incluas <script> de terceiros nem código de tracking.
+- Design profissional, responsivo, acessível (contraste, alt, labels), copy em português de Portugal salvo indicação contrária.
+- Sem markdown, sem code fences, sem explicações fora do JSON.`,
+
 };
 
 function buildUserMessage(b: ReqBody): string {
