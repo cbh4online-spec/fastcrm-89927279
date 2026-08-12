@@ -18,8 +18,11 @@ import {
 } from "@/components/ui/dialog";
 import type { VisualSelection } from "./BuilderVisualEditor";
 import type { BuilderPatch } from "../lib/builderHtmlPatch";
+import { BuilderAIChatPanel } from "./BuilderAIChatPanel";
 
 interface Props {
+  assetId?: string;
+  workspaceId?: string;
   assetType: string; // 'landing' | 'email' | ...
   fullHtml: string;
   selection: VisualSelection | null;
@@ -30,8 +33,9 @@ interface Props {
 
 type Variant = { label: string; html: string };
 
-export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterHtml, onReplaceFullHtml, onPatch }: Props) {
+export function BuilderAIPanel({ assetId, workspaceId, assetType, fullHtml, selection, selectionOuterHtml, onReplaceFullHtml, onPatch }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
+  const [mode, setMode] = useState<"chat" | "tools">("chat");
 
   // Generate full
   const [genPrompt, setGenPrompt] = useState("");
