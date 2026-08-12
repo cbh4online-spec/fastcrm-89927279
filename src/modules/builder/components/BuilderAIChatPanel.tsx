@@ -293,6 +293,23 @@ export function BuilderAIChatPanel({
           className="text-sm resize-none"
           disabled={isSending}
         />
+        <div className="flex items-center justify-between gap-2">
+          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-3 w-3 accent-primary"
+              checked={livePreview}
+              onChange={(e) => setLivePreview(e.target.checked)}
+              disabled={isSending}
+            />
+            Antevisão ao vivo
+          </label>
+          {isSending && (
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={handleStop}>
+              Parar
+            </Button>
+          )}
+        </div>
         <Button size="sm" className="w-full" onClick={() => handleSend()} disabled={isSending || !input.trim()}>
           {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <SendHorizonal className="h-3.5 w-3.5 mr-1.5" />}
           Enviar (⌘↵)
