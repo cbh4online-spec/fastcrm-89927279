@@ -272,6 +272,7 @@ export function useBuilderAIChat(assetId: string | undefined, workspaceId: strin
     isLoading: messagesQuery.isLoading,
     isSending,
     send,
+    sendStreaming,
     clear,
   };
 }
