@@ -232,13 +232,71 @@ export function BuilderAIPanel({ assetType, fullHtml, selection, selectionOuterH
     setVariantsOpen(false);
   }
 
+  if (mode === "chat" && assetId && workspaceId) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="px-2 pt-2 shrink-0">
+          <div className="flex gap-1 p-1 bg-muted rounded-md text-xs">
+            <button
+              type="button"
+              className="flex-1 rounded px-2 py-1 bg-background shadow-sm font-medium"
+              onClick={() => setMode("chat")}
+            >
+              Chat IA
+            </button>
+            <button
+              type="button"
+              className="flex-1 rounded px-2 py-1 text-muted-foreground hover:text-foreground"
+              onClick={() => setMode("tools")}
+            >
+              Ferramentas
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 min-h-0">
+          <BuilderAIChatPanel
+            assetId={assetId}
+            workspaceId={workspaceId}
+            assetType={assetType}
+            fullHtml={fullHtml}
+            selection={selection}
+            selectionOuterHtml={selectionOuterHtml}
+            onReplaceFullHtml={onReplaceFullHtml}
+            onPatch={onPatch}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
+      {assetId && workspaceId && (
+        <div className="px-2 pt-2 shrink-0">
+          <div className="flex gap-1 p-1 bg-muted rounded-md text-xs">
+            <button
+              type="button"
+              className="flex-1 rounded px-2 py-1 text-muted-foreground hover:text-foreground"
+              onClick={() => setMode("chat")}
+            >
+              Chat IA
+            </button>
+            <button
+              type="button"
+              className="flex-1 rounded px-2 py-1 bg-background shadow-sm font-medium"
+              onClick={() => setMode("tools")}
+            >
+              Ferramentas
+            </button>
+          </div>
+        </div>
+      )}
       <div className="px-3 py-2 border-b bg-muted/30 flex items-center gap-2 shrink-0">
         <Sparkles className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-medium">Assistente IA</h3>
+        <h3 className="text-sm font-medium">Ferramentas IA</h3>
       </div>
       <ScrollArea className="flex-1">
+
         <Tabs defaultValue="generate" className="p-3">
           <TabsList className="grid grid-cols-4 h-8">
             <TabsTrigger value="generate" className="text-xs px-1"><Wand2 className="h-3 w-3 mr-1" />Gerar</TabsTrigger>
