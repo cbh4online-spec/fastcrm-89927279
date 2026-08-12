@@ -41,17 +41,40 @@ export function BuilderAIChatPanel({
   onReplaceFullHtml,
   onPatch,
 }: Props) {
-  const { messages, isLoading, isSending, send, clear } = useBuilderAIChat(assetId, workspaceId);
+  const { messages, isLoading, isSending, send, sendStreaming, clear } = useBuilderAIChat(assetId, workspaceId);
   const [input, setInput] = useState("");
   const [lastUndo, setLastUndo] = useState<string | null>(null);
+  const [streamText, setStreamText] = useState("");
+  const [livePreview, setLivePreview] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const lastPreviewAt = useRef(0);
 
   const hasSelection = !!selection?.bid && !!selectionOuterHtml;
 
   useEffect(() => {
     const el = scrollRef.current?.querySelector("[data-radix-scroll-area-viewport]") as HTMLElement | null;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length, isSending]);
+  }, [messages.length, isSending, streamText]);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  function stripSummaryLine(text: string): string {
+    return text.replace(/^\s*SUMMARY:.*(?:\n|$)/i, "");
+  }
+
+  function currentSummary(): string | null {
+    const m = streamText.match(/^\s*SUMMARY:\s*(.*)$/im);
+    return m ? m[1] : null;
+  }
+
+  function applyResult(result: { html: string; scope: "selection" | "page" }) {
+    if (result.scope === "selection" && selection?.bid) {
+      onPatch({ type: "replaceOuter", bid: selection.bid, value: result.html });
+    } else {
+      onReplaceFullHtml(result.html);
+    }
+  }
 
   async function handleSend(text?: string) {
     const prompt = (text ?? input).trim();
@@ -62,26 +85,67 @@ export function BuilderAIChatPanel({
     if (isSending) return;
 
     const htmlBefore = fullHtml;
+    const usingSelection = hasSelection;
     setInput("");
-    try {
-      const result = await send({
-        prompt,
-        fullHtml,
-        selectionHtml: hasSelection ? selectionOuterHtml : null,
-        selectionBid: selection?.bid ?? null,
-        assetType,
-      });
+    setStreamText("");
 
-      if (result.scope === "selection" && selection?.bid) {
-        onPatch({ type: "replaceOuter", bid: selection.bid, value: result.html });
-      } else {
-        onReplaceFullHtml(result.html);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const args = {
+      prompt,
+      fullHtml,
+      selectionHtml: usingSelection ? selectionOuterHtml : null,
+      selectionBid: selection?.bid ?? null,
+      assetType,
+    };
+
+    try {
+      let result;
+      try {
+        result = await sendStreaming(args, {
+          signal: controller.signal,
+          onDelta: (full) => {
+            setStreamText(full);
+            if (!livePreview || usingSelection) return;
+            const now = Date.now();
+            if (now - lastPreviewAt.current < 300) return;
+            const partial = stripSummaryLine(full);
+            if (partial.trim().length > 200) {
+              lastPreviewAt.current = now;
+              onReplaceFullHtml(partial);
+            }
+          },
+        });
+      } catch (e) {
+        if (controller.signal.aborted) throw e;
+        const msg = e instanceof Error ? e.message : "";
+        if (msg.startsWith("stream_unavailable")) {
+          // fallback sem streaming
+          result = await send(args);
+        } else {
+          throw e;
+        }
       }
+
+      applyResult(result);
       setLastUndo(htmlBefore);
       toast.success(result.summary);
     } catch (e) {
-      toast.error("Falha na IA", { description: e instanceof Error ? e.message : undefined });
+      if (controller.signal.aborted) {
+        onReplaceFullHtml(htmlBefore);
+        toast.info("Geração interrompida");
+      } else {
+        toast.error("Falha na IA", { description: e instanceof Error ? e.message : undefined });
+      }
+    } finally {
+      abortRef.current = null;
+      setStreamText("");
     }
+  }
+
+  function handleStop() {
+    abortRef.current?.abort();
   }
 
   function handleUndo() {
@@ -199,8 +263,16 @@ export function BuilderAIChatPanel({
           )}
 
           {isSending && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> A gerar…
+            <div className="rounded-lg border bg-muted/40 p-2 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {currentSummary() ?? "A gerar…"}
+              </div>
+              {streamText && (
+                <pre className="max-h-32 overflow-hidden text-[10px] leading-tight font-mono text-muted-foreground/80 whitespace-pre-wrap break-all">
+                  {stripSummaryLine(streamText).slice(-600)}
+                </pre>
+              )}
             </div>
           )}
         </div>
@@ -221,6 +293,23 @@ export function BuilderAIChatPanel({
           className="text-sm resize-none"
           disabled={isSending}
         />
+        <div className="flex items-center justify-between gap-2">
+          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-3 w-3 accent-primary"
+              checked={livePreview}
+              onChange={(e) => setLivePreview(e.target.checked)}
+              disabled={isSending}
+            />
+            Antevisão ao vivo
+          </label>
+          {isSending && (
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={handleStop}>
+              Parar
+            </Button>
+          )}
+        </div>
         <Button size="sm" className="w-full" onClick={() => handleSend()} disabled={isSending || !input.trim()}>
           {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <SendHorizonal className="h-3.5 w-3.5 mr-1.5" />}
           Enviar (⌘↵)

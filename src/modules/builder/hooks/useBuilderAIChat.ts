@@ -142,6 +142,122 @@ export function useBuilderAIChat(assetId: string | undefined, workspaceId: strin
     [messagesQuery.data, persist, invalidate, workspaceId],
   );
 
+  const sendStreaming = useCallback(
+    async (
+      args: SendArgs,
+      opts: { onDelta?: (full: string) => void; signal?: AbortSignal } = {},
+    ): Promise<ChatResult> => {
+      setIsSending(true);
+      try {
+        const history = (messagesQuery.data ?? [])
+          .filter((m) => !m.is_error)
+          .slice(-8)
+          .map((m) => ({
+            role: m.role,
+            content: m.role === "assistant" ? (m.summary ?? m.content) : m.content,
+          }));
+
+        await persist({ role: "user", content: args.prompt, target_bid: args.selectionBid ?? null });
+        invalidate();
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/builder-ai`;
+
+        const res = await fetch(url, {
+          method: "POST",
+          signal: opts.signal,
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            mode: "chat",
+            stream: true,
+            prompt: args.prompt,
+            fullHtml: args.selectionHtml ? undefined : args.fullHtml,
+            selectionHtml: args.selectionHtml ?? undefined,
+            assetType: args.assetType,
+            workspaceId: workspaceId ?? null,
+            history,
+          }),
+        });
+
+        if (!res.ok || !res.body) throw new Error(`stream_unavailable_${res.status}`);
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let acc = "";
+        let result: ChatResult | null = null;
+        let streamError: string | null = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split("\n\n");
+          buffer = blocks.pop() ?? "";
+          for (const block of blocks) {
+            const eventLine = block.split("\n").find((l) => l.startsWith("event:"));
+            const dataLine = block.split("\n").find((l) => l.startsWith("data:"));
+            if (!dataLine) continue;
+            const event = eventLine?.slice(6).trim() ?? "message";
+            let payload: any;
+            try {
+              payload = JSON.parse(dataLine.slice(5).trim());
+            } catch {
+              continue;
+            }
+            if (event === "delta" && payload?.text) {
+              acc += payload.text as string;
+              opts.onDelta?.(acc);
+            } else if (event === "done") {
+              result = {
+                html: payload.html as string,
+                summary: (payload.summary as string) || "Alteração aplicada.",
+                scope: (payload.scope as "selection" | "page") ?? (args.selectionHtml ? "selection" : "page"),
+              };
+            } else if (event === "error") {
+              streamError = (payload?.message as string) || "Erro na IA";
+            }
+          }
+        }
+
+        if (streamError) throw new Error(streamError);
+        if (!result) throw new Error("A IA não devolveu conteúdo.");
+
+        await persist({
+          role: "assistant",
+          content: result.summary,
+          summary: result.summary,
+          target_bid: args.selectionBid ?? null,
+          html_before: args.fullHtml,
+          html_after: result.scope === "page" ? result.html : null,
+        });
+        invalidate();
+
+        return result;
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") {
+          setIsSending(false);
+          throw e;
+        }
+        await persist({
+          role: "assistant",
+          content: e instanceof Error ? e.message : "Erro desconhecido",
+          is_error: true,
+        });
+        invalidate();
+        throw e;
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [messagesQuery.data, persist, invalidate, workspaceId],
+  );
+
   const clear = useMutation({
     mutationFn: async () => {
       if (!assetId) return;
@@ -156,6 +272,7 @@ export function useBuilderAIChat(assetId: string | undefined, workspaceId: strin
     isLoading: messagesQuery.isLoading,
     isSending,
     send,
+    sendStreaming,
     clear,
   };
 }
