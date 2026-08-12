@@ -18,12 +18,21 @@ export interface VisualSelection {
   text: string | null;
 }
 
+export type SectionAction = "moveUp" | "moveDown" | "duplicate" | "delete" | "saveBlock";
+export type DropPosition = "before" | "after" | "append";
+
 interface Props {
   /** HTML já com bids atribuídos. */
   html: string;
   selectedBid: string | null;
   onSelect: (sel: VisualSelection | null) => void;
   onPatch: (patch: BuilderPatch) => void;
+  /** Acções da barra flutuante da secção seleccionada. */
+  onSectionAction?: (action: SectionAction, bid: string) => void;
+  /** Largou-se um bloco no canvas, na posição indicada. */
+  onDropBlock?: (targetBid: string | null, position: DropPosition) => void;
+  /** Está a decorrer um arrasto vindo da biblioteca de blocos. */
+  dragActive?: boolean;
   className?: string;
 }
 
@@ -31,7 +40,16 @@ interface Props {
  * Iframe interactivo que permite seleccionar elementos e editá-los inline.
  * O script-ponte é injectado dentro do iframe (sandbox allow-scripts + same-origin).
  */
-export function BuilderVisualEditor({ html, selectedBid, onSelect, onPatch, className }: Props) {
+export function BuilderVisualEditor({
+  html,
+  selectedBid,
+  onSelect,
+  onPatch,
+  onSectionAction,
+  onDropBlock,
+  dragActive,
+  className,
+}: Props) {
   const [device, setDevice] = useState<Device>("desktop");
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const lastSelectedBid = useRef<string | null>(null);
