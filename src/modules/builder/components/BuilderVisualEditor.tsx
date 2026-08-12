@@ -18,12 +18,21 @@ export interface VisualSelection {
   text: string | null;
 }
 
+export type SectionAction = "moveUp" | "moveDown" | "duplicate" | "delete" | "saveBlock";
+export type DropPosition = "before" | "after" | "append";
+
 interface Props {
   /** HTML já com bids atribuídos. */
   html: string;
   selectedBid: string | null;
   onSelect: (sel: VisualSelection | null) => void;
   onPatch: (patch: BuilderPatch) => void;
+  /** Acções da barra flutuante da secção seleccionada. */
+  onSectionAction?: (action: SectionAction, bid: string) => void;
+  /** Largou-se um bloco no canvas, na posição indicada. */
+  onDropBlock?: (targetBid: string | null, position: DropPosition) => void;
+  /** Está a decorrer um arrasto vindo da biblioteca de blocos. */
+  dragActive?: boolean;
   className?: string;
 }
 
@@ -31,7 +40,16 @@ interface Props {
  * Iframe interactivo que permite seleccionar elementos e editá-los inline.
  * O script-ponte é injectado dentro do iframe (sandbox allow-scripts + same-origin).
  */
-export function BuilderVisualEditor({ html, selectedBid, onSelect, onPatch, className }: Props) {
+export function BuilderVisualEditor({
+  html,
+  selectedBid,
+  onSelect,
+  onPatch,
+  onSectionAction,
+  onDropBlock,
+  dragActive,
+  className,
+}: Props) {
   const [device, setDevice] = useState<Device>("desktop");
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const lastSelectedBid = useRef<string | null>(null);
@@ -74,11 +92,24 @@ export function BuilderVisualEditor({ html, selectedBid, onSelect, onPatch, clas
         });
       } else if (data.kind === "patch") {
         onPatch(data.patch as BuilderPatch);
+      } else if (data.kind === "action") {
+        onSectionAction?.(data.action as SectionAction, String(data.bid));
+      } else if (data.kind === "drop") {
+        onDropBlock?.(
+          (data.bid as string | null) ?? null,
+          (data.position as DropPosition) ?? "append",
+        );
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onSelect, onPatch]);
+  }, [onSelect, onPatch, onSectionAction, onDropBlock]);
+
+  // Esconder o indicador de drop quando o arrasto termina fora do iframe
+  useEffect(() => {
+    if (dragActive) return;
+    iframeRef.current?.contentWindow?.postMessage({ __builderCmd: true, kind: "dragEnd" }, "*");
+  }, [dragActive]);
 
   // Sincronizar selecção externa para o iframe
   useEffect(() => {
@@ -99,7 +130,10 @@ export function BuilderVisualEditor({ html, selectedBid, onSelect, onPatch, clas
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-background/60 backdrop-blur">
         <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
           <MousePointerClick className="h-3.5 w-3.5" />
-          Editor visual <span className="text-muted-foreground/60">— clica para seleccionar, duplo-clique para editar texto</span>
+          Canvas{" "}
+          <span className="text-muted-foreground/60">
+            — clica para seleccionar, duplo-clique para editar texto, arrasta blocos para inserir
+          </span>
         </div>
         <div className="flex items-center gap-1">
           {(["desktop", "tablet", "mobile"] as Device[]).map((d) => {
@@ -120,17 +154,20 @@ export function BuilderVisualEditor({ html, selectedBid, onSelect, onPatch, clas
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
+      <div className="flex-1 min-h-0 overflow-auto p-4 flex items-start justify-center">
         <div
-          className="bg-background shadow-lg transition-all duration-300 ease-out border rounded-md overflow-hidden"
-          style={{ width: deviceWidth, maxWidth: "100%", height: "100%" }}
+          className={cn(
+            "bg-background shadow-lg transition-all duration-300 ease-out border rounded-md overflow-hidden h-full min-h-[520px]",
+            dragActive && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+          )}
+          style={{ width: deviceWidth, maxWidth: "100%" }}
         >
           <iframe
             ref={iframeRef}
             title="Builder visual editor"
             sandbox="allow-same-origin allow-scripts"
             srcDoc={safeHtml}
-            className="w-full h-[640px] border-0 bg-white"
+            className="w-full h-full min-h-[520px] border-0 bg-white"
           />
         </div>
       </div>

@@ -179,21 +179,166 @@ export const VISUAL_BRIDGE_SCRIPT = `
     if (hoverOverlay) hoverOverlay.style.display = "none";
   }, true);
 
+  // ============ Barra de acções da secção ============
+  function sectionOf(el){
+    let cur = el;
+    while (cur && cur.parentElement && cur.parentElement !== document.body){
+      cur = cur.parentElement;
+    }
+    return (cur && cur.parentElement === document.body && cur.getAttribute && cur.getAttribute(BID)) ? cur : null;
+  }
+
+  let toolbar = null;
+  function ensureToolbar(){
+    if (toolbar) return toolbar;
+    toolbar = document.createElement("div");
+    toolbar.setAttribute("data-builder-toolbar","");
+    Object.assign(toolbar.style, {
+      position: "absolute",
+      display: "none",
+      zIndex: 2147483647,
+      background: "#0f172a",
+      color: "#fff",
+      borderRadius: "8px",
+      padding: "4px",
+      gap: "2px",
+      alignItems: "center",
+      boxShadow: "0 6px 20px rgba(15,23,42,.28)",
+      font: "500 12px system-ui, sans-serif",
+    });
+    const actions = [
+      ["moveUp", "\\u2191", "Mover para cima"],
+      ["moveDown", "\\u2193", "Mover para baixo"],
+      ["duplicate", "\\u29c9", "Duplicar secção"],
+      ["saveBlock", "\\u2605", "Guardar como bloco"],
+      ["delete", "\\u2715", "Eliminar secção"],
+    ];
+    actions.forEach(function(a){
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = a[1];
+      b.title = a[2];
+      b.setAttribute("aria-label", a[2]);
+      Object.assign(b.style, {
+        all: "unset",
+        cursor: "pointer",
+        padding: "4px 8px",
+        borderRadius: "6px",
+        lineHeight: "1",
+        color: a[0] === "delete" ? "#fca5a5" : "#fff",
+      });
+      b.addEventListener("mouseenter", function(){ b.style.background = "rgba(255,255,255,.14)"; });
+      b.addEventListener("mouseleave", function(){ b.style.background = "transparent"; });
+      b.addEventListener("click", function(ev){
+        ev.preventDefault(); ev.stopPropagation();
+        const sec = selectedEl ? sectionOf(selectedEl) : null;
+        if (sec) send({ kind: "action", action: a[0], bid: sec.getAttribute(BID) });
+      }, true);
+      toolbar.appendChild(b);
+    });
+    document.body.appendChild(toolbar);
+    return toolbar;
+  }
+
+  function syncToolbar(){
+    const t = ensureToolbar();
+    const sec = selectedEl ? sectionOf(selectedEl) : null;
+    if (!sec){ t.style.display = "none"; return; }
+    const r = sec.getBoundingClientRect();
+    t.style.display = "flex";
+    t.style.top = Math.max(4, r.top + window.scrollY - 40) + "px";
+    t.style.left = (r.left + window.scrollX + 4) + "px";
+  }
+
+  // ============ Drop de blocos ============
+  let dropLine = null;
+  function ensureDropLine(){
+    if (dropLine) return dropLine;
+    dropLine = document.createElement("div");
+    Object.assign(dropLine.style, {
+      position: "absolute",
+      display: "none",
+      height: "4px",
+      background: "#3b82f6",
+      borderRadius: "999px",
+      zIndex: 2147483647,
+      pointerEvents: "none",
+      boxShadow: "0 0 0 3px rgba(59,130,246,.25)",
+    });
+    document.body.appendChild(dropLine);
+    return dropLine;
+  }
+
+  let dropTarget = { bid: null, position: "append" };
+
+  function updateDropIndicator(clientY){
+    const sections = Array.from(document.body.children).filter(function(el){
+      return el.getAttribute && el.getAttribute(BID);
+    });
+    const line = ensureDropLine();
+    if (sections.length === 0){
+      dropTarget = { bid: null, position: "append" };
+      line.style.display = "block";
+      line.style.top = (window.scrollY + 8) + "px";
+      line.style.left = "8px";
+      line.style.width = (document.documentElement.clientWidth - 16) + "px";
+      return;
+    }
+    let target = sections[sections.length - 1];
+    let position = "after";
+    for (let i = 0; i < sections.length; i++){
+      const r = sections[i].getBoundingClientRect();
+      if (clientY < r.top + r.height / 2){ target = sections[i]; position = "before"; break; }
+      if (clientY <= r.bottom){ target = sections[i]; position = "after"; break; }
+    }
+    dropTarget = { bid: target.getAttribute(BID), position: position };
+    const r = target.getBoundingClientRect();
+    line.style.display = "block";
+    line.style.left = (r.left + window.scrollX) + "px";
+    line.style.width = r.width + "px";
+    line.style.top = ((position === "before" ? r.top : r.bottom) + window.scrollY - 2) + "px";
+  }
+
+  function hideDropLine(){ if (dropLine) dropLine.style.display = "none"; }
+
+  document.addEventListener("dragover", function(e){
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+    updateDropIndicator(e.clientY);
+  });
+  document.addEventListener("dragleave", function(e){
+    if (e.relatedTarget) return;
+    hideDropLine();
+  });
+  document.addEventListener("drop", function(e){
+    e.preventDefault();
+    updateDropIndicator(e.clientY);
+    hideDropLine();
+    send({ kind: "drop", bid: dropTarget.bid, position: dropTarget.position });
+  });
+
   window.addEventListener("message", function(e){
     const data = e.data;
     if (!data || !data.__builderCmd) return;
     if (data.kind === "selectBid"){
       const el = document.querySelector("[" + BID + "='" + data.bid + "']");
-      if (el) selectEl(el);
+      if (el) { selectEl(el); }
     } else if (data.kind === "clearSelection"){
       clearSel();
+      syncToolbar();
     } else if (data.kind === "reposition"){
       if (selectedEl) positionOverlay(selectedEl);
+      syncToolbar();
+    } else if (data.kind === "dragEnd"){
+      hideDropLine();
     }
   });
 
-  window.addEventListener("scroll", function(){ if (selectedEl) positionOverlay(selectedEl); }, true);
-  window.addEventListener("resize", function(){ if (selectedEl) positionOverlay(selectedEl); });
+  const _origSelectEl = selectEl;
+  selectEl = function(el){ _origSelectEl(el); syncToolbar(); };
+
+  window.addEventListener("scroll", function(){ if (selectedEl) { positionOverlay(selectedEl); syncToolbar(); } }, true);
+  window.addEventListener("resize", function(){ if (selectedEl) { positionOverlay(selectedEl); syncToolbar(); } });
 
   send({ kind: "ready" });
 })();

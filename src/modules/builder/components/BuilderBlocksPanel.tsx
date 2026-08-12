@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, Copy, Plus, Trash2, Globe, Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,10 @@ import {
 interface Props {
   /** Insere o HTML do bloco no editor (no cursor ou no fim). */
   onInsert: (html: string) => void;
+  /** Arrasto iniciado a partir de um bloco (payload HTML). */
+  onDragStartBlock?: (html: string, name: string) => void;
+  /** Arrasto terminado (largado ou cancelado). */
+  onDragEndBlock?: () => void;
 }
 
 const CATEGORIES: ("all" | BuilderBlockCategory)[] = [
@@ -43,7 +48,7 @@ const CATEGORIES: ("all" | BuilderBlockCategory)[] = [
   "pricing", "testimonials", "faq", "form", "footer", "custom",
 ];
 
-export function BuilderBlocksPanel({ onInsert }: Props) {
+export function BuilderBlocksPanel({ onInsert, onDragStartBlock, onDragEndBlock }: Props) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | BuilderBlockCategory>("all");
   const [tab, setTab] = useState<"builtin" | "library">("builtin");
@@ -155,6 +160,10 @@ export function BuilderBlocksPanel({ onInsert }: Props) {
                     html={b.html}
                     onInsert={() => handleInsert(b.html, b.name)}
                     onCopy={() => handleCopy(b.html)}
+                    onDragStart={
+                      onDragStartBlock ? () => onDragStartBlock(b.html, b.name) : undefined
+                    }
+                    onDragEnd={onDragEndBlock}
                   />
                 ))
               )}
@@ -183,6 +192,10 @@ export function BuilderBlocksPanel({ onInsert }: Props) {
                     onInsert={() => handleInsert(b.html, b.name)}
                     onCopy={() => handleCopy(b.html)}
                     onDelete={() => setConfirmDeleteId(b.id)}
+                    onDragStart={
+                      onDragStartBlock ? () => onDragStartBlock(b.html, b.name) : undefined
+                    }
+                    onDragEnd={onDragEndBlock}
                   />
                 ))
               )}
@@ -218,11 +231,36 @@ interface BlockCardProps {
   onInsert: () => void;
   onCopy: () => void;
   onDelete?: () => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }
 
-function BlockCard({ name, description, category, scope, onInsert, onCopy, onDelete }: BlockCardProps) {
+function BlockCard({
+  name,
+  description,
+  category,
+  html,
+  scope,
+  onInsert,
+  onCopy,
+  onDelete,
+  onDragStart,
+  onDragEnd,
+}: BlockCardProps) {
   return (
-    <div className="group border rounded-lg p-2.5 hover:border-primary/50 transition-colors bg-card">
+    <div
+      draggable={!!onDragStart}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "copy";
+        e.dataTransfer.setData("text/html", html);
+        onDragStart?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      className={cn(
+        "group border rounded-lg p-2.5 hover:border-primary/50 transition-colors bg-card",
+        onDragStart && "cursor-grab active:cursor-grabbing",
+      )}
+    >
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
