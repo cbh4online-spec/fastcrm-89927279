@@ -138,17 +138,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    const model = body.model || MODEL_DEFAULT;
+    const model = body.model || (body.mode === "chat" ? MODEL_CHAT : MODEL_DEFAULT);
+    const history = (body.history ?? [])
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .slice(-8)
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }));
+
     const messages = [
       { role: "system", content: SYSTEMS[body.mode] },
+      ...history,
       { role: "user", content: buildUserMessage(body) },
     ];
 
-    const res = await __loggedAIFetch(null, "builder-ai", {
+    const res = await __loggedAIFetch(body.workspaceId ?? null, "builder-ai", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model, messages, stream: false }),
     });
+
 
     if (res.status === 429) {
       return new Response(JSON.stringify({ error: "rate_limited", message: "Demasiados pedidos. Tenta novamente em alguns segundos." }), {
