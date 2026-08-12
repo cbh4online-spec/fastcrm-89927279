@@ -162,6 +162,128 @@ function stripCodeFences(s: string): string {
   return s.replace(/^```(?:html|json)?\s*/i, "").replace(/```\s*$/i, "").trim();
 }
 
+function splitSummaryAndHtml(text: string): { summary: string; html: string } {
+  const cleaned = stripCodeFences(text.trim());
+  const match = cleaned.match(/^\s*SUMMARY:\s*(.*?)\s*(?:\n|$)/i);
+  if (match) {
+    return { summary: match[1] || "Alteração aplicada.", html: stripCodeFences(cleaned.slice(match[0].length)) };
+  }
+  // Fallback: o modelo devolveu JSON ou HTML directo
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (parsed?.html) {
+      return { summary: String(parsed.summary ?? "Alteração aplicada."), html: stripCodeFences(String(parsed.html)) };
+    }
+  } catch { /* ignore */ }
+  return { summary: "Alteração aplicada.", html: cleaned };
+}
+
+async function handleChatStream(args: {
+  apiKey: string;
+  model: string;
+  messages: { role: string; content: string }[];
+  body: ReqBody;
+}): Promise<Response> {
+  const { apiKey, model, messages, body } = args;
+  const start = Date.now();
+
+  const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model, messages, stream: true }),
+  });
+
+  const sseError = (message: string, code: string) =>
+    new Response(`event: error\ndata: ${JSON.stringify({ code, message })}\n\n`, {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+    });
+
+  if (upstream.status === 429) return sseError("Demasiados pedidos. Tenta novamente em alguns segundos.", "rate_limited");
+  if (upstream.status === 402) return sseError("Créditos de IA esgotados. Adiciona créditos em Settings > Workspace > Usage.", "payment_required");
+  if (!upstream.ok || !upstream.body) {
+    const t = await upstream.text().catch(() => "");
+    console.error("AI gateway stream error:", upstream.status, t.slice(0, 500));
+    return sseError("Falha na geração de IA. Tenta novamente.", "ai_gateway_error");
+  }
+
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  let acc = "";
+  let usageIn = 0;
+  let usageOut = 0;
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (event: string, data: unknown) =>
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+
+      const reader = upstream.body!.getReader();
+      let buffer = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const payload = trimmed.slice(5).trim();
+            if (!payload || payload === "[DONE]") continue;
+            try {
+              const json = JSON.parse(payload);
+              const delta: string = json?.choices?.[0]?.delta?.content ?? "";
+              if (json?.usage) {
+                usageIn = json.usage.prompt_tokens ?? usageIn;
+                usageOut = json.usage.completion_tokens ?? usageOut;
+              }
+              if (delta) {
+                acc += delta;
+                send("delta", { text: delta });
+              }
+            } catch { /* chunk parcial — ignora */ }
+          }
+        }
+
+        const { summary, html } = splitSummaryAndHtml(acc);
+        if (!html) {
+          send("error", { code: "invalid_chat_response", message: "A IA não devolveu HTML válido. Tenta reformular o pedido." });
+        } else {
+          send("done", { summary, html, scope: body.selectionHtml ? "selection" : "page" });
+        }
+      } catch (e) {
+        console.error("builder-ai stream error:", e);
+        send("error", { code: "stream_error", message: e instanceof Error ? e.message : "Erro no streaming" });
+      } finally {
+        if (body.workspaceId) {
+          const workspaceId = body.workspaceId;
+          logAIUsage({
+            workspace_id: workspaceId,
+            feature: "builder-ai",
+            model,
+            tokens_input: usageIn || Math.ceil(messages.reduce((n, m) => n + m.content.length, 0) / 4),
+            tokens_output: usageOut || Math.ceil(acc.length / 4),
+            latency_ms: Date.now() - start,
+            was_error: false,
+          });
+        }
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
