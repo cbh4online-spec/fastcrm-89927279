@@ -174,6 +174,3 @@ export function BuilderVisualEditor({
     </div>
   );
 }
-    </div>
-  );
-}
