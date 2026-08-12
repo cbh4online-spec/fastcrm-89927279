@@ -447,7 +447,7 @@ export default function BuilderAssetEditorPage() {
           </div>
 
           {asset && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
               <div className="flex items-center gap-0.5 rounded-md border bg-muted/40 p-0.5">
                 <Button
                   size="icon"
