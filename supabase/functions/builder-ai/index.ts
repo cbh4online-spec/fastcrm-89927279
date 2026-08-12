@@ -186,11 +186,18 @@ Deno.serve(async (req) => {
       .slice(-8)
       .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }));
 
+    const wantsStream = body.mode === "chat" && body.stream === true;
+
     const messages = [
-      { role: "system", content: SYSTEMS[body.mode] },
+      { role: "system", content: wantsStream ? CHAT_STREAM_SYSTEM : SYSTEMS[body.mode] },
       ...history,
       { role: "user", content: buildUserMessage(body) },
     ];
+
+    if (wantsStream) {
+      return await handleChatStream({ apiKey: LOVABLE_API_KEY, model, messages, body });
+    }
+
 
     const res = await __loggedAIFetch(body.workspaceId ?? null, "builder-ai", {
       method: "POST",
