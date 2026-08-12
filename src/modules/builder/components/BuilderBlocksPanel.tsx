@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, Copy, Plus, Trash2, Globe, Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,10 @@ import {
 interface Props {
   /** Insere o HTML do bloco no editor (no cursor ou no fim). */
   onInsert: (html: string) => void;
+  /** Arrasto iniciado a partir de um bloco (payload HTML). */
+  onDragStartBlock?: (html: string, name: string) => void;
+  /** Arrasto terminado (largado ou cancelado). */
+  onDragEndBlock?: () => void;
 }
 
 const CATEGORIES: ("all" | BuilderBlockCategory)[] = [
@@ -43,7 +48,7 @@ const CATEGORIES: ("all" | BuilderBlockCategory)[] = [
   "pricing", "testimonials", "faq", "form", "footer", "custom",
 ];
 
-export function BuilderBlocksPanel({ onInsert }: Props) {
+export function BuilderBlocksPanel({ onInsert, onDragStartBlock, onDragEndBlock }: Props) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | BuilderBlockCategory>("all");
   const [tab, setTab] = useState<"builtin" | "library">("builtin");
@@ -155,6 +160,10 @@ export function BuilderBlocksPanel({ onInsert }: Props) {
                     html={b.html}
                     onInsert={() => handleInsert(b.html, b.name)}
                     onCopy={() => handleCopy(b.html)}
+                    onDragStart={
+                      onDragStartBlock ? () => onDragStartBlock(b.html, b.name) : undefined
+                    }
+                    onDragEnd={onDragEndBlock}
                   />
                 ))
               )}
@@ -183,6 +192,10 @@ export function BuilderBlocksPanel({ onInsert }: Props) {
                     onInsert={() => handleInsert(b.html, b.name)}
                     onCopy={() => handleCopy(b.html)}
                     onDelete={() => setConfirmDeleteId(b.id)}
+                    onDragStart={
+                      onDragStartBlock ? () => onDragStartBlock(b.html, b.name) : undefined
+                    }
+                    onDragEnd={onDragEndBlock}
                   />
                 ))
               )}
