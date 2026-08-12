@@ -172,7 +172,33 @@ Deno.serve(async (req) => {
     const raw: string = data?.choices?.[0]?.message?.content ?? "";
     const cleaned = stripCodeFences(raw);
 
+    if (body.mode === "chat") {
+      // Esperado: {"summary": "...", "html": "..."}
+      let summary = "";
+      let outHtml = "";
+      try {
+        const parsed = JSON.parse(cleaned);
+        summary = String(parsed.summary ?? "");
+        outHtml = String(parsed.html ?? "");
+      } catch {
+        // fallback: o modelo devolveu HTML directo
+        if (/^\s*</.test(cleaned)) {
+          outHtml = cleaned;
+          summary = "Alteração aplicada.";
+        }
+      }
+      if (!outHtml) {
+        return new Response(JSON.stringify({ ok: false, error: "invalid_chat_response", message: "A IA não devolveu HTML válido. Tenta reformular o pedido.", raw: cleaned.slice(0, 500) }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true, mode: "chat", summary, html: stripCodeFences(outHtml), scope: body.selectionHtml ? "selection" : "page" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (body.mode === "variants") {
+
       try {
         const parsed = JSON.parse(cleaned);
         return new Response(JSON.stringify({ ok: true, mode: body.mode, variants: parsed.variants ?? [] }), {
