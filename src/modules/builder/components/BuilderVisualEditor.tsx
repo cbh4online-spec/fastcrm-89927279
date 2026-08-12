@@ -92,11 +92,24 @@ export function BuilderVisualEditor({
         });
       } else if (data.kind === "patch") {
         onPatch(data.patch as BuilderPatch);
+      } else if (data.kind === "action") {
+        onSectionAction?.(data.action as SectionAction, String(data.bid));
+      } else if (data.kind === "drop") {
+        onDropBlock?.(
+          (data.bid as string | null) ?? null,
+          (data.position as DropPosition) ?? "append",
+        );
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onSelect, onPatch]);
+  }, [onSelect, onPatch, onSectionAction, onDropBlock]);
+
+  // Esconder o indicador de drop quando o arrasto termina fora do iframe
+  useEffect(() => {
+    if (dragActive) return;
+    iframeRef.current?.contentWindow?.postMessage({ __builderCmd: true, kind: "dragEnd" }, "*");
+  }, [dragActive]);
 
   // Sincronizar selecção externa para o iframe
   useEffect(() => {
