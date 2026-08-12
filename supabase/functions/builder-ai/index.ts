@@ -60,8 +60,9 @@ const corsHeaders = {
 };
 
 const MODEL_DEFAULT = "google/gemini-2.5-flash";
+const MODEL_CHAT = "google/gemini-3.6-flash";
 
-type Mode = "generate_page" | "generate_email" | "refactor" | "variants" | "translate";
+type Mode = "generate_page" | "generate_email" | "refactor" | "variants" | "translate" | "chat";
 
 interface ReqBody {
   mode: Mode;
@@ -73,7 +74,11 @@ interface ReqBody {
   model?: string;
   tone?: string; // persuasivo | profissional | casual | direto | entusiasta
   lang?: string; // pt | en | es | fr
+  assetType?: string;
+  workspaceId?: string | null;
+  history?: { role: "user" | "assistant"; content: string }[];
 }
+
 
 const LANG_LABEL: Record<string, string> = {
   pt: "português de Portugal",
