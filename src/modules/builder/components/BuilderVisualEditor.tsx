@@ -154,20 +154,26 @@ export function BuilderVisualEditor({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
+      <div className="flex-1 min-h-0 overflow-auto p-4 flex items-start justify-center">
         <div
-          className="bg-background shadow-lg transition-all duration-300 ease-out border rounded-md overflow-hidden"
-          style={{ width: deviceWidth, maxWidth: "100%", height: "100%" }}
+          className={cn(
+            "bg-background shadow-lg transition-all duration-300 ease-out border rounded-md overflow-hidden h-full min-h-[520px]",
+            dragActive && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+          )}
+          style={{ width: deviceWidth, maxWidth: "100%" }}
         >
           <iframe
             ref={iframeRef}
             title="Builder visual editor"
             sandbox="allow-same-origin allow-scripts"
             srcDoc={safeHtml}
-            className="w-full h-[640px] border-0 bg-white"
+            className="w-full h-full min-h-[520px] border-0 bg-white"
           />
         </div>
       </div>
+    </div>
+  );
+}
     </div>
   );
 }
