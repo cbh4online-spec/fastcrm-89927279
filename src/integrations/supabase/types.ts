@@ -12168,6 +12168,59 @@ export type Database = {
           },
         ]
       }
+      builder_ai_messages: {
+        Row: {
+          asset_id: string
+          content: string
+          created_at: string
+          created_by: string
+          html_after: string | null
+          html_before: string | null
+          id: string
+          is_error: boolean
+          role: string
+          summary: string | null
+          target_bid: string | null
+          workspace_id: string
+        }
+        Insert: {
+          asset_id: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          html_after?: string | null
+          html_before?: string | null
+          id?: string
+          is_error?: boolean
+          role: string
+          summary?: string | null
+          target_bid?: string | null
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          html_after?: string | null
+          html_before?: string | null
+          id?: string
+          is_error?: boolean
+          role?: string
+          summary?: string | null
+          target_bid?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_ai_messages_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "builder_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       builder_asset_domains: {
         Row: {
           asset_id: string
