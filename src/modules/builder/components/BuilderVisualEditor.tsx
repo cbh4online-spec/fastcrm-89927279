@@ -130,7 +130,10 @@ export function BuilderVisualEditor({
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-background/60 backdrop-blur">
         <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
           <MousePointerClick className="h-3.5 w-3.5" />
-          Editor visual <span className="text-muted-foreground/60">— clica para seleccionar, duplo-clique para editar texto</span>
+          Canvas{" "}
+          <span className="text-muted-foreground/60">
+            — clica para seleccionar, duplo-clique para editar texto, arrasta blocos para inserir
+          </span>
         </div>
         <div className="flex items-center gap-1">
           {(["desktop", "tablet", "mobile"] as Device[]).map((d) => {
