@@ -43,14 +43,25 @@ if (isPreviewHost || isInIframe) {
   });
 }
 
-// Do not auto-reload on stale dynamic-import chunks. In preview this can turn
-// into an apparent infinite reboot when Vite is rebuilding or cache is stale.
+// Stale dynamic-import chunks: recarregar UMA vez por sessão (evita ciclo infinito).
+const STALE_CHUNK_KEY = "app:stale-chunk-reloaded";
 const handleStaleChunk = (message: string) => {
   if (!/Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(message)) {
     return;
   }
-  console.warn("[App] Stale chunk detected; waiting for user retry instead of auto-reloading.");
+  try {
+    if (sessionStorage.getItem(STALE_CHUNK_KEY)) {
+      console.warn("[App] Stale chunk detected again; skipping auto-reload.");
+      return;
+    }
+    sessionStorage.setItem(STALE_CHUNK_KEY, "1");
+  } catch {
+    return;
+  }
+  console.warn("[App] Stale chunk detected; reloading once.");
+  window.location.reload();
 };
+
 
 window.addEventListener("error", (e) => {
   handleStaleChunk(e?.message || "");
