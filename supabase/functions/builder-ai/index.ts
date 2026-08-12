@@ -77,7 +77,22 @@ interface ReqBody {
   assetType?: string;
   workspaceId?: string | null;
   history?: { role: "user" | "assistant"; content: string }[];
+  stream?: boolean; // só válido em mode: "chat"
 }
+
+const CHAT_STREAM_SYSTEM = `És um engenheiro/designer sénior de landing pages, a trabalhar num editor visual estilo Lovable. O utilizador conversa contigo em linguagem natural e tu devolves o HTML actualizado, em STREAMING.
+
+FORMATO OBRIGATÓRIO DA RESPOSTA:
+1) A PRIMEIRA linha é exactamente: SUMMARY: <frase curta em português de Portugal a descrever o que mudaste>
+2) A seguir, e até ao fim, apenas HTML puro. Sem JSON, sem markdown, sem code fences, sem explicações.
+
+REGRAS:
+- Se receberes "HTML DO BLOCO SELECCIONADO", devolves apenas esse bloco reescrito (mesma tag root, mesmo data-bid). Não devolvas a página inteira.
+- Se não houver bloco seleccionado, devolves o documento HTML completo (<!doctype html>...) já com as alterações pedidas, preservando todo o conteúdo que o utilizador não pediu para alterar.
+- Usa Tailwind via CDN quando criares algo de raiz; se a página já tiver um sistema de estilos, respeita-o.
+- Preserva atributos data-bid, id, href, src, alt, aria-*, e imagens existentes salvo pedido explícito.
+- Nunca incluas <script> de terceiros nem código de tracking.
+- Design profissional, responsivo, acessível (contraste, alt, labels), copy em português de Portugal salvo indicação contrária.`;
 
 
 const LANG_LABEL: Record<string, string> = {
