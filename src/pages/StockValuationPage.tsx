@@ -982,3 +982,86 @@ function KpiTile({
     </div>
   );
 }
+
+// ===== Cabeçalho ordenável =====
+function SortLabel({
+  label, active, dir, align = "left",
+}: { label: string; active: boolean; dir: "asc" | "desc"; align?: "left" | "right" }) {
+  return (
+    <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end w-full" : ""}`}>
+      {label}
+      {active && (dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+    </span>
+  );
+}
+
+// ===== Célula de produto + SKU =====
+function ProductCell({ name, sku, compact = false }: { name: string; sku?: string | null; compact?: boolean }) {
+  const copySku = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!sku) return;
+    try {
+      await navigator.clipboard.writeText(sku);
+      toast.success(`SKU copiado: ${sku}`);
+    } catch {
+      toast.error("Não foi possível copiar o SKU");
+    }
+  };
+
+  return (
+    <div className="min-w-0">
+      <a
+        href={`/dashboard/products?search=${encodeURIComponent(sku || name || "")}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={name}
+        className={`block font-medium leading-snug line-clamp-2 break-words hover:text-primary transition-colors ${compact ? "text-sm" : ""}`}
+      >
+        {name}
+      </a>
+      {sku ? (
+        <div className="mt-1 flex items-center gap-1 min-w-0">
+          <code className="font-mono text-[11px] text-muted-foreground bg-muted/70 rounded px-1.5 py-0.5 truncate max-w-[220px]" title={sku}>
+            {sku}
+          </code>
+          <button
+            type="button"
+            onClick={copySku}
+            aria-label={`Copiar SKU ${sku}`}
+            className="text-muted-foreground hover:text-foreground shrink-0 rounded p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Copy className="h-3 w-3" />
+          </button>
+        </div>
+      ) : (
+        <div className="mt-1 text-[11px] text-muted-foreground italic">sem SKU</div>
+      )}
+    </div>
+  );
+}
+
+// ===== Seletor de colunas =====
+function ColumnsMenu({ cols, setCols }: { cols: ColumnPrefs; setCols: (c: ColumnPrefs) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="rounded-full h-12 gap-2">
+          <Columns3 className="h-4 w-4" /> Colunas
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        {COLUMN_LABELS.map(({ key, label }) => (
+          <DropdownMenuCheckboxItem
+            key={key}
+            checked={cols[key]}
+            onCheckedChange={(v) => setCols({ ...cols, [key]: Boolean(v) })}
+            onSelect={(e) => e.preventDefault()}
+          >
+            {label}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
