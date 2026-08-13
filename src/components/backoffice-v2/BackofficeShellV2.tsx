@@ -206,6 +206,17 @@ function TopbarV2({ onMenu }: { onMenu: () => void }) {
       <div className="relative hidden flex-1 max-w-md md:block">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-navy-300 transition-colors duration-200" />
         <Input
+          ref={searchRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const q = query.trim();
+              navigate(`/super-admin-v2/workspaces${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+            }
+          }}
+          aria-label="Procurar no backoffice"
           placeholder="Procurar workspaces, utilizadores, faturas…"
           className={cn(
             "h-10 rounded-xl border-navy-100 bg-brand-ice/60 pl-10 pr-16 text-sm text-navy placeholder:text-navy-300",
@@ -222,21 +233,29 @@ function TopbarV2({ onMenu }: { onMenu: () => void }) {
         <span className="hidden items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success sm:inline-flex">
           <span className="h-1.5 w-1.5 rounded-full bg-success v2-soft-pulse" /> Sistema operacional
         </span>
-        <button
-          type="button"
-          aria-label="Notificações"
-          className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-navy-500 transition-all duration-200 hover:bg-brand-ice hover:text-navy v2-press"
-        >
-          <Bell className="h-4 w-4 transition-transform duration-200 hover:scale-110" />
-          <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-destructive ring-2 ring-white v2-soft-pulse" />
-        </button>
-        <button
-          type="button"
-          className="ml-2 hidden h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-navy to-navy-900 px-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_hsl(218_70%_14%/0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_-10px_hsl(218_100%_54%/0.45)] hover:from-brand hover:to-brand-vivid sm:inline-flex v2-press"
-        >
-          <Sparkles className="h-3.5 w-3.5" /> Nova ação
-        </button>
+        <AdminNotificationsBell />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="Nova ação"
+              className="ml-2 hidden h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-navy to-navy-900 px-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_hsl(218_70%_14%/0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_-10px_hsl(218_100%_54%/0.45)] hover:from-brand hover:to-brand-vivid sm:inline-flex v2-press"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Nova ação
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel>Ações rápidas</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {QUICK_ACTIONS.map((a) => (
+              <DropdownMenuItem key={a.to} onSelect={() => navigate(a.to)}>
+                <a.icon className="mr-2 h-4 w-4" /> {a.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
     </header>
   );
 }
