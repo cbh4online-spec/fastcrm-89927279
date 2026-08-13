@@ -611,10 +611,6 @@ export function ENIContactDetailWithSidebar() {
                     }}
                   />
                 )}
-                <DropdownMenuItem onClick={() => setShowInvoiceDialog(true)} className="gap-2">
-                  <FileText className="w-4 h-4" />
-                  {t('common:newInvoice')}
-                </DropdownMenuItem>
                 {(role === 'owner' || role === 'admin') && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
