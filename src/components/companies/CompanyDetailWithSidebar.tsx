@@ -435,7 +435,6 @@ export function CompanyDetailWithSidebar() {
       case 'financial':
         return (
           <div className="space-y-4">
-            <FinancialKPIStrip entityType="company" entityId={id!} />
             <EntitySubTabs
               tabs={[
                 { id: 'profile', label: 'Perfil' },
@@ -666,6 +665,9 @@ export function CompanyDetailWithSidebar() {
             </AlertDialog>
           </div>
         </div>
+
+        {/* Resumo financeiro sempre visível no cabeçalho */}
+        <FinancialKPIStrip entityType="company" entityId={id!} variant="header" className="mt-4" />
       </div>
 
       {/* Horizontal Tabs */}
