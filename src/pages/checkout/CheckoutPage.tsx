@@ -77,7 +77,17 @@ export default function CheckoutPage() {
           utmCampaign: searchParams.get("utm_campaign"),
         },
       });
-      if (error) throw error;
+      if (error) {
+        // Ler a mensagem real devolvida pela edge function (FunctionsHttpError)
+        let message = error.message;
+        try {
+          const payload = await (error as any)?.context?.json?.();
+          if (payload?.error) message = payload.error;
+        } catch { /* mantém a mensagem genérica */ }
+        toast.error(message || "Erro ao criar sessão de pagamento");
+        return;
+      }
+      if (data?.error) { toast.error(data.error); return; }
       if (data?.url) window.location.href = data.url;
       else toast.error("Erro ao criar sessão de pagamento");
     } catch (e: any) {
@@ -85,6 +95,7 @@ export default function CheckoutPage() {
     } finally {
       setProcessing(false);
     }
+
   }
 
   if (loading) return (

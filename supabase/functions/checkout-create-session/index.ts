@@ -7,6 +7,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function jsonError(message: string, code: string, status = 400) {
+  return new Response(JSON.stringify({ error: message, code }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status,
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -17,7 +24,7 @@ serve(async (req) => {
     const { funnelId, workspaceId, customerEmail, customerName, phone, shippingAddress, acceptedBumps, utmSource, utmMedium, utmCampaign } = body;
 
     if (!funnelId || !workspaceId || !customerEmail) {
-      throw new Error("Missing required fields");
+      return jsonError("Pedido inválido: faltam dados obrigatórios do checkout.", "invalid_payload");
     }
 
     // Get workspace Stripe config
@@ -28,11 +35,16 @@ serve(async (req) => {
       .eq("is_active", true)
       .single();
 
-    if (!stripeConfig?.stripe_secret_key_encrypted) {
-      throw new Error("Stripe not configured for this workspace");
+    // Fallback: chave global do projeto quando o workspace ainda não tem Stripe configurado
+    const stripeKey = stripeConfig?.stripe_secret_key_encrypted || Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      return jsonError(
+        "Pagamentos indisponíveis: este workspace ainda não tem o Stripe configurado.",
+        "stripe_not_configured",
+      );
     }
 
-    const stripe = new Stripe(stripeConfig.stripe_secret_key_encrypted, { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Get funnel
     const { data: funnel } = await supabase
@@ -41,7 +53,7 @@ serve(async (req) => {
       .eq("id", funnelId)
       .single();
 
-    if (!funnel) throw new Error("Funnel not found");
+    if (!funnel) return jsonError("Funil não encontrado.", "funnel_not_found", 404);
 
     const settings = funnel.settings || {};
     const currency = String(settings.currency || "EUR").toLowerCase();
@@ -77,7 +89,10 @@ serve(async (req) => {
     const invalid = products.some((p: any) => !(p.price > 0) || !(p.quantity > 0));
     const itemsTotal = products.reduce((s: number, p: any) => s + p.price * p.quantity, 0);
     if (invalid || itemsTotal <= 0) {
-      throw new Error("Este funil não tem produtos com preço válido configurado");
+      return jsonError(
+        "Este funil não tem produtos com preço válido configurado.",
+        "funnel_without_products",
+      );
     }
 
     const toLineItem = (name: string, unitPrice: number, quantity: number, imageUrl?: string | null, description?: string | null) => ({
@@ -218,9 +233,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
-    });
+    console.error("checkout-create-session failed:", error?.message ?? error);
+    return jsonError(error?.message || "Erro inesperado ao criar a sessão de pagamento.", "unexpected_error", 500);
   }
 });
