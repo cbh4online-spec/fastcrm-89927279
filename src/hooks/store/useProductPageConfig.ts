@@ -17,7 +17,7 @@ export function useProductPageConfig(workspaceId?: string) {
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<ProductPageConfig> => {
       const { data, error } = await sb
-        .from("store_settings")
+        .from("public_store_settings")
         .select("product_page_config")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
