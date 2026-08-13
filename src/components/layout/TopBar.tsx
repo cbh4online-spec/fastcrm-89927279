@@ -101,7 +101,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={() => navigate("/n-v2")}
+                onClick={() => navigate("/super-admin-v2")}
                 className="h-9 w-9 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
               >
                 <ShieldCheck className="h-4 w-4" />
@@ -159,6 +159,15 @@ export function TopBar({ onMenuClick }: TopBarProps) {
               <Settings className="mr-2 h-4 w-4" />
               {tc('settings')}
             </DropdownMenuItem>
+            {isSuperAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/super-admin-v2")}>
+                  <ShieldCheck className="mr-2 h-4 w-4 text-amber-500" />
+                  {t('saasManagement')}
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
