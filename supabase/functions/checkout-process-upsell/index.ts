@@ -49,11 +49,12 @@ serve(async (req) => {
         .eq("is_active", true)
         .single();
 
-      if (!stripeConfig?.stripe_secret_key_encrypted) {
-        throw new Error("Stripe not configured");
+      const upsellStripeKey = stripeConfig?.stripe_secret_key_encrypted || Deno.env.get("STRIPE_SECRET_KEY");
+      if (!upsellStripeKey) {
+        throw new Error("Pagamentos indisponíveis: Stripe não configurado.");
       }
 
-      const stripe = new Stripe(stripeConfig.stripe_secret_key_encrypted, { apiVersion: "2025-08-27.basil" });
+      const stripe = new Stripe(upsellStripeKey, { apiVersion: "2025-08-27.basil" });
 
       // Try one-click charge if we have payment method
       if (session.stripe_payment_intent_id) {
