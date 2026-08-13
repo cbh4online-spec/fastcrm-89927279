@@ -174,8 +174,19 @@ function SidebarV2({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+const QUICK_ACTIONS: { label: string; to: string; icon: any }[] = [
+  { label: "Nova workspace", to: "/super-admin-v2/workspaces", icon: Building2 },
+  { label: "Novo utilizador", to: "/super-admin-v2/users", icon: Users },
+  { label: "Novo plano / preço", to: "/super-admin-v2/pricing", icon: TrendingUp },
+  { label: "Menus da workspace", to: "/super-admin-v2/workspace-menus", icon: Lock },
+  { label: "Registar incidente", to: "/super-admin-v2/incidents", icon: ShieldAlert },
+];
+
 function TopbarV2({ onMenu }: { onMenu: () => void }) {
   const [scrolled, setScrolled] = useState(false);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
@@ -183,6 +194,18 @@ function TopbarV2({ onMenu }: { onMenu: () => void }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
 
   return (
     <header
