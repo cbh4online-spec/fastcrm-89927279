@@ -58,8 +58,8 @@ export function usePublicStoreSettings(workspaceId: string) {
     queryKey: ["store-settings-public", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return null;
-      const { data, error } = await supabase
-        .from("store_settings")
+      const { data, error } = await (supabase as any)
+        .from("public_store_settings")
         .select("*")
         .eq("workspace_id", workspaceId)
         .maybeSingle();

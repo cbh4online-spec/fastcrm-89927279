@@ -20,10 +20,11 @@ export function StoreProductDescription({
   maxCollapsedLength = 200,
 }: StoreProductDescriptionProps) {
   const [expanded, setExpanded] = useState(false);
-  const isLong = description.length > maxCollapsedLength;
+  const safeDescription = typeof description === "string" ? description : "";
+  const isLong = safeDescription.length > maxCollapsedLength;
 
   const formattedHtml = useMemo(() => {
-    let text = description;
+    let text = safeDescription;
 
     // Converter padrões de lista (linhas começando com - ou • ou *)
     text = text.replace(/^[\s]*[-•*]\s+(.+)$/gm, "<li>$1</li>");
@@ -50,7 +51,7 @@ export function StoreProductDescription({
     }
 
     return sanitizeHtml(text);
-  }, [description]);
+  }, [safeDescription]);
 
   return (
     <div>

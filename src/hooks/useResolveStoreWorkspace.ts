@@ -25,8 +25,8 @@ export function useResolveStoreWorkspace(param: string | undefined) {
       }
 
       // Try store_settings.store_slug
-      const { data: storeData, error: storeError } = await supabase
-        .from("store_settings")
+      const { data: storeData, error: storeError } = await (supabase as any)
+        .from("public_store_settings")
         .select("workspace_id, store_slug")
         .eq("store_slug", param)
         .maybeSingle();
