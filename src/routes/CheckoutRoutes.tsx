@@ -21,6 +21,7 @@ export function CheckoutAdminRoutes() {
       <Route path="/dashboard/checkout/ab-tests" element={<ABTestsPage />} />
       <Route path="/dashboard/checkout/discounts" element={<DynamicDiscountsPage />} />
       <Route path="/dashboard/checkout/recovery-metrics" element={<RecoveryMetricsPage />} />
+      <Route path="/dashboard/checkout/:funnelId" element={<CheckoutFunnelDetailPage />} />
     </>
   );
 }
