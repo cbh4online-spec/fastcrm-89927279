@@ -243,11 +243,24 @@ export function StoreSmartOfferPage({ config, product, workspaceSlug }: Props) {
         <OfferStickyCTA
           price={totalPrice}
           currency={product.currency || "EUR"}
-          ctaLabel={isOutOfStock ? "Esgotado" : ctaLabel}
+          ctaLabel={isOutOfStock && !conversion.requiresQuoteDialog ? "Esgotado" : ctaLabel}
           onClick={conversion.execute}
           disabled={disableCTA}
           priceOnRequest={isPriceOnRequest}
         />
+
+        <OfferConversionDialog
+          open={conversion.quoteDialogOpen}
+          onOpenChange={conversion.setQuoteDialogOpen}
+          goal={conversion.goal}
+          productId={product.id}
+          productName={product.name}
+          workspaceId={product.workspace_id}
+          quantity={selection.quantity}
+          sectorConfig={config.sectorConfig}
+          preset={config.preset}
+        />
+
       </div>
     </StoreVatProvider>
   );
