@@ -176,7 +176,10 @@ export function UnifiedCrmView() {
   }, [opportunities, searchQuery, entityType, advancedFilters]);
 
   // Get column definitions
-  const columns = entityType === "contacts" ? CONTACT_COLUMNS : OPPORTUNITY_COLUMNS;
+  const allColumns = entityType === "contacts" ? CONTACT_COLUMNS : OPPORTUNITY_COLUMNS;
+  const columns = allColumns.filter(
+    (c) => entityType === "contacts" || isElementVisible("column", c.key),
+  );
 
   // Loading state
   const isLoading = contactsLoading || opportunitiesLoading || viewsLoading;

@@ -54,6 +54,7 @@ import { ProductReportsTab } from "./ProductReportsTab";
 import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
 import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
+import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useCanViewCostMargin, COST_MARGIN_FIELDS } from "@/hooks/useCanViewCostMargin";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -63,6 +64,7 @@ import { MobileProductDetailSheet } from "./mobile/MobileProductDetailSheet";
 export function ProductsList() {
   const navigate = useNavigate();
   const state = useProductsListState();
+  const { isElementVisible } = usePageElementVisibility("products");
   const { data: pricingRules = [] } = usePricingRules();
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
@@ -72,10 +74,15 @@ export function ProductsList() {
 
   // Colunas e filtros sensíveis (custo/margem) ocultos para roles sem permissão
   const visibleProductColumns = useMemo(
-    () => canViewCostMargin
+    () => (canViewCostMargin
       ? PRODUCT_COLUMNS
-      : PRODUCT_COLUMNS.filter((c) => !COST_MARGIN_FIELDS.has(c.id)),
-    [canViewCostMargin]
+      : PRODUCT_COLUMNS.filter((c) => !COST_MARGIN_FIELDS.has(c.id))
+    ).filter((c) => isElementVisible("column", c.id)),
+    [canViewCostMargin, isElementVisible]
+  );
+  const visiblePageTabs = useMemo(
+    () => pageTabs.filter((t) => isElementVisible("tab", t.id)),
+    [isElementVisible]
   );
   const effectiveVisibleColumnsSet = useMemo(() => {
     if (canViewCostMargin) return state.visibleColumns;
@@ -368,7 +375,7 @@ export function ProductsList() {
         </div>
 
         <IXEntityTabs
-          tabs={pageTabs}
+          tabs={visiblePageTabs}
           activeId={state.activeTab}
           onChange={(id) => state.setActiveTab(id as typeof state.activeTab)}
         />

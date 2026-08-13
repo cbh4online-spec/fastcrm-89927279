@@ -80,6 +80,7 @@ export default function Invoices() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("invoices");
+  const { isElementVisible } = usePageElementVisibility("invoices");
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("date_desc");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
