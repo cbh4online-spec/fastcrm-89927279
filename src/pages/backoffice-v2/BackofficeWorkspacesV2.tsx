@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Search, Filter, Download, RefreshCw, Users, Activity,
