@@ -51,6 +51,47 @@ export type OfferSectionKey =
   | "documents"
   | "video";
 
+/* ───────── Sector content (metadata.offer_page.sectorConfig) ───────── */
+
+export interface OfferIngredient {
+  name: string;
+  role?: string;
+}
+
+export interface OfferStepItem {
+  title: string;
+  description?: string;
+}
+
+export interface OfferInstructor {
+  name?: string;
+  bio?: string;
+  photoUrl?: string;
+}
+
+export interface OfferSession {
+  date?: string;
+  time?: string;
+  location?: string;
+  seats?: string;
+}
+
+export interface OfferSectorConfig {
+  ingredients?: OfferIngredient[];
+  howToUse?: OfferStepItem[];
+  program?: OfferStepItem[];
+  instructor?: OfferInstructor;
+  sessions?: OfferSession[];
+  equipment?: OfferStepItem[];
+  installation?: OfferStepItem[];
+  installationNote?: string;
+  /** Free-form choice lists consumed by the decision panel. */
+  modalities?: string[];
+  spaces?: string[];
+  needs?: string[];
+  [key: string]: unknown;
+}
+
 export interface OfferPageConfig {
   version: 1;
   enabled: boolean;
@@ -66,9 +107,12 @@ export interface OfferPageConfig {
   deliveryText?: string;
   trustBadges: TrustBadge[];
   sections: Partial<Record<OfferSectionKey, boolean>>;
-  sectorConfig?: Record<string, unknown>;
+  /** Render order of the content sections; missing keys fall back to the default order. */
+  sectionOrder?: OfferSectionKey[];
+  sectorConfig?: OfferSectorConfig;
   faqItems: OfferFaqItem[];
 }
+
 
 export const DEFAULT_SECTIONS_BY_PRESET: Record<OfferPreset, Partial<Record<OfferSectionKey, boolean>>> = {
   cosmetics: {
