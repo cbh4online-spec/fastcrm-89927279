@@ -94,13 +94,23 @@ export default function CheckoutPage() {
     <div className="flex min-h-screen items-center justify-center"><p className="text-muted-foreground">Checkout não disponível</p></div>
   );
 
+  const normalized = readFunnelSettings(funnel.settings);
   const settings = funnel.settings || {};
-  const items = (Array.isArray(settings.products) && settings.products.length
-    ? settings.products
-    : [{ name: funnel.name, quantity: 1, price: settings.price || 0 }]) as any[];
-  const bumpItems = bumps.filter((b) => acceptedBumps.has(b.offer?.id)).map((b) => ({ name: b.offer.name, quantity: 1, price: b.offer.price }));
+  const items = (normalized.products.length
+    ? normalized.products
+    : [{ name: funnel.name, quantity: 1, price: Number(settings.price) || 0, tax_rate: DEFAULT_TAX_RATE }]) as any[];
+  const bumpItems = bumps
+    .filter((b) => acceptedBumps.has(b.offer?.id))
+    .map((b) => ({
+      name: b.offer.name,
+      quantity: 1,
+      price: Number(b.offer.price) || 0,
+      image_url: b.offer.image_url ?? null,
+      tax_rate: DEFAULT_TAX_RATE,
+    }));
   const itemsTotal = items.reduce((s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
-  const subtotal = itemsTotal + bumpItems.reduce((s: number, b: any) => s + (Number(b.price) || 0), 0);
+  const totals = funnelTotals(items, normalized.discount, bumpItems);
+  const subtotal = totals.total;
 
   if (itemsTotal <= 0) {
     return (
