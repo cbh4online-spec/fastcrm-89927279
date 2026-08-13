@@ -95,9 +95,26 @@ export default function CheckoutPage() {
   );
 
   const settings = funnel.settings || {};
-  const items = settings.products || [{ name: funnel.name, quantity: 1, price: settings.price || 0 }];
+  const items = (Array.isArray(settings.products) && settings.products.length
+    ? settings.products
+    : [{ name: funnel.name, quantity: 1, price: settings.price || 0 }]) as any[];
   const bumpItems = bumps.filter((b) => acceptedBumps.has(b.offer?.id)).map((b) => ({ name: b.offer.name, quantity: 1, price: b.offer.price }));
-  const subtotal = items.reduce((s: number, i: any) => s + i.price * i.quantity, 0) + bumpItems.reduce((s: number, b: any) => s + b.price, 0);
+  const itemsTotal = items.reduce((s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+  const subtotal = itemsTotal + bumpItems.reduce((s: number, b: any) => s + (Number(b.price) || 0), 0);
+
+  if (itemsTotal <= 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-semibold">Checkout indisponível</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Este checkout ainda não tem produtos com preço definido. Contacte o vendedor.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <>
