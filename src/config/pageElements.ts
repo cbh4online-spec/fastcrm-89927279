@@ -186,6 +186,96 @@ const LEAD_ACTIONS: Array<[string, string]> = [
   ["export", "Exportar"],
 ];
 
+const OPPORTUNITY_COLUMNS_REG: Array<[string, string]> = [
+  ["value", "Valor"],
+  ["stage", "Etapa"],
+  ["lead", "Contacto"],
+  ["status", "Estado"],
+  ["expected_close_date", "Previsão de fecho"],
+  ["created_at", "Data de criação"],
+];
+
+const OPPORTUNITY_ACTIONS: Array<[string, string]> = [
+  ["new-opportunity", "Nova oportunidade"],
+  ["export", "Exportar"],
+];
+
+const RENEWAL_TABS: Array<[string, string]> = [
+  ["list", "Contratos"],
+  ["kanban", "Kanban"],
+  ["alerts", "Alertas"],
+  ["calendar", "Calendário"],
+];
+
+const PROPOSAL_ACTIONS: Array<[string, string]> = [
+  ["new-proposal", "Nova proposta"],
+];
+
+const INVOICE_TABS: Array<[string, string]> = [
+  ["invoices", "Faturas"],
+  ["recurring", "Recorrentes"],
+  ["fiscal", "Fiscal"],
+  ["saft", "SAF-T"],
+  ["settings", "Configurações"],
+];
+
+const INVOICE_ACTIONS: Array<[string, string]> = [
+  ["new-invoice", "Nova fatura"],
+  ["create-others", "Criar outros"],
+];
+
+const PAYMENT_ACTIONS: Array<[string, string]> = [
+  ["register-payment", "Registar pagamento"],
+  ["export", "Exportar CSV"],
+];
+
+const ORDER_NOTE_ACTIONS: Array<[string, string]> = [
+  ["new-order-note", "Nova encomenda"],
+  ["quick-order-note", "Encomenda rápida"],
+];
+
+const COLLECTION_ACTIONS: Array<[string, string]> = [
+  ["run-dunning", "Executar dunning"],
+  ["import-statement", "Importar extrato"],
+  ["sequences", "Sequências"],
+];
+
+const PRODUCT_TABS: Array<[string, string]> = [
+  ["products", "Produtos"],
+  ["categories", "Categorias"],
+  ["pricing", "Tabelas de Preço"],
+  ["bundles", "Bundles"],
+  ["qa", "Perguntas"],
+  ["pricing-rules", "Regras de Preço"],
+  ["stock-alerts", "Alertas Stock"],
+  ["health", "Saúde Preços"],
+  ["reports", "Relatórios"],
+  ["settings", "Configurações"],
+];
+
+const PRODUCT_COLUMNS_REG: Array<[string, string]> = [
+  ["sku", "SKU"],
+  ["product_type", "Tipo"],
+  ["category", "Categoria"],
+  ["base_price", "Preço"],
+  ["direct_cost", "Custo Direto"],
+  ["operational_cost", "Custo Operacional"],
+  ["margin", "Margem"],
+  ["margin_status", "Saúde Margem"],
+  ["recommended_price", "PVP Recomendado"],
+  ["billing_type", "Cobrança"],
+  ["billing_frequency", "Frequência"],
+  ["status", "Estado"],
+  ["store_published", "Loja Online"],
+  ["b2b_published", "Portal B2B"],
+  ["total_units", "Unidades"],
+  ["tax_rate_estimate_pct", "Taxa IVA"],
+  ["commission_default", "Comissão"],
+  ["created_at", "Criado em"],
+  ["updated_at", "Atualizado"],
+];
+
+
 export const PAGE_ELEMENTS: PageElement[] = [
   // ── Empresas ───────────────────────────────────────────────
   ...ENTITY_TABS.filter(([id]) => id !== "student-journey").map(([id, label]) =>
@@ -209,7 +299,35 @@ export const PAGE_ELEMENTS: PageElement[] = [
   ).map(([id, label]) => el("leads", "tab", id, label)),
   ...LEAD_FIELDS.map(([id, label]) => el("leads", "field", id, label)),
   ...LEAD_ACTIONS.map(([id, label]) => el("leads", "action", id, label)),
+
+  // ── Pipeline (Oportunidades) ───────────────────────────────
+  ...OPPORTUNITY_COLUMNS_REG.map(([id, label]) => el("opportunities", "column", id, label)),
+  ...OPPORTUNITY_ACTIONS.map(([id, label]) => el("opportunities", "action", id, label)),
+
+  // ── Renovações ─────────────────────────────────────────────
+  ...RENEWAL_TABS.map(([id, label]) => el("renewals", "tab", id, label)),
+
+  // ── Propostas ──────────────────────────────────────────────
+  ...PROPOSAL_ACTIONS.map(([id, label]) => el("proposals", "action", id, label)),
+
+  // ── Faturas ────────────────────────────────────────────────
+  ...INVOICE_TABS.map(([id, label]) => el("invoices", "tab", id, label)),
+  ...INVOICE_ACTIONS.map(([id, label]) => el("invoices", "action", id, label)),
+
+  // ── Pagamentos ─────────────────────────────────────────────
+  ...PAYMENT_ACTIONS.map(([id, label]) => el("payments", "action", id, label)),
+
+  // ── Notas de encomenda ─────────────────────────────────────
+  ...ORDER_NOTE_ACTIONS.map(([id, label]) => el("order-notes", "action", id, label)),
+
+  // ── Cobranças ──────────────────────────────────────────────
+  ...COLLECTION_ACTIONS.map(([id, label]) => el("collections", "action", id, label)),
+
+  // ── Produtos ───────────────────────────────────────────────
+  ...PRODUCT_TABS.map(([id, label]) => el("products", "tab", id, label)),
+  ...PRODUCT_COLUMNS_REG.map(([id, label]) => el("products", "column", id, label)),
 ];
+
 
 const byRoute = new Map<string, PageElement[]>();
 for (const element of PAGE_ELEMENTS) {

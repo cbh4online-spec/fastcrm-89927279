@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PageElementGate } from "@/components/shared/PageElementGate";
+import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,6 +80,7 @@ export default function Invoices() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("invoices");
+  const { isElementVisible } = usePageElementVisibility("invoices");
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("date_desc");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
@@ -226,15 +229,19 @@ export default function Invoices() {
           setCurrentPage(1);
         }}
         primaryAction={
-          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90">
-            <Plus className="h-4 w-4" />
-            {t("newInvoice")}
-          </Button>
+          <PageElementGate kind="action" id="new-invoice">
+            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90">
+              <Plus className="h-4 w-4" />
+              {t("newInvoice")}
+            </Button>
+          </PageElementGate>
         }
         secondaryAction={
-          <Button variant="outline" onClick={() => setActiveTab("recurring")} className="rounded-full">
-            Criar Outros
-          </Button>
+          <PageElementGate kind="action" id="create-others">
+            <Button variant="outline" onClick={() => setActiveTab("recurring")} className="rounded-full">
+              Criar Outros
+            </Button>
+          </PageElementGate>
         }
         chips={
           <>
@@ -315,7 +322,7 @@ export default function Invoices() {
               { id: "fiscal", label: t("tabFiscal") },
               { id: "saft", label: t("tabSaft") },
               { id: "settings", label: t("tabSettings") },
-            ].map((tab) => (
+            ].filter((tab) => isElementVisible("tab", tab.id)).map((tab) => (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}

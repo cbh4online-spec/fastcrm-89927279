@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ProposalWonProcurementModal } from "@/components/procurement/ProposalWonProcurementModal";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Button } from "@/components/ui/button";
+import { PageElementGate } from "@/components/shared/PageElementGate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
 import {
@@ -418,13 +419,15 @@ export function ProposalsList() {
       searchPlaceholder="Pesquisar por título, oportunidade ou cliente"
       primaryAction={
         activeTab === "proposals" ? (
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="gap-2 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" />
-            Nova Proposta
-          </Button>
+          <PageElementGate kind="action" id="new-proposal" routeKey="proposals">
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="gap-2 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" />
+              Nova Proposta
+            </Button>
+          </PageElementGate>
         ) : undefined
       }
       chips={
