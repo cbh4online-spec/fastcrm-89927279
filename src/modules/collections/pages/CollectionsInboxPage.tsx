@@ -71,7 +71,10 @@ export default function CollectionsInboxPage() {
           </div>
         </header>
 
+        <CollectionsKPIStrip />
+
         <IXCard contentClassName="p-0 px-0 pb-0">
+
           <div className="p-4">
             <CollectionsFilters value={filters} onChange={setFilters} />
           </div>
