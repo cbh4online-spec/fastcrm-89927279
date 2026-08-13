@@ -309,25 +309,27 @@ export default function StockValuationPage() {
 
   const exportCsv = () => {
     const headers = [
-      "SKU", "Produto", "Categoria", "Stock", "Stock mínimo",
-      "Custo unit.", "Custo operacional unit.", "Custo total unit.",
-      "Valor stock a custo", "PVP unit.", "Valor a PVP",
-      "Margem €", "Markup % s/Custo",
+      "SKU", "Produto", "Categoria",
+      ...(cols.stock ? ["Stock", "Stock mínimo"] : []),
+      ...(cols.cost ? ["Custo unit.", "Custo operacional unit.", "Custo total unit.", "Valor stock a custo"] : []),
+      ...(cols.sale ? ["PVP unit.", "Valor a PVP"] : []),
+      ...(cols.margin ? ["Margem €", "Markup % s/Custo"] : []),
     ];
     const lines = filtered.map((r) => [
       r.sku || "",
       `"${(r.product_name || "").replace(/"/g, '""')}"`,
       r.category || "",
-      r.current_stock,
-      r.low_stock_threshold ?? 0,
-      r.fifo_avg_cost.toFixed(4),
-      r.operational_cost_unit.toFixed(4),
-      r.total_unit_cost.toFixed(4),
-      r.total_cost_value.toFixed(2),
-      r.unit_sale_price.toFixed(2),
-      r.total_sale_value.toFixed(2),
-      r.latent_margin.toFixed(2),
-      r.markup_pct.toFixed(2),
+      ...(cols.stock ? [r.current_stock, r.low_stock_threshold ?? 0] : []),
+      ...(cols.cost
+        ? [
+            r.fifo_avg_cost.toFixed(4),
+            r.operational_cost_unit.toFixed(4),
+            r.total_unit_cost.toFixed(4),
+            r.total_cost_value.toFixed(2),
+          ]
+        : []),
+      ...(cols.sale ? [r.unit_sale_price.toFixed(2), r.total_sale_value.toFixed(2)] : []),
+      ...(cols.margin ? [r.latent_margin.toFixed(2), r.markup_pct.toFixed(2)] : []),
     ].join(";"));
     const csv = [headers.join(";"), ...lines].join("\n");
     const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8;" });
