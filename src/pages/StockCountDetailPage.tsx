@@ -172,32 +172,28 @@ export default function StockCountDetailPage() {
           </IXCard>
         </div>
 
-        <IXCard
-          title="Linhas de contagem"
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Nome ou SKU..."
-                  className="pl-9 h-10 w-full sm:w-64 rounded-full"
-                />
-              </div>
-              <Select value={filter} onValueChange={(v) => setFilter(v as ItemFilter)}>
-                <SelectTrigger className="h-10 rounded-full w-44"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="pending">Por contar</SelectItem>
-                  <SelectItem value="counted">Contados</SelectItem>
-                  <SelectItem value="variance">Com divergência</SelectItem>
-                </SelectContent>
-              </Select>
+        <IXCard title="Linhas de contagem" contentClassName="px-0 pb-2">
+          <div className="flex flex-col sm:flex-row gap-2 px-6 mb-4">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Nome ou SKU..."
+                className="pl-9 h-10 w-full sm:max-w-xs rounded-full"
+              />
             </div>
-          }
-          contentClassName="px-0 pb-2"
-        >
+            <Select value={filter} onValueChange={(v) => setFilter(v as ItemFilter)}>
+              <SelectTrigger className="h-10 rounded-full w-full sm:w-48 shrink-0"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="pending">Por contar</SelectItem>
+                <SelectItem value="counted">Contados</SelectItem>
+                <SelectItem value="variance">Com divergência</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {itemsLoading ? (
             <div className="px-6 space-y-2">
               {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
