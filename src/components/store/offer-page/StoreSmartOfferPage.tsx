@@ -8,7 +8,7 @@ import { StoreCookieConsent } from "@/components/store/StoreCookieConsent";
 import { StoreProductViewTracker } from "@/components/store/StoreProductViewTracker";
 import { StoreVatProvider } from "@/contexts/StoreVatContext";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
-import { StorePriceRequestDialog } from "@/components/store/StorePriceRequestDialog";
+import { OfferConversionDialog } from "./OfferConversionDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
