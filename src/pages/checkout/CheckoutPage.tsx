@@ -10,6 +10,7 @@ import { TrustBadges } from "@/components/checkout/TrustBadges";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
+import { DEFAULT_TAX_RATE, funnelTotals, readFunnelSettings } from "@/schemas/checkout/funnelSchema";
 
 export default function CheckoutPage() {
   const { funnelSlug } = useParams();
