@@ -181,7 +181,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
   return useQuery({
     queryKey: ["store-product", productIdOrSlug, workspaceId || ""],
     queryFn: async () => {
-      if (!productIdOrSlug) return null;
+      if (!productIdOrSlug || !workspaceId) return null;
 
       let query = supabase
         .from("products")
@@ -193,9 +193,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
         ? query.eq("id", productIdOrSlug)
         : query.eq("store_slug", productIdOrSlug);
 
-      if (workspaceId) {
-        query = query.eq("workspace_id", workspaceId);
-      }
+      query = query.eq("workspace_id", workspaceId);
 
 
       const { data, error } = await query.maybeSingle();
@@ -213,7 +211,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
           .like("store_slug", `${productIdOrSlug}%`)
           .limit(2);
 
-        if (workspaceId) fallback = fallback.eq("workspace_id", workspaceId);
+        fallback = fallback.eq("workspace_id", workspaceId);
 
         const { data: matches, error: fbError } = await fallback;
         if (fbError) throw fbError;
@@ -225,7 +223,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
       return null;
     },
 
-    enabled: !!productIdOrSlug,
+    enabled: !!productIdOrSlug && !!workspaceId,
   });
 }
 

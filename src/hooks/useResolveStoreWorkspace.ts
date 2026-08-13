@@ -47,5 +47,6 @@ export function useResolveStoreWorkspace(param: string | undefined) {
     slug: param || "",
     isLoading: isUUID ? false : isLoading,
     notFound: !isUUID && !isLoading && !data,
+    error,
   };
 }
