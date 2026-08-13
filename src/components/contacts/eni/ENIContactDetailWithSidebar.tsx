@@ -379,7 +379,6 @@ export function ENIContactDetailWithSidebar() {
       case 'financial':
         return (
           <div className="space-y-4">
-          <FinancialKPIStrip entityType="contact" entityId={id!} />
           <EntitySubTabs
             tabs={[
               { id: 'profile', label: 'Perfil' },
@@ -646,6 +645,9 @@ export function ENIContactDetailWithSidebar() {
             </DropdownMenu>
           </div>
         </div>
+
+        {/* Resumo financeiro sempre visível no cabeçalho */}
+        <FinancialKPIStrip entityType="contact" entityId={id!} variant="header" className="mt-4" />
       </div>
 
       {/* Horizontal Tabs */}
