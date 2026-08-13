@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import {
   Package, TrendingUp, AlertTriangle, Coins, Download, RefreshCw, Search, Layers,
   ArrowLeft, SlidersHorizontal, Mic, MicOff, Sparkles, X, ChevronLeft, ChevronRight, Loader2, MoreHorizontal,
-  ArrowUp, ArrowDown, Copy, Columns3,
+  ArrowUp, ArrowDown, Copy, Columns3, ClipboardList,
 } from "lucide-react";
 import { useInventoryValuation, type InventoryValuationRow } from "@/hooks/useInventoryValuation";
 import { useStockEnrichment } from "@/hooks/useStockEnrichment";
