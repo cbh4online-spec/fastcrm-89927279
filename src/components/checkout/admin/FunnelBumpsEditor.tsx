@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -7,12 +8,14 @@ import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { useCheckoutOrderBumps } from "@/hooks/useCheckoutOrderBumps";
 import { useCheckoutOffers } from "@/hooks/useCheckoutOffers";
+import { OfferFormDialog } from "@/components/checkout/admin/OfferFormDialog";
 import { toast } from "sonner";
 
 export function FunnelBumpsEditor({ funnelId }: { funnelId: string }) {
   const { bumps, addBump, updateBump, removeBump } = useCheckoutOrderBumps(funnelId);
   const { offers } = useCheckoutOffers();
   const [offerId, setOfferId] = useState("");
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
 
   const list = bumps.data ?? [];
 
@@ -77,7 +80,7 @@ export function FunnelBumpsEditor({ funnelId }: { funnelId: string }) {
           </ul>
         )}
 
-        <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-[1fr_auto] sm:items-end">
+        <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
           <div className="space-y-1">
             <Label htmlFor="bump-offer" className="text-xs text-muted-foreground">Oferta</Label>
             <Select value={offerId} onValueChange={setOfferId}>
@@ -89,10 +92,37 @@ export function FunnelBumpsEditor({ funnelId }: { funnelId: string }) {
               </SelectContent>
             </Select>
           </div>
+          <Button variant="outline" onClick={() => setOfferDialogOpen(true)} aria-label="Criar nova oferta">
+            <Plus className="mr-2 h-4 w-4" /> Nova oferta
+          </Button>
           <Button onClick={handleAdd} disabled={addBump.isPending}>
             <Plus className="mr-2 h-4 w-4" /> Associar
           </Button>
         </div>
+
+        {!offers.isLoading && !(offers.data ?? []).length && (
+          <div className="space-y-2 rounded-xl border border-dashed border-border p-4">
+            <p className="text-sm text-muted-foreground">
+              Ainda não tem ofertas. Um order bump é um extra de baixo valor mostrado dentro do próprio checkout, antes do
+              pagamento.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button size="sm" onClick={() => setOfferDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Criar primeira oferta
+              </Button>
+              <Link to="/dashboard/checkout/offers" className="text-xs text-muted-foreground underline">
+                Gerir em Checkout &gt; Ofertas
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <OfferFormDialog
+          open={offerDialogOpen}
+          onOpenChange={setOfferDialogOpen}
+          defaultOfferType="order_bump"
+          onCreated={(offer) => setOfferId(offer.id)}
+        />
       </div>
     </IXCard>
   );
