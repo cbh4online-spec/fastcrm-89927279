@@ -43,7 +43,7 @@ export function useResolveStoreWorkspace(param: string | undefined) {
   });
 
   return {
-    workspaceId: isUUID ? param! : (data?.workspaceId || ""),
+    workspaceId: isUUID && param ? param : (data?.workspaceId || ""),
     slug: param || "",
     isLoading: isUUID ? false : isLoading,
     notFound: !isUUID && !isLoading && !data,
