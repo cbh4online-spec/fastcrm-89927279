@@ -44,39 +44,96 @@ serve(async (req) => {
     if (!funnel) throw new Error("Funnel not found");
 
     const settings = funnel.settings || {};
-    const products = settings.products || [{ name: funnel.name, price: settings.price || 0, quantity: 1 }];
+    const currency = String(settings.currency || "EUR").toLowerCase();
+    const rawProducts: any[] = Array.isArray(settings.products) && settings.products.length
+      ? settings.products
+      : [{ name: funnel.name, price: Number(settings.price) || 0, quantity: 1 }];
 
-    // Build line items
-    const lineItems: any[] = products.map((p: any) => ({
+    // Enrich lines from the catalog when they are linked to a product
+    const productIds = rawProducts.map((p: any) => p.product_id).filter(Boolean);
+    const catalog = new Map<string, any>();
+    if (productIds.length) {
+      const { data: catalogRows } = await supabase
+        .from("products")
+        .select("id, name, sku, short_description, product_images(url)")
+        .in("id", productIds);
+      for (const row of catalogRows || []) catalog.set(row.id, row);
+    }
+
+    const products = rawProducts.map((p: any) => {
+      const cat = p.product_id ? catalog.get(p.product_id) : null;
+      return {
+        product_id: p.product_id ?? null,
+        name: String(p.name || cat?.name || "Produto"),
+        sku: p.sku ?? cat?.sku ?? null,
+        quantity: Number(p.quantity) > 0 ? Math.floor(Number(p.quantity)) : 1,
+        price: Number(p.price) || 0,
+        tax_rate: p.tax_rate == null ? 23 : Number(p.tax_rate) || 0,
+        image_url: p.image_url ?? cat?.product_images?.[0]?.url ?? null,
+        description: cat?.short_description ?? null,
+      };
+    });
+
+    const invalid = products.some((p: any) => !(p.price > 0) || !(p.quantity > 0));
+    const itemsTotal = products.reduce((s: number, p: any) => s + p.price * p.quantity, 0);
+    if (invalid || itemsTotal <= 0) {
+      throw new Error("Este funil não tem produtos com preço válido configurado");
+    }
+
+    const toLineItem = (name: string, unitPrice: number, quantity: number, imageUrl?: string | null, description?: string | null) => ({
       price_data: {
-        currency: (settings.currency || "EUR").toLowerCase(),
-        product_data: { name: p.name },
-        unit_amount: Math.round(p.price * 100),
+        currency,
+        product_data: {
+          name,
+          ...(description ? { description: String(description).slice(0, 500) } : {}),
+          ...(imageUrl && /^https?:\/\//.test(imageUrl) ? { images: [imageUrl] } : {}),
+        },
+        unit_amount: Math.round(unitPrice * 100),
       },
-      quantity: p.quantity || 1,
-    }));
+      quantity,
+    });
+
+    const lineItems: any[] = products.map((p: any) =>
+      toLineItem(p.name, p.price, p.quantity, p.image_url, p.description)
+    );
 
     // Add accepted bumps
+    const acceptedBumpLines: any[] = [];
     if (acceptedBumps?.length) {
       const { data: bumpOffers } = await supabase
         .from("checkout_offers")
         .select("*")
-        .in("id", acceptedBumps);
+        .in("id", acceptedBumps)
+        .eq("workspace_id", workspaceId);
 
       for (const offer of (bumpOffers || [])) {
-        lineItems.push({
-          price_data: {
-            currency: (offer.currency || "EUR").toLowerCase(),
-            product_data: { name: offer.name },
-            unit_amount: Math.round(offer.price * 100),
-          },
-          quantity: 1,
-        });
+        const price = Number(offer.price) || 0;
+        if (price <= 0) continue;
+        acceptedBumpLines.push({ offer_id: offer.id, name: offer.name, price, product_id: offer.product_id ?? null });
+        lineItems.push(toLineItem(offer.name, price, 1, offer.image_url, offer.description));
       }
     }
 
-    // Create checkout session record
-    const totalValue = lineItems.reduce((s: number, li: any) => s + (li.price_data.unit_amount * li.quantity) / 100, 0);
+    // Funnel-level discount
+    const grossTotal = lineItems.reduce((s: number, li: any) => s + (li.price_data.unit_amount * li.quantity) / 100, 0);
+    const discountCfg = settings.discount || null;
+    let discountValue = 0;
+    if (discountCfg?.type === "fixed") discountValue = Number(discountCfg.value) || 0;
+    if (discountCfg?.type === "percent") discountValue = (grossTotal * (Number(discountCfg.value) || 0)) / 100;
+    discountValue = Math.max(0, Math.min(discountValue, grossTotal));
+
+    let discounts: any[] | undefined;
+    if (discountValue > 0.005) {
+      const coupon = await stripe.coupons.create({
+        amount_off: Math.round(discountValue * 100),
+        currency,
+        duration: "once",
+        name: String(discountCfg?.label || "Desconto").slice(0, 40),
+      });
+      discounts = [{ coupon: coupon.id }];
+    }
+
+    const totalValue = Math.round((grossTotal - discountValue) * 100) / 100;
 
     const { data: session } = await supabase
       .from("checkout_sessions")
@@ -87,7 +144,14 @@ serve(async (req) => {
         customer_name: customerName,
         status: "started",
         current_step: "checkout",
-        cart_data: { products, shippingAddress, phone },
+        cart_data: {
+          products,
+          bumps: acceptedBumpLines,
+          currency,
+          discount: discountValue ? { ...discountCfg, amount: discountValue } : null,
+          shippingAddress,
+          phone,
+        },
         bumps_accepted: acceptedBumps || [],
         total_value: totalValue,
         utm_source: utmSource,
