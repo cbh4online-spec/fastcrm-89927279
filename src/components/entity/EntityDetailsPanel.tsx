@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { usePageElementVisibility } from '@/hooks/usePageElementVisibility';
 import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil, Clock, Youtube, Pin, MessageCircle } from 'lucide-react';
 
 function TikTokIcon({ className }: { className?: string }) {
@@ -79,6 +80,8 @@ function EditableFieldRow({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value ?? ''));
   const inputRef = useRef<HTMLInputElement>(null);
+  const { elementState } = usePageElementVisibility();
+  const fieldState = fieldKey ? elementState('field', fieldKey) : 'visible';
 
   useEffect(() => {
     setDraft(String(value ?? ''));
@@ -108,7 +111,9 @@ function EditableFieldRow({
     if (e.key === 'Escape') { e.preventDefault(); cancel(); }
   };
 
-  const canEdit = !!onUpdate && !!fieldKey;
+  const canEdit = !!onUpdate && !!fieldKey && fieldState !== 'locked';
+
+  if (fieldState === 'hidden') return null;
 
   const inputType = linkType === 'email' ? 'email' : linkType === 'url' ? 'url' : linkType === 'phone' ? 'tel' : 'text';
 

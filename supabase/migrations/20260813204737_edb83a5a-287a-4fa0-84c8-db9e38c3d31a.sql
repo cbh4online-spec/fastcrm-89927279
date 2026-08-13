@@ -1,0 +1,2 @@
+ALTER TABLE public.workspace_menu_overrides DROP CONSTRAINT IF EXISTS workspace_menu_overrides_item_type_check;
+ALTER TABLE public.workspace_menu_overrides ADD CONSTRAINT workspace_menu_overrides_item_type_check CHECK (item_type IN ('top_group','nav_group','route','element'));

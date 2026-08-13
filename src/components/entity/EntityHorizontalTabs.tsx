@@ -3,6 +3,13 @@ import { Badge } from '@/components/ui/badge';
 import { EntityType, MenuSection } from '@/types/entity';
 import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
 import { useWorkspaceModules } from '@/hooks/useWorkspaceModules';
+import { usePageElementVisibility } from '@/hooks/usePageElementVisibility';
+
+const ROUTE_KEY_BY_ENTITY: Record<EntityType, string> = {
+  lead: 'leads',
+  contact: 'contacts',
+  company: 'companies',
+};
 
 interface TabItem {
   id: MenuSection;
@@ -69,8 +76,10 @@ export function EntityHorizontalTabs({
   const { data: layoutConfig } = useWorkspaceLayoutConfig(entityType);
   const visibleSections = getVisibleSections(entityType, layoutConfig);
   const { isModuleInstalled } = useWorkspaceModules();
+  const { isElementVisible } = usePageElementVisibility(ROUTE_KEY_BY_ENTITY[entityType]);
 
   const isVisible = (sectionId: MenuSection): boolean => {
+    if (!isElementVisible('tab', sectionId)) return false;
     if (sectionId === 'student-journey') return isModuleInstalled('student-journey') || hasStudentJourneyProfile;
     return visibleSections.includes(sectionId);
   };

@@ -15,9 +15,10 @@ import {
   getTopLevelGroupForRoute,
   type RouteEntry,
 } from "@/config/routeManifest";
+import { buildElementKey, type PageElementKind } from "@/config/pageElements";
 
 export type MenuVisibility = "visible" | "locked" | "hidden";
-export type MenuItemType = "top_group" | "nav_group" | "route";
+export type MenuItemType = "top_group" | "nav_group" | "route" | "element";
 
 export interface MenuOverride {
   item_type: MenuItemType;
@@ -121,3 +122,18 @@ export const MENU_VISIBILITY_LABELS: Record<MenuVisibility, string> = {
   hidden: "Oculto",
 };
 
+
+/**
+ * Visibilidade efectiva de um elemento dentro de uma página.
+ * Herança: elemento → rota → sub-grupo → grupo de topo.
+ */
+export function resolveElementVisibility(
+  map: MenuOverrideMap,
+  routeKey: string,
+  kind: PageElementKind,
+  elementId: string,
+): MenuVisibility {
+  const own = getOverride(map, "element", buildElementKey(routeKey, kind, elementId));
+  if (own) return own;
+  return resolveRouteVisibility(map, routeKey);
+}
