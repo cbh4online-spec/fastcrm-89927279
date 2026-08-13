@@ -199,7 +199,36 @@ export const SECTION_LABELS: Record<OfferSectionKey, string> = {
   video: "Vídeo",
 };
 
+/** Ordem por omissão das secções de conteúdo. */
+export const DEFAULT_SECTION_ORDER: OfferSectionKey[] = [
+  "description",
+  "benefits",
+  "specifications",
+  "ingredients",
+  "howToUse",
+  "program",
+  "instructor",
+  "sessions",
+  "equipment",
+  "installation",
+  "delivery",
+  "warranty",
+  "video",
+  "documents",
+  "reviews",
+  "faq",
+  "relatedProducts",
+];
+
+/** Ordem efetiva de render, completando com as secções em falta. */
+export function getSectionOrder(config: OfferPageConfig): OfferSectionKey[] {
+  const configured = (config.sectionOrder || []).filter((k) => DEFAULT_SECTION_ORDER.includes(k));
+  const missing = DEFAULT_SECTION_ORDER.filter((k) => !configured.includes(k));
+  return [...configured, ...missing];
+}
+
 /** Objetivos suportados por implementação real neste MVP. */
+
 export const AVAILABLE_CONVERSION_GOALS: ConversionGoal[] = [
   "add_to_cart",
   "buy_now",
