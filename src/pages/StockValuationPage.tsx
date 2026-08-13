@@ -524,6 +524,12 @@ export default function StockValuationPage() {
             activeCount={activeFilterCount}
           />
 
+          <div className="hidden md:block">
+            <ColumnsMenu cols={cols} setCols={setCols} />
+          </div>
+
+
+
           {activeFilterCount > 0 && (
             <Button variant="ghost" className="rounded-full h-12" onClick={clearAll}>
               <X className="h-4 w-4 mr-1" /> Limpar
