@@ -152,6 +152,7 @@ export const IX_NAV_SECTIONS: IXNavSection[] = [
           { key: "bundles" },
           { key: "composite-products" },
           { key: "stock-valuation" },
+          { key: "stock-counts" },
         ],
       },
     ],
