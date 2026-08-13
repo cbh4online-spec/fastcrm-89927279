@@ -144,8 +144,9 @@ export default function CheckoutFunnelDetailPage() {
           <FunnelProductsEditor
             products={settings.products}
             currency={settings.currency}
+            discount={settings.discount}
             saving={updateFunnel.isPending}
-            onSave={(products, currency) => saveSettings({ products, currency })}
+            onSave={(products, currency, discount) => saveSettings({ products, currency, discount })}
           />
         </TabsContent>
 

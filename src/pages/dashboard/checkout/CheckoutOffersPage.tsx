@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Loader2, Trash2, Gift } from "lucide-react";
+import { Plus, Loader2, Trash2, Gift, Package } from "lucide-react";
 import { toast } from "sonner";
+import { ProductPickerDialog, catalogGrossPrice } from "@/components/checkout/admin/ProductPickerDialog";
 
 const OFFER_TYPES = [
   { value: "upsell", label: "Upsell" },
@@ -22,12 +23,14 @@ const OFFER_TYPES = [
 export default function CheckoutOffersPage() {
   const { offers, createOffer, deleteOffer } = useCheckoutOffers();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", offer_type: "upsell", price: "", headline: "", description: "", cta_text: "Sim! Quero isto!", decline_text: "Não, obrigado" });
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const emptyForm = { name: "", offer_type: "upsell", price: "", headline: "", description: "", cta_text: "Sim! Quero isto!", decline_text: "Não, obrigado", product_id: null as string | null, image_url: null as string | null };
+  const [form, setForm] = useState(emptyForm);
 
   function handleCreate() {
     if (!form.name || !form.price) { toast.error("Preencha nome e preço"); return; }
     createOffer.mutate({ ...form, price: parseFloat(form.price) }, {
-      onSuccess: () => { setOpen(false); setForm({ name: "", offer_type: "upsell", price: "", headline: "", description: "", cta_text: "Sim! Quero isto!", decline_text: "Não, obrigado" }); },
+      onSuccess: () => { setOpen(false); setForm(emptyForm); },
     });
   }
 
@@ -45,6 +48,17 @@ export default function CheckoutOffersPage() {
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Criar Oferta</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-4">
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {form.product_id ? `Ligado ao catálogo: ${form.name}` : "Sem produto do catálogo"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Herda nome, preço com IVA e imagem.</p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+                  <Package className="mr-2 h-4 w-4" /> Escolher
+                </Button>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Nome</Label>
@@ -79,6 +93,20 @@ export default function CheckoutOffersPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <ProductPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        title="Associar produto à oferta"
+        onSelect={(product) => setForm((p) => ({
+          ...p,
+          name: p.name || product.name,
+          price: String(catalogGrossPrice(product)),
+          description: p.description || product.short_description || "",
+          product_id: product.id,
+          image_url: product.image_url,
+        }))}
+      />
 
       {offers.isLoading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
