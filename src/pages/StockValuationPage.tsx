@@ -685,8 +685,7 @@ export default function StockValuationPage() {
               const belowMin = r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold;
               return (
                 <div key={r.product_id} className="rounded-xl border border-border p-3 bg-card">
-                  <div className="font-medium text-sm leading-snug break-words" title={r.product_name}>{r.product_name}</div>
-                  {r.sku && <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
+                  <ProductCell name={r.product_name} sku={r.sku} compact />
                   <div className="mt-2 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Stock</span>
                     <span className="flex items-center gap-2">
