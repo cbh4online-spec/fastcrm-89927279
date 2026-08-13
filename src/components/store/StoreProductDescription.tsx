@@ -51,7 +51,7 @@ export function StoreProductDescription({
     }
 
     return sanitizeHtml(text);
-  }, [description]);
+  }, [safeDescription]);
 
   return (
     <div>
