@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useRenewalContracts } from "@/hooks/useRenewals";
 import {
   RENEWAL_STATUS_CONFIG,
@@ -75,6 +76,7 @@ const sortOptions = [
 ];
 
 export default function RenewalsPage() {
+  const { isElementVisible } = usePageElementVisibility("renewals");
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -280,18 +282,26 @@ export default function RenewalsPage() {
           toolbar={
             <div className="flex flex-wrap items-center justify-between gap-3">
               <TabsList className="rounded-full bg-muted/60">
-                <TabsTrigger value="list" className="gap-1.5 rounded-full">
-                  <List className="h-3.5 w-3.5" /> Contratos
-                </TabsTrigger>
-                <TabsTrigger value="kanban" className="gap-1.5 rounded-full">
-                  <LayoutGrid className="h-3.5 w-3.5" /> Kanban
-                </TabsTrigger>
-                <TabsTrigger value="alerts" className="gap-1.5 rounded-full">
-                  <Bell className="h-3.5 w-3.5" /> Alertas
-                </TabsTrigger>
-                <TabsTrigger value="calendar" className="gap-1.5 rounded-full">
-                  <CalendarDays className="h-3.5 w-3.5" /> Calendário
-                </TabsTrigger>
+                {isElementVisible("tab", "list") && (
+                  <TabsTrigger value="list" className="gap-1.5 rounded-full">
+                    <List className="h-3.5 w-3.5" /> Contratos
+                  </TabsTrigger>
+                )}
+                {isElementVisible("tab", "kanban") && (
+                  <TabsTrigger value="kanban" className="gap-1.5 rounded-full">
+                    <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+                  </TabsTrigger>
+                )}
+                {isElementVisible("tab", "alerts") && (
+                  <TabsTrigger value="alerts" className="gap-1.5 rounded-full">
+                    <Bell className="h-3.5 w-3.5" /> Alertas
+                  </TabsTrigger>
+                )}
+                {isElementVisible("tab", "calendar") && (
+                  <TabsTrigger value="calendar" className="gap-1.5 rounded-full">
+                    <CalendarDays className="h-3.5 w-3.5" /> Calendário
+                  </TabsTrigger>
+                )}
               </TabsList>
               <DocumentListToolbar
                 sortOptions={sortOptions}
