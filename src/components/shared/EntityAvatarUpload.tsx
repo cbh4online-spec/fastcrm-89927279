@@ -124,35 +124,37 @@ export function EntityAvatarUpload({
         onChange={handleFile}
       />
 
-      <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-full"
-            disabled={isUploading}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="mr-2 h-3.5 w-3.5" />
-            {value ? "Alterar imagem" : "Carregar imagem"}
-          </Button>
-          {value && (
+      {!compact && (
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="rounded-full text-destructive hover:text-destructive"
+              className="rounded-full"
               disabled={isUploading}
-              onClick={() => onChange(null)}
+              onClick={() => fileInputRef.current?.click()}
             >
-              <Trash2 className="mr-2 h-3.5 w-3.5" />
-              Remover
+              <Upload className="mr-2 h-3.5 w-3.5" />
+              {value ? "Alterar imagem" : "Carregar imagem"}
             </Button>
-          )}
+            {value && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="rounded-full text-destructive hover:text-destructive"
+                disabled={isUploading}
+                onClick={() => onChange(null)}
+              >
+                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                Remover
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">PNG ou JPG, até 5MB.</p>
         </div>
-        <p className="text-xs text-muted-foreground">PNG ou JPG, até 5MB.</p>
-      </div>
+      )}
     </div>
   );
 }
