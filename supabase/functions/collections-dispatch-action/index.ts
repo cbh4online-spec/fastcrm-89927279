@@ -138,19 +138,19 @@ Deno.serve(async (req) => {
     // ── Variáveis do template ────────────────────────────────────
     const { data: invoices } = await admin
       .from("collection_case_invoices")
-      .select("snapshot_number, snapshot_due_date, snapshot_open_amount")
+      .select("snapshot_total, snapshot_amount_paid, snapshot_due_date, invoice:invoices(invoice_number)")
       .eq("case_id", caseId)
       .is("removed_at", null)
       .order("snapshot_due_date", { ascending: true })
       .limit(50);
 
     const invoiceLines = (invoices ?? [])
-      .map(
-        (i: any) =>
-          `• ${i.snapshot_number ?? "s/ nº"} — ${euro(i.snapshot_open_amount)} (venc. ${
-            i.snapshot_due_date ?? "—"
-          })`,
-      )
+      .map((i: any) => {
+        const open = Number(i.snapshot_total ?? 0) - Number(i.snapshot_amount_paid ?? 0);
+        return `• ${i.invoice?.invoice_number ?? "s/ nº"} — ${euro(open)} (venc. ${
+          i.snapshot_due_date ?? "—"
+        })`;
+      })
       .join("\n");
 
     const vars: Record<string, string> = {
