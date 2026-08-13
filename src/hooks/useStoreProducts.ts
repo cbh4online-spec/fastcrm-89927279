@@ -201,8 +201,30 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
       const { data, error } = await query.maybeSingle();
 
       if (error) throw error;
-      return (data || null) as (StoreProduct & { workspace_id: string }) | null;
+      if (data) return data as StoreProduct & { workspace_id: string };
+
+      // Fallback: links antigos/truncados — resolve por prefixo do slug
+      if (!UUID_RE.test(productIdOrSlug) && productIdOrSlug.length >= 8) {
+        let fallback = supabase
+          .from("products")
+          .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, metadata")
+          .eq("store_published", true)
+          .eq("status", "active")
+          .like("store_slug", `${productIdOrSlug}%`)
+          .limit(2);
+
+        if (workspaceId) fallback = fallback.eq("workspace_id", workspaceId);
+
+        const { data: matches, error: fbError } = await fallback;
+        if (fbError) throw fbError;
+        if (matches && matches.length === 1) {
+          return matches[0] as StoreProduct & { workspace_id: string };
+        }
+      }
+
+      return null;
     },
+
     enabled: !!productIdOrSlug,
   });
 }
