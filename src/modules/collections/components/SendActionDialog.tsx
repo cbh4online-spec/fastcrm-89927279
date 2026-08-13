@@ -7,9 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Info } from "lucide-react";
+import { Info, Send, Eye, Loader2 } from "lucide-react";
 import { useRegisterAction } from "../hooks/useRegisterAction";
+import { useDispatchAction } from "../hooks/useDispatchAction";
+import { useCollectionCase } from "../hooks/useCollectionCase";
+import {
+  COLLECTION_TEMPLATE_VARIABLES,
+  buildCaseTemplateVars,
+  renderCollectionTemplate,
+} from "../lib/collectionsTemplates";
 
 type Channel = "email" | "whatsapp" | "sms" | "phone";
 
@@ -24,29 +32,49 @@ export function SendActionDialog({ open, onOpenChange, caseId }: Props) {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [outcome, setOutcome] = useState("attended");
-  const mutation = useRegisterAction();
+  const [preview, setPreview] = useState(false);
+  const register = useRegisterAction();
+  const dispatch = useDispatchAction();
+  const { data: caseRow } = useCollectionCase(open ? caseId : undefined);
+
+  const vars = caseRow ? buildCaseTemplateVars(caseRow) : {};
+  const canDispatch = tab === "email" || tab === "whatsapp";
+  const isBusy = register.isPending || dispatch.isPending;
 
   const reset = () => {
-    setSubject(""); setBody(""); setOutcome("attended"); setTab("email");
+    setSubject(""); setBody(""); setOutcome("attended"); setTab("email"); setPreview(false);
   };
 
-  const handleSubmit = async () => {
+  const close = () => { reset(); onOpenChange(false); };
+
+  const insertVar = (key: string) => setBody((b) => `${b}{{${key}}}`);
+
+  const handleRegister = async () => {
     const actionType = tab === "email" ? "email_sent"
       : tab === "whatsapp" ? "whatsapp_sent"
       : tab === "sms" ? "sms_sent"
       : "call_logged";
-    const channel = tab;
 
-    await mutation.mutateAsync({
+    await register.mutateAsync({
       caseId,
       actionType,
-      channel,
+      channel: tab,
       subject: tab === "email" ? subject : undefined,
       body: tab === "phone" ? body || undefined : body,
       outcome: tab === "phone" ? outcome : undefined,
     });
-    reset();
-    onOpenChange(false);
+    close();
+  };
+
+  const handleDispatch = async () => {
+    if (!canDispatch) return;
+    await dispatch.mutateAsync({
+      caseId,
+      channel: tab as "email" | "whatsapp",
+      subject: tab === "email" ? subject : undefined,
+      body,
+    });
+    close();
   };
 
   const canSubmit =
@@ -55,20 +83,20 @@ export function SendActionDialog({ open, onOpenChange, caseId }: Props) {
     (tab === "phone");
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Registar ação</DialogTitle>
+          <DialogTitle>Comunicar com o devedor</DialogTitle>
           <DialogDescription>
             <span className="flex items-start gap-2 text-xs">
               <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              O envio automático será ativado nas próximas fases. Por agora, esta ação
-              fica registada como contacto manual no histórico do caso.
+              Email e WhatsApp podem ser enviados de imediato. SMS e chamada ficam
+              registados como contacto manual no histórico do caso.
             </span>
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as Channel)}>
+        <Tabs value={tab} onValueChange={(v) => { setTab(v as Channel); setPreview(false); }}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="email">Email</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
@@ -124,11 +152,56 @@ export function SendActionDialog({ open, onOpenChange, caseId }: Props) {
           </TabsContent>
         </Tabs>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit || mutation.isPending}>
-            {mutation.isPending ? "A registar…" : "Registar ação"}
+        {tab !== "phone" && (
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {COLLECTION_TEMPLATE_VARIABLES.map((v) => (
+                <Badge
+                  key={v.key}
+                  variant="outline"
+                  className="cursor-pointer text-[11px] font-normal"
+                  onClick={() => insertVar(v.key)}
+                  title={v.label}
+                >
+                  {`{{${v.key}}}`}
+                </Badge>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setPreview((p) => !p)}
+            >
+              <Eye className="mr-1.5 h-3.5 w-3.5" />
+              {preview ? "Ocultar antevisão" : "Antever com dados do caso"}
+            </Button>
+            {preview && (
+              <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                {tab === "email" && subject && (
+                  <p className="mb-2 font-medium">{renderCollectionTemplate(subject, vars)}</p>
+                )}
+                <p className="whitespace-pre-wrap text-muted-foreground">
+                  {renderCollectionTemplate(body, vars) || "—"}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="ghost" onClick={close}>Cancelar</Button>
+          <Button variant="outline" onClick={handleRegister} disabled={!canSubmit || isBusy}>
+            {register.isPending ? "A registar…" : "Registar manual"}
           </Button>
+          {canDispatch && (
+            <Button onClick={handleDispatch} disabled={!canSubmit || isBusy}>
+              {dispatch.isPending
+                ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" />A enviar…</>
+                : <><Send className="mr-1.5 h-4 w-4" />Enviar agora</>}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
