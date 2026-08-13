@@ -80,6 +80,21 @@ export default function StockValuationPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
+  // Colunas visíveis (persistidas localmente)
+  const [cols, setCols] = useState<ColumnPrefs>(() => {
+    if (typeof window === "undefined") return DEFAULT_COLS;
+    try {
+      const raw = window.localStorage.getItem(COLS_STORAGE_KEY);
+      return raw ? { ...DEFAULT_COLS, ...JSON.parse(raw) } : DEFAULT_COLS;
+    } catch {
+      return DEFAULT_COLS;
+    }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(cols)); } catch {}
+  }, [cols]);
+  const colCount = 1 + (cols.stock ? 1 : 0) + (cols.cost ? 2 : 0) + (cols.sale ? 2 : 0) + (cols.margin ? 2 : 0);
+
   // AI search state
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
