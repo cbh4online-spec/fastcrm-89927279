@@ -31,7 +31,9 @@ const PAGE_SIZE = 25;
 
 export default function BackofficeWorkspacesV2() {
   const { data, isLoading, isError, error, refetch, isFetching } = useWorkspacesAdmin();
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+
   const [status, setStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<WorkspaceAdminRow | null>(null);
