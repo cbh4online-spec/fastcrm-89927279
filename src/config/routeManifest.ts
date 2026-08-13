@@ -283,6 +283,9 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("bundles",      "Pacotes",          "/dashboard/bundles",           Layers,      "vendas"),
   e("composite-products", "Produtos Compostos", "/dashboard/composite-products", Boxes, "vendas", { menuKey: "products" }),
   e("stock-valuation", "Stock Valorizado", "/dashboard/stock-valuation", Coins, "vendas", { menuKey: "products" }),
+  e("stock-counts", "Contagens de stock", "/dashboard/stock-counts", ClipboardList, "vendas", { menuKey: "products" }),
+  e("stock-count-detail", "Detalhe da contagem", "/dashboard/stock-counts/:id", ClipboardList, "vendas", { visibleInSidebar: false }),
+  e("stock-count-mode", "Modo contagem", "/dashboard/stock-counts/:id/count", ClipboardList, "vendas", { visibleInSidebar: false }),
   e("payments",     "Pagamentos",       "/dashboard/payments",          CreditCard,  "vendas"),
   e("packages",     "Pacotes",          "/dashboard/packages",          Package,     "vendas", { visibleInSidebar: false }),
   e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
@@ -628,7 +631,7 @@ export interface TopLevelGroupMeta {
 // Route keys de produtos, actualmente no NavGroup "vendas", que passam para "Produtos".
 const PRODUTOS_KEYS = [
   "products", "products-ocr", "products-ocr-drafts",
-  "bundles", "composite-products", "stock-valuation",
+  "bundles", "composite-products", "stock-valuation", "stock-counts",
 ];
 // Route keys de relatórios, actualmente em "vendas"/"ai-strategy", que passam para "Relatórios".
 const RELATORIOS_KEYS = [

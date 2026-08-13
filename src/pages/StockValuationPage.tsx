@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import {
   Package, TrendingUp, AlertTriangle, Coins, Download, RefreshCw, Search, Layers,
   ArrowLeft, SlidersHorizontal, Mic, MicOff, Sparkles, X, ChevronLeft, ChevronRight, Loader2, MoreHorizontal,
-  ArrowUp, ArrowDown, Copy, Columns3,
+  ArrowUp, ArrowDown, Copy, Columns3, ClipboardList,
 } from "lucide-react";
 import { useInventoryValuation, type InventoryValuationRow } from "@/hooks/useInventoryValuation";
 import { useStockEnrichment } from "@/hooks/useStockEnrichment";
@@ -372,6 +372,9 @@ export default function StockValuationPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" className="rounded-full" onClick={() => navigate("/dashboard/stock-counts")}>
+            <ClipboardList className="h-4 w-4 mr-2" /> Contagens
+          </Button>
           <Button onClick={exportCsv} disabled={!filtered.length} className="rounded-full">
             <Download className="h-4 w-4 mr-2" /> Exportar CSV
           </Button>

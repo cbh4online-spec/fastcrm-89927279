@@ -14,6 +14,9 @@ const BundlesPage = lazy(() => import("@/pages/BundlesPage"));
 const CompositeProductsPage = lazy(() => import("@/pages/CompositeProductsPage"));
 const CompositeProductDetailPage = lazy(() => import("@/pages/CompositeProductDetailPage"));
 const StockValuationPage = lazy(() => import("@/pages/StockValuationPage"));
+const StockCountsPage = lazy(() => import("@/pages/StockCountsPage"));
+const StockCountDetailPage = lazy(() => import("@/pages/StockCountDetailPage"));
+const StockCountModePage = lazy(() => import("@/pages/StockCountModePage"));
 
 export function SalesAssetsRoutes() {
   return (
@@ -33,6 +36,9 @@ export function SalesAssetsRoutes() {
       <Route path="/dashboard/composite-products" element={<CompositeProductsPage />} />
       <Route path="/dashboard/composite-products/:id" element={<CompositeProductDetailPage />} />
       <Route path="/dashboard/stock-valuation" element={<StockValuationPage />} />
+      <Route path="/dashboard/stock-counts" element={<StockCountsPage />} />
+      <Route path="/dashboard/stock-counts/:id" element={<StockCountDetailPage />} />
+      <Route path="/dashboard/stock-counts/:id/count" element={<StockCountModePage />} />
     </>
   );
 }

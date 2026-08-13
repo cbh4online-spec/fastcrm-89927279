@@ -84081,6 +84081,148 @@ export type Database = {
           },
         ]
       }
+      stock_count_items: {
+        Row: {
+          category: string | null
+          count_id: string
+          counted_at: string | null
+          counted_by: string | null
+          counted_qty: number | null
+          created_at: string
+          expected_qty: number
+          id: string
+          notes: string | null
+          product_id: string
+          product_name: string
+          sku: string | null
+          unit_cost: number
+          updated_at: string
+          variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          count_id: string
+          counted_at?: string | null
+          counted_by?: string | null
+          counted_qty?: number | null
+          created_at?: string
+          expected_qty?: number
+          id?: string
+          notes?: string | null
+          product_id: string
+          product_name: string
+          sku?: string | null
+          unit_cost?: number
+          updated_at?: string
+          variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          count_id?: string
+          counted_at?: string | null
+          counted_by?: string | null
+          counted_qty?: number | null
+          created_at?: string
+          expected_qty?: number
+          id?: string
+          notes?: string | null
+          product_id?: string
+          product_name?: string
+          sku?: string | null
+          unit_cost?: number
+          updated_at?: string
+          variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_items_count_id_fkey"
+            columns: ["count_id"]
+            isOneToOne: false
+            referencedRelation: "stock_counts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_counts: {
+        Row: {
+          blind_count: boolean
+          closed_at: string | null
+          closed_by: string | null
+          counted_items: number
+          created_at: string
+          created_by: string | null
+          id: string
+          location_id: string | null
+          name: string
+          notes: string | null
+          scope_category: string | null
+          scope_product_ids: string[] | null
+          scope_type: string
+          started_at: string | null
+          status: string
+          total_items: number
+          updated_at: string
+          variance_items: number
+          variance_value: number
+          workspace_id: string
+        }
+        Insert: {
+          blind_count?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_items?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id?: string | null
+          name: string
+          notes?: string | null
+          scope_category?: string | null
+          scope_product_ids?: string[] | null
+          scope_type?: string
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          updated_at?: string
+          variance_items?: number
+          variance_value?: number
+          workspace_id: string
+        }
+        Update: {
+          blind_count?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_items?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id?: string | null
+          name?: string
+          notes?: string | null
+          scope_category?: string | null
+          scope_product_ids?: string[] | null
+          scope_type?: string
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          updated_at?: string
+          variance_items?: number
+          variance_value?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_counts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "product_stock_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       storage_upload_intents: {
         Row: {
           bucket: string
@@ -105188,6 +105330,7 @@ export type Database = {
       cleanup_ghost_livestreams: { Args: never; Returns: number }
       cleanup_old_activity_logs: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: { p_max_age_ms?: number }; Returns: number }
+      close_stock_count: { Args: { _count_id: string }; Returns: Json }
       collections_advance_step: { Args: { p_case_id: string }; Returns: Json }
       collections_assign_sequence: {
         Args: { p_case_id: string; p_sequence_id: string }
@@ -105565,6 +105708,10 @@ export type Database = {
         Returns: string
       }
       generate_short_code: { Args: { length?: number }; Returns: string }
+      generate_stock_count_items: {
+        Args: { _count_id: string }
+        Returns: number
+      }
       generate_workflow_idempotency_key: {
         Args: {
           p_entity_id: string
@@ -106690,6 +106837,15 @@ export type Database = {
           _workspace_id: string
         }
         Returns: Json
+      }
+      submit_stock_count_item: {
+        Args: {
+          _count_id: string
+          _notes?: string
+          _product_id: string
+          _qty: number
+        }
+        Returns: string
       }
       supersede_memory: {
         Args: {
