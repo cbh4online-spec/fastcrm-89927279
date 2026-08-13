@@ -209,7 +209,35 @@ export const PAGE_ELEMENTS: PageElement[] = [
   ).map(([id, label]) => el("leads", "tab", id, label)),
   ...LEAD_FIELDS.map(([id, label]) => el("leads", "field", id, label)),
   ...LEAD_ACTIONS.map(([id, label]) => el("leads", "action", id, label)),
+
+  // ── Pipeline (Oportunidades) ───────────────────────────────
+  ...OPPORTUNITY_COLUMNS_REG.map(([id, label]) => el("opportunities", "column", id, label)),
+  ...OPPORTUNITY_ACTIONS.map(([id, label]) => el("opportunities", "action", id, label)),
+
+  // ── Renovações ─────────────────────────────────────────────
+  ...RENEWAL_TABS.map(([id, label]) => el("renewals", "tab", id, label)),
+
+  // ── Propostas ──────────────────────────────────────────────
+  ...PROPOSAL_ACTIONS.map(([id, label]) => el("proposals", "action", id, label)),
+
+  // ── Faturas ────────────────────────────────────────────────
+  ...INVOICE_TABS.map(([id, label]) => el("invoices", "tab", id, label)),
+  ...INVOICE_ACTIONS.map(([id, label]) => el("invoices", "action", id, label)),
+
+  // ── Pagamentos ─────────────────────────────────────────────
+  ...PAYMENT_ACTIONS.map(([id, label]) => el("payments", "action", id, label)),
+
+  // ── Notas de encomenda ─────────────────────────────────────
+  ...ORDER_NOTE_ACTIONS.map(([id, label]) => el("order-notes", "action", id, label)),
+
+  // ── Cobranças ──────────────────────────────────────────────
+  ...COLLECTION_ACTIONS.map(([id, label]) => el("collections", "action", id, label)),
+
+  // ── Produtos ───────────────────────────────────────────────
+  ...PRODUCT_TABS.map(([id, label]) => el("products", "tab", id, label)),
+  ...PRODUCT_COLUMNS_REG.map(([id, label]) => el("products", "column", id, label)),
 ];
+
 
 const byRoute = new Map<string, PageElement[]>();
 for (const element of PAGE_ELEMENTS) {
