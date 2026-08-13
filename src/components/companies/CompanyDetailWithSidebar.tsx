@@ -132,6 +132,7 @@ export function CompanyDetailWithSidebar() {
   const [prefillContactData, setPrefillContactData] = useState<SuggestedContact | null>(null);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [firecrawlEnriching, setFirecrawlEnriching] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
   const company = companies.find(c => c.id === id);
   const showEnrichButton = isModuleInstalled('google-local-services');
