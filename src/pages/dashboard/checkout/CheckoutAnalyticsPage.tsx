@@ -1,6 +1,7 @@
 import { useCheckoutSessions } from "@/hooks/useCheckoutSessions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, BarChart3, ShoppingCart, TrendingUp, DollarSign } from "lucide-react";
+import { CheckoutBackHeader } from "@/components/checkout/admin/CheckoutBackHeader";
 
 export default function CheckoutAnalyticsPage() {
   const { data: sessions, isLoading } = useCheckoutSessions();
@@ -17,6 +18,7 @@ export default function CheckoutAnalyticsPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <CheckoutBackHeader title="Analytics de Checkout" parent={{ label: "Funis de Checkout", to: "/dashboard/checkout" }} />
       <div>
         <h1 className="text-2xl font-bold">Analytics de Checkout</h1>
         <p className="text-muted-foreground">Métricas de conversão e receita</p>

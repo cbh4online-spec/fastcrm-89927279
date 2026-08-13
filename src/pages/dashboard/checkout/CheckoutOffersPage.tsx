@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Loader2, Trash2, Gift } from "lucide-react";
 import { OfferFormDialog, OFFER_TYPES } from "@/components/checkout/admin/OfferFormDialog";
+import { CheckoutBackHeader } from "@/components/checkout/admin/CheckoutBackHeader";
 
 export default function CheckoutOffersPage() {
   const { offers, deleteOffer } = useCheckoutOffers();
@@ -12,6 +13,7 @@ export default function CheckoutOffersPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <CheckoutBackHeader title="Ofertas" parent={{ label: "Funis de Checkout", to: "/dashboard/checkout" }} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Ofertas</h1>

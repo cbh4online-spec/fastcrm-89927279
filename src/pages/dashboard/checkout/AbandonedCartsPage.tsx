@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShoppingCart, Mail, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { CheckoutBackHeader } from "@/components/checkout/admin/CheckoutBackHeader";
 
 const sb = supabase as any;
 
@@ -38,6 +39,7 @@ export default function AbandonedCartsPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <CheckoutBackHeader title="Carrinhos Abandonados" parent={{ label: "Funis de Checkout", to: "/dashboard/checkout" }} />
       <div>
         <h1 className="text-2xl font-bold">Carrinhos Abandonados</h1>
         <p className="text-muted-foreground">Recupere vendas perdidas com emails automáticos</p>

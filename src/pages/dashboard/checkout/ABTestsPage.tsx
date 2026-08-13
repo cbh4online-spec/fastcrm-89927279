@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FlaskConical } from "lucide-react";
+import { CheckoutBackHeader } from "@/components/checkout/admin/CheckoutBackHeader";
 
 const sb = supabase as any;
 
@@ -26,6 +27,7 @@ export default function ABTestsPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <CheckoutBackHeader title="A/B Tests" parent={{ label: "Funis de Checkout", to: "/dashboard/checkout" }} />
       <div>
         <h1 className="text-2xl font-bold">A/B Tests</h1>
         <p className="text-muted-foreground">Otimize as suas taxas de conversão</p>

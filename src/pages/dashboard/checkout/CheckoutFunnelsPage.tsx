@@ -15,6 +15,7 @@ import { Copy, CopyPlus, ExternalLink, Loader2, Plus, Search, Trash2 } from "luc
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { IXCard } from "@/components/entity/ix/IXCard";
+import { CheckoutBackHeader } from "@/components/checkout/admin/CheckoutBackHeader";
 import { funnelSchema, normalizeSlug, readFunnelSettings, funnelTotal } from "@/schemas/checkout/funnelSchema";
 
 type Filter = "all" | "active" | "inactive";
@@ -58,6 +59,7 @@ export default function CheckoutFunnelsPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <CheckoutBackHeader title="Funis de Checkout" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Funis de Checkout</h1>

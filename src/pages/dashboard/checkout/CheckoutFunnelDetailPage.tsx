@@ -18,6 +18,7 @@ import { useCheckoutFunnel, useCheckoutFunnels } from "@/hooks/useCheckoutFunnel
 import { FunnelProductsEditor } from "@/components/checkout/admin/FunnelProductsEditor";
 import { FunnelStepsEditor } from "@/components/checkout/admin/FunnelStepsEditor";
 import { FunnelBumpsEditor } from "@/components/checkout/admin/FunnelBumpsEditor";
+import { CheckoutBackHeader } from "@/components/checkout/admin/CheckoutBackHeader";
 import { funnelSchema, normalizeSlug, readFunnelSettings } from "@/schemas/checkout/funnelSchema";
 
 export default function CheckoutFunnelDetailPage() {
@@ -98,6 +99,10 @@ export default function CheckoutFunnelDetailPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <CheckoutBackHeader
+        title={funnel.name}
+        parent={{ label: "Funis de Checkout", to: "/dashboard/checkout" }}
+      />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <Button variant="ghost" size="sm" className="-ml-2 mb-1" onClick={() => navigate("/dashboard/checkout")}>
