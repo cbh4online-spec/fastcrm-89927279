@@ -1,5 +1,15 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AdminNotificationsBell } from "@/components/super-admin/AdminNotificationsBell";
+
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Building2, Users, CreditCard, Receipt, Brain,
