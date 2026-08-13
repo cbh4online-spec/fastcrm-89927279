@@ -77,6 +77,7 @@ import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSum
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
 import { EntityTicketsSection } from "@/components/helpdesk/EntityTicketsSection";
 import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
+import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useEntityNavIds } from "@/hooks/useEntityNavIds";
 import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
 
@@ -116,6 +117,7 @@ export function ENIContactDetailWithSidebar() {
   
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const { isElementVisible: isActionVisible } = usePageElementVisibility('contacts');
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   
   // Student Journey profile check
@@ -565,10 +567,12 @@ export function ENIContactDetailWithSidebar() {
 
           <div className="flex shrink-0 items-center gap-2">
             <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
-            <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
-              <FileText className="w-4 h-4" />
-              {t('common:newInvoice')}
-            </Button>
+            {isActionVisible('action', 'new-invoice') && (
+              <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
+                <FileText className="w-4 h-4" />
+                {t('common:newInvoice')}
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" aria-label="Mais ações">
@@ -582,6 +586,7 @@ export function ENIContactDetailWithSidebar() {
                     {t('common:sendEmail')}
                   </DropdownMenuItem>
                 )}
+                {isActionVisible('action', 'enrich-ai') && (
                 <DropdownMenuItem
                   disabled={analyzeContact.isPending}
                   onSelect={(e) => { e.preventDefault(); handleGenerateInsights(); }}
@@ -590,6 +595,7 @@ export function ENIContactDetailWithSidebar() {
                   <Sparkles className="w-4 h-4" />
                   {analyzeContact.isPending ? t('common:analyzing') : t('common:analyzeWithAI')}
                 </DropdownMenuItem>
+                )}
                 {contact.email && (
                   <InviteClientDialog
                     trigger={
@@ -611,7 +617,7 @@ export function ENIContactDetailWithSidebar() {
                     }}
                   />
                 )}
-                {(role === 'owner' || role === 'admin') && (
+                {(role === 'owner' || role === 'admin') && isActionVisible('action', 'delete') && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2 text-destructive focus:text-destructive">

@@ -12,6 +12,7 @@ import {
   useListColumns,
   type ListColumnDef,
 } from "@/components/documents/listing/ListColumnsPicker";
+import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useCompanies, type Company } from "@/hooks/useCompanies";
 import { useCompaniesFinancials, type CompanyFinancials } from "@/hooks/useCompaniesFinancials";
 
@@ -183,6 +184,11 @@ export function CompaniesListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const { isElementVisible } = usePageElementVisibility("companies");
+  const availableColumns = useMemo(
+    () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
+    [isElementVisible],
+  );
   const { columns, setColumns } = useListColumns("companies-list-columns-v1", COLUMNS);
 
   const all = (companies as Company[]) ?? [];
@@ -215,8 +221,8 @@ export function CompaniesListIX() {
   const totalCount = filtered.length;
   const pageItems = filtered.slice(page * pageSize, page * pageSize + pageSize);
   const orderedColumns = useMemo(
-    () => COLUMNS.filter((c) => columns.includes(c.key)).map((c) => c.key),
-    [columns],
+    () => availableColumns.filter((c) => columns.includes(c.key)).map((c) => c.key),
+    [availableColumns, columns],
   );
 
   return (
@@ -252,7 +258,7 @@ export function CompaniesListIX() {
           onPageSizeChange={(v) => { setPageSize(v); setPage(0); }}
           totalCount={totalCount}
           countLabel="Empresas"
-          extra={<ListColumnsPicker definitions={COLUMNS} value={columns} onChange={setColumns} />}
+          extra={<ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} />}
         />
       }
     >

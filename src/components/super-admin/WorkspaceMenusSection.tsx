@@ -16,7 +16,13 @@ import {
   resolveTopGroupVisibility,
   type MenuItemType,
   type MenuVisibility,
+  resolveElementVisibility,
 } from "@/config/menuOverrides";
+import {
+  buildElementKey,
+  getElementsGrouped,
+  hasElements,
+} from "@/config/pageElements";
 import { useWorkspaceMenuOverridesAdmin } from "@/hooks/useWorkspaceMenuOverrides";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,6 +109,7 @@ function VisibilitySelect({
 export function WorkspaceMenusSection() {
   const [workspaceId, setWorkspaceId] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [openElements, setOpenElements] = useState<Record<string, boolean>>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const { data: workspaces = [], isLoading: loadingWs } = useQuery({
@@ -328,25 +335,80 @@ export function WorkspaceMenusSection() {
                                 const state = resolveRouteVisibility(map, r);
                                 const own = getOverride(map, "route", r.key);
                                 const ItemIcon = r.icon;
+                                const elementGroups = hasElements(r.key)
+                                  ? getElementsGrouped(r.key)
+                                  : [];
+                                const elementsOpen = openElements[r.key] ?? false;
                                 return (
-                                  <div
-                                    key={r.key}
-                                    className="flex items-center justify-between gap-3 py-2 pl-3"
-                                  >
-                                    <div className="flex min-w-0 items-center gap-2">
-                                      <ItemIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                      <span className="truncate text-sm">{r.label}</span>
-                                      <span className="hidden truncate font-mono text-[11px] text-muted-foreground md:inline">
-                                        {r.href}
-                                      </span>
+                                  <div key={r.key} className="py-2 pl-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="flex min-w-0 items-center gap-2">
+                                        <ItemIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                        <span className="truncate text-sm">{r.label}</span>
+                                        <span className="hidden truncate font-mono text-[11px] text-muted-foreground md:inline">
+                                          {r.href}
+                                        </span>
+                                        {elementGroups.length > 0 && (
+                                          <button
+                                            type="button"
+                                            className="shrink-0 rounded-md px-1.5 py-0.5 text-[11px] text-primary hover:bg-muted"
+                                            onClick={() =>
+                                              setOpenElements((p) => ({ ...p, [r.key]: !elementsOpen }))
+                                            }
+                                          >
+                                            {elementsOpen ? "Ocultar elementos" : "Elementos internos"}
+                                          </button>
+                                        )}
+                                      </div>
+                                      <VisibilitySelect
+                                        value={state}
+                                        inherited={!own}
+                                        onChange={(v) => apply("route", r.key, v)}
+                                        onInherit={() => inherit("route", r.key)}
+                                        disabled={setVisibility.isPending || clearOverride.isPending}
+                                      />
                                     </div>
-                                    <VisibilitySelect
-                                      value={state}
-                                      inherited={!own}
-                                      onChange={(v) => apply("route", r.key, v)}
-                                      onInherit={() => inherit("route", r.key)}
-                                      disabled={setVisibility.isPending || clearOverride.isPending}
-                                    />
+
+                                    {elementsOpen && elementGroups.length > 0 && (
+                                      <div className="mt-2 space-y-3 rounded-lg border bg-muted/20 p-3">
+                                        {elementGroups.map((group) => (
+                                          <div key={group.kind} className="space-y-1">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                              {group.label}
+                                            </p>
+                                            <div className="grid gap-1 md:grid-cols-2">
+                                              {group.items.map((elItem) => {
+                                                const key = buildElementKey(r.key, elItem.kind, elItem.id);
+                                                const elOwn = getOverride(map, "element", key);
+                                                const elState = resolveElementVisibility(
+                                                  map,
+                                                  r.key,
+                                                  elItem.kind,
+                                                  elItem.id,
+                                                );
+                                                return (
+                                                  <div
+                                                    key={key}
+                                                    className="flex items-center justify-between gap-2 rounded-md bg-background px-2 py-1"
+                                                  >
+                                                    <span className="truncate text-xs">{elItem.label}</span>
+                                                    <VisibilitySelect
+                                                      value={elState}
+                                                      inherited={!elOwn}
+                                                      onChange={(v) => apply("element", key, v)}
+                                                      onInherit={() => inherit("element", key)}
+                                                      disabled={
+                                                        setVisibility.isPending || clearOverride.isPending
+                                                      }
+                                                    />
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}

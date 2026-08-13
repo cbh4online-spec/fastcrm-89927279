@@ -11,6 +11,7 @@ import {
   useListColumns,
   type ListColumnDef,
 } from "@/components/documents/listing/ListColumnsPicker";
+import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
@@ -106,6 +107,11 @@ export function ContactsListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const { isElementVisible } = usePageElementVisibility("contacts");
+  const availableColumns = useMemo(
+    () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
+    [isElementVisible],
+  );
   const { columns, setColumns } = useListColumns("contacts-list-columns-v1", COLUMNS);
 
   const all = (contacts as Contact[]) ?? [];
@@ -134,8 +140,8 @@ export function ContactsListIX() {
   const totalCount = filtered.length;
   const pageItems = filtered.slice(page * pageSize, page * pageSize + pageSize);
   const orderedColumns = useMemo(
-    () => COLUMNS.filter((c) => columns.includes(c.key)).map((c) => c.key),
-    [columns],
+    () => availableColumns.filter((c) => columns.includes(c.key)).map((c) => c.key),
+    [availableColumns, columns],
   );
 
   return (
@@ -169,7 +175,7 @@ export function ContactsListIX() {
           onPageSizeChange={(v) => { setPageSize(v); setPage(0); }}
           totalCount={totalCount}
           countLabel="Contactos"
-          extra={<ListColumnsPicker definitions={COLUMNS} value={columns} onChange={setColumns} />}
+          extra={<ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} />}
         />
       }
     >

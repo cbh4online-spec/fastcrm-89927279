@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useCompanies, Company } from "@/hooks/useCompanies";
 import { useEntityNavIds } from "@/hooks/useEntityNavIds";
 import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import { usePageElementVisibility } from '@/hooks/usePageElementVisibility';
 import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { checkDuplicate } from "@/utils/duplicateCheck";
@@ -141,6 +142,7 @@ export function CompanyDetailWithSidebar() {
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [firecrawlEnriching, setFirecrawlEnriching] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const { isElementVisible: isActionVisible } = usePageElementVisibility('companies');
 
   const company = companies.find(c => c.id === id);
   const showEnrichButton = isModuleInstalled('google-local-services');
@@ -562,10 +564,12 @@ export function CompanyDetailWithSidebar() {
 
           <div className="flex shrink-0 items-center gap-2">
             <EntityRecordPager navigation={companyNavigation} label="Empresa" className="shrink-0" />
-            <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
-              <FileText className="w-4 h-4" />
-              Nova Fatura
-            </Button>
+            {isActionVisible('action', 'new-invoice') && (
+              <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
+                <FileText className="w-4 h-4" />
+                Nova Fatura
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" aria-label="Mais ações">
@@ -602,7 +606,7 @@ export function CompanyDetailWithSidebar() {
                   </DropdownMenuItem>
                 )}
                 {(company.website || company.email || company.phone) && <DropdownMenuSeparator />}
-                {showEnrichButton && (
+                {showEnrichButton && isActionVisible('action', 'enrich-ai') && (
                   <DropdownMenuItem onClick={() => setEnrichDialogOpen(true)}>
                     <Wand2 className="mr-2 h-4 w-4" />
                     Enriquecer dados
@@ -637,6 +641,7 @@ export function CompanyDetailWithSidebar() {
                     {firecrawlEnriching ? "A analisar website..." : "Enriquecer com website"}
                   </DropdownMenuItem>
                 )}
+                {isActionVisible('action', 'enrich-ai') && (
                 <DropdownMenuItem
                   disabled={generateSuggestions.isPending}
                   onSelect={(event) => {
@@ -647,6 +652,9 @@ export function CompanyDetailWithSidebar() {
                   <Sparkles className="mr-2 h-4 w-4" />
                   {generateSuggestions.isPending ? "A analisar..." : "Analisar IA"}
                 </DropdownMenuItem>
+                )}
+                {isActionVisible('action', 'archive') && (
+                <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
@@ -658,6 +666,8 @@ export function CompanyDetailWithSidebar() {
                   <Trash2 className="mr-2 h-4 w-4" />
                   Arquivar empresa
                 </DropdownMenuItem>
+                </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 
