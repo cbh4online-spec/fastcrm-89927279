@@ -289,8 +289,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("reports",      "Relatórios",       "/dashboard/reports",           BarChart3,   "vendas", { menuKey: "reports" }),
   e("reports-financial", "Financeiro",  "/dashboard/reports/financial", Euro,        "vendas", { menuKey: "reports" }),
   e("strategy",     "Estratégia",       "/dashboard/strategy",          Brain,       "vendas"),
-  e("checkout-admin","Admin Checkout",  "/dashboard/checkout-admin",    ShoppingCart, "vendas"),
-  e("checkout",     "Checkout",         "/dashboard/checkout",          ShoppingCart, "vendas"),
+  e("checkout-admin","Funis de Checkout","/dashboard/checkout",         ShoppingCart, "vendas"),
+
 
   // ══════════════════════════════════════════════════════════════
   // LOJA ONLINE (B2C)
