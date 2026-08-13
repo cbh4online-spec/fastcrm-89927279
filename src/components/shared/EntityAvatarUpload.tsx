@@ -14,6 +14,8 @@ interface EntityAvatarUploadProps {
   /** Folder prefix inside the `avatars` bucket — e.g. "contacts", "companies", "leads" */
   folder: string;
   size?: "md" | "lg" | "xl";
+  /** Esconde os botões e a nota de ajuda — o upload faz-se clicando no avatar */
+  compact?: boolean;
   className?: string;
 }
 
