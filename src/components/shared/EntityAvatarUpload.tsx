@@ -32,6 +32,7 @@ export function EntityAvatarUpload({
   workspaceId,
   folder,
   size = "lg",
+  compact = false,
   className,
 }: EntityAvatarUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
