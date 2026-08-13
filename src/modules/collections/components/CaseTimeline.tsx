@@ -77,6 +77,17 @@ export function CaseTimeline({
                   {a.is_automated && (
                     <span className="text-xs text-muted-foreground">· automático</span>
                   )}
+                  {deliveryLabel && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={`text-xs font-medium ${deliveryTone}`}>· {deliveryLabel}</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {delivery?.error ?? delivery?.reason ?? "Comunicação processada"}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="ml-auto text-xs text-muted-foreground">
