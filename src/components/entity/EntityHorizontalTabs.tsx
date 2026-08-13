@@ -15,7 +15,7 @@ const ALL_TABS: TabItem[] = [
   { id: 'insights', label: 'Insights IA', showFor: ['lead', 'contact', 'company'] },
   { id: 'timeline', label: 'Timeline', showFor: ['lead', 'contact', 'company'] },
   { id: 'notes', label: 'Notas', showFor: ['lead', 'contact', 'company'] },
-  { id: 'communication', label: 'Comunicação', showFor: ['lead', 'contact', 'company'] },
+  { id: 'communication', label: 'Mensagens', showFor: ['lead', 'contact', 'company'] },
   { id: 'activity', label: 'Atividade', showFor: ['lead', 'contact', 'company'] },
   { id: 'team', label: 'Equipa', showFor: ['lead', 'contact', 'company'] },
   { id: 'files', label: 'Ficheiros', showFor: ['lead', 'contact', 'company'] },
@@ -34,7 +34,7 @@ type GroupId = 'overview' | 'activity' | 'communication' | 'business' | 'intelli
 const GROUPS: { id: GroupId; label: string; sections: MenuSection[] }[] = [
   { id: 'overview', label: 'Visão Geral', sections: ['overview', 'contacts', 'relationships'] },
   { id: 'activity', label: 'Atividade', sections: ['timeline', 'activity', 'notes', 'files', 'team'] },
-  { id: 'communication', label: 'Comunicação', sections: ['communication', 'support', 'student-journey'] },
+  { id: 'communication', label: 'Mensagens', sections: ['communication', 'support', 'student-journey'] },
   { id: 'business', label: 'Negócio', sections: ['business', 'financial', 'financing'] },
   { id: 'intelligence', label: 'IA & Dados', sections: ['insights', 'data'] },
 ];
