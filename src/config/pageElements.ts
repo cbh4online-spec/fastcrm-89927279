@@ -186,6 +186,96 @@ const LEAD_ACTIONS: Array<[string, string]> = [
   ["export", "Exportar"],
 ];
 
+const OPPORTUNITY_COLUMNS_REG: Array<[string, string]> = [
+  ["value", "Valor"],
+  ["stage", "Etapa"],
+  ["lead", "Contacto"],
+  ["status", "Estado"],
+  ["expected_close_date", "Previsão de fecho"],
+  ["created_at", "Data de criação"],
+];
+
+const OPPORTUNITY_ACTIONS: Array<[string, string]> = [
+  ["new-opportunity", "Nova oportunidade"],
+  ["export", "Exportar"],
+];
+
+const RENEWAL_TABS: Array<[string, string]> = [
+  ["list", "Contratos"],
+  ["kanban", "Kanban"],
+  ["alerts", "Alertas"],
+  ["calendar", "Calendário"],
+];
+
+const PROPOSAL_ACTIONS: Array<[string, string]> = [
+  ["new-proposal", "Nova proposta"],
+];
+
+const INVOICE_TABS: Array<[string, string]> = [
+  ["invoices", "Faturas"],
+  ["recurring", "Recorrentes"],
+  ["fiscal", "Fiscal"],
+  ["saft", "SAF-T"],
+  ["settings", "Configurações"],
+];
+
+const INVOICE_ACTIONS: Array<[string, string]> = [
+  ["new-invoice", "Nova fatura"],
+  ["create-others", "Criar outros"],
+];
+
+const PAYMENT_ACTIONS: Array<[string, string]> = [
+  ["register-payment", "Registar pagamento"],
+  ["export", "Exportar CSV"],
+];
+
+const ORDER_NOTE_ACTIONS: Array<[string, string]> = [
+  ["new-order-note", "Nova encomenda"],
+  ["quick-order-note", "Encomenda rápida"],
+];
+
+const COLLECTION_ACTIONS: Array<[string, string]> = [
+  ["run-dunning", "Executar dunning"],
+  ["import-statement", "Importar extrato"],
+  ["sequences", "Sequências"],
+];
+
+const PRODUCT_TABS: Array<[string, string]> = [
+  ["products", "Produtos"],
+  ["categories", "Categorias"],
+  ["pricing", "Tabelas de Preço"],
+  ["bundles", "Bundles"],
+  ["qa", "Perguntas"],
+  ["pricing-rules", "Regras de Preço"],
+  ["stock-alerts", "Alertas Stock"],
+  ["health", "Saúde Preços"],
+  ["reports", "Relatórios"],
+  ["settings", "Configurações"],
+];
+
+const PRODUCT_COLUMNS_REG: Array<[string, string]> = [
+  ["sku", "SKU"],
+  ["product_type", "Tipo"],
+  ["category", "Categoria"],
+  ["base_price", "Preço"],
+  ["direct_cost", "Custo Direto"],
+  ["operational_cost", "Custo Operacional"],
+  ["margin", "Margem"],
+  ["margin_status", "Saúde Margem"],
+  ["recommended_price", "PVP Recomendado"],
+  ["billing_type", "Cobrança"],
+  ["billing_frequency", "Frequência"],
+  ["status", "Estado"],
+  ["store_published", "Loja Online"],
+  ["b2b_published", "Portal B2B"],
+  ["total_units", "Unidades"],
+  ["tax_rate_estimate_pct", "Taxa IVA"],
+  ["commission_default", "Comissão"],
+  ["created_at", "Criado em"],
+  ["updated_at", "Atualizado"],
+];
+
+
 export const PAGE_ELEMENTS: PageElement[] = [
   // ── Empresas ───────────────────────────────────────────────
   ...ENTITY_TABS.filter(([id]) => id !== "student-journey").map(([id, label]) =>
