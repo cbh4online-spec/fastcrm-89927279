@@ -51,7 +51,19 @@ export function CaseTimeline({
       <ol className="relative space-y-4 border-l border-border pl-6">
         {actions.map((a) => {
           const Icon = ICONS[a.action_type] ?? StickyNote;
+          const delivery = (a.metadata as { delivery?: { status?: string; error?: string; reason?: string } } | null)
+            ?.delivery;
+          const deliveryLabel =
+            delivery?.status === "sent" ? "Entregue"
+            : delivery?.status === "failed" ? "Falhou"
+            : delivery?.status === "manual" ? "Manual"
+            : null;
+          const deliveryTone =
+            delivery?.status === "sent" ? "text-emerald-600"
+            : delivery?.status === "failed" ? "text-destructive"
+            : "text-muted-foreground";
           return (
+
             <li key={a.id} className="relative">
               <span className="absolute -left-9 flex h-6 w-6 items-center justify-center rounded-full bg-accent">
                 <Icon className="h-3.5 w-3.5 text-accent-foreground" />
@@ -65,6 +77,17 @@ export function CaseTimeline({
                   {a.is_automated && (
                     <span className="text-xs text-muted-foreground">· automático</span>
                   )}
+                  {deliveryLabel && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={`text-xs font-medium ${deliveryTone}`}>· {deliveryLabel}</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {delivery?.error ?? delivery?.reason ?? "Comunicação processada"}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="ml-auto text-xs text-muted-foreground">
