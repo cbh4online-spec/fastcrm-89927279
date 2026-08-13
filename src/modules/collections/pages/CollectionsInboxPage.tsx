@@ -14,6 +14,8 @@ import { useCollectionCases } from "../hooks/useCollectionCases";
 import { useRunAutoExecutor } from "../hooks/useDunningSequences";
 import { CollectionsFilters } from "../components/CollectionsFilters";
 import { CollectionsTable } from "../components/CollectionsTable";
+import { CollectionsKPIStrip } from "../components/CollectionsKPIStrip";
+
 import type { CollectionCaseListFilters } from "../types/collections";
 import { MoreHorizontal, Play, Upload, Workflow } from "lucide-react";
 
