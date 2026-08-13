@@ -1,0 +1,1 @@
+UPDATE public.products SET store_slug = 'portal-de-denuncias' WHERE sku = 'PORTALDEDENUNCIAS' AND workspace_id = 'd9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f';
