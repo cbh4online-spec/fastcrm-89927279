@@ -42,13 +42,36 @@ Deno.serve(async (req) => {
         });
         if (advErr) {
           results.push({ case_id: c.id, ok: false, error: advErr.message });
-        } else {
-          results.push({ case_id: c.id, ...(r as any) });
+          continue;
         }
+
+        const advanced = r as any;
+        let delivery: any = null;
+
+        // 3. Despachar efectivamente a comunicação da acção criada
+        if (advanced?.ok && advanced?.action_id) {
+          try {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/collections-dispatch-action`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${SERVICE_ROLE}`,
+              },
+              body: JSON.stringify({ actionId: advanced.action_id }),
+            });
+            const out = await res.json().catch(() => null);
+            delivery = out?.delivery ?? { status: "failed", error: `HTTP ${res.status}` };
+          } catch (e: any) {
+            delivery = { status: "failed", error: e?.message ?? "dispatch_error" };
+          }
+        }
+
+        results.push({ case_id: c.id, ...advanced, delivery });
       } catch (e: any) {
         results.push({ case_id: c.id, ok: false, error: e?.message ?? "unknown" });
       }
     }
+
 
     const summary = {
       ok: true,
