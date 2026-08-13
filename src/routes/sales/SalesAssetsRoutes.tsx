@@ -36,6 +36,9 @@ export function SalesAssetsRoutes() {
       <Route path="/dashboard/composite-products" element={<CompositeProductsPage />} />
       <Route path="/dashboard/composite-products/:id" element={<CompositeProductDetailPage />} />
       <Route path="/dashboard/stock-valuation" element={<StockValuationPage />} />
+      <Route path="/dashboard/stock-counts" element={<StockCountsPage />} />
+      <Route path="/dashboard/stock-counts/:id" element={<StockCountDetailPage />} />
+      <Route path="/dashboard/stock-counts/:id/count" element={<StockCountModePage />} />
     </>
   );
 }
