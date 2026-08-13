@@ -18,6 +18,8 @@ import { useCheckoutFunnel, useCheckoutFunnels } from "@/hooks/useCheckoutFunnel
 import { FunnelProductsEditor } from "@/components/checkout/admin/FunnelProductsEditor";
 import { FunnelStepsEditor } from "@/components/checkout/admin/FunnelStepsEditor";
 import { FunnelBumpsEditor } from "@/components/checkout/admin/FunnelBumpsEditor";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { CheckoutBackHeader } from "@/components/checkout/admin/CheckoutBackHeader";
 import { funnelSchema, normalizeSlug, readFunnelSettings } from "@/schemas/checkout/funnelSchema";
 
@@ -29,6 +31,22 @@ export default function CheckoutFunnelDetailPage() {
   const funnel = funnelQuery.data;
 
   const settings = useMemo(() => readFunnelSettings(funnel?.settings), [funnel?.settings]);
+
+  // Configuração Stripe do workspace (usada para avisar que se está a usar a chave global)
+  const stripeConfigQuery = useQuery({
+    queryKey: ["workspace-stripe-config", funnel?.workspace_id],
+    enabled: !!funnel?.workspace_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("workspace_stripe_config")
+        .select("id")
+        .eq("workspace_id", funnel!.workspace_id)
+        .eq("is_active", true)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const usesGlobalStripeKey = stripeConfigQuery.isSuccess && !stripeConfigQuery.data;
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -128,6 +146,13 @@ export default function CheckoutFunnelDetailPage() {
           </Button>
         </div>
       </div>
+
+      {usesGlobalStripeKey && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 px-5 py-4 text-sm text-foreground">
+          Este workspace não tem uma conta Stripe própria configurada — os pagamentos deste funil usam a chave
+          Stripe global do projeto.
+        </div>
+      )}
 
       {!hasProducts && (
         <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-5 py-4 text-sm text-foreground">
