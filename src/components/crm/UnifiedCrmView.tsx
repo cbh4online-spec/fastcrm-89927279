@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useContacts } from "@/hooks/useContacts";
 import { useOpportunities } from "@/hooks/useOpportunities";
@@ -35,6 +36,7 @@ export function UnifiedCrmView() {
   const roleConfig = ROLE_DEFAULT_VIEWS[userRole];
 
   // State
+  const { isElementVisible } = usePageElementVisibility("opportunities");
   const [entityType, setEntityType] = useState<CrmEntityType>(roleConfig.entity);
   const [viewMode, setViewMode] = useState<CrmViewMode>(roleConfig.mode);
   const [searchQuery, setSearchQuery] = useState("");
