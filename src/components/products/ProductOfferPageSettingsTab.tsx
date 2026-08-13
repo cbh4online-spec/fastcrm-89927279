@@ -472,6 +472,15 @@ export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }
         </div>
       </Card>
 
+      {/* Conteúdo sectorial */}
+      <OfferSectorContentEditor
+        preset={config.preset}
+        value={config.sectorConfig || {}}
+        onChange={setSectorConfig}
+      />
+
+
+
       {/* FAQ */}
       <Card className="p-4 space-y-3">
         <div className="flex items-center justify-between">
