@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -27,13 +29,18 @@ import {
   DEFAULT_SECTIONS_BY_PRESET,
   DEFAULT_CONVERSION_BY_PRESET,
   AVAILABLE_CONVERSION_GOALS,
+  DEFAULT_SECTION_ORDER,
+  getSectionOrder,
   type OfferPageConfig,
   type OfferPreset,
   type OfferSectionKey,
+  type OfferSectorConfig,
   type ConversionGoal,
   type OfferFaqItem,
 } from "@/components/store/offer-page/offerPageTypes";
+import { OfferSectorContentEditor } from "./OfferSectorContentEditor";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
+
 
 interface Props {
   productId: string;
@@ -54,25 +61,50 @@ const LUCIDE_ICONS = [
   { value: "Users", label: "Apoio" },
 ];
 
-const SECTION_ORDER: OfferSectionKey[] = [
-  "description",
-  "benefits",
-  "specifications",
-  "ingredients",
-  "howToUse",
-  "program",
-  "instructor",
-  "sessions",
-  "equipment",
-  "installation",
-  "delivery",
-  "warranty",
-  "video",
-  "documents",
-  "reviews",
-  "faq",
-  "relatedProducts",
-];
+/** Validação do conteúdo antes de gravar (limites e coerência). */
+const sectorSchema = z.object({
+  ingredients: z
+    .array(z.object({ name: z.string().max(80), role: z.string().max(120).optional() }))
+    .max(20)
+    .optional(),
+  howToUse: z.array(z.object({ title: z.string().max(120), description: z.string().max(600).optional() })).max(20).optional(),
+  program: z.array(z.object({ title: z.string().max(120), description: z.string().max(600).optional() })).max(20).optional(),
+  equipment: z.array(z.object({ title: z.string().max(120), description: z.string().max(600).optional() })).max(20).optional(),
+  installation: z.array(z.object({ title: z.string().max(120), description: z.string().max(600).optional() })).max(20).optional(),
+  installationNote: z.string().max(200).optional(),
+  instructor: z
+    .object({
+      name: z.string().max(100).optional(),
+      bio: z.string().max(600).optional(),
+      photoUrl: z.string().max(500).optional(),
+    })
+    .optional(),
+  sessions: z
+    .array(
+      z.object({
+        date: z.string().max(40).optional(),
+        time: z.string().max(40).optional(),
+        location: z.string().max(120).optional(),
+        seats: z.string().max(40).optional(),
+      }),
+    )
+    .max(20)
+    .optional(),
+}).passthrough();
+
+const configSchema = z.object({
+  headline: z.string().max(140).optional(),
+  subheadline: z.string().max(180).optional(),
+  shortDescription: z.string().max(400).optional(),
+  trustBadges: z.array(z.object({ title: z.string().min(1, "Selo sem título").max(60) })).max(4),
+  faqItems: z.array(
+    z.object({
+      question: z.string().min(1, "Pergunta vazia").max(200),
+      answer: z.string().min(1, "Resposta vazia").max(1000),
+    }),
+  ),
+  sectorConfig: sectorSchema.optional(),
+});
 
 export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }: Props) {
   const qc = useQueryClient();
@@ -82,7 +114,7 @@ export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }
     [productId],
   );
   const [config, setConfig] = useState<OfferPageConfig>(initial);
-  const [sectionOrder, setSectionOrder] = useState<OfferSectionKey[]>(SECTION_ORDER);
+  const sectionOrder = getSectionOrder(config);
 
   useEffect(() => {
     setConfig(initial);
@@ -90,6 +122,10 @@ export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }
 
   const save = useMutation({
     mutationFn: async (next: OfferPageConfig) => {
+      const parsed = configSchema.safeParse(next);
+      if (!parsed.success) {
+        throw new Error(parsed.error.issues[0]?.message || "Conteúdo inválido");
+      }
       const nextMetadata = { ...(metadata || {}), offer_page: next };
       const { error } = await supabase
         .from("products")
@@ -114,6 +150,7 @@ export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }
       preset,
       conversionGoal: DEFAULT_CONVERSION_BY_PRESET[preset],
       sections: { ...DEFAULT_SECTIONS_BY_PRESET[preset] },
+      sectionOrder: [...DEFAULT_SECTION_ORDER],
     }));
   };
 
@@ -122,14 +159,18 @@ export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }
   };
 
   const moveSection = (idx: number, dir: -1 | 1) => {
-    setSectionOrder((prev) => {
-      const next = [...prev];
+    setConfig((c) => {
+      const next = getSectionOrder(c);
       const target = idx + dir;
-      if (target < 0 || target >= next.length) return prev;
+      if (target < 0 || target >= next.length) return c;
       [next[idx], next[target]] = [next[target], next[idx]];
-      return next;
+      return { ...c, sectionOrder: next };
     });
   };
+
+  const setSectorConfig = (sectorConfig: OfferSectorConfig) =>
+    setConfig((c) => ({ ...c, sectorConfig }));
+
 
   const addBadge = () => {
     if (config.trustBadges.length >= 4) return;
@@ -430,6 +471,15 @@ export function ProductOfferPageSettingsTab({ productId, workspaceId, metadata }
           ))}
         </div>
       </Card>
+
+      {/* Conteúdo sectorial */}
+      <OfferSectorContentEditor
+        preset={config.preset}
+        value={config.sectorConfig || {}}
+        onChange={setSectorConfig}
+      />
+
+
 
       {/* FAQ */}
       <Card className="p-4 space-y-3">

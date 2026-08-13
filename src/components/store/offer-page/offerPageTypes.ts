@@ -51,6 +51,47 @@ export type OfferSectionKey =
   | "documents"
   | "video";
 
+/* ───────── Sector content (metadata.offer_page.sectorConfig) ───────── */
+
+export interface OfferIngredient {
+  name: string;
+  role?: string;
+}
+
+export interface OfferStepItem {
+  title: string;
+  description?: string;
+}
+
+export interface OfferInstructor {
+  name?: string;
+  bio?: string;
+  photoUrl?: string;
+}
+
+export interface OfferSession {
+  date?: string;
+  time?: string;
+  location?: string;
+  seats?: string;
+}
+
+export interface OfferSectorConfig {
+  ingredients?: OfferIngredient[];
+  howToUse?: OfferStepItem[];
+  program?: OfferStepItem[];
+  instructor?: OfferInstructor;
+  sessions?: OfferSession[];
+  equipment?: OfferStepItem[];
+  installation?: OfferStepItem[];
+  installationNote?: string;
+  /** Free-form choice lists consumed by the decision panel. */
+  modalities?: string[];
+  spaces?: string[];
+  needs?: string[];
+  [key: string]: unknown;
+}
+
 export interface OfferPageConfig {
   version: 1;
   enabled: boolean;
@@ -66,9 +107,12 @@ export interface OfferPageConfig {
   deliveryText?: string;
   trustBadges: TrustBadge[];
   sections: Partial<Record<OfferSectionKey, boolean>>;
-  sectorConfig?: Record<string, unknown>;
+  /** Render order of the content sections; missing keys fall back to the default order. */
+  sectionOrder?: OfferSectionKey[];
+  sectorConfig?: OfferSectorConfig;
   faqItems: OfferFaqItem[];
 }
+
 
 export const DEFAULT_SECTIONS_BY_PRESET: Record<OfferPreset, Partial<Record<OfferSectionKey, boolean>>> = {
   cosmetics: {
@@ -155,7 +199,36 @@ export const SECTION_LABELS: Record<OfferSectionKey, string> = {
   video: "Vídeo",
 };
 
+/** Ordem por omissão das secções de conteúdo. */
+export const DEFAULT_SECTION_ORDER: OfferSectionKey[] = [
+  "description",
+  "benefits",
+  "specifications",
+  "ingredients",
+  "howToUse",
+  "program",
+  "instructor",
+  "sessions",
+  "equipment",
+  "installation",
+  "delivery",
+  "warranty",
+  "video",
+  "documents",
+  "reviews",
+  "faq",
+  "relatedProducts",
+];
+
+/** Ordem efetiva de render, completando com as secções em falta. */
+export function getSectionOrder(config: OfferPageConfig): OfferSectionKey[] {
+  const configured = (config.sectionOrder || []).filter((k) => DEFAULT_SECTION_ORDER.includes(k));
+  const missing = DEFAULT_SECTION_ORDER.filter((k) => !configured.includes(k));
+  return [...configured, ...missing];
+}
+
 /** Objetivos suportados por implementação real neste MVP. */
+
 export const AVAILABLE_CONVERSION_GOALS: ConversionGoal[] = [
   "add_to_cart",
   "buy_now",
@@ -223,7 +296,11 @@ export function parseOfferPageConfig(metadata: unknown): OfferPageConfig | null 
     sections: (raw.sections && typeof raw.sections === "object")
       ? raw.sections
       : { ...DEFAULT_SECTIONS_BY_PRESET[preset] },
+    sectionOrder: Array.isArray(raw.sectionOrder)
+      ? (raw.sectionOrder.filter((k: any) => DEFAULT_SECTION_ORDER.includes(k)) as OfferSectionKey[])
+      : undefined,
     sectorConfig: (raw.sectorConfig && typeof raw.sectorConfig === "object") ? raw.sectorConfig : {},
+
     faqItems: Array.isArray(raw.faqItems)
       ? raw.faqItems.filter((f: any) => f && typeof f.question === "string" && typeof f.answer === "string")
       : [],

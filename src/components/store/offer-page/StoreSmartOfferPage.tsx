@@ -8,7 +8,7 @@ import { StoreCookieConsent } from "@/components/store/StoreCookieConsent";
 import { StoreProductViewTracker } from "@/components/store/StoreProductViewTracker";
 import { StoreVatProvider } from "@/contexts/StoreVatContext";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
-import { StorePriceRequestDialog } from "@/components/store/StorePriceRequestDialog";
+import { OfferConversionDialog } from "./OfferConversionDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -189,38 +189,15 @@ export function StoreSmartOfferPage({ config, product, workspaceSlug }: Props) {
                   onChange={setSelection}
                 />
 
-                {conversion.requiresQuoteDialog ? (
-                  <StorePriceRequestDialog
-                    productId={product.id}
-                    productName={product.name}
-                    workspaceId={product.workspace_id}
-                    trigger={
-                      <Button
-                        size="lg"
-                        className="w-full rounded-xl text-base font-semibold"
-                        onClick={() => {
-                          trackEvent("smart_offer_quote_requested", {
-                            productId: product.id,
-                            preset: config.preset,
-                          });
-                        }}
-                      >
-                        {ctaLabel}
-                      </Button>
-                    }
-                  />
-                ) : (
-                  <Button
-                    size="lg"
-                    className="w-full rounded-xl text-base font-semibold"
-                    onClick={conversion.execute}
-                    disabled={disableCTA}
-                  >
-                    {isOutOfStock
-                      ? "Esgotado"
-                      : ctaLabel}
-                  </Button>
-                )}
+                <Button
+                  size="lg"
+                  className="w-full rounded-xl text-base font-semibold"
+                  onClick={conversion.execute}
+                  disabled={disableCTA}
+                >
+                  {isOutOfStock && !conversion.requiresQuoteDialog ? "Esgotado" : ctaLabel}
+                </Button>
+
 
                 {config.secondaryCtaLabel && (
                   <p className="text-center text-xs text-muted-foreground">
@@ -266,11 +243,24 @@ export function StoreSmartOfferPage({ config, product, workspaceSlug }: Props) {
         <OfferStickyCTA
           price={totalPrice}
           currency={product.currency || "EUR"}
-          ctaLabel={isOutOfStock ? "Esgotado" : ctaLabel}
+          ctaLabel={isOutOfStock && !conversion.requiresQuoteDialog ? "Esgotado" : ctaLabel}
           onClick={conversion.execute}
           disabled={disableCTA}
           priceOnRequest={isPriceOnRequest}
         />
+
+        <OfferConversionDialog
+          open={conversion.quoteDialogOpen}
+          onOpenChange={conversion.setQuoteDialogOpen}
+          goal={conversion.goal}
+          productId={product.id}
+          productName={product.name}
+          workspaceId={product.workspace_id}
+          quantity={selection.quantity}
+          sectorConfig={config.sectorConfig}
+          preset={config.preset}
+        />
+
       </div>
     </StoreVatProvider>
   );
