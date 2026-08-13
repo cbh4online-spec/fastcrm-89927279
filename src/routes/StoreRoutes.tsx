@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { Route, Routes } from "react-router-dom";
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
+import { StoreErrorBoundary } from "@/components/store/StoreErrorBoundary";
 
 const StorePage = lazy(() => import("@/pages/store/StorePage"));
 const StoreProductPage = lazy(() => import("@/pages/store/StoreProductPage"));
@@ -23,7 +24,10 @@ export function StoreRoutes() {
     <StoreCartProvider>
       <Routes>
         <Route path=":workspaceSlug" element={<StorePage />} />
-        <Route path=":workspaceSlug/product/:productId" element={<StoreProductPage />} />
+        <Route
+          path=":workspaceSlug/product/:productId"
+          element={<StoreErrorBoundary><StoreProductPage /></StoreErrorBoundary>}
+        />
         <Route path=":workspaceSlug/checkout" element={<StoreCheckoutPage />} />
         <Route path=":workspaceSlug/success" element={<StoreSuccessPage />} />
         <Route path=":workspaceSlug/cancel" element={<StoreCancelPage />} />

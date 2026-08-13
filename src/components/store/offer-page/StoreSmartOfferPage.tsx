@@ -25,6 +25,7 @@ import { OfferStickyCTA } from "./OfferStickyCTA";
 import { OfferSections } from "./OfferSections";
 import { useOfferConversion } from "./useOfferConversion";
 import { CONVERSION_GOAL_LABELS, type OfferPageConfig } from "./offerPageTypes";
+import { StoreErrorBoundary } from "@/components/store/StoreErrorBoundary";
 
 interface Props {
   config: OfferPageConfig;
@@ -156,7 +157,9 @@ export function StoreSmartOfferPage({ config, product, workspaceSlug }: Props) {
                 />
               </div>
 
-              <OfferSections config={config} product={product} workspaceSlug={workspaceSlug} />
+              <StoreErrorBoundary variant="section" workspaceSlug={workspaceSlug}>
+                <OfferSections config={config} product={product} workspaceSlug={workspaceSlug} />
+              </StoreErrorBoundary>
             </div>
 
             {/* Right column — sticky commercial panel (desktop only) */}

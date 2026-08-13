@@ -237,8 +237,18 @@ export default function StoreProductPage() {
     productId: string;
   }>();
   const navigate = useNavigate();
-  const { workspaceId: resolvedWsId, slug: wsSlug, isLoading: isResolving } = useResolveStoreWorkspace(workspaceSlug);
-  const { data: product, isLoading: isProductLoading } = useStoreProduct(productId, resolvedWsId);
+  const {
+    workspaceId: resolvedWsId,
+    slug: wsSlug,
+    isLoading: isResolving,
+    notFound: workspaceNotFound,
+    error: workspaceError,
+  } = useResolveStoreWorkspace(workspaceSlug);
+  const {
+    data: product,
+    isLoading: isProductLoading,
+    error: productError,
+  } = useStoreProduct(productId, resolvedWsId);
   const productSlug = (product as any)?.store_slug || product?.id;
 
   // URLs antigos com UUID passam a redirecionar para o slug (SEO + partilha legível)
@@ -340,7 +350,20 @@ export default function StoreProductPage() {
     );
   }
 
-  if (!product) {
+  if (workspaceNotFound || workspaceError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <StoreHeader workspaceSlug={wsSlug} />
+        <main className="container mx-auto px-4 py-20 text-center">
+          <Package className="mx-auto mb-4 h-16 w-16 text-muted-foreground/30" />
+          <h1 className="text-xl font-semibold">Loja não encontrada</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Confirme o endereço e tente novamente.</p>
+        </main>
+      </div>
+    );
+  }
+
+  if (!product || productError) {
     return (
       <div className="min-h-screen bg-background">
         <StoreHeader workspaceSlug={wsSlug} />
