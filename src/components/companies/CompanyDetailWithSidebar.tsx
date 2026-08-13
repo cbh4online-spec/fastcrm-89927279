@@ -40,8 +40,9 @@ import {
   Globe,
   Mail,
   Phone,
-  Wand2,
-  FileText
+  Wand2, 
+  FileText,
+  MoreHorizontal
 } from "lucide-react";
 import { toast } from "sonner";
 import { NifLookupResult } from "@/hooks/useNifLookup";
