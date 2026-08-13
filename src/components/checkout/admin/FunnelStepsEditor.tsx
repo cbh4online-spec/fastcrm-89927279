@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,7 @@ import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { useCheckoutFunnelSteps } from "@/hooks/useCheckoutFunnels";
 import { useCheckoutOffers } from "@/hooks/useCheckoutOffers";
+import { OfferFormDialog } from "@/components/checkout/admin/OfferFormDialog";
 import { toast } from "sonner";
 
 const STEP_LABELS: Record<string, string> = {
