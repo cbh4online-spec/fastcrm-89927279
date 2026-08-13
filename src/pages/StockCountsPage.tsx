@@ -64,31 +64,28 @@ export default function StockCountsPage() {
           </Button>
         </div>
 
-        <IXCard
-          title="Contagens"
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Procurar contagem..."
-                  className="pl-9 h-10 w-full sm:w-64 rounded-full"
-                />
-              </div>
-              <Select value={status} onValueChange={(v) => setStatus(v as any)}>
-                <SelectTrigger className="h-10 rounded-full w-44"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os estados</SelectItem>
-                  {(Object.keys(STATUS_LABELS) as StockCountStatus[]).map((s) => (
-                    <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <IXCard title="Contagens">
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Procurar contagem..."
+                className="pl-9 h-10 w-full sm:max-w-xs rounded-full"
+              />
             </div>
-          }
-        >
+            <Select value={status} onValueChange={(v) => setStatus(v as any)}>
+              <SelectTrigger className="h-10 rounded-full w-full sm:w-44 shrink-0"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os estados</SelectItem>
+                {(Object.keys(STATUS_LABELS) as StockCountStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {isLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
