@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -7,12 +8,14 @@ import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { useCheckoutOrderBumps } from "@/hooks/useCheckoutOrderBumps";
 import { useCheckoutOffers } from "@/hooks/useCheckoutOffers";
+import { OfferFormDialog } from "@/components/checkout/admin/OfferFormDialog";
 import { toast } from "sonner";
 
 export function FunnelBumpsEditor({ funnelId }: { funnelId: string }) {
   const { bumps, addBump, updateBump, removeBump } = useCheckoutOrderBumps(funnelId);
   const { offers } = useCheckoutOffers();
   const [offerId, setOfferId] = useState("");
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
 
   const list = bumps.data ?? [];
 
