@@ -16,13 +16,14 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetDescription,
 } from "@/components/ui/sheet";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import {
   Package, TrendingUp, AlertTriangle, Coins, Download, RefreshCw, Search, Layers,
   ArrowLeft, SlidersHorizontal, Mic, MicOff, Sparkles, X, ChevronLeft, ChevronRight, Loader2, MoreHorizontal,
+  ArrowUp, ArrowDown, Copy, Columns3,
 } from "lucide-react";
 import { useInventoryValuation, type InventoryValuationRow } from "@/hooks/useInventoryValuation";
 import { useStockEnrichment } from "@/hooks/useStockEnrichment";
@@ -68,6 +69,21 @@ const emptyFilters: Filters = {
 
 const PAGE_SIZES = [25, 50, 100, 200];
 
+interface ColumnPrefs {
+  stock: boolean;
+  cost: boolean;
+  sale: boolean;
+  margin: boolean;
+}
+const DEFAULT_COLS: ColumnPrefs = { stock: true, cost: true, sale: true, margin: true };
+const COLS_STORAGE_KEY = "stock-valuation:columns";
+const COLUMN_LABELS: { key: keyof ColumnPrefs; label: string }[] = [
+  { key: "stock", label: "Stock" },
+  { key: "cost", label: "Custo" },
+  { key: "sale", label: "PVP" },
+  { key: "margin", label: "Lucro / Markup" },
+];
+
 export default function StockValuationPage() {
   const navigate = useNavigate();
   const { rows, summary, isLoading, isFetching, refetch } = useInventoryValuation();
@@ -79,6 +95,22 @@ export default function StockValuationPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+
+  // Colunas visíveis (persistidas localmente)
+  const [cols, setCols] = useState<ColumnPrefs>(() => {
+    if (typeof window === "undefined") return DEFAULT_COLS;
+    try {
+      const raw = window.localStorage.getItem(COLS_STORAGE_KEY);
+      return raw ? { ...DEFAULT_COLS, ...JSON.parse(raw) } : DEFAULT_COLS;
+    } catch {
+      return DEFAULT_COLS;
+    }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(cols)); } catch {}
+  }, [cols]);
+  const colCount = 1 + (cols.stock ? 1 : 0) + (cols.cost ? 2 : 0) + (cols.sale ? 2 : 0) + (cols.margin ? 2 : 0);
+  const hasAnyRow = rows.length > 0;
 
   // AI search state
   const [aiPrompt, setAiPrompt] = useState("");
@@ -279,25 +311,27 @@ export default function StockValuationPage() {
 
   const exportCsv = () => {
     const headers = [
-      "SKU", "Produto", "Categoria", "Stock", "Stock mínimo",
-      "Custo unit.", "Custo operacional unit.", "Custo total unit.",
-      "Valor stock a custo", "PVP unit.", "Valor a PVP",
-      "Margem €", "Markup % s/Custo",
+      "SKU", "Produto", "Categoria",
+      ...(cols.stock ? ["Stock", "Stock mínimo"] : []),
+      ...(cols.cost ? ["Custo unit.", "Custo operacional unit.", "Custo total unit.", "Valor stock a custo"] : []),
+      ...(cols.sale ? ["PVP unit.", "Valor a PVP"] : []),
+      ...(cols.margin ? ["Margem €", "Markup % s/Custo"] : []),
     ];
     const lines = filtered.map((r) => [
       r.sku || "",
       `"${(r.product_name || "").replace(/"/g, '""')}"`,
       r.category || "",
-      r.current_stock,
-      r.low_stock_threshold ?? 0,
-      r.fifo_avg_cost.toFixed(4),
-      r.operational_cost_unit.toFixed(4),
-      r.total_unit_cost.toFixed(4),
-      r.total_cost_value.toFixed(2),
-      r.unit_sale_price.toFixed(2),
-      r.total_sale_value.toFixed(2),
-      r.latent_margin.toFixed(2),
-      r.markup_pct.toFixed(2),
+      ...(cols.stock ? [r.current_stock, r.low_stock_threshold ?? 0] : []),
+      ...(cols.cost
+        ? [
+            r.fifo_avg_cost.toFixed(4),
+            r.operational_cost_unit.toFixed(4),
+            r.total_unit_cost.toFixed(4),
+            r.total_cost_value.toFixed(2),
+          ]
+        : []),
+      ...(cols.sale ? [r.unit_sale_price.toFixed(2), r.total_sale_value.toFixed(2)] : []),
+      ...(cols.margin ? [r.latent_margin.toFixed(2), r.markup_pct.toFixed(2)] : []),
     ].join(";"));
     const csv = [headers.join(";"), ...lines].join("\n");
     const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8;" });
@@ -490,6 +524,12 @@ export default function StockValuationPage() {
             activeCount={activeFilterCount}
           />
 
+          <div className="hidden md:block">
+            <ColumnsMenu cols={cols} setCols={setCols} />
+          </div>
+
+
+
           {activeFilterCount > 0 && (
             <Button variant="ghost" className="rounded-full h-12" onClick={clearAll}>
               <X className="h-4 w-4 mr-1" /> Limpar
@@ -498,33 +538,65 @@ export default function StockValuationPage() {
         </div>
 
         {/* Desktop / tablet */}
-        <div className="rounded-xl border border-border overflow-x-auto hidden md:block">
-          <Table className="text-xs [&_th]:h-9 [&_th]:px-2 [&_td]:p-2 [&_td]:align-top table-fixed w-full min-w-0">
-            <TableHeader>
+        <div className="rounded-xl border border-border overflow-x-auto max-h-[70vh] overflow-y-auto hidden md:block">
+          <Table className="text-xs [&_th]:h-9 [&_th]:px-2 [&_td]:p-2 [&_td]:align-top w-full min-w-[980px]">
+            <TableHeader className="sticky top-0 z-20 bg-card">
               <TableRow>
-                <TableHead className="cursor-pointer w-[34%]" onClick={() => toggleSort("name")}>Produto / SKU</TableHead>
-                <TableHead className="text-right cursor-pointer w-[90px]" onClick={() => toggleSort("stock")}>Stock</TableHead>
-                <TableHead className="text-right w-[110px]">Custo un.</TableHead>
-                <TableHead className="text-right cursor-pointer w-[110px] border-r border-border" onClick={() => toggleSort("cost_value")}>Valor custo</TableHead>
-                <TableHead className="text-right w-[120px]">PVP un.</TableHead>
-                <TableHead className="text-right cursor-pointer w-[110px] border-r border-border" onClick={() => toggleSort("sale_value")}>Valor PVP</TableHead>
-                <TableHead className="text-right cursor-pointer w-[100px]" onClick={() => toggleSort("margin")}>€ lucro</TableHead>
-                <TableHead className="text-right cursor-pointer w-[80px]" onClick={() => toggleSort("margin_pct")}>Markup</TableHead>
+                <TableHead
+                  className="cursor-pointer min-w-[280px] sticky left-0 z-30 bg-card"
+                  onClick={() => toggleSort("name")}
+                >
+                  <SortLabel label="Produto / SKU" active={sortKey === "name"} dir={sortDir} />
+                </TableHead>
+                {cols.stock && (
+                  <TableHead className="text-right cursor-pointer w-[92px]" onClick={() => toggleSort("stock")}>
+                    <SortLabel label="Stock" align="right" active={sortKey === "stock"} dir={sortDir} />
+                  </TableHead>
+                )}
+                {cols.cost && <TableHead className="text-right w-[112px]">Custo un.</TableHead>}
+                {cols.cost && (
+                  <TableHead className="text-right cursor-pointer w-[118px] border-r border-border" onClick={() => toggleSort("cost_value")}>
+                    <SortLabel label="Valor custo" align="right" active={sortKey === "cost_value"} dir={sortDir} />
+                  </TableHead>
+                )}
+                {cols.sale && <TableHead className="text-right w-[124px]">PVP un.</TableHead>}
+                {cols.sale && (
+                  <TableHead className="text-right cursor-pointer w-[118px] border-r border-border" onClick={() => toggleSort("sale_value")}>
+                    <SortLabel label="Valor PVP" align="right" active={sortKey === "sale_value"} dir={sortDir} />
+                  </TableHead>
+                )}
+                {cols.margin && (
+                  <TableHead className="text-right cursor-pointer w-[104px]" onClick={() => toggleSort("margin")}>
+                    <SortLabel label="€ lucro" align="right" active={sortKey === "margin"} dir={sortDir} />
+                  </TableHead>
+                )}
+                {cols.margin && (
+                  <TableHead className="text-right cursor-pointer w-[88px]" onClick={() => toggleSort("margin_pct")}>
+                    <SortLabel label="Markup" align="right" active={sortKey === "margin_pct"} dir={sortDir} />
+                  </TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 8 }).map((_, j) => (
+                    {Array.from({ length: colCount }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : pageRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                    Sem produtos para mostrar
+                  <TableCell colSpan={colCount} className="text-center text-muted-foreground py-12">
+                    {hasAnyRow ? (
+                      <div className="space-y-3">
+                        <p>Nenhum produto corresponde aos filtros aplicados.</p>
+                        <Button variant="outline" size="sm" onClick={clearAll}>Limpar filtros</Button>
+                      </div>
+                    ) : (
+                      "Ainda não existem produtos com stock valorizado."
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -534,53 +606,66 @@ export default function StockValuationPage() {
                   const belowMin = r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold;
                   return (
                     <TableRow key={r.product_id}>
-                      <TableCell>
-                        <div className="font-medium leading-snug line-clamp-2 break-words whitespace-normal" title={r.product_name}>{r.product_name}</div>
-                        {r.sku && <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
+                      <TableCell className="sticky left-0 z-10 bg-card">
+                        <ProductCell name={r.product_name} sku={r.sku} />
                       </TableCell>
-                      <TableCell className="text-right">
-                        {r.current_stock <= 0 ? (
-                          <Badge variant="outline" className="text-[10px] px-1.5 border-destructive/40 text-destructive">0</Badge>
-                        ) : (
-                          <span className={belowMin ? "text-foreground font-medium" : ""}>{fmt(r.current_stock, false)}</span>
-                        )}
-                        {r.low_stock_threshold > 0 && (
-                          <div className="text-[10px] text-muted-foreground">min {fmt(r.low_stock_threshold, false)}</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="font-medium">{fmt(r.total_unit_cost)}</div>
-                        {r.operational_cost_unit > 0 && (
-                          <div className="text-[10px] text-muted-foreground">+{fmt(r.operational_cost_unit)} op.</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-medium border-r border-border">{fmt(r.total_cost_value)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="font-medium">{fmt(r.unit_sale_price)}</div>
-                        {suggested != null && delta != null && Math.abs(delta) >= 0.01 && (
-                          <div className={`text-[10px] ${delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                            sug. {fmt(suggested)}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-medium border-r border-border">{fmt(r.total_sale_value)}</TableCell>
-                      <TableCell className={`text-right font-medium ${r.latent_margin < 0 ? "text-destructive" : "text-foreground"}`}>
-                        {fmt(r.latent_margin)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge
-                          variant="outline"
-                          className={
-                            r.markup_pct < 0
-                              ? "text-[10px] px-1.5 border-destructive/40 text-destructive"
-                              : r.markup_pct < 15
-                              ? "text-[10px] px-1.5 border-border text-muted-foreground"
-                              : "text-[10px] px-1.5 border-primary/30 text-primary"
-                          }
-                        >
-                          {r.markup_pct.toFixed(1)}%
-                        </Badge>
-                      </TableCell>
+                      {cols.stock && (
+                        <TableCell className="text-right">
+                          {r.current_stock <= 0 ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 border-destructive/40 text-destructive">0</Badge>
+                          ) : (
+                            <span className={belowMin ? "text-foreground font-medium" : ""}>{fmt(r.current_stock, false)}</span>
+                          )}
+                          {r.low_stock_threshold > 0 && (
+                            <div className="text-[10px] text-muted-foreground">min {fmt(r.low_stock_threshold, false)}</div>
+                          )}
+                        </TableCell>
+                      )}
+                      {cols.cost && (
+                        <TableCell className="text-right whitespace-nowrap">
+                          <div className="font-medium">{fmt(r.total_unit_cost)}</div>
+                          {r.operational_cost_unit > 0 && (
+                            <div className="text-[10px] text-muted-foreground">+{fmt(r.operational_cost_unit)} op.</div>
+                          )}
+                        </TableCell>
+                      )}
+                      {cols.cost && (
+                        <TableCell className="text-right font-medium border-r border-border whitespace-nowrap">{fmt(r.total_cost_value)}</TableCell>
+                      )}
+                      {cols.sale && (
+                        <TableCell className="text-right whitespace-nowrap">
+                          <div className="font-medium">{fmt(r.unit_sale_price)}</div>
+                          {suggested != null && delta != null && Math.abs(delta) >= 0.01 && (
+                            <div className={`text-[10px] ${delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                              sug. {fmt(suggested)}
+                            </div>
+                          )}
+                        </TableCell>
+                      )}
+                      {cols.sale && (
+                        <TableCell className="text-right font-medium border-r border-border whitespace-nowrap">{fmt(r.total_sale_value)}</TableCell>
+                      )}
+                      {cols.margin && (
+                        <TableCell className={`text-right font-medium whitespace-nowrap ${r.latent_margin < 0 ? "text-destructive" : "text-foreground"}`}>
+                          {fmt(r.latent_margin)}
+                        </TableCell>
+                      )}
+                      {cols.margin && (
+                        <TableCell className="text-right">
+                          <Badge
+                            variant="outline"
+                            className={
+                              r.markup_pct < 0
+                                ? "text-[10px] px-1.5 border-destructive/40 text-destructive"
+                                : r.markup_pct < 15
+                                ? "text-[10px] px-1.5 border-border text-muted-foreground"
+                                : "text-[10px] px-1.5 border-primary/30 text-primary"
+                            }
+                          >
+                            {r.markup_pct.toFixed(1)}%
+                          </Badge>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })
@@ -606,8 +691,7 @@ export default function StockValuationPage() {
               const belowMin = r.low_stock_threshold > 0 && r.current_stock <= r.low_stock_threshold;
               return (
                 <div key={r.product_id} className="rounded-xl border border-border p-3 bg-card">
-                  <div className="font-medium text-sm leading-snug break-words" title={r.product_name}>{r.product_name}</div>
-                  {r.sku && <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.sku}</div>}
+                  <ProductCell name={r.product_name} sku={r.sku} compact />
                   <div className="mt-2 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Stock</span>
                     <span className="flex items-center gap-2">
@@ -902,5 +986,88 @@ function KpiTile({
         </div>
       </div>
     </div>
+  );
+}
+
+// ===== Cabeçalho ordenável =====
+function SortLabel({
+  label, active, dir, align = "left",
+}: { label: string; active: boolean; dir: "asc" | "desc"; align?: "left" | "right" }) {
+  return (
+    <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end w-full" : ""}`}>
+      {label}
+      {active && (dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+    </span>
+  );
+}
+
+// ===== Célula de produto + SKU =====
+function ProductCell({ name, sku, compact = false }: { name: string; sku?: string | null; compact?: boolean }) {
+  const copySku = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!sku) return;
+    try {
+      await navigator.clipboard.writeText(sku);
+      toast.success(`SKU copiado: ${sku}`);
+    } catch {
+      toast.error("Não foi possível copiar o SKU");
+    }
+  };
+
+  return (
+    <div className="min-w-0">
+      <a
+        href={`/dashboard/products?search=${encodeURIComponent(sku || name || "")}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={name}
+        className={`block font-medium leading-snug line-clamp-2 break-words hover:text-primary transition-colors ${compact ? "text-sm" : ""}`}
+      >
+        {name}
+      </a>
+      {sku ? (
+        <div className="mt-1 flex items-center gap-1 min-w-0">
+          <code className="font-mono text-[11px] text-muted-foreground bg-muted/70 rounded px-1.5 py-0.5 truncate max-w-[220px]" title={sku}>
+            {sku}
+          </code>
+          <button
+            type="button"
+            onClick={copySku}
+            aria-label={`Copiar SKU ${sku}`}
+            className="text-muted-foreground hover:text-foreground shrink-0 rounded p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Copy className="h-3 w-3" />
+          </button>
+        </div>
+      ) : (
+        <div className="mt-1 text-[11px] text-muted-foreground italic">sem SKU</div>
+      )}
+    </div>
+  );
+}
+
+// ===== Seletor de colunas =====
+function ColumnsMenu({ cols, setCols }: { cols: ColumnPrefs; setCols: (c: ColumnPrefs) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="rounded-full h-12 gap-2">
+          <Columns3 className="h-4 w-4" /> Colunas
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        {COLUMN_LABELS.map(({ key, label }) => (
+          <DropdownMenuCheckboxItem
+            key={key}
+            checked={cols[key]}
+            onCheckedChange={(v) => setCols({ ...cols, [key]: Boolean(v) })}
+            onSelect={(e) => e.preventDefault()}
+          >
+            {label}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

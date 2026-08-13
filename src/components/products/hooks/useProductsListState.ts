@@ -142,7 +142,11 @@ export function useProductsListState() {
   const [activeTab, setActiveTab] = useState("products");
   const [showFilterSidebar, setShowFilterSidebar] = useState(() => typeof window !== "undefined" ? window.innerWidth >= 768 : true);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
-  const [searchValue, setSearchValue] = useState("");
+  // Permite deep-link a partir de outras páginas (ex.: Stock Valorizado) via ?search=SKU
+  const [searchValue, setSearchValue] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("search") || "";
+  });
   const [sortValue, setSortValue] = useState("updated_desc");
   const [storeFilter, setStoreFilter] = useState<string>("all");
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
