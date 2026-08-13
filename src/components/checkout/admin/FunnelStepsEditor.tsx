@@ -89,7 +89,7 @@ export function FunnelStepsEditor({ funnelId }: { funnelId: string }) {
           </ul>
         )}
 
-        <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-[160px_1fr_auto] sm:items-end">
+        <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-[160px_1fr_auto_auto] sm:items-end">
           <div className="space-y-1">
             <Label htmlFor="step-type" className="text-xs text-muted-foreground">Tipo</Label>
             <Select value={stepType} onValueChange={setStepType}>
@@ -112,13 +112,42 @@ export function FunnelStepsEditor({ funnelId }: { funnelId: string }) {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setOfferDialogOpen(true)}
+            disabled={stepType === "thank_you"}
+            aria-label="Criar nova oferta"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Nova oferta
+          </Button>
           <Button onClick={handleAdd} disabled={upsertStep.isPending}>
             <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
         </div>
+
         {!offers.isLoading && !(offers.data ?? []).length && (
-          <p className="text-xs text-muted-foreground">Ainda não tem ofertas criadas. Crie-as em Checkout &gt; Ofertas.</p>
+          <div className="space-y-2 rounded-xl border border-dashed border-border p-4">
+            <p className="text-sm text-muted-foreground">
+              Ainda não tem ofertas. Uma oferta é o produto extra mostrado depois do pagamento (upsell) ou em alternativa
+              se o cliente recusar (downsell).
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button size="sm" onClick={() => setOfferDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Criar primeira oferta
+              </Button>
+              <Link to="/dashboard/checkout/offers" className="text-xs text-muted-foreground underline">
+                Gerir em Checkout &gt; Ofertas
+              </Link>
+            </div>
+          </div>
         )}
+
+        <OfferFormDialog
+          open={offerDialogOpen}
+          onOpenChange={setOfferDialogOpen}
+          defaultOfferType={stepType === "downsell" ? "downsell" : "upsell"}
+          onCreated={(offer) => setOfferId(offer.id)}
+        />
       </div>
     </IXCard>
   );
