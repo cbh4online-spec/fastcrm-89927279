@@ -267,7 +267,11 @@ export function parseOfferPageConfig(metadata: unknown): OfferPageConfig | null 
     sections: (raw.sections && typeof raw.sections === "object")
       ? raw.sections
       : { ...DEFAULT_SECTIONS_BY_PRESET[preset] },
+    sectionOrder: Array.isArray(raw.sectionOrder)
+      ? (raw.sectionOrder.filter((k: any) => DEFAULT_SECTION_ORDER.includes(k)) as OfferSectionKey[])
+      : undefined,
     sectorConfig: (raw.sectorConfig && typeof raw.sectorConfig === "object") ? raw.sectorConfig : {},
+
     faqItems: Array.isArray(raw.faqItems)
       ? raw.faqItems.filter((f: any) => f && typeof f.question === "string" && typeof f.answer === "string")
       : [],
