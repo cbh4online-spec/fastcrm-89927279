@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PageElementGate } from "@/components/shared/PageElementGate";
 import { OrderNotesList } from "@/components/order-notes/OrderNotesList";
 import { Button } from "@/components/ui/button";
 import { Plus, Zap } from "lucide-react";
@@ -13,21 +14,21 @@ export default function OrderNotesPage() {
       <DocumentListLayout
         title="Notas de Encomenda"
         primaryAction={
-          <Button
+          <PageElementGate kind="action" id="new-order-note"><Button
             onClick={() => navigate("/dashboard/order-notes/create")}
             className="gap-2 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" /> Nova Encomenda
-          </Button>
+          </Button></PageElementGate>
         }
         secondaryAction={
-          <Button
+          <PageElementGate kind="action" id="quick-order-note"><Button
             variant="outline"
             onClick={() => navigate("/dashboard/order-notes/quick")}
             className="gap-2 rounded-full"
           >
             <Zap className="h-4 w-4" /> Encomenda Rápida
-          </Button>
+          </Button></PageElementGate>
         }
       >
         <OrderNotesList />

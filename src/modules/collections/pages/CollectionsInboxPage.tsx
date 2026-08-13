@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PageElementGate } from "@/components/shared/PageElementGate";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ export default function CollectionsInboxPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <PageElementGate kind="action" id="run-dunning" routeKey="collections">
             <Button
               onClick={() => runExecutor.mutate()}
               disabled={runExecutor.isPending}
@@ -41,6 +43,7 @@ export default function CollectionsInboxPage() {
               <Play className="h-4 w-4" />
               <span className="hidden sm:inline">Executar dunning</span>
             </Button>
+            </PageElementGate>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -53,12 +56,16 @@ export default function CollectionsInboxPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => navigate("/dashboard/collections/import")}>
-                  <Upload className="h-4 w-4 mr-2" /> Importar extrato
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/dashboard/collections/sequences")}>
-                  <Workflow className="h-4 w-4 mr-2" /> Sequências
-                </DropdownMenuItem>
+                <PageElementGate kind="action" id="import-statement" routeKey="collections">
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/collections/import")}>
+                    <Upload className="h-4 w-4 mr-2" /> Importar extrato
+                  </DropdownMenuItem>
+                </PageElementGate>
+                <PageElementGate kind="action" id="sequences" routeKey="collections">
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/collections/sequences")}>
+                    <Workflow className="h-4 w-4 mr-2" /> Sequências
+                  </DropdownMenuItem>
+                </PageElementGate>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

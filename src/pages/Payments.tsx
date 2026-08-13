@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PageElementGate } from "@/components/shared/PageElementGate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePayments, useUpdatePayment, useCreatePayment, type PaymentStatus } from "@/hooks/usePayments";
 import { Badge } from "@/components/ui/badge";
@@ -133,10 +134,12 @@ export default function Payments() {
             <h1 className="text-2xl font-bold text-foreground">Pagamentos</h1>
             <p className="text-muted-foreground">Histórico e gestão de pagamentos recebidos</p>
           </div>
-          <Button onClick={() => setRegisterOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Registar Pagamento
-          </Button>
+          <PageElementGate kind="action" id="register-payment">
+            <Button onClick={() => setRegisterOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Registar Pagamento
+            </Button>
+          </PageElementGate>
         </div>
 
         {/* KPI Cards */}
@@ -202,10 +205,12 @@ export default function Payments() {
           sortValue={statusFilter}
           onSortChange={(v) => setStatusFilter(v)}
           rightActions={
-            <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">
-              <Download className="h-4 w-4" />
-              Exportar CSV
-            </Button>
+            <PageElementGate kind="action" id="export">
+              <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">
+                <Download className="h-4 w-4" />
+                Exportar CSV
+              </Button>
+            </PageElementGate>
           }
         />
 
