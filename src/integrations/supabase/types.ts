@@ -104061,13 +104061,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_b"]
-            isOneToOne: false
-            referencedRelation: "partner_b2b_catalog_grouped"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "partner_b2b_catalog_grouped"
@@ -104077,8 +104070,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_b2b_content"
-            referencedColumns: ["product_id"]
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -104091,8 +104084,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_catalog"
-            referencedColumns: ["id"]
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -104105,8 +104098,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -104118,13 +104111,20 @@ export type Database = {
           {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_a"]
+            columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
@@ -104209,6 +104209,113 @@ export type Database = {
             foreignKeyName: "products_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_store_settings: {
+        Row: {
+          accent_color: string | null
+          bank_transfer_details: Json | null
+          banner_url: string | null
+          c2c_allow_mixed_cart: boolean | null
+          c2c_enabled: boolean | null
+          created_at: string | null
+          custom_domain: string | null
+          facebook_pixel_id: string | null
+          footer_text: string | null
+          id: string | null
+          logo_url: string | null
+          payment_methods: Json | null
+          prices_include_vat: boolean | null
+          primary_color: string | null
+          product_page_config: Json | null
+          show_categories: boolean | null
+          show_search: boolean | null
+          store_description: string | null
+          store_name: string | null
+          store_slug: string | null
+          updated_at: string | null
+          vat_rate: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          bank_transfer_details?: Json | null
+          banner_url?: string | null
+          c2c_allow_mixed_cart?: boolean | null
+          c2c_enabled?: boolean | null
+          created_at?: string | null
+          custom_domain?: string | null
+          facebook_pixel_id?: string | null
+          footer_text?: string | null
+          id?: string | null
+          logo_url?: string | null
+          payment_methods?: Json | null
+          prices_include_vat?: boolean | null
+          primary_color?: string | null
+          product_page_config?: Json | null
+          show_categories?: boolean | null
+          show_search?: boolean | null
+          store_description?: string | null
+          store_name?: string | null
+          store_slug?: string | null
+          updated_at?: string | null
+          vat_rate?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          bank_transfer_details?: Json | null
+          banner_url?: string | null
+          c2c_allow_mixed_cart?: boolean | null
+          c2c_enabled?: boolean | null
+          created_at?: string | null
+          custom_domain?: string | null
+          facebook_pixel_id?: string | null
+          footer_text?: string | null
+          id?: string | null
+          logo_url?: string | null
+          payment_methods?: Json | null
+          prices_include_vat?: boolean | null
+          primary_color?: string | null
+          product_page_config?: Json | null
+          show_categories?: boolean | null
+          show_search?: boolean | null
+          store_description?: string | null
+          store_name?: string | null
+          store_slug?: string | null
+          updated_at?: string | null
+          vat_rate?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "store_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces_public"
             referencedColumns: ["id"]
           },
