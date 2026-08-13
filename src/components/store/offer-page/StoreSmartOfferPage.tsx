@@ -189,38 +189,15 @@ export function StoreSmartOfferPage({ config, product, workspaceSlug }: Props) {
                   onChange={setSelection}
                 />
 
-                {conversion.requiresQuoteDialog ? (
-                  <StorePriceRequestDialog
-                    productId={product.id}
-                    productName={product.name}
-                    workspaceId={product.workspace_id}
-                    trigger={
-                      <Button
-                        size="lg"
-                        className="w-full rounded-xl text-base font-semibold"
-                        onClick={() => {
-                          trackEvent("smart_offer_quote_requested", {
-                            productId: product.id,
-                            preset: config.preset,
-                          });
-                        }}
-                      >
-                        {ctaLabel}
-                      </Button>
-                    }
-                  />
-                ) : (
-                  <Button
-                    size="lg"
-                    className="w-full rounded-xl text-base font-semibold"
-                    onClick={conversion.execute}
-                    disabled={disableCTA}
-                  >
-                    {isOutOfStock
-                      ? "Esgotado"
-                      : ctaLabel}
-                  </Button>
-                )}
+                <Button
+                  size="lg"
+                  className="w-full rounded-xl text-base font-semibold"
+                  onClick={conversion.execute}
+                  disabled={disableCTA}
+                >
+                  {isOutOfStock && !conversion.requiresQuoteDialog ? "Esgotado" : ctaLabel}
+                </Button>
+
 
                 {config.secondaryCtaLabel && (
                   <p className="text-center text-xs text-muted-foreground">
