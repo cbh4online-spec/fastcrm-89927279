@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Zap, Tag } from "lucide-react";
+import { CheckoutBackHeader } from "@/components/checkout/admin/CheckoutBackHeader";
 
 const sb = supabase as any;
 
@@ -26,6 +27,7 @@ export default function DynamicDiscountsPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <CheckoutBackHeader title="Descontos Dinâmicos" parent={{ label: "Funis de Checkout", to: "/dashboard/checkout" }} />
       <div>
         <h1 className="text-2xl font-bold">Descontos Dinâmicos</h1>
         <p className="text-muted-foreground">Exit intent, timers e descontos automáticos</p>

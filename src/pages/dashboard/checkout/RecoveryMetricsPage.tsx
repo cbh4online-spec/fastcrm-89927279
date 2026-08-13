@@ -7,6 +7,7 @@ import { Loader2, ShoppingCart, CheckCircle2, TrendingUp, Euro } from "lucide-re
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
+import { CheckoutBackHeader } from "@/components/checkout/admin/CheckoutBackHeader";
 
 const PERIOD_OPTIONS = [
   { value: "30", label: "Últimos 30 dias" },
@@ -31,6 +32,7 @@ export default function RecoveryMetricsPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
+      <CheckoutBackHeader title="Métricas de Recuperação" parent={{ label: "Funis de Checkout", to: "/dashboard/checkout" }} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Métricas de Recuperação</h1>
