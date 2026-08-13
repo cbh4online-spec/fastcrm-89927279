@@ -167,7 +167,17 @@ export default function CheckoutPage() {
 
             <div className="lg:col-span-2">
               <div className="sticky top-8">
-                <OrderSummary items={items} bumps={bumpItems} subtotal={subtotal} total={subtotal} currency={settings.currency || "EUR"} />
+                <OrderSummary
+                  items={items}
+                  bumps={bumpItems}
+                  net={totals.net}
+                  tax={totals.tax}
+                  subtotal={totals.gross}
+                  discount={totals.discount}
+                  discountLabel={normalized.discount.label || undefined}
+                  total={totals.total}
+                  currency={normalized.currency}
+                />
               </div>
             </div>
           </div>
