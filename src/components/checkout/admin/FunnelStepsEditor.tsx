@@ -23,6 +23,7 @@ export function FunnelStepsEditor({ funnelId }: { funnelId: string }) {
   const { offers } = useCheckoutOffers();
   const [stepType, setStepType] = useState("upsell");
   const [offerId, setOfferId] = useState<string>("");
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
 
   const list = steps.data ?? [];
 
