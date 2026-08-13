@@ -82,6 +82,9 @@ Deno.serve(async (req) => {
       cases_advanced: results.filter((r) => r.ok && !r.escalated).length,
       cases_escalated: results.filter((r) => r.escalated).length,
       cases_skipped: results.filter((r) => !r.ok && r.reason === "pending_promise").length,
+      messages_sent: results.filter((r) => r.delivery?.status === "sent").length,
+      messages_failed: results.filter((r) => r.delivery?.status === "failed").length,
+
       results,
     };
 
