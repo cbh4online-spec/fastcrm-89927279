@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { Route } from "react-router-dom";
 
 const CheckoutFunnelsPage = lazy(() => import("@/pages/dashboard/checkout/CheckoutFunnelsPage"));
+const CheckoutFunnelDetailPage = lazy(() => import("@/pages/dashboard/checkout/CheckoutFunnelDetailPage"));
 const CheckoutOffersPage = lazy(() => import("@/pages/dashboard/checkout/CheckoutOffersPage"));
 const AbandonedCartsPage = lazy(() => import("@/pages/dashboard/checkout/AbandonedCartsPage"));
 const CheckoutBundlesPage = lazy(() => import("@/pages/dashboard/checkout/CheckoutBundlesPage"));
