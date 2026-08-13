@@ -27,13 +27,18 @@ import {
   DEFAULT_SECTIONS_BY_PRESET,
   DEFAULT_CONVERSION_BY_PRESET,
   AVAILABLE_CONVERSION_GOALS,
+  DEFAULT_SECTION_ORDER,
+  getSectionOrder,
   type OfferPageConfig,
   type OfferPreset,
   type OfferSectionKey,
+  type OfferSectorConfig,
   type ConversionGoal,
   type OfferFaqItem,
 } from "@/components/store/offer-page/offerPageTypes";
+import { OfferSectorContentEditor } from "./OfferSectorContentEditor";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
+
 
 interface Props {
   productId: string;
