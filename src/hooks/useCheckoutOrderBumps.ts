@@ -19,11 +19,27 @@ export function useCheckoutOrderBumps(funnelId?: string) {
         .select("*, offer:checkout_offers(*)")
         .eq("funnel_id", funnelId)
         .order("display_order");
-      if (error) throw error;
-      return data ?? [];
+      if (!error) return data ?? [];
+
+      // Fallback sem embed (ex.: relação em falta na cache do esquema)
+      const { data: rows, error: rowsError } = await sb
+        .from("checkout_order_bumps")
+        .select("*")
+        .eq("funnel_id", funnelId)
+        .order("display_order");
+      if (rowsError) throw rowsError;
+
+      const offerIds = [...new Set((rows ?? []).map((r: any) => r.offer_id).filter(Boolean))];
+      let offersById: Record<string, any> = {};
+      if (offerIds.length) {
+        const { data: offers } = await sb.from("checkout_offers").select("*").in("id", offerIds);
+        offersById = Object.fromEntries((offers ?? []).map((o: any) => [o.id, o]));
+      }
+      return (rows ?? []).map((r: any) => ({ ...r, offer: r.offer_id ? offersById[r.offer_id] ?? null : null }));
     },
     enabled: !!funnelId,
   });
+
 
   const invalidate = () => qc.invalidateQueries({ queryKey: key });
 

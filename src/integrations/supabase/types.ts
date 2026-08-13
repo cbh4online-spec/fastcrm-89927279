@@ -19258,6 +19258,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "checkout_funnel_steps_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_offers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "checkout_funnel_steps_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
