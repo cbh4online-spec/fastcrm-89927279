@@ -34,7 +34,7 @@ type GroupId = 'overview' | 'activity' | 'communication' | 'business' | 'intelli
 const GROUPS: { id: GroupId; label: string; sections: MenuSection[] }[] = [
   { id: 'overview', label: 'Visão Geral', sections: ['overview', 'contacts', 'relationships'] },
   { id: 'activity', label: 'Atividade', sections: ['timeline', 'activity', 'notes', 'files', 'team'] },
-  { id: 'communication', label: 'Comunicação', sections: ['communication', 'support', 'student-journey'] },
+  { id: 'communication', label: 'Mensagens', sections: ['communication', 'support', 'student-journey'] },
   { id: 'business', label: 'Negócio', sections: ['business', 'financial', 'financing'] },
   { id: 'intelligence', label: 'IA & Dados', sections: ['insights', 'data'] },
 ];
