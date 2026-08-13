@@ -188,6 +188,7 @@ serve(async (req) => {
       mode: "payment",
       success_url: successUrl,
       cancel_url: `${origin}/checkout/${funnel.slug}?canceled=true`,
+      ...(discounts ? { discounts } : {}),
       metadata: {
         checkout_session_id: session?.id,
         funnel_id: funnelId,
