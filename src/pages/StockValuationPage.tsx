@@ -109,6 +109,7 @@ export default function StockValuationPage() {
     try { window.localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(cols)); } catch {}
   }, [cols]);
   const colCount = 1 + (cols.stock ? 1 : 0) + (cols.cost ? 2 : 0) + (cols.sale ? 2 : 0) + (cols.margin ? 2 : 0);
+  const hasAnyRow = rows.length > 0;
 
   // AI search state
   const [aiPrompt, setAiPrompt] = useState("");
