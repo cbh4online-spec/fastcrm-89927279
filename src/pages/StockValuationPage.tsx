@@ -372,6 +372,9 @@ export default function StockValuationPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" className="rounded-full" onClick={() => navigate("/dashboard/stock-counts")}>
+            <ClipboardList className="h-4 w-4 mr-2" /> Contagens
+          </Button>
           <Button onClick={exportCsv} disabled={!filtered.length} className="rounded-full">
             <Download className="h-4 w-4 mr-2" /> Exportar CSV
           </Button>
