@@ -499,101 +499,97 @@ export function ENIContactDetailWithSidebar() {
       </div>
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-background via-background to-muted/30 border-b px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/contacts")} className="shrink-0 h-8 w-8">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
-            <EntityAvatarUpload
-              name={contact.name}
-              value={(contact as any).avatar_url}
-              onChange={(url) => handleFieldChange('avatar_url' as keyof ENIContact, url)}
-              workspaceId={currentWorkspace?.id ?? ''}
-              folder="contacts"
-              size="md"
-            />
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold tracking-tight">{contact.name}</h1>
-                <Badge variant="outline" className={cn(
-                  "text-xs font-medium",
-                  entityType === 'eni' && "bg-amber-500/10 text-amber-600 border-amber-500/30",
-                  entityType === 'empresa' && "bg-blue-500/10 text-blue-600 border-blue-500/30",
-                  entityType === 'consumidor_final' && "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
-                )}>
-                {ENTITY_TYPE_LABELS[entityType]}
-                </Badge>
-                {/* Activity Profile Badge */}
-                <ActivityProfileBadge
-                  entityType="contact"
-                  entityId={id!}
-                  currentProfile={entityProfile}
-                  currentProfileId={(contact as any).activity_profile_id}
-                />
-                {contact.company && (
-                  <Badge variant="secondary" className="gap-1 text-xs">
-                    <Building2 className="w-3 h-3" />
+      <div className="border-b bg-background px-6 py-4">
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/contacts")} className="shrink-0" aria-label="Voltar aos contactos">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <EntityAvatarUpload
+            name={contact.name}
+            value={(contact as any).avatar_url}
+            onChange={(url) => handleFieldChange('avatar_url' as keyof ENIContact, url)}
+            workspaceId={currentWorkspace?.id ?? ''}
+            folder="contacts"
+            size="md"
+            compact
+            className="shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{contact.name}</h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              <span>{ENTITY_TYPE_LABELS[entityType]}</span>
+              {contact.company && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="inline-flex max-w-[220px] items-center gap-1 truncate">
+                    <Building2 className="w-3.5 h-3.5" />
                     {contact.company}
-                  </Badge>
-                )}
-                <InlineHeaderTags
-                  tags={contact.tags || []}
-                  onTagsChange={(newTags) => handleFieldChange('tags' as keyof ENIContact, newTags)}
-                />
-              </div>
-              <div className="flex items-center gap-3 mt-1">
-                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5" />
-                  {t('common:updatedAgo', { time: getTimeAgo(new Date(contact.updated_at), t) })}
-                </p>
-                {role && (
+                  </span>
+                </>
+              )}
+              <span aria-hidden="true">·</span>
+              <span className="inline-flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                {t('common:updatedAgo', { time: getTimeAgo(new Date(contact.updated_at), t) })}
+              </span>
+              {role && (
+                <>
+                  <span aria-hidden="true">·</span>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge variant="outline" className="gap-1 text-xs cursor-help">
-                        <Shield className="w-3 h-3" />
+                      <span className="inline-flex cursor-help items-center gap-1">
+                        <Shield className="w-3.5 h-3.5" />
                         {t(`common:role${role.charAt(0).toUpperCase() + role.slice(1)}`) || role}
-                      </Badge>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>{t('common:yourAccessLevel')}</p>
                     </TooltipContent>
                   </Tooltip>
-                )}
-              </div>
+                </>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <ActivityProfileBadge
+                entityType="contact"
+                entityId={id!}
+                currentProfile={entityProfile}
+                currentProfileId={(contact as any).activity_profile_id}
+              />
+              <InlineHeaderTags
+                tags={contact.tags || []}
+                onTagsChange={(newTags) => handleFieldChange('tags' as keyof ENIContact, newTags)}
+              />
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {contact.email && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowEmailDialog(true)} 
-                className="gap-1.5"
-              >
-                <Mail className="w-3.5 h-3.5" />
-                {t('common:sendEmail')}
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleGenerateInsights}
-              disabled={analyzeContact.isPending}
-              className="gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              {analyzeContact.isPending ? t('common:analyzing') : t('common:analyzeWithAI')}
+          <div className="flex shrink-0 items-center gap-2">
+            <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
+            <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
+              <FileText className="w-4 h-4" />
+              {t('common:newInvoice')}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8">
+                <Button variant="outline" size="icon" aria-label="Mais ações">
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56">
+                {contact.email && (
+                  <DropdownMenuItem onClick={() => setShowEmailDialog(true)} className="gap-2">
+                    <Mail className="w-4 h-4" />
+                    {t('common:sendEmail')}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  disabled={analyzeContact.isPending}
+                  onSelect={(e) => { e.preventDefault(); handleGenerateInsights(); }}
+                  className="gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {analyzeContact.isPending ? t('common:analyzing') : t('common:analyzeWithAI')}
+                </DropdownMenuItem>
                 {contact.email && (
                   <InviteClientDialog
                     trigger={
@@ -615,10 +611,6 @@ export function ENIContactDetailWithSidebar() {
                     }}
                   />
                 )}
-                <DropdownMenuItem onClick={() => setShowInvoiceDialog(true)} className="gap-2">
-                  <FileText className="w-4 h-4" />
-                  {t('common:newInvoice')}
-                </DropdownMenuItem>
                 {(role === 'owner' || role === 'admin') && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

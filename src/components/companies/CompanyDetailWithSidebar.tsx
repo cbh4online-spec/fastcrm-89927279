@@ -14,6 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,8 +40,9 @@ import {
   Globe,
   Mail,
   Phone,
-  Wand2,
-  FileText
+  Wand2, 
+  FileText,
+  MoreHorizontal
 } from "lucide-react";
 import { toast } from "sonner";
 import { NifLookupResult } from "@/hooks/useNifLookup";
@@ -132,6 +140,7 @@ export function CompanyDetailWithSidebar() {
   const [prefillContactData, setPrefillContactData] = useState<SuggestedContact | null>(null);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [firecrawlEnriching, setFirecrawlEnriching] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
   const company = companies.find(c => c.id === id);
   const showEnrichButton = isModuleInstalled('google-local-services');
@@ -494,159 +503,165 @@ export function CompanyDetailWithSidebar() {
       </div>
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-background via-background to-muted/30 border-b px-6 py-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/companies")} className="shrink-0">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <EntityRecordPager navigation={companyNavigation} label="Empresa" className="shrink-0" />
-            <EntityAvatarUpload
-              name={company.name}
-              value={(company as any).avatar_url}
-              onChange={(url) => handleFieldChange('avatar_url' as keyof Company, url)}
-              workspaceId={currentWorkspace?.id ?? ''}
-              folder="companies"
-              size="md"
-            />
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold text-foreground">{company.name}</h1>
-                <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30 font-medium">
-                  Empresa
-                </Badge>
-                {/* Activity Profile Badge */}
-                <ActivityProfileBadge
-                  entityType="company"
-                  entityId={id!}
-                  currentProfile={entityProfile}
-                  currentProfileId={company.activity_profile_id}
-                />
-                {company.industry && (
-                  <Badge variant="secondary" className="font-normal max-w-[200px] truncate" title={company.industry}>
+      <div className="border-b bg-background px-6 py-4">
+        <div className="flex items-start gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/dashboard/companies")}
+            className="shrink-0"
+            aria-label="Voltar às empresas"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+
+          <EntityAvatarUpload
+            name={company.name}
+            value={(company as any).avatar_url}
+            onChange={(url) => handleFieldChange('avatar_url' as keyof Company, url)}
+            workspaceId={currentWorkspace?.id ?? ''}
+            folder="companies"
+            size="md"
+            compact
+            className="shrink-0"
+          />
+
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {company.name}
+            </h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              <span>Empresa</span>
+              {company.industry && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="max-w-[240px] truncate" title={company.industry}>
                     {generateIndustrySummary(company.industry)}
-                  </Badge>
-                )}
-                <InlineHeaderTags
-                  tags={company.tags || []}
-                  onTagsChange={(newTags) => handleFieldChange('tags', newTags)}
-                />
-              </div>
-              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                  </span>
+                </>
+              )}
+              <span aria-hidden="true">·</span>
+              <span className="inline-flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
                 Atualizado há {getTimeAgo(new Date(company.updated_at))}
-              </p>
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <ActivityProfileBadge
+                entityType="company"
+                entityId={id!}
+                currentProfile={entityProfile}
+                currentProfileId={company.activity_profile_id}
+              />
+              <InlineHeaderTags
+                tags={company.tags || []}
+                onTagsChange={(newTags) => handleFieldChange('tags', newTags)}
+              />
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {company.website && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" asChild>
-                      <a href={company.website.startsWith('http') ? company.website : `https://${company.website}`} target="_blank" rel="noopener noreferrer">
-                        <Globe className="w-4 h-4" />
-                      </a>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Visitar Website</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            {company.email && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" asChild>
-                      <a href={`mailto:${company.email}`}><Mail className="w-4 h-4" /></a>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Enviar E-mail</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            {company.phone && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" asChild>
-                      <a href={`tel:${company.phone}`}><Phone className="w-4 h-4" /></a>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Ligar</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            {showEnrichButton && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" onClick={() => setEnrichDialogOpen(true)} className="gap-2">
-                      <Wand2 className="w-4 h-4" />
-                      Enriquecer
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Enriquecer dados</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            {company.website && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        setFirecrawlEnriching(true);
-                        try {
-                          const { supabase } = await import("@/integrations/supabase/client");
-                          const { data, error } = await supabase.functions.invoke('firecrawl-company-enrich', {
-                            body: { company_id: company.id, website_url: company.website, workspace_id: currentWorkspace?.id },
-                          });
-                          if (error) throw error;
-                          if (data?.data) {
-                            toast.success("Empresa enriquecida com dados do website!");
-                            queryClient.invalidateQueries({ queryKey: ["companies"] });
-                          } else {
-                            toast.info("Dados extraídos parcialmente");
-                          }
-                        } catch (e: any) {
-                          toast.error(`Erro ao enriquecer: ${e.message}`);
-                        } finally {
-                          setFirecrawlEnriching(false);
-                        }
-                      }}
-                      disabled={firecrawlEnriching}
-                      className="gap-2"
-                    >
-                      <Globe className="w-4 h-4" />
-                      {firecrawlEnriching ? "A analisar..." : "Enriquecer Web"}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Enriquecer com dados do website via Firecrawl</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            <Button variant="outline" onClick={() => setShowInvoiceDialog(true)} className="gap-2">
+          <div className="flex shrink-0 items-center gap-2">
+            <EntityRecordPager navigation={companyNavigation} label="Empresa" className="shrink-0" />
+            <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
               <FileText className="w-4 h-4" />
               Nova Fatura
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleGenerateSuggestions}
-              disabled={generateSuggestions.isPending}
-              className="gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              {generateSuggestions.isPending ? "A analisar..." : "Analisar IA"}
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive">
-                  <Trash2 className="w-4 h-4" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Mais ações">
+                  <MoreHorizontal className="w-4 h-4" />
                 </Button>
-              </AlertDialogTrigger>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {company.website && (
+                  <DropdownMenuItem asChild>
+                    <a
+                      href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Globe className="mr-2 h-4 w-4" />
+                      Visitar website
+                    </a>
+                  </DropdownMenuItem>
+                )}
+                {company.email && (
+                  <DropdownMenuItem asChild>
+                    <a href={`mailto:${company.email}`}>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Enviar e-mail
+                    </a>
+                  </DropdownMenuItem>
+                )}
+                {company.phone && (
+                  <DropdownMenuItem asChild>
+                    <a href={`tel:${company.phone}`}>
+                      <Phone className="mr-2 h-4 w-4" />
+                      Ligar
+                    </a>
+                  </DropdownMenuItem>
+                )}
+                {(company.website || company.email || company.phone) && <DropdownMenuSeparator />}
+                {showEnrichButton && (
+                  <DropdownMenuItem onClick={() => setEnrichDialogOpen(true)}>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Enriquecer dados
+                  </DropdownMenuItem>
+                )}
+                {company.website && (
+                  <DropdownMenuItem
+                    disabled={firecrawlEnriching}
+                    onSelect={async (event) => {
+                      event.preventDefault();
+                      setFirecrawlEnriching(true);
+                      try {
+                        const { supabase } = await import("@/integrations/supabase/client");
+                        const { data, error } = await supabase.functions.invoke('firecrawl-company-enrich', {
+                          body: { company_id: company.id, website_url: company.website, workspace_id: currentWorkspace?.id },
+                        });
+                        if (error) throw error;
+                        if (data?.data) {
+                          toast.success("Empresa enriquecida com dados do website!");
+                          queryClient.invalidateQueries({ queryKey: ["companies"] });
+                        } else {
+                          toast.info("Dados extraídos parcialmente");
+                        }
+                      } catch (e: any) {
+                        toast.error(`Erro ao enriquecer: ${e.message}`);
+                      } finally {
+                        setFirecrawlEnriching(false);
+                      }
+                    }}
+                  >
+                    <Globe className="mr-2 h-4 w-4" />
+                    {firecrawlEnriching ? "A analisar website..." : "Enriquecer com website"}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  disabled={generateSuggestions.isPending}
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    handleGenerateSuggestions();
+                  }}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {generateSuggestions.isPending ? "A analisar..." : "Analisar IA"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    setArchiveDialogOpen(true);
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Arquivar empresa
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Arquivar Empresa</AlertDialogTitle>
