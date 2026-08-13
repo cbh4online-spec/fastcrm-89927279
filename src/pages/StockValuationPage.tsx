@@ -68,6 +68,21 @@ const emptyFilters: Filters = {
 
 const PAGE_SIZES = [25, 50, 100, 200];
 
+interface ColumnPrefs {
+  stock: boolean;
+  cost: boolean;
+  sale: boolean;
+  margin: boolean;
+}
+const DEFAULT_COLS: ColumnPrefs = { stock: true, cost: true, sale: true, margin: true };
+const COLS_STORAGE_KEY = "stock-valuation:columns";
+const COLUMN_LABELS: { key: keyof ColumnPrefs; label: string }[] = [
+  { key: "stock", label: "Stock" },
+  { key: "cost", label: "Custo" },
+  { key: "sale", label: "PVP" },
+  { key: "margin", label: "Lucro / Markup" },
+];
+
 export default function StockValuationPage() {
   const navigate = useNavigate();
   const { rows, summary, isLoading, isFetching, refetch } = useInventoryValuation();
