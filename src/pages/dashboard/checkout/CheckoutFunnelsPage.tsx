@@ -42,7 +42,7 @@ export default function CheckoutFunnelsPage() {
   function handleCreate() {
     const parsed = funnelSchema.safeParse({ name, slug: normalizeSlug(slug) });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
-    createFunnel.mutate(parsed.data, {
+    createFunnel.mutate({ name: parsed.data.name!, slug: parsed.data.slug!, description: parsed.data.description }, {
       onSuccess: (created: any) => {
         setOpen(false); setName(""); setSlug("");
         navigate(`/dashboard/checkout/${created.id}`);
