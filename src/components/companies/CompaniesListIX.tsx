@@ -203,28 +203,35 @@ function renderCell(col: string, c: Company, fin: CompanyFinancials | undefined)
     case "size": return <span className="text-sm text-foreground">{c.size || "—"}</span>;
     case "country": return <span className="text-sm text-foreground">{c.country || "—"}</span>;
     case "client_number": return <span className="text-sm text-foreground">{c.client_number || "—"}</span>;
-    case "abc_category": return <span className="text-sm font-semibold text-foreground">{c.abc_category || "—"}</span>;
+    case "abc_category":
+      return c.abc_category ? (
+        <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", abcToneClass(c.abc_category))}>
+          {c.abc_category}
+        </span>
+      ) : (
+        <span className="text-sm text-muted-foreground/60">—</span>
+      );
     case "pare_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">PARE</span><div className="text-sm font-semibold">{c.pare_score ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.pare_score))}>{c.pare_score ?? 0}</span></div>;
     case "icp_fit_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">ICP</span><div className="text-sm font-semibold">{c.icp_fit_score ?? 0}</div></div>;
-    case "total_revenue": return moneyCell("Faturação", fin?.net_total ?? c.total_revenue);
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.icp_fit_score))}>{c.icp_fit_score ?? 0}</span></div>;
+    case "total_revenue": return moneyCell("revenue", fin?.net_total ?? c.total_revenue);
     case "average_ticket":
-      return moneyCell("Ticket médio", fin && fin.invoice_count > 0 ? fin.net_total / fin.invoice_count : c.average_ticket);
-    case "sales_2026": return moneyCell("2026", fin?.sales_2026 ?? c.sales_2026);
-    case "sales_2025": return moneyCell("2025", fin?.sales_2025 ?? c.sales_2025);
-    case "sales_2024": return moneyCell("2024", fin?.sales_2024 ?? c.sales_2024);
+      return moneyCell("revenue", fin && fin.invoice_count > 0 ? fin.net_total / fin.invoice_count : c.average_ticket);
+    case "sales_2026": return salesCell(fin?.sales_2026 ?? c.sales_2026, fin?.sales_2025);
+    case "sales_2025": return salesCell(fin?.sales_2025 ?? c.sales_2025, fin?.sales_2024);
+    case "sales_2024": return salesCell(fin?.sales_2024 ?? c.sales_2024, fin?.sales_2023);
     case "payment_status": return paymentStatusCell(fin);
-    case "paid_total": return moneyCell("Pago", fin?.paid_total ?? 0);
-    case "pending_total": return moneyCell("Pendente", fin?.pending_total ?? 0);
-    case "overdue_total": return moneyCell("Vencido", fin?.overdue_total ?? 0);
+    case "paid_total": return moneyCell("paid", fin?.paid_total ?? 0);
+    case "pending_total": return moneyCell("pending", fin?.pending_total ?? 0);
+    case "overdue_total": return moneyCell("overdue", fin?.overdue_total ?? 0);
     case "invoice_count":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">Faturas</span><div className="text-sm font-semibold">{fin?.invoice_count ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", (fin?.invoice_count ?? 0) > 0 ? "text-foreground" : "text-muted-foreground/60")}>{fin?.invoice_count ?? 0}</span></div>;
     case "last_purchase_date":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Última compra</div><div className="font-medium text-foreground">{formatDate(fin?.last_invoice_date ?? c.last_purchase_date)}</div></div>;
+      return <div className="w-full text-right text-sm text-foreground">{formatDate(fin?.last_invoice_date ?? c.last_purchase_date)}</div>;
 
     case "created_at":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Criado</div><div className="font-medium text-foreground">{formatDate(c.created_at)}</div></div>;
+      return <div className="w-full text-right text-sm text-muted-foreground">{formatDate(c.created_at)}</div>;
     case "tags":
       return (
         <div className="flex flex-wrap gap-1">
