@@ -36,8 +36,14 @@ export function ArchiveEntityDialog({ entity, ids, open, onOpenChange, onDone, w
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) setReason("");
+        onOpenChange(o);
+      }}
+    >
+      <AlertDialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <AlertDialogHeader>
           <AlertDialogTitle>
             {ids.length > 1 ? `Arquivar ${ids.length} registos` : `Arquivar ${label}`}
@@ -53,6 +59,7 @@ export function ArchiveEntityDialog({ entity, ids, open, onOpenChange, onDone, w
           <Label htmlFor="archive-reason">Motivo (opcional)</Label>
           <Textarea
             id="archive-reason"
+            autoFocus
             value={reason}
             onChange={(e) => setReason(e.target.value.slice(0, 300))}
             placeholder="Ex.: cliente inativo desde 2024"
