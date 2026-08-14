@@ -33,6 +33,7 @@ export default function Automations() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("recipes");
   const [searchValue, setSearchValue] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [duplicatesOpen, setDuplicatesOpen] = useState(false);
 
   const { data: rules, isLoading: rulesLoading } = useAutomationRules();
   const { data: allLogs, isLoading: logsLoading } = useAutomationLogs();
