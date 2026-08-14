@@ -146,6 +146,26 @@ export default function Automations() {
           </div>
         </PageHeader>
 
+        {/* Aviso de duplicados */}
+        {!isLoading && duplicateGroups.length > 0 && (
+          <Alert className="border-amber-500/40 bg-amber-500/5">
+            <CopyCheck className="h-4 w-4 text-amber-500" />
+            <AlertTitle>
+              {duplicateGroups.length} grupo(s) de regras duplicadas detetado(s)
+            </AlertTitle>
+            <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm">
+                {redundantCount} regra(s) redundante(s) com o mesmo nome e gatilho podem provocar
+                execuções repetidas.
+              </span>
+              <Button size="sm" variant="outline" onClick={() => setDuplicatesOpen(true)}>
+                Rever duplicados
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="hover:border-primary/50 transition-colors">
