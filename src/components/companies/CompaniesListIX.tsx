@@ -293,7 +293,7 @@ export function CompaniesListIX() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [all, search, sortBy, sortDir, financialsById]);
+  }, [all, search, sortBy, sortDir, financialsById, onlyOverdue]);
 
 
   const totalCount = filtered.length;
@@ -302,6 +302,40 @@ export function CompaniesListIX() {
     () => availableColumns.filter((c) => columns.includes(c.key)).map((c) => c.key),
     [availableColumns, columns],
   );
+
+  const kpis = useMemo<ListKPI[]>(() => {
+    let revenue = 0, paid = 0, pending = 0, overdue = 0, invoices = 0, active = 0;
+    const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
+    for (const c of filtered) {
+      const f = financialsById.get(c.id);
+      if (!f) continue;
+      revenue += f.net_total;
+      paid += f.paid_total;
+      pending += f.pending_total;
+      overdue += f.overdue_total;
+      invoices += f.invoice_count;
+      const last = f.last_invoice_date ? new Date(f.last_invoice_date).getTime() : 0;
+      if (last >= cutoff) active += 1;
+    }
+    const ticket = invoices > 0 ? revenue / invoices : 0;
+    return [
+      { key: "revenue", label: "Faturação (s/IVA)", value: formatCurrency(revenue), icon: Euro, tone: "primary", hint: `${invoices} faturas` },
+      { key: "paid", label: "Recebido", value: formatCurrency(paid), icon: Wallet, tone: paid > 0 ? "success" : "neutral" },
+      { key: "pending", label: "Pendente", value: formatCurrency(pending), icon: Clock, tone: pending > 0.01 ? "warning" : "neutral" },
+      {
+        key: "overdue",
+        label: "Vencido",
+        value: formatCurrency(overdue),
+        icon: AlertTriangle,
+        tone: overdue > 0.01 ? "danger" : "neutral",
+        hint: onlyOverdue ? "A filtrar" : "Clique para filtrar",
+        active: onlyOverdue,
+        onClick: () => { setOnlyOverdue((v) => !v); setPage(0); },
+      },
+      { key: "ticket", label: "Ticket médio", value: formatCurrency(ticket), icon: Receipt, tone: "neutral" },
+      { key: "active", label: "Clientes ativos", value: String(active), icon: Users, tone: "neutral", hint: "com faturação a 12 meses" },
+    ];
+  }, [filtered, financialsById, onlyOverdue]);
 
   return (
     <DocumentListLayout
