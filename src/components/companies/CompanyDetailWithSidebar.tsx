@@ -110,6 +110,7 @@ import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRis
 import { InvoiceHistorySection } from "@/components/contacts/eni/sections/InvoiceHistorySection";
 import { CompanyFinancingSection } from "./sections/CompanyFinancingSection";
 import { WhatsAppCallButton } from "@/components/voice/WhatsAppCallButton";
+import { WhatsAppMessageButton } from "@/components/whatsapp/WhatsAppMessageButton";
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
