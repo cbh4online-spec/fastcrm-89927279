@@ -24,9 +24,9 @@ export function PageBreadcrumbs({ items }: PageBreadcrumbsProps) {
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link to="/dashboard" className="flex items-center gap-1">
+            <Link to="/dashboard" className="flex items-center gap-1.5">
               <Home className="w-3.5 h-3.5" />
-              <span className="sr-only">Dashboard</span>
+              <span>Dashboard</span>
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
