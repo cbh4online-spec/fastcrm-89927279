@@ -36,8 +36,13 @@ export function matchAccountId(stored: string, candidate: string): boolean {
   if (!stored || !candidate) return false;
   if (stored === candidate) return true;
   if (stored.endsWith(`_${candidate}`)) return true;
-  return stored.includes(candidate);
+  if (stored.includes(candidate)) return true;
+  // Phone-like candidates (WhatsApp): compare digits only (+351 912 → 351912)
+  const digits = candidate.replace(/\D/g, "");
+  if (digits.length >= 9 && stored.replace(/\D/g, "").includes(digits)) return true;
+  return false;
 }
+
 
 /**
  * Extract every plausible page/account identifier from a GHL conversation
@@ -127,6 +132,88 @@ export function resolveWorkspaceFromAccountIds(
   }
   return null;
 }
+
+export interface WorkspaceConfigRow {
+  workspace_id: string;
+  sync_messages?: boolean;
+  is_primary?: boolean;
+}
+
+export type RoutingMethod =
+  | "single_config"
+  | "account_id_match"
+  | "non_social_fallback";
+
+export type RoutingFailureReason =
+  | "no_workspace_owns_account_id"
+  | "social_channel_missing_account_id"
+  | "ambiguous_account_id_match";
+
+export type RoutingDecision =
+  | { ok: true; workspaceId: string; method: RoutingMethod; matchedAccountId?: string }
+  | { ok: false; reason: RoutingFailureReason; candidateWorkspaces: string[] };
+
+/**
+ * Deterministic, isolation-safe workspace resolution for an inbound GHL message.
+ *
+ * Rules:
+ *  - `configs` MUST already be filtered by the payload's location id.
+ *  - Exactly one config for the location → that workspace.
+ *  - Social channel (instagram/facebook/whatsapp) on a SHARED location → the
+ *    account id in the payload must match exactly ONE workspace channel.
+ *    No match, no account id, or more than one candidate workspace matching
+ *    → fail closed (never guess, never fall back to `is_primary`).
+ *  - Non-social channels (sms/email/chat/voice) keep the primary fallback.
+ */
+export function resolveWorkspaceForMessage(params: {
+  configs: WorkspaceConfigRow[];
+  channels: SocialChannelRow[];
+  socialType: string | null;
+  candidateAccountIds: string[];
+}): RoutingDecision {
+  const { configs, channels, socialType, candidateAccountIds } = params;
+  const candidateWorkspaces = configs.map(c => c.workspace_id);
+
+  if (configs.length === 1) {
+    return { ok: true, workspaceId: configs[0].workspace_id, method: "single_config" };
+  }
+
+  if (socialType) {
+    if (!candidateAccountIds.length) {
+      return { ok: false, reason: "social_channel_missing_account_id", candidateWorkspaces };
+    }
+
+    const eligible = channels.filter(
+      c => c.is_active && c.channel_type === socialType && candidateWorkspaces.includes(c.workspace_id),
+    );
+
+    const matches = eligible.filter(ch =>
+      candidateAccountIds.some(cand => matchAccountId(String(ch.ghl_account_id), String(cand))),
+    );
+
+    const distinctWorkspaces = Array.from(new Set(matches.map(m => m.workspace_id)));
+
+    if (distinctWorkspaces.length === 1) {
+      return {
+        ok: true,
+        workspaceId: distinctWorkspaces[0],
+        method: "account_id_match",
+        matchedAccountId: matches[0].ghl_account_id,
+      };
+    }
+
+    if (distinctWorkspaces.length > 1) {
+      // Same account id claimed by several workspaces on a shared location.
+      return { ok: false, reason: "ambiguous_account_id_match", candidateWorkspaces };
+    }
+
+    return { ok: false, reason: "no_workspace_owns_account_id", candidateWorkspaces };
+  }
+
+  const primary = configs.find(c => c.is_primary) ?? configs[0];
+  return { ok: true, workspaceId: primary.workspace_id, method: "non_social_fallback" };
+}
+
 
 /**
  * Fetch conversation detail from GHL API.

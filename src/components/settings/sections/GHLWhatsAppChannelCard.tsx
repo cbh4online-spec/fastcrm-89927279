@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
@@ -22,6 +24,8 @@ export function GHLWhatsAppChannelCard() {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const [isActivating, setIsActivating] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery<DiagnosticState>({
     queryKey: ["ghl-whatsapp-diagnostic", workspaceId],
@@ -70,8 +74,15 @@ export function GHLWhatsAppChannelCard() {
     enabled: !!workspaceId,
   });
 
+  const isShared = (data?.sharedLocationWorkspaces ?? 0) > 1;
+  const phoneDigits = phoneNumber.replace(/\D/g, "");
+
   const handleActivate = async () => {
     if (!workspaceId || !data?.locationId) return;
+    if (isShared && phoneDigits.length < 9) {
+      toast.error("Indique o número WhatsApp deste workspace (location partilhada)");
+      return;
+    }
     setIsActivating(true);
     try {
       if (data.channels.length > 0) {
@@ -82,14 +93,15 @@ export function GHLWhatsAppChannelCard() {
           .eq("channel_type", "whatsapp");
         if (error) throw error;
       } else {
+        const accountId = isShared ? `${data.locationId}_${phoneDigits}` : data.locationId;
         const { error } = await supabase
           .from("workspace_ghl_social_channels")
           .upsert(
             {
               workspace_id: workspaceId,
               channel_type: "whatsapp",
-              ghl_account_id: data.locationId,
-              account_name: "WhatsApp (GHL)",
+              ghl_account_id: accountId,
+              account_name: isShared ? `WhatsApp (GHL) +${phoneDigits}` : "WhatsApp (GHL)",
               is_active: true,
             },
             { onConflict: "workspace_id,channel_type,ghl_account_id" }
@@ -105,6 +117,7 @@ export function GHLWhatsAppChannelCard() {
       setIsActivating(false);
     }
   };
+
 
   const handleDeactivate = async () => {
     if (!workspaceId) return;
@@ -198,16 +211,28 @@ export function GHLWhatsAppChannelCard() {
               />
             </div>
 
-            {data.sharedLocationWorkspaces > 1 && (
+            {isShared && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Esta location é partilhada por {data.sharedLocationWorkspaces} workspaces. A ativação
-                  aplica-se apenas a este workspace — as mensagens continuam encaminhadas pela conta GHL
-                  correspondente.
+                <AlertDescription className="text-xs space-y-2">
+                  <p>
+                    Esta location é partilhada por {data.sharedLocationWorkspaces} workspaces. Para o
+                    encaminhamento não ficar ambíguo, indique o número WhatsApp que pertence a este
+                    workspace — mensagens sem correspondência são rejeitadas (nunca vão para o workspace errado).
+                  </p>
+                  {!isActive && (
+                    <Input
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+351 912 345 678"
+                      aria-label="Número WhatsApp deste workspace"
+                      className="h-8 bg-background"
+                    />
+                  )}
                 </AlertDescription>
               </Alert>
             )}
+
 
             {isActive ? (
               <Button
