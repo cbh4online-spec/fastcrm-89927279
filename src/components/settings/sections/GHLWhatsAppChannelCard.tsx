@@ -22,6 +22,8 @@ export function GHLWhatsAppChannelCard() {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const [isActivating, setIsActivating] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery<DiagnosticState>({
     queryKey: ["ghl-whatsapp-diagnostic", workspaceId],
