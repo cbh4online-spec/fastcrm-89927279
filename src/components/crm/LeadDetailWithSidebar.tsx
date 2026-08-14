@@ -458,12 +458,20 @@ export function LeadDetailWithSidebar() {
           <div className="flex items-center gap-2">
             <EntityRecordPager navigation={leadNavigation} label="Lead" className="shrink-0" />
             {lead.phone && (
-              <WhatsAppCallButton
-                phone={lead.phone}
-                entityType="lead"
-                entityId={lead.id}
-                entityName={lead.name}
-              />
+              <>
+                <WhatsAppCallButton
+                  phone={lead.phone}
+                  entityType="lead"
+                  entityId={lead.id}
+                  entityName={lead.name}
+                />
+                <WhatsAppMessageButton
+                  phone={lead.phone}
+                  entityType="lead"
+                  entityId={lead.id}
+                  entityName={lead.name}
+                />
+              </>
             )}
             <GHLCallButton
               entityType="lead"
