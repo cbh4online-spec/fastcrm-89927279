@@ -452,7 +452,19 @@ export function LeadDetailWithSidebar() {
             onClick: () => setConfirmDelete(true),
           },
         ]}
-        rightExtras={<EntityRecordPager navigation={leadNavigation} label="Lead" className="shrink-0" />}
+        rightExtras={
+          <div className="flex items-center gap-2">
+            <EntityRecordPager navigation={leadNavigation} label="Lead" className="shrink-0" />
+            {lead.phone && (
+              <WhatsAppCallButton
+                phone={lead.phone}
+                entityType="lead"
+                entityId={lead.id}
+                entityName={lead.name}
+              />
+            )}
+          </div>
+        }
       />
 
       {/* Hidden ConvertLeadDialog trigger to preserve existing dialog flow */}
