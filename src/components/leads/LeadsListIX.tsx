@@ -115,38 +115,38 @@ function renderCell(col: string, lead: SmartLead) {
     }
     case "score":
       return (
-        <div className="text-right">
-          <span className="text-xs text-muted-foreground">Score</span>
-          <div className="text-sm font-semibold">{lead.lead_score ?? 0}</div>
+        <div className="w-full text-right">
+          <span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(lead.lead_score))}>
+            {lead.lead_score ?? 0}
+          </span>
         </div>
       );
     case "value":
       return (
-        <div className="text-right">
-          <span className="text-xs text-muted-foreground">Valor</span>
-          <div className="text-sm font-semibold">
+        <div className="w-full text-right">
+          <span className={cn("text-sm font-semibold tabular-nums", moneyToneClass("revenue", lead.estimated_value || 0))}>
             {formatCurrency(lead.estimated_value || 0)}
-          </div>
+          </span>
         </div>
       );
     case "created_at":
       return (
-        <div className="text-right text-xs">
-          <div className="text-muted-foreground">Criado</div>
-          <div className="font-medium text-foreground">
-            {formatDate(lead.created_at)}
-          </div>
+        <div className="w-full text-right text-sm text-muted-foreground">
+          {formatDate(lead.created_at)}
         </div>
       );
-    case "last_contact":
+    case "last_contact": {
+      const ts = lead.last_contact_at ? new Date(lead.last_contact_at).getTime() : 0;
+      const stale = ts > 0 && Date.now() - ts > 14 * 24 * 60 * 60 * 1000;
       return (
-        <div className="text-right text-xs">
-          <div className="text-muted-foreground">Último contacto</div>
-          <div className="font-medium text-foreground">
-            {formatDate(lead.last_contact_at)}
-          </div>
+        <div className={cn(
+          "w-full text-right text-sm",
+          !ts ? "text-destructive" : stale ? "text-warning font-medium" : "text-foreground",
+        )}>
+          {ts ? formatDate(lead.last_contact_at) : "Nunca"}
         </div>
       );
+    }
     case "assigned_to":
       return (
         <span className="truncate text-sm text-foreground">
