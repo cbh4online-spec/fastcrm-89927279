@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { GHLWhatsAppChannelCard } from "@/components/settings/sections/GHLWhatsAppChannelCard";
 
 interface SocialChannelInfo {
   id: string;
