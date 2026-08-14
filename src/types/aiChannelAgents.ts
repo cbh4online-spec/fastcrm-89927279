@@ -182,9 +182,16 @@ export interface AIAgentSettings {
   workingDays?: number[];
   timezone?: string;
   
-  // Handoff
+  // Handoff (escalamento para humano) — Fase 2
   autoHandoffEnabled?: boolean;
   handoffKeywords?: string[];
+  handoffIntents?: string[];
+  handoffIntentThreshold?: number;
+  handoffOnNegativeSentiment?: boolean;
+  handoffAfterBotMessages?: number | null;
+  handoffNotificationMessage?: string | null;
+  handoffAssignToUserId?: string | null;
+
   
   // Channel-specific
   [key: string]: unknown;
