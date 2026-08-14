@@ -303,6 +303,13 @@ export default function Automations() {
         ruleId={logsRuleId}
         ruleName={logsRuleName}
       />
+
+      <DuplicateRulesDialog
+        open={duplicatesOpen}
+        onOpenChange={setDuplicatesOpen}
+        groups={duplicateGroups}
+        executionsByRule={executionsByRule}
+      />
     </DashboardLayout>
   );
 }
