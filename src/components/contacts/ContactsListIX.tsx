@@ -18,7 +18,7 @@ import { LoadingSpinner, EmptyState } from "@/components/design-system";
 import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
 import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
-import { EntityArchiveBlockActions } from "@/components/entity/EntityArchiveBlockActions";
+import { EntityArchiveBlockActions, EntityArchiveBlockDialogs, type EntityActionRequest } from "@/components/entity/EntityArchiveBlockActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -122,6 +122,7 @@ export function ContactsListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const { isElementVisible } = usePageElementVisibility("contacts");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
@@ -238,6 +239,8 @@ export function ContactsListIX() {
                       isBlocked={(c as any).is_blocked}
                       archivedAt={(c as any).archived_at}
                       withSeparator={false}
+                      onRequestBlock={(rid) => setEntityAction({ action: "block", id: rid })}
+                      onRequestArchive={(rid) => setEntityAction({ action: "archive", id: rid })}
                     />
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -256,6 +259,11 @@ export function ContactsListIX() {
       )}
 
       <CreateContactDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <EntityArchiveBlockDialogs
+        entity="contact"
+        request={entityAction}
+        onOpenChange={(o) => { if (!o) setEntityAction(null); }}
+      />
     </DocumentListLayout>
   );
 }

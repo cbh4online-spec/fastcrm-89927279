@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
 import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
-import { EntityArchiveBlockActions } from "@/components/entity/EntityArchiveBlockActions";
+import { EntityArchiveBlockActions, EntityArchiveBlockDialogs, type EntityActionRequest } from "@/components/entity/EntityArchiveBlockActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -192,6 +192,7 @@ export function LeadsListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const { columns, setColumns } = useLeadColumns();
 
   const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
@@ -319,6 +320,8 @@ export function LeadsListIX() {
                       isBlocked={(lead as any).is_blocked}
                       archivedAt={(lead as any).archived_at}
                       withSeparator={false}
+                      onRequestBlock={(rid) => setEntityAction({ action: "block", id: rid })}
+                      onRequestArchive={(rid) => setEntityAction({ action: "archive", id: rid })}
                     />
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -353,6 +356,11 @@ export function LeadsListIX() {
       )}
 
       <CreateLeadDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <EntityArchiveBlockDialogs
+        entity="lead"
+        request={entityAction}
+        onOpenChange={(o) => { if (!o) setEntityAction(null); }}
+      />
     </DocumentListLayout>
   );
 }
