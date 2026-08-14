@@ -152,6 +152,14 @@ export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [testRule, setTestRule] = useState<AutomationRule | null>(null);
 
+  const duplicateIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const group of detectDuplicateRules(rules)) {
+      for (const rule of group.rules) ids.add(rule.id);
+    }
+    return ids;
+  }, [rules]);
+
   const handleDelete = () => {
     if (deleteId) {
       deleteRule.mutate(deleteId);
