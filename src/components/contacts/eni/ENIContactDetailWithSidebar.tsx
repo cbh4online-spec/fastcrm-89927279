@@ -570,12 +570,21 @@ export function ENIContactDetailWithSidebar() {
           <div className="flex shrink-0 items-center gap-2">
             <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
             {contact.phone && (
-              <WhatsAppCallButton
-                phone={contact.phone}
-                entityType="contact"
-                entityId={contact.id}
-                entityName={contact.name}
-              />
+              <>
+                <WhatsAppCallButton
+                  phone={contact.phone}
+                  entityType="contact"
+                  entityId={contact.id}
+                  entityName={contact.name}
+                />
+                <WhatsAppMessageButton
+                  phone={contact.phone}
+                  entityType="contact"
+                  entityId={contact.id}
+                  entityName={contact.name}
+                  companyName={contact.company}
+                />
+              </>
             )}
             <GHLCallButton
               entityType="contact"
