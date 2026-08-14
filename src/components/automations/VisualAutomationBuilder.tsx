@@ -533,6 +533,21 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
       return;
     }
 
+    // Prevenir regras duplicadas (mesmo nome + gatilho no workspace)
+    const duplicate = (existingRules ?? []).find(
+      (r) =>
+        r.id !== editRule?.id &&
+        r.trigger === values.trigger &&
+        normalizeRuleName(r.name) === normalizeRuleName(values.name)
+    );
+    if (duplicate) {
+      toast.error(
+        `Já existe uma regra com o nome "${duplicate.name}" para este gatilho. Edite a regra existente ou escolha outro nome.`
+      );
+      return;
+    }
+
+
     const payload = {
       name: values.name,
       description: values.description,
