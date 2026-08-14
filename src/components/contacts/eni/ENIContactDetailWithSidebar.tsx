@@ -568,6 +568,14 @@ export function ENIContactDetailWithSidebar() {
 
           <div className="flex shrink-0 items-center gap-2">
             <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
+            {contact.phone && (
+              <WhatsAppCallButton
+                phone={contact.phone}
+                entityType="contact"
+                entityId={contact.id}
+                entityName={contact.name}
+              />
+            )}
             {isActionVisible('action', 'new-invoice') && (
               <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
                 <FileText className="w-4 h-4" />
