@@ -86,7 +86,7 @@ interface ProposalDetailContentProps {
 const statusConfig: Record<ProposalStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
   draft: { label: "Rascunho", variant: "secondary" },
   published: { label: "Publicada", variant: "default", className: "bg-blue-500 hover:bg-blue-600" },
-  accepted: { label: "Aceita", variant: "default", className: "bg-green-500 hover:bg-green-600" },
+  accepted: { label: "Aceite", variant: "default", className: "bg-green-500 hover:bg-green-600" },
   expired: { label: "Expirada", variant: "destructive" },
   rejected: { label: "Rejeitada", variant: "destructive" },
 };
