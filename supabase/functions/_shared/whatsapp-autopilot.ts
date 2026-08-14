@@ -43,6 +43,7 @@ export async function triggerWhatsAppAutopilot(
 
   if (agent) {
     agentSource = agent;
+    const agentSettings = (agent.settings ?? {}) as Record<string, any>;
     autopilotConfig = {
       id: agent.id,
       is_active: true,
@@ -59,16 +60,24 @@ export async function triggerWhatsAppAutopilot(
       timezone: agent.timezone || "Europe/Lisbon",
       out_of_hours_message: agent.out_of_hours_message || null,
       typing_indicator: agent.typing_indicator ?? true,
-      // Novos campos (defaults seguros — ai_agents ainda não os tem)
-      after_hours_only: false,
-      handoff_on_buying_intent: false,
-      handoff_intent_threshold: 0.75,
-      handoff_intents: ["sales"],
-      handoff_notification_message: null,
-      handoff_assign_to_user_id: null,
+      after_hours_only: agentSettings.afterHoursOnly === true,
+      // Handoff (Fase 2) — configurado em settings do agente
+      handoff_on_buying_intent: agentSettings.autoHandoffEnabled === true,
+      handoff_intent_threshold: typeof agentSettings.handoffIntentThreshold === "number"
+        ? agentSettings.handoffIntentThreshold
+        : 0.75,
+      handoff_intents: Array.isArray(agentSettings.handoffIntents) ? agentSettings.handoffIntents : ["sales"],
+      handoff_keywords: Array.isArray(agentSettings.handoffKeywords) ? agentSettings.handoffKeywords : [],
+      handoff_on_negative_sentiment: agentSettings.handoffOnNegativeSentiment === true,
+      handoff_after_bot_messages: typeof agentSettings.handoffAfterBotMessages === "number"
+        ? agentSettings.handoffAfterBotMessages
+        : null,
+      handoff_notification_message: agentSettings.handoffNotificationMessage || null,
+      handoff_assign_to_user_id: agentSettings.handoffAssignToUserId || null,
       config_scope: "channel",
       source: "ai_agent"
     };
+
     console.log("[WA-AUTOPILOT] Using ai_agents config", { agentId: agent.id, agentName: agent.name });
   }
 
@@ -313,29 +322,54 @@ export async function triggerWhatsAppAutopilot(
     console.warn("[WA-AUTOPILOT] auto-route failed", err);
   }
 
-  // 11.5. Handoff automático em intenção de compra
-  if (
-    autopilotConfig.handoff_on_buying_intent &&
-    detectedIntent &&
-    Array.isArray(autopilotConfig.handoff_intents) &&
-    autopilotConfig.handoff_intents.includes(detectedIntent.intent) &&
-    typeof detectedIntent.confidence === "number" &&
-    detectedIntent.confidence >= (autopilotConfig.handoff_intent_threshold ?? 0.75)
-  ) {
-    console.log("[WA-AUTOPILOT] Handoff triggered", {
-      intent: detectedIntent.intent,
-      confidence: detectedIntent.confidence,
-    });
+  // 11.5. Handoff automático (intenção, palavras-chave, sentimento, nº de respostas)
+  let handoffReason: string | null = null;
+
+  if (autopilotConfig.handoff_on_buying_intent) {
+    const lowerInbound = (lastInboundMessage || "").toLowerCase();
+    const keywords: string[] = Array.isArray(autopilotConfig.handoff_keywords)
+      ? autopilotConfig.handoff_keywords
+      : [];
+    const matchedKeyword = keywords.find((k: string) => k && lowerInbound.includes(k.toLowerCase()));
+
+    if (matchedKeyword) {
+      handoffReason = `keyword:${matchedKeyword}`;
+    } else if (
+      detectedIntent &&
+      Array.isArray(autopilotConfig.handoff_intents) &&
+      autopilotConfig.handoff_intents.includes(detectedIntent.intent) &&
+      typeof detectedIntent.confidence === "number" &&
+      detectedIntent.confidence >= (autopilotConfig.handoff_intent_threshold ?? 0.75)
+    ) {
+      handoffReason = `intent:${detectedIntent.intent} (${detectedIntent.confidence.toFixed(2)})`;
+    } else if (
+      autopilotConfig.handoff_on_negative_sentiment &&
+      detectedIntent?.intent === "complaint" &&
+      (detectedIntent.confidence ?? 0) >= 0.6
+    ) {
+      handoffReason = `negative_sentiment (${(detectedIntent.confidence ?? 0).toFixed(2)})`;
+    } else if (
+      typeof autopilotConfig.handoff_after_bot_messages === "number" &&
+      autopilotConfig.handoff_after_bot_messages > 0 &&
+      (messageCount ?? 0) >= autopilotConfig.handoff_after_bot_messages
+    ) {
+      handoffReason = `bot_messages:${messageCount}`;
+    }
+  }
+
+  if (handoffReason) {
+    console.log("[WA-AUTOPILOT] Handoff triggered", { reason: handoffReason });
 
     // Atualizar conversa: marcar como precisar humano + atribuir (se configurado)
     const conversationUpdate: Record<string, unknown> = {
       requires_human: true,
-      handoff_reason: `buying_intent:${detectedIntent.intent} (${detectedIntent.confidence.toFixed(2)})`,
+      handoff_reason: handoffReason,
       handoff_at: new Date().toISOString(),
     };
     if (autopilotConfig.handoff_assign_to_user_id) {
       conversationUpdate.assigned_to = autopilotConfig.handoff_assign_to_user_id;
     }
+
     await supabase.from("conversations").update(conversationUpdate).eq("id", conversationId);
 
     // Enviar mensagem de transição ao cliente, se configurada
@@ -368,12 +402,13 @@ export async function triggerWhatsAppAutopilot(
             user_id: m.user_id,
             type: "autopilot_handoff",
             title: "Conversa precisa de atenção humana",
-            message: `Auto-Pilot detetou intenção de compra (${detectedIntent!.intent}) e transferiu a conversa.`,
+            message: `Auto-Pilot escalou a conversa (${handoffReason}).`,
             metadata: {
               conversation_id: conversationId,
               lead_id: leadId,
-              intent: detectedIntent!.intent,
-              confidence: detectedIntent!.confidence,
+              reason: handoffReason,
+              intent: detectedIntent?.intent ?? null,
+              confidence: detectedIntent?.confidence ?? null,
             },
           }))
         );
@@ -388,13 +423,15 @@ export async function triggerWhatsAppAutopilot(
       conversation_id: conversationId,
       event_type: "handoff",
       event_data: {
-        intent: detectedIntent.intent,
-        confidence: detectedIntent.confidence,
+        reason: handoffReason,
+        intent: detectedIntent?.intent ?? null,
+        confidence: detectedIntent?.confidence ?? null,
         threshold: autopilotConfig.handoff_intent_threshold,
         assigned_to: autopilotConfig.handoff_assign_to_user_id || null,
         channel,
       },
     });
+
 
     return; // não gera resposta automática
   }

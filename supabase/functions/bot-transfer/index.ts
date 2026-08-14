@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
             // Log AI usage (fire-and-forget)
             try {
               logAIUsage({
-                workspace_id: workspace_id,
+                workspace_id: workspaceId,
                 feature: "bot-transfer",
                 model: "google/gemini-2.5-flash-lite",
                 tokens_input: aiData?.usage?.prompt_tokens ?? 0,

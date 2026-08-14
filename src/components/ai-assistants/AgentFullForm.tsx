@@ -22,9 +22,12 @@ import {
   Users,
   BookOpen,
   Workflow,
-  Moon
+  Moon,
+  UserCheck
 } from "lucide-react";
+import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
 import { AGENT_CHANNELS, type AIChannelAgent, type AgentChannel } from "@/types/aiChannelAgents";
+
 
 interface AgentFullFormProps {
   agent?: AIChannelAgent;
@@ -44,6 +47,15 @@ const WEEKDAYS = [
   { value: 6, label: "Sáb" },
   { value: 0, label: "Dom" },
 ];
+
+const HANDOFF_INTENTS = [
+  { value: "sales", label: "Intenção de compra" },
+  { value: "support", label: "Pedido de suporte" },
+  { value: "complaint", label: "Reclamação" },
+  { value: "question", label: "Dúvida" },
+];
+
+
 
 export function AgentFullForm({
   agent,
@@ -72,6 +84,15 @@ export function AgentFullForm({
     workingHoursStart?: string;
     workingHoursEnd?: string;
     workingDays?: number[];
+    outOfHoursMessage?: string | null;
+    autoHandoffEnabled?: boolean;
+    handoffIntents?: string[];
+    handoffIntentThreshold?: number;
+    handoffKeywords?: string[];
+    handoffOnNegativeSentiment?: boolean;
+    handoffAfterBotMessages?: number | null;
+    handoffNotificationMessage?: string | null;
+    handoffAssignToUserId?: string | null;
   } | undefined;
   
   const [autopilotEnabled, setAutopilotEnabled] = useState<boolean>(settings?.autopilotEnabled ?? false);
@@ -86,7 +107,30 @@ export function AgentFullForm({
   const [workingHoursStart, setWorkingHoursStart] = useState(settings?.workingHoursStart || "09:00");
   const [workingHoursEnd, setWorkingHoursEnd] = useState(settings?.workingHoursEnd || "18:00");
   const [workingDays, setWorkingDays] = useState<number[]>(settings?.workingDays || [1, 2, 3, 4, 5]);
-  const [outOfHoursMessage, setOutOfHoursMessage] = useState("");
+  const [outOfHoursMessage, setOutOfHoursMessage] = useState(settings?.outOfHoursMessage || "");
+
+  // Handoff (Fase 2)
+  const { data: assignableMembers } = useAgentMembers();
+  const [handoffEnabled, setHandoffEnabled] = useState<boolean>(settings?.autoHandoffEnabled ?? false);
+  const [handoffIntents, setHandoffIntents] = useState<string[]>(settings?.handoffIntents || ["sales"]);
+  const [handoffThreshold, setHandoffThreshold] = useState<number>(
+    Math.round((settings?.handoffIntentThreshold ?? 0.75) * 100)
+  );
+  const [handoffKeywords, setHandoffKeywords] = useState<string>((settings?.handoffKeywords || []).join(", "));
+  const [handoffNegativeSentiment, setHandoffNegativeSentiment] = useState<boolean>(
+    settings?.handoffOnNegativeSentiment ?? false
+  );
+  const [handoffAfterBotMessages, setHandoffAfterBotMessages] = useState<number>(
+    settings?.handoffAfterBotMessages ?? 0
+  );
+  const [handoffMessage, setHandoffMessage] = useState<string>(settings?.handoffNotificationMessage || "");
+  const [handoffAssignTo, setHandoffAssignTo] = useState<string>(settings?.handoffAssignToUserId || "");
+
+  const toggleHandoffIntent = (value: string) => {
+    setHandoffIntents(prev =>
+      prev.includes(value) ? prev.filter(i => i !== value) : [...prev, value]
+    );
+  };
 
   const handleSubmit = () => {
     if (!name.trim()) return;
@@ -109,9 +153,22 @@ export function AgentFullForm({
         workingHoursStart,
         workingHoursEnd,
         workingDays,
-        outOfHoursMessage: outOfHoursMessage || null
+        outOfHoursMessage: outOfHoursMessage || null,
+        // Handoff
+        autoHandoffEnabled: handoffEnabled,
+        handoffIntents,
+        handoffIntentThreshold: handoffThreshold / 100,
+        handoffKeywords: handoffKeywords
+          .split(",")
+          .map(k => k.trim().toLowerCase())
+          .filter(Boolean),
+        handoffOnNegativeSentiment: handoffNegativeSentiment,
+        handoffAfterBotMessages: handoffAfterBotMessages > 0 ? handoffAfterBotMessages : null,
+        handoffNotificationMessage: handoffMessage || null,
+        handoffAssignToUserId: handoffAssignTo || null,
       }
     };
+
 
     onSubmit(data);
   };
@@ -401,6 +458,137 @@ export function AgentFullForm({
           </CardContent>
         )}
       </Card>
+
+      {/* Handoff — escalamento para humano */}
+      <Card className={handoffEnabled ? "border-blue-500/30" : ""}>
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <UserCheck className={`h-4 w-4 ${handoffEnabled ? "text-blue-500" : ""}`} />
+                Escalamento para Humano
+              </CardTitle>
+              <CardDescription>Quando a IA deve passar a conversa para a equipa</CardDescription>
+            </div>
+            <Switch checked={handoffEnabled} onCheckedChange={setHandoffEnabled} />
+          </div>
+        </CardHeader>
+
+        {handoffEnabled && (
+          <CardContent className="space-y-6">
+            {/* Intents */}
+            <div className="space-y-2">
+              <Label>Intenções que acionam escalamento</Label>
+              <div className="flex flex-wrap gap-2">
+                {HANDOFF_INTENTS.map(intent => (
+                  <Badge
+                    key={intent.value}
+                    variant={handoffIntents.includes(intent.value) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleHandoffIntent(intent.value)}
+                  >
+                    {intent.label}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A IA classifica cada mensagem recebida e escala quando corresponde.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Confiança mínima</Label>
+                <span className="text-sm text-muted-foreground">{handoffThreshold}%</span>
+              </div>
+              <Slider
+                value={[handoffThreshold]}
+                onValueChange={([v]) => setHandoffThreshold(v)}
+                min={50}
+                max={95}
+                step={5}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Keywords */}
+            <div className="space-y-2">
+              <Label>Palavras-chave</Label>
+              <Input
+                value={handoffKeywords}
+                onChange={(e) => setHandoffKeywords(e.target.value)}
+                placeholder="falar com humano, pessoa real, reclamação"
+              />
+              <p className="text-xs text-muted-foreground">
+                Separadas por vírgulas. Escalam de imediato, sem análise de IA.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Sentimento negativo</Label>
+                <p className="text-xs text-muted-foreground">Escalar se o cliente demonstrar frustração</p>
+              </div>
+              <Switch checked={handoffNegativeSentiment} onCheckedChange={setHandoffNegativeSentiment} />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Escalar após N respostas da IA</Label>
+                <span className="text-sm text-muted-foreground">
+                  {handoffAfterBotMessages > 0 ? handoffAfterBotMessages : "Desativado"}
+                </span>
+              </div>
+              <Slider
+                value={[handoffAfterBotMessages]}
+                onValueChange={([v]) => setHandoffAfterBotMessages(v)}
+                min={0}
+                max={20}
+                step={1}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Assignment + message */}
+            <div className="space-y-2">
+              <Label>Atribuir a</Label>
+              <Select
+                value={handoffAssignTo || "_none"}
+                onValueChange={(v) => setHandoffAssignTo(v === "_none" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar responsável..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Notificar toda a equipa</SelectItem>
+                  {(assignableMembers || []).map(m => (
+                    <SelectItem key={m.user_id} value={m.user_id}>
+                      {m.profile?.full_name || m.profile?.email || m.user_id.slice(0, 8)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Mensagem de transição</Label>
+              <Textarea
+                value={handoffMessage}
+                onChange={(e) => setHandoffMessage(e.target.value)}
+                placeholder="Vou passar a sua questão a um colega da equipa. Respondemos em breve."
+                rows={2}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enviada ao cliente no momento do escalamento (opcional).
+              </p>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+
 
       {/* Actions */}
       <div className="flex justify-end gap-3">
