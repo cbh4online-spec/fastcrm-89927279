@@ -22,9 +22,12 @@ import {
   Users,
   BookOpen,
   Workflow,
-  Moon
+  Moon,
+  UserCheck
 } from "lucide-react";
+import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
 import { AGENT_CHANNELS, type AIChannelAgent, type AgentChannel } from "@/types/aiChannelAgents";
+
 
 interface AgentFullFormProps {
   agent?: AIChannelAgent;
