@@ -366,6 +366,35 @@ export function useDeleteAutomationRule() {
   });
 }
 
+/** Eliminação em lote (usada na limpeza de regras duplicadas) */
+export function useDeleteAutomationRules() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!ids.length) return 0;
+      if (!currentWorkspace) throw new Error("Sem workspace");
+
+      const { error } = await workspaceClient
+        .from("automation_rules")
+        .delete()
+        .in("id", ids)
+        .eq("workspace_id", currentWorkspace.id);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["automation_rules", currentWorkspace?.id] });
+      toast.success(`${count} regra(s) duplicada(s) eliminada(s)`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao eliminar regras: ${error.message}`);
+    },
+  });
+}
+
 export function useToggleAutomationRule() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();

@@ -339,6 +339,39 @@ export function useQuickAutomationAction() {
       const actionConfig = actionConfigs[actionType];
       if (!actionConfig) throw new Error('Unknown action type');
 
+      // Reutilizar regra existente com o mesmo nome + gatilho (evitar duplicados)
+      const { data: existing, error: existingError } = await supabase
+        .from('automation_rules')
+        .select('id')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('name', actionConfig.name)
+        .eq('trigger', actionConfig.trigger as any)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+
+      if (existing) {
+        // Atualizar a regra existente em vez de criar uma nova
+        const { error: updErr } = await supabase
+          .from('automation_rules')
+          .update({ trigger_config: { entity_id: entityId }, is_active: true })
+          .eq('id', existing.id);
+        if (updErr) throw updErr;
+
+        await supabase.from('automation_actions').delete().eq('rule_id', existing.id);
+        const { error: reActErr } = await supabase.from('automation_actions').insert(
+          actionConfig.actions.map((a: any, idx: number) => ({
+            rule_id: existing.id,
+            action_type: a.action_type,
+            config: a.config,
+            position: idx,
+          }))
+        );
+        if (reActErr) throw reActErr;
+        return existing;
+      }
+
       // Create the automation rule
       const { data: rule, error: ruleError } = await supabase
         .from('automation_rules')

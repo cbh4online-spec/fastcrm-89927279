@@ -4,7 +4,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Zap, History, Sparkles, BookOpen, RefreshCw, CheckCircle, XCircle, Percent } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Plus, Zap, History, Sparkles, BookOpen, RefreshCw, CheckCircle, XCircle, Percent, CopyCheck } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { AutomationRulesList } from "@/components/automations/AutomationRulesList";
@@ -15,6 +16,8 @@ import { AutomationSuggestionsPanel } from "@/components/automations/AutomationS
 import { AutomationRecipesPanel } from "@/components/automations/AutomationRecipesPanel";
 import { GlobalPauseToggle } from "@/components/automations/GlobalPauseToggle";
 import { ConversationAutomationHelper } from "@/components/automations/ConversationAutomationHelper";
+import { DuplicateRulesDialog } from "@/components/automations/DuplicateRulesDialog";
+import { detectDuplicateRules, countDuplicateRedundant } from "@/lib/automations/detectDuplicateRules";
 import { AutomationRule, useAutomationRules, useAutomationLogs } from "@/hooks/useAutomations";
 import { toast } from "sonner";
 
@@ -30,6 +33,7 @@ export default function Automations() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("recipes");
   const [searchValue, setSearchValue] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [duplicatesOpen, setDuplicatesOpen] = useState(false);
 
   const { data: rules, isLoading: rulesLoading } = useAutomationRules();
   const { data: allLogs, isLoading: logsLoading } = useAutomationLogs();
@@ -48,6 +52,21 @@ export default function Automations() {
 
     return { activeRules, totalRules, totalExecutions, failedExecutions, successRate };
   }, [rules, allLogs]);
+
+  // Execuções por regra (para sugerir qual duplicado manter)
+  const executionsByRule = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const log of allLogs ?? []) {
+      map[log.rule_id] = (map[log.rule_id] ?? 0) + 1;
+    }
+    return map;
+  }, [allLogs]);
+
+  const duplicateGroups = useMemo(
+    () => detectDuplicateRules(rules, executionsByRule),
+    [rules, executionsByRule]
+  );
+  const redundantCount = countDuplicateRedundant(duplicateGroups);
 
   const handleEdit = (rule: AutomationRule) => {
     setEditRule(rule);
@@ -126,6 +145,26 @@ export default function Automations() {
             <ConversationAutomationHelper />
           </div>
         </PageHeader>
+
+        {/* Aviso de duplicados */}
+        {!isLoading && duplicateGroups.length > 0 && (
+          <Alert className="border-amber-500/40 bg-amber-500/5">
+            <CopyCheck className="h-4 w-4 text-amber-500" />
+            <AlertTitle>
+              {duplicateGroups.length} grupo(s) de regras duplicadas detetado(s)
+            </AlertTitle>
+            <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm">
+                {redundantCount} regra(s) redundante(s) com o mesmo nome e gatilho podem provocar
+                execuções repetidas.
+              </span>
+              <Button size="sm" variant="outline" onClick={() => setDuplicatesOpen(true)}>
+                Rever duplicados
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -263,6 +302,13 @@ export default function Automations() {
         onOpenChange={setLogsOpen}
         ruleId={logsRuleId}
         ruleName={logsRuleName}
+      />
+
+      <DuplicateRulesDialog
+        open={duplicatesOpen}
+        onOpenChange={setDuplicatesOpen}
+        groups={duplicateGroups}
+        executionsByRule={executionsByRule}
       />
     </DashboardLayout>
   );

@@ -49,11 +49,13 @@ import {
   useCreateAutomationRule,
   useUpdateAutomationRule,
   useToggleAutomationRule,
+  useAutomationRules,
   AutomationRule,
   AutomationTrigger,
   AutomationActionType,
   ConditionOperator,
 } from "@/hooks/useAutomations";
+import { normalizeRuleName } from "@/lib/automations/detectDuplicateRules";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
 import { useCustomFields, CustomField, CustomFieldType } from "@/hooks/useCustomFields";
@@ -391,6 +393,7 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
   const createRule = useCreateAutomationRule();
   const updateRule = useUpdateAutomationRule();
   const toggleRule = useToggleAutomationRule();
+  const { data: existingRules } = useAutomationRules();
   const { trackAutomationCreated } = useCRMAnalytics();
   const { data: stages } = usePipelineStages();
   const { data: agents } = useAgentMembers();
@@ -529,6 +532,21 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
       toast.error(`Potential infinite loop detected: Field "${loopCheck.details?.triggerField}" triggers on change but is also modified by an action. Cannot activate.`);
       return;
     }
+
+    // Prevenir regras duplicadas (mesmo nome + gatilho no workspace)
+    const duplicate = (existingRules ?? []).find(
+      (r) =>
+        r.id !== editRule?.id &&
+        r.trigger === values.trigger &&
+        normalizeRuleName(r.name) === normalizeRuleName(values.name)
+    );
+    if (duplicate) {
+      toast.error(
+        `Já existe uma regra com o nome "${duplicate.name}" para este gatilho. Edite a regra existente ou escolha outro nome.`
+      );
+      return;
+    }
+
 
     const payload = {
       name: values.name,
