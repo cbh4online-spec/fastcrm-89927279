@@ -10,6 +10,8 @@ interface ListColumnsHeaderProps {
   columnWidth: Record<string, string>;
   /** Largura da coluna de ações à direita (default: botão de 32px). */
   actionsWidth?: string;
+  /** Chaves de colunas numéricas — o rótulo alinha à direita, como as células. */
+  rightAlignedKeys?: string[];
   className?: string;
 }
 
