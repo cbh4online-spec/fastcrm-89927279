@@ -45,6 +45,7 @@ export function ListColumnsHeader({
           className={cn(
             "flex min-w-0 items-center overflow-hidden text-[11px] font-medium uppercase tracking-wider text-muted-foreground",
             columnWidth[col] ?? "min-w-[120px]",
+            rightAlignedKeys.includes(col) && "justify-end text-right",
           )}
         >
           <span className="truncate">{labelOf(col)}</span>
