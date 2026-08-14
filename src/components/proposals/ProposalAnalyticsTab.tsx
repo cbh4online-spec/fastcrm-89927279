@@ -49,7 +49,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   draft: "Rascunho",
   published: "Publicada",
-  accepted: "Aceita",
+  accepted: "Aceite",
   expired: "Expirada",
   rejected: "Rejeitada",
 };
@@ -104,7 +104,7 @@ export function ProposalAnalyticsTab() {
       { label: "Criadas", value: total, pct: 100 },
       { label: "Publicadas", value: published, pct: total > 0 ? Math.round((published / total) * 100) : 0 },
       { label: "Visualizadas", value: viewed, pct: total > 0 ? Math.round((viewed / total) * 100) : 0 },
-      { label: "Aceitas", value: accepted, pct: total > 0 ? Math.round((accepted / total) * 100) : 0 },
+      { label: "Aceites", value: accepted, pct: total > 0 ? Math.round((accepted / total) * 100) : 0 },
     ];
   }, [proposals]);
 

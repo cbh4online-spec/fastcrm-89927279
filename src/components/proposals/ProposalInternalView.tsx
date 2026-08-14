@@ -236,7 +236,7 @@ export function ProposalInternalView({
               <Badge variant="outline" className="text-xs">
                 {proposal.status === 'draft' ? 'Rascunho' : 
                  proposal.status === 'published' ? 'Publicada' : 
-                 proposal.status === 'accepted' ? 'Aceita' : 
+                 proposal.status === 'accepted' ? 'Aceite' : 
                  proposal.status === 'expired' ? 'Expirada' : 'Rejeitada'}
               </Badge>
             </div>

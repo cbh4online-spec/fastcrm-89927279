@@ -28,7 +28,7 @@ interface ProductUsageHistoryProps {
 const proposalStatusLabels: Record<string, string> = {
   draft: "Rascunho",
   published: "Publicada",
-  accepted: "Aceita",
+  accepted: "Aceite",
   expired: "Expirada",
   rejected: "Rejeitada",
 };
