@@ -391,6 +391,7 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
   const createRule = useCreateAutomationRule();
   const updateRule = useUpdateAutomationRule();
   const toggleRule = useToggleAutomationRule();
+  const { data: existingRules } = useAutomationRules();
   const { trackAutomationCreated } = useCRMAnalytics();
   const { data: stages } = usePipelineStages();
   const { data: agents } = useAgentMembers();
