@@ -4,15 +4,15 @@ import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { FastCRMLogo } from "@/components/brand/FastCRMLogo";
+import {
+  PUBLIC_CTA_NAVIGATION,
+  PUBLIC_PRIMARY_NAVIGATION,
+} from "@/config/publicNavigation";
 
-const NAV = [
-  { label: "Produto", href: "#solucao" },
-  { label: "Módulos", href: "#modulos" },
-  { label: "Método PARE", href: "#metodo" },
-  { label: "Casos de uso", href: "#casos" },
-  { label: "Preços", href: "/precos" },
-  { label: "Contacto", href: "/contacto" },
-];
+const NAV = PUBLIC_PRIMARY_NAVIGATION.filter(
+  (item) => item.visibility === "primary" && item.href !== "/",
+);
+const CTA = PUBLIC_CTA_NAVIGATION[0];
 
 export function HeaderV2() {
   const [scrolled, setScrolled] = useState(false);
@@ -47,41 +47,41 @@ export function HeaderV2() {
           </Link>
 
           {/* Nav (desktop) */}
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav className="hidden items-center gap-0.5 xl:flex">
             {NAV.map((item) => (
-              <a
+              <Link
                 key={item.label}
-                href={item.href}
-                className="group relative rounded-lg px-3.5 py-2 text-sm font-medium text-navy-500 transition-colors hover:text-navy"
+                to={item.href}
+                className="group relative whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-navy-500 transition-colors hover:text-navy"
               >
                 {item.label}
-                <span className="pointer-events-none absolute inset-x-3.5 -bottom-0.5 h-px scale-x-0 bg-gradient-to-r from-brand to-cyan transition-transform duration-300 group-hover:scale-x-100" />
-              </a>
+                <span className="pointer-events-none absolute inset-x-3 -bottom-0.5 h-px scale-x-0 bg-gradient-to-r from-brand to-cyan transition-transform duration-300 group-hover:scale-x-100" />
+              </Link>
             ))}
           </nav>
 
           {/* CTAs */}
-          <div className="hidden items-center gap-2 lg:flex">
+          <div className="hidden items-center gap-2 xl:flex">
             <Link
               to="/auth"
-              className="rounded-lg px-3.5 py-2 text-sm font-medium text-navy-500 transition-colors hover:text-navy"
+              className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-navy-500 transition-colors hover:text-navy"
             >
               Entrar
             </Link>
-            <a
-              href="#cta"
-              className="group relative inline-flex items-center gap-1.5 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_hsl(218_70%_14%/0.4)] transition-all hover:-translate-y-0.5 hover:bg-navy-900 hover:shadow-[0_12px_28px_-8px_hsl(218_100%_54%/0.5)]"
+            <Link
+              to={CTA.href}
+              className="group relative inline-flex items-center gap-1.5 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_hsl(218_70%_14%/0.4)] transition-all hover:-translate-y-0.5 hover:bg-navy-900 hover:shadow-[0_12px_28px_-8px_hsl(218_100%_54%/0.5)] whitespace-nowrap"
             >
-              Agendar demonstração
+              {CTA.label}
               <span className="ml-0.5 transition-transform group-hover:translate-x-0.5">→</span>
-            </a>
+            </Link>
           </div>
 
           {/* Mobile toggle */}
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-navy lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-navy xl:hidden"
             aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -96,33 +96,34 @@ export function HeaderV2() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="overflow-hidden border-t border-navy-100 bg-white lg:hidden"
+              className="overflow-hidden border-t border-navy-100 bg-white xl:hidden"
             >
               <div className="space-y-1 px-6 py-5">
                 {NAV.map((item) => (
-                  <a
+                  <Link
                     key={item.label}
-                    href={item.href}
+                    to={item.href}
                     onClick={() => setMobileOpen(false)}
                     className="block rounded-lg px-3 py-2.5 text-base font-medium text-navy-500 transition-colors hover:bg-brand/5 hover:text-brand"
                   >
                     {item.label}
-                  </a>
+                  </Link>
                 ))}
                 <div className="mt-4 grid grid-cols-2 gap-2 border-t border-navy-100 pt-4">
                   <Link
                     to="/auth"
+                    onClick={() => setMobileOpen(false)}
                     className="rounded-lg border border-navy-100 px-3 py-2.5 text-center text-sm font-medium text-navy"
                   >
                     Entrar
                   </Link>
-                  <a
-                    href="#cta"
+                  <Link
+                    to={CTA.href}
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg bg-navy px-3 py-2.5 text-center text-sm font-semibold text-white"
                   >
                     Agendar demo
-                  </a>
+                  </Link>
                 </div>
               </div>
             </motion.div>

@@ -167,7 +167,8 @@ export function CTAV2() {
             </p>
             <div className="relative mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <a
-                href="/contacto"
+                href="/contacto?tipo=demo"
+
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-navy px-6 py-3.5 text-base font-semibold text-white shadow-[0_12px_32px_-10px_hsl(218_100%_54%/0.45)] transition-all hover:-translate-y-0.5 hover:bg-navy-900"
               >
                 Agendar demonstração
@@ -210,27 +211,36 @@ export function FooterV2() {
         <div>
           <h4 className="font-display text-sm font-semibold text-navy">Produto</h4>
           <ul className="mt-3 space-y-2 text-sm text-navy-500">
-            <li><a href="#modulos" className="hover:text-brand">Módulos</a></li>
-            <li><a href="#metodo" className="hover:text-brand">Método PARE</a></li>
-            <li><a href="#casos" className="hover:text-brand">Casos de uso</a></li>
+            <li><Link to="/funcionalidades" className="hover:text-brand">Funcionalidades</Link></li>
+            <li><Link to="/fastcrm-whatsapp-sales" className="hover:text-brand">WhatsApp Sales</Link></li>
+            <li><Link to="/#metodo" className="hover:text-brand">Método PARE</Link></li>
+            <li><Link to="/casos" className="hover:text-brand">Casos de Uso</Link></li>
             <li><Link to="/precos" className="hover:text-brand">Preços</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="font-display text-sm font-semibold text-navy">Empresa</h4>
           <ul className="mt-3 space-y-2 text-sm text-navy-500">
+            <li><Link to="/sobre" className="hover:text-brand">Sobre</Link></li>
             <li><Link to="/contacto" className="hover:text-brand">Contacto</Link></li>
             <li><Link to="/auth" className="hover:text-brand">Entrar</Link></li>
-            <li><a href="#cta" className="hover:text-brand">Agendar demo</a></li>
+            <li><Link to="/contacto?tipo=demo" className="hover:text-brand">Agendar demonstração</Link></li>
           </ul>
         </div>
+
       </div>
       <div className="border-t border-navy-100">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-navy-300 md:flex-row md:px-10">
           <p>© {new Date().getFullYear()} FastCRM. Todos os direitos reservados.</p>
-          <p>Feito com método em Portugal.</p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Link to="/privacy" className="hover:text-brand">Privacidade</Link>
+            <Link to="/terms" className="hover:text-brand">Termos</Link>
+            <Link to="/cookies" className="hover:text-brand">Cookies</Link>
+            <span>Feito com método em Portugal.</span>
+          </div>
         </div>
       </div>
     </footer>
   );
 }
+

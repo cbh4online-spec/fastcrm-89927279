@@ -54,6 +54,15 @@ export const PUBLIC_PRIMARY_NAVIGATION: PublicNavigationItem[] = [
     status: "active",
   },
   {
+    label: "Método PARE",
+    href: "/#metodo",
+    visibility: "primary",
+    category: "commercial",
+    purpose: "Explicar o método proprietário que sustenta a operação comercial",
+    seo: "index",
+    status: "active",
+  },
+  {
     label: "Preços",
     href: "/precos",
     visibility: "primary",
@@ -93,7 +102,7 @@ export const PUBLIC_PRIMARY_NAVIGATION: PublicNavigationItem[] = [
 
 export const PUBLIC_CTA_NAVIGATION: PublicNavigationItem[] = [
   {
-    label: "Agendar Demo",
+    label: "Agendar demonstração",
     href: "/contacto?tipo=demo",
     visibility: "cta",
     category: "commercial",
@@ -102,6 +111,7 @@ export const PUBLIC_CTA_NAVIGATION: PublicNavigationItem[] = [
     status: "active",
   },
 ];
+
 
 export const PUBLIC_FOOTER_NAVIGATION: PublicNavigationItem[] = [
   ...PUBLIC_PRIMARY_NAVIGATION,
