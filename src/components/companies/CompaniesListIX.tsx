@@ -278,6 +278,9 @@ export function CompaniesListIX() {
           .some((v) => String(v).toLowerCase().includes(q)),
       );
     }
+    if (onlyOverdue) {
+      arr = arr.filter((c) => (financialsById.get(c.id)?.overdue_total ?? 0) > 0.01);
+    }
     arr = [...arr].sort((a, b) => {
       let cmp = 0;
       if (sortBy === "name") cmp = (a.name || "").localeCompare(b.name || "");
