@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UserAvatarUpload } from "@/components/shared/UserAvatarUpload";
+import { WhatsAppCallSettingsCard } from "@/components/settings/sections/WhatsAppCallSettingsCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
