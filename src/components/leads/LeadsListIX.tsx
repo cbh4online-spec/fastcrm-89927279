@@ -190,6 +190,8 @@ const COLUMN_WIDTH: Record<string, string> = {
   tags: "min-w-[140px] flex-1",
 };
 
+const NUMERIC_COLUMNS = ["score", "value", "created_at", "last_contact"];
+
 export function LeadsListIX() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
