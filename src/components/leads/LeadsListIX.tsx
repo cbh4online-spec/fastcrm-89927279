@@ -234,6 +234,25 @@ export function LeadsListIX() {
     [columns]
   );
 
+  const kpis = useMemo<ListKPI[]>(() => {
+    let hot = 0, pipeline = 0, stale = 0, scored = 0, scoreSum = 0;
+    const staleCut = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    for (const l of sortedLeads) {
+      if ((l.ai_temperature || "").toLowerCase() === "hot") hot += 1;
+      pipeline += Number(l.estimated_value) || 0;
+      const ts = l.last_contact_at ? new Date(l.last_contact_at).getTime() : 0;
+      if (!ts || ts < staleCut) stale += 1;
+      if (l.lead_score != null) { scored += 1; scoreSum += Number(l.lead_score) || 0; }
+    }
+    const avg = scored > 0 ? Math.round(scoreSum / scored) : 0;
+    return [
+      { key: "hot", label: "Leads quentes", value: String(hot), icon: Flame, tone: hot > 0 ? "danger" : "neutral" },
+      { key: "pipeline", label: "Valor potencial", value: formatCurrency(pipeline), icon: Euro, tone: "primary" },
+      { key: "score", label: "Score médio", value: String(avg), icon: Target, tone: avg >= 70 ? "success" : avg >= 40 ? "warning" : "neutral" },
+      { key: "stale", label: "Sem contacto (14d)", value: String(stale), icon: Clock, tone: stale > 0 ? "warning" : "neutral" },
+    ];
+  }, [sortedLeads]);
+
   return (
     <DocumentListLayout
       title="Leads"
