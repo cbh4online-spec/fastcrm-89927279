@@ -24,6 +24,7 @@ export function ListColumnsHeader({
   definitions,
   columnWidth,
   actionsWidth = "w-8",
+  rightAlignedKeys = [],
   className,
 }: ListColumnsHeaderProps) {
   const labelOf = (key: string) =>
