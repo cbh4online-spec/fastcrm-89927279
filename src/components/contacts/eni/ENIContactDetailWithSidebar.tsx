@@ -81,6 +81,7 @@ import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useEntityNavIds } from "@/hooks/useEntityNavIds";
 import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { WhatsAppCallButton } from "@/components/voice/WhatsAppCallButton";
+import { WhatsAppMessageButton } from "@/components/whatsapp/WhatsAppMessageButton";
 import { GHLCallButton } from "@/components/voice/GHLCallButton";
 
 // Role labels are now translated via t()
@@ -570,12 +571,21 @@ export function ENIContactDetailWithSidebar() {
           <div className="flex shrink-0 items-center gap-2">
             <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
             {contact.phone && (
-              <WhatsAppCallButton
-                phone={contact.phone}
-                entityType="contact"
-                entityId={contact.id}
-                entityName={contact.name}
-              />
+              <>
+                <WhatsAppCallButton
+                  phone={contact.phone}
+                  entityType="contact"
+                  entityId={contact.id}
+                  entityName={contact.name}
+                />
+                <WhatsAppMessageButton
+                  phone={contact.phone}
+                  entityType="contact"
+                  entityId={contact.id}
+                  entityName={contact.name}
+                  companyName={contact.company}
+                />
+              </>
             )}
             <GHLCallButton
               entityType="contact"
