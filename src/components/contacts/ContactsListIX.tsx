@@ -122,6 +122,7 @@ export function ContactsListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const { isElementVisible } = usePageElementVisibility("contacts");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
@@ -258,6 +259,11 @@ export function ContactsListIX() {
       )}
 
       <CreateContactDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <EntityArchiveBlockDialogs
+        entity="contact"
+        request={entityAction}
+        onOpenChange={(o) => { if (!o) setEntityAction(null); }}
+      />
     </DocumentListLayout>
   );
 }
