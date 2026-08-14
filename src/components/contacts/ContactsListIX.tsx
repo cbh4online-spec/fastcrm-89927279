@@ -236,6 +236,8 @@ export function ContactsListIX() {
         />
       }
     >
+      <ListKPIStrip items={kpis} isLoading={isLoading} note="Valores calculados sobre os resultados filtrados." />
+
       {isLoading ? (
         <div className="flex justify-center py-12"><LoadingSpinner /></div>
       ) : pageItems.length === 0 ? (
@@ -246,8 +248,9 @@ export function ContactsListIX() {
             orderedColumns={orderedColumns}
             definitions={availableColumns}
             columnWidth={COLUMN_WIDTH}
+            rightAlignedKeys={NUMERIC_COLUMNS}
           />
-          {pageItems.map((c) => (
+          {pageItems.map((c, idx) => (
             <div
               key={c.id}
               role="button"
@@ -259,7 +262,11 @@ export function ContactsListIX() {
                 );
                 navigate(`/dashboard/contacts/${c.id}`);
               }}
-              className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
+              className={cn(
+                "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
+                idx % 2 === 1 ? "bg-muted/20" : "bg-card",
+                ((c as any).is_blocked || (c as any).archived_at) && "opacity-60",
+              )}
             >
               {orderedColumns.map((col) => (
                 <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
