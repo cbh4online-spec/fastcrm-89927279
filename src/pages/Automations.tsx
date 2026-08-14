@@ -53,6 +53,21 @@ export default function Automations() {
     return { activeRules, totalRules, totalExecutions, failedExecutions, successRate };
   }, [rules, allLogs]);
 
+  // Execuções por regra (para sugerir qual duplicado manter)
+  const executionsByRule = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const log of allLogs ?? []) {
+      map[log.rule_id] = (map[log.rule_id] ?? 0) + 1;
+    }
+    return map;
+  }, [allLogs]);
+
+  const duplicateGroups = useMemo(
+    () => detectDuplicateRules(rules, executionsByRule),
+    [rules, executionsByRule]
+  );
+  const redundantCount = countDuplicateRedundant(duplicateGroups);
+
   const handleEdit = (rule: AutomationRule) => {
     setEditRule(rule);
     setBuilderOpen(true);
