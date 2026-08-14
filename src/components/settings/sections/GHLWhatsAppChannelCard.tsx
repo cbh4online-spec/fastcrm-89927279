@@ -209,16 +209,28 @@ export function GHLWhatsAppChannelCard() {
               />
             </div>
 
-            {data.sharedLocationWorkspaces > 1 && (
+            {isShared && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Esta location é partilhada por {data.sharedLocationWorkspaces} workspaces. A ativação
-                  aplica-se apenas a este workspace — as mensagens continuam encaminhadas pela conta GHL
-                  correspondente.
+                <AlertDescription className="text-xs space-y-2">
+                  <p>
+                    Esta location é partilhada por {data.sharedLocationWorkspaces} workspaces. Para o
+                    encaminhamento não ficar ambíguo, indique o número WhatsApp que pertence a este
+                    workspace — mensagens sem correspondência são rejeitadas (nunca vão para o workspace errado).
+                  </p>
+                  {!isActive && (
+                    <Input
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+351 912 345 678"
+                      aria-label="Número WhatsApp deste workspace"
+                      className="h-8 bg-background"
+                    />
+                  )}
                 </AlertDescription>
               </Alert>
             )}
+
 
             {isActive ? (
               <Button
