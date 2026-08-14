@@ -4,7 +4,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Zap, History, Sparkles, BookOpen, RefreshCw, CheckCircle, XCircle, Percent } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Plus, Zap, History, Sparkles, BookOpen, RefreshCw, CheckCircle, XCircle, Percent, CopyCheck } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { AutomationRulesList } from "@/components/automations/AutomationRulesList";
@@ -15,6 +16,8 @@ import { AutomationSuggestionsPanel } from "@/components/automations/AutomationS
 import { AutomationRecipesPanel } from "@/components/automations/AutomationRecipesPanel";
 import { GlobalPauseToggle } from "@/components/automations/GlobalPauseToggle";
 import { ConversationAutomationHelper } from "@/components/automations/ConversationAutomationHelper";
+import { DuplicateRulesDialog } from "@/components/automations/DuplicateRulesDialog";
+import { detectDuplicateRules, countDuplicateRedundant } from "@/lib/automations/detectDuplicateRules";
 import { AutomationRule, useAutomationRules, useAutomationLogs } from "@/hooks/useAutomations";
 import { toast } from "sonner";
 
