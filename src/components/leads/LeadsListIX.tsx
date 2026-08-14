@@ -1,3 +1,4 @@
+import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
 import { useMemo, useState } from "react";
 import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
@@ -285,6 +286,11 @@ export function LeadsListIX() {
         />
       ) : (
         <div className="flex flex-col gap-2">
+          <ListColumnsHeader
+            orderedColumns={orderedColumns}
+            definitions={LEAD_COLUMNS}
+            columnWidth={COLUMN_WIDTH}
+          />
           {sortedLeads.map((lead) => (
             <div
               key={lead.id}
