@@ -475,6 +475,28 @@ Deno.serve(async (req) => {
       }
     }
 
+    // --- Call events (GHL type 10 = call, 20 = voicemail) -> voice_call_logs ---
+    if (channel === "call") {
+      const handled = await handleGHLCallEvent(supabase, {
+        workspaceId,
+        leadId,
+        contactId,
+        ghlMessageId,
+        ghlContactId,
+        direction: messageDirection,
+        typeCode: messageTypeCode,
+        body,
+        occurredAt: messageSentAt,
+        status: messageStatus,
+        content: messageContent,
+      });
+      return new Response(
+        JSON.stringify({ message: "Call event processed", call_log_id: handled }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+
     // 5. Find or create conversation
     const externalThreadId = ghlConversationId ? `ghl_${ghlConversationId}` : `ghl_${ghlContactId}_${channel}`;
     
@@ -1420,5 +1442,143 @@ function checkWorkingHours(
   } catch (e) {
     console.error("[AUTOPILOT] Error checking working hours", e);
     return true; // Default to allowing if there's an error
+  }
+}
+
+// ============================================================
+// GHL CALL EVENTS -> voice_call_logs + entity_activities
+// ============================================================
+async function handleGHLCallEvent(
+  supabase: any,
+  params: {
+    workspaceId: string;
+    leadId: string | null;
+    contactId: string | null;
+    ghlMessageId: string;
+    ghlContactId: string;
+    direction: string;
+    typeCode: unknown;
+    body: any;
+    occurredAt: string;
+    status: string;
+    content: string;
+  }
+): Promise<string | null> {
+  const { workspaceId, leadId, contactId, ghlMessageId, direction, body, occurredAt } = params;
+  const isVoicemail = Number(params.typeCode) === 20;
+
+  try {
+    // Idempotency: same GHL message id => same call log
+    const { data: existing } = await supabase
+      .from("voice_call_logs")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("provider_call_id", ghlMessageId)
+      .maybeSingle();
+    if (existing?.id) {
+      console.log("[GHL-CALL] Duplicate call event ignored", { ghlMessageId });
+      return existing.id;
+    }
+
+    const msg = body.message || {};
+    const rawDuration =
+      msg.callDuration ?? msg.duration ?? body.callDuration ?? body.duration ?? null;
+    const durationSeconds = rawDuration != null && !isNaN(Number(rawDuration))
+      ? Math.max(0, Math.round(Number(rawDuration)))
+      : null;
+
+    const rawStatus = String(
+      msg.callStatus ?? body.callStatus ?? params.status ?? ""
+    ).toLowerCase();
+    const statusMap: Record<string, string> = {
+      completed: "completed",
+      answered: "completed",
+      "no-answer": "no_answer",
+      noanswer: "no_answer",
+      busy: "busy",
+      failed: "failed",
+      canceled: "cancelled",
+      cancelled: "cancelled",
+      voicemail: "voicemail",
+    };
+    const callStatus = isVoicemail
+      ? "voicemail"
+      : statusMap[rawStatus] || (durationSeconds && durationSeconds > 0 ? "completed" : "no_answer");
+
+    const contactPhone =
+      body.contact?.phone || body.phone || msg.to || msg.from || null;
+    const locationPhone = msg.from || body.from || null;
+    const isInbound = direction === "inbound";
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("voice_call_logs")
+      .insert({
+        workspace_id: workspaceId,
+        lead_id: leadId,
+        contact_id: contactId,
+        call_direction: isInbound ? "inbound" : "outbound",
+        call_type: isVoicemail ? "voicemail" : "phone_call",
+        status: callStatus,
+        from_number: isInbound ? contactPhone : locationPhone,
+        to_number: isInbound ? locationPhone : contactPhone,
+        started_at: occurredAt,
+        ended_at: durationSeconds != null ? occurredAt : null,
+        duration_seconds: durationSeconds,
+        subject: isVoicemail ? "Voicemail via GHL" : "Chamada via GHL",
+        notes: params.content || null,
+        recording_url: msg.recordingUrl || msg.attachments?.[0]?.url || null,
+        recording_status: msg.recordingUrl ? "available" : "not_available",
+        provider_call_id: ghlMessageId,
+        provider_status: rawStatus || null,
+        metadata: {
+          source: "ghl",
+          ghl_contact_id: params.ghlContactId,
+          ghl_message_type: params.typeCode ?? null,
+        },
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (insertError) {
+      console.error("[GHL-CALL] Failed to insert voice_call_logs", insertError);
+      return null;
+    }
+
+    // Timeline activity
+    const entityType = leadId ? "lead" : contactId ? "contact" : null;
+    const entityId = leadId || contactId;
+    if (entityType && entityId) {
+      const durationLabel = durationSeconds != null
+        ? `${Math.floor(durationSeconds / 60)}m ${durationSeconds % 60}s`
+        : "sem duração";
+      const { error: actError } = await supabase.from("entity_activities").insert({
+        workspace_id: workspaceId,
+        entity_type: entityType,
+        entity_id: entityId,
+        activity_type: isInbound ? "call_received" : "call_made",
+        title: isVoicemail
+          ? "Voicemail via GHL"
+          : `Chamada ${isInbound ? "recebida" : "efetuada"} via GHL`,
+        description: [
+          contactPhone ? `Número ${contactPhone}` : null,
+          `duração ${durationLabel}`,
+          callStatus,
+        ].filter(Boolean).join(" · "),
+        metadata: {
+          channel: "call",
+          source: "ghl",
+          call_log_id: inserted?.id ?? null,
+          duration_seconds: durationSeconds,
+          status: callStatus,
+        },
+      });
+      if (actError) console.warn("[GHL-CALL] activity insert failed", actError);
+    }
+
+    console.log("[GHL-CALL] Call event stored", { id: inserted?.id, callStatus, direction });
+    return inserted?.id ?? null;
+  } catch (err) {
+    console.error("[GHL-CALL] Unexpected error", err);
+    return null;
   }
 }
