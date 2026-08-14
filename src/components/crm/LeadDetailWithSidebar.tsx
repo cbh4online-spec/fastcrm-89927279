@@ -62,6 +62,7 @@ import { LeadLifecycleSection } from "@/components/leads/sections/LeadLifecycleS
 import { LeadAuditSection } from "@/components/leads/sections/LeadAuditSection";
 import { IXEntityHeader } from "@/components/entity/ix/IXEntityHeader";
 import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
+import { WhatsAppCallButton } from "@/components/voice/WhatsAppCallButton";
 
 type IXTabId = "overview" | "activity" | "communication" | "business" | "ai_data";
 
