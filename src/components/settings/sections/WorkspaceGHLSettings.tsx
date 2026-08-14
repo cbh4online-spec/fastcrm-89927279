@@ -998,6 +998,9 @@ function WorkspaceGHLSettingsInner() {
         </Card>
       )}
 
+      {/* WhatsApp via GHL — diagnóstico e ativação por workspace */}
+      {isConfigured && <GHLWhatsAppChannelCard />}
+
       {/* Social Channels via GHL */}
       {isConfigured && <SocialChannelsViaGHL />}
 
