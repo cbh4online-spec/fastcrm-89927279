@@ -176,6 +176,26 @@ export function ContactsListIX() {
     [availableColumns, columns],
   );
 
+  const kpis = useMemo<ListKPI[]>(() => {
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    let recent = 0, withEmail = 0, withPhone = 0, restricted = 0;
+    for (const c of filtered) {
+      if (new Date(c.created_at).getTime() >= cutoff) recent += 1;
+      if (c.email && /.+@.+\..+/.test(c.email)) withEmail += 1;
+      if (c.phone) withPhone += 1;
+      if ((c as any).is_blocked || (c as any).archived_at) restricted += 1;
+    }
+    const total = filtered.length;
+    const pct = (n: number) => (total > 0 ? `${Math.round((n / total) * 100)}% do total` : undefined);
+    return [
+      { key: "total", label: "Contactos", value: String(total), icon: Users, tone: "primary" },
+      { key: "recent", label: "Novos (30 dias)", value: String(recent), icon: UserPlus, tone: recent > 0 ? "success" : "neutral" },
+      { key: "email", label: "Com email", value: String(withEmail), icon: Mail, tone: "neutral", hint: pct(withEmail) },
+      { key: "phone", label: "Com telefone", value: String(withPhone), icon: Phone, tone: "neutral", hint: pct(withPhone) },
+      { key: "restricted", label: "Bloq. / arquivados", value: String(restricted), icon: Lock, tone: restricted > 0 ? "warning" : "neutral" },
+    ];
+  }, [filtered]);
+
   return (
     <DocumentListLayout
       title="Contactos"
