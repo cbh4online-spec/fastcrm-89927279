@@ -84,6 +84,15 @@ export function AgentFullForm({
     workingHoursStart?: string;
     workingHoursEnd?: string;
     workingDays?: number[];
+    outOfHoursMessage?: string | null;
+    autoHandoffEnabled?: boolean;
+    handoffIntents?: string[];
+    handoffIntentThreshold?: number;
+    handoffKeywords?: string[];
+    handoffOnNegativeSentiment?: boolean;
+    handoffAfterBotMessages?: number | null;
+    handoffNotificationMessage?: string | null;
+    handoffAssignToUserId?: string | null;
   } | undefined;
   
   const [autopilotEnabled, setAutopilotEnabled] = useState<boolean>(settings?.autopilotEnabled ?? false);
@@ -98,7 +107,30 @@ export function AgentFullForm({
   const [workingHoursStart, setWorkingHoursStart] = useState(settings?.workingHoursStart || "09:00");
   const [workingHoursEnd, setWorkingHoursEnd] = useState(settings?.workingHoursEnd || "18:00");
   const [workingDays, setWorkingDays] = useState<number[]>(settings?.workingDays || [1, 2, 3, 4, 5]);
-  const [outOfHoursMessage, setOutOfHoursMessage] = useState("");
+  const [outOfHoursMessage, setOutOfHoursMessage] = useState(settings?.outOfHoursMessage || "");
+
+  // Handoff (Fase 2)
+  const { data: assignableMembers } = useAgentMembers();
+  const [handoffEnabled, setHandoffEnabled] = useState<boolean>(settings?.autoHandoffEnabled ?? false);
+  const [handoffIntents, setHandoffIntents] = useState<string[]>(settings?.handoffIntents || ["sales"]);
+  const [handoffThreshold, setHandoffThreshold] = useState<number>(
+    Math.round((settings?.handoffIntentThreshold ?? 0.75) * 100)
+  );
+  const [handoffKeywords, setHandoffKeywords] = useState<string>((settings?.handoffKeywords || []).join(", "));
+  const [handoffNegativeSentiment, setHandoffNegativeSentiment] = useState<boolean>(
+    settings?.handoffOnNegativeSentiment ?? false
+  );
+  const [handoffAfterBotMessages, setHandoffAfterBotMessages] = useState<number>(
+    settings?.handoffAfterBotMessages ?? 0
+  );
+  const [handoffMessage, setHandoffMessage] = useState<string>(settings?.handoffNotificationMessage || "");
+  const [handoffAssignTo, setHandoffAssignTo] = useState<string>(settings?.handoffAssignToUserId || "");
+
+  const toggleHandoffIntent = (value: string) => {
+    setHandoffIntents(prev =>
+      prev.includes(value) ? prev.filter(i => i !== value) : [...prev, value]
+    );
+  };
 
   const handleSubmit = () => {
     if (!name.trim()) return;
@@ -121,9 +153,22 @@ export function AgentFullForm({
         workingHoursStart,
         workingHoursEnd,
         workingDays,
-        outOfHoursMessage: outOfHoursMessage || null
+        outOfHoursMessage: outOfHoursMessage || null,
+        // Handoff
+        autoHandoffEnabled: handoffEnabled,
+        handoffIntents,
+        handoffIntentThreshold: handoffThreshold / 100,
+        handoffKeywords: handoffKeywords
+          .split(",")
+          .map(k => k.trim().toLowerCase())
+          .filter(Boolean),
+        handoffOnNegativeSentiment: handoffNegativeSentiment,
+        handoffAfterBotMessages: handoffAfterBotMessages > 0 ? handoffAfterBotMessages : null,
+        handoffNotificationMessage: handoffMessage || null,
+        handoffAssignToUserId: handoffAssignTo || null,
       }
     };
+
 
     onSubmit(data);
   };
