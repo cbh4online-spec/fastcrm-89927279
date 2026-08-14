@@ -124,7 +124,14 @@ export function AgentCardExpanded({
               Follow-up ativo
             </Badge>
           )}
+          {agent.settings?.autoHandoffEnabled ? (
+            <Badge variant="outline" className="gap-1 text-blue-600 border-blue-300">
+              <UserCheck className="h-3 w-3" />
+              Escalamento ativo
+            </Badge>
+          ) : null}
         </div>
+
 
         {/* Autopilot Status */}
         <div className={`p-3 rounded-lg ${autopilotEnabled ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-muted'}`}>
