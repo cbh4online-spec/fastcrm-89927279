@@ -1,6 +1,8 @@
 
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { resolveWorkspaceForMessage, logRoutingDecision } from '../_shared/ghlRouting.ts';
 import { createClient } from "@supabase/supabase-js";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
