@@ -86,7 +86,7 @@ const statusTone: Record<ProposalStatus, DocumentStatusTone> = {
 const statusLabels: Record<ProposalStatus, string> = {
   draft: "Rascunho",
   published: "Publicada",
-  accepted: "Aceita",
+  accepted: "Aceite",
   expired: "Expirada",
   rejected: "Rejeitada",
 };
