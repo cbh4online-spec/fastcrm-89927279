@@ -22,6 +22,7 @@ import {
   ChevronDown,
   CalendarDays,
   MailCheck
+  UserCheck,
 } from "lucide-react";
 import { AGENT_CHANNELS, type AIChannelAgent } from "@/types/aiChannelAgents";
 import { AgentGoalsPanel } from "@/components/ai-agents/AgentGoalsPanel";
