@@ -21,8 +21,10 @@ import {
   ExternalLink,
   Loader2,
   Activity,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 const statusConfig: Record<SystemStatus, { color: string; icon: typeof CheckCircle2; label: string }> = {
   operational: { color: "text-success", icon: CheckCircle2, label: "Operacional" },
@@ -192,8 +194,22 @@ export default function AIOperationsCenterPage() {
   const totalAlerts = systems.reduce((s, sys) => s + sys.state.alerts.length, 0);
   const allOperational = systems.every(s => s.state.status === "operational");
 
+  const navigate = useNavigate();
+
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-6">
+      {/* Voltar */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate("/dashboard")}
+        className="gap-2 -ml-2 text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Voltar
+      </Button>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -284,5 +300,6 @@ export default function AIOperationsCenterPage() {
         ))}
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }
