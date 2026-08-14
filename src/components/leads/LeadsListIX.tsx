@@ -301,6 +301,8 @@ export function LeadsListIX() {
         />
       }
     >
+      <ListKPIStrip items={kpis} isLoading={isLoading} note="Valores calculados sobre a página atual de resultados." />
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <LoadingSpinner />
@@ -316,8 +318,9 @@ export function LeadsListIX() {
             orderedColumns={orderedColumns}
             definitions={LEAD_COLUMNS}
             columnWidth={COLUMN_WIDTH}
+            rightAlignedKeys={NUMERIC_COLUMNS}
           />
-          {sortedLeads.map((lead) => (
+          {sortedLeads.map((lead, idx) => (
             <div
               key={lead.id}
               role="button"
@@ -325,7 +328,11 @@ export function LeadsListIX() {
                 saveEntityListNavigation("lead", sortedLeads.map((l) => l.id), "/dashboard/leads");
                 navigate(`/dashboard/leads/${lead.id}`);
               }}
-              className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
+              className={cn(
+                "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
+                idx % 2 === 1 ? "bg-muted/20" : "bg-card",
+                ((lead as any).is_blocked || (lead as any).archived_at) && "opacity-60",
+              )}
             >
               {orderedColumns.map((col) => (
                 <div
