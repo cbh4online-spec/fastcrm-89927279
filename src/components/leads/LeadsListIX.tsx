@@ -63,9 +63,18 @@ function renderCell(col: string, lead: SmartLead) {
     case "name":
       return (
         <div className="flex flex-col">
-          <span className="truncate text-sm font-semibold text-foreground">
-            {lead.name || "(sem nome)"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-semibold text-foreground">
+              {lead.name || "(sem nome)"}
+            </span>
+            <EntityStatusBadges
+              size="sm"
+              isBlocked={(lead as any).is_blocked}
+              blockReason={(lead as any).block_reason}
+              archivedAt={(lead as any).archived_at}
+              archiveReason={(lead as any).archive_reason}
+            />
+          </div>
           {lead.company_name && (
             <span className="truncate text-xs text-muted-foreground">
               {lead.company_name}
