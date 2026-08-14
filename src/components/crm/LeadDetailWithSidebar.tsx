@@ -63,6 +63,7 @@ import { LeadAuditSection } from "@/components/leads/sections/LeadAuditSection";
 import { IXEntityHeader } from "@/components/entity/ix/IXEntityHeader";
 import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
 import { WhatsAppCallButton } from "@/components/voice/WhatsAppCallButton";
+import { GHLCallButton } from "@/components/voice/GHLCallButton";
 
 type IXTabId = "overview" | "activity" | "communication" | "business" | "ai_data";
 
@@ -463,6 +464,12 @@ export function LeadDetailWithSidebar() {
                 entityName={lead.name}
               />
             )}
+            <GHLCallButton
+              entityType="lead"
+              entityId={lead.id}
+              entityName={lead.name}
+              phone={lead.phone}
+            />
           </div>
         }
       />

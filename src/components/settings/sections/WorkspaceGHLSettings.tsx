@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { GHLWhatsAppChannelCard } from "@/components/settings/sections/GHLWhatsAppChannelCard";
 
 interface SocialChannelInfo {
   id: string;
@@ -997,6 +998,9 @@ function WorkspaceGHLSettingsInner() {
           </CardContent>
         </Card>
       )}
+
+      {/* WhatsApp via GHL — diagnóstico e ativação por workspace */}
+      {isConfigured && <GHLWhatsAppChannelCard />}
 
       {/* Social Channels via GHL */}
       {isConfigured && <SocialChannelsViaGHL />}
