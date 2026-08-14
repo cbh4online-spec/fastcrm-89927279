@@ -213,7 +213,14 @@ export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
             return (
               <TableRow key={rule.id}>
                 <TableCell className="font-medium">
-                  {rule.name}
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    {rule.name}
+                    {duplicateIds.has(rule.id) && (
+                      <Badge variant="outline" className="border-amber-500/50 text-amber-600">
+                        Duplicada
+                      </Badge>
+                    )}
+                  </span>
                   {rule.description && (
                     <div className="text-xs text-muted-foreground truncate max-w-[200px]">
                       {rule.description}
