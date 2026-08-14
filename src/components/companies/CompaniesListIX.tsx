@@ -386,6 +386,12 @@ export function CompaniesListIX() {
         />
       }
     >
+      <ListKPIStrip
+        items={kpis}
+        isLoading={isLoading}
+        note="Valores calculados sobre os resultados filtrados."
+      />
+
       {isLoading ? (
         <div className="flex justify-center py-12"><LoadingSpinner /></div>
       ) : pageItems.length === 0 ? (
@@ -396,8 +402,13 @@ export function CompaniesListIX() {
             orderedColumns={orderedColumns}
             definitions={availableColumns}
             columnWidth={COLUMN_WIDTH}
+            rightAlignedKeys={NUMERIC_COLUMNS}
           />
-          {pageItems.map((c) => (
+          {pageItems.map((c, idx) => {
+            const fin = financialsById.get(c.id);
+            const hasOverdue = (fin?.overdue_total ?? 0) > 0.01;
+            const inactive = !!((c as any).archived_at || (c as any).is_blocked);
+            return (
             <div
               key={c.id}
               role="button"
@@ -405,7 +416,12 @@ export function CompaniesListIX() {
                 saveEntityListNavigation("company", filtered.map((x) => x.id), "/dashboard/companies");
                 navigate(`/dashboard/companies/${c.id}`);
               }}
-              className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
+              className={cn(
+                "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
+                idx % 2 === 1 ? "bg-muted/20" : "bg-card",
+                hasOverdue ? "border-l-4 border-l-destructive border-border" : "border-border",
+                inactive && "opacity-60",
+              )}
             >
               {orderedColumns.map((col) => (
                 <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
