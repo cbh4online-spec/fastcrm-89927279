@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Badge } from "@/components/ui/badge";
 import { LeadForm } from "@/marketing/components/LeadForm";
-import { CheckCircle2, Mail, Phone, MessageSquare } from "lucide-react";
+import { CheckCircle2, Mail, MessageSquare } from "lucide-react";
 
 export default function MarketingContactPage() {
   return (
@@ -53,20 +53,23 @@ export default function MarketingContactPage() {
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-3">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <a href="mailto:vendas@vendesimples.com" className="hover:text-primary">
-                    vendas@vendesimples.com
+                  <a href="mailto:online@metodopare.ai" className="hover:text-primary">
+                    online@metodopare.ai
                   </a>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">+351 (consultar via formulário)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">WhatsApp Business disponível</span>
+                <div className="flex items-start gap-3">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <span className="text-muted-foreground">
+                    Resposta em menos de 24h úteis. Preencha o formulário e indicamos o contacto
+                    telefónico ou WhatsApp da equipa responsável.
+                  </span>
                 </div>
               </div>
+              <p className="mt-4 border-t border-border pt-4 text-xs text-muted-foreground">
+                FastCRM é um produto Simples &amp; Divertido, Lda · Portugal
+              </p>
             </div>
+
           </div>
 
           <div className="lg:col-span-2">

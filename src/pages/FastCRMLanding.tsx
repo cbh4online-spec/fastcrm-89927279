@@ -24,8 +24,20 @@ import { StoreCookieConsent } from "@/components/store/StoreCookieConsent";
 
 export default function FastCRMLanding() {
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const hash = window.location.hash;
+    if (!hash || hash.length < 2) {
+      window.scrollTo(0, 0);
+      return;
+    }
+    const id = decodeURIComponent(hash.slice(1));
+    const scrollToTarget = () => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    const timer = window.setTimeout(scrollToTarget, 120);
+    return () => window.clearTimeout(timer);
   }, []);
+
 
   return (
     <>

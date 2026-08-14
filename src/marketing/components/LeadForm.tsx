@@ -135,7 +135,14 @@ export function LeadForm({ defaultLeadType = "demo", sourcePage = "contact", com
       </div>
 
       <div className="flex items-center justify-between gap-4 pt-2">
-        <p className="text-xs text-muted-foreground">Ao submeter aceita a nossa política de privacidade.</p>
+        <p className="text-xs text-muted-foreground">
+          Ao submeter aceita a nossa{" "}
+          <a href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+            política de privacidade
+          </a>
+          .
+        </p>
+
         <Button type="submit" disabled={submitting} size="lg">
           {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A enviar…</> : "Enviar pedido"}
         </Button>
