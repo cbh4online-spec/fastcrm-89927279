@@ -95,15 +95,22 @@ function renderCell(col: string, c: Contact) {
     case "client_number": return <span className="text-sm text-foreground">{c.client_number || "—"}</span>;
     case "lead_status": return <span className="text-sm text-foreground">{c.lead_status || "—"}</span>;
     case "pare_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">PARE</span><div className="text-sm font-semibold">{c.pare_score ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.pare_score))}>{c.pare_score ?? 0}</span></div>;
     case "icp_fit_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">ICP</span><div className="text-sm font-semibold">{c.icp_fit_score ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.icp_fit_score))}>{c.icp_fit_score ?? 0}</span></div>;
     case "engagement_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">Engag.</span><div className="text-sm font-semibold">{c.engagement_score ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.engagement_score))}>{c.engagement_score ?? 0}</span></div>;
     case "created_at":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Criado</div><div className="font-medium text-foreground">{formatDate(c.created_at)}</div></div>;
-    case "next_followup_at":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Follow-up</div><div className="font-medium text-foreground">{formatDate(c.next_followup_at)}</div></div>;
+      return <div className="w-full text-right text-sm text-muted-foreground">{formatDate(c.created_at)}</div>;
+    case "next_followup_at": {
+      const ts = c.next_followup_at ? new Date(c.next_followup_at).getTime() : 0;
+      const late = ts > 0 && ts < Date.now();
+      return (
+        <div className={cn("w-full text-right text-sm", late ? "font-semibold text-destructive" : ts ? "text-foreground" : "text-muted-foreground/60")}>
+          {formatDate(c.next_followup_at)}
+        </div>
+      );
+    }
     case "tags":
       return (
         <div className="flex flex-wrap gap-1">
