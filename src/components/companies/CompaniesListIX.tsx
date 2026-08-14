@@ -290,6 +290,11 @@ export function CompaniesListIX() {
         <EmptyState title="Sem empresas" description="Não foram encontradas empresas com os filtros atuais." />
       ) : (
         <div className="flex flex-col gap-2">
+          <ListColumnsHeader
+            orderedColumns={orderedColumns}
+            definitions={availableColumns}
+            columnWidth={COLUMN_WIDTH}
+          />
           {pageItems.map((c) => (
             <div
               key={c.id}
