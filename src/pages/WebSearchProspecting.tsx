@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { ProspectingBackButton } from "@/components/prospecting/ProspectingBackButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -204,7 +206,8 @@ export default function WebSearchProspecting() {
   };
 
   return (
-    <div className="space-y-6">
+    <DashboardLayout>
+    <div className="p-6 space-y-6">
       <PageBreadcrumbs
         items={[
           { label: "Prospecção", href: "/dashboard/prospecting" },
@@ -213,6 +216,7 @@ export default function WebSearchProspecting() {
       />
 
       <div>
+        <ProspectingBackButton />
         <h1 className="text-2xl font-bold tracking-tight">Pesquisa Web</h1>
         <p className="text-muted-foreground">
           Pesquise empresas na web e adicione-as como leads enriquecidos automaticamente
@@ -387,5 +391,6 @@ export default function WebSearchProspecting() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }

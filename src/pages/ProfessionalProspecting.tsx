@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
+import { ProspectingBackButton } from "@/components/prospecting/ProspectingBackButton";
 import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
 import { Settings2, Sparkles, Loader2 } from "lucide-react";
 import { ProspectingSearch, SearchPrefill } from "@/components/professional-prospecting/ProspectingSearch";
@@ -165,6 +166,7 @@ export default function ProfessionalProspecting() {
         {/* Header IX */}
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
+            <ProspectingBackButton />
             <h1 className="text-3xl font-bold tracking-tight">Prospecção Profissional</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Descubra profissionais individuais por profissão e localização
