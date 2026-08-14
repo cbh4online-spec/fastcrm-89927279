@@ -109,6 +109,7 @@ import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSum
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
 import { InvoiceHistorySection } from "@/components/contacts/eni/sections/InvoiceHistorySection";
 import { CompanyFinancingSection } from "./sections/CompanyFinancingSection";
+import { WhatsAppCallButton } from "@/components/voice/WhatsAppCallButton";
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -564,6 +565,14 @@ export function CompanyDetailWithSidebar() {
 
           <div className="flex shrink-0 items-center gap-2">
             <EntityRecordPager navigation={companyNavigation} label="Empresa" className="shrink-0" />
+            {company.phone && (
+              <WhatsAppCallButton
+                phone={company.phone}
+                entityType="company"
+                entityId={company.id}
+                entityName={company.name}
+              />
+            )}
             {isActionVisible('action', 'new-invoice') && (
               <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
                 <FileText className="w-4 h-4" />
