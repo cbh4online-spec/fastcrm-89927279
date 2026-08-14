@@ -36,8 +36,13 @@ export function matchAccountId(stored: string, candidate: string): boolean {
   if (!stored || !candidate) return false;
   if (stored === candidate) return true;
   if (stored.endsWith(`_${candidate}`)) return true;
-  return stored.includes(candidate);
+  if (stored.includes(candidate)) return true;
+  // Phone-like candidates (WhatsApp): compare digits only (+351 912 → 351912)
+  const digits = candidate.replace(/\D/g, "");
+  if (digits.length >= 9 && stored.replace(/\D/g, "").includes(digits)) return true;
+  return false;
 }
+
 
 /**
  * Extract every plausible page/account identifier from a GHL conversation
