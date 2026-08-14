@@ -36,8 +36,14 @@ export function BlockEntityDialog({ entity, ids, open, onOpenChange, onDone }: B
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) setReason("");
+        onOpenChange(o);
+      }}
+    >
+      <AlertDialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <AlertDialogHeader>
           <AlertDialogTitle>Bloquear {label}</AlertDialogTitle>
           <AlertDialogDescription>
@@ -52,6 +58,7 @@ export function BlockEntityDialog({ entity, ids, open, onOpenChange, onDone }: B
           </Label>
           <Textarea
             id="block-reason"
+            autoFocus
             value={reason}
             onChange={(e) => setReason(e.target.value.slice(0, 300))}
             placeholder="Ex.: pediu para não ser contactado (RGPD)"
