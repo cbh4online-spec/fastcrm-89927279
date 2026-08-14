@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import {
   DocumentListLayout,
   DocumentListToolbar,
+  ListKPIStrip,
+  type ListKPI,
+  scoreToneClass,
 } from "@/components/documents/listing";
+import { Users, UserPlus, Mail, Phone, Lock } from "lucide-react";
 import {
   ListColumnsPicker,
   useListColumns,
@@ -60,6 +64,10 @@ const COLUMN_WIDTH: Record<string, string> = {
   tags: "min-w-[140px] flex-1",
 };
 
+const NUMERIC_COLUMNS = [
+  "pare_score", "icp_fit_score", "engagement_score", "created_at", "next_followup_at",
+];
+
 function formatDate(value?: string | null) {
   if (!value) return "—";
   try { return new Date(value).toLocaleDateString("pt-PT"); } catch { return "—"; }
@@ -91,15 +99,22 @@ function renderCell(col: string, c: Contact) {
     case "client_number": return <span className="text-sm text-foreground">{c.client_number || "—"}</span>;
     case "lead_status": return <span className="text-sm text-foreground">{c.lead_status || "—"}</span>;
     case "pare_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">PARE</span><div className="text-sm font-semibold">{c.pare_score ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.pare_score))}>{c.pare_score ?? 0}</span></div>;
     case "icp_fit_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">ICP</span><div className="text-sm font-semibold">{c.icp_fit_score ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.icp_fit_score))}>{c.icp_fit_score ?? 0}</span></div>;
     case "engagement_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">Engag.</span><div className="text-sm font-semibold">{c.engagement_score ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.engagement_score))}>{c.engagement_score ?? 0}</span></div>;
     case "created_at":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Criado</div><div className="font-medium text-foreground">{formatDate(c.created_at)}</div></div>;
-    case "next_followup_at":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Follow-up</div><div className="font-medium text-foreground">{formatDate(c.next_followup_at)}</div></div>;
+      return <div className="w-full text-right text-sm text-muted-foreground">{formatDate(c.created_at)}</div>;
+    case "next_followup_at": {
+      const ts = c.next_followup_at ? new Date(c.next_followup_at).getTime() : 0;
+      const late = ts > 0 && ts < Date.now();
+      return (
+        <div className={cn("w-full text-right text-sm", late ? "font-semibold text-destructive" : ts ? "text-foreground" : "text-muted-foreground/60")}>
+          {formatDate(c.next_followup_at)}
+        </div>
+      );
+    }
     case "tags":
       return (
         <div className="flex flex-wrap gap-1">
@@ -161,6 +176,26 @@ export function ContactsListIX() {
     [availableColumns, columns],
   );
 
+  const kpis = useMemo<ListKPI[]>(() => {
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    let recent = 0, withEmail = 0, withPhone = 0, restricted = 0;
+    for (const c of filtered) {
+      if (new Date(c.created_at).getTime() >= cutoff) recent += 1;
+      if (c.email && /.+@.+\..+/.test(c.email)) withEmail += 1;
+      if (c.phone) withPhone += 1;
+      if ((c as any).is_blocked || (c as any).archived_at) restricted += 1;
+    }
+    const total = filtered.length;
+    const pct = (n: number) => (total > 0 ? `${Math.round((n / total) * 100)}% do total` : undefined);
+    return [
+      { key: "total", label: "Contactos", value: String(total), icon: Users, tone: "primary" },
+      { key: "recent", label: "Novos (30 dias)", value: String(recent), icon: UserPlus, tone: recent > 0 ? "success" : "neutral" },
+      { key: "email", label: "Com email", value: String(withEmail), icon: Mail, tone: "neutral", hint: pct(withEmail) },
+      { key: "phone", label: "Com telefone", value: String(withPhone), icon: Phone, tone: "neutral", hint: pct(withPhone) },
+      { key: "restricted", label: "Bloq. / arquivados", value: String(restricted), icon: Lock, tone: restricted > 0 ? "warning" : "neutral" },
+    ];
+  }, [filtered]);
+
   return (
     <DocumentListLayout
       title="Contactos"
@@ -201,6 +236,8 @@ export function ContactsListIX() {
         />
       }
     >
+      <ListKPIStrip items={kpis} isLoading={isLoading} note="Valores calculados sobre os resultados filtrados." />
+
       {isLoading ? (
         <div className="flex justify-center py-12"><LoadingSpinner /></div>
       ) : pageItems.length === 0 ? (
@@ -211,8 +248,9 @@ export function ContactsListIX() {
             orderedColumns={orderedColumns}
             definitions={availableColumns}
             columnWidth={COLUMN_WIDTH}
+            rightAlignedKeys={NUMERIC_COLUMNS}
           />
-          {pageItems.map((c) => (
+          {pageItems.map((c, idx) => (
             <div
               key={c.id}
               role="button"
@@ -224,7 +262,11 @@ export function ContactsListIX() {
                 );
                 navigate(`/dashboard/contacts/${c.id}`);
               }}
-              className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
+              className={cn(
+                "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
+                idx % 2 === 1 ? "bg-muted/20" : "bg-card",
+                ((c as any).is_blocked || (c as any).archived_at) && "opacity-60",
+              )}
             >
               {orderedColumns.map((col) => (
                 <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>

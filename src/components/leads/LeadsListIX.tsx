@@ -14,7 +14,12 @@ import {
   DocumentListToolbar,
   DocumentStatusBadge,
   type DocumentStatusTone,
+  ListKPIStrip,
+  type ListKPI,
+  scoreToneClass,
+  moneyToneClass,
 } from "@/components/documents/listing";
+import { Flame, Target, Euro, Clock } from "lucide-react";
 import { useSmartLeads, type SmartLead } from "@/hooks/useSmartLeads";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
@@ -110,38 +115,38 @@ function renderCell(col: string, lead: SmartLead) {
     }
     case "score":
       return (
-        <div className="text-right">
-          <span className="text-xs text-muted-foreground">Score</span>
-          <div className="text-sm font-semibold">{lead.lead_score ?? 0}</div>
+        <div className="w-full text-right">
+          <span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(lead.lead_score))}>
+            {lead.lead_score ?? 0}
+          </span>
         </div>
       );
     case "value":
       return (
-        <div className="text-right">
-          <span className="text-xs text-muted-foreground">Valor</span>
-          <div className="text-sm font-semibold">
+        <div className="w-full text-right">
+          <span className={cn("text-sm font-semibold tabular-nums", moneyToneClass("revenue", lead.estimated_value || 0))}>
             {formatCurrency(lead.estimated_value || 0)}
-          </div>
+          </span>
         </div>
       );
     case "created_at":
       return (
-        <div className="text-right text-xs">
-          <div className="text-muted-foreground">Criado</div>
-          <div className="font-medium text-foreground">
-            {formatDate(lead.created_at)}
-          </div>
+        <div className="w-full text-right text-sm text-muted-foreground">
+          {formatDate(lead.created_at)}
         </div>
       );
-    case "last_contact":
+    case "last_contact": {
+      const ts = lead.last_contact_at ? new Date(lead.last_contact_at).getTime() : 0;
+      const stale = ts > 0 && Date.now() - ts > 14 * 24 * 60 * 60 * 1000;
       return (
-        <div className="text-right text-xs">
-          <div className="text-muted-foreground">Último contacto</div>
-          <div className="font-medium text-foreground">
-            {formatDate(lead.last_contact_at)}
-          </div>
+        <div className={cn(
+          "w-full text-right text-sm",
+          !ts ? "text-destructive" : stale ? "text-warning font-medium" : "text-foreground",
+        )}>
+          {ts ? formatDate(lead.last_contact_at) : "Nunca"}
         </div>
       );
+    }
     case "assigned_to":
       return (
         <span className="truncate text-sm text-foreground">
@@ -185,6 +190,8 @@ const COLUMN_WIDTH: Record<string, string> = {
   tags: "min-w-[140px] flex-1",
 };
 
+const NUMERIC_COLUMNS = ["score", "value", "created_at", "last_contact"];
+
 export function LeadsListIX() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -226,6 +233,25 @@ export function LeadsListIX() {
     () => LEAD_COLUMNS.filter((c) => columns.includes(c.key)).map((c) => c.key),
     [columns]
   );
+
+  const kpis = useMemo<ListKPI[]>(() => {
+    let hot = 0, pipeline = 0, stale = 0, scored = 0, scoreSum = 0;
+    const staleCut = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    for (const l of sortedLeads) {
+      if ((l.ai_temperature || "").toLowerCase() === "hot") hot += 1;
+      pipeline += Number(l.estimated_value) || 0;
+      const ts = l.last_contact_at ? new Date(l.last_contact_at).getTime() : 0;
+      if (!ts || ts < staleCut) stale += 1;
+      if (l.lead_score != null) { scored += 1; scoreSum += Number(l.lead_score) || 0; }
+    }
+    const avg = scored > 0 ? Math.round(scoreSum / scored) : 0;
+    return [
+      { key: "hot", label: "Leads quentes", value: String(hot), icon: Flame, tone: hot > 0 ? "danger" : "neutral" },
+      { key: "pipeline", label: "Valor potencial", value: formatCurrency(pipeline), icon: Euro, tone: "primary" },
+      { key: "score", label: "Score médio", value: String(avg), icon: Target, tone: avg >= 70 ? "success" : avg >= 40 ? "warning" : "neutral" },
+      { key: "stale", label: "Sem contacto (14d)", value: String(stale), icon: Clock, tone: stale > 0 ? "warning" : "neutral" },
+    ];
+  }, [sortedLeads]);
 
   return (
     <DocumentListLayout
@@ -275,6 +301,8 @@ export function LeadsListIX() {
         />
       }
     >
+      <ListKPIStrip items={kpis} isLoading={isLoading} note="Valores calculados sobre a página atual de resultados." />
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <LoadingSpinner />
@@ -290,8 +318,9 @@ export function LeadsListIX() {
             orderedColumns={orderedColumns}
             definitions={LEAD_COLUMNS}
             columnWidth={COLUMN_WIDTH}
+            rightAlignedKeys={NUMERIC_COLUMNS}
           />
-          {sortedLeads.map((lead) => (
+          {sortedLeads.map((lead, idx) => (
             <div
               key={lead.id}
               role="button"
@@ -299,7 +328,11 @@ export function LeadsListIX() {
                 saveEntityListNavigation("lead", sortedLeads.map((l) => l.id), "/dashboard/leads");
                 navigate(`/dashboard/leads/${lead.id}`);
               }}
-              className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
+              className={cn(
+                "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
+                idx % 2 === 1 ? "bg-muted/20" : "bg-card",
+                ((lead as any).is_blocked || (lead as any).archived_at) && "opacity-60",
+              )}
             >
               {orderedColumns.map((col) => (
                 <div

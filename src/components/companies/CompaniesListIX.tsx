@@ -12,7 +12,25 @@ import { Button } from "@/components/ui/button";
 import {
   DocumentListLayout,
   DocumentListToolbar,
+  ListKPIStrip,
+  type ListKPI,
+  moneyToneClass,
+  statusToneClass,
+  scoreToneClass,
+  abcToneClass,
+  variation,
+  type MoneyKind,
 } from "@/components/documents/listing";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Euro,
+  Wallet,
+  Clock,
+  AlertTriangle,
+  Receipt,
+  Users,
+} from "lucide-react";
 import {
   ListColumnsPicker,
   useListColumns,
@@ -86,6 +104,13 @@ const COLUMN_WIDTH: Record<string, string> = {
   tags: "min-w-[140px] flex-1",
 };
 
+const NUMERIC_COLUMNS = [
+  "pare_score", "icp_fit_score", "total_revenue", "average_ticket",
+  "sales_2026", "sales_2025", "sales_2024", "payment_status",
+  "paid_total", "pending_total", "overdue_total", "invoice_count",
+  "last_purchase_date", "created_at",
+];
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(value || 0);
 }
@@ -94,32 +119,64 @@ function formatDate(value?: string | null) {
   try { return new Date(value).toLocaleDateString("pt-PT"); } catch { return "—"; }
 }
 
-function moneyCell(label: string, value: number | null | undefined) {
+function moneyCell(kind: MoneyKind, value: number | null | undefined) {
+  const v = Number(value) || 0;
   return (
-    <div className="text-right">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="text-sm font-semibold">{formatCurrency(Number(value) || 0)}</div>
+    <div className="w-full text-right">
+      <span className={cn("text-sm font-semibold tabular-nums", moneyToneClass(kind, v))}>
+        {formatCurrency(v)}
+      </span>
+    </div>
+  );
+}
+
+function salesCell(value: number | null | undefined, previous: number | null | undefined) {
+  const v = Number(value) || 0;
+  const delta = variation(v, Number(previous) || 0);
+  return (
+    <div className="w-full text-right">
+      <span className={cn("text-sm font-semibold tabular-nums", moneyToneClass("revenue", v))}>
+        {formatCurrency(v)}
+      </span>
+      {delta !== null && Math.abs(delta) >= 1 && (
+        <span
+          className={cn(
+            "ml-1 inline-flex items-center text-[11px] font-medium",
+            delta >= 0 ? "text-success" : "text-destructive",
+          )}
+        >
+          {delta >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          {Math.abs(delta).toFixed(0)}%
+        </span>
+      )}
     </div>
   );
 }
 
 function paymentStatusCell(fin: CompanyFinancials | undefined) {
   if (!fin || fin.invoice_count === 0) {
-    return <div className="text-right"><span className="text-xs text-muted-foreground">Pagamento</span><div className="text-sm text-muted-foreground">—</div></div>;
+    return (
+      <div className="w-full text-right">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          Sem faturas
+        </span>
+      </div>
+    );
   }
-  let label = "Liquidado";
-  let tone = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  let label = "Pago";
+  let kind: MoneyKind = "paid";
   if (fin.overdue_total > 0.01) {
     label = "Vencido";
-    tone = "bg-destructive/10 text-destructive";
+    kind = "overdue";
   } else if (fin.pending_total > 0.01) {
-    label = fin.paid_total > 0.01 ? "Parcial" : "Em dívida";
-    tone = "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+    label = fin.paid_total > 0.01 ? "Parcial" : "Pendente";
+    kind = "pending";
   }
   return (
-    <div className="text-right">
-      <span className="text-xs text-muted-foreground">Pagamento</span>
-      <div className={cn("mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-semibold", tone)}>{label}</div>
+    <div className="w-full text-right">
+      <span className={cn("inline-block rounded-full px-2 py-0.5 text-xs font-semibold", statusToneClass(kind))}>
+        {label}
+      </span>
     </div>
   );
 }
@@ -153,28 +210,35 @@ function renderCell(col: string, c: Company, fin: CompanyFinancials | undefined)
     case "size": return <span className="text-sm text-foreground">{c.size || "—"}</span>;
     case "country": return <span className="text-sm text-foreground">{c.country || "—"}</span>;
     case "client_number": return <span className="text-sm text-foreground">{c.client_number || "—"}</span>;
-    case "abc_category": return <span className="text-sm font-semibold text-foreground">{c.abc_category || "—"}</span>;
+    case "abc_category":
+      return c.abc_category ? (
+        <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", abcToneClass(c.abc_category))}>
+          {c.abc_category}
+        </span>
+      ) : (
+        <span className="text-sm text-muted-foreground/60">—</span>
+      );
     case "pare_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">PARE</span><div className="text-sm font-semibold">{c.pare_score ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.pare_score))}>{c.pare_score ?? 0}</span></div>;
     case "icp_fit_score":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">ICP</span><div className="text-sm font-semibold">{c.icp_fit_score ?? 0}</div></div>;
-    case "total_revenue": return moneyCell("Faturação", fin?.net_total ?? c.total_revenue);
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.icp_fit_score))}>{c.icp_fit_score ?? 0}</span></div>;
+    case "total_revenue": return moneyCell("revenue", fin?.net_total ?? c.total_revenue);
     case "average_ticket":
-      return moneyCell("Ticket médio", fin && fin.invoice_count > 0 ? fin.net_total / fin.invoice_count : c.average_ticket);
-    case "sales_2026": return moneyCell("2026", fin?.sales_2026 ?? c.sales_2026);
-    case "sales_2025": return moneyCell("2025", fin?.sales_2025 ?? c.sales_2025);
-    case "sales_2024": return moneyCell("2024", fin?.sales_2024 ?? c.sales_2024);
+      return moneyCell("revenue", fin && fin.invoice_count > 0 ? fin.net_total / fin.invoice_count : c.average_ticket);
+    case "sales_2026": return salesCell(fin?.sales_2026 ?? c.sales_2026, fin?.sales_2025);
+    case "sales_2025": return salesCell(fin?.sales_2025 ?? c.sales_2025, fin?.sales_2024);
+    case "sales_2024": return salesCell(fin?.sales_2024 ?? c.sales_2024, fin?.sales_2023);
     case "payment_status": return paymentStatusCell(fin);
-    case "paid_total": return moneyCell("Pago", fin?.paid_total ?? 0);
-    case "pending_total": return moneyCell("Pendente", fin?.pending_total ?? 0);
-    case "overdue_total": return moneyCell("Vencido", fin?.overdue_total ?? 0);
+    case "paid_total": return moneyCell("paid", fin?.paid_total ?? 0);
+    case "pending_total": return moneyCell("pending", fin?.pending_total ?? 0);
+    case "overdue_total": return moneyCell("overdue", fin?.overdue_total ?? 0);
     case "invoice_count":
-      return <div className="text-right"><span className="text-xs text-muted-foreground">Faturas</span><div className="text-sm font-semibold">{fin?.invoice_count ?? 0}</div></div>;
+      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", (fin?.invoice_count ?? 0) > 0 ? "text-foreground" : "text-muted-foreground/60")}>{fin?.invoice_count ?? 0}</span></div>;
     case "last_purchase_date":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Última compra</div><div className="font-medium text-foreground">{formatDate(fin?.last_invoice_date ?? c.last_purchase_date)}</div></div>;
+      return <div className="w-full text-right text-sm text-foreground">{formatDate(fin?.last_invoice_date ?? c.last_purchase_date)}</div>;
 
     case "created_at":
-      return <div className="text-right text-xs"><div className="text-muted-foreground">Criado</div><div className="font-medium text-foreground">{formatDate(c.created_at)}</div></div>;
+      return <div className="w-full text-right text-sm text-muted-foreground">{formatDate(c.created_at)}</div>;
     case "tags":
       return (
         <div className="flex flex-wrap gap-1">
@@ -201,6 +265,7 @@ export function CompaniesListIX() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
+  const [onlyOverdue, setOnlyOverdue] = useState(false);
   const { isElementVisible } = usePageElementVisibility("companies");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
@@ -220,6 +285,9 @@ export function CompaniesListIX() {
           .some((v) => String(v).toLowerCase().includes(q)),
       );
     }
+    if (onlyOverdue) {
+      arr = arr.filter((c) => (financialsById.get(c.id)?.overdue_total ?? 0) > 0.01);
+    }
     arr = [...arr].sort((a, b) => {
       let cmp = 0;
       if (sortBy === "name") cmp = (a.name || "").localeCompare(b.name || "");
@@ -232,7 +300,7 @@ export function CompaniesListIX() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [all, search, sortBy, sortDir, financialsById]);
+  }, [all, search, sortBy, sortDir, financialsById, onlyOverdue]);
 
 
   const totalCount = filtered.length;
@@ -241,6 +309,40 @@ export function CompaniesListIX() {
     () => availableColumns.filter((c) => columns.includes(c.key)).map((c) => c.key),
     [availableColumns, columns],
   );
+
+  const kpis = useMemo<ListKPI[]>(() => {
+    let revenue = 0, paid = 0, pending = 0, overdue = 0, invoices = 0, active = 0;
+    const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
+    for (const c of filtered) {
+      const f = financialsById.get(c.id);
+      if (!f) continue;
+      revenue += f.net_total;
+      paid += f.paid_total;
+      pending += f.pending_total;
+      overdue += f.overdue_total;
+      invoices += f.invoice_count;
+      const last = f.last_invoice_date ? new Date(f.last_invoice_date).getTime() : 0;
+      if (last >= cutoff) active += 1;
+    }
+    const ticket = invoices > 0 ? revenue / invoices : 0;
+    return [
+      { key: "revenue", label: "Faturação (s/IVA)", value: formatCurrency(revenue), icon: Euro, tone: "primary", hint: `${invoices} faturas` },
+      { key: "paid", label: "Recebido", value: formatCurrency(paid), icon: Wallet, tone: paid > 0 ? "success" : "neutral" },
+      { key: "pending", label: "Pendente", value: formatCurrency(pending), icon: Clock, tone: pending > 0.01 ? "warning" : "neutral" },
+      {
+        key: "overdue",
+        label: "Vencido",
+        value: formatCurrency(overdue),
+        icon: AlertTriangle,
+        tone: overdue > 0.01 ? "danger" : "neutral",
+        hint: onlyOverdue ? "A filtrar" : "Clique para filtrar",
+        active: onlyOverdue,
+        onClick: () => { setOnlyOverdue((v) => !v); setPage(0); },
+      },
+      { key: "ticket", label: "Ticket médio", value: formatCurrency(ticket), icon: Receipt, tone: "neutral" },
+      { key: "active", label: "Clientes ativos", value: String(active), icon: Users, tone: "neutral", hint: "com faturação a 12 meses" },
+    ];
+  }, [filtered, financialsById, onlyOverdue]);
 
   return (
     <DocumentListLayout
@@ -284,6 +386,12 @@ export function CompaniesListIX() {
         />
       }
     >
+      <ListKPIStrip
+        items={kpis}
+        isLoading={isLoading}
+        note="Valores calculados sobre os resultados filtrados."
+      />
+
       {isLoading ? (
         <div className="flex justify-center py-12"><LoadingSpinner /></div>
       ) : pageItems.length === 0 ? (
@@ -294,8 +402,13 @@ export function CompaniesListIX() {
             orderedColumns={orderedColumns}
             definitions={availableColumns}
             columnWidth={COLUMN_WIDTH}
+            rightAlignedKeys={NUMERIC_COLUMNS}
           />
-          {pageItems.map((c) => (
+          {pageItems.map((c, idx) => {
+            const fin = financialsById.get(c.id);
+            const hasOverdue = (fin?.overdue_total ?? 0) > 0.01;
+            const inactive = !!((c as any).archived_at || (c as any).is_blocked);
+            return (
             <div
               key={c.id}
               role="button"
@@ -303,7 +416,12 @@ export function CompaniesListIX() {
                 saveEntityListNavigation("company", filtered.map((x) => x.id), "/dashboard/companies");
                 navigate(`/dashboard/companies/${c.id}`);
               }}
-              className="flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
+              className={cn(
+                "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
+                idx % 2 === 1 ? "bg-muted/20" : "bg-card",
+                hasOverdue ? "border-l-4 border-l-destructive border-border" : "border-border",
+                inactive && "opacity-60",
+              )}
             >
               {orderedColumns.map((col) => (
                 <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
@@ -331,7 +449,8 @@ export function CompaniesListIX() {
                 </DropdownMenu>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
