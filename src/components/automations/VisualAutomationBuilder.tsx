@@ -49,11 +49,13 @@ import {
   useCreateAutomationRule,
   useUpdateAutomationRule,
   useToggleAutomationRule,
+  useAutomationRules,
   AutomationRule,
   AutomationTrigger,
   AutomationActionType,
   ConditionOperator,
 } from "@/hooks/useAutomations";
+import { normalizeRuleName } from "@/lib/automations/detectDuplicateRules";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
 import { useCustomFields, CustomField, CustomFieldType } from "@/hooks/useCustomFields";
