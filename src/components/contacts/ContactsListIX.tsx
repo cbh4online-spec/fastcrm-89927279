@@ -206,6 +206,11 @@ export function ContactsListIX() {
         <EmptyState title="Sem contactos" description="Não foram encontrados contactos com os filtros atuais." />
       ) : (
         <div className="flex flex-col gap-2">
+          <ListColumnsHeader
+            orderedColumns={orderedColumns}
+            definitions={availableColumns}
+            columnWidth={COLUMN_WIDTH}
+          />
           {pageItems.map((c) => (
             <div
               key={c.id}
