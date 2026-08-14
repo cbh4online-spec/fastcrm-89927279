@@ -104,6 +104,13 @@ const COLUMN_WIDTH: Record<string, string> = {
   tags: "min-w-[140px] flex-1",
 };
 
+const NUMERIC_COLUMNS = [
+  "pare_score", "icp_fit_score", "total_revenue", "average_ticket",
+  "sales_2026", "sales_2025", "sales_2024", "payment_status",
+  "paid_total", "pending_total", "overdue_total", "invoice_count",
+  "last_purchase_date", "created_at",
+];
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(value || 0);
 }
