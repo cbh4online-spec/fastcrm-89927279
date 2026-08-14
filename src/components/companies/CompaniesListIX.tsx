@@ -94,32 +94,64 @@ function formatDate(value?: string | null) {
   try { return new Date(value).toLocaleDateString("pt-PT"); } catch { return "—"; }
 }
 
-function moneyCell(label: string, value: number | null | undefined) {
+function moneyCell(kind: MoneyKind, value: number | null | undefined) {
+  const v = Number(value) || 0;
   return (
-    <div className="text-right">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="text-sm font-semibold">{formatCurrency(Number(value) || 0)}</div>
+    <div className="w-full text-right">
+      <span className={cn("text-sm font-semibold tabular-nums", moneyToneClass(kind, v))}>
+        {formatCurrency(v)}
+      </span>
+    </div>
+  );
+}
+
+function salesCell(value: number | null | undefined, previous: number | null | undefined) {
+  const v = Number(value) || 0;
+  const delta = variation(v, Number(previous) || 0);
+  return (
+    <div className="w-full text-right">
+      <span className={cn("text-sm font-semibold tabular-nums", moneyToneClass("revenue", v))}>
+        {formatCurrency(v)}
+      </span>
+      {delta !== null && Math.abs(delta) >= 1 && (
+        <span
+          className={cn(
+            "ml-1 inline-flex items-center text-[11px] font-medium",
+            delta >= 0 ? "text-success" : "text-destructive",
+          )}
+        >
+          {delta >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          {Math.abs(delta).toFixed(0)}%
+        </span>
+      )}
     </div>
   );
 }
 
 function paymentStatusCell(fin: CompanyFinancials | undefined) {
   if (!fin || fin.invoice_count === 0) {
-    return <div className="text-right"><span className="text-xs text-muted-foreground">Pagamento</span><div className="text-sm text-muted-foreground">—</div></div>;
+    return (
+      <div className="w-full text-right">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          Sem faturas
+        </span>
+      </div>
+    );
   }
-  let label = "Liquidado";
-  let tone = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  let label = "Pago";
+  let kind: MoneyKind = "paid";
   if (fin.overdue_total > 0.01) {
     label = "Vencido";
-    tone = "bg-destructive/10 text-destructive";
+    kind = "overdue";
   } else if (fin.pending_total > 0.01) {
-    label = fin.paid_total > 0.01 ? "Parcial" : "Em dívida";
-    tone = "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+    label = fin.paid_total > 0.01 ? "Parcial" : "Pendente";
+    kind = "pending";
   }
   return (
-    <div className="text-right">
-      <span className="text-xs text-muted-foreground">Pagamento</span>
-      <div className={cn("mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-semibold", tone)}>{label}</div>
+    <div className="w-full text-right">
+      <span className={cn("inline-block rounded-full px-2 py-0.5 text-xs font-semibold", statusToneClass(kind))}>
+        {label}
+      </span>
     </div>
   );
 }
