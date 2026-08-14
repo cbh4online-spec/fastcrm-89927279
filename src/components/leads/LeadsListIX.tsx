@@ -14,7 +14,12 @@ import {
   DocumentListToolbar,
   DocumentStatusBadge,
   type DocumentStatusTone,
+  ListKPIStrip,
+  type ListKPI,
+  scoreToneClass,
+  moneyToneClass,
 } from "@/components/documents/listing";
+import { Flame, Target, Euro, Clock } from "lucide-react";
 import { useSmartLeads, type SmartLead } from "@/hooks/useSmartLeads";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
