@@ -286,6 +286,9 @@ export function ProfileSettings() {
         </div>
       </SectionCard>
 
+      {/* Chamadas por WhatsApp */}
+      <WhatsAppCallSettingsCard />
+
       {/* Alterar palavra-passe */}
       <SectionCard
         title="Alterar palavra-passe"
