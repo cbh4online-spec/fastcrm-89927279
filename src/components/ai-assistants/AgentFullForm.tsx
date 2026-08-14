@@ -48,6 +48,15 @@ const WEEKDAYS = [
   { value: 0, label: "Dom" },
 ];
 
+const HANDOFF_INTENTS = [
+  { value: "sales", label: "Intenção de compra" },
+  { value: "support", label: "Pedido de suporte" },
+  { value: "complaint", label: "Reclamação" },
+  { value: "question", label: "Dúvida" },
+];
+
+
+
 export function AgentFullForm({
   agent,
   personas,
