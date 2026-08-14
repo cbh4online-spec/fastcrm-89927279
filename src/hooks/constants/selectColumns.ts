@@ -20,7 +20,8 @@ export const LEADS_SELECT_COLUMNS = `
    annual_revenue, contact_person, contact_person_role, founding_date,
    about, activity_description, racius_url, external_instagram_id,
    external_whatsapp_id, icp_fit_score, engagement_score, pare_score, created_by,
-   youtube_url, tiktok_url, pinterest_url, whatsapp_url
+   youtube_url, tiktok_url, pinterest_url, whatsapp_url,
+   is_blocked, block_reason, archived_at, archive_reason
 `;
 
 export const ACTIVITIES_SELECT_COLUMNS = `

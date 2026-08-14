@@ -66,6 +66,7 @@ export interface SmartCompaniesFilters {
   sortBy?: string;
   page?: number;
   pageSize?: number;
+  archiveState?: "active" | "archived" | "all";
 }
 
 export interface CompaniesKPIs {
@@ -94,6 +95,7 @@ const COMPANIES_SELECT_COLUMNS = `
   linkedin_url, facebook_url, instagram_url, google_rating,
   icp_fit_score, estimated_arr, buying_signal, expansion_probability,
   company_growth_stage, ai_revenue_analyzed_at,
+  is_blocked, block_reason, archived_at, archive_reason,
   contacts:contacts(count),
   opportunities:opportunities(count)
 `;
@@ -135,6 +137,10 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters): ReturnType<t
         .select(COMPANIES_SELECT_COLUMNS, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
         .order(sortColumn, { ascending: sortAscending });
+
+      const archiveState = filters?.archiveState ?? "active";
+      if (archiveState === "active") query = query.is("archived_at", null);
+      else if (archiveState === "archived") query = query.not("archived_at", "is", null);
 
       if (filters?.temperature && filters.temperature !== "all") {
         query = query.eq("ai_temperature", filters.temperature);
@@ -226,7 +232,7 @@ export function useCompaniesKPIs() {
 
       const threshold48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
-      const baseQuery = () => workspaceClient.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id);
+      const baseQuery = () => workspaceClient.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("archived_at", null);
 
       const [totalRes, hotRes, clientsRes, prospectsRes, noResponseRes, valueRes] = await Promise.all([
         baseQuery(),
@@ -234,7 +240,7 @@ export function useCompaniesKPIs() {
         baseQuery().eq("ai_company_type", "client"),
         baseQuery().eq("ai_company_type", "prospect"),
         baseQuery().lt("last_contact_at", threshold48h),
-        workspaceClient.from("companies").select("estimated_value, company_score").eq("workspace_id", currentWorkspace.id),
+        workspaceClient.from("companies").select("estimated_value, company_score").eq("workspace_id", currentWorkspace.id).is("archived_at", null),
       ]);
 
       const totalCompanies = totalRes.count ?? 0;

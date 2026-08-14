@@ -40,6 +40,8 @@ export interface SmartContact {
   slaBreach: boolean;
 }
 
+export type ArchiveState = "active" | "archived" | "all";
+
 export interface SmartContactsFilters {
   search?: string;
   temperature?: EntityTemperature | "all";
@@ -50,6 +52,7 @@ export interface SmartContactsFilters {
   sortBy?: string;
   page?: number;
   pageSize?: number;
+  archiveState?: ArchiveState;
 }
 
 export interface ContactsKPIs {
@@ -73,6 +76,7 @@ const CONTACTS_SELECT_COLUMNS = `
   ai_next_action, ai_next_action_type, ai_insight, ai_contact_type,
   estimated_value, conversion_probability, ai_analyzed_at,
   assigned_to, automation_active,
+  is_blocked, block_reason, archived_at, archive_reason,
   companies:company_id (id, name)
 `;
 
@@ -118,6 +122,12 @@ export function useSmartContacts(filters?: SmartContactsFilters): ReturnType<typ
         .eq("workspace_id", currentWorkspace.id)
         .is("deleted_at", null)
         .order(sortColumn, { ascending: sortAscending });
+
+      const archiveState = filters?.archiveState ?? "active";
+      if (archiveState === "active") query = query.is("archived_at", null);
+      else if (archiveState === "archived") query = query.not("archived_at", "is", null);
+
+
 
       if (filters?.temperature && filters.temperature !== "all") {
         query = query.eq("ai_temperature", filters.temperature);
@@ -197,14 +207,14 @@ export function useContactsKPIs() {
 
       const threshold24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-      const baseQuery = () => workspaceClient.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("deleted_at", null);
+      const baseQuery = () => workspaceClient.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("deleted_at", null).is("archived_at", null);
 
       const [totalRes, hotRes, noResponseRes, dmRes, valueRes] = await Promise.all([
         baseQuery(),
         baseQuery().eq("ai_temperature", "hot"),
         baseQuery().lt("last_contact_at", threshold24h),
         baseQuery().eq("ai_contact_type", "decision_maker"),
-        workspaceClient.from("contacts").select("estimated_value, contact_score").eq("workspace_id", currentWorkspace.id).is("deleted_at", null).gt("estimated_value", 0),
+        workspaceClient.from("contacts").select("estimated_value, contact_score").eq("workspace_id", currentWorkspace.id).is("deleted_at", null).is("archived_at", null).gt("estimated_value", 0),
       ]);
 
       const totalContacts = totalRes.count ?? 0;
@@ -212,7 +222,7 @@ export function useContactsKPIs() {
       const totalPipelineValue = values.reduce((s: number, c: any) => s + (c.estimated_value || 0), 0);
       
       // For avg score, we need a lightweight query
-      const { data: scoreData } = await workspaceClient.from("contacts").select("contact_score").eq("workspace_id", currentWorkspace.id).is("deleted_at", null);
+      const { data: scoreData } = await workspaceClient.from("contacts").select("contact_score").eq("workspace_id", currentWorkspace.id).is("deleted_at", null).is("archived_at", null);
       const avgScore = scoreData && scoreData.length > 0
         ? Math.round(scoreData.reduce((s: number, c: any) => s + (c.contact_score || 0), 0) / scoreData.length)
         : 0;

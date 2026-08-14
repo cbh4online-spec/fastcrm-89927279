@@ -167,6 +167,7 @@ export function useLeads(filters?: { status?: LeadStatus; search?: string }) {
         .from("leads")
         .select(LEADS_SELECT_COLUMNS)
         .eq("workspace_id", currentWorkspace.id)
+        .is("archived_at", null)
         .order("created_at", { ascending: false });
 
       if (filters?.status) {

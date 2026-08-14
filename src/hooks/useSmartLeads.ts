@@ -63,6 +63,7 @@ export interface SmartLeadsFilters {
   sortBy?: string;
   page?: number;
   pageSize?: number;
+  archiveState?: "active" | "archived" | "all";
 }
 
 export interface LeadsKPIs {
@@ -89,7 +90,8 @@ const LEADS_SELECT_COLUMNS = `
   website, business_category, cae_description, capital_social,
   legal_nature, external_email, external_username, linkedin_url,
   facebook_url, instagram_url, twitter_url, fax, company_status,
-  services, cae_codes, youtube_url, tiktok_url, pinterest_url, whatsapp_url
+  services, cae_codes, youtube_url, tiktok_url, pinterest_url, whatsapp_url,
+  is_blocked, block_reason, archived_at, archive_reason
 `;
 
 export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof useQuery<SmartLeadsResult>> {
@@ -128,6 +130,10 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
         .select(LEADS_SELECT_COLUMNS, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
         .order(sortColumn, { ascending: sortAscending });
+
+      const archiveState = filters?.archiveState ?? "active";
+      if (archiveState === "active") query = query.is("archived_at", null);
+      else if (archiveState === "archived") query = query.not("archived_at", "is", null);
 
       // Apply filters at SQL level
       if (filters?.status && filters.status !== "all") {
@@ -229,14 +235,14 @@ export function useLeadsKPIs() {
       const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
       // All KPI queries use head: true (0 rows transferred) with count: 'exact'
-      const baseQuery = () => workspaceClient.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id);
+      const baseQuery = () => workspaceClient.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("archived_at", null);
 
       const [todayRes, hotRes, noResponseRes, conversionsRes, pipelineRes] = await Promise.all([
         baseQuery().gte("created_at", today.toISOString()),
         baseQuery().eq("ai_temperature", "hot"),
         baseQuery().lt("last_contact_at", threshold24h),
         baseQuery().eq("status", "completed").gte("updated_at", weekStart.toISOString()),
-        workspaceClient.from("leads").select("estimated_value").eq("workspace_id", currentWorkspace.id).gt("estimated_value", 0),
+        workspaceClient.from("leads").select("estimated_value").eq("workspace_id", currentWorkspace.id).is("archived_at", null).gt("estimated_value", 0),
       ]);
 
       const totalPipelineValue = (pipelineRes.data || []).reduce((s: number, l: any) => s + (l.estimated_value || 0), 0);
