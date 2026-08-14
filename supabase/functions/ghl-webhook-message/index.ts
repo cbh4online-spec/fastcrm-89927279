@@ -268,90 +268,56 @@ Deno.serve(async (req) => {
     // Extract the account/page identifier from the GHL payload (varies by channel)
     const candidateAccountIds = extractGHLAccountIds(body);
 
-    let config: typeof allConfigs[0] | null = null;
-    let routingMethod = "unknown";
-
-    if (allConfigs.length === 1) {
-      // Single workspace owns this location → trivial routing
-      config = allConfigs[0];
-      routingMethod = "single_config";
-    } else if (earlySocialType && candidateAccountIds.length > 0) {
-      // CRITICAL: Use the account_id of the message to find the correct workspace
-      // ghl_account_id format in DB: <convProviderId>_<locationId>_<pageId>
+    let socialChannels: any[] = [];
+    if (allConfigs.length > 1 && earlySocialType) {
       const wsIds = allConfigs.map(c => c.workspace_id);
-      const { data: socialChannels } = await supabase
+      const { data } = await supabase
         .from("workspace_ghl_social_channels")
         .select("workspace_id, ghl_account_id, channel_type, is_active, account_name")
         .in("workspace_id", wsIds)
         .eq("channel_type", earlySocialType)
         .eq("is_active", true);
+      socialChannels = data ?? [];
+    }
 
-      if (socialChannels?.length) {
-        // Try to match candidate IDs against ghl_account_id (exact OR suffix match on pageId)
-        const matched = socialChannels.find((sc: any) => {
-          const stored = String(sc.ghl_account_id || "");
-          return candidateAccountIds.some(cand => {
-            const c = String(cand);
-            return stored === c || stored.endsWith(`_${c}`) || stored.includes(c);
-          });
-        });
+    const decision = resolveWorkspaceForMessage({
+      configs: allConfigs as any,
+      channels: socialChannels as any,
+      socialType: earlySocialType,
+      candidateAccountIds: candidateAccountIds,
+    });
 
-        if (matched) {
-          config = allConfigs.find(c => c.workspace_id === matched.workspace_id) || null;
-          routingMethod = "account_id_match";
-          console.log("[GHL-ROUTE] account_id matched", {
-            account_id: matched.ghl_account_id,
-            account_name: matched.account_name,
-            workspace: matched.workspace_id,
-            channel: earlySocialType,
-          });
-        }
-      }
-
-      // FAIL-CLOSED: No deterministic match for a social channel with multiple candidate workspaces
-      if (!config) {
-        console.error("[GHL-ROUTE] UNROUTABLE_MESSAGE: no workspace owns this account_id", {
-          location_id: locationId,
-          channel: earlySocialType,
-          candidate_account_ids: candidateAccountIds,
-          candidate_workspaces: allConfigs.map(c => c.workspace_id),
-        });
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            outcome: "unrouted",
-            reason: "no_workspace_owns_account_id",
-            channel: earlySocialType,
-            candidate_account_ids: candidateAccountIds,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    } else if (earlySocialType) {
-      // Social channel but no account_id in payload → can't safely route. Fail closed.
-      console.error("[GHL-ROUTE] UNROUTABLE_MESSAGE: social channel without account_id", {
+    if (!decision.ok) {
+      console.error("[GHL-ROUTE] UNROUTABLE_MESSAGE", {
         location_id: locationId,
         channel: earlySocialType,
-        candidate_workspaces: allConfigs.map(c => c.workspace_id),
+        reason: decision.reason,
+        candidate_account_ids: candidateAccountIds,
+        candidate_workspaces: decision.candidateWorkspaces,
+      });
+      await logRoutingDecision(supabase, {
+        source: "webhook",
+        ghl_location_id: locationId,
+        channel_type: earlySocialType,
+        action: "unrouted",
+        reason: decision.reason,
+        payload: { candidate_account_ids: candidateAccountIds, candidate_workspaces: decision.candidateWorkspaces },
       });
       return new Response(
         JSON.stringify({
           ok: true,
           outcome: "unrouted",
-          reason: "social_channel_missing_account_id",
+          reason: decision.reason,
           channel: earlySocialType,
+          candidate_account_ids: candidateAccountIds,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    } else {
-      // Non-social channel (sms/email/voice/chat): keep legacy primary fallback
-      config = allConfigs.find(c => c.is_primary) || allConfigs[0];
-      routingMethod = "non_social_fallback";
-      console.log("[GHL-ROUTE] non-social fallback to primary/first", {
-        workspace: config.workspace_id,
-        channel: earlyChannel,
-      });
     }
+
+    const config = allConfigs.find(c => c.workspace_id === decision.workspaceId)!;
+    const routingMethod = decision.method;
+
 
     console.log("[GHL-ROUTE] resolved", { workspace: config.workspace_id, method: routingMethod, channel: earlyChannel });
 
