@@ -258,6 +258,7 @@ export function CompaniesListIX() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
+  const [onlyOverdue, setOnlyOverdue] = useState(false);
   const { isElementVisible } = usePageElementVisibility("companies");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
