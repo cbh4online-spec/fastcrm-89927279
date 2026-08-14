@@ -21,7 +21,7 @@ import {
   Settings2,
   ChevronDown,
   CalendarDays,
-  MailCheck
+  MailCheck,
   UserCheck,
 } from "lucide-react";
 import { AGENT_CHANNELS, type AIChannelAgent } from "@/types/aiChannelAgents";
