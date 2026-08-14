@@ -901,10 +901,11 @@ export default function GoogleLocalProspecting() {
 
   return (
     <ModuleGuard moduleSlug="google-local-services" moduleName="Google Local Services">
-    <div className="space-y-6">
+    <DashboardLayout>
+    <div className="p-6 space-y-6">
       <PageBreadcrumbs
         items={[
-          { label: "Prospecção", href: "/dashboard/prospecting/google-local" },
+          { label: "Prospecção", href: "/dashboard/prospecting" },
           { label: "Google Local" }
         ]}
       />
@@ -912,6 +913,7 @@ export default function GoogleLocalProspecting() {
       {/* Header IX */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
+          <ProspectingBackButton />
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Google Local Services</h1>
           <p className="text-sm text-muted-foreground mt-1">Pesquise e importe leads diretamente do Google Maps</p>
         </div>
