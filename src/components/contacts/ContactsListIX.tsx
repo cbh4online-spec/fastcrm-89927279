@@ -64,6 +64,10 @@ const COLUMN_WIDTH: Record<string, string> = {
   tags: "min-w-[140px] flex-1",
 };
 
+const NUMERIC_COLUMNS = [
+  "pare_score", "icp_fit_score", "engagement_score", "created_at", "next_followup_at",
+];
+
 function formatDate(value?: string | null) {
   if (!value) return "—";
   try { return new Date(value).toLocaleDateString("pt-PT"); } catch { return "—"; }
