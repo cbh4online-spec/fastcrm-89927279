@@ -449,7 +449,8 @@ export function CompaniesListIX() {
                 </DropdownMenu>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
