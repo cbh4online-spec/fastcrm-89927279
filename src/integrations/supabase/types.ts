@@ -24129,6 +24129,9 @@ export type Database = {
           ai_temperature: string | null
           annual_revenue: number | null
           annual_revenue_range: string | null
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           assigned_to: string | null
           associated_workspaces: string[] | null
           automation_active: boolean | null
@@ -24136,6 +24139,9 @@ export type Database = {
           average_ticket: number | null
           billing_preferences: Json | null
           birth_date: string | null
+          block_reason: string | null
+          blocked_at: string | null
+          blocked_by: string | null
           business_model: string | null
           business_status: string | null
           buying_signal: string | null
@@ -24189,6 +24195,7 @@ export type Database = {
           id: string
           industry: string | null
           instagram_url: string | null
+          is_blocked: boolean
           is_final_consumer: boolean | null
           is_financier: boolean
           last_contact_at: string | null
@@ -24259,6 +24266,9 @@ export type Database = {
           ai_temperature?: string | null
           annual_revenue?: number | null
           annual_revenue_range?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_to?: string | null
           associated_workspaces?: string[] | null
           automation_active?: boolean | null
@@ -24266,6 +24276,9 @@ export type Database = {
           average_ticket?: number | null
           billing_preferences?: Json | null
           birth_date?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           business_model?: string | null
           business_status?: string | null
           buying_signal?: string | null
@@ -24319,6 +24332,7 @@ export type Database = {
           id?: string
           industry?: string | null
           instagram_url?: string | null
+          is_blocked?: boolean
           is_final_consumer?: boolean | null
           is_financier?: boolean
           last_contact_at?: string | null
@@ -24389,6 +24403,9 @@ export type Database = {
           ai_temperature?: string | null
           annual_revenue?: number | null
           annual_revenue_range?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_to?: string | null
           associated_workspaces?: string[] | null
           automation_active?: boolean | null
@@ -24396,6 +24413,9 @@ export type Database = {
           average_ticket?: number | null
           billing_preferences?: Json | null
           birth_date?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           business_model?: string | null
           business_status?: string | null
           buying_signal?: string | null
@@ -24449,6 +24469,7 @@ export type Database = {
           id?: string
           industry?: string | null
           instagram_url?: string | null
+          is_blocked?: boolean
           is_final_consumer?: boolean | null
           is_financier?: boolean
           last_contact_at?: string | null
@@ -26652,12 +26673,18 @@ export type Database = {
           ai_summary: string | null
           ai_tags: Json
           ai_temperature: string | null
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           assigned_to: string | null
           automation_active: boolean | null
           avatar_url: string | null
           average_ticket: number | null
           billing_preferences: Json | null
           birth_date: string | null
+          block_reason: string | null
+          blocked_at: string | null
+          blocked_by: string | null
           business_area: string | null
           cae_code: string | null
           cae_description: string | null
@@ -26699,6 +26726,7 @@ export type Database = {
           icp_fit_score: number
           id: string
           instagram_url: string | null
+          is_blocked: boolean
           is_final_consumer: boolean | null
           is_fiscal_address: boolean | null
           is_primary_contact: boolean | null
@@ -26769,12 +26797,18 @@ export type Database = {
           ai_summary?: string | null
           ai_tags?: Json
           ai_temperature?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
           average_ticket?: number | null
           billing_preferences?: Json | null
           birth_date?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           business_area?: string | null
           cae_code?: string | null
           cae_description?: string | null
@@ -26816,6 +26850,7 @@ export type Database = {
           icp_fit_score?: number
           id?: string
           instagram_url?: string | null
+          is_blocked?: boolean
           is_final_consumer?: boolean | null
           is_fiscal_address?: boolean | null
           is_primary_contact?: boolean | null
@@ -26886,12 +26921,18 @@ export type Database = {
           ai_summary?: string | null
           ai_tags?: Json
           ai_temperature?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
           average_ticket?: number | null
           billing_preferences?: Json | null
           birth_date?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           business_area?: string | null
           cae_code?: string | null
           cae_description?: string | null
@@ -26933,6 +26974,7 @@ export type Database = {
           icp_fit_score?: number
           id?: string
           instagram_url?: string | null
+          is_blocked?: boolean
           is_final_consumer?: boolean | null
           is_fiscal_address?: boolean | null
           is_primary_contact?: boolean | null
@@ -53827,11 +53869,17 @@ export type Database = {
           ai_next_action_type: string | null
           ai_temperature: string | null
           annual_revenue: number | null
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           assigned_to: string | null
           automation_active: boolean | null
           avatar_url: string | null
           billing_preferences: Json | null
           birth_date: string | null
+          block_reason: string | null
+          blocked_at: string | null
+          blocked_by: string | null
           business_category: string | null
           business_hours: Json | null
           cae_codes: string[] | null
@@ -53883,6 +53931,7 @@ export type Database = {
           instagram_is_verified: boolean | null
           instagram_posts_count: number | null
           instagram_url: string | null
+          is_blocked: boolean
           is_final_consumer: boolean | null
           last_contact_at: string | null
           latitude: number | null
@@ -53939,11 +53988,17 @@ export type Database = {
           ai_next_action_type?: string | null
           ai_temperature?: string | null
           annual_revenue?: number | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
           billing_preferences?: Json | null
           birth_date?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           business_category?: string | null
           business_hours?: Json | null
           cae_codes?: string[] | null
@@ -53995,6 +54050,7 @@ export type Database = {
           instagram_is_verified?: boolean | null
           instagram_posts_count?: number | null
           instagram_url?: string | null
+          is_blocked?: boolean
           is_final_consumer?: boolean | null
           last_contact_at?: string | null
           latitude?: number | null
@@ -54051,11 +54107,17 @@ export type Database = {
           ai_next_action_type?: string | null
           ai_temperature?: string | null
           annual_revenue?: number | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
           billing_preferences?: Json | null
           birth_date?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           business_category?: string | null
           business_hours?: Json | null
           cae_codes?: string[] | null
@@ -54107,6 +54169,7 @@ export type Database = {
           instagram_is_verified?: boolean | null
           instagram_posts_count?: number | null
           instagram_url?: string | null
+          is_blocked?: boolean
           is_final_consumer?: boolean | null
           last_contact_at?: string | null
           latitude?: number | null

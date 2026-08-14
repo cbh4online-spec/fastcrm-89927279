@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
 import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
+import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
+import { EntityArchiveBlockActions } from "@/components/entity/EntityArchiveBlockActions";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -124,7 +129,16 @@ function renderCell(col: string, c: Company, fin: CompanyFinancials | undefined)
     case "name":
       return (
         <div className="flex flex-col">
-          <span className="truncate text-sm font-semibold text-foreground">{c.name || "(sem nome)"}</span>
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-semibold text-foreground">{c.name || "(sem nome)"}</span>
+            <EntityStatusBadges
+              size="sm"
+              isBlocked={(c as any).is_blocked}
+              blockReason={(c as any).block_reason}
+              archivedAt={(c as any).archived_at}
+              archiveReason={(c as any).archive_reason}
+            />
+          </div>
           {c.legal_name && c.legal_name !== c.name && (
             <span className="truncate text-xs text-muted-foreground">{c.legal_name}</span>
           )}
@@ -175,7 +189,8 @@ function renderCell(col: string, c: Company, fin: CompanyFinancials | undefined)
 
 export function CompaniesListIX() {
   const navigate = useNavigate();
-  const { companies, isLoading } = useCompanies();
+  const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
+  const { companies, isLoading } = useCompanies({ archiveState });
   const { financialsById } = useCompaniesFinancials();
 
   const [search, setSearch] = useState("");
@@ -258,7 +273,12 @@ export function CompaniesListIX() {
           onPageSizeChange={(v) => { setPageSize(v); setPage(0); }}
           totalCount={totalCount}
           countLabel="Empresas"
-          extra={<ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} />}
+          extra={
+            <div className="flex items-center gap-2">
+              <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
+              <ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} />
+            </div>
+          }
         />
       }
     >
@@ -283,6 +303,24 @@ export function CompaniesListIX() {
                   {renderCell(col, c, financialsById.get(c.id))}
                 </div>
               ))}
+              <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Ações">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <EntityArchiveBlockActions
+                      entity="company"
+                      id={c.id}
+                      isBlocked={(c as any).is_blocked}
+                      archivedAt={(c as any).archived_at}
+                      withSeparator={false}
+                    />
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           ))}
         </div>

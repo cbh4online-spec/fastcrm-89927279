@@ -29,6 +29,9 @@ export function useEntityNavIds(table: NavEntityTable) {
         request = request.is("deleted_at", null);
       }
 
+      // Registos arquivados não entram na navegação anterior/seguinte
+      request = request.is("archived_at", null);
+
       const { data, error } = await request;
       if (error) {
         console.error(`[useEntityNavIds] ${table}:`, error.message);

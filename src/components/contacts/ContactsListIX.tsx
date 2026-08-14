@@ -16,6 +16,11 @@ import { useContacts, type Contact } from "@/hooks/useContacts";
 import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
 import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
+import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
+import { EntityArchiveBlockActions } from "@/components/entity/EntityArchiveBlockActions";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "created_at" | "pare_score";
@@ -64,7 +69,16 @@ function renderCell(col: string, c: Contact) {
     case "name":
       return (
         <div className="flex flex-col">
-          <span className="truncate text-sm font-semibold text-foreground">{c.name || "(sem nome)"}</span>
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-semibold text-foreground">{c.name || "(sem nome)"}</span>
+            <EntityStatusBadges
+              size="sm"
+              isBlocked={(c as any).is_blocked}
+              blockReason={(c as any).block_reason}
+              archivedAt={(c as any).archived_at}
+              archiveReason={(c as any).archive_reason}
+            />
+          </div>
           {c.company && <span className="truncate text-xs text-muted-foreground">{c.company}</span>}
         </div>
       );
@@ -100,7 +114,8 @@ function renderCell(col: string, c: Contact) {
 
 export function ContactsListIX() {
   const navigate = useNavigate();
-  const { contacts, isLoading } = useContacts();
+  const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
+  const { contacts, isLoading } = useContacts({ archiveState });
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
@@ -175,7 +190,12 @@ export function ContactsListIX() {
           onPageSizeChange={(v) => { setPageSize(v); setPage(0); }}
           totalCount={totalCount}
           countLabel="Contactos"
-          extra={<ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} />}
+          extra={
+            <div className="flex items-center gap-2">
+              <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
+              <ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} />
+            </div>
+          }
         />
       }
     >
@@ -204,6 +224,24 @@ export function ContactsListIX() {
                   {renderCell(col, c)}
                 </div>
               ))}
+              <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Ações">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <EntityArchiveBlockActions
+                      entity="contact"
+                      id={c.id}
+                      isBlocked={(c as any).is_blocked}
+                      archivedAt={(c as any).archived_at}
+                      withSeparator={false}
+                    />
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           ))}
         </div>

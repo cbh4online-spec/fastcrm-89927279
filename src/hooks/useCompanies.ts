@@ -151,23 +151,31 @@ export interface UpdateCompanyData extends Partial<CreateCompanyData> {
   id: string;
 }
 
-export function useCompanies() {
+export type CompaniesArchiveState = "active" | "archived" | "all";
+
+export function useCompanies(options?: { archiveState?: CompaniesArchiveState }) {
+  const archiveState = options?.archiveState ?? "active";
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const companiesQuery = useQuery({
-    queryKey: ["companies", currentWorkspace?.id],
+    queryKey: ["companies", currentWorkspace?.id, archiveState],
     queryFn: async () => {
       if (!currentWorkspace) return [];
-      
-      const { data, error } = await workspaceClient
+
+      let request = workspaceClient
         .from("companies")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
+
+      if (archiveState === "active") request = request.is("archived_at", null);
+      else if (archiveState === "archived") request = request.not("archived_at", "is", null);
+
+      const { data, error } = await request;
 
       if (error) throw error;
       return data as unknown as Company[];

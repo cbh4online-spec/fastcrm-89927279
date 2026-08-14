@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
 import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
+import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
+import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
+import { EntityArchiveBlockActions } from "@/components/entity/EntityArchiveBlockActions";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -180,10 +185,13 @@ export function LeadsListIX() {
   const [createOpen, setCreateOpen] = useState(false);
   const { columns, setColumns } = useLeadColumns();
 
+  const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
+
   const { data, isLoading } = useSmartLeads({
     search,
     page,
     pageSize,
+    archiveState,
     sortBy: `${sortBy}:${sortDir}`,
   });
 
@@ -247,7 +255,12 @@ export function LeadsListIX() {
           }}
           totalCount={totalCount}
           countLabel="Leads"
-          extra={<LeadsColumnsPicker value={columns} onChange={setColumns} />}
+          extra={
+            <div className="flex items-center gap-2">
+              <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
+              <LeadsColumnsPicker value={columns} onChange={setColumns} />
+            </div>
+          }
         />
       }
     >
@@ -283,6 +296,24 @@ export function LeadsListIX() {
                   {renderCell(col, lead)}
                 </div>
               ))}
+              <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Ações">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <EntityArchiveBlockActions
+                      entity="lead"
+                      id={lead.id}
+                      isBlocked={(lead as any).is_blocked}
+                      archivedAt={(lead as any).archived_at}
+                      withSeparator={false}
+                    />
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           ))}
         </div>
