@@ -81,6 +81,7 @@ import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useEntityNavIds } from "@/hooks/useEntityNavIds";
 import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { WhatsAppCallButton } from "@/components/voice/WhatsAppCallButton";
+import { GHLCallButton } from "@/components/voice/GHLCallButton";
 
 // Role labels are now translated via t()
 function getTimeAgo(date: Date, t: (key: string, opts?: any) => string): string {
