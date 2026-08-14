@@ -70,8 +70,15 @@ export function GHLWhatsAppChannelCard() {
     enabled: !!workspaceId,
   });
 
+  const isShared = (data?.sharedLocationWorkspaces ?? 0) > 1;
+  const phoneDigits = phoneNumber.replace(/\D/g, "");
+
   const handleActivate = async () => {
     if (!workspaceId || !data?.locationId) return;
+    if (isShared && phoneDigits.length < 9) {
+      toast.error("Indique o número WhatsApp deste workspace (location partilhada)");
+      return;
+    }
     setIsActivating(true);
     try {
       if (data.channels.length > 0) {
@@ -82,14 +89,15 @@ export function GHLWhatsAppChannelCard() {
           .eq("channel_type", "whatsapp");
         if (error) throw error;
       } else {
+        const accountId = isShared ? `${data.locationId}_${phoneDigits}` : data.locationId;
         const { error } = await supabase
           .from("workspace_ghl_social_channels")
           .upsert(
             {
               workspace_id: workspaceId,
               channel_type: "whatsapp",
-              ghl_account_id: data.locationId,
-              account_name: "WhatsApp (GHL)",
+              ghl_account_id: accountId,
+              account_name: isShared ? `WhatsApp (GHL) +${phoneDigits}` : "WhatsApp (GHL)",
               is_active: true,
             },
             { onConflict: "workspace_id,channel_type,ghl_account_id" }
@@ -105,6 +113,7 @@ export function GHLWhatsAppChannelCard() {
       setIsActivating(false);
     }
   };
+
 
   const handleDeactivate = async () => {
     if (!workspaceId) return;
