@@ -43,6 +43,7 @@ export async function triggerWhatsAppAutopilot(
 
   if (agent) {
     agentSource = agent;
+    const agentSettings = (agent.settings ?? {}) as Record<string, any>;
     autopilotConfig = {
       id: agent.id,
       is_active: true,
@@ -59,16 +60,24 @@ export async function triggerWhatsAppAutopilot(
       timezone: agent.timezone || "Europe/Lisbon",
       out_of_hours_message: agent.out_of_hours_message || null,
       typing_indicator: agent.typing_indicator ?? true,
-      // Novos campos (defaults seguros — ai_agents ainda não os tem)
-      after_hours_only: false,
-      handoff_on_buying_intent: false,
-      handoff_intent_threshold: 0.75,
-      handoff_intents: ["sales"],
-      handoff_notification_message: null,
-      handoff_assign_to_user_id: null,
+      after_hours_only: agentSettings.afterHoursOnly === true,
+      // Handoff (Fase 2) — configurado em settings do agente
+      handoff_on_buying_intent: agentSettings.autoHandoffEnabled === true,
+      handoff_intent_threshold: typeof agentSettings.handoffIntentThreshold === "number"
+        ? agentSettings.handoffIntentThreshold
+        : 0.75,
+      handoff_intents: Array.isArray(agentSettings.handoffIntents) ? agentSettings.handoffIntents : ["sales"],
+      handoff_keywords: Array.isArray(agentSettings.handoffKeywords) ? agentSettings.handoffKeywords : [],
+      handoff_on_negative_sentiment: agentSettings.handoffOnNegativeSentiment === true,
+      handoff_after_bot_messages: typeof agentSettings.handoffAfterBotMessages === "number"
+        ? agentSettings.handoffAfterBotMessages
+        : null,
+      handoff_notification_message: agentSettings.handoffNotificationMessage || null,
+      handoff_assign_to_user_id: agentSettings.handoffAssignToUserId || null,
       config_scope: "channel",
       source: "ai_agent"
     };
+
     console.log("[WA-AUTOPILOT] Using ai_agents config", { agentId: agent.id, agentName: agent.name });
   }
 
