@@ -581,7 +581,7 @@ export function ENIContactDetailWithSidebar() {
               entityId={contact.id}
               entityName={contact.name}
               phone={contact.phone}
-            />}
+            />
             {isActionVisible('action', 'new-invoice') && (
               <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
                 <FileText className="w-4 h-4" />
