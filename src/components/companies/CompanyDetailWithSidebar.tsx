@@ -567,12 +567,21 @@ export function CompanyDetailWithSidebar() {
           <div className="flex shrink-0 items-center gap-2">
             <EntityRecordPager navigation={companyNavigation} label="Empresa" className="shrink-0" />
             {company.phone && (
-              <WhatsAppCallButton
-                phone={company.phone}
-                entityType="company"
-                entityId={company.id}
-                entityName={company.name}
-              />
+              <>
+                <WhatsAppCallButton
+                  phone={company.phone}
+                  entityType="company"
+                  entityId={company.id}
+                  entityName={company.name}
+                />
+                <WhatsAppMessageButton
+                  phone={company.phone}
+                  entityType="company"
+                  entityId={company.id}
+                  entityName={company.name}
+                  companyName={company.name}
+                />
+              </>
             )}
             {isActionVisible('action', 'new-invoice') && (
               <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
