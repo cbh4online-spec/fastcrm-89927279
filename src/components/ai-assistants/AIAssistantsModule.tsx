@@ -21,7 +21,8 @@ import {
   Zap,
   Workflow,
   Globe,
-  MessageSquare
+  MessageSquare,
+  BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import { AgentsTab } from "./AgentsTab";
@@ -31,8 +32,9 @@ import { FlowsTab } from "./FlowsTab";
 import { WidgetTab } from "./WidgetTab";
 import { TestAITab } from "./TestAITab";
 import { GlobalSettingsTab } from "./GlobalSettingsTab";
+import { PerformanceTab } from "./PerformanceTab";
 
-type ActiveTab = "agents" | "personas" | "bases" | "flows" | "widget" | "query" | "settings";
+type ActiveTab = "agents" | "personas" | "bases" | "flows" | "widget" | "query" | "performance" | "settings";
 
 const pageTabs = [
   { id: "agents", label: "Agentes", icon: <Bot className="h-4 w-4" /> },
@@ -41,6 +43,7 @@ const pageTabs = [
   { id: "flows", label: "Fluxos", icon: <Workflow className="h-4 w-4" /> },
   { id: "widget", label: "Widget", icon: <Globe className="h-4 w-4" /> },
   { id: "query", label: "Testar IA", icon: <MessageSquare className="h-4 w-4" /> },
+  { id: "performance", label: "Desempenho", icon: <BarChart3 className="h-4 w-4" /> },
   { id: "settings", label: "Definições", icon: <Settings className="h-4 w-4" /> },
 ];
 
@@ -237,6 +240,9 @@ export function AIAssistantsModule() {
       )}
       {activeTab === "query" && (
         <TestAITab />
+      )}
+      {activeTab === "performance" && (
+        <PerformanceTab />
       )}
       {activeTab === "settings" && (
         <GlobalSettingsTab />
