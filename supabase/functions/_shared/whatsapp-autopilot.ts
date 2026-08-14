@@ -402,12 +402,13 @@ export async function triggerWhatsAppAutopilot(
             user_id: m.user_id,
             type: "autopilot_handoff",
             title: "Conversa precisa de atenção humana",
-            message: `Auto-Pilot detetou intenção de compra (${detectedIntent!.intent}) e transferiu a conversa.`,
+            message: `Auto-Pilot escalou a conversa (${handoffReason}).`,
             metadata: {
               conversation_id: conversationId,
               lead_id: leadId,
-              intent: detectedIntent!.intent,
-              confidence: detectedIntent!.confidence,
+              reason: handoffReason,
+              intent: detectedIntent?.intent ?? null,
+              confidence: detectedIntent?.confidence ?? null,
             },
           }))
         );
@@ -422,13 +423,15 @@ export async function triggerWhatsAppAutopilot(
       conversation_id: conversationId,
       event_type: "handoff",
       event_data: {
-        intent: detectedIntent.intent,
-        confidence: detectedIntent.confidence,
+        reason: handoffReason,
+        intent: detectedIntent?.intent ?? null,
+        confidence: detectedIntent?.confidence ?? null,
         threshold: autopilotConfig.handoff_intent_threshold,
         assigned_to: autopilotConfig.handoff_assign_to_user_id || null,
         channel,
       },
     });
+
 
     return; // não gera resposta automática
   }
