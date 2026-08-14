@@ -463,6 +463,12 @@ export function LeadDetailWithSidebar() {
                 entityName={lead.name}
               />
             )}
+            <GHLCallButton
+              entityType="lead"
+              entityId={lead.id}
+              entityName={lead.name}
+              phone={lead.phone}
+            />
           </div>
         }
       />
