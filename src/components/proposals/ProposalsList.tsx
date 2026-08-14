@@ -686,7 +686,7 @@ export function ProposalsList() {
                                   }}
                                 >
                                   <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
-                                  Marcar como Aceita
+                                  Marcar como Aceite
                                 </DropdownMenuItem>
                               )}
                               {proposal.status !== "rejected" && (
