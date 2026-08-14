@@ -156,7 +156,7 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
         <div className="h-0.5 w-4 bg-primary rounded-full" />
         Destaques
       </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-2">
         {cards.map((card, i) => {
           const Icon = card.icon;
           return (

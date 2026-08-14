@@ -662,7 +662,7 @@ export function ENIContactDetailWithSidebar() {
         {/* Center Content */}
         <main className="flex-1 lg:overflow-auto">
           <ScrollArea className="h-full">
-            <div className="p-6 pt-4 max-w-4xl">
+            <div className="w-full p-6 pt-4 xl:max-w-none max-w-5xl mx-auto xl:mx-0">
               {activeSection === 'overview' && (
                 <div className="mb-4 space-y-4">
                   <EntityHighlightsGrid entityType="contact" entity={contact as any} />

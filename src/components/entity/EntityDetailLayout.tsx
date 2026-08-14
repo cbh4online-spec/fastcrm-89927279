@@ -111,7 +111,7 @@ export function EntityDetailLayout({
         {/* Center Content */}
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
-            <div className="p-3 sm:p-6 max-w-4xl">
+            <div className="w-full p-3 sm:p-6 xl:max-w-none max-w-5xl mx-auto xl:mx-0">
               {children}
             </div>
           </ScrollArea>
