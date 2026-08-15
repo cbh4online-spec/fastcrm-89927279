@@ -1,26 +1,26 @@
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useConsent } from '../../hooks/useConsent';
-import { initializeMetaPixel
- } from './GTMProvider';
+import { initializeMetaPixel } from './GTMProvider';
 
 // Default Meta Pixel ID - can be overridden via settings
-const DEFAULT_META_PIXEL_ID = '909068581793930';
+const DEFAULT_META_PIXEL_ID = '1751152942391229';
 const META_PIXEL_SESSION_KEY = `__meta_pixel_loaded_${DEFAULT_META_PIXEL_ID}`;
 
 /**
  * MetaPixelLoader - Loads Meta Pixel respecting GDPR consent
- * 
- * This component:
- * 1. Checks for marketing consent
- * 2. Initializes the Meta Pixel with the configured ID
- * 3. Tracks PageView events on navigation
+ *
+ * 1. Só inicializa com consentimento de marketing
+ * 2. Inicializa o pixel configurado (PageView inicial incluído)
+ * 3. Envia PageView em cada mudança de rota (SPA)
  */
 export function MetaPixelLoader() {
   const { consent, hasConsented } = useConsent();
+  const location = useLocation();
   const pixelInitialized = useRef(false);
+  const skipFirstPageView = useRef(true);
 
   useEffect(() => {
-    // Only initialize once when we have marketing consent
     if (!pixelInitialized.current && hasConsented && consent.marketing) {
       if (sessionStorage.getItem(META_PIXEL_SESSION_KEY) !== '1') {
         initializeMetaPixel(DEFAULT_META_PIXEL_ID, true);
@@ -30,12 +30,16 @@ export function MetaPixelLoader() {
     }
   }, [consent.marketing, hasConsented]);
 
-  // Track page views on route changes
+  // Track page views on route changes (evita duplicar o PageView inicial)
   useEffect(() => {
-    if (pixelInitialized.current && window.fbq) {
+    if (skipFirstPageView.current) {
+      skipFirstPageView.current = false;
+      return;
+    }
+    if (pixelInitialized.current && typeof window.fbq === 'function') {
       window.fbq('track', 'PageView');
     }
-  }, [typeof window !== 'undefined' ? window.location.pathname : '']);
+  }, [location.pathname]);
 
   return null;
 }
@@ -47,9 +51,9 @@ export function MetaPixelLoader() {
 export function MetaPixelNoScript({ pixelId = DEFAULT_META_PIXEL_ID }: { pixelId?: string }) {
   return (
     <noscript>
-      <img 
-        height="1" 
-        width="1" 
+      <img
+        height="1"
+        width="1"
         style={{ display: 'none' }}
         src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
         alt=""
