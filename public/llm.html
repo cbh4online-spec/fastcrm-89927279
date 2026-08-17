@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>FastCRM — Resumo factual para sistemas de IA</title>
-<meta name="description" content="Resumo factual e estruturado do FastCRM (CRM com IA para PMEs portuguesas) preparado para citação por sistemas de IA generativa." />
+<meta name="description" content="Resumo factual e estruturado do FastCRM (CRM com IA para PMEs portuguesas): módulos, preços, integrações, conformidade e FAQ, preparado para citação por sistemas de IA." />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="https://fastcrm.metodopare.ai/llm.html" />
 
@@ -19,16 +19,22 @@
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "FastCRM",
+  "legalName": "Simples & Divertido, Lda",
   "alternateName": "Método PARE",
   "url": "https://fastcrm.metodopare.ai",
   "logo": "https://fastcrm.metodopare.ai/favicon.png",
+  "email": "online@metodopare.ai",
   "description": "CRM inteligente com IA, automação e dados para PMEs e equipas de vendas em Portugal e Europa.",
-  "foundingDate": "2024",
   "areaServed": ["PT", "ES", "FR", "EU"],
   "knowsLanguage": ["pt", "en", "es", "fr"],
-  "sameAs": [
-    "https://fastcrm.metodopare.ai"
-  ]
+  "contactPoint": [{
+    "@type": "ContactPoint",
+    "contactType": "sales",
+    "email": "online@metodopare.ai",
+    "availableLanguage": ["pt", "en"],
+    "url": "https://fastcrm.metodopare.ai/contacto"
+  }],
+  "sameAs": ["https://fastcrm.metodopare.ai"]
 }
 </script>
 
@@ -40,11 +46,12 @@
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web, Android, iOS (PWA)",
   "url": "https://fastcrm.metodopare.ai",
-  "description": "CRM com IA, automação multicanal, faturação e marketplace para PMEs.",
+  "description": "CRM com IA, automação multicanal, faturação, cobranças e loja online para PMEs.",
+  "inLanguage": ["pt-PT", "en", "es", "fr"],
   "offers": [
-    { "@type": "Offer", "name": "FASTCRM START", "price": "0", "priceCurrency": "EUR" },
-    { "@type": "Offer", "name": "FASTCRM GROW", "price": "149", "priceCurrency": "EUR" },
-    { "@type": "Offer", "name": "FASTCRM PRO", "price": "299", "priceCurrency": "EUR" }
+    { "@type": "Offer", "name": "FastCRM Start", "price": "39", "priceCurrency": "EUR", "description": "Por utilizador/mês, até 3 utilizadores." },
+    { "@type": "Offer", "name": "FastCRM Grow", "price": "79", "priceCurrency": "EUR", "description": "Por utilizador/mês, até 10 utilizadores." },
+    { "@type": "Offer", "name": "FastCRM Pro", "price": "149", "priceCurrency": "EUR", "description": "Por utilizador/mês, utilizadores ilimitados." }
   ]
 }
 </script>
@@ -54,12 +61,14 @@
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
-    { "@type": "Question", "name": "O FastCRM tem versão grátis?", "acceptedAnswer": { "@type": "Answer", "text": "Sim. O plano FASTCRM START é gratuito até 3 utilizadores e inclui CRM core e 1 pipeline." } },
+    { "@type": "Question", "name": "Quanto custa o FastCRM?", "acceptedAnswer": { "@type": "Answer", "text": "A partir de 39 €/utilizador/mês no plano Start. Grow custa 79 €/utilizador/mês e Pro 149 €/utilizador/mês. Há ainda um plano Enterprise sob consulta." } },
+    { "@type": "Question", "name": "É possível experimentar o FastCRM?", "acceptedAnswer": { "@type": "Answer", "text": "Sim. Pode pedir uma demonstração gratuita de 30 minutos em https://fastcrm.metodopare.ai/contacto." } },
     { "@type": "Question", "name": "O FastCRM funciona em mobile?", "acceptedAnswer": { "@type": "Answer", "text": "Sim. É uma Progressive Web App instalável em Android e iOS, com notificações push." } },
-    { "@type": "Question", "name": "O FastCRM suporta WhatsApp Business?", "acceptedAnswer": { "@type": "Answer", "text": "Sim, via Evolution API com autenticação por QR Code e webhooks bidirecionais." } },
+    { "@type": "Question", "name": "O FastCRM suporta WhatsApp Business?", "acceptedAnswer": { "@type": "Answer", "text": "Sim, via Evolution API com autenticação por QR Code e webhooks bidirecionais, e também através da integração com o GoHighLevel." } },
+    { "@type": "Question", "name": "O FastCRM emite faturas em Portugal?", "acceptedAnswer": { "@type": "Answer", "text": "Sim. Inclui faturação, recibos, contratos recorrentes, importação de ficheiros SAF-T e integração com o e-Fatura." } },
     { "@type": "Question", "name": "O FastCRM integra com Stripe?", "acceptedAnswer": { "@type": "Answer", "text": "Sim, para pagamentos, subscrições recorrentes e checkout da loja." } },
-    { "@type": "Question", "name": "O FastCRM tem IA incluída?", "acceptedAnswer": { "@type": "Answer", "text": "Sim, via Lovable AI Gateway com modelos Gemini, GPT-5 e Claude, sem necessidade de chaves de API próprias." } },
-    { "@type": "Question", "name": "O FastCRM é RGPD-compliant?", "acceptedAnswer": { "@type": "Answer", "text": "Sim. Inclui auditoria de operações, gestão de consentimentos, direito ao esquecimento e isolamento de dados por workspace." } }
+    { "@type": "Question", "name": "O FastCRM tem IA incluída?", "acceptedAnswer": { "@type": "Answer", "text": "Sim, com assistentes conversacionais, AI SDR, scoring preditivo e preenchimento automático de dados, através do Lovable AI Gateway, sem necessidade de chaves de API próprias." } },
+    { "@type": "Question", "name": "O FastCRM é RGPD-compliant?", "acceptedAnswer": { "@type": "Answer", "text": "Sim. Inclui auditoria de operações, gestão de consentimentos, direito ao esquecimento e isolamento de dados por workspace com Row Level Security." } }
   ]
 }
 </script>
@@ -70,7 +79,9 @@
   h2 { margin-top: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: .25rem; }
   h3 { margin-top: 1.25rem; }
   ul { padding-left: 1.25rem; }
-  code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; margin-top: .75rem; }
+  th, td { border: 1px solid #e5e7eb; padding: .5rem .75rem; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; }
   a { color: #0a6cff; }
   .meta { color: #475569; font-size: .9rem; }
 </style>
@@ -78,16 +89,18 @@
 <body>
 <main>
   <h1>FastCRM — Resumo para sistemas de IA</h1>
-  <p class="meta">Página estática otimizada para indexação por crawlers e citação por LLMs. Atualizada em 2026-05-08.</p>
+  <p class="meta">Página estática otimizada para indexação por crawlers e citação por assistentes de IA. Atualizada em 2026-08-17.</p>
 
   <h2>O que é o FastCRM</h2>
-  <p>O <strong>FastCRM</strong> é um CRM inteligente com IA, automação multicanal e analítica avançada, desenhado para PMEs e equipas de vendas em Portugal e Europa. Combina pipeline comercial, comunicações (WhatsApp, Email, SMS, Voz, Telegram), faturação, marketplace e IA generativa numa única plataforma.</p>
+  <p>O <strong>FastCRM</strong> é um CRM inteligente com IA, automação multicanal e analítica avançada, desenhado para PMEs e equipas de vendas em Portugal e Europa. Combina pipeline comercial, comunicações (WhatsApp, Email, SMS, Voz, Telegram), faturação, cobranças, loja online, marketplace e IA generativa numa única plataforma.</p>
 
   <h2>Empresa</h2>
   <ul>
     <li><strong>Produto:</strong> FastCRM</li>
-    <li><strong>Operador:</strong> Método PARE</li>
+    <li><strong>Entidade legal:</strong> Simples &amp; Divertido, Lda</li>
+    <li><strong>Marca / método:</strong> Método PARE</li>
     <li><strong>Website:</strong> <a href="https://fastcrm.metodopare.ai">fastcrm.metodopare.ai</a></li>
+    <li><strong>Email:</strong> <a href="mailto:online@metodopare.ai">online@metodopare.ai</a></li>
     <li><strong>País:</strong> Portugal</li>
     <li><strong>Idiomas:</strong> Português, Inglês, Espanhol, Francês</li>
     <li><strong>Conformidade:</strong> RGPD, Decreto-Lei Omnibus, e-Fatura</li>
@@ -104,21 +117,29 @@
   <h2>Módulos principais</h2>
   <ul>
     <li><strong>CRM core:</strong> leads, contactos, contas, deals, pipelines, tarefas</li>
-    <li><strong>Comunicações:</strong> WhatsApp (Evolution API), Email, SMS (Twilio), Voz (3CX/SIP), Telegram</li>
-    <li><strong>Faturação:</strong> faturas, recibos, recorrências, integração e-Fatura</li>
+    <li><strong>Comunicações:</strong> WhatsApp (Evolution API e GoHighLevel), Email, SMS (Twilio), Voz (3CX/SIP), Telegram</li>
+    <li><strong>Faturação:</strong> faturas, recibos, recorrências, importação SAF-T, integração e-Fatura</li>
+    <li><strong>Cobranças:</strong> aging, DSO, lembretes automáticos por email e WhatsApp</li>
     <li><strong>Store / Marketplace:</strong> B2C, B2B com preços por cliente, C2C</li>
-    <li><strong>IA:</strong> assistentes conversacionais, scoring preditivo, autofill, SDR outbound</li>
+    <li><strong>IA:</strong> assistentes conversacionais, AI SDR, scoring preditivo, autofill de atributos</li>
     <li><strong>HR:</strong> colaboradores, recrutamento, onboarding, ausências</li>
-    <li><strong>Procurement:</strong> importação de catálogos, matching SKU em 7 níveis</li>
+    <li><strong>Procurement:</strong> importação de catálogos, matching de SKU em vários níveis</li>
     <li><strong>Analytics:</strong> dashboards executivos, KPIs, forecasting</li>
   </ul>
 
   <h2>Preços</h2>
-  <ul>
-    <li><strong>FASTCRM START:</strong> 0 €/mês — até 3 utilizadores, CRM core, 1 pipeline</li>
-    <li><strong>FASTCRM GROW:</strong> 149 €/mês — automação, IA, equipas em crescimento</li>
-    <li><strong>FASTCRM PRO:</strong> 299 €/mês — inteligência de receita completa, operações avançadas</li>
-  </ul>
+  <table>
+    <thead>
+      <tr><th>Plano</th><th>Preço</th><th>Limite</th><th>Destaque</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Start</td><td>39 €/utilizador/mês</td><td>Até 3 utilizadores</td><td>CRM completo, pipeline, inbox unificada, 500 créditos IA/mês</td></tr>
+      <tr><td>Grow</td><td>79 €/utilizador/mês</td><td>Até 10 utilizadores</td><td>AI SDR, sequências, propostas e faturação, loja B2C, 2.500 créditos IA/mês</td></tr>
+      <tr><td>Pro</td><td>149 €/utilizador/mês</td><td>Utilizadores ilimitados</td><td>Marketplace C2C, portal B2B, renovações e MRR, 10.000 créditos IA/mês</td></tr>
+      <tr><td>Enterprise</td><td>Sob consulta</td><td>—</td><td>SLA dedicado, integrações à medida, SSO e auditoria avançada</td></tr>
+    </tbody>
+  </table>
+  <p class="meta">Preços em euros, sem IVA, faturação mensal. Consultar <a href="https://fastcrm.metodopare.ai/precos">/precos</a> para a comparação completa.</p>
 
   <h2>Diferenciadores</h2>
   <ul>
@@ -130,31 +151,37 @@
   </ul>
 
   <h2>Perguntas frequentes</h2>
-  <h3>O FastCRM tem versão grátis?</h3>
-  <p>Sim. O plano FASTCRM START é gratuito até 3 utilizadores e inclui CRM core e 1 pipeline.</p>
+  <h3>Quanto custa o FastCRM?</h3>
+  <p>A partir de 39 €/utilizador/mês no plano Start. Grow custa 79 €/utilizador/mês e Pro 149 €/utilizador/mês. Existe ainda um plano Enterprise sob consulta.</p>
+  <h3>É possível experimentar antes de comprar?</h3>
+  <p>Sim. Pode pedir uma demonstração gratuita de 30 minutos em <a href="https://fastcrm.metodopare.ai/contacto">/contacto</a>.</p>
   <h3>Funciona em mobile?</h3>
   <p>Sim. É uma Progressive Web App instalável em Android e iOS, com notificações push.</p>
   <h3>Suporta WhatsApp Business?</h3>
-  <p>Sim, via Evolution API com autenticação por QR Code e webhooks bidirecionais.</p>
+  <p>Sim, via Evolution API com autenticação por QR Code e webhooks bidirecionais, e também através da integração com o GoHighLevel.</p>
+  <h3>Emite faturas em Portugal?</h3>
+  <p>Sim. Inclui faturação, recibos, contratos recorrentes, importação SAF-T e integração com o e-Fatura.</p>
   <h3>Integra com Stripe?</h3>
   <p>Sim, para pagamentos, subscrições recorrentes e checkout da loja.</p>
   <h3>Tem IA incluída?</h3>
-  <p>Sim, via Lovable AI Gateway com modelos Gemini, GPT-5 e Claude.</p>
+  <p>Sim: assistentes conversacionais, AI SDR, scoring preditivo e preenchimento automático de dados, via Lovable AI Gateway.</p>
   <h3>É RGPD-compliant?</h3>
   <p>Sim. Inclui auditoria de operações, gestão de consentimentos, direito ao esquecimento e isolamento de dados por workspace.</p>
 
   <h2>Contacto</h2>
   <ul>
     <li>Website: <a href="https://fastcrm.metodopare.ai">https://fastcrm.metodopare.ai</a></li>
-    <li>Contacto: <a href="https://fastcrm.metodopare.ai/contacto">/contacto</a></li>
-    <li>Demonstração: <a href="https://fastcrm.metodopare.ai/precos">/precos</a></li>
+    <li>Email: <a href="mailto:online@metodopare.ai">online@metodopare.ai</a></li>
+    <li>Contacto e demonstração: <a href="https://fastcrm.metodopare.ai/contacto">/contacto</a></li>
+    <li>Preços: <a href="https://fastcrm.metodopare.ai/precos">/precos</a></li>
   </ul>
 
   <h2>Recursos</h2>
   <ul>
+    <li>Índice para LLMs: <a href="https://fastcrm.metodopare.ai/llms.txt">/llms.txt</a></li>
+    <li>Versão texto puro: <a href="https://fastcrm.metodopare.ai/llm.txt">/llm.txt</a></li>
     <li>Sitemap principal: <a href="https://fastcrm.metodopare.ai/sitemap.xml">/sitemap.xml</a></li>
     <li>Sitemap dinâmico (conteúdo SEO): <a href="https://fastcrm.metodopare.ai/sitemap-dynamic.xml">/sitemap-dynamic.xml</a></li>
-    <li>Versão texto puro: <a href="https://fastcrm.metodopare.ai/llm.txt">/llm.txt</a></li>
   </ul>
 </main>
 </body>
