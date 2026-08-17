@@ -9,6 +9,7 @@ import { PILLARS } from "@/marketing/data/modules";
 import { MARKETING_PLANS } from "@/marketing/data/pricingPlans";
 import { TESTIMONIALS, STATS, LOGOS } from "@/marketing/data/socialProof";
 import { Helmet } from "react-helmet-async";
+import { MarketingFaqSection } from "@/marketing/components/MarketingFaqSection";
 
 export default function MarketingHomePage() {
   return (
@@ -240,6 +241,9 @@ export default function MarketingHomePage() {
           </Button>
         </div>
       </section>
+
+      {/* FAQ */}
+      <MarketingFaqSection withSchema />
 
       {/* CTA FINAL */}
       <section className="container mx-auto px-4 pb-20 md:pb-28">
