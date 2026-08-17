@@ -1,23 +1,33 @@
 # FastCRM
 
-> CRM inteligente com IA para equipas de vendas em Portugal — automatize, venda e decida com método.
+> CRM com IA para PME e equipas de vendas em Portugal: pipeline comercial, AI SDR, comunicações multicanal (WhatsApp, Email, SMS, Voz), faturação, loja online e analítica numa única plataforma.
 
-FastCRM unifica CRM, AI SDR, Marketing e Comércio numa única plataforma, alinhada ao Método PARE (Planeamento, Automação, Resultados, Eficiência).
+O FastCRM é operado por Simples & Divertido, Lda (Método PARE), em Portugal. Está disponível em português, inglês, espanhol e francês, é uma Progressive Web App instalável em Android e iOS, e cumpre RGPD, e-Fatura e o Decreto-Lei Omnibus para apresentação de preços.
+
+Planos (por utilizador/mês, faturação mensal): Start €39 (até 3 utilizadores), Grow €79 (até 10 utilizadores), Pro €149 (utilizadores ilimitados), Enterprise sob consulta. Contacto: online@metodopare.ai.
 
 ## Pages
 
-- [Home](/): Visão geral do FastCRM, valor e prova social.
-- [Funcionalidades](/funcionalidades): Os 4 pilares (CRM, AI SDR, Marketing, Comércio).
-- [Preços](/precos): Planos START, GROW, PRO e add-ons.
-- [Casos de sucesso](/casos): Resultados reais de equipas comerciais.
-- [Sobre](/sobre): Método PARE e missão da empresa.
-- [Contacto](/contacto): Pedir demonstração ou falar com vendas.
-- [Blog](/blog): Conteúdos sobre vendas, IA e operação comercial.
+- [Home](https://fastcrm.metodopare.ai/): Visão geral do FastCRM, proposta de valor e prova social.
+- [Funcionalidades](https://fastcrm.metodopare.ai/funcionalidades): Os 4 pilares — CRM, AI SDR, Marketing e Comércio.
+- [Preços](https://fastcrm.metodopare.ai/precos): Planos Start, Grow, Pro e Enterprise, com comparação de funcionalidades.
+- [Casos de sucesso](https://fastcrm.metodopare.ai/casos): Resultados reais de equipas comerciais que usam o FastCRM.
+- [Sobre](https://fastcrm.metodopare.ai/sobre): Método PARE (Pipeline, Atividade, Receita, Eficiência) e missão da empresa.
+- [Contacto](https://fastcrm.metodopare.ai/contacto): Pedir demonstração ou falar com a equipa comercial.
+- [Instalar aplicação](https://fastcrm.metodopare.ai/install): Como instalar o FastCRM como app (PWA) em Android e iOS.
 
+## Docs
 
+- [Resumo factual para IA](https://fastcrm.metodopare.ai/llm.html): Página estruturada com módulos, preços, integrações, conformidade e FAQ.
+- [Resumo factual (texto)](https://fastcrm.metodopare.ai/llm.txt): A mesma informação em texto simples.
+- [Blog](https://fastcrm.metodopare.ai/blog): Artigos sobre vendas, IA e operação comercial.
+- [Guias](https://fastcrm.metodopare.ai/guides): Guias práticos de implementação e processos comerciais.
+- [Glossário](https://fastcrm.metodopare.ai/glossary): Termos de CRM, vendas e IA explicados.
+- [Comparações](https://fastcrm.metodopare.ai/compare): Comparação do FastCRM com outras soluções de CRM.
 
 ## Optional
 
-- [Privacidade](/privacy)
-- [Termos](/terms)
-- [Cookies](/cookies)
+- [Privacidade](https://fastcrm.metodopare.ai/privacy)
+- [Termos](https://fastcrm.metodopare.ai/terms)
+- [RGPD](https://fastcrm.metodopare.ai/gdpr)
+- [Cookies](https://fastcrm.metodopare.ai/cookies)

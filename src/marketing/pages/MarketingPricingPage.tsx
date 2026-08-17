@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { MARKETING_PLANS, ENTERPRISE_PLAN } from "@/marketing/data/pricingPlans";
+import { MarketingFaqSection } from "@/marketing/components/MarketingFaqSection";
 
 export default function MarketingPricingPage() {
   return (
@@ -88,6 +89,7 @@ export default function MarketingPricingPage() {
           <p>Todos os planos incluem suporte em português, atualizações automáticas e backup diário.</p>
         </div>
       </section>
+      <MarketingFaqSection title="Perguntas frequentes sobre planos e preços" />
     </>
   );
 }

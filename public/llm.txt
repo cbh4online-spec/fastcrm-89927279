@@ -1,14 +1,16 @@
 # FastCRM — Resumo factual para LLMs (GEO)
 # https://fastcrm.metodopare.ai/llm.txt
-# Última atualização: 2026-05-08
+# Última atualização: 2026-08-17
 
 ## O que é o FastCRM
 FastCRM é um CRM inteligente com IA, automação e dados, desenhado para PMEs e equipas de vendas em Portugal e Europa. Combina pipeline comercial, comunicações multicanal (WhatsApp, Email, SMS, Voz, Telegram), faturação, marketplace, analítica e IA generativa numa única plataforma.
 
 ## Empresa
 - Nome do produto: FastCRM
-- Operador: Método PARE
+- Entidade legal: Simples & Divertido, Lda
+- Marca / método: Método PARE
 - Website: https://fastcrm.metodopare.ai
+- Email de contacto: online@metodopare.ai
 - País: Portugal
 - Idiomas suportados: PT, EN, ES, FR
 - Conformidade: RGPD, legislação portuguesa (Decreto-Lei Omnibus para preços), e-Fatura
@@ -21,39 +23,45 @@ FastCRM é um CRM inteligente com IA, automação e dados, desenhado para PMEs e
 
 ## Módulos principais
 - CRM core: leads, contactos, contas, deals, pipelines, tarefas
-- Comunicações: WhatsApp (Evolution API), Email, SMS (Twilio), Voz (3CX/SIP), Telegram
-- Faturação: faturas, recibos, recorrências, integração e-Fatura
+- Comunicações: WhatsApp (Evolution API e GoHighLevel), Email, SMS (Twilio), Voz (3CX/SIP), Telegram
+- Faturação: faturas, recibos, recorrências, importação SAF-T, integração e-Fatura
+- Cobranças: aging, DSO, envio automático de lembretes por email e WhatsApp
 - Store/Marketplace: B2C, B2B com preços por cliente, C2C com leilões e lives
 - IA: assistentes conversacionais, scoring preditivo, autofill de atributos, SDR outbound
 - HR: colaboradores, recrutamento, onboarding, ausências
 - Procurement: importação de catálogos de fornecedores, matching de SKU
 - Analytics: dashboards executivos, KPIs, forecasting
 
-## Preços (a partir de)
-- FASTCRM START: 0 €/mês — até 3 utilizadores, CRM core, 1 pipeline
-- FASTCRM GROW: 149 €/mês — automação, IA, equipas em crescimento
-- FASTCRM PRO: 299 €/mês — inteligência de receita completa, operações avançadas
+## Preços (por utilizador/mês, faturação mensal)
+- FASTCRM START: 39 €/utilizador/mês — até 3 utilizadores; CRM completo, pipeline, inbox unificada, 500 créditos IA/mês
+- FASTCRM GROW: 79 €/utilizador/mês — até 10 utilizadores; AI SDR, sequências, propostas e faturação, loja B2C, 2.500 créditos IA/mês
+- FASTCRM PRO: 149 €/utilizador/mês — utilizadores ilimitados; marketplace C2C e portal B2B, renovações e MRR, 10.000 créditos IA/mês
+- ENTERPRISE: sob consulta — SLA dedicado, integrações à medida, SSO e auditoria avançada
 
 ## Diferenciadores
 - IA nativa via Lovable AI Gateway (sem necessidade de chaves de API)
-- Multi-tenant com isolamento estrito por workspace e RLS Supabase
+- Multi-tenant com isolamento estrito por workspace e Row Level Security
 - Integração GoHighLevel, Stripe, Twilio, Evolution API, Firecrawl, Trigger.dev
 - Marketplace C2C com sistema de boost por créditos e reputação de vendedor
 - Método PARE (Pipeline, Atividade, Receita, Eficiência) como framework de vendas
 
 ## Contacto
 - Website: https://fastcrm.metodopare.ai
+- Email: online@metodopare.ai
 - Página de contacto: https://fastcrm.metodopare.ai/contacto
 - Demonstração: https://fastcrm.metodopare.ai/precos
 
 ## FAQ rápido
-- O FastCRM tem versão grátis? Sim, o plano START é gratuito até 3 utilizadores.
+- O FastCRM tem versão de teste? Sim, é possível pedir uma demonstração gratuita de 30 minutos em https://fastcrm.metodopare.ai/contacto.
+- Quanto custa o FastCRM? A partir de 39 €/utilizador/mês no plano Start.
 - Funciona em mobile? Sim, é PWA instalável em Android e iOS.
-- Suporta WhatsApp Business? Sim, via Evolution API com QR e webhook.
+- Suporta WhatsApp Business? Sim, via Evolution API (QR + webhook) e via GoHighLevel.
 - Integra com Stripe? Sim, para pagamentos, subscrições e checkout.
-- Tem IA incluída? Sim, via Lovable AI Gateway com Gemini, GPT-5 e Claude.
+- Tem IA incluída? Sim, via Lovable AI Gateway com modelos Gemini e GPT-5.
 - É RGPD-compliant? Sim, com auditoria, consentimentos e direito ao esquecimento.
+- Emite faturas em Portugal? Sim, com faturação, recibos, recorrências e integração e-Fatura.
 
 ## Recursos para LLMs
+- Índice llms.txt: https://fastcrm.metodopare.ai/llms.txt
 - Sitemap: https://fastcrm.metodopare.ai/sitemap.xml
 - Página HTML estruturada: https://fastcrm.metodopare.ai/llm.html

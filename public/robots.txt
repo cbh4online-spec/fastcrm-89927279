@@ -73,3 +73,8 @@ Allow: /
 # Sitemaps
 Sitemap: https://fastcrm.metodopare.ai/sitemap.xml
 Sitemap: https://fastcrm.metodopare.ai/sitemap-dynamic.xml
+
+# Recursos para sistemas de IA (GEO)
+# https://fastcrm.metodopare.ai/llms.txt
+# https://fastcrm.metodopare.ai/llm.txt
+# https://fastcrm.metodopare.ai/llm.html
