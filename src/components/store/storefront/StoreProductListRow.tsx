@@ -103,9 +103,12 @@ export function StoreProductListRow({
                   productId: product.id,
                   name: product.name,
                   price,
+                  currency: product.currency || "EUR",
                   image: imageUrl,
-                } as any)
+                  sku: product.sku || undefined,
+                })
               }
+
             >
               <ShoppingBag className="h-3.5 w-3.5" />
               Adicionar
