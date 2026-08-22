@@ -141,6 +141,10 @@ export default function StorePage() {
               filters={filters}
               onFiltersChange={setFilters}
               search={search}
+              onClearSearch={() => setSearch("")}
+              storeName={storeName}
+              brandFacets={brandFacets}
+
               isLoading={isLoading}
               isFiltering={isFiltering}
               showHero={showHero}
