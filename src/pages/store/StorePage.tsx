@@ -43,7 +43,7 @@ export default function StorePage() {
     workspaceId: wsId,
     categoryId: filters.categoryId,
     search,
-    sortBy: filters.sortBy,
+    sortBy: isServerSort(filters.sortBy) ? filters.sortBy : undefined,
     minPrice: filters.minPrice,
     maxPrice: filters.maxPrice,
   });
@@ -66,16 +66,20 @@ export default function StorePage() {
 
   const allProducts = useMemo(() => [...allStoreProducts, ...mappedC2CProducts] as any[], [allStoreProducts, mappedC2CProducts]);
 
-  // Client-side stock filter
+  const brandFacets = useMemo(() => getBrandFacets(allProducts), [allProducts]);
+
+  // Filtros e ordenações não cobertos pela consulta ao servidor
   const products = useMemo(() => {
-    if (!filters.inStock) return allProducts;
-    return allProducts.filter((p: any) => p.stock_status !== "out_of_stock");
-  }, [allProducts, filters.inStock]);
+    const ctx = { reviewStats, salesCounts };
+    return applyClientSort(applyClientFilters(allProducts, filters, ctx), filters.sortBy, ctx);
+  }, [allProducts, filters, reviewStats, salesCounts]);
 
   const storeName = storeSettings?.store_name || "Loja";
-  const showHero = !search && !filters.categoryId && !filters.minPrice && !filters.maxPrice && !filters.inStock;
-  const isFiltering = !!search || !!filters.categoryId || !!filters.minPrice || !!filters.maxPrice || !!filters.inStock;
+  const activeFilterCount = countActiveFilters(filters);
+  const showHero = !search && activeFilterCount === 0;
+  const isFiltering = !!search || activeFilterCount > 0;
   const dealProducts = featuredProducts.filter((p) => p.stock_status !== "out_of_stock");
+
 
   if (isResolving) {
     return (
