@@ -5,13 +5,15 @@
 import type { StoreFilters } from "@/components/store/StoreFilterSidebar";
 
 export type CatalogSort = NonNullable<StoreFilters["sortBy"]>;
+export type ServerSort = "price_asc" | "price_desc" | "name" | "newest";
 
 /** Ordenações suportadas diretamente pela consulta ao servidor. */
-export const SERVER_SORTS: CatalogSort[] = ["price_asc", "price_desc", "name", "newest"];
+export const SERVER_SORTS: ServerSort[] = ["price_asc", "price_desc", "name", "newest"];
 
-export function isServerSort(sort?: string): sort is CatalogSort {
+export function isServerSort(sort?: string): sort is ServerSort {
   return !!sort && (SERVER_SORTS as string[]).includes(sort);
 }
+
 
 const BRAND_KEYS = ["marca", "brand", "fabricante", "manufacturer"];
 
