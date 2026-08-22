@@ -103,83 +103,45 @@ export function ProductImageWebSearchDialog({
       return;
     }
     setImporting(true);
+    setWarning(null);
     try {
       const urls = Array.from(picked);
+      const items = urls.map((u) => ({
+        url: u,
+        source_url: candidates.find((c) => c.url === u)?.source_url,
+      }));
 
-      // 1) Descarrega cada imagem para Blob (via fetch directo)
-      const blobs: Array<{ blob: Blob; originalUrl: string } | null> = await Promise.all(
-        urls.map(async (u) => {
-          try {
-            const res = await fetch(u, { mode: "cors" });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const blob = await res.blob();
-            if (!blob.type.startsWith("image/")) throw new Error("Não é imagem");
-            return { blob, originalUrl: u };
-          } catch (err) {
-            console.warn("[ProductImageWebSearch] fetch failed", u, (err as Error).message);
-            return null;
-          }
-        }),
-      );
+      // O download é feito no servidor (o browser é bloqueado por CORS na origem)
+      const { data, error } = await supabase.functions.invoke("product-images-import-url", {
+        body: { items },
+        headers: { "X-Workspace-Id": currentWorkspace.id },
+      });
+      if (error) throw new Error(error.message || "Falha ao importar imagens");
 
-      const ok = blobs.filter((b): b is { blob: Blob; originalUrl: string } => !!b);
-      if (ok.length === 0) {
-        toast.error(
-          "Não foi possível descarregar nenhuma imagem (CORS bloqueado pela origem).",
+      const imported = (data?.imported ?? []) as Array<{ url: string; public_url: string }>;
+      const failed = (data?.failed ?? []) as Array<{ url: string; reason: string }>;
+
+      if (imported.length === 0) {
+        const reason = failed[0]?.reason || data?.message || "origem indisponível";
+        toast.error(`Não foi possível importar nenhuma imagem (${reason}).`);
+        setWarning(
+          failed.length
+            ? `Falhas: ${failed.map((f) => f.reason).join("; ")}`
+            : "Tenta outra imagem ou outra pesquisa.",
         );
         return;
       }
 
-      // 2) Pede signed upload URLs
-      const fileMeta = ok.map((o, i) => ({
-        filename: `web-${Date.now()}-${i}.jpg`,
-        content_type: o.blob.type || "image/jpeg",
-        size_bytes: o.blob.size,
-      }));
-
-      const { data, error } = await supabase.functions.invoke("product-images-presign", {
-        body: {
-          files: fileMeta,
-          context: { channel: "web_search", intent: "product_create" },
-        },
-        headers: { "X-Workspace-Id": currentWorkspace.id },
-      });
-      if (error) throw new Error(error.message || "Falha ao preparar upload");
-      const uploads = data?.data?.uploads as Array<{
-        signed_upload_url: string;
-        public_url: string;
-        file_id: string;
-      }>;
-      if (!uploads?.length) throw new Error("Resposta inválida do servidor");
-
-      // 3) PUT cada blob
-      const finalUrls: string[] = [];
-      for (let i = 0; i < ok.length; i++) {
-        try {
-          const res = await fetch(uploads[i].signed_upload_url, {
-            method: "PUT",
-            body: ok[i].blob,
-            headers: { "Content-Type": ok[i].blob.type || "image/jpeg" },
-          });
-          if (!res.ok) throw new Error(`Upload ${res.status}`);
-          finalUrls.push(uploads[i].public_url);
-          supabase
-            .from("storage_upload_intents" as any)
-            .update({ status: "uploaded", updated_at: new Date().toISOString() })
-            .eq("id", uploads[i].file_id)
-            .then(() => {});
-        } catch (err) {
-          console.warn("[ProductImageWebSearch] upload failed", (err as Error).message);
-        }
+      onPicked(imported.map((i) => i.public_url));
+      if (failed.length > 0) {
+        toast.warning(
+          `${imported.length} de ${urls.length} importadas — ${failed.length} falhou(aram): ${failed
+            .map((f) => f.reason)
+            .join("; ")}`,
+        );
+      } else {
+        toast.success(`${imported.length} imagem(ns) adicionada(s) ao produto`);
       }
-
-      if (finalUrls.length === 0) {
-        toast.error("Falha ao guardar imagens no storage");
-        return;
-      }
-
-      onPicked(finalUrls);
-      toast.success(`${finalUrls.length} imagem(ns) adicionada(s) do produto online`);
       onOpenChange(false);
     } catch (e) {
       toast.error("Erro: " + (e as Error).message);
