@@ -170,6 +170,32 @@ export function FilterContent({ categories, filters, onFiltersChange, maxProduct
             <span>€{priceRange[0]}</span>
             <span>€{priceRange[1] >= maxProductPrice ? `${maxProductPrice}+` : priceRange[1]}</span>
           </div>
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {QUICK_PRICE_RANGES.map((r) => {
+              const active = filters.minPrice === r.min && filters.maxPrice === r.max;
+              return (
+                <button
+                  key={r.label}
+                  type="button"
+                  onClick={() =>
+                    onFiltersChange(
+                      active
+                        ? { ...filters, minPrice: undefined, maxPrice: undefined }
+                        : { ...filters, minPrice: r.min, maxPrice: r.max },
+                    )
+                  }
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs transition-colors",
+                    active
+                      ? "border-primary text-primary bg-primary/5"
+                      : "text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                  )}
+                >
+                  {r.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </FilterSection>
 
@@ -183,7 +209,66 @@ export function FilterContent({ categories, filters, onFiltersChange, maxProduct
           />
           <span className="text-sm text-muted-foreground">Apenas em stock</span>
         </label>
+        <label className="flex items-center gap-2 cursor-pointer py-1">
+          <Checkbox
+            checked={!!filters.onlyPromo}
+            onCheckedChange={(checked) => onFiltersChange({ ...filters, onlyPromo: checked === true ? true : undefined })}
+          />
+          <span className="text-sm text-muted-foreground">Apenas em promoção</span>
+        </label>
       </FilterSection>
+
+      <Separator />
+
+      <FilterSection title="Avaliação" defaultOpen={false}>
+        <div className="flex flex-wrap gap-1.5">
+          {[4, 3, 2].map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => onFiltersChange({ ...filters, minRating: filters.minRating === r ? undefined : r })}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs transition-colors",
+                filters.minRating === r
+                  ? "border-primary text-primary bg-primary/5"
+                  : "text-muted-foreground hover:text-foreground hover:border-foreground/30",
+              )}
+            >
+              {r}★ ou mais
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      {brandFacets.length > 0 && (
+        <>
+          <Separator />
+          <FilterSection title="Marca">
+            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              {brandFacets.map((b) => {
+                const checked = (filters.brands || []).includes(b.value);
+                return (
+                  <label key={b.value} className="flex items-center justify-between gap-2 cursor-pointer py-0.5">
+                    <span className="flex items-center gap-2">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const current = filters.brands || [];
+                          const next = v === true ? [...current, b.value] : current.filter((x) => x !== b.value);
+                          onFiltersChange({ ...filters, brands: next.length ? next : undefined });
+                        }}
+                      />
+                      <span className="text-sm text-muted-foreground">{b.value}</span>
+                    </span>
+                    <span className="text-[11px] text-muted-foreground/70">{b.count}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </FilterSection>
+        </>
+      )}
+
 
       <Separator />
 
