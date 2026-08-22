@@ -86,9 +86,30 @@ const CONDITION_OPTIONS = [
   { value: "satisfactory", label: "Satisfatório" },
 ];
 
-export function FilterContent({ categories, filters, onFiltersChange, maxProductPrice = 500 }: Omit<StoreFilterSidebarProps, "totalProducts">) {
+const QUICK_PRICE_RANGES = [
+  { label: "Até €50", min: undefined, max: 50 },
+  { label: "€50 – €150", min: 50, max: 150 },
+  { label: "€150 – €500", min: 150, max: 500 },
+  { label: "Mais de €500", min: 500, max: undefined },
+];
+
+export function countActiveFilters(filters: StoreFilters) {
+  return [
+    filters.categoryId,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.inStock,
+    filters.condition,
+    filters.onlyPromo,
+    filters.minRating,
+    ...(filters.brands || []),
+  ].filter(Boolean).length;
+}
+
+export function FilterContent({ categories, filters, onFiltersChange, maxProductPrice = 500, brandFacets = [] }: Omit<StoreFilterSidebarProps, "totalProducts">) {
   const priceRange = [filters.minPrice ?? 0, filters.maxPrice ?? maxProductPrice];
-  const activeCount = [filters.categoryId, filters.minPrice, filters.maxPrice, filters.inStock, filters.condition].filter(Boolean).length;
+  const activeCount = countActiveFilters(filters);
+
 
   return (
     <div className="space-y-1">
