@@ -11,7 +11,14 @@ import { StoreCompareBar } from "@/components/store/StoreCompareBar";
 import { StoreCompareModal } from "@/components/store/StoreCompareModal";
 import { StoreCompareProvider } from "@/contexts/StoreCompareContext";
 import { StoreVatProvider } from "@/contexts/StoreVatContext";
-import type { StoreFilters } from "@/components/store/StoreFilterSidebar";
+import { countActiveFilters, type StoreFilters } from "@/components/store/StoreFilterSidebar";
+import {
+  applyClientFilters,
+  applyClientSort,
+  getBrandFacets,
+  isServerSort,
+} from "@/lib/store/catalogClientFilters";
+
 import { StoreSeoHead } from "@/components/store/storefront/StoreSeoHead";
 import { StoreHeroSections } from "@/components/store/storefront/StoreHeroSections";
 import { StoreCatalogSection } from "@/components/store/storefront/StoreCatalogSection";
