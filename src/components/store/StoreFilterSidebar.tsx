@@ -29,7 +29,13 @@ export interface StoreFilters {
   maxPrice?: number;
   inStock?: boolean;
   condition?: string;
-  sortBy?: "price_asc" | "price_desc" | "name" | "newest";
+  /** Marcas derivadas das especificações do produto. */
+  brands?: string[];
+  /** Apenas produtos com promoção ativa. */
+  onlyPromo?: boolean;
+  /** Avaliação mínima (1–5). */
+  minRating?: number;
+  sortBy?: "price_asc" | "price_desc" | "name" | "newest" | "best_sellers" | "rating" | "discount";
 }
 
 interface StoreFilterSidebarProps {
@@ -38,7 +44,10 @@ interface StoreFilterSidebarProps {
   onFiltersChange: (filters: StoreFilters) => void;
   totalProducts: number;
   maxProductPrice?: number;
+  /** Marcas disponíveis no catálogo carregado. */
+  brandFacets?: { value: string; count: number }[];
 }
+
 
 function FilterSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -77,9 +86,30 @@ const CONDITION_OPTIONS = [
   { value: "satisfactory", label: "Satisfatório" },
 ];
 
-export function FilterContent({ categories, filters, onFiltersChange, maxProductPrice = 500 }: Omit<StoreFilterSidebarProps, "totalProducts">) {
+const QUICK_PRICE_RANGES = [
+  { label: "Até €50", min: undefined, max: 50 },
+  { label: "€50 – €150", min: 50, max: 150 },
+  { label: "€150 – €500", min: 150, max: 500 },
+  { label: "Mais de €500", min: 500, max: undefined },
+];
+
+export function countActiveFilters(filters: StoreFilters) {
+  return [
+    filters.categoryId,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.inStock,
+    filters.condition,
+    filters.onlyPromo,
+    filters.minRating,
+    ...(filters.brands || []),
+  ].filter(Boolean).length;
+}
+
+export function FilterContent({ categories, filters, onFiltersChange, maxProductPrice = 500, brandFacets = [] }: Omit<StoreFilterSidebarProps, "totalProducts">) {
   const priceRange = [filters.minPrice ?? 0, filters.maxPrice ?? maxProductPrice];
-  const activeCount = [filters.categoryId, filters.minPrice, filters.maxPrice, filters.inStock, filters.condition].filter(Boolean).length;
+  const activeCount = countActiveFilters(filters);
+
 
   return (
     <div className="space-y-1">
@@ -140,6 +170,32 @@ export function FilterContent({ categories, filters, onFiltersChange, maxProduct
             <span>€{priceRange[0]}</span>
             <span>€{priceRange[1] >= maxProductPrice ? `${maxProductPrice}+` : priceRange[1]}</span>
           </div>
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {QUICK_PRICE_RANGES.map((r) => {
+              const active = filters.minPrice === r.min && filters.maxPrice === r.max;
+              return (
+                <button
+                  key={r.label}
+                  type="button"
+                  onClick={() =>
+                    onFiltersChange(
+                      active
+                        ? { ...filters, minPrice: undefined, maxPrice: undefined }
+                        : { ...filters, minPrice: r.min, maxPrice: r.max },
+                    )
+                  }
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs transition-colors",
+                    active
+                      ? "border-primary text-primary bg-primary/5"
+                      : "text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                  )}
+                >
+                  {r.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </FilterSection>
 
@@ -153,7 +209,66 @@ export function FilterContent({ categories, filters, onFiltersChange, maxProduct
           />
           <span className="text-sm text-muted-foreground">Apenas em stock</span>
         </label>
+        <label className="flex items-center gap-2 cursor-pointer py-1">
+          <Checkbox
+            checked={!!filters.onlyPromo}
+            onCheckedChange={(checked) => onFiltersChange({ ...filters, onlyPromo: checked === true ? true : undefined })}
+          />
+          <span className="text-sm text-muted-foreground">Apenas em promoção</span>
+        </label>
       </FilterSection>
+
+      <Separator />
+
+      <FilterSection title="Avaliação" defaultOpen={false}>
+        <div className="flex flex-wrap gap-1.5">
+          {[4, 3, 2].map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => onFiltersChange({ ...filters, minRating: filters.minRating === r ? undefined : r })}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs transition-colors",
+                filters.minRating === r
+                  ? "border-primary text-primary bg-primary/5"
+                  : "text-muted-foreground hover:text-foreground hover:border-foreground/30",
+              )}
+            >
+              {r}★ ou mais
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      {brandFacets.length > 0 && (
+        <>
+          <Separator />
+          <FilterSection title="Marca">
+            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              {brandFacets.map((b) => {
+                const checked = (filters.brands || []).includes(b.value);
+                return (
+                  <label key={b.value} className="flex items-center justify-between gap-2 cursor-pointer py-0.5">
+                    <span className="flex items-center gap-2">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const current = filters.brands || [];
+                          const next = v === true ? [...current, b.value] : current.filter((x) => x !== b.value);
+                          onFiltersChange({ ...filters, brands: next.length ? next : undefined });
+                        }}
+                      />
+                      <span className="text-sm text-muted-foreground">{b.value}</span>
+                    </span>
+                    <span className="text-[11px] text-muted-foreground/70">{b.count}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </FilterSection>
+        </>
+      )}
+
 
       <Separator />
 
@@ -183,31 +298,12 @@ export function FilterContent({ categories, filters, onFiltersChange, maxProduct
         </div>
       </FilterSection>
 
-      <Separator />
-
-      <FilterSection title="Ordenar por">
-        <Select
-          value={filters.sortBy || "default"}
-          onValueChange={(v) => onFiltersChange({ ...filters, sortBy: v === "default" ? undefined : v as StoreFilters["sortBy"] })}
-        >
-          <SelectTrigger className="w-full h-9 text-sm">
-            <SelectValue placeholder="Recomendados" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="default">Recomendados</SelectItem>
-            <SelectItem value="price_asc">Preço: menor</SelectItem>
-            <SelectItem value="price_desc">Preço: maior</SelectItem>
-            <SelectItem value="name">Nome A-Z</SelectItem>
-            <SelectItem value="newest">Mais recentes</SelectItem>
-          </SelectContent>
-        </Select>
-      </FilterSection>
     </div>
   );
 }
 
 export function StoreFilterSidebar(props: StoreFilterSidebarProps) {
-  const activeCount = [props.filters.categoryId, props.filters.minPrice, props.filters.maxPrice, props.filters.inStock, props.filters.condition].filter(Boolean).length;
+
 
   return (
     <>
