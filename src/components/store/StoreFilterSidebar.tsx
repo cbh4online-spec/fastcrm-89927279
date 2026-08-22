@@ -298,31 +298,12 @@ export function FilterContent({ categories, filters, onFiltersChange, maxProduct
         </div>
       </FilterSection>
 
-      <Separator />
-
-      <FilterSection title="Ordenar por">
-        <Select
-          value={filters.sortBy || "default"}
-          onValueChange={(v) => onFiltersChange({ ...filters, sortBy: v === "default" ? undefined : v as StoreFilters["sortBy"] })}
-        >
-          <SelectTrigger className="w-full h-9 text-sm">
-            <SelectValue placeholder="Recomendados" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="default">Recomendados</SelectItem>
-            <SelectItem value="price_asc">Preço: menor</SelectItem>
-            <SelectItem value="price_desc">Preço: maior</SelectItem>
-            <SelectItem value="name">Nome A-Z</SelectItem>
-            <SelectItem value="newest">Mais recentes</SelectItem>
-          </SelectContent>
-        </Select>
-      </FilterSection>
     </div>
   );
 }
 
 export function StoreFilterSidebar(props: StoreFilterSidebarProps) {
-  const activeCount = [props.filters.categoryId, props.filters.minPrice, props.filters.maxPrice, props.filters.inStock, props.filters.condition].filter(Boolean).length;
+
 
   return (
     <>
