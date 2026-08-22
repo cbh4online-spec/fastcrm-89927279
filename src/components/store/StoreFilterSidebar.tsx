@@ -29,7 +29,13 @@ export interface StoreFilters {
   maxPrice?: number;
   inStock?: boolean;
   condition?: string;
-  sortBy?: "price_asc" | "price_desc" | "name" | "newest";
+  /** Marcas derivadas das especificações do produto. */
+  brands?: string[];
+  /** Apenas produtos com promoção ativa. */
+  onlyPromo?: boolean;
+  /** Avaliação mínima (1–5). */
+  minRating?: number;
+  sortBy?: "price_asc" | "price_desc" | "name" | "newest" | "best_sellers" | "rating" | "discount";
 }
 
 interface StoreFilterSidebarProps {
@@ -38,7 +44,10 @@ interface StoreFilterSidebarProps {
   onFiltersChange: (filters: StoreFilters) => void;
   totalProducts: number;
   maxProductPrice?: number;
+  /** Marcas disponíveis no catálogo carregado. */
+  brandFacets?: { value: string; count: number }[];
 }
+
 
 function FilterSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
