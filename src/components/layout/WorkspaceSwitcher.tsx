@@ -49,20 +49,28 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
   const filteredManaged = managedWorkspaces.filter(matches);
 
   const handleCreateWorkspace = async () => {
-    if (!newWorkspaceName.trim()) return;
+    const name = newWorkspaceName.trim();
+    if (!name) {
+      setCreateError("Indica o nome do workspace.");
+      return;
+    }
 
+    setCreateError(null);
     setCreating(true);
-    const { error } = await createWorkspace(newWorkspaceName);
+    const { error } = await createWorkspace(name);
+    setCreating(false);
 
     if (error) {
-      toast.error("Failed to create workspace");
-    } else {
-      toast.success("Workspace created!");
-      setDialogOpen(false);
-      setNewWorkspaceName("");
+      setCreateError(error.message);
+      toast.error(error.message);
+      return;
     }
-    setCreating(false);
+
+    toast.success("Workspace criado!");
+    setDialogOpen(false);
+    setNewWorkspaceName("");
   };
+
 
   const handleSelectWorkspace = (workspace: Workspace) => {
     setCurrentWorkspace(workspace);

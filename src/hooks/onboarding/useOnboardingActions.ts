@@ -20,10 +20,10 @@ export function useOnboardingActions() {
   const createB2B = async (payload: B2BWorkspacePayload) => {
     setSubmitting(true);
     try {
-      const slug = payload.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      // O slug é gerado no servidor (sem acentos e garantidamente único)
       const { data, error } = await supabase.rpc("create_workspace_b2b", {
         p_name: payload.name,
-        p_slug: slug,
+        p_slug: null,
         p_company_name: payload.company_name ?? null,
         p_tax_id: payload.tax_id ?? null,
         p_team_size: payload.team_size ?? null,
@@ -32,6 +32,7 @@ export function useOnboardingActions() {
         p_my_title: payload.my_title ?? null,
       });
       if (error) throw error;
+
       const ws = data as { id: string; name: string; slug: string };
       await refreshWorkspaces();
       // setCurrentWorkspace via id after refresh
