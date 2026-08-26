@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Search, Filter, RefreshCw, Download, ShieldCheck, Mail,
   CalendarDays, Building2, X, Crown, UserCheck, UserX, ExternalLink, Hash,
-  History, ShieldAlert, Loader2,
+  History, ShieldAlert, Loader2, KeyRound, MailCheck, Copy, Check,
 } from "lucide-react";
 import { BackofficeShellV2 } from "@/components/backoffice-v2/BackofficeShellV2";
 import {
@@ -25,6 +25,11 @@ import {
 } from "@/hooks/useUserAdminMutations";
 import { ConfirmActionDialog } from "@/components/backoffice-v2/ConfirmActionDialog";
 import { UserAuditTimeline } from "@/components/backoffice-v2/UserAuditTimeline";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
@@ -449,6 +454,147 @@ function Detail({ icon: Icon, label, value }: { icon: any; label: string; value:
   );
 }
 
+function generatePassword(length = 14): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnpqrstuvwxyz";
+  const digits = "23456789";
+  const symbols = "!@#$%&*?";
+  const all = upper + lower + digits + symbols;
+  const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+  // Garantir pelo menos 1 de cada tipo (requisitos de password)
+  const base = [pick(upper), pick(lower), pick(digits), pick(symbols)];
+  while (base.length < length) base.push(pick(all));
+  return base.sort(() => Math.random() - 0.5).join("");
+}
+
+function SetPasswordDialog({
+  user, open, onClose,
+}: { user: UserAdminRow; open: boolean; onClose: () => void }) {
+  const [password, setPassword] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedPassword, setSavedPassword] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const reset = () => {
+    setPassword("");
+    setSavedPassword(null);
+    setCopied(false);
+    setIsSaving(false);
+  };
+
+  const handleClose = () => {
+    if (isSaving) return;
+    reset();
+    onClose();
+  };
+
+  const handleSubmit = async () => {
+    if (password.length < 8) {
+      toast.error("A palavra-passe deve ter pelo menos 8 caracteres.");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "set_password", userId: user.user_id, password },
+      });
+      if (error) throw new Error(data?.error || error.message || "Erro ao definir palavra-passe");
+      if (data?.error) throw new Error(data.error);
+      setSavedPassword(password);
+      toast.success("Palavra-passe definida com sucesso.");
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível definir a palavra-passe.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(savedPassword ?? password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar.");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Definir palavra-passe</DialogTitle>
+          <DialogDescription>
+            Definir uma nova palavra-passe para <strong>{user.email}</strong>.
+            Esta ação fica registada no histórico administrativo.
+          </DialogDescription>
+        </DialogHeader>
+
+        {savedPassword ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Palavra-passe definida. Copia-a agora e envia-a ao utilizador por um canal seguro —
+              não voltará a ser mostrada.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 select-all rounded-lg border bg-muted px-3 py-2 font-mono text-sm">
+                {savedPassword}
+              </code>
+              <Button variant="outline" size="icon" onClick={copyPassword} aria-label="Copiar palavra-passe">
+                {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="admin-new-password">
+                Nova palavra-passe
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="admin-new-password"
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  autoComplete="off"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPassword(generatePassword())}
+                  className="shrink-0"
+                >
+                  Gerar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Recomendado: usar "Gerar" e partilhar a password com o utilizador, que a poderá
+                alterar depois nas definições do perfil.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          {savedPassword ? (
+            <Button onClick={handleClose}>Concluir</Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={handleClose} disabled={isSaving}>Cancelar</Button>
+              <Button onClick={handleSubmit} disabled={isSaving || password.length < 8}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Definir palavra-passe
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AdminActionsPanel({
   user, isActor, onDeactivate, onReactivate, pending,
 }: {
@@ -462,6 +608,29 @@ function AdminActionsPanel({
   const blockedSelf = isActor;
   const blockedSuper = user.isSuperAdmin;
   const blocked = blockedSelf || blockedSuper;
+
+  const [setPasswordOpen, setSetPasswordOpen] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
+  const handleSendReset = async () => {
+    if (!user.email) {
+      toast.error("Este utilizador não tem email registado.");
+      return;
+    }
+    setIsSendingReset(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "send_password_reset", userId: user.user_id, email: user.email },
+      });
+      if (error) throw new Error(data?.error || error.message || "Erro ao enviar email");
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Email de recuperação enviado para ${user.email}.`);
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível enviar o email de recuperação.");
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-navy-100 bg-brand-ice/30 p-4">
@@ -484,6 +653,26 @@ function AdminActionsPanel({
       )}
 
       <div className="space-y-2">
+        <Button
+          onClick={() => setSetPasswordOpen(true)}
+          disabled={blocked || pending}
+          variant="outline"
+          className="w-full justify-start gap-2 rounded-xl border-navy-100 bg-white text-navy-500 hover:border-brand/40 hover:text-navy"
+        >
+          <KeyRound className="h-4 w-4" />
+          Definir palavra-passe
+        </Button>
+
+        <Button
+          onClick={handleSendReset}
+          disabled={blocked || pending || isSendingReset}
+          variant="outline"
+          className="w-full justify-start gap-2 rounded-xl border-navy-100 bg-white text-navy-500 hover:border-brand/40 hover:text-navy"
+        >
+          {isSendingReset ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailCheck className="h-4 w-4" />}
+          Enviar email de recuperação
+        </Button>
+
         {!isInactive ? (
           <Button
             onClick={onDeactivate}
@@ -508,8 +697,12 @@ function AdminActionsPanel({
       </div>
 
       <p className="mt-3 text-[10.5px] leading-relaxed text-navy-300">
-        Reset de password, revogação de sessões e remoção de conta serão adicionados em fases seguintes.
+        Se o email do utilizador ainda não estiver confirmado, o email de recuperação pode não
+        chegar — nesse caso usa "Definir palavra-passe". Revogação de sessões e remoção de conta
+        serão adicionados em fases seguintes.
       </p>
+
+      <SetPasswordDialog user={user} open={setPasswordOpen} onClose={() => setSetPasswordOpen(false)} />
     </div>
   );
 }

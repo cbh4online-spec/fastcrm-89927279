@@ -40,12 +40,23 @@ Deno.serve(async (req) => {
     }
 
     // Check if user is super admin
+    // NOTE: user_roles.user_id guarda o profile.id, não o auth user id.
+    // Resolvemos o perfil primeiro e aceitamos ambos os ids por robustez.
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const roleIds = [user.id, profile?.id].filter(Boolean) as string[];
+
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .in("user_id", roleIds)
       .eq("role", "super_admin")
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (!roleData) {
       throw new Error("Unauthorized: Only super admins can perform this action");
@@ -218,7 +229,7 @@ Deno.serve(async (req) => {
         }
 
         const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-          redirectTo: `${req.headers.get("origin")}/dashboard/profile`,
+          redirectTo: `${req.headers.get("origin")}/reset-password`,
         });
 
         if (error) throw error;
