@@ -101,7 +101,7 @@ export function PriceWithVatInput({
 
   const handleRateChange = (next: string) => {
     setEditing(null);
-    onVatRateChange(next);
+    onVatRateChange(resolveVatRateSelection(next, vatRate));
     // A taxa nova recalcula o outro lado a partir do valor guardado — o valor
     // introduzido pelo utilizador (base_price) mantém-se intacto.
   };
