@@ -12,6 +12,7 @@ import { B2BDetailsForm, type B2BDetails } from "@/components/onboarding/b2b/B2B
 import { ConfirmStep } from "@/components/onboarding/b2b/ConfirmStep";
 import { usePendingInvites } from "@/hooks/onboarding/usePendingInvites";
 import { useOnboardingActions } from "@/hooks/onboarding/useOnboardingActions";
+import { readOnboardingIntent, clearOnboardingIntent } from "@/lib/onboardingIntent";
 
 type Step = "choose" | "details" | "confirm";
 
@@ -34,8 +35,21 @@ export default function Onboarding() {
 
   const [step, setStep] = useState<Step>("choose");
   const [details, setDetails] = useState<B2BDetails>(EMPTY);
+  const [intentApplied, setIntentApplied] = useState(false);
 
   const hasWorkspaces = workspaces.length > 0;
+
+  // Retomar a intenção guardada no registo: pré-preencher e ir direto aos dados
+  useEffect(() => {
+    if (intentApplied || authLoading || workspaceLoading || !user) return;
+    if (hasWorkspaces || invitesLoading || invites.length > 0) return;
+    const intent = readOnboardingIntent();
+    if (intent?.name) {
+      setDetails((prev) => ({ ...prev, name: prev.name || intent.name! }));
+      setStep("details");
+    }
+    setIntentApplied(true);
+  }, [intentApplied, authLoading, workspaceLoading, user, hasWorkspaces, invitesLoading, invites.length]);
 
   // Auto-redirect: utilizador já com workspace ativo e fora do wizard
   useEffect(() => {
@@ -49,6 +63,7 @@ export default function Onboarding() {
       navigate("/dashboard", { replace: true });
     }
   }, [authLoading, workspaceLoading, user, hasWorkspaces, currentWorkspace?.id, step, navigate]);
+
 
   const steps = useMemo(
     () => [
@@ -73,6 +88,7 @@ export default function Onboarding() {
   const handleAcceptInvite = async (token: string) => {
     try {
       await acceptInvite(token);
+      clearOnboardingIntent();
       navigate("/dashboard", { replace: true });
     } catch {/* toast já tratado */}
   };
@@ -88,6 +104,7 @@ export default function Onboarding() {
         primary_objective: details.primary_objective || undefined,
         my_title: details.my_title.trim() || undefined,
       });
+      clearOnboardingIntent();
       navigate("/dashboard?onboarding=complete", { replace: true });
     } catch {/* toast já tratado */}
   };

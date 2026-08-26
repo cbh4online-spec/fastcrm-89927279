@@ -108,6 +108,9 @@ interface EnrichedUser {
   memberships: WorkspaceMembership[];
   isSuperAdmin: boolean;
   sessionStats: SessionStats;
+  /** null quando o estado de autenticação ainda não foi carregado */
+  emailConfirmed: boolean | null;
+  hasWorkspace: boolean;
 }
 
 const ROLE_OPTIONS = [
@@ -189,6 +192,27 @@ export function UsersSection() {
       if (error) throw error;
       return new Set(data?.map(r => r.user_id) || []);
     },
+  });
+
+  // Estado de autenticação (confirmação de email) — via edge function admin
+  const { data: authStatus } = useQuery({
+    queryKey: ["super-admin-auth-status"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "list_auth_status" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const map = new Map<string, { emailConfirmed: boolean; lastSignInAt: string | null }>();
+      for (const u of (data?.users || []) as any[]) {
+        map.set(u.id, {
+          emailConfirmed: !!u.email_confirmed_at,
+          lastSignInAt: u.last_sign_in_at ?? null,
+        });
+      }
+      return map;
+    },
+    staleTime: 60_000,
   });
 
   // Fetch session time logs for all users
@@ -369,6 +393,25 @@ export function UsersSection() {
     },
   });
 
+  // Resend email confirmation mutation
+  const resendConfirmation = useMutation({
+    mutationFn: async ({ userId, email }: { userId: string; email: string }) => {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "resend_confirmation", userId, email },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Email de confirmação reenviado");
+    },
+    onError: (error: any) => {
+      toast.error("Erro: " + error.message);
+    },
+  });
+
   // Build enriched users list
   const enrichedUsers: EnrichedUser[] = (profiles || []).map(profile => {
     const userMemberships = (memberships || [])
@@ -379,12 +422,16 @@ export function UsersSection() {
         workspace_name: (m.workspaces as any)?.name || "Unknown",
       }));
 
+    const auth = authStatus?.get(profile.user_id);
+
     return {
       userId: profile.user_id,
       profile,
       memberships: userMemberships,
       isSuperAdmin: superAdmins?.has(profile.user_id) || false,
       sessionStats: sessionLogs?.get(profile.user_id) || { lastSeen: null, totalActiveSeconds: 0, totalSeconds: 0 },
+      emailConfirmed: auth ? auth.emailConfirmed : null,
+      hasWorkspace: userMemberships.length > 0,
     };
   });
 
@@ -401,12 +448,16 @@ export function UsersSection() {
       user.memberships.some(m => m.role === roleFilter) ||
       (roleFilter === "super_admin" && user.isSuperAdmin);
 
-    const matchesStatus = 
-      statusFilter === "all" || 
-      (user.profile?.status || "active") === statusFilter;
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "pending"
+        ? user.emailConfirmed === false || !user.hasWorkspace
+        : (user.profile?.status || "active") === statusFilter;
     
     return matchesSearch && matchesRole && matchesStatus;
   });
+
 
   const isLoading = profilesLoading || membershipsLoading;
   const totalUsers = enrichedUsers.length;
@@ -594,6 +645,7 @@ export function UsersSection() {
                 <SelectItem value="active">Ativos</SelectItem>
                 <SelectItem value="inactive">Inativos</SelectItem>
                 <SelectItem value="suspended">Suspensos</SelectItem>
+                <SelectItem value="pending">Pendentes (email/workspace)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -652,7 +704,19 @@ export function UsersSection() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(user.profile?.status)}
+                      <div className="flex flex-wrap items-center gap-1">
+                        {getStatusBadge(user.profile?.status)}
+                        {user.emailConfirmed === false && (
+                          <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-600 dark:text-amber-400">
+                            Email pendente
+                          </Badge>
+                        )}
+                        {!user.hasWorkspace && (
+                          <Badge variant="outline" className="text-xs border-destructive/50 text-destructive">
+                            Sem workspace
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
@@ -728,6 +792,18 @@ export function UsersSection() {
                             <Send className="h-4 w-4 mr-2" />
                             Enviar reset por email
                           </DropdownMenuItem>
+                          {user.emailConfirmed === false && (
+                            <DropdownMenuItem
+                              onClick={() => user.profile?.email && resendConfirmation.mutate({
+                                userId: user.userId,
+                                email: user.profile.email,
+                              })}
+                              disabled={!user.profile?.email || resendConfirmation.isPending}
+                            >
+                              <Mail className="h-4 w-4 mr-2" />
+                              Reenviar confirmação de email
+                            </DropdownMenuItem>
+                          )}
 
                           <DropdownMenuSeparator />
 

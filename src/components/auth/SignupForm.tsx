@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
+import { saveOnboardingIntent } from "@/lib/onboardingIntent";
+
+const RESEND_COOLDOWN = 60;
 
 export function SignupForm() {
   const [fullName, setFullName] = useState("");
@@ -15,10 +19,19 @@ export function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect");
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +43,7 @@ export function SignupForm() {
       return;
     }
 
-    const { error } = await signUp(email, password, fullName);
+    const { error, session } = await signUp(email, password, fullName);
 
     if (error) {
       toast.error(error.message);
@@ -38,9 +51,38 @@ export function SignupForm() {
       return;
     }
 
+    // Guardar a intenção para pré-preencher o onboarding após a confirmação
+    saveOnboardingIntent({ name: fullName.trim(), email: email.trim() });
+    setLoading(false);
+
+    if (!session) {
+      // Confirmação de email obrigatória — ainda não há sessão
+      setAwaitingConfirmation(true);
+      setCooldown(RESEND_COOLDOWN);
+      return;
+    }
+
     toast.success("Conta criada com sucesso!");
     navigate(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/onboarding");
   };
+
+  const handleResend = async () => {
+    if (cooldown > 0 || resending) return;
+    setResending(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setResending(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Email de confirmação reenviado");
+    setCooldown(RESEND_COOLDOWN);
+  };
+
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -63,6 +105,48 @@ export function SignupForm() {
       setAppleLoading(false);
     }
   };
+
+  if (awaitingConfirmation) {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <MailCheck className="h-6 w-6 text-primary" aria-hidden="true" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold text-foreground">Confirma o teu email</h2>
+          <p className="text-sm text-muted-foreground">
+            Enviámos um link de confirmação para{" "}
+            <span className="font-medium text-foreground">{email}</span>. Abre o link para ativar a
+            conta e criar a tua organização.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Não recebeste? Verifica a pasta de spam ou promoções.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <Button
+            type="button"
+            className="w-full h-11"
+            onClick={handleResend}
+            disabled={resending || cooldown > 0}
+          >
+            {resending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar email de confirmação"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11"
+            onClick={() => navigate("/login")}
+          >
+            Voltar ao início de sessão
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
