@@ -28,6 +28,9 @@ import { MenuVisibilityGuard } from "./MenuVisibilityGuard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DirectMessagesProvider } from "@/contexts/DirectMessagesProvider";
 import { AppModeGuard } from "./AppModeGuard";
+import { useGlobalShortcutsHelp } from "@/hooks/useGlobalShortcutsHelp";
+import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts/KeyboardShortcutsModal";
+
 
 interface DashboardLayoutProps {
   children: ReactNode;
