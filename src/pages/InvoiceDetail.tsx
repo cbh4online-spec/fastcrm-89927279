@@ -23,7 +23,8 @@ import {
   Clock,
   Mail,
   CreditCard,
-  ShieldAlert
+  ShieldAlert,
+  Pencil
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -33,6 +34,7 @@ import { InvoicePaymentsHistory } from "@/components/invoices/InvoicePaymentsHis
 import { PaymentActionsCard } from "@/components/invoices/PaymentActionsCard";
 import { InvoiceWhatsAppHistoryCard } from "@/components/invoices/InvoiceWhatsAppHistoryCard";
 import { PushToInvoiceXpressButton } from "@/components/invoices/PushToInvoiceXpressButton";
+import { EditInvoiceItemsDialog } from "@/components/invoices/EditInvoiceItemsDialog";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -53,6 +55,7 @@ export default function InvoiceDetail() {
   const sendInvoice = useSendInvoice();
   const forceStatus = useForceInvoiceStatus();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [editItemsOpen, setEditItemsOpen] = useState(false);
 
   const { data: company } = useQuery({
     queryKey: ["invoice-company", invoice?.company_id],
@@ -159,6 +162,12 @@ export default function InvoiceDetail() {
               <Button variant="outline" onClick={handleSendInvoice} disabled={sendInvoice.isPending}>
                 <Send className="w-4 h-4 mr-2" />
                 Enviar
+              </Button>
+            )}
+            {invoice.status !== "paid" && invoice.status !== "cancelled" && !(invoice as any).external_provider && (
+              <Button variant="outline" onClick={() => setEditItemsOpen(true)}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Editar itens
               </Button>
             )}
             {canRegisterPayment && (
@@ -426,6 +435,12 @@ export default function InvoiceDetail() {
           currency={invoice.currency}
         />
       )}
+
+      <EditInvoiceItemsDialog
+        open={editItemsOpen}
+        onOpenChange={setEditItemsOpen}
+        invoice={invoice}
+      />
     </DashboardLayout>
   );
 }
