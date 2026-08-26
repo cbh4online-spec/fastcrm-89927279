@@ -312,13 +312,18 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
 
           {/* Footer */}
           <div className="border-t border-sidebar-border px-3 pt-3 pb-3 space-y-2.5">
-            <div className="flex items-center justify-center gap-1.5 text-[11px] text-sidebar-foreground/55">
+            <button
+              type="button"
+              onClick={() => openShortcutsHelp()}
+              className="w-full flex items-center justify-center gap-1.5 text-[11px] text-sidebar-foreground/55 hover:text-sidebar-foreground transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            >
               <span>Prima</span>
               <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-sidebar-border bg-sidebar-accent text-[10px] font-semibold text-sidebar-foreground/70">
                 ?
               </kbd>
               <span>para ver os atalhos</span>
-            </div>
+            </button>
+
             <ThemeSwitcher />
             <p className="text-[10px] leading-snug text-sidebar-foreground/40 text-center">
               © {year} FastCRM — Todos os direitos reservados
