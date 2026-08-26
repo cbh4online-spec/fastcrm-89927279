@@ -611,6 +611,8 @@ function AdminActionsPanel({
 
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [isConfirmingEmail, setIsConfirmingEmail] = useState(false);
+  const [emailConfirmedNow, setEmailConfirmedNow] = useState(false);
 
   const handleSendReset = async () => {
     if (!user.email) {
@@ -631,6 +633,24 @@ function AdminActionsPanel({
       setIsSendingReset(false);
     }
   };
+
+  const handleConfirmEmail = async () => {
+    setIsConfirmingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "confirm_email", userId: user.user_id },
+      });
+      if (error) throw new Error(data?.error || error.message || "Erro ao confirmar email");
+      if (data?.error) throw new Error(data.error);
+      setEmailConfirmedNow(true);
+      toast.success("Email confirmado. O utilizador já consegue iniciar sessão.");
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível confirmar o email.");
+    } finally {
+      setIsConfirmingEmail(false);
+    }
+  };
+
 
   return (
     <div className="rounded-2xl border border-navy-100 bg-brand-ice/30 p-4">
