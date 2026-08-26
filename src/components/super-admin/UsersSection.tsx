@@ -191,6 +191,27 @@ export function UsersSection() {
     },
   });
 
+  // Estado de autenticação (confirmação de email) — via edge function admin
+  const { data: authStatus } = useQuery({
+    queryKey: ["super-admin-auth-status"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "list_auth_status" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const map = new Map<string, { emailConfirmed: boolean; lastSignInAt: string | null }>();
+      for (const u of (data?.users || []) as any[]) {
+        map.set(u.id, {
+          emailConfirmed: !!u.email_confirmed_at,
+          lastSignInAt: u.last_sign_in_at ?? null,
+        });
+      }
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
   // Fetch session time logs for all users
   const { data: sessionLogs } = useQuery({
     queryKey: ["super-admin-session-logs"],
