@@ -1,6 +1,8 @@
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { openShortcutsHelp } from "@/hooks/useGlobalShortcutsHelp";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSidebarBadges } from "@/hooks/useSidebarBadges";
