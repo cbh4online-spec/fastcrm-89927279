@@ -89,8 +89,12 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
   const { currentWorkspace } = useWorkspace();
   const { data: storeSettings } = useStoreSettings();
   const { canAccessMenu } = useMenuPermissions();
-  const { installedSlugs } = useInstalledModules();
-  const isModuleInstalled = (slug: string) => installedSlugs.includes(slug);
+  const { installedSlugs, isLoading: modulesLoading, isError: modulesError } = useInstalledModules();
+  // Em caso de falha (ou ainda a carregar) não escondemos os grupos por módulo —
+  // evita um menu vazio por falha de rede. As páginas continuam protegidas por RLS/guards.
+  const isModuleInstalled = (slug: string) =>
+    modulesError || modulesLoading ? true : installedSlugs.includes(slug);
+
 
   const workspaceName = storeSettings?.store_name || currentWorkspace?.name || "Workspace";
   const logoUrl = storeSettings?.logo_url;
