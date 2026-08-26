@@ -204,11 +204,18 @@ export default function IXDashboard() {
           {active === "faturacao" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiTile label="Faturado (mês)" value={formatEUR(monthMetrics.total)} hint={`${monthMetrics.count} documentos`} />
+                <KpiTile label="Faturado (mês)" value={formatEUR(monthMetrics.total)} hint={`${monthMetrics.count} documentos`} delta={financials?.kpis.thisMonthDelta} />
                 <KpiTile label="Recebido (mês)" value={formatEUR(monthMetrics.paid)} />
-                <KpiTile label="Em aberto (mês)" value={formatEUR(monthMetrics.outstanding)} />
-                <KpiTile label="Vencidas" value={formatEUR(stats.amountOverdue)} hint={`${stats.totalOverdue} faturas`} />
+                <KpiTile label="Este trimestre" value={formatEUR(financials?.kpis.thisQuarter ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisQuarterDelta} />
+                <KpiTile label="Este ano" value={formatEUR(financials?.kpis.thisYear ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisYearDelta} />
               </div>
+              <IXCard
+                title="Faturação por mês"
+                description="Comparação dos últimos 3 anos (valores sem IVA)."
+              >
+                <FaturacaoYearChart yearly={financials?.yearly ?? []} loading={finLoading} />
+              </IXCard>
+
               <IXCard
                 title="Estado das faturas"
                 actions={
