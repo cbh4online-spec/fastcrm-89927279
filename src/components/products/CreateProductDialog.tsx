@@ -916,37 +916,36 @@ export function CreateProductDialog({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="basePrice">
-                    {isBundle ? "Preço do Bundle" : "Preço Base"} {bundlePriceMode === "manual" || !isBundle ? "*" : ""}
-                  </Label>
-                  <Input
-                    id="basePrice"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={basePrice}
-                    onChange={(e) => setBasePrice(e.target.value)}
-                    placeholder={isBundle && bundlePriceMode === "auto" ? "Calculado automaticamente" : "0.00"}
-                    disabled={isBundle && bundlePriceMode === "auto"}
-                    required={!isBundle || bundlePriceMode === "manual"}
-                  />
-                </div>
+              <div className="space-y-4">
+                <PriceWithVatInput
+                  label={isBundle ? "Preço do Bundle" : "Preço Base"}
+                  basePrice={basePrice}
+                  onBasePriceChange={setBasePrice}
+                  taxIncluded={taxIncluded}
+                  onTaxIncludedChange={setTaxIncluded}
+                  vatRate={taxRateEstimate || "23"}
+                  onVatRateChange={setTaxRateEstimate}
+                  currency={currency}
+                  required={!isBundle || bundlePriceMode === "manual"}
+                  disabled={isBundle && bundlePriceMode === "auto"}
+                  placeholder={isBundle && bundlePriceMode === "auto" ? "Calculado automaticamente" : "0.00"}
+                />
 
-                <div className="space-y-2">
-                  <Label>Moeda</Label>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EUR">EUR (€)</SelectItem>
-                      <SelectItem value="USD">USD ($)</SelectItem>
-                      <SelectItem value="BRL">BRL (R$)</SelectItem>
-                      <SelectItem value="GBP">GBP (£)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Moeda</Label>
+                    <Select value={currency} onValueChange={setCurrency}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="EUR">EUR (€)</SelectItem>
+                        <SelectItem value="USD">USD ($)</SelectItem>
+                        <SelectItem value="BRL">BRL (R$)</SelectItem>
+                        <SelectItem value="GBP">GBP (£)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
