@@ -34,8 +34,21 @@ export default function Onboarding() {
 
   const [step, setStep] = useState<Step>("choose");
   const [details, setDetails] = useState<B2BDetails>(EMPTY);
+  const [intentApplied, setIntentApplied] = useState(false);
 
   const hasWorkspaces = workspaces.length > 0;
+
+  // Retomar a intenção guardada no registo: pré-preencher e ir direto aos dados
+  useEffect(() => {
+    if (intentApplied || authLoading || workspaceLoading || !user) return;
+    if (hasWorkspaces || invitesLoading || invites.length > 0) return;
+    const intent = readOnboardingIntent();
+    if (intent?.name) {
+      setDetails((prev) => ({ ...prev, name: prev.name || intent.name! }));
+      setStep("details");
+    }
+    setIntentApplied(true);
+  }, [intentApplied, authLoading, workspaceLoading, user, hasWorkspaces, invitesLoading, invites.length]);
 
   // Auto-redirect: utilizador já com workspace ativo e fora do wizard
   useEffect(() => {
@@ -49,6 +62,7 @@ export default function Onboarding() {
       navigate("/dashboard", { replace: true });
     }
   }, [authLoading, workspaceLoading, user, hasWorkspaces, currentWorkspace?.id, step, navigate]);
+
 
   const steps = useMemo(
     () => [
