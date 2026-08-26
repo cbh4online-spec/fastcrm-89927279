@@ -412,6 +412,27 @@ export function UsersSection() {
     },
   });
 
+  // Confirm email manually mutation
+  const confirmEmail = useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "confirm_email", userId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Email confirmado. O utilizador já consegue iniciar sessão.");
+      queryClient.invalidateQueries({ queryKey: ["super-admin-auth-status"] });
+    },
+    onError: (error: any) => {
+      toast.error("Erro: " + error.message);
+    },
+  });
+
+
   // Build enriched users list
   const enrichedUsers: EnrichedUser[] = (profiles || []).map(profile => {
     const userMemberships = (memberships || [])
