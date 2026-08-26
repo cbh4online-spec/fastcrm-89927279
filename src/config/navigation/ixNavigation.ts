@@ -21,6 +21,7 @@ import {
   Receipt,
   Package,
   Boxes,
+  Store,
   BarChart3,
   Settings,
 } from "lucide-react";
@@ -154,6 +155,19 @@ export const IX_NAV_SECTIONS: IXNavSection[] = [
           { key: "stock-valuation" },
           { key: "stock-counts" },
         ],
+      },
+    ],
+  },
+  {
+    key: "aplicacoes",
+    label: "Aplicações",
+    groups: [
+      {
+        key: "marketplace",
+        label: "Marketplace C2C",
+        icon: Store,
+        href: "/dashboard/c2c",
+        primaryKey: "c2c",
       },
     ],
   },

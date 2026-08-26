@@ -311,18 +311,18 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // MARKETPLACE C2C
   // ══════════════════════════════════════════════════════════════
   e("c2c",              "Marketplace C2C", "/dashboard/c2c",                  Store,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-seller-area", "Área Vendedor",   "/dashboard/c2c/seller-area",      UserCog,       "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-lives",       "Lives",            "/dashboard/marketplace/lives",    Video,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-my-listings", "Meus Anúncios",   "/dashboard/c2c/my-listings",      Package,       "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-messages",    "Mensagens",        "/dashboard/c2c/messages",         MessageSquare, "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-analytics",   "Analíticas",       "/dashboard/c2c/analytics",        BarChart3,     "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-boost",       "Boost",            "/dashboard/c2c/boost",            Rocket,        "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-sponsors",    "Sponsors",         "/dashboard/c2c/sponsors",         Award,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-sellers",     "Vendedores",       "/dashboard/c2c/sellers",          Users,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-affiliates",  "Afiliados",        "/dashboard/c2c/affiliates",       Link2,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-orders",      "Encomendas",       "/dashboard/c2c/orders",           ShoppingBasket,"marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-moderation",  "Moderação",        "/dashboard/c2c/moderation",       Eye,           "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
-  e("c2c-config",      "Configuração",     "/dashboard/c2c/config",           Settings,      "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-seller-area", "Área Vendedor",   "/dashboard/c2c/seller-area",      UserCog,       "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-lives",       "Lives",            "/dashboard/marketplace/lives",    Video,         "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-my-listings", "Meus Anúncios",   "/dashboard/c2c/my-listings",      Package,       "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-messages",    "Mensagens",        "/dashboard/c2c/messages",         MessageSquare, "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-analytics",   "Analíticas",       "/dashboard/c2c/analytics",        BarChart3,     "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-boost",       "Boost",            "/dashboard/c2c/boost",            Rocket,        "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-sponsors",    "Sponsors",         "/dashboard/c2c/sponsors",         Award,         "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-sellers",     "Vendedores",       "/dashboard/c2c/sellers",          Users,         "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-affiliates",  "Afiliados",        "/dashboard/c2c/affiliates",       Link2,         "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-orders",      "Encomendas",       "/dashboard/c2c/orders",           ShoppingBasket,"marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-moderation",  "Moderação",        "/dashboard/c2c/moderation",       Eye,           "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
+  e("c2c-config",      "Configuração",     "/dashboard/c2c/config",           Settings,      "marketplace-c2c", { moduleSlug: "marketplace-c2c", visibleInSidebar: false }),
 
   // ══════════════════════════════════════════════════════════════
   // PORTAL B2B
