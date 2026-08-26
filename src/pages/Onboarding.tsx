@@ -88,6 +88,7 @@ export default function Onboarding() {
   const handleAcceptInvite = async (token: string) => {
     try {
       await acceptInvite(token);
+      clearOnboardingIntent();
       navigate("/dashboard", { replace: true });
     } catch {/* toast já tratado */}
   };
@@ -103,6 +104,7 @@ export default function Onboarding() {
         primary_objective: details.primary_objective || undefined,
         my_title: details.my_title.trim() || undefined,
       });
+      clearOnboardingIntent();
       navigate("/dashboard?onboarding=complete", { replace: true });
     } catch {/* toast já tratado */}
   };
