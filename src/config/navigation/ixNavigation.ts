@@ -21,6 +21,7 @@ import {
   Receipt,
   Package,
   Boxes,
+  Store,
   BarChart3,
   Settings,
 } from "lucide-react";
