@@ -25,6 +25,11 @@ import {
 } from "@/hooks/useUserAdminMutations";
 import { ConfirmActionDialog } from "@/components/backoffice-v2/ConfirmActionDialog";
 import { UserAuditTimeline } from "@/components/backoffice-v2/UserAuditTimeline";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
