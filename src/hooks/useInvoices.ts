@@ -325,7 +325,157 @@ export function useCreateInvoice() {
   });
 }
 
+export interface UpdateInvoiceItemsInput {
+  invoiceId: string;
+  discount_amount?: number;
+  items: {
+    id?: string;
+    product_id?: string | null;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    discount_percent?: number;
+    tax_rate?: number;
+  }[];
+}
+
+const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+export function useUpdateInvoiceItems() {
+  const queryClient = useQueryClient();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async (input: UpdateInvoiceItemsInput) => {
+      const { invoiceId } = input;
+
+      const { data: current, error: fetchError } = await workspaceClient
+        .from("invoices")
+        .select("id, status, amount_paid, total, external_provider")
+        .eq("id", invoiceId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      if (current.status === "paid" || current.status === "cancelled") {
+        throw new Error("Não é possível editar uma fatura paga ou cancelada");
+      }
+      if ((current as any).external_provider) {
+        throw new Error("Fatura já enviada para faturação certificada — não pode ser editada aqui");
+      }
+
+      const computed = input.items.map((item, index) => {
+        const discountMultiplier = 1 - (item.discount_percent || 0) / 100;
+        const total = round2(item.quantity * item.unit_price * discountMultiplier);
+        return {
+          ...item,
+          discount_percent: item.discount_percent || 0,
+          tax_rate: item.tax_rate ?? 23,
+          total,
+          position: index,
+        };
+      });
+
+      const subtotal = round2(computed.reduce((sum, item) => sum + item.total, 0));
+      const taxAmount = round2(
+        computed.reduce((sum, item) => sum + (item.total * (item.tax_rate || 0)) / 100, 0)
+      );
+      const discountAmount = round2(input.discount_amount || 0);
+      const total = round2(subtotal + taxAmount - discountAmount);
+
+      const alreadyPaid = round2(current.amount_paid || 0);
+      if (alreadyPaid > 0 && total < alreadyPaid) {
+        throw new Error(
+          `O novo total (${total.toFixed(2)} €) é inferior ao valor já pago (${alreadyPaid.toFixed(2)} €)`
+        );
+      }
+
+      // Diff existing items
+      const { data: existing, error: existingError } = await workspaceClient
+        .from("invoice_items")
+        .select("id")
+        .eq("invoice_id", invoiceId);
+      if (existingError) throw existingError;
+
+      const keptIds = computed.map((item) => item.id).filter(Boolean) as string[];
+      const toDelete = (existing || [])
+        .map((row) => row.id as string)
+        .filter((id) => !keptIds.includes(id));
+
+      if (toDelete.length > 0) {
+        const { error } = await workspaceClient.from("invoice_items").delete().in("id", toDelete);
+        if (error) throw error;
+      }
+
+      for (const item of computed) {
+        const payload = {
+          product_id: item.product_id || null,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          discount_percent: item.discount_percent,
+          tax_rate: item.tax_rate,
+          total: item.total,
+          position: item.position,
+        };
+
+        if (item.id) {
+          const { error } = await workspaceClient
+            .from("invoice_items")
+            .update(payload)
+            .eq("id", item.id);
+          if (error) throw error;
+        } else {
+          const { error } = await workspaceClient
+            .from("invoice_items")
+            .insert({ ...payload, invoice_id: invoiceId });
+          if (error) throw error;
+        }
+      }
+
+      const { data: updated, error: updateError } = await workspaceClient
+        .from("invoices")
+        .update({ subtotal, tax_amount: taxAmount, discount_amount: discountAmount, total })
+        .eq("id", invoiceId)
+        .select()
+        .single();
+      if (updateError) throw updateError;
+
+      return { invoice: updated as Invoice, previousTotal: round2(current.total || 0) };
+    },
+    onSuccess: ({ invoice, previousTotal }) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice", invoice.id] });
+      queryClient.invalidateQueries({ queryKey: ["invoice-items", invoice.id] });
+      queryClient.invalidateQueries({ queryKey: ["invoice-payments", invoice.id] });
+      queryClient.invalidateQueries({ queryKey: ["financial-kpis"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice-products"] });
+      toast.success("Itens da fatura atualizados");
+
+      emitKernelEvent({
+        workspace_id: invoice.workspace_id,
+        type: "INVOICE.UPDATED",
+        entity_kind: "invoice",
+        entity_id: invoice.id,
+        actor_type: "user",
+        source_module: "billing",
+        payload: {
+          invoice_number: invoice.invoice_number,
+          status: invoice.status,
+          total: invoice.total,
+          previous_total: previousTotal,
+          change: "items_edited",
+        },
+      });
+    },
+    onError: (error: Error) => {
+      console.warn("[INVOICES] ITEMS_UPDATE_FAILED", error.message);
+      toast.error(error.message || "Erro ao atualizar itens da fatura");
+    },
+  });
+}
+
 export function useUpdateInvoice() {
+
   const queryClient = useQueryClient();
   const { workspaceClient } = useWorkspaceInstance();
 
