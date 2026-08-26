@@ -645,6 +645,7 @@ export function UsersSection() {
                 <SelectItem value="active">Ativos</SelectItem>
                 <SelectItem value="inactive">Inativos</SelectItem>
                 <SelectItem value="suspended">Suspensos</SelectItem>
+                <SelectItem value="pending">Pendentes (email/workspace)</SelectItem>
               </SelectContent>
             </Select>
           </div>
