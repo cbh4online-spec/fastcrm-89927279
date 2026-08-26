@@ -22,6 +22,8 @@ import { IX_NAV_SECTIONS, type IXNavGroup } from "@/config/navigation/ixNavigati
 import { ROUTE_MANIFEST, type RouteEntry } from "@/config/routeManifest";
 import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
 import { resolveRouteVisibility } from "@/config/menuOverrides";
+import { openShortcutsHelp } from "@/hooks/useGlobalShortcutsHelp";
+
 
 interface InvoiceXpressSidebarProps {
   open: boolean;
@@ -39,26 +41,33 @@ const ROUTE_INDEX: Record<string, RouteEntry> = ROUTE_MANIFEST.reduce(
 
 function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
-  const current = theme ?? "light";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const current = theme ?? "system";
   const opts = [
     { key: "light", icon: Sun, label: "Tema claro" },
     { key: "system", icon: Monitor, label: "Tema do sistema" },
     { key: "dark", icon: Moon, label: "Tema escuro" },
   ] as const;
   return (
-    <div className="flex items-center gap-1 p-1 rounded-full bg-sidebar-accent/60 border border-sidebar-border">
+    <div
+      role="group"
+      aria-label="Aparência"
+      className="flex items-center gap-1 p-1 rounded-full bg-sidebar-accent/60 border border-sidebar-border"
+    >
       {opts.map((opt) => {
         const Icon = opt.icon;
-        const active = current === opt.key;
+        const active = mounted && current === opt.key;
         return (
           <button
             key={opt.key}
             type="button"
+            title={opt.label}
             aria-label={opt.label}
             aria-pressed={active}
             onClick={() => setTheme(opt.key)}
             className={cn(
-              "flex-1 flex items-center justify-center h-7 rounded-full transition-colors",
+              "flex-1 flex items-center justify-center h-7 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
               active
                 ? "bg-background text-sidebar-foreground shadow-sm"
                 : "text-sidebar-foreground/55 hover:text-sidebar-foreground",
@@ -71,6 +80,7 @@ function ThemeSwitcher() {
     </div>
   );
 }
+
 
 export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProps) {
   const { pathname } = useLocation();
@@ -304,13 +314,18 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
 
           {/* Footer */}
           <div className="border-t border-sidebar-border px-3 pt-3 pb-3 space-y-2.5">
-            <div className="flex items-center justify-center gap-1.5 text-[11px] text-sidebar-foreground/55">
+            <button
+              type="button"
+              onClick={() => openShortcutsHelp()}
+              className="w-full flex items-center justify-center gap-1.5 text-[11px] text-sidebar-foreground/55 hover:text-sidebar-foreground transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            >
               <span>Prima</span>
               <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-sidebar-border bg-sidebar-accent text-[10px] font-semibold text-sidebar-foreground/70">
                 ?
               </kbd>
               <span>para ver os atalhos</span>
-            </div>
+            </button>
+
             <ThemeSwitcher />
             <p className="text-[10px] leading-snug text-sidebar-foreground/40 text-center">
               © {year} FastCRM — Todos os direitos reservados

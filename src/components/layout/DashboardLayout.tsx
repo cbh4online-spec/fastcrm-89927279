@@ -28,6 +28,9 @@ import { MenuVisibilityGuard } from "./MenuVisibilityGuard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DirectMessagesProvider } from "@/contexts/DirectMessagesProvider";
 import { AppModeGuard } from "./AppModeGuard";
+import { useGlobalShortcutsHelp } from "@/hooks/useGlobalShortcutsHelp";
+import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts/KeyboardShortcutsModal";
+
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -37,7 +40,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, loading: authLoading } = useAuth();
   const { loading: workspaceLoading, workspaces } = useWorkspace();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useGlobalShortcutsHelp();
   const location = useLocation();
+
   // Feature flags mantidos por compatibilidade, mas já não forçam Watidy quando desligados.
   useFeatureFlag("ui.adaptive_sidebar_enabled");
   useFeatureFlag("ui.watidy_sidebar_enabled");
@@ -122,6 +127,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <GlobalNoCreditsDialog />
                 <CopilotDrawer />
                 {isMobile && <MobileBottomNav onMenuClick={() => setSidebarOpen(true)} />}
+                <KeyboardShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
               </div>
             </div>
           </AppModeGuard>

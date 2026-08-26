@@ -1,0 +1,51 @@
+import { useCallback, useEffect, useState } from "react";
+
+const SHORTCUTS_HELP_EVENT = "fastcrm:open-shortcuts";
+
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || !el.tagName) return false;
+  const tag = el.tagName.toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") return true;
+  if (el.isContentEditable) return true;
+  return !!el.closest?.('[contenteditable="true"]');
+}
+
+/**
+ * Atalho global de ajuda: `?` (Shift+/) abre o modal de atalhos de teclado.
+ * Ignorado quando o foco está num campo de texto ou quando já existe um
+ * diálogo/popover modal aberto (evita conflitos com formulários).
+ */
+export function useGlobalShortcutsHelp() {
+  const [open, setOpen] = useState(false);
+
+  const openHelp = useCallback(() => setOpen(true), []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "?" && !(e.key === "/" && e.shiftKey)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingTarget(e.target)) return;
+      if (open) return;
+      // Não interferir com diálogos modais já abertos
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+      e.preventDefault();
+      setOpen(true);
+    };
+    const openEvent = () => setOpen(true);
+    window.addEventListener("keydown", handler);
+    window.addEventListener(SHORTCUTS_HELP_EVENT, openEvent);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener(SHORTCUTS_HELP_EVENT, openEvent);
+    };
+  }, [open]);
+
+  return { open, setOpen, openHelp };
+}
+
+export function openShortcutsHelp() {
+  window.dispatchEvent(new CustomEvent(SHORTCUTS_HELP_EVENT));
+}
+

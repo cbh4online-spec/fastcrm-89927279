@@ -95,12 +95,109 @@
     --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Dark mode intentionally mirrors light to enforce a unified
-     premium light identity across the entire FastCRM platform.
-     Any explicit `.dark` class on <html> or sub-trees is neutralised. */
-  .dark,
-  .dark .light,
-  .light {
+  /* Escala navy exposta como tokens para permitir inversão em modo escuro */
+  :root {
+    --navy: 213 65% 12%;
+    --navy-50: 213 38% 98%;
+    --navy-100: 217 35% 92%;
+    --navy-200: 216 28% 84%;
+    --navy-300: 215 22% 62%;
+    --navy-500: 215 18% 43%;
+    --navy-700: 215 30% 17%;
+    --navy-900: 213 65% 12%;
+    --navy-950: 213 70% 8%;
+    --brand-ice: 213 38% 98%;
+    --surface-white: 0 0% 100%;
+  }
+
+  /* ───────────────────────────────────────────────────────
+     Dark theme — identidade FastCRM em superfícies navy
+     ─────────────────────────────────────────────────────── */
+  .dark {
+    --background: 213 45% 7%;
+    --foreground: 213 30% 94%;
+
+    --card: 214 38% 11%;
+    --card-foreground: 213 30% 94%;
+
+    --popover: 214 38% 12%;
+    --popover-foreground: 213 30% 94%;
+
+    --primary: 216 100% 62%;
+    --primary-foreground: 213 65% 8%;
+    --primary-vivid: 216 100% 56%;
+    --primary-glow: 216 100% 72%;
+
+    --accent: 189 90% 58%;
+    --accent-foreground: 213 65% 8%;
+
+    --secondary: 214 30% 17%;
+    --secondary-foreground: 213 30% 94%;
+
+    --muted: 214 28% 16%;
+    --muted-foreground: 214 16% 68%;
+
+    --destructive: 354 85% 62%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 25% 20%;
+    --input: 214 25% 22%;
+    --ring: 216 100% 62%;
+
+    --sidebar-background: 214 40% 9%;
+    --sidebar-foreground: 213 28% 92%;
+    --sidebar-primary: 216 100% 62%;
+    --sidebar-primary-foreground: 213 65% 8%;
+    --sidebar-accent: 214 30% 15%;
+    --sidebar-accent-foreground: 216 100% 72%;
+    --sidebar-border: 214 25% 18%;
+    --sidebar-ring: 216 100% 62%;
+    --sidebar-active-bg: 216 100% 56%;
+    --sidebar-active-fg: 0 0% 100%;
+
+    --success: 158 62% 48%;
+    --success-foreground: 213 65% 8%;
+    --warning: 36 92% 62%;
+    --warning-foreground: 213 65% 8%;
+    --info: 189 90% 58%;
+    --info-foreground: 213 65% 8%;
+
+    --gold: 216 100% 62%;
+    --gold-foreground: 213 65% 8%;
+
+    /* Escala navy invertida: superfícies escuras, texto claro */
+    --navy: 213 30% 94%;
+    --navy-50: 214 38% 11%;
+    --navy-100: 214 25% 20%;
+    --navy-200: 214 22% 26%;
+    --navy-300: 214 16% 55%;
+    --navy-500: 214 16% 70%;
+    --navy-700: 213 26% 86%;
+    --navy-900: 213 30% 94%;
+    --navy-950: 210 30% 97%;
+    --brand-ice: 214 38% 13%;
+    --surface-white: 214 38% 11%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(216 100% 56%) 0%, hsl(189 90% 52%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(216 100% 56%) 0%, hsl(189 90% 52%) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(214 38% 12%) 0%, hsl(213 45% 8%) 100%);
+    --gradient-dark: linear-gradient(135deg, hsl(213 45% 7%) 0%, hsl(214 32% 14%) 100%);
+    --gradient-hero: radial-gradient(ellipse at top, hsl(216 100% 62% / 0.16) 0%, transparent 60%), linear-gradient(180deg, hsl(214 38% 11%) 0%, hsl(213 45% 7%) 100%);
+
+    --shadow-sm: 0 1px 2px 0 hsl(213 70% 4% / 0.5);
+    --shadow-md: 0 4px 12px -2px hsl(213 70% 4% / 0.55), 0 2px 4px -2px hsl(213 70% 4% / 0.4);
+    --shadow-lg: 0 12px 32px -8px hsl(213 70% 4% / 0.6), 0 4px 12px -4px hsl(213 70% 4% / 0.45);
+    --shadow-xl: 0 24px 48px -12px hsl(213 70% 4% / 0.7), 0 8px 16px -8px hsl(213 70% 4% / 0.5);
+    --shadow-glow: 0 0 32px hsl(216 100% 62% / 0.25);
+    --shadow-glow-cyan: 0 0 32px hsl(189 90% 58% / 0.25);
+
+    color-scheme: dark;
+  }
+
+  /* Subárvores marcadas como `.light` mantêm-se sempre claras
+     (páginas públicas, loja, previews de email/landing pages). */
+  .light,
+  .dark .light {
     --background: 213 38% 98%;
     --foreground: 213 65% 12%;
     --card: 0 0% 100%;
@@ -109,6 +206,8 @@
     --popover-foreground: 213 65% 12%;
     --primary: 216 100% 52%;
     --primary-foreground: 0 0% 100%;
+    --primary-vivid: 216 100% 47%;
+    --primary-glow: 216 100% 64%;
     --secondary: 217 33% 95%;
     --secondary-foreground: 213 65% 12%;
     --muted: 217 30% 94%;
@@ -130,8 +229,25 @@
     --sidebar-ring: 216 100% 52%;
     --sidebar-active-bg: 216 100% 52%;
     --sidebar-active-fg: 0 0% 100%;
+    --success: 158 78% 44%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 100% 64%;
+    --warning-foreground: 213 65% 12%;
+    --info: 189 100% 50%;
+    --info-foreground: 213 65% 12%;
     --gold: 216 100% 52%;
     --gold-foreground: 0 0% 100%;
+    --navy: 213 65% 12%;
+    --navy-50: 213 38% 98%;
+    --navy-100: 217 35% 92%;
+    --navy-200: 216 28% 84%;
+    --navy-300: 215 22% 62%;
+    --navy-500: 215 18% 43%;
+    --navy-700: 215 30% 17%;
+    --navy-900: 213 65% 12%;
+    --navy-950: 213 70% 8%;
+    --brand-ice: 213 38% 98%;
+    --surface-white: 0 0% 100%;
     --gradient-primary: linear-gradient(135deg, hsl(216 100% 52%) 0%, hsl(189 100% 50%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(216 100% 52%) 0%, hsl(189 100% 50%) 100%);
     --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(213 38% 98%) 100%);
@@ -140,7 +256,9 @@
     --shadow-lg: 0 12px 32px -8px hsl(213 65% 12% / 0.08), 0 4px 12px -4px hsl(213 65% 12% / 0.05);
     --shadow-xl: 0 24px 48px -12px hsl(213 65% 12% / 0.12), 0 8px 16px -8px hsl(213 65% 12% / 0.06);
     --shadow-glow: 0 0 32px hsl(216 100% 52% / 0.18);
+    color-scheme: light;
   }
+
 }
 
 @layer base {
@@ -166,6 +284,17 @@
     font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
     letter-spacing: -0.015em;
   }
+
+  /* Rede de segurança: superfícies brancas fixas em ecrãs legados
+     passam a usar a superfície de cartão quando o tema é escuro.
+     Subárvores `.light` (loja/páginas públicas) ficam de fora. */
+  .dark .bg-white:not(.light *):not(.light) {
+    background-color: hsl(var(--card));
+  }
+  .dark .border-white:not(.light *):not(.light) {
+    border-color: hsl(var(--border));
+  }
+
 
   /* Ensure minimum touch target for interactive elements */
   @media (pointer: coarse) {

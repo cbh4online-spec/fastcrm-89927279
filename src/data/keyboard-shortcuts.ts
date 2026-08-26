@@ -47,6 +47,9 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { id: "go-tasks", label: "Ir para Tarefas", keys: { mac: ["G", "T"], win: ["G", "T"] } },
       { id: "go-calendar", label: "Ir para Calendário", keys: { mac: ["G", "A"], win: ["G", "A"] } },
       { id: "go-security", label: "Ir para Security Ops", keys: { mac: ["G", "S"], win: ["G", "S"] } },
+      { id: "record-prev", label: "Registo anterior (fichas)", keys: { mac: ["Alt", "←"], win: ["Alt", "←"] }, description: "Navega na lista sem sair da ficha" },
+      { id: "record-next", label: "Registo seguinte (fichas)", keys: { mac: ["Alt", "→"], win: ["Alt", "→"] } },
+
     ],
   },
   {
