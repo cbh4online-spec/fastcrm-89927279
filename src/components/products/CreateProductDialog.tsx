@@ -131,6 +131,7 @@ export function CreateProductDialog({
   const [commissionMode, setCommissionMode] = useState<CostMode>("percent");
   const [commissionBase, setCommissionBase] = useState<CostBase>("price");
   const [taxRateEstimate, setTaxRateEstimate] = useState("");
+  const [taxIncluded, setTaxIncluded] = useState(false);
   const [taxRateMode, setTaxRateMode] = useState<CostMode>("percent");
   const [targetMargin, setTargetMargin] = useState("");
   const [targetMarginMode, setTargetMarginMode] = useState<CostMode>("percent");
