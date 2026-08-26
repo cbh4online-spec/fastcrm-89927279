@@ -12,6 +12,7 @@ import { B2BDetailsForm, type B2BDetails } from "@/components/onboarding/b2b/B2B
 import { ConfirmStep } from "@/components/onboarding/b2b/ConfirmStep";
 import { usePendingInvites } from "@/hooks/onboarding/usePendingInvites";
 import { useOnboardingActions } from "@/hooks/onboarding/useOnboardingActions";
+import { readOnboardingIntent, clearOnboardingIntent } from "@/lib/onboardingIntent";
 
 type Step = "choose" | "details" | "confirm";
 
