@@ -25,8 +25,13 @@ import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entit
 import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
 import { EntityArchiveBlockActions, EntityArchiveBlockDialogs, type EntityActionRequest } from "@/components/entity/EntityArchiveBlockActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useEntityListSelection } from "@/hooks/useEntityListSelection";
+import { EntitySelectionBar } from "@/components/entity/EntitySelectionBar";
+import { EntityMergeDialog } from "@/components/entity/EntityMergeDialog";
+import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
 
 type SortKey = "name" | "created_at" | "pare_score";
 
@@ -139,6 +144,8 @@ export function ContactsListIX() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [duplicatesOpen, setDuplicatesOpen] = useState(false);
   const { isElementVisible } = usePageElementVisibility("contacts");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
@@ -174,6 +181,12 @@ export function ContactsListIX() {
   const orderedColumns = useMemo(
     () => availableColumns.filter((c) => columns.includes(c.key)).map((c) => c.key),
     [availableColumns, columns],
+  );
+  const pageIds = useMemo(() => pageItems.map((c) => c.id), [pageItems]);
+  const selection = useEntityListSelection(pageIds);
+  const selectedRecords = useMemo(
+    () => filtered.filter((c) => selection.selectedSet.has(c.id)),
+    [filtered, selection.selectedSet],
   );
 
   const kpis = useMemo<ListKPI[]>(() => {
