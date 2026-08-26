@@ -308,6 +308,7 @@ export function CreateProductDialog({
       setCommissionMode(((product as any).commission_mode as CostMode) || "percent");
       setCommissionBase(((product as any).commission_base as CostBase) || "price");
       setTaxRateEstimate(product.tax_rate_estimate_pct?.toString() || "");
+      setTaxIncluded(!!(product as any).tax_included);
       setTaxRateMode(((product as any).tax_rate_mode as CostMode) || "percent");
       setTargetMargin(product.target_margin_pct?.toString() || "");
       setTargetMarginMode(((product as any).target_margin_mode as CostMode) || "percent");
