@@ -4,11 +4,25 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { IXEntityTabs, type IXTabDef } from "@/components/entity/ix/IXEntityTabs";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Percent, ArrowRight } from "lucide-react";
+import { Percent, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
 import { useInvoices, useInvoiceStats } from "@/hooks/useInvoices";
 import { useCollectionCases } from "@/modules/collections/hooks/useCollectionCases";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceFinancials } from "@/hooks/useWorkspaceFinancials";
+import { useInvoiceItemsAggregate } from "@/hooks/useInvoiceItemsAggregate";
+import {
+  FaturacaoYearChart,
+  AgingChart,
+  ClientDependencyBar,
+  ActiveClientsChart,
+  TopItemsChart,
+  ItemsUnitsChart,
+  VatChart,
+} from "@/components/dashboard/ix/IXDashboardCharts";
 import { formatEUR } from "@/lib/currency";
+
 
 type SectionId = "faturacao" | "cobrancas" | "clientes" | "itens" | "impostos";
 
@@ -20,10 +34,49 @@ const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "impostos", label: "Impostos" },
 ];
 
-function KpiTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function DeltaBadge({ value }: { value?: number }) {
+  if (typeof value !== "number" || !isFinite(value) || value === 0) return null;
+  const positive = value > 0;
+  const Icon = positive ? TrendingUp : TrendingDown;
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-xs font-semibold",
+        positive ? "text-success" : "text-destructive",
+      )}
+    >
+      <Icon className="h-3 w-3" />
+      {positive ? "+" : ""}
+      {value.toFixed(1)}%
+    </span>
+  );
+}
+
+function KpiTile({
+  label,
+  value,
+  hint,
+  delta,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  delta?: number;
+  tone?: "neutral" | "warning" | "danger";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card p-5",
+        tone === "warning" && "border-warning/40 bg-warning/10",
+        tone === "danger" && "border-destructive/40 bg-destructive/10",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        <DeltaBadge value={delta} />
+      </div>
       <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
@@ -34,9 +87,13 @@ export default function IXDashboard() {
   const navigate = useNavigate();
   const [active, setActive] = useState<SectionId>("faturacao");
 
+  const { currentWorkspace } = useWorkspace();
   const { data: invoices = [], isLoading: invLoading } = useInvoices();
   const stats = useInvoiceStats();
   const { data: cases = [], isLoading: casesLoading } = useCollectionCases();
+  const { data: financials, isLoading: finLoading } = useWorkspaceFinancials(currentWorkspace?.id);
+  const { data: itemsAgg, isLoading: itemsLoading } = useInvoiceItemsAggregate(currentWorkspace?.id);
+
 
   // Faturação — mês corrente
   const monthMetrics = useMemo(() => {
@@ -147,11 +204,18 @@ export default function IXDashboard() {
           {active === "faturacao" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiTile label="Faturado (mês)" value={formatEUR(monthMetrics.total)} hint={`${monthMetrics.count} documentos`} />
+                <KpiTile label="Faturado (mês)" value={formatEUR(monthMetrics.total)} hint={`${monthMetrics.count} documentos`} delta={financials?.kpis.thisMonthDelta} />
                 <KpiTile label="Recebido (mês)" value={formatEUR(monthMetrics.paid)} />
-                <KpiTile label="Em aberto (mês)" value={formatEUR(monthMetrics.outstanding)} />
-                <KpiTile label="Vencidas" value={formatEUR(stats.amountOverdue)} hint={`${stats.totalOverdue} faturas`} />
+                <KpiTile label="Este trimestre" value={formatEUR(financials?.kpis.thisQuarter ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisQuarterDelta} />
+                <KpiTile label="Este ano" value={formatEUR(financials?.kpis.thisYear ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisYearDelta} />
               </div>
+              <IXCard
+                title="Faturação por mês"
+                description="Comparação dos últimos 3 anos (valores sem IVA)."
+              >
+                <FaturacaoYearChart yearly={financials?.yearly ?? []} loading={finLoading} />
+              </IXCard>
+
               <IXCard
                 title="Estado das faturas"
                 actions={
@@ -183,11 +247,52 @@ export default function IXDashboard() {
           {active === "cobrancas" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiTile label="Casos abertos" value={String(collectionsMetrics.count)} />
-                <KpiTile label="Valor em dívida" value={formatEUR(collectionsMetrics.totalDue)} />
-                <KpiTile label=">90 dias" value={formatEUR(collectionsMetrics.buckets.d90)} />
-                <KpiTile label="Ticket médio" value={formatEUR(collectionsMetrics.count ? collectionsMetrics.totalDue / collectionsMetrics.count : 0)} />
+                <KpiTile label="Total em dívida" value={formatEUR(financials?.collections.totalOutstanding ?? 0)} />
+                <KpiTile label="Não vencido" value={formatEUR(financials?.collections.notDue ?? 0)} tone="warning" />
+                <KpiTile label="Vencido" value={formatEUR(financials?.collections.overdue ?? 0)} tone="danger" />
+                <KpiTile label="Casos abertos" value={String(collectionsMetrics.count)} hint={`Ticket médio ${formatEUR(collectionsMetrics.count ? collectionsMetrics.totalDue / collectionsMetrics.count : 0)}`} />
               </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <IXCard title="Envelhecimento da dívida" description="Últimos 7 meses por data de emissão.">
+                  <AgingChart aging={financials?.collections.aging ?? []} loading={finLoading} />
+                </IXCard>
+                <IXCard
+                  title="Clientes devedores"
+                  actions={
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/collections")}>
+                      Abrir cobranças <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  }
+                >
+                  {finLoading ? (
+                    <p className="text-sm text-muted-foreground">A carregar…</p>
+                  ) : (financials?.collections.topDebtors.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sem valores em dívida.</p>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      <div className="grid grid-cols-[1fr_auto_auto] gap-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                        <span>Cliente</span>
+                        <span className="w-24 text-right">Não vencido</span>
+                        <span className="w-24 text-right">Vencido</span>
+                      </div>
+                      {financials!.collections.topDebtors.map((d) => (
+                        <div key={d.key} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-2.5 text-sm">
+                          <span className="truncate" title={d.name}>{d.name}</span>
+                          <span className="w-24 text-right tabular-nums text-muted-foreground">{formatEUR(d.notDue)}</span>
+                          <span className="w-24 text-right">
+                            {d.overdue > 0 ? (
+                              <Badge variant="destructive" className="tabular-nums">{formatEUR(d.overdue)}</Badge>
+                            ) : (
+                              <span className="tabular-nums text-muted-foreground">{formatEUR(0)}</span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </IXCard>
+              </div>
+
               <IXCard
                 title="Aging da carteira"
                 actions={
@@ -218,54 +323,75 @@ export default function IXDashboard() {
           )}
 
           {active === "clientes" && (
-            <IXCard
-              title="Top clientes por faturado"
-              actions={
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/contacts")}>
-                  Ver clientes <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              }
-            >
-              {topClients.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sem dados de faturação para agregar.</p>
-              ) : (
-                <div className="divide-y divide-border">
-                  {topClients.map((c) => (
-                    <div key={c.name} className="flex items-center justify-between py-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">{c.count} documento(s)</p>
-                      </div>
-                      <p className="text-sm font-semibold tabular-nums">{formatEUR(c.total)}</p>
-                    </div>
-                  ))}
+            <>
+              <IXCard title="Dependência de clientes" description="Peso de cada cliente na faturação total (s/ IVA).">
+                <ClientDependencyBar dependency={financials?.clients.dependency ?? []} loading={finLoading} />
+              </IXCard>
+
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+                <IXCard title="Clientes ativos" description="Novos vs recorrentes nos últimos 12 meses.">
+                  <ActiveClientsChart monthly={financials?.clients.monthly ?? []} loading={finLoading} />
+                </IXCard>
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                  <KpiTile label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} />
+                  <KpiTile label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} />
+                  <KpiTile label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} />
+                  <KpiTile label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} />
                 </div>
-              )}
-            </IXCard>
+              </div>
+
+              <IXCard
+                title="Top clientes por faturado"
+                actions={
+                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/contacts")}>
+                    Ver clientes <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                }
+              >
+                {topClients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem dados de faturação para agregar.</p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {topClients.map((c) => (
+                      <div key={c.name} className="flex items-center justify-between py-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                          <p className="text-xs text-muted-foreground">{c.count} documento(s)</p>
+                        </div>
+                        <p className="text-sm font-semibold tabular-nums">{formatEUR(c.total)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </IXCard>
+            </>
           )}
 
           {active === "itens" && (
-            <IXCard
-              title="Itens mais faturados"
-              description="Agregação por linhas de fatura (top 10 do último período)."
-              actions={
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/products")}>
-                  Ver catálogo <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              }
-            >
-              <p className="text-sm text-muted-foreground">
-                Ainda sem agregação dedicada nesta secção. Podes gerir os itens em{" "}
-                <button
-                  className="text-primary underline-offset-4 hover:underline"
-                  onClick={() => navigate("/dashboard/products")}
-                >
-                  Catálogo
-                </button>
-                .
-              </p>
-            </IXCard>
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+                <IXCard title="Top 5 itens" description="Por unidades faturadas em documentos ativos.">
+                  <TopItemsChart items={itemsAgg?.topItems ?? []} loading={itemsLoading} />
+                </IXCard>
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                  <KpiTile label="Itens vendidos" value={String(Math.round(itemsAgg?.totalUnits ?? 0))} />
+                  <KpiTile label="Valor médio por item" value={formatEUR(itemsAgg?.avgPerItem ?? 0)} hint="s/ IVA" />
+                </div>
+              </div>
+              <IXCard
+                title="Evolução de venda de unidades"
+                description="Últimos 12 meses."
+                actions={
+                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/products")}>
+                    Ver catálogo <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                }
+              >
+                <ItemsUnitsChart monthly={itemsAgg?.monthlyUnits ?? []} loading={itemsLoading} />
+              </IXCard>
+            </>
           )}
+
 
           {active === "impostos" && (
             <>
@@ -274,6 +400,10 @@ export default function IXDashboard() {
                 <KpiTile label="Taxas distintas" value={String(vatByRate.length)} />
                 <KpiTile label="Documentos" value={String(invoices.length)} />
               </div>
+              <IXCard title="IVA por mês" description="Últimos 12 meses. Contacte o seu contabilista para o apuramento final.">
+                <VatChart monthly={financials?.vat.monthly ?? []} loading={finLoading} />
+              </IXCard>
+
               <IXCard title="Detalhe por taxa de IVA">
                 {vatByRate.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sem dados de IVA para apresentar.</p>
