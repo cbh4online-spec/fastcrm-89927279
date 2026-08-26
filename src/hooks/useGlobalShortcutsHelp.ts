@@ -30,9 +30,19 @@ export function useGlobalShortcutsHelp() {
       e.preventDefault();
       setOpen(true);
     };
+    const openEvent = () => setOpen(true);
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener(SHORTCUTS_HELP_EVENT, openEvent);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener(SHORTCUTS_HELP_EVENT, openEvent);
+    };
   }, [open]);
 
   return { open, setOpen, openHelp };
 }
+
+export function openShortcutsHelp() {
+  window.dispatchEvent(new CustomEvent(SHORTCUTS_HELP_EVENT));
+}
+
