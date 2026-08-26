@@ -108,6 +108,9 @@ interface EnrichedUser {
   memberships: WorkspaceMembership[];
   isSuperAdmin: boolean;
   sessionStats: SessionStats;
+  /** null quando o estado de autenticação ainda não foi carregado */
+  emailConfirmed: boolean | null;
+  hasWorkspace: boolean;
 }
 
 const ROLE_OPTIONS = [
