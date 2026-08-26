@@ -72,6 +72,18 @@ export function ProductsList() {
   const isMobile = useIsMobile();
   const canViewCostMargin = useCanViewCostMargin();
 
+  // Atalho externo (?new=1) abre logo o diálogo de criação de produto
+  const [searchParams, setSearchParams] = useSearchParams();
+  const wantsCreate = searchParams.get("new") === "1";
+  useEffect(() => {
+    if (!wantsCreate) return;
+    state.setCreateOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsCreate]);
+
   // Colunas e filtros sensíveis (custo/margem) ocultos para roles sem permissão
   const visibleProductColumns = useMemo(
     () => (canViewCostMargin
