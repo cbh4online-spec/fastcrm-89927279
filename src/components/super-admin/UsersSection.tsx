@@ -704,7 +704,19 @@ export function UsersSection() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(user.profile?.status)}
+                      <div className="flex flex-wrap items-center gap-1">
+                        {getStatusBadge(user.profile?.status)}
+                        {user.emailConfirmed === false && (
+                          <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-600 dark:text-amber-400">
+                            Email pendente
+                          </Badge>
+                        )}
+                        {!user.hasWorkspace && (
+                          <Badge variant="outline" className="text-xs border-destructive/50 text-destructive">
+                            Sem workspace
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
