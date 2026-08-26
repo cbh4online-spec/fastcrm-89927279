@@ -41,6 +41,8 @@ import { Switch } from "@/components/ui/switch";
 import { useCapability } from "@/hooks/useCapability";
 
 import { LaborConfigEditor } from "./LaborConfigEditor";
+import { PriceWithVatInput } from "./PriceWithVatInput";
+import { netFromGross } from "@/utils/productPricing";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { SectionAIAssistButton } from "@/components/proposals/SectionAIAssistButton";
