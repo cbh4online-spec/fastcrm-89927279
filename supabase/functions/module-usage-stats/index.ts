@@ -27,14 +27,44 @@ Deno.serve(async (req) => {
     const { workspaceId } = await req.json();
     if (!workspaceId) throw new Error("workspaceId is required");
 
-    // Verify membership
+    // Verify access: membro, dono do workspace ou super admin
     const { data: member } = await supabase
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspaceId)
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!member) throw new Error("Not a workspace member");
+
+    let allowed = !!member;
+
+    if (!allowed) {
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("owner_id")
+        .eq("id", workspaceId)
+        .maybeSingle();
+      allowed = ws?.owner_id === user.id;
+    }
+
+    if (!allowed) {
+      const { data: superAdmin } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("role", "super_admin")
+        .maybeSingle();
+      allowed = !!superAdmin;
+    }
+
+    if (!allowed) {
+      return new Response(JSON.stringify({
+        workspace_id: workspaceId,
+        installations: [],
+        summary: { total_installed: 0, active: 0, monthly_cost_eur: 0, free_modules: 0, paid_modules: 0 },
+        error: "not_a_workspace_member",
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
 
     // Get installations with module info
     const { data: installations, error: instErr } = await supabase
