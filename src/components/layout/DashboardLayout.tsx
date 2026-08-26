@@ -127,6 +127,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <GlobalNoCreditsDialog />
                 <CopilotDrawer />
                 {isMobile && <MobileBottomNav onMenuClick={() => setSidebarOpen(true)} />}
+                <KeyboardShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
               </div>
             </div>
           </AppModeGuard>
