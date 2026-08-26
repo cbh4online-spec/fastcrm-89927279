@@ -247,11 +247,52 @@ export default function IXDashboard() {
           {active === "cobrancas" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiTile label="Casos abertos" value={String(collectionsMetrics.count)} />
-                <KpiTile label="Valor em dívida" value={formatEUR(collectionsMetrics.totalDue)} />
-                <KpiTile label=">90 dias" value={formatEUR(collectionsMetrics.buckets.d90)} />
-                <KpiTile label="Ticket médio" value={formatEUR(collectionsMetrics.count ? collectionsMetrics.totalDue / collectionsMetrics.count : 0)} />
+                <KpiTile label="Total em dívida" value={formatEUR(financials?.collections.totalOutstanding ?? 0)} />
+                <KpiTile label="Não vencido" value={formatEUR(financials?.collections.notDue ?? 0)} tone="warning" />
+                <KpiTile label="Vencido" value={formatEUR(financials?.collections.overdue ?? 0)} tone="danger" />
+                <KpiTile label="Casos abertos" value={String(collectionsMetrics.count)} hint={`Ticket médio ${formatEUR(collectionsMetrics.count ? collectionsMetrics.totalDue / collectionsMetrics.count : 0)}`} />
               </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <IXCard title="Envelhecimento da dívida" description="Últimos 7 meses por data de emissão.">
+                  <AgingChart aging={financials?.collections.aging ?? []} loading={finLoading} />
+                </IXCard>
+                <IXCard
+                  title="Clientes devedores"
+                  actions={
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/collections")}>
+                      Abrir cobranças <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  }
+                >
+                  {finLoading ? (
+                    <p className="text-sm text-muted-foreground">A carregar…</p>
+                  ) : (financials?.collections.topDebtors.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sem valores em dívida.</p>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      <div className="grid grid-cols-[1fr_auto_auto] gap-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                        <span>Cliente</span>
+                        <span className="w-24 text-right">Não vencido</span>
+                        <span className="w-24 text-right">Vencido</span>
+                      </div>
+                      {financials!.collections.topDebtors.map((d) => (
+                        <div key={d.key} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-2.5 text-sm">
+                          <span className="truncate" title={d.name}>{d.name}</span>
+                          <span className="w-24 text-right tabular-nums text-muted-foreground">{formatEUR(d.notDue)}</span>
+                          <span className="w-24 text-right">
+                            {d.overdue > 0 ? (
+                              <Badge variant="destructive" className="tabular-nums">{formatEUR(d.overdue)}</Badge>
+                            ) : (
+                              <span className="tabular-nums text-muted-foreground">{formatEUR(0)}</span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </IXCard>
+              </div>
+
               <IXCard
                 title="Aging da carteira"
                 actions={
