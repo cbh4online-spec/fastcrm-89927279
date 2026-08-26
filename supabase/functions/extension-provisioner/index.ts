@@ -71,27 +71,45 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify workspace membership (use serviceClient to bypass RLS)
-    const { data: membership } = await serviceClient
+    // Verify workspace membership (use serviceClient to bypass RLS).
+    // NOTE: use limit(1) — duplicated member rows would make maybeSingle() error out
+    // and be indistinguishable from "no membership".
+    const { data: memberRows, error: memberError } = await serviceClient
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspaceId)
       .eq("user_id", userId)
-      .maybeSingle();
+      .limit(1);
 
-    // Super admin bypass
-    let isSuperAdmin = false;
-    if (!membership) {
-      const { data: superAdminRole } = await serviceClient
+    if (memberError) {
+      console.error("[provisioner] membership lookup failed:", memberError);
+    }
+    const isMember = (memberRows?.length ?? 0) > 0;
+
+    // Super admin bypass (app-level role + workspace owner fallback)
+    let isElevated = false;
+    if (!isMember) {
+      const { data: roleRows } = await serviceClient
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
-        .eq("role", "super_admin")
-        .maybeSingle();
-      isSuperAdmin = !!superAdminRole;
+        .in("role", ["super_admin", "admin"])
+        .limit(5);
+      isElevated = (roleRows ?? []).some((r) => r.role === "super_admin");
+
+      if (!isElevated) {
+        const { data: ownedRows } = await serviceClient
+          .from("workspaces")
+          .select("id")
+          .eq("id", workspaceId)
+          .eq("owner_id", userId)
+          .limit(1);
+        isElevated = (ownedRows?.length ?? 0) > 0;
+      }
     }
 
-    if (!membership && !isSuperAdmin) {
+    if (!isMember && !isElevated) {
+      console.warn("[provisioner] access denied", { userId, workspaceId });
       return new Response(JSON.stringify({ error: "Not a workspace member" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
