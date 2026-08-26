@@ -41,7 +41,9 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+
 
   const matches = (w: Workspace) =>
     w.name?.toLowerCase().includes(search.trim().toLowerCase());
@@ -49,20 +51,28 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
   const filteredManaged = managedWorkspaces.filter(matches);
 
   const handleCreateWorkspace = async () => {
-    if (!newWorkspaceName.trim()) return;
+    const name = newWorkspaceName.trim();
+    if (!name) {
+      setCreateError("Indica o nome do workspace.");
+      return;
+    }
 
+    setCreateError(null);
     setCreating(true);
-    const { error } = await createWorkspace(newWorkspaceName);
+    const { error } = await createWorkspace(name);
+    setCreating(false);
 
     if (error) {
-      toast.error("Failed to create workspace");
-    } else {
-      toast.success("Workspace created!");
-      setDialogOpen(false);
-      setNewWorkspaceName("");
+      setCreateError(error.message);
+      toast.error(error.message);
+      return;
     }
-    setCreating(false);
+
+    toast.success("Workspace criado!");
+    setDialogOpen(false);
+    setNewWorkspaceName("");
   };
+
 
   const handleSelectWorkspace = (workspace: Workspace) => {
     setCurrentWorkspace(workspace);
@@ -214,7 +224,13 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(next) => {
+          setDialogOpen(next);
+          if (!next) setCreateError(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Criar workspace</DialogTitle>
@@ -229,15 +245,26 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
                 id="workspaceName"
                 placeholder="Acme Lda."
                 value={newWorkspaceName}
-                onChange={(e) => setNewWorkspaceName(e.target.value)}
+                onChange={(e) => {
+                  setNewWorkspaceName(e.target.value);
+                  if (createError) setCreateError(null);
+                }}
+                aria-invalid={!!createError}
+                aria-describedby={createError ? "workspaceNameError" : undefined}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && newWorkspaceName.trim() && !creating) {
                     handleCreateWorkspace();
                   }
                 }}
               />
+              {createError && (
+                <p id="workspaceNameError" className="text-sm text-destructive">
+                  {createError}
+                </p>
+              )}
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar

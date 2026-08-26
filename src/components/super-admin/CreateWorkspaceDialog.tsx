@@ -86,7 +86,12 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
       });
       
       if (error) throw error;
-      const workspaceId = data as unknown as string;
+      // A RPC devolve um objeto JSON — extrair o id (com fallback para o formato antigo)
+      const workspaceId =
+        typeof data === "string"
+          ? data
+          : ((data as unknown as { id?: string } | null)?.id ?? "");
+
       
       if (plan === "trial" && workspaceId) {
         const trialEnd = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();

@@ -176,15 +176,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   };
 
   const createWorkspace = async (name: string) => {
-    if (!user) return { error: new Error("Not authenticated"), workspace: null };
+    if (!user) return { error: new Error("Sessão não iniciada."), workspace: null };
 
-    const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return { error: new Error("O nome do workspace é obrigatório."), workspace: null };
+    }
+
     try {
-      // Usar função RPC SECURITY DEFINER para criar workspace e owner atomicamente
+      // O slug é gerado no servidor (sem acentos e garantidamente único)
       const { data, error } = await supabase.rpc('create_workspace_with_owner', {
-        p_name: name,
-        p_slug: slug,
+        p_name: trimmedName,
+        p_slug: null,
       });
 
       if (error) throw error;
@@ -209,15 +212,31 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         entity_kind: 'workspace',
         entity_id: newWorkspace.id,
         source_module: 'admin-workspaces',
-        payload: { workspace_name: name, slug },
+        payload: { workspace_name: newWorkspace.name, slug: newWorkspace.slug },
       });
 
       return { error: null, workspace: newWorkspace };
     } catch (error) {
-      console.warn('[WORKSPACES] CREATE_FAILED', (error as Error).message);
-      return { error: error as Error, workspace: null };
+      const raw = (error as Error).message ?? "";
+      console.warn('[WORKSPACES] CREATE_FAILED', raw);
+
+      let friendly = "Não foi possível criar o workspace. Tenta novamente.";
+      if (raw.includes("WORKSPACE_NAME_REQUIRED")) {
+        friendly = "O nome do workspace é obrigatório.";
+      } else if (raw.includes("Not authenticated")) {
+        friendly = "A tua sessão expirou. Volta a iniciar sessão.";
+      } else if (/limit|quota|max_workspaces/i.test(raw)) {
+        friendly = "O teu plano atual não permite criar mais workspaces. Faz upgrade para continuar.";
+      } else if (/duplicate key|unique constraint/i.test(raw)) {
+        friendly = "Já existe um workspace com esse nome. Escolhe outro nome.";
+      } else if (/permission denied|row-level security/i.test(raw)) {
+        friendly = "Não tens permissão para criar workspaces nesta conta.";
+      }
+
+      return { error: new Error(friendly), workspace: null };
     }
   };
+
 
   useEffect(() => {
     fetchWorkspaces();

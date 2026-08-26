@@ -105649,7 +105649,7 @@ export type Database = {
           p_my_title?: string
           p_name: string
           p_primary_objective?: string
-          p_slug: string
+          p_slug?: string
           p_tax_id?: string
           p_team_size?: string
         }
@@ -105665,7 +105665,7 @@ export type Database = {
         Returns: Json
       }
       create_workspace_with_owner: {
-        Args: { p_name: string; p_slug: string }
+        Args: { p_name: string; p_slug?: string }
         Returns: Json
       }
       decrement_partner_variant_stock: {
@@ -105833,6 +105833,10 @@ export type Database = {
       generate_stock_count_items: {
         Args: { _count_id: string }
         Returns: number
+      }
+      generate_unique_workspace_slug: {
+        Args: { p_source: string }
+        Returns: string
       }
       generate_workflow_idempotency_key: {
         Args: {
