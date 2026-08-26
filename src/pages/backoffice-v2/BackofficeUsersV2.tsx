@@ -728,10 +728,11 @@ function AdminActionsPanel({
       </div>
 
       <p className="mt-3 text-[10.5px] leading-relaxed text-navy-300">
-        Se o email do utilizador ainda não estiver confirmado, o email de recuperação pode não
-        chegar — nesse caso usa "Definir palavra-passe". Revogação de sessões e remoção de conta
-        serão adicionados em fases seguintes.
+        Se o email ainda não estiver confirmado, o utilizador não consegue iniciar sessão mesmo com
+        a palavra-passe correta — usa "Confirmar email manualmente" apenas para contas validadas por
+        outra via. Todas estas ações ficam registadas no histórico administrativo.
       </p>
+
 
       <SetPasswordDialog user={user} open={setPasswordOpen} onClose={() => setSetPasswordOpen(false)} />
     </div>
