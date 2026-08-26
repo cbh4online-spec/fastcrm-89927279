@@ -323,54 +323,75 @@ export default function IXDashboard() {
           )}
 
           {active === "clientes" && (
-            <IXCard
-              title="Top clientes por faturado"
-              actions={
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/contacts")}>
-                  Ver clientes <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              }
-            >
-              {topClients.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sem dados de faturação para agregar.</p>
-              ) : (
-                <div className="divide-y divide-border">
-                  {topClients.map((c) => (
-                    <div key={c.name} className="flex items-center justify-between py-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">{c.count} documento(s)</p>
-                      </div>
-                      <p className="text-sm font-semibold tabular-nums">{formatEUR(c.total)}</p>
-                    </div>
-                  ))}
+            <>
+              <IXCard title="Dependência de clientes" description="Peso de cada cliente na faturação total (s/ IVA).">
+                <ClientDependencyBar dependency={financials?.clients.dependency ?? []} loading={finLoading} />
+              </IXCard>
+
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+                <IXCard title="Clientes ativos" description="Novos vs recorrentes nos últimos 12 meses.">
+                  <ActiveClientsChart monthly={financials?.clients.monthly ?? []} loading={finLoading} />
+                </IXCard>
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                  <KpiTile label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} />
+                  <KpiTile label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} />
+                  <KpiTile label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} />
+                  <KpiTile label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} />
                 </div>
-              )}
-            </IXCard>
+              </div>
+
+              <IXCard
+                title="Top clientes por faturado"
+                actions={
+                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/contacts")}>
+                    Ver clientes <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                }
+              >
+                {topClients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem dados de faturação para agregar.</p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {topClients.map((c) => (
+                      <div key={c.name} className="flex items-center justify-between py-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                          <p className="text-xs text-muted-foreground">{c.count} documento(s)</p>
+                        </div>
+                        <p className="text-sm font-semibold tabular-nums">{formatEUR(c.total)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </IXCard>
+            </>
           )}
 
           {active === "itens" && (
-            <IXCard
-              title="Itens mais faturados"
-              description="Agregação por linhas de fatura (top 10 do último período)."
-              actions={
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/products")}>
-                  Ver catálogo <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              }
-            >
-              <p className="text-sm text-muted-foreground">
-                Ainda sem agregação dedicada nesta secção. Podes gerir os itens em{" "}
-                <button
-                  className="text-primary underline-offset-4 hover:underline"
-                  onClick={() => navigate("/dashboard/products")}
-                >
-                  Catálogo
-                </button>
-                .
-              </p>
-            </IXCard>
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+                <IXCard title="Top 5 itens" description="Por unidades faturadas em documentos ativos.">
+                  <TopItemsChart items={itemsAgg?.topItems ?? []} loading={itemsLoading} />
+                </IXCard>
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                  <KpiTile label="Itens vendidos" value={String(Math.round(itemsAgg?.totalUnits ?? 0))} />
+                  <KpiTile label="Valor médio por item" value={formatEUR(itemsAgg?.avgPerItem ?? 0)} hint="s/ IVA" />
+                </div>
+              </div>
+              <IXCard
+                title="Evolução de venda de unidades"
+                description="Últimos 12 meses."
+                actions={
+                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/dashboard/products")}>
+                    Ver catálogo <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                }
+              >
+                <ItemsUnitsChart monthly={itemsAgg?.monthlyUnits ?? []} loading={itemsLoading} />
+              </IXCard>
+            </>
           )}
+
 
           {active === "impostos" && (
             <>
