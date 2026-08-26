@@ -34,10 +34,49 @@ const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "impostos", label: "Impostos" },
 ];
 
-function KpiTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function DeltaBadge({ value }: { value?: number }) {
+  if (typeof value !== "number" || !isFinite(value) || value === 0) return null;
+  const positive = value > 0;
+  const Icon = positive ? TrendingUp : TrendingDown;
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-xs font-semibold",
+        positive ? "text-success" : "text-destructive",
+      )}
+    >
+      <Icon className="h-3 w-3" />
+      {positive ? "+" : ""}
+      {value.toFixed(1)}%
+    </span>
+  );
+}
+
+function KpiTile({
+  label,
+  value,
+  hint,
+  delta,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  delta?: number;
+  tone?: "neutral" | "warning" | "danger";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card p-5",
+        tone === "warning" && "border-warning/40 bg-warning/10",
+        tone === "danger" && "border-destructive/40 bg-destructive/10",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        <DeltaBadge value={delta} />
+      </div>
       <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
@@ -48,9 +87,13 @@ export default function IXDashboard() {
   const navigate = useNavigate();
   const [active, setActive] = useState<SectionId>("faturacao");
 
+  const { currentWorkspace } = useWorkspace();
   const { data: invoices = [], isLoading: invLoading } = useInvoices();
   const stats = useInvoiceStats();
   const { data: cases = [], isLoading: casesLoading } = useCollectionCases();
+  const { data: financials, isLoading: finLoading } = useWorkspaceFinancials(currentWorkspace?.id);
+  const { data: itemsAgg, isLoading: itemsLoading } = useInvoiceItemsAggregate(currentWorkspace?.id);
+
 
   // Faturação — mês corrente
   const monthMetrics = useMemo(() => {
