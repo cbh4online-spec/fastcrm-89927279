@@ -22,6 +22,7 @@ import {
   Package,
   Boxes,
   Store,
+  ShoppingBag,
   BarChart3,
   Settings,
 } from "lucide-react";
