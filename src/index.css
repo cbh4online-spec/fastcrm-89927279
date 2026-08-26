@@ -285,6 +285,17 @@
     letter-spacing: -0.015em;
   }
 
+  /* Rede de segurança: superfícies brancas fixas em ecrãs legados
+     passam a usar a superfície de cartão quando o tema é escuro.
+     Subárvores `.light` (loja/páginas públicas) ficam de fora. */
+  .dark .bg-white:not(.light *):not(.light) {
+    background-color: hsl(var(--card));
+  }
+  .dark .border-white:not(.light *):not(.light) {
+    border-color: hsl(var(--border));
+  }
+
+
   /* Ensure minimum touch target for interactive elements */
   @media (pointer: coarse) {
     button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
