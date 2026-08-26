@@ -224,7 +224,13 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(next) => {
+          setDialogOpen(next);
+          if (!next) setCreateError(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Criar workspace</DialogTitle>
@@ -239,15 +245,26 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
                 id="workspaceName"
                 placeholder="Acme Lda."
                 value={newWorkspaceName}
-                onChange={(e) => setNewWorkspaceName(e.target.value)}
+                onChange={(e) => {
+                  setNewWorkspaceName(e.target.value);
+                  if (createError) setCreateError(null);
+                }}
+                aria-invalid={!!createError}
+                aria-describedby={createError ? "workspaceNameError" : undefined}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && newWorkspaceName.trim() && !creating) {
                     handleCreateWorkspace();
                   }
                 }}
               />
+              {createError && (
+                <p id="workspaceNameError" className="text-sm text-destructive">
+                  {createError}
+                </p>
+              )}
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
