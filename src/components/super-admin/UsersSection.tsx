@@ -792,6 +792,18 @@ export function UsersSection() {
                             <Send className="h-4 w-4 mr-2" />
                             Enviar reset por email
                           </DropdownMenuItem>
+                          {user.emailConfirmed === false && (
+                            <DropdownMenuItem
+                              onClick={() => user.profile?.email && resendConfirmation.mutate({
+                                userId: user.userId,
+                                email: user.profile.email,
+                              })}
+                              disabled={!user.profile?.email || resendConfirmation.isPending}
+                            >
+                              <Mail className="h-4 w-4 mr-2" />
+                              Reenviar confirmação de email
+                            </DropdownMenuItem>
+                          )}
 
                           <DropdownMenuSeparator />
 
