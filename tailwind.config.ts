@@ -79,15 +79,15 @@ export default {
           foreground: "hsl(var(--gold-foreground))",
         },
         navy: {
-          DEFAULT: "hsl(213 65% 12%)",         /* #0B1D34 */
-          50: "hsl(213 38% 98%)",               /* #F7F9FC */
-          100: "hsl(217 35% 92%)",              /* #E7ECF4 */
-          200: "hsl(216 28% 84%)",              /* #DCE3EE */
-          300: "hsl(215 22% 62%)",
-          500: "hsl(215 18% 43%)",
-          700: "hsl(215 30% 17%)",              /* #1E2938 deep */
-          900: "hsl(213 65% 12%)",              /* #0B1D34 */
-          950: "hsl(213 70% 8%)",
+          DEFAULT: "hsl(var(--navy))",
+          50: "hsl(var(--navy-50))",
+          100: "hsl(var(--navy-100))",
+          200: "hsl(var(--navy-200))",
+          300: "hsl(var(--navy-300))",
+          500: "hsl(var(--navy-500))",
+          700: "hsl(var(--navy-700))",
+          900: "hsl(var(--navy-900))",
+          950: "hsl(var(--navy-950))",
         },
         cyan: {
           DEFAULT: "hsl(189 100% 50%)",         /* #00D4FF */
@@ -97,8 +97,9 @@ export default {
           DEFAULT: "hsl(216 100% 52%)",         /* #0A6CFF */
           vivid: "hsl(216 100% 47%)",
           glow: "hsl(216 100% 64%)",
-          ice: "hsl(213 38% 98%)",              /* #F7F9FC */
+          ice: "hsl(var(--brand-ice))",
         },
+
       },
       borderRadius: {
         lg: "var(--radius)",
