@@ -65,6 +65,7 @@ export function useInstalledModules() {
     summary: query.data?.summary || null,
     installedSlugs,
     isLoading: query.isLoading,
+    isError: query.isError,
     refetch: query.refetch,
   };
 }
