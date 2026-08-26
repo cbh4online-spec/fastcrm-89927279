@@ -71,7 +71,9 @@ function ItemTag({ isPro, isBeta }: { isPro?: boolean; isBeta?: boolean }) {
 
 function SidebarFooter() {
   const { theme, setTheme } = useTheme();
-  const current = theme ?? "light";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const current = theme ?? "system";
   const year = new Date().getFullYear();
   const opts: Array<{ key: string; icon: typeof Sun; label: string }> = [
     { key: "light", icon: Sun, label: "Tema claro" },
@@ -80,13 +82,18 @@ function SidebarFooter() {
   ];
   return (
     <div className="border-t border-sidebar-border px-3 pt-3 pb-3 space-y-2.5">
-      <div className="flex items-center justify-center gap-1.5 text-[11px] text-sidebar-foreground/55">
+      <button
+        type="button"
+        onClick={() => openShortcutsHelp()}
+        className="w-full flex items-center justify-center gap-1.5 text-[11px] text-sidebar-foreground/55 hover:text-sidebar-foreground transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+      >
         <span>Prima</span>
         <kbd className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-sidebar-border bg-sidebar-accent text-[10px] font-semibold text-sidebar-foreground/70">
           ?
         </kbd>
         <span>para ver os atalhos</span>
-      </div>
+      </button>
+
       <div className="flex items-center gap-1 p-1 rounded-full bg-sidebar-accent/60 border border-sidebar-border">
         {opts.map((opt) => {
           const Icon = opt.icon;
