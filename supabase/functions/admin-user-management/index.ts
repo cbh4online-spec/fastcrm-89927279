@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
         }
 
         const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-          redirectTo: `${req.headers.get("origin")}/dashboard/profile`,
+          redirectTo: `${req.headers.get("origin")}/reset-password`,
         });
 
         if (error) throw error;
