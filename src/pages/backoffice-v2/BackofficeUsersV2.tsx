@@ -693,6 +693,17 @@ function AdminActionsPanel({
           Enviar email de recuperação
         </Button>
 
+        <Button
+          onClick={handleConfirmEmail}
+          disabled={blocked || pending || isConfirmingEmail || emailConfirmedNow}
+          variant="outline"
+          className="w-full justify-start gap-2 rounded-xl border-navy-100 bg-white text-navy-500 hover:border-brand/40 hover:text-navy"
+        >
+          {isConfirmingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+          {emailConfirmedNow ? "Email confirmado" : "Confirmar email manualmente"}
+        </Button>
+
+
         {!isInactive ? (
           <Button
             onClick={onDeactivate}
