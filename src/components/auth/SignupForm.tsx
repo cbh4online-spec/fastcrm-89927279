@@ -106,6 +106,48 @@ export function SignupForm() {
     }
   };
 
+  if (awaitingConfirmation) {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <MailCheck className="h-6 w-6 text-primary" aria-hidden="true" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold text-foreground">Confirma o teu email</h2>
+          <p className="text-sm text-muted-foreground">
+            Enviámos um link de confirmação para{" "}
+            <span className="font-medium text-foreground">{email}</span>. Abre o link para ativar a
+            conta e criar a tua organização.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Não recebeste? Verifica a pasta de spam ou promoções.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <Button
+            type="button"
+            className="w-full h-11"
+            onClick={handleResend}
+            disabled={resending || cooldown > 0}
+          >
+            {resending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar email de confirmação"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11"
+            onClick={() => navigate("/login")}
+          >
+            Voltar ao início de sessão
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-3">
