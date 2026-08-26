@@ -4,11 +4,25 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { IXEntityTabs, type IXTabDef } from "@/components/entity/ix/IXEntityTabs";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Percent, ArrowRight } from "lucide-react";
+import { Percent, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
 import { useInvoices, useInvoiceStats } from "@/hooks/useInvoices";
 import { useCollectionCases } from "@/modules/collections/hooks/useCollectionCases";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceFinancials } from "@/hooks/useWorkspaceFinancials";
+import { useInvoiceItemsAggregate } from "@/hooks/useInvoiceItemsAggregate";
+import {
+  FaturacaoYearChart,
+  AgingChart,
+  ClientDependencyBar,
+  ActiveClientsChart,
+  TopItemsChart,
+  ItemsUnitsChart,
+  VatChart,
+} from "@/components/dashboard/ix/IXDashboardCharts";
 import { formatEUR } from "@/lib/currency";
+
 
 type SectionId = "faturacao" | "cobrancas" | "clientes" | "itens" | "impostos";
 
