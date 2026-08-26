@@ -97,7 +97,7 @@ function SidebarFooter() {
       <div className="flex items-center gap-1 p-1 rounded-full bg-sidebar-accent/60 border border-sidebar-border">
         {opts.map((opt) => {
           const Icon = opt.icon;
-          const active = current === opt.key;
+          const active = mounted && current === opt.key;
           return (
             <button
               key={opt.key}

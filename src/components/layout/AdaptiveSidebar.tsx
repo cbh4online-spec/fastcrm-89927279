@@ -64,7 +64,9 @@ interface AdaptiveSidebarProps {
 
 function IXThemeSwitcher() {
   const { theme, setTheme } = useTheme();
-  const current = theme ?? "light";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const current = theme ?? "system";
   const opts = [
     { key: "light", icon: Sun, label: "Tema claro" },
     { key: "system", icon: Monitor, label: "Tema do sistema" },
@@ -74,7 +76,7 @@ function IXThemeSwitcher() {
     <div className="flex items-center gap-1 p-1 rounded-full bg-sidebar-accent/60 border border-sidebar-border">
       {opts.map((opt) => {
         const Icon = opt.icon;
-        const active = current === opt.key;
+        const active = mounted && current === opt.key;
         return (
           <button
             key={opt.key}
