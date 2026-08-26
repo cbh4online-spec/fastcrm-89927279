@@ -252,15 +252,24 @@ Deno.serve(async (req) => {
           throw new Error("userId is required");
         }
 
-        const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
           email_confirm: true,
         });
 
         if (error) throw error;
 
-        result = { success: true, message: "Email confirmed" };
+        await supabaseAdmin.from("admin_audit_logs").insert({
+          admin_user_id: user.id,
+          action_type: "confirm_user_email",
+          target_type: "user",
+          target_id: userId,
+          details: { method: "admin_manual_confirm" },
+        });
+
+        result = { success: true, message: "Email confirmado" };
         break;
       }
+
 
       case "get_user_details": {
         if (!userId) {

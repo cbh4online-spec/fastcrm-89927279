@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
+
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -19,6 +21,19 @@ export function LoginForm() {
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect");
 
+  const handleResendConfirmation = async () => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) {
+      toast.error("Não foi possível reenviar o email de confirmação.");
+      return;
+    }
+    toast.success("Email de confirmação reenviado. Verifica também o spam.");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -26,7 +41,18 @@ export function LoginForm() {
     const { error } = await signIn(email, password);
 
     if (error) {
-      toast.error("Email ou palavra-passe inválidos");
+      const raw = (error as any)?.code ?? error.message ?? "";
+      const notConfirmed = String(raw).toLowerCase().includes("not confirmed") ||
+        String(raw).toLowerCase().includes("email_not_confirmed");
+
+      if (notConfirmed) {
+        toast.error("Email por confirmar. Confirma o teu email para poderes entrar.", {
+          action: { label: "Reenviar email", onClick: handleResendConfirmation },
+          duration: 8000,
+        });
+      } else {
+        toast.error("Email ou palavra-passe inválidos");
+      }
       setLoading(false);
       return;
     }
@@ -34,6 +60,7 @@ export function LoginForm() {
     toast.success("Bem-vindo de volta!");
     navigate(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/dashboard");
   };
+
 
   const safeRedirect = redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
     ? redirectTo

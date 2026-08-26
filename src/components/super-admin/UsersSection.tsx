@@ -412,6 +412,27 @@ export function UsersSection() {
     },
   });
 
+  // Confirm email manually mutation
+  const confirmEmail = useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "confirm_email", userId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Email confirmado. O utilizador já consegue iniciar sessão.");
+      queryClient.invalidateQueries({ queryKey: ["super-admin-auth-status"] });
+    },
+    onError: (error: any) => {
+      toast.error("Erro: " + error.message);
+    },
+  });
+
+
   // Build enriched users list
   const enrichedUsers: EnrichedUser[] = (profiles || []).map(profile => {
     const userMemberships = (memberships || [])
@@ -793,17 +814,27 @@ export function UsersSection() {
                             Enviar reset por email
                           </DropdownMenuItem>
                           {user.emailConfirmed === false && (
-                            <DropdownMenuItem
-                              onClick={() => user.profile?.email && resendConfirmation.mutate({
-                                userId: user.userId,
-                                email: user.profile.email,
-                              })}
-                              disabled={!user.profile?.email || resendConfirmation.isPending}
-                            >
-                              <Mail className="h-4 w-4 mr-2" />
-                              Reenviar confirmação de email
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => user.profile?.email && resendConfirmation.mutate({
+                                  userId: user.userId,
+                                  email: user.profile.email,
+                                })}
+                                disabled={!user.profile?.email || resendConfirmation.isPending}
+                              >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Reenviar confirmação de email
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => confirmEmail.mutate({ userId: user.userId })}
+                                disabled={confirmEmail.isPending}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Confirmar email manualmente
+                              </DropdownMenuItem>
+                            </>
                           )}
+
 
                           <DropdownMenuSeparator />
 
