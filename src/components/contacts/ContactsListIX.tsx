@@ -25,8 +25,13 @@ import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entit
 import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
 import { EntityArchiveBlockActions, EntityArchiveBlockDialogs, type EntityActionRequest } from "@/components/entity/EntityArchiveBlockActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useEntityListSelection } from "@/hooks/useEntityListSelection";
+import { EntitySelectionBar } from "@/components/entity/EntitySelectionBar";
+import { EntityMergeDialog } from "@/components/entity/EntityMergeDialog";
+import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
 
 type SortKey = "name" | "created_at" | "pare_score";
 
