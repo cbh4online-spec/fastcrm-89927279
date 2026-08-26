@@ -159,6 +159,19 @@ export const IX_NAV_SECTIONS: IXNavSection[] = [
     ],
   },
   {
+    key: "aplicacoes",
+    label: "Aplicações",
+    groups: [
+      {
+        key: "marketplace",
+        label: "Marketplace C2C",
+        icon: Store,
+        href: "/dashboard/c2c",
+        primaryKey: "c2c",
+      },
+    ],
+  },
+  {
     key: "operacoes",
     label: "Operações",
     groups: [
