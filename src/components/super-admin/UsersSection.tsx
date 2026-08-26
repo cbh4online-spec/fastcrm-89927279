@@ -390,6 +390,25 @@ export function UsersSection() {
     },
   });
 
+  // Resend email confirmation mutation
+  const resendConfirmation = useMutation({
+    mutationFn: async ({ userId, email }: { userId: string; email: string }) => {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "resend_confirmation", userId, email },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Email de confirmação reenviado");
+    },
+    onError: (error: any) => {
+      toast.error("Erro: " + error.message);
+    },
+  });
+
   // Build enriched users list
   const enrichedUsers: EnrichedUser[] = (profiles || []).map(profile => {
     const userMemberships = (memberships || [])
@@ -400,12 +419,16 @@ export function UsersSection() {
         workspace_name: (m.workspaces as any)?.name || "Unknown",
       }));
 
+    const auth = authStatus?.get(profile.user_id);
+
     return {
       userId: profile.user_id,
       profile,
       memberships: userMemberships,
       isSuperAdmin: superAdmins?.has(profile.user_id) || false,
       sessionStats: sessionLogs?.get(profile.user_id) || { lastSeen: null, totalActiveSeconds: 0, totalSeconds: 0 },
+      emailConfirmed: auth ? auth.emailConfirmed : null,
+      hasWorkspace: userMemberships.length > 0,
     };
   });
 
@@ -422,12 +445,16 @@ export function UsersSection() {
       user.memberships.some(m => m.role === roleFilter) ||
       (roleFilter === "super_admin" && user.isSuperAdmin);
 
-    const matchesStatus = 
-      statusFilter === "all" || 
-      (user.profile?.status || "active") === statusFilter;
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "pending"
+        ? user.emailConfirmed === false || !user.hasWorkspace
+        : (user.profile?.status || "active") === statusFilter;
     
     return matchesSearch && matchesRole && matchesStatus;
   });
+
 
   const isLoading = profilesLoading || membershipsLoading;
   const totalUsers = enrichedUsers.length;
