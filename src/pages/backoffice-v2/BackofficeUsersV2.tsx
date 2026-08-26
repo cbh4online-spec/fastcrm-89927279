@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Search, Filter, RefreshCw, Download, ShieldCheck, Mail,
   CalendarDays, Building2, X, Crown, UserCheck, UserX, ExternalLink, Hash,
-  History, ShieldAlert, Loader2,
+  History, ShieldAlert, Loader2, KeyRound, MailCheck, Copy, Check,
 } from "lucide-react";
 import { BackofficeShellV2 } from "@/components/backoffice-v2/BackofficeShellV2";
 import {
