@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
+
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
