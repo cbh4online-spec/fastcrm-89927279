@@ -18,6 +18,26 @@ export interface ProductPricingInput {
 
 export const DEFAULT_VAT_RATE = 23; // PT taxa normal
 
+/** Arredonda a 2 decimais (evita derivas de floating point). */
+export function round2(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/** Converte um valor com IVA em valor sem IVA. */
+export function netFromGross(gross: number, vatRatePct: number): number {
+  const rate = Number(vatRatePct) || 0;
+  if (rate <= 0) return round2(gross);
+  return round2(gross / (1 + rate / 100));
+}
+
+/** Converte um valor sem IVA em valor com IVA. */
+export function grossFromNet(net: number, vatRatePct: number): number {
+  const rate = Number(vatRatePct) || 0;
+  if (rate <= 0) return round2(net);
+  return round2(net * (1 + rate / 100));
+}
+
 /** Devolve o preço líquido (sem IVA), independentemente de `tax_included`. */
 export function getNetPrice(p: ProductPricingInput): number {
   const price = Number(p.base_price) || 0;

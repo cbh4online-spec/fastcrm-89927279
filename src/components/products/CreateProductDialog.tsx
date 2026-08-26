@@ -41,6 +41,8 @@ import { Switch } from "@/components/ui/switch";
 import { useCapability } from "@/hooks/useCapability";
 
 import { LaborConfigEditor } from "./LaborConfigEditor";
+import { PriceWithVatInput } from "./PriceWithVatInput";
+import { netFromGross } from "@/utils/productPricing";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { SectionAIAssistButton } from "@/components/proposals/SectionAIAssistButton";
@@ -131,6 +133,7 @@ export function CreateProductDialog({
   const [commissionMode, setCommissionMode] = useState<CostMode>("percent");
   const [commissionBase, setCommissionBase] = useState<CostBase>("price");
   const [taxRateEstimate, setTaxRateEstimate] = useState("");
+  const [taxIncluded, setTaxIncluded] = useState(false);
   const [taxRateMode, setTaxRateMode] = useState<CostMode>("percent");
   const [targetMargin, setTargetMargin] = useState("");
   const [targetMarginMode, setTargetMarginMode] = useState<CostMode>("percent");
@@ -225,7 +228,10 @@ export function CreateProductDialog({
   }, [category, existingCategories, isEditing]);
 
   // Calculate margins in real-time (resolve mode/base into € amounts)
-  const price = parseFloat(basePrice) || 0;
+  // Margens são sempre calculadas sobre o valor líquido (sem IVA).
+  const rawPrice = parseFloat(basePrice) || 0;
+  const vatRateNum = parseFloat(taxRateEstimate) || 0;
+  const price = taxIncluded ? netFromGross(rawPrice, vatRateNum) : rawPrice;
   const directCostNum = parseFloat(directCost) || 0;
   const operationalCostNum = parseFloat(operationalCost) || 0;
   // Direct cost: if percent, base is always price (no other base makes sense)
@@ -308,6 +314,7 @@ export function CreateProductDialog({
       setCommissionMode(((product as any).commission_mode as CostMode) || "percent");
       setCommissionBase(((product as any).commission_base as CostBase) || "price");
       setTaxRateEstimate(product.tax_rate_estimate_pct?.toString() || "");
+      setTaxIncluded(!!(product as any).tax_included);
       setTaxRateMode(((product as any).tax_rate_mode as CostMode) || "percent");
       setTargetMargin(product.target_margin_pct?.toString() || "");
       setTargetMarginMode(((product as any).target_margin_mode as CostMode) || "percent");
@@ -466,6 +473,7 @@ export function CreateProductDialog({
     setOperationalCost("");
     setCommissionDefault("");
     setTaxRateEstimate("");
+    setTaxIncluded(false);
     setTargetMargin("");
     setShowAdvanced(false);
     setBundlePriceMode("auto");
@@ -519,6 +527,7 @@ export function CreateProductDialog({
       commission_mode: commissionMode,
       commission_base: commissionBase,
       tax_rate_estimate_pct: taxRateEstimate ? parseFloat(taxRateEstimate) : undefined,
+      tax_included: taxIncluded,
       tax_rate_mode: taxRateMode,
       target_margin_pct: targetMargin ? parseFloat(targetMargin) : undefined,
       target_margin_mode: targetMarginMode,
@@ -916,37 +925,36 @@ export function CreateProductDialog({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="basePrice">
-                    {isBundle ? "Preço do Bundle" : "Preço Base"} {bundlePriceMode === "manual" || !isBundle ? "*" : ""}
-                  </Label>
-                  <Input
-                    id="basePrice"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={basePrice}
-                    onChange={(e) => setBasePrice(e.target.value)}
-                    placeholder={isBundle && bundlePriceMode === "auto" ? "Calculado automaticamente" : "0.00"}
-                    disabled={isBundle && bundlePriceMode === "auto"}
-                    required={!isBundle || bundlePriceMode === "manual"}
-                  />
-                </div>
+              <div className="space-y-4">
+                <PriceWithVatInput
+                  label={isBundle ? "Preço do Bundle" : "Preço Base"}
+                  basePrice={basePrice}
+                  onBasePriceChange={setBasePrice}
+                  taxIncluded={taxIncluded}
+                  onTaxIncludedChange={setTaxIncluded}
+                  vatRate={taxRateEstimate || "23"}
+                  onVatRateChange={setTaxRateEstimate}
+                  currency={currency}
+                  required={!isBundle || bundlePriceMode === "manual"}
+                  disabled={isBundle && bundlePriceMode === "auto"}
+                  placeholder={isBundle && bundlePriceMode === "auto" ? "Calculado automaticamente" : "0.00"}
+                />
 
-                <div className="space-y-2">
-                  <Label>Moeda</Label>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EUR">EUR (€)</SelectItem>
-                      <SelectItem value="USD">USD ($)</SelectItem>
-                      <SelectItem value="BRL">BRL (R$)</SelectItem>
-                      <SelectItem value="GBP">GBP (£)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Moeda</Label>
+                    <Select value={currency} onValueChange={setCurrency}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="EUR">EUR (€)</SelectItem>
+                        <SelectItem value="USD">USD ($)</SelectItem>
+                        <SelectItem value="BRL">BRL (R$)</SelectItem>
+                        <SelectItem value="GBP">GBP (£)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
