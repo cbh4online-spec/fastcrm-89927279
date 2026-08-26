@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
+const SHORTCUTS_HELP_EVENT = "fastcrm:open-shortcuts";
+
+
 function isTypingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el || !el.tagName) return false;
