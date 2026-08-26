@@ -113,8 +113,8 @@ export default function IXDashboard() {
               {[
                 { label: "Novo Orçamento", to: "/dashboard/proposals/new" },
                 { label: "Nova Guia de Transporte", to: "/dashboard/invoices/new?type=transport" },
-                { label: "Novo Contacto", to: "/dashboard/contacts" },
-                { label: "Novo Item", to: "/dashboard/products" },
+                { label: "Novo Contacto", to: "/dashboard/contacts/new" },
+                { label: "Novo Item", to: "/dashboard/products?new=1" },
                 { label: "Exportar SAF-T", to: "/dashboard/imports/saft" },
                 { label: "Lote de Faturas", to: "/dashboard/invoices?bulk=1" },
               ].map((a) => (
