@@ -225,7 +225,10 @@ export function CreateProductDialog({
   }, [category, existingCategories, isEditing]);
 
   // Calculate margins in real-time (resolve mode/base into € amounts)
-  const price = parseFloat(basePrice) || 0;
+  // Margens são sempre calculadas sobre o valor líquido (sem IVA).
+  const rawPrice = parseFloat(basePrice) || 0;
+  const vatRateNum = parseFloat(taxRateEstimate) || 0;
+  const price = taxIncluded ? netFromGross(rawPrice, vatRateNum) : rawPrice;
   const directCostNum = parseFloat(directCost) || 0;
   const operationalCostNum = parseFloat(operationalCost) || 0;
   // Direct cost: if percent, base is always price (no other base makes sense)
