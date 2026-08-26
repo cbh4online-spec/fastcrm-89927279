@@ -473,6 +473,7 @@ export function CreateProductDialog({
     setOperationalCost("");
     setCommissionDefault("");
     setTaxRateEstimate("");
+    setTaxIncluded(false);
     setTargetMargin("");
     setShowAdvanced(false);
     setBundlePriceMode("auto");
