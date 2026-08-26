@@ -41,7 +41,9 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+
 
   const matches = (w: Workspace) =>
     w.name?.toLowerCase().includes(search.trim().toLowerCase());
