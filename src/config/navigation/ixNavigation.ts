@@ -163,6 +163,22 @@ export const IX_NAV_SECTIONS: IXNavSection[] = [
     label: "Aplicações",
     groups: [
       {
+        key: "loja-online",
+        label: "Loja Online",
+        icon: ShoppingBag,
+        href: "/dashboard/store-orders",
+        primaryKey: "store-orders",
+        children: [
+          { key: "store-products" },
+          { key: "store-categories" },
+          { key: "store-coupons" },
+          { key: "store-reviews" },
+          { key: "store-returns" },
+          { key: "store-analytics" },
+          { key: "store-settings" },
+        ],
+      },
+      {
         key: "marketplace",
         label: "Marketplace C2C",
         icon: Store,
