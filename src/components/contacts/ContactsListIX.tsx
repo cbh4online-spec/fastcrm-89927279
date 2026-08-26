@@ -144,6 +144,8 @@ export function ContactsListIX() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [duplicatesOpen, setDuplicatesOpen] = useState(false);
   const { isElementVisible } = usePageElementVisibility("contacts");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
