@@ -22,6 +22,8 @@ import { IX_NAV_SECTIONS, type IXNavGroup } from "@/config/navigation/ixNavigati
 import { ROUTE_MANIFEST, type RouteEntry } from "@/config/routeManifest";
 import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
 import { resolveRouteVisibility } from "@/config/menuOverrides";
+import { openShortcutsHelp } from "@/hooks/useGlobalShortcutsHelp";
+
 
 interface InvoiceXpressSidebarProps {
   open: boolean;
