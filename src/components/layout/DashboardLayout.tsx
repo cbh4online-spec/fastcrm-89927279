@@ -40,7 +40,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, loading: authLoading } = useAuth();
   const { loading: workspaceLoading, workspaces } = useWorkspace();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useGlobalShortcutsHelp();
   const location = useLocation();
+
   // Feature flags mantidos por compatibilidade, mas já não forçam Watidy quando desligados.
   useFeatureFlag("ui.adaptive_sidebar_enabled");
   useFeatureFlag("ui.watidy_sidebar_enabled");
