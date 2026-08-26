@@ -182,6 +182,12 @@ export function ContactsListIX() {
     () => availableColumns.filter((c) => columns.includes(c.key)).map((c) => c.key),
     [availableColumns, columns],
   );
+  const pageIds = useMemo(() => pageItems.map((c) => c.id), [pageItems]);
+  const selection = useEntityListSelection(pageIds);
+  const selectedRecords = useMemo(
+    () => filtered.filter((c) => selection.selectedSet.has(c.id)),
+    [filtered, selection.selectedSet],
+  );
 
   const kpis = useMemo<ListKPI[]>(() => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
