@@ -519,6 +519,7 @@ export function CreateProductDialog({
       commission_mode: commissionMode,
       commission_base: commissionBase,
       tax_rate_estimate_pct: taxRateEstimate ? parseFloat(taxRateEstimate) : undefined,
+      tax_included: taxIncluded,
       tax_rate_mode: taxRateMode,
       target_margin_pct: targetMargin ? parseFloat(targetMargin) : undefined,
       target_margin_mode: targetMarginMode,
