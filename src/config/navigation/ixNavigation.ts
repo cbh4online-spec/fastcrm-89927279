@@ -22,6 +22,7 @@ import {
   Package,
   Boxes,
   Store,
+  ShoppingBag,
   BarChart3,
   Settings,
 } from "lucide-react";
@@ -163,6 +164,22 @@ export const IX_NAV_SECTIONS: IXNavSection[] = [
     label: "Aplicações",
     groups: [
       {
+        key: "loja-online",
+        label: "Loja Online",
+        icon: ShoppingBag,
+        href: "/dashboard/store-orders",
+        primaryKey: "store-orders",
+        children: [
+          { key: "store-products" },
+          { key: "store-categories" },
+          { key: "store-coupons" },
+          { key: "store-reviews" },
+          { key: "store-returns" },
+          { key: "store-analytics" },
+          { key: "store-settings" },
+        ],
+      },
+      {
         key: "marketplace",
         label: "Marketplace C2C",
         icon: Store,
@@ -196,7 +213,6 @@ export const IX_NAV_SECTIONS: IXNavSection[] = [
           { key: "meta-module" },
           { key: "sponsors" },
           // Loja / Marketplace / B2B
-          { key: "store-orders" },
           // People / Suporte / Operações
           { key: "onboarding-projects" },
           { key: "delivery-projects" },
