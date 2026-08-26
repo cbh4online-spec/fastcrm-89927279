@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
+import { saveOnboardingIntent } from "@/lib/onboardingIntent";
+
+const RESEND_COOLDOWN = 60;
 
 export function SignupForm() {
   const [fullName, setFullName] = useState("");
@@ -15,10 +19,19 @@ export function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect");
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +43,7 @@ export function SignupForm() {
       return;
     }
 
-    const { error } = await signUp(email, password, fullName);
+    const { error, session } = await signUp(email, password, fullName);
 
     if (error) {
       toast.error(error.message);
@@ -38,9 +51,38 @@ export function SignupForm() {
       return;
     }
 
+    // Guardar a intenção para pré-preencher o onboarding após a confirmação
+    saveOnboardingIntent({ name: fullName.trim(), email: email.trim() });
+    setLoading(false);
+
+    if (!session) {
+      // Confirmação de email obrigatória — ainda não há sessão
+      setAwaitingConfirmation(true);
+      setCooldown(RESEND_COOLDOWN);
+      return;
+    }
+
     toast.success("Conta criada com sucesso!");
     navigate(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/onboarding");
   };
+
+  const handleResend = async () => {
+    if (cooldown > 0 || resending) return;
+    setResending(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setResending(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Email de confirmação reenviado");
+    setCooldown(RESEND_COOLDOWN);
+  };
+
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
