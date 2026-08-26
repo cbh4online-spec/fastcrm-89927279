@@ -275,6 +275,67 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "list_auth_status": {
+        // Estado de confirmação de email e último login de todos os utilizadores
+        const perPage = 200;
+        let page = 1;
+        const users: {
+          id: string;
+          email: string | null;
+          email_confirmed_at: string | null;
+          last_sign_in_at: string | null;
+          created_at: string;
+        }[] = [];
+
+        // Máximo de 10 páginas (2000 utilizadores) por chamada
+        while (page <= 10) {
+          const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+          if (error) throw error;
+          for (const u of data.users) {
+            users.push({
+              id: u.id,
+              email: u.email ?? null,
+              email_confirmed_at: u.email_confirmed_at ?? null,
+              last_sign_in_at: u.last_sign_in_at ?? null,
+              created_at: u.created_at,
+            });
+          }
+          if (data.users.length < perPage) break;
+          page++;
+        }
+
+        result = { success: true, users };
+        break;
+      }
+
+      case "resend_confirmation": {
+        if (!email) {
+          throw new Error("email is required");
+        }
+
+        const origin = req.headers.get("origin") ?? undefined;
+        const { error } = await supabaseAdmin.auth.resend({
+          type: "signup",
+          email,
+          options: origin ? { emailRedirectTo: origin } : undefined,
+        });
+
+        if (error) throw error;
+
+        await supabaseAdmin.from("admin_audit_logs").insert({
+          admin_user_id: user.id,
+          action_type: "resend_email_confirmation",
+          target_type: "user",
+          target_id: userId || email,
+          details: { email },
+        });
+
+        result = { success: true, message: "Confirmation email sent" };
+        break;
+      }
+
+
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
