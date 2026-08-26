@@ -427,6 +427,7 @@ export function useUpdateProduct() {
       if (input.commission_mode !== undefined) updateData.commission_mode = input.commission_mode;
       if (input.commission_base !== undefined) updateData.commission_base = input.commission_base;
       if (input.tax_rate_estimate_pct !== undefined) updateData.tax_rate_estimate_pct = input.tax_rate_estimate_pct;
+      if (input.tax_included !== undefined) updateData.tax_included = input.tax_included;
       if (input.tax_rate_mode !== undefined) updateData.tax_rate_mode = input.tax_rate_mode;
       if (input.target_margin_pct !== undefined) updateData.target_margin_pct = input.target_margin_pct;
       if (input.target_margin_mode !== undefined) updateData.target_margin_mode = input.target_margin_mode;
