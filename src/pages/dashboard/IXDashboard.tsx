@@ -400,6 +400,10 @@ export default function IXDashboard() {
                 <KpiTile label="Taxas distintas" value={String(vatByRate.length)} />
                 <KpiTile label="Documentos" value={String(invoices.length)} />
               </div>
+              <IXCard title="IVA por mês" description="Últimos 12 meses. Contacte o seu contabilista para o apuramento final.">
+                <VatChart monthly={financials?.vat.monthly ?? []} loading={finLoading} />
+              </IXCard>
+
               <IXCard title="Detalhe por taxa de IVA">
                 {vatByRate.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sem dados de IVA para apresentar.</p>
