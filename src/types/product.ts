@@ -156,6 +156,7 @@ export interface CreateProductInput {
   commission_mode?: "value" | "percent";
   commission_base?: "price" | "direct_cost";
   tax_rate_estimate_pct?: number;
+  tax_included?: boolean;
   tax_rate_mode?: "value" | "percent";
   target_margin_pct?: number;
   target_margin_mode?: "value" | "percent";
