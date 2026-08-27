@@ -129,11 +129,6 @@ export function useCreateCustomField() {
     mutationFn: async (input: CreateCustomFieldInput) => {
       if (!currentWorkspace) throw new Error("No workspace selected");
 
-      // Get current session for debugging
-      const { data: sessionData } = await workspaceClient.auth.getSession();
-      console.log("Creating custom field - Session:", sessionData?.session?.user?.id);
-      console.log("Creating custom field - Workspace ID:", currentWorkspace.id);
-
       const { data, error } = await workspaceClient
         .from("custom_fields")
         .insert({
@@ -150,7 +145,6 @@ export function useCreateCustomField() {
         .single();
 
       if (error) {
-        console.error("Insert error details:", { error, userId: sessionData?.session?.user?.id, workspaceId: currentWorkspace.id });
         throw error;
       }
       return data as CustomField;
@@ -158,7 +152,6 @@ export function useCreateCustomField() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
       toast.success("Campo personalizado criado");
-      console.log(`[CUSTOM-FIELDS] Custom field created: ${data.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CrmBlueprint } from '@/types/blueprint';
 import { ApplyMode } from '@/components/blueprint/BlueprintApplyPreview';
-import { useCustomFields, useCreateCustomField, CustomField, CustomFieldType } from '@/hooks/useCustomFields';
+import { useCustomFields, CustomFieldType } from '@/hooks/useCustomFields';
 import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { toast } from 'sonner';
 import {
   detectFieldDuplicates,
   detectAutomationDuplicates,
   detectStageDuplicates,
+  isCustomFieldUniqueConflict,
+  normalizeDuplicateName,
   DuplicateMatch,
 } from '@/lib/duplicateDetection';
 import { Json } from '@/integrations/supabase/types';
@@ -45,12 +49,23 @@ export interface ApplyResult {
   errors: string[];
 }
 
+function getApplyErrorMessage(itemType: 'Campo' | 'Etapa' | 'Automação', itemName: string, error: unknown): string {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code || '')
+    : '';
+
+  if (code === '42501') return `${itemType} “${itemName}”: sem permissão para criar.`;
+  if (code.startsWith('PGRST')) return `${itemType} “${itemName}”: não foi possível validar os dados.`;
+  return `${itemType} “${itemName}”: não foi possível criar. Tenta novamente.`;
+}
+
 export function useBlueprintApply(blueprint: CrmBlueprint | null) {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: existingFields = [] } = useCustomFields(blueprint?.entityType as any);
   const { data: existingStagesData = [] } = usePipelineStages();
-  const createCustomField = useCreateCustomField();
 
   const [isApplying, setIsApplying] = useState(false);
   const [existingAutomations, setExistingAutomations] = useState<{ id: string; name: string }[]>([]);
@@ -121,10 +136,27 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
       name: (d.blueprintItem as any).name,
       similarity: d.similarity,
     }));
+    const recordExistingField = (name: string) => {
+      if (!duplicatesDetected.some(item => item.type === 'field' && item.name === name)) {
+        duplicatesDetected.push({ type: 'field', name, similarity: 1 });
+      }
+    };
 
     try {
       // Apply fields
       if (mode === 'all' || mode === 'fields') {
+        const { data: freshFields, error: freshFieldsError } = await workspaceClient
+          .from('custom_fields')
+          .select('id, name')
+          .eq('workspace_id', currentWorkspace.id)
+          .eq('entity_type', blueprint.entityType);
+
+        if (freshFieldsError) throw freshFieldsError;
+
+        const existingNames = new Set(
+          (freshFields || []).map(field => normalizeDuplicateName(field.name)),
+        );
+
         for (const field of blueprint.customFields) {
           const duplicate = duplicates.fields.find(d => 
             (d.blueprintItem as any).name === field.name
@@ -142,23 +174,43 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
             }
           }
 
+          const normalizedName = normalizeDuplicateName(field.name);
+          if (existingNames.has(normalizedName)) {
+            recordExistingField(field.name);
+            result.duplicatesSkipped++;
+            continue;
+          }
+
           try {
-            // Convert options to string array format expected by the hook
             const optionsAsStrings = field.options?.map(opt => opt.value) || [];
-            
-            await createCustomField.mutateAsync({
+
+            const { error } = await workspaceClient.from('custom_fields').insert({
+              workspace_id: currentWorkspace.id,
               entity_type: blueprint.entityType as any,
               name: field.name,
               field_type: mapBlueprintTypeToCustomFieldType(field.type),
               required: field.required,
               options: optionsAsStrings,
             });
+            if (error) throw error;
+
+            existingNames.add(normalizedName);
             result.fieldsCreated++;
             changesApplied.push({ type: 'field_created', name: field.name, fieldType: field.type });
           } catch (err: any) {
-            result.errors.push(`Field "${field.name}": ${err.message}`);
+            if (isCustomFieldUniqueConflict(err)) {
+              existingNames.add(normalizedName);
+              recordExistingField(field.name);
+              result.duplicatesSkipped++;
+              continue;
+            }
+            result.errors.push(getApplyErrorMessage('Campo', field.name, err));
           }
         }
+
+        await queryClient.invalidateQueries({
+          queryKey: ['custom_fields', currentWorkspace.id],
+        });
       }
 
       // Apply pipeline stages
@@ -182,7 +234,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
             result.stagesCreated++;
             changesApplied.push({ type: 'stage_created', name: stage.name });
           } catch (err: any) {
-            result.errors.push(`Stage "${stage.name}": ${err.message}`);
+            result.errors.push(getApplyErrorMessage('Etapa', stage.name, err));
           }
         }
       }
@@ -240,7 +292,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
             result.automationsCreated++;
             changesApplied.push({ type: 'automation_created', name: automation.name });
           } catch (err: any) {
-            result.errors.push(`Automation "${automation.name}": ${err.message}`);
+            result.errors.push(getApplyErrorMessage('Automação', automation.name, err));
           }
         }
       }
@@ -268,7 +320,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
 
     } catch (err: any) {
       result.success = false;
-      result.errors.push(err.message);
+      result.errors.push('Não foi possível concluir a aplicação. Verifica as permissões e tenta novamente.');
       toast.error('Erro ao aplicar blueprint');
     } finally {
       setIsApplying(false);

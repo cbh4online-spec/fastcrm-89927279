@@ -127,7 +127,7 @@ export function ApplyingStep({ config, answers, segment, durationMs, onComplete 
           const fields = config.customFields[entityMap[entityType]];
           for (let i = 0; i < fields.length; i++) {
             const field = fields[i];
-            await supabase.from("custom_fields").insert({
+            const { error: fieldError } = await supabase.from("custom_fields").upsert({
               workspace_id: currentWorkspace.id,
               entity_type: entityType,
               name: field.name,
@@ -135,7 +135,11 @@ export function ApplyingStep({ config, answers, segment, durationMs, onComplete 
               required: field.required,
               options: field.options ? { choices: field.options } : null,
               position: i + 1,
+            }, {
+              onConflict: "workspace_id,entity_type,name",
+              ignoreDuplicates: true,
             });
+            if (fieldError) throw fieldError;
           }
         }
         updateStep("fields", "done");
