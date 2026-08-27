@@ -136,6 +136,11 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
       name: (d.blueprintItem as any).name,
       similarity: d.similarity,
     }));
+    const recordExistingField = (name: string) => {
+      if (!duplicatesDetected.some(item => item.type === 'field' && item.name === name)) {
+        duplicatesDetected.push({ type: 'field', name, similarity: 1 });
+      }
+    };
 
     try {
       // Apply fields
@@ -171,6 +176,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
 
           const normalizedName = normalizeDuplicateName(field.name);
           if (existingNames.has(normalizedName)) {
+            recordExistingField(field.name);
             result.duplicatesSkipped++;
             continue;
           }
@@ -194,6 +200,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
           } catch (err: any) {
             if (isCustomFieldUniqueConflict(err)) {
               existingNames.add(normalizedName);
+              recordExistingField(field.name);
               result.duplicatesSkipped++;
               continue;
             }
@@ -313,7 +320,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
 
     } catch (err: any) {
       result.success = false;
-      result.errors.push(err.message);
+      result.errors.push('Não foi possível concluir a aplicação. Verifica as permissões e tenta novamente.');
       toast.error('Erro ao aplicar blueprint');
     } finally {
       setIsApplying(false);
