@@ -115,6 +115,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
           customizationPrompt: customizationPrompt || undefined,
           clarifyingAnswers,
           mode,
+          workspaceId: currentWorkspace?.id ?? null,
         },
       });
 

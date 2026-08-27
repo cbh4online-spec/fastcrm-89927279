@@ -154,8 +154,12 @@ Deno.serve(async (req) => {
       template,
       templateId,
       customizationPrompt,
-      mode 
+      mode,
+      workspaceId,
+      workspace_id: workspaceIdSnake,
     } = await req.json();
+
+    const workspace_id: string | null = workspaceId ?? workspaceIdSnake ?? null;
     
 
     // AI Gate — enforce credit consumption
