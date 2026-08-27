@@ -9,7 +9,7 @@ export interface DuplicateMatch {
   itemType: 'field' | 'automation' | 'stage';
 }
 
-function normalizeString(str: string): string {
+export function normalizeDuplicateName(str: string): string {
   return str
     .toLowerCase()
     .normalize('NFD')
@@ -18,8 +18,8 @@ function normalizeString(str: string): string {
 }
 
 function calculateSimilarity(str1: string, str2: string): number {
-  const s1 = normalizeString(str1);
-  const s2 = normalizeString(str2);
+  const s1 = normalizeDuplicateName(str1);
+  const s2 = normalizeDuplicateName(str2);
   
   if (s1 === s2) return 1;
   
@@ -48,6 +48,14 @@ function calculateSimilarity(str1: string, str2: string): number {
   }
   
   return (longer.length - costs[longer.length]) / longer.length;
+}
+
+export function isCustomFieldUniqueConflict(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: unknown; message?: unknown };
+  return candidate.code === '23505'
+    && typeof candidate.message === 'string'
+    && candidate.message.includes('custom_fields_workspace_id_entity_type_name_key');
 }
 
 export function detectFieldDuplicates(

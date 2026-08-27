@@ -917,7 +917,7 @@ export function BlueprintApplyPreview({
                         <SkipForward className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <div className="font-medium">{applyResult.duplicatesSkipped}</div>
-                          <div className="text-xs text-muted-foreground">ignorados</div>
+                          <div className="text-xs text-muted-foreground">já existentes / ignorados</div>
                         </div>
                       </div>
                     )}

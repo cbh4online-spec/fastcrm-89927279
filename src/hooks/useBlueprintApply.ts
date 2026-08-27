@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CrmBlueprint } from '@/types/blueprint';
 import { ApplyMode } from '@/components/blueprint/BlueprintApplyPreview';
-import { useCustomFields, useCreateCustomField, CustomField, CustomFieldType } from '@/hooks/useCustomFields';
+import { useCustomFields, CustomFieldType } from '@/hooks/useCustomFields';
 import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { toast } from 'sonner';
 import {
   detectFieldDuplicates,
   detectAutomationDuplicates,
   detectStageDuplicates,
+  isCustomFieldUniqueConflict,
+  normalizeDuplicateName,
   DuplicateMatch,
 } from '@/lib/duplicateDetection';
 import { Json } from '@/integrations/supabase/types';
@@ -48,9 +51,9 @@ export interface ApplyResult {
 export function useBlueprintApply(blueprint: CrmBlueprint | null) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: existingFields = [] } = useCustomFields(blueprint?.entityType as any);
   const { data: existingStagesData = [] } = usePipelineStages();
-  const createCustomField = useCreateCustomField();
 
   const [isApplying, setIsApplying] = useState(false);
   const [existingAutomations, setExistingAutomations] = useState<{ id: string; name: string }[]>([]);
@@ -125,6 +128,18 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
     try {
       // Apply fields
       if (mode === 'all' || mode === 'fields') {
+        const { data: freshFields, error: freshFieldsError } = await supabase
+          .from('custom_fields')
+          .select('id, name')
+          .eq('workspace_id', currentWorkspace.id)
+          .eq('entity_type', blueprint.entityType);
+
+        if (freshFieldsError) throw freshFieldsError;
+
+        const existingNames = new Set(
+          (freshFields || []).map(field => normalizeDuplicateName(field.name)),
+        );
+
         for (const field of blueprint.customFields) {
           const duplicate = duplicates.fields.find(d => 
             (d.blueprintItem as any).name === field.name
@@ -142,23 +157,41 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
             }
           }
 
+          const normalizedName = normalizeDuplicateName(field.name);
+          if (existingNames.has(normalizedName)) {
+            result.duplicatesSkipped++;
+            continue;
+          }
+
           try {
-            // Convert options to string array format expected by the hook
             const optionsAsStrings = field.options?.map(opt => opt.value) || [];
-            
-            await createCustomField.mutateAsync({
+
+            const { error } = await supabase.from('custom_fields').insert({
+              workspace_id: currentWorkspace.id,
               entity_type: blueprint.entityType as any,
               name: field.name,
               field_type: mapBlueprintTypeToCustomFieldType(field.type),
               required: field.required,
               options: optionsAsStrings,
             });
+            if (error) throw error;
+
+            existingNames.add(normalizedName);
             result.fieldsCreated++;
             changesApplied.push({ type: 'field_created', name: field.name, fieldType: field.type });
           } catch (err: any) {
+            if (isCustomFieldUniqueConflict(err)) {
+              existingNames.add(normalizedName);
+              result.duplicatesSkipped++;
+              continue;
+            }
             result.errors.push(`Field "${field.name}": ${err.message}`);
           }
         }
+
+        await queryClient.invalidateQueries({
+          queryKey: ['custom_fields', currentWorkspace.id],
+        });
       }
 
       // Apply pipeline stages
