@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CrmBlueprint } from '@/types/blueprint';
 import { ApplyMode } from '@/components/blueprint/BlueprintApplyPreview';
@@ -48,8 +49,19 @@ export interface ApplyResult {
   errors: string[];
 }
 
+function getApplyErrorMessage(itemType: 'Campo' | 'Etapa' | 'Automação', itemName: string, error: unknown): string {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code || '')
+    : '';
+
+  if (code === '42501') return `${itemType} “${itemName}”: sem permissão para criar.`;
+  if (code.startsWith('PGRST')) return `${itemType} “${itemName}”: não foi possível validar os dados.`;
+  return `${itemType} “${itemName}”: não foi possível criar. Tenta novamente.`;
+}
+
 export function useBlueprintApply(blueprint: CrmBlueprint | null) {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: existingFields = [] } = useCustomFields(blueprint?.entityType as any);
@@ -128,7 +140,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
     try {
       // Apply fields
       if (mode === 'all' || mode === 'fields') {
-        const { data: freshFields, error: freshFieldsError } = await supabase
+        const { data: freshFields, error: freshFieldsError } = await workspaceClient
           .from('custom_fields')
           .select('id, name')
           .eq('workspace_id', currentWorkspace.id)
@@ -166,7 +178,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
           try {
             const optionsAsStrings = field.options?.map(opt => opt.value) || [];
 
-            const { error } = await supabase.from('custom_fields').insert({
+            const { error } = await workspaceClient.from('custom_fields').insert({
               workspace_id: currentWorkspace.id,
               entity_type: blueprint.entityType as any,
               name: field.name,
@@ -185,7 +197,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
               result.duplicatesSkipped++;
               continue;
             }
-            result.errors.push(`Field "${field.name}": ${err.message}`);
+            result.errors.push(getApplyErrorMessage('Campo', field.name, err));
           }
         }
 
@@ -215,7 +227,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
             result.stagesCreated++;
             changesApplied.push({ type: 'stage_created', name: stage.name });
           } catch (err: any) {
-            result.errors.push(`Stage "${stage.name}": ${err.message}`);
+            result.errors.push(getApplyErrorMessage('Etapa', stage.name, err));
           }
         }
       }
@@ -273,7 +285,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
             result.automationsCreated++;
             changesApplied.push({ type: 'automation_created', name: automation.name });
           } catch (err: any) {
-            result.errors.push(`Automation "${automation.name}": ${err.message}`);
+            result.errors.push(getApplyErrorMessage('Automação', automation.name, err));
           }
         }
       }
