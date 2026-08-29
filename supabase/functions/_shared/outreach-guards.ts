@@ -123,10 +123,16 @@ export function resolveSendMode(opts: {
   if (!opts.guards.allowed) {
     return { action: "blocked", reason: opts.guards.failures.map((f) => f.id).join(",") };
   }
-  if (!opts.link || !opts.link.enabled || opts.link.mode === "disabled") {
+  // Fail-closed: ligação ausente, desactivada, com modo ausente/ambíguo → bloqueado.
+  const link = opts.link;
+  if (!link || link.enabled !== true) {
     return { action: "blocked", reason: "channel_link_disabled" };
   }
-  if (opts.link.mode === "simulation") {
+  const mode = link.mode;
+  if (mode !== "simulation" && mode !== "live") {
+    return { action: "blocked", reason: "channel_link_disabled" };
+  }
+  if (mode === "simulation") {
     return { action: "simulated" };
   }
   if (opts.connectionStatus !== "connected") {

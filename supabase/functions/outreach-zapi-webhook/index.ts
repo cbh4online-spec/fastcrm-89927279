@@ -2,8 +2,9 @@
 // Webhook verificado para respostas/estados vindos da instância Z-API, dedicado ao
 // módulo "Contacto 1:1 validado".
 //
-// Autenticação: query `ws` (workspace) + `secret`, validado contra
+// Autenticação: apenas por header `x-webhook-secret`, validado contra
 // whatsapp_zapi_connections.webhook_secret do MESMO workspace (fail-closed).
+// PROIBIDO segredo em query string: qualquer pedido com `?secret=` é rejeitado.
 // Respostas, opt-out e bloqueio criam supressão e param contactos futuros nesse workspace.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
@@ -38,8 +39,12 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const workspaceId = url.searchParams.get('ws');
-    const secret = url.searchParams.get('secret') ?? req.headers.get('x-webhook-secret');
-    if (!workspaceId) return jsonRes({ ok: true, ignored: 'no_ws' });
+    if (url.searchParams.has('secret') || url.searchParams.has('token')) {
+      console.warn('[outreach-zapi-webhook] rejected: secret in query string');
+      return jsonRes({ ok: false, error: 'secret_in_query_string_not_allowed' }, 400);
+    }
+    const secret = req.headers.get('x-webhook-secret');
+    if (!workspaceId || !secret) return jsonRes({ ok: false, error: 'unauthorized' }, 401);
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
