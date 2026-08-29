@@ -8,6 +8,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
 import { corsHeaders } from '../_shared/cors.ts';
+import { zapiCall, safeJson } from '../_shared/zapi.ts';
 import {
   evaluateSendGuards,
   resolveSendMode,
@@ -15,9 +16,9 @@ import {
   type OutreachLinkMode,
 } from '../_shared/outreach-guards.ts';
 
-// Enquanto a fase de envio real não for activada explicitamente, o adaptador
-// nunca contacta o fornecedor. Mudar para true só depois de validação humana.
-const LIVE_DISPATCH_ENABLED = false;
+// Envio real activado por decisão explícita do administrador.
+// Continua a exigir modo `live` na ligação do workspace e TODOS os guardas verdes.
+const LIVE_DISPATCH_ENABLED = true;
 
 const DEFAULT_LIMITS: GuardLimits = { daily_limit: 20, per_company_limit: 2, cooldown_days: 14 };
 
@@ -157,7 +158,8 @@ Deno.serve(async (req) => {
     const draft = draftRes.data as { id: string; body: string } | null;
 
     // --- auditoria (sem conteúdo sensível) -------------------------------
-    const outcome = decision.action === 'live' ? 'simulated' : decision.action === 'simulated' ? 'simulated' : 'blocked';
+    const willDispatch = LIVE_DISPATCH_ENABLED && decision.action === 'live';
+    const outcome = decision.action === 'blocked' ? 'blocked' : willDispatch ? 'sent' : 'simulated';
     const { data: attempt } = await admin.from('outreach_send_attempts').insert({
       workspace_id: workspaceId,
       entity_type: entityType,
@@ -190,8 +192,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fase actual: nunca contacta o fornecedor.
-    if (!LIVE_DISPATCH_ENABLED || decision.action === 'simulated') {
+    // Simulação segura: nunca contacta o fornecedor.
+    if (!willDispatch) {
       return jsonRes({
         success: true,
         outcome: 'simulated',
@@ -202,11 +204,81 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Ramo reservado para activação futura do envio real.
+    // --- envio real (modo live, todos os guardas verdes) ------------------
+    const { data: creds } = await admin
+      .from('whatsapp_zapi_connections')
+      .select('instance_id, instance_token, client_token, status')
+      .eq('workspace_id', workspaceId)
+      .maybeSingle();
+
+    const failAttempt = async (reason: string) => {
+      if (attempt?.id) {
+        await admin.from('outreach_send_attempts')
+          .update({ outcome: 'error', blocked_reason: reason })
+          .eq('id', attempt.id);
+      }
+    };
+
+    if (!creds?.instance_id || !creds.instance_token || !creds.client_token) {
+      await failAttempt('zapi_credentials_missing');
+      return jsonRes({ success: false, outcome: 'error', reason: 'zapi_credentials_missing', attemptId: attempt?.id ?? null });
+    }
+    if (creds.status !== 'connected') {
+      await failAttempt('zapi_not_connected');
+      return jsonRes({ success: false, outcome: 'error', reason: 'zapi_not_connected', attemptId: attempt?.id ?? null });
+    }
+    if (!draft?.body?.trim()) {
+      await failAttempt('draft_empty');
+      return jsonRes({ success: false, outcome: 'error', reason: 'draft_empty', attemptId: attempt?.id ?? null });
+    }
+
+    const digits = String(phone ?? '').replace(/\D/g, '');
+    let providerMessageId: string | null = null;
+    try {
+      const res = await zapiCall(
+        { instanceId: creds.instance_id, instanceToken: creds.instance_token, clientToken: creds.client_token },
+        '/send-text',
+        { method: 'POST', body: JSON.stringify({ phone: digits, message: draft.body }) },
+      );
+      const payload = await safeJson(res);
+      if (!res.ok) {
+        await failAttempt(`provider_error_${res.status}`);
+        return jsonRes({ success: false, outcome: 'error', reason: `provider_error_${res.status}`, attemptId: attempt?.id ?? null });
+      }
+      providerMessageId = payload?.messageId ?? payload?.id ?? null;
+    } catch (_e) {
+      await failAttempt('provider_unreachable');
+      return jsonRes({ success: false, outcome: 'error', reason: 'provider_unreachable', attemptId: attempt?.id ?? null });
+    }
+
+    if (attempt?.id) {
+      await admin.from('outreach_send_attempts')
+        .update({ provider_message_id: providerMessageId })
+        .eq('id', attempt.id);
+    }
+
+    await admin.from('outreach_events').insert({
+      workspace_id: workspaceId,
+      entity_type: entityType,
+      entity_id: entityId,
+      company_id: companyId,
+      channel: 'whatsapp',
+      event_type: 'assisted_send',
+      reason: 'zapi_live',
+      details: { instance_ref: instanceRef, body_length: draft.body.length },
+      created_by: userId,
+    });
+
+    if (draft.id) {
+      await admin.from('outreach_drafts').update({ status: 'used' }).eq('id', draft.id);
+    }
+
     return jsonRes({
-      success: false,
-      outcome: 'blocked',
-      reason: 'live_dispatch_not_enabled',
+      success: true,
+      outcome: 'sent',
+      simulated: false,
+      message: 'Mensagem enviada via Z-API.',
+      instanceRef,
       attemptId: attempt?.id ?? null,
     });
   } catch (e) {
