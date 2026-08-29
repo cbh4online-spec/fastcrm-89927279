@@ -131,7 +131,7 @@ describe("mascaramento de dados", () => {
   it("mascara telefone, email e referência", () => {
     expect(maskPhone("+351912345678")).not.toContain("2345");
     expect(maskPhone(null)).toBe("—");
-    expect(maskEmail("pessoa@exemplo.pt")).toBe("pe••••••@exemplo.pt");
+    expect(maskEmail("pessoa@exemplo.pt")).toBe("pe••••@exemplo.pt");
     expect(maskRef("3F3D9135633E21E013156627BE24201D")).toBe("••••201D");
     expect(maskRef(null)).toBe("não configurada");
   });
