@@ -310,7 +310,6 @@ export function ContactsCsvImportDialog({ open, onOpenChange }: Props) {
           name: row.name || row.email || row.phone,
           email: row.email ? normalizeEmail(row.email) : null,
           phone: row.phone ? toE164(row.phone) || row.phone.trim() : null,
-          tags: ["importado-csv"],
         }));
 
         const { data, error } = await workspaceClient
@@ -327,7 +326,6 @@ export function ContactsCsvImportDialog({ open, onOpenChange }: Props) {
               name: row.name || row.email || row.phone,
               email: row.email ? normalizeEmail(row.email) : null,
               phone: row.phone ? toE164(row.phone) || row.phone.trim() : null,
-              tags: ["importado-csv"],
             });
             if (rowError) {
               failed.push({
