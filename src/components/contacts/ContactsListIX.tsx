@@ -1,7 +1,7 @@
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DocumentListLayout,
@@ -19,6 +19,7 @@ import {
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
+import { ContactsCsvImportDialog } from "@/components/contacts/ContactsCsvImportDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
 import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
@@ -143,6 +144,7 @@ export function ContactsListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
@@ -216,13 +218,23 @@ export function ContactsListIX() {
       onSearchChange={(v) => { setSearch(v); setPage(0); }}
       searchPlaceholder="Pesquisar por nome, código, e-mail ou NIF"
       primaryAction={
-        <Button
-          onClick={() => navigate("/dashboard/contacts/new")}
-          className="h-12 rounded-full bg-primary px-6 text-sm font-semibold shadow-sm hover:bg-primary/90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Criar Contacto
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setImportOpen(true)}
+            className="h-12 rounded-full px-6 text-sm font-semibold"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Importar CSV
+          </Button>
+          <Button
+            onClick={() => navigate("/dashboard/contacts/new")}
+            className="h-12 rounded-full bg-primary px-6 text-sm font-semibold shadow-sm hover:bg-primary/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Criar Contacto
+          </Button>
+        </div>
       }
       toolbar={
         <DocumentListToolbar
@@ -320,6 +332,7 @@ export function ContactsListIX() {
       )}
 
       <CreateContactDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <ContactsCsvImportDialog open={importOpen} onOpenChange={setImportOpen} />
       <EntityArchiveBlockDialogs
         entity="contact"
         request={entityAction}
