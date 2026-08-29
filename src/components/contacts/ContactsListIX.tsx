@@ -216,13 +216,23 @@ export function ContactsListIX() {
       onSearchChange={(v) => { setSearch(v); setPage(0); }}
       searchPlaceholder="Pesquisar por nome, código, e-mail ou NIF"
       primaryAction={
-        <Button
-          onClick={() => navigate("/dashboard/contacts/new")}
-          className="h-12 rounded-full bg-primary px-6 text-sm font-semibold shadow-sm hover:bg-primary/90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Criar Contacto
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setImportOpen(true)}
+            className="h-12 rounded-full px-6 text-sm font-semibold"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Importar CSV
+          </Button>
+          <Button
+            onClick={() => navigate("/dashboard/contacts/new")}
+            className="h-12 rounded-full bg-primary px-6 text-sm font-semibold shadow-sm hover:bg-primary/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Criar Contacto
+          </Button>
+        </div>
       }
       toolbar={
         <DocumentListToolbar
