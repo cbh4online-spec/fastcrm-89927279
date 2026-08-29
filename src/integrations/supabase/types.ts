@@ -63201,6 +63201,219 @@ export type Database = {
           },
         ]
       }
+      outreach_drafts: {
+        Row: {
+          body: string
+          context_summary: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+          value_proposition: string | null
+          workspace_id: string
+        }
+        Insert: {
+          body?: string
+          context_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+          value_proposition?: string | null
+          workspace_id: string
+        }
+        Update: {
+          body?: string
+          context_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+          value_proposition?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      outreach_events: {
+        Row: {
+          channel: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          details: Json
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id: string
+          reason: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          details?: Json
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id?: string
+          reason?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channel?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          details?: Json
+          entity_id?: string
+          entity_type?: string
+          event_type?: string
+          id?: string
+          reason?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      outreach_settings: {
+        Row: {
+          cooldown_days: number
+          created_at: string
+          daily_limit: number
+          id: string
+          per_company_limit: number
+          updated_at: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          cooldown_days?: number
+          created_at?: string
+          daily_limit?: number
+          id?: string
+          per_company_limit?: number
+          updated_at?: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          cooldown_days?: number
+          created_at?: string
+          daily_limit?: number
+          id?: string
+          per_company_limit?: number
+          updated_at?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      outreach_suppressions: {
+        Row: {
+          channel: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          notes: string | null
+          reason: string
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          notes?: string | null
+          reason: string
+          workspace_id: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          notes?: string | null
+          reason?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      outreach_validations: {
+        Row: {
+          allowed_channels: string[]
+          consent_recorded_at: string | null
+          consent_source: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          is_validated: boolean
+          legal_basis: string | null
+          notes: string | null
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          allowed_channels?: string[]
+          consent_recorded_at?: string | null
+          consent_source?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          is_validated?: boolean
+          legal_basis?: string | null
+          notes?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          allowed_channels?: string[]
+          consent_recorded_at?: string | null
+          consent_source?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          is_validated?: boolean
+          legal_basis?: string | null
+          notes?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       overage_charges: {
         Row: {
           amount_eur: number
