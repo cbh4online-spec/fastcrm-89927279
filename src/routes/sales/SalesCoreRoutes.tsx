@@ -29,6 +29,8 @@ export function SalesCoreRoutes() {
       <Route path="/dashboard/crm" element={<Crm />} />
       <Route path="/dashboard/imports" element={<Imports />} />
       <Route path="/dashboard/gestores" element={<GestoresPage />} />
+      <Route path="/dashboard/outreach/activity" element={<OutreachActivityCenterPage />} />
+
     </>
   );
 }
