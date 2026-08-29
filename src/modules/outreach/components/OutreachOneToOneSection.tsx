@@ -222,9 +222,15 @@ export function OutreachOneToOneSection({
               Comunicação personalizada e responsável. O sistema nunca envia — apenas abre o canal.
             </CardDescription>
           </div>
-          <Badge variant={isValidated ? "default" : "secondary"}>
-            {isValidated ? "Validado" : "Por validar"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={isValidated ? "default" : "secondary"}>
+              {isValidated ? "Validado" : "Por validar"}
+            </Badge>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/dashboard/outreach/activity">Centro de comunicações</Link>
+            </Button>
+          </div>
+
         </div>
       </CardHeader>
 
