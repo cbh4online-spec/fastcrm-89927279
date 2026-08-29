@@ -144,6 +144,7 @@ export function ContactsListIX() {
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
