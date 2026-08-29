@@ -67,6 +67,7 @@ import { ContactOrderNotesSection } from "@/components/contacts/sections/Contact
 import { ContactStudentJourneySection } from "@/components/contacts/sections/ContactStudentJourneySection";
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
+import { OutreachOneToOneSection } from "@/modules/outreach/components/OutreachOneToOneSection";
 import { ContactScoresCard } from "./sections/ContactScoresCard";
 import { ContactCampaignHistory } from "../sections/ContactCampaignHistory";
 import { ContactLifecycleSection } from "./sections/ContactLifecycleSection";
@@ -238,6 +239,19 @@ export function ENIContactDetailWithSidebar() {
             <LinkedCompanyCard
               companyId={(contact as any).company_id}
               contactId={contact.id}
+            />
+            <OutreachOneToOneSection
+              entityType="contact"
+              entityId={contact.id}
+              entityName={contact.name}
+              email={contact.email}
+              phone={contact.phone}
+              companyId={(contact as any).company_id ?? null}
+              companyName={(contact as any).company_name ?? null}
+              socialUrls={[
+                (contact as any).linkedin_url ? { label: 'LinkedIn', url: (contact as any).linkedin_url } : null,
+                (contact as any).instagram_url ? { label: 'Instagram', url: (contact as any).instagram_url } : null,
+              ].filter(Boolean) as Array<{ label: string; url: string }>}
             />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ContactScoresCard contact={contact} editable={role === 'owner' || role === 'admin'} />

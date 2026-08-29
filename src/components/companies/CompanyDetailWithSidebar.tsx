@@ -73,6 +73,7 @@ import { SocialMediaSection } from "./sections/SocialMediaSection";
 import { CompleteSocialAnalysisSection } from "./sections/CompleteSocialAnalysisSection";
 import { CompanyContactsHistory } from "./sections/CompanyContactsHistory";
 import { CompanyContextSection } from "./sections/CompanyContextSection";
+import { OutreachOneToOneSection } from "@/modules/outreach/components/OutreachOneToOneSection";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
 import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
@@ -277,6 +278,25 @@ export function CompanyDetailWithSidebar() {
               onNifDataReceived={handleNifDataReceived}
             />
             <CompanyContextSection companyContext={company.company_context} />
+            <OutreachOneToOneSection
+              entityType="company"
+              entityId={id || ''}
+              entityName={company.name}
+              email={(company as any).email}
+              phone={(company as any).phone}
+              companyId={id || null}
+              companyName={company.name}
+              companyContextText={
+                (company.company_context as any)?.about_us ||
+                (company.company_context as any)?.services ||
+                null
+              }
+              socialUrls={[
+                company.linkedin_url ? { label: 'LinkedIn', url: company.linkedin_url } : null,
+                company.instagram_url ? { label: 'Instagram', url: company.instagram_url } : null,
+                company.facebook_url ? { label: 'Facebook', url: company.facebook_url } : null,
+              ].filter(Boolean) as Array<{ label: string; url: string }>}
+            />
           </div>
         );
       case 'insights':
