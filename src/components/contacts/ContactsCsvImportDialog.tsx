@@ -465,8 +465,9 @@ export function ContactsCsvImportDialog({ open, onOpenChange }: Props) {
               <Switch
                 id="skip-duplicates"
                 checked={skipDuplicates}
-                onCheckedChange={() => toast.info("Nesta versão os duplicados são sempre ignorados.")}
+                onCheckedChange={setSkipDuplicates}
               />
+
             </div>
           </div>
         )}
