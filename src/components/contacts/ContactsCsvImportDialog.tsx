@@ -289,7 +289,7 @@ export function ContactsCsvImportDialog({ open, onOpenChange }: Props) {
         const dup =
           (row.emailKey && existingEmails.has(row.emailKey)) ||
           (row.phoneKey && existingPhones.has(row.phoneKey));
-        if (dup) {
+        if (dup && skipDuplicates) {
           skippedWorkspace.push({
             line: row.line,
             name: row.name,
