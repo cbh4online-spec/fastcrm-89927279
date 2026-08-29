@@ -101,7 +101,7 @@ export function OutreachWhatsAppComposer({
 
       <Alert>
         <ShieldAlert className="h-4 w-4" />
-        <AlertTitle className="text-sm">Simulação — não envia mensagem</AlertTitle>
+        <AlertTitle className="text-sm">Envio real desativado — simulação apenas</AlertTitle>
         <AlertDescription className="text-xs">
           A preparação revalida todas as regras no servidor e regista a tentativa no histórico. Nenhuma
           mensagem é entregue e o fornecedor não é contactado.

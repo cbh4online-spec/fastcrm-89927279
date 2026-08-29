@@ -115,3 +115,33 @@ describe("webhook — classificação de eventos inbound", () => {
     expect(classifyInboundEvent({ type: "status", status: "DELIVERED" }).suppression).toBeNull();
   });
 });
+
+describe("fail-closed — envio real desativado", () => {
+  const guardsOk = { allowed: true, failures: [] };
+
+  it("bloqueia modo ausente ou desconhecido", () => {
+    expect(resolveSendMode({ guards: guardsOk, link: { enabled: true, mode: undefined as never } }).action).toBe("blocked");
+    expect(resolveSendMode({ guards: guardsOk, link: { enabled: true, mode: "LIVE" as never } }).action).toBe("blocked");
+  });
+
+  it("bloqueia enabled não booleano verdadeiro", () => {
+    expect(resolveSendMode({ guards: guardsOk, link: { enabled: "true" as never, mode: "live" } }).action).toBe("blocked");
+  });
+
+  it("nunca despacha para a Z-API com a flag de envio real desligada", async () => {
+    const src = await import("node:fs").then((fs) =>
+      fs.readFileSync("supabase/functions/outreach-zapi-send/index.ts", "utf8"),
+    );
+    expect(src).toContain("const LIVE_DISPATCH_ENABLED = false;");
+    expect(src).not.toContain("zapiCall");
+    expect(src).not.toContain("send-text");
+  });
+
+  it("o webhook não aceita segredos em query string", async () => {
+    const src = await import("node:fs").then((fs) =>
+      fs.readFileSync("supabase/functions/outreach-zapi-webhook/index.ts", "utf8"),
+    );
+    expect(src).toContain("secret_in_query_string_not_allowed");
+    expect(src).not.toContain("searchParams.get('secret')");
+  });
+});

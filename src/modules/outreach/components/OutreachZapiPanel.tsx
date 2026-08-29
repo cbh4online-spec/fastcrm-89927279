@@ -76,13 +76,24 @@ export function OutreachZapiPanel({
           Canal Z-API do workspace
           <Badge className={cn("border-0", STATE_TONE[conn.state])}>{conn.label}</Badge>
         </div>
-        <Button size="sm" variant="ghost" onClick={runTest} disabled={diagnostic.isFetching}>
+        <Button size="sm" variant="ghost" onClick={runTest} disabled={diagnostic.isFetching}
+          title="Apenas leitura de estado — não contacta o fornecedor">
           {diagnostic.isFetching
             ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden />
             : <RefreshCw className="mr-2 h-3.5 w-3.5" aria-hidden />}
           Testar configuração
         </Button>
       </div>
+
+      <Alert variant="destructive">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertTitle className="text-sm">Envio real desativado — simulação apenas</AlertTitle>
+        <AlertDescription className="text-xs">
+          Nenhum caminho da aplicação pode despachar mensagens para a Z-API. O diagnóstico é apenas de
+          leitura e não existe acção de “Enviar teste”. Credenciais e segredos permanecem exclusivamente
+          no backend.
+        </AlertDescription>
+      </Alert>
 
       <p className="text-xs text-muted-foreground">{conn.hint}</p>
 
@@ -107,7 +118,7 @@ export function OutreachZapiPanel({
             <SelectContent>
               <SelectItem value="disabled">Desligado</SelectItem>
               <SelectItem value="simulation">Simulação segura</SelectItem>
-              <SelectItem value="live">Envio real (por activar)</SelectItem>
+              <SelectItem value="live" disabled>Envio real (desativado)</SelectItem>
             </SelectContent>
           </Select>
         </div>
