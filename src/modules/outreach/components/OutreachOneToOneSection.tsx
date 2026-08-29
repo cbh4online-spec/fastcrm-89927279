@@ -407,8 +407,24 @@ export function OutreachOneToOneSection({
                       )}
                     </div>
                     {channel === "whatsapp" && (
-                      <OutreachZapiPanel entityType={entityType} entityId={entityId} eligible={allowed} />
+                      <>
+                        <OutreachWhatsAppComposer
+                          phone={phone}
+                          phoneSource={entityType === "company" ? "Ficha da empresa" : "Ficha do contacto"}
+                          checks={checks}
+                          allowed={allowed}
+                          draft={draft}
+                          usage={usageQuery.data}
+                          limits={limits}
+                          stopReason={activeStopReason(suppressions)}
+                          preparing={prepareZapi.isPending}
+                          lastOutcome={lastAttemptOutcome ? OUTCOME_PT[lastAttemptOutcome] ?? lastAttemptOutcome : null}
+                          onPrepare={() => prepareZapi.mutate()}
+                        />
+                        <OutreachZapiPanel entityType={entityType} entityId={entityId} />
+                      </>
                     )}
+
                     <p className="text-xs text-muted-foreground">
                       O botão apenas abre o canal. O envio é sempre manual e o registo fica como “envio assistido”.
                     </p>
