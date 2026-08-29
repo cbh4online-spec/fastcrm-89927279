@@ -1,7 +1,7 @@
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DocumentListLayout,
@@ -19,6 +19,7 @@ import {
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
+import { ContactsCsvImportDialog } from "@/components/contacts/ContactsCsvImportDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
 import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
@@ -330,6 +331,7 @@ export function ContactsListIX() {
       )}
 
       <CreateContactDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <ContactsCsvImportDialog open={importOpen} onOpenChange={setImportOpen} />
       <EntityArchiveBlockDialogs
         entity="contact"
         request={entityAction}
