@@ -168,6 +168,22 @@ export function OutreachOneToOneSection({
       limits,
     });
 
+  const primaryChannel: OutreachChannel = allowedChannels.includes("whatsapp")
+    ? "whatsapp"
+    : allowedChannels.includes("email")
+      ? "email"
+      : (allowedChannels[0] as OutreachChannel) ?? "email";
+
+  const wizard = buildOutreachWizard({
+    channel: primaryChannel,
+    validation,
+    draft,
+    suppressions,
+    checks: evalFor(primaryChannel).checks,
+    lastAttemptOutcome,
+  });
+
+
   const copyBody = async () => {
     await navigator.clipboard.writeText(body);
     toast.success("Texto copiado");
