@@ -63201,6 +63201,48 @@ export type Database = {
           },
         ]
       }
+      outreach_channel_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          instance_ref: string | null
+          last_diagnostic: Json
+          last_diagnostic_at: string | null
+          mode: string
+          provider: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          instance_ref?: string | null
+          last_diagnostic?: Json
+          last_diagnostic_at?: string | null
+          mode?: string
+          provider?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          instance_ref?: string | null
+          last_diagnostic?: Json
+          last_diagnostic_at?: string | null
+          mode?: string
+          provider?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       outreach_drafts: {
         Row: {
           body: string
@@ -63290,6 +63332,66 @@ export type Database = {
           event_type?: string
           id?: string
           reason?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      outreach_send_attempts: {
+        Row: {
+          blocked_reason: string | null
+          body_length: number | null
+          channel: string
+          company_id: string | null
+          created_at: string
+          draft_id: string | null
+          entity_id: string
+          entity_type: string
+          failed_checks: Json
+          id: string
+          instance_ref: string | null
+          mode: string
+          outcome: string
+          provider: string
+          provider_message_id: string | null
+          requested_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          blocked_reason?: string | null
+          body_length?: number | null
+          channel?: string
+          company_id?: string | null
+          created_at?: string
+          draft_id?: string | null
+          entity_id: string
+          entity_type: string
+          failed_checks?: Json
+          id?: string
+          instance_ref?: string | null
+          mode?: string
+          outcome: string
+          provider?: string
+          provider_message_id?: string | null
+          requested_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          blocked_reason?: string | null
+          body_length?: number | null
+          channel?: string
+          company_id?: string | null
+          created_at?: string
+          draft_id?: string | null
+          entity_id?: string
+          entity_type?: string
+          failed_checks?: Json
+          id?: string
+          instance_ref?: string | null
+          mode?: string
+          outcome?: string
+          provider?: string
+          provider_message_id?: string | null
+          requested_by?: string | null
           workspace_id?: string
         }
         Relationships: []

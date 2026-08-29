@@ -35,6 +35,8 @@ import {
   useSaveOutreachValidation, useToggleOutreachSuppression, useWhatsAppChannelAvailable,
   whatsappDeepLink,
 } from "../hooks/useOutreach";
+import { OutreachZapiPanel } from "./OutreachZapiPanel";
+
 
 export interface OutreachOneToOneSectionProps {
   entityType: OutreachEntityType;
@@ -393,6 +395,7 @@ export function OutreachOneToOneSection({
                           <ExternalLink className="mr-2 h-3.5 w-3.5" /> Abrir WhatsApp com texto
                         </Button>
                       )}
+
                       {channel === "social" && (
                         socialUrls.length === 0
                           ? <p className="text-xs text-muted-foreground">Sem perfis sociais na ficha.</p>
@@ -403,9 +406,13 @@ export function OutreachOneToOneSection({
                           ))
                       )}
                     </div>
+                    {channel === "whatsapp" && (
+                      <OutreachZapiPanel entityType={entityType} entityId={entityId} eligible={allowed} />
+                    )}
                     <p className="text-xs text-muted-foreground">
                       O botão apenas abre o canal. O envio é sempre manual e o registo fica como “envio assistido”.
                     </p>
+
                   </div>
                 );
               })}

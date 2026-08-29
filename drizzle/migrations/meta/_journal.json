@@ -8,6 +8,13 @@
       "when": 1788023318884,
       "tag": "0000_create_outreach_11_module",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788024606132,
+      "tag": "0001_outreach_zapi_channel_link",
+      "breakpoints": true
     }
   ]
 }
