@@ -36,6 +36,18 @@ import {
   whatsappDeepLink,
 } from "../hooks/useOutreach";
 import { OutreachZapiPanel } from "./OutreachZapiPanel";
+import { OutreachWhatsAppComposer } from "./OutreachWhatsAppComposer";
+import { OutreachWizard } from "./OutreachWizard";
+import { activeStopReason, buildOutreachWizard, type OutreachWizardStep } from "../lib/outreachWizard";
+import { usePrepareZapiSend, useOutreachSendAttempts } from "../hooks/useOutreachZapi";
+
+const OUTCOME_PT: Record<string, string> = {
+  blocked: "bloqueada",
+  simulated: "simulada (não enviada)",
+  sent: "enviada",
+  error: "erro",
+};
+
 
 
 export interface OutreachOneToOneSectionProps {
