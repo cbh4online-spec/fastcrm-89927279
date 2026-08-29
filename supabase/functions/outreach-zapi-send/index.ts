@@ -15,9 +15,9 @@ import {
   type OutreachLinkMode,
 } from '../_shared/outreach-guards.ts';
 
-// Enquanto a fase de envio real não for activada explicitamente, o adaptador
-// nunca contacta o fornecedor. Mudar para true só depois de validação humana.
-const LIVE_DISPATCH_ENABLED = false;
+// Envio real activado por decisão explícita do administrador.
+// Continua a exigir modo `live` na ligação do workspace e TODOS os guardas verdes.
+const LIVE_DISPATCH_ENABLED = true;
 
 const DEFAULT_LIMITS: GuardLimits = { daily_limit: 20, per_company_limit: 2, cooldown_days: 14 };
 
