@@ -12,6 +12,8 @@ const CompanyDetail = lazy(() => import("@/pages/CompanyDetail"));
 const Crm = lazy(() => import("@/pages/Crm"));
 const Imports = lazy(() => import("@/pages/Imports"));
 const GestoresPage = lazy(() => import("@/pages/dashboard/GestoresPage"));
+const OutreachActivityCenterPage = lazy(() => import("@/modules/outreach/pages/OutreachActivityCenterPage"));
+
 
 export function SalesCoreRoutes() {
   return (
