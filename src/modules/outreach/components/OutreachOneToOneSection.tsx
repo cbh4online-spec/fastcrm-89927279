@@ -300,6 +300,15 @@ export function OutreachOneToOneSection({
           </div>
         </div>
 
+        <OutreachWizard
+          steps={wizard.steps}
+          progress={wizard.progress}
+          onNavigate={(target: OutreachWizardStep["ctaTarget"]) => {
+            if (target === "validation") return;
+            setTab(target);
+          }}
+        />
+
         {!isValidated ? (
           <Alert>
             <Lock className="h-4 w-4" />
@@ -309,7 +318,8 @@ export function OutreachOneToOneSection({
             </AlertDescription>
           </Alert>
         ) : (
-          <Tabs defaultValue="draft">
+          <Tabs value={tab} onValueChange={setTab}>
+
             <TabsList>
               <TabsTrigger value="draft">Rascunho</TabsTrigger>
               <TabsTrigger value="channels">Canais assistidos</TabsTrigger>
