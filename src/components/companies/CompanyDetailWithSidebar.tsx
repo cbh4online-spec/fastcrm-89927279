@@ -73,6 +73,7 @@ import { SocialMediaSection } from "./sections/SocialMediaSection";
 import { CompleteSocialAnalysisSection } from "./sections/CompleteSocialAnalysisSection";
 import { CompanyContactsHistory } from "./sections/CompanyContactsHistory";
 import { CompanyContextSection } from "./sections/CompanyContextSection";
+import { OutreachOneToOneSection } from "@/modules/outreach/components/OutreachOneToOneSection";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
 import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
