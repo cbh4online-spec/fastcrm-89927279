@@ -36,6 +36,18 @@ import {
   whatsappDeepLink,
 } from "../hooks/useOutreach";
 import { OutreachZapiPanel } from "./OutreachZapiPanel";
+import { OutreachWhatsAppComposer } from "./OutreachWhatsAppComposer";
+import { OutreachWizard } from "./OutreachWizard";
+import { activeStopReason, buildOutreachWizard, type OutreachWizardStep } from "../lib/outreachWizard";
+import { usePrepareZapiSend, useOutreachSendAttempts } from "../hooks/useOutreachZapi";
+
+const OUTCOME_PT: Record<string, string> = {
+  blocked: "bloqueada",
+  simulated: "simulada (não enviada)",
+  sent: "enviada",
+  error: "erro",
+};
+
 
 
 export interface OutreachOneToOneSectionProps {
@@ -84,6 +96,13 @@ export function OutreachOneToOneSection({
   const whatsappAvailable = useWhatsAppChannelAvailable().data ?? false;
   const eventsQuery = useOutreachEvents({ entityType, entityId, limit: 30 });
   const registerAssisted = useRegisterAssistedSend(entityType, entityId);
+  const prepareZapi = usePrepareZapiSend(entityType, entityId);
+  const attemptsQuery = useOutreachSendAttempts(entityType, entityId, 1);
+  const lastAttemptOutcome = attemptsQuery.data?.[0]?.outcome ?? null;
+
+  const [tab, setTab] = useState("draft");
+
+
 
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -149,6 +168,22 @@ export function OutreachOneToOneSection({
       limits,
     });
 
+  const primaryChannel: OutreachChannel = allowedChannels.includes("whatsapp")
+    ? "whatsapp"
+    : allowedChannels.includes("email")
+      ? "email"
+      : (allowedChannels[0] as OutreachChannel) ?? "email";
+
+  const wizard = buildOutreachWizard({
+    channel: primaryChannel,
+    validation,
+    draft,
+    suppressions,
+    checks: evalFor(primaryChannel).checks,
+    lastAttemptOutcome,
+  });
+
+
   const copyBody = async () => {
     await navigator.clipboard.writeText(body);
     toast.success("Texto copiado");
@@ -187,9 +222,15 @@ export function OutreachOneToOneSection({
               Comunicação personalizada e responsável. O sistema nunca envia — apenas abre o canal.
             </CardDescription>
           </div>
-          <Badge variant={isValidated ? "default" : "secondary"}>
-            {isValidated ? "Validado" : "Por validar"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={isValidated ? "default" : "secondary"}>
+              {isValidated ? "Validado" : "Por validar"}
+            </Badge>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/dashboard/outreach/activity">Centro de comunicações</Link>
+            </Button>
+          </div>
+
         </div>
       </CardHeader>
 
@@ -281,6 +322,15 @@ export function OutreachOneToOneSection({
           </div>
         </div>
 
+        <OutreachWizard
+          steps={wizard.steps}
+          progress={wizard.progress}
+          onNavigate={(target: OutreachWizardStep["ctaTarget"]) => {
+            if (target === "validation") return;
+            setTab(target);
+          }}
+        />
+
         {!isValidated ? (
           <Alert>
             <Lock className="h-4 w-4" />
@@ -290,7 +340,8 @@ export function OutreachOneToOneSection({
             </AlertDescription>
           </Alert>
         ) : (
-          <Tabs defaultValue="draft">
+          <Tabs value={tab} onValueChange={setTab}>
+
             <TabsList>
               <TabsTrigger value="draft">Rascunho</TabsTrigger>
               <TabsTrigger value="channels">Canais assistidos</TabsTrigger>
@@ -407,8 +458,24 @@ export function OutreachOneToOneSection({
                       )}
                     </div>
                     {channel === "whatsapp" && (
-                      <OutreachZapiPanel entityType={entityType} entityId={entityId} eligible={allowed} />
+                      <>
+                        <OutreachWhatsAppComposer
+                          phone={phone}
+                          phoneSource={entityType === "company" ? "Ficha da empresa" : "Ficha do contacto"}
+                          checks={checks}
+                          allowed={allowed}
+                          draft={draft}
+                          usage={usageQuery.data}
+                          limits={limits}
+                          stopReason={activeStopReason(suppressions)}
+                          preparing={prepareZapi.isPending}
+                          lastOutcome={lastAttemptOutcome ? OUTCOME_PT[lastAttemptOutcome] ?? lastAttemptOutcome : null}
+                          onPrepare={() => prepareZapi.mutate()}
+                        />
+                        <OutreachZapiPanel entityType={entityType} entityId={entityId} />
+                      </>
                     )}
+
                     <p className="text-xs text-muted-foreground">
                       O botão apenas abre o canal. O envio é sempre manual e o registo fica como “envio assistido”.
                     </p>
