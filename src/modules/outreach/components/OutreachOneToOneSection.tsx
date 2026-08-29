@@ -96,6 +96,13 @@ export function OutreachOneToOneSection({
   const whatsappAvailable = useWhatsAppChannelAvailable().data ?? false;
   const eventsQuery = useOutreachEvents({ entityType, entityId, limit: 30 });
   const registerAssisted = useRegisterAssistedSend(entityType, entityId);
+  const prepareZapi = usePrepareZapiSend(entityType, entityId);
+  const attemptsQuery = useOutreachSendAttempts(entityType, entityId, 1);
+  const lastAttemptOutcome = attemptsQuery.data?.[0]?.outcome ?? null;
+
+  const [tab, setTab] = useState("draft");
+
+
 
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
