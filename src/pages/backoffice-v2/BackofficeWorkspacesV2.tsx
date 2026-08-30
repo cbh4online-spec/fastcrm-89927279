@@ -533,7 +533,27 @@ export default function BackofficeWorkspacesV2() {
           </div>
         )}
       </ConfirmActionDialog>
+
+      <ChangePlanDialog
+        open={planDialogOpen}
+        onOpenChange={setPlanDialogOpen}
+        workspaceId={selected?.id ?? null}
+        workspaceName={selected?.name}
+        currentPlan={saasSnapshot.data?.plan}
+        currentStatus={saasSnapshot.data?.status}
+        onSuccess={() => saasSnapshot.refetch()}
+      />
+
+      <AssignCreditsDialog
+        open={creditsDialogOpen}
+        onOpenChange={setCreditsDialogOpen}
+        workspaceId={selected?.id ?? null}
+        workspaceName={selected?.name}
+        currentBalance={saasSnapshot.data?.creditBalance}
+        onSuccess={() => saasSnapshot.refetch()}
+      />
     </BackofficeShellV2>
+
   );
 }
 
