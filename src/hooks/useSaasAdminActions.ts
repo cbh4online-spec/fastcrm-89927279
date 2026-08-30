@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase as _supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -155,4 +155,36 @@ export function useSaasAdminActions() {
   });
 
   return { changePlan, assignCredits };
+}
+
+/**
+ * Snapshot leve (plano/estado/saldo de créditos) de um workspace,
+ * usado pelos diálogos administrativos do Backoffice V2.
+ */
+export function useWorkspaceSaasSnapshot(workspaceId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["backoffice-v2", "workspace-saas-snapshot", workspaceId],
+    enabled: !!workspaceId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const [subRes, walletRes] = await Promise.all([
+        supabase
+          .from("workspace_subscriptions")
+          .select("plan, status, current_period_end, trial_ends_at")
+          .eq("workspace_id", workspaceId)
+          .maybeSingle(),
+        supabase
+          .from("credit_wallets")
+          .select("balance")
+          .eq("workspace_id", workspaceId)
+          .maybeSingle(),
+      ]);
+
+      return {
+        plan: (subRes.data?.plan as string | undefined) ?? "free",
+        status: (subRes.data?.status as string | undefined) ?? "active",
+        creditBalance: Number(walletRes.data?.balance ?? 0),
+      };
+    },
+  });
 }
