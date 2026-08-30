@@ -533,15 +533,38 @@ export default function BackofficeSubscriptionsV2() {
                       <td className="px-4 py-3.5 text-navy-500">{fmtDate(r.trial_ends_at)}</td>
                       <td className="px-4 py-3.5 text-navy-300">{fmtDate(r.updated_at)}</td>
                       <td className="px-4 py-3.5 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
-                          onClick={(e) => { e.stopPropagation(); setSelected(r); }}
-                        >
-                          Ver detalhe
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          {isSuperAdmin && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
+                                onClick={(e) => { e.stopPropagation(); setPlanDialogFor(r); }}
+                              >
+                                Alterar plano
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
+                                onClick={(e) => { e.stopPropagation(); setCreditsDialogFor(r); }}
+                              >
+                                Créditos
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
+                            onClick={(e) => { e.stopPropagation(); setSelected(r); }}
+                          >
+                            Ver detalhe
+                          </Button>
+                        </div>
                       </td>
+
                     </motion.tr>
                   ))
                 )}
