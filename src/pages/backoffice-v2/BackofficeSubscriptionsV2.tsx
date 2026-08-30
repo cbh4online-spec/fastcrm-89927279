@@ -147,6 +147,13 @@ export default function BackofficeSubscriptionsV2() {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<BillingRow | null>(null);
+  const [planDialogFor, setPlanDialogFor] = useState<BillingRow | null>(null);
+  const [creditsDialogFor, setCreditsDialogFor] = useState<BillingRow | null>(null);
+  const { isSuperAdmin } = useUserRole();
+  const snapshot = useWorkspaceSaasSnapshot(
+    creditsDialogFor?.workspace_id ?? planDialogFor?.workspace_id ?? null
+  );
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
