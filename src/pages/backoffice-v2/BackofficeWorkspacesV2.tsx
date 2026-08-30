@@ -39,6 +39,10 @@ export default function BackofficeWorkspacesV2() {
   const [status, setStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<WorkspaceAdminRow | null>(null);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [creditsDialogOpen, setCreditsDialogOpen] = useState(false);
+  const saasSnapshot = useWorkspaceSaasSnapshot(selected?.id ?? null);
+
   const [confirmAction, setConfirmAction] = useState<null | "suspend" | "reactivate">(null);
   const [reason, setReason] = useState("");
   const [editing, setEditing] = useState(false);
