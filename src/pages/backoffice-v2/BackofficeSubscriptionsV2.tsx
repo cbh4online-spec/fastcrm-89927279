@@ -17,6 +17,11 @@ import {
 import {
   useBillingAdmin, type BillingRow, PLAN_LABEL, PLAN_PRICE_EUR,
 } from "@/hooks/useBillingAdmin";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useWorkspaceSaasSnapshot } from "@/hooks/useSaasAdminActions";
+import { ChangePlanDialog } from "@/components/backoffice-v2/ChangePlanDialog";
+import { AssignCreditsDialog } from "@/components/backoffice-v2/AssignCreditsDialog";
+
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
