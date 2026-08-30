@@ -27,6 +27,10 @@ import {
   useUpdateWorkspaceMetadata,
 } from "@/hooks/useWorkspaceAdminMutations";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useWorkspaceSaasSnapshot } from "@/hooks/useSaasAdminActions";
+import { ChangePlanDialog } from "@/components/backoffice-v2/ChangePlanDialog";
+import { AssignCreditsDialog } from "@/components/backoffice-v2/AssignCreditsDialog";
+
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
