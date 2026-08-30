@@ -447,32 +447,18 @@ export function WorkspacesSection() {
     },
   });
 
-  const assignCredits = useMutation({
-    mutationFn: async ({ workspaceId, amount, description }: { workspaceId: string; amount: number; description: string }) => {
-      if (!user) throw new Error("Não autenticado");
-      // eslint-disable-next-line no-restricted-syntax -- baseline: docs/security/credits-frontend-hardening.md (legítimo: super-admin protegido por is_super_admin + RLS)
-      const { data, error } = await supabase.rpc("admin_assign_credits", {
-        p_workspace_id: workspaceId,
-        p_admin_user_id: user.id,
-        p_credits_amount: amount,
-        p_description: description || "Créditos atribuídos manualmente pelo admin",
-      });
-      if (error) throw error;
-      const result = (data as unknown as Array<{ success: boolean; new_balance: number; message: string }>)?.[0];
-      if (!result?.success) throw new Error(result?.message || "Erro ao atribuir créditos");
-      return result;
-    },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
-      toast.success(result.message);
-      setActionDialog({ type: null, workspace: null });
-      setCreditsAmount("");
-      setCreditsDescription("");
-    },
-    onError: (error) => {
-      toast.error("Erro ao atribuir créditos: " + error.message);
-    },
-  });
+  const assignCredits = {
+    isPending: sharedAssignCredits.isPending,
+    mutate: (vars: { workspaceId: string; amount: number; description: string }) =>
+      sharedAssignCredits.mutate(vars, {
+        onSuccess: () => {
+          setActionDialog({ type: null, workspace: null });
+          setCreditsAmount("");
+          setCreditsDescription("");
+        },
+      }),
+  };
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
