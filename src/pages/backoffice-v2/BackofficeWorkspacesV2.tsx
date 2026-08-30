@@ -27,6 +27,10 @@ import {
   useUpdateWorkspaceMetadata,
 } from "@/hooks/useWorkspaceAdminMutations";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useWorkspaceSaasSnapshot } from "@/hooks/useSaasAdminActions";
+import { ChangePlanDialog } from "@/components/backoffice-v2/ChangePlanDialog";
+import { AssignCreditsDialog } from "@/components/backoffice-v2/AssignCreditsDialog";
+
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
@@ -39,6 +43,10 @@ export default function BackofficeWorkspacesV2() {
   const [status, setStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<WorkspaceAdminRow | null>(null);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [creditsDialogOpen, setCreditsDialogOpen] = useState(false);
+  const saasSnapshot = useWorkspaceSaasSnapshot(selected?.id ?? null);
+
   const [confirmAction, setConfirmAction] = useState<null | "suspend" | "reactivate">(null);
   const [reason, setReason] = useState("");
   const [editing, setEditing] = useState(false);
@@ -430,8 +438,34 @@ export default function BackofficeWorkspacesV2() {
                         Reversível. Não elimina dados nem cancela subscrições.
                       </p>
                     </div>
+
+                    {/* Plano & créditos */}
+                    <div className="space-y-2 rounded-xl border border-navy-100 bg-white p-3.5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-navy-300">
+                        Plano e créditos
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-navy-300">
+                        Plano atual: <strong className="capitalize text-navy">{saasSnapshot.data?.plan ?? "—"}</strong>
+                        {" · "}Saldo: <strong className="text-navy">{(saasSnapshot.data?.creditBalance ?? 0).toLocaleString("pt-PT")}</strong> créditos
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="h-9 w-full gap-2 rounded-lg border-navy-100 hover:border-brand/40"
+                        onClick={() => setPlanDialogOpen(true)}
+                      >
+                        <ShieldCheck className="h-4 w-4" /> Alterar plano de subscrição
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-9 w-full gap-2 rounded-lg border-navy-100 hover:border-brand/40"
+                        onClick={() => setCreditsDialogOpen(true)}
+                      >
+                        <Sparkles className="h-4 w-4" /> Atribuir / remover créditos
+                      </Button>
+                    </div>
                   </div>
                 )}
+
 
                 <div className="border-t border-navy-100 pt-4">
                   <Button variant="outline" className="w-full gap-2 rounded-xl border-navy-100 hover:border-brand/40" asChild>
@@ -499,7 +533,27 @@ export default function BackofficeWorkspacesV2() {
           </div>
         )}
       </ConfirmActionDialog>
+
+      <ChangePlanDialog
+        open={planDialogOpen}
+        onOpenChange={setPlanDialogOpen}
+        workspaceId={selected?.id ?? null}
+        workspaceName={selected?.name}
+        currentPlan={saasSnapshot.data?.plan}
+        currentStatus={saasSnapshot.data?.status}
+        onSuccess={() => saasSnapshot.refetch()}
+      />
+
+      <AssignCreditsDialog
+        open={creditsDialogOpen}
+        onOpenChange={setCreditsDialogOpen}
+        workspaceId={selected?.id ?? null}
+        workspaceName={selected?.name}
+        currentBalance={saasSnapshot.data?.creditBalance}
+        onSuccess={() => saasSnapshot.refetch()}
+      />
     </BackofficeShellV2>
+
   );
 }
 

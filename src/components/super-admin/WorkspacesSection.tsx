@@ -64,6 +64,8 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { CreateWorkspaceDialog } from "./CreateWorkspaceDialog";
 import { WorkspaceMembersPanel } from "./WorkspaceMembersPanel";
+import { useSaasAdminActions } from "@/hooks/useSaasAdminActions";
+
 
 interface OnboardingData {
   business_type?: string;
@@ -325,79 +327,28 @@ export function WorkspacesSection() {
     },
   });
 
-  const changePlan = useMutation({
-    mutationFn: async ({ workspaceId, plan, subStatus, trialEnd, periodEnd }: {
+  const { changePlan: sharedChangePlan, assignCredits: sharedAssignCredits } = useSaasAdminActions();
+
+  const changePlan = {
+    isPending: sharedChangePlan.isPending,
+    mutate: (vars: {
       workspaceId: string;
-      plan: "free" | "basic" | "pro" | "agency" | "starter";
+      plan: string;
       subStatus?: string;
       trialEnd?: string;
       periodEnd?: string;
-    }) => {
-      const { data: existingSub } = await supabase
-        .from("workspace_subscriptions")
-        .select("id")
-        .eq("workspace_id", workspaceId)
-        .maybeSingle();
+    }) =>
+      sharedChangePlan.mutate(vars, {
+        onSuccess: () => {
+          setActionDialog({ type: null, workspace: null });
+          setNewPlan("");
+          setNewSubStatus("");
+          setNewTrialEnd("");
+          setNewPeriodEnd("");
+        },
+      }),
+  };
 
-      const updateData: Record<string, any> = {
-        plan,
-        updated_at: new Date().toISOString(),
-      };
-      if (subStatus) updateData.status = subStatus;
-      if (subStatus === "trialing") {
-        updateData.trial_started_at = new Date().toISOString();
-        updateData.trial_ends_at = trialEnd || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-        updateData.current_period_end = updateData.trial_ends_at;
-      } else {
-        if (trialEnd === "") {
-          updateData.trial_ends_at = null;
-          updateData.trial_started_at = null;
-        }
-        if (periodEnd) updateData.current_period_end = periodEnd;
-      }
-
-      if (existingSub) {
-        const { error } = await supabase
-          .from("workspace_subscriptions")
-          .update(updateData)
-          .eq("workspace_id", workspaceId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("workspace_subscriptions")
-          .insert([{
-            workspace_id: workspaceId,
-            plan,
-            status: subStatus || "active",
-            current_period_start: new Date().toISOString(),
-            current_period_end: periodEnd || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            trial_started_at: subStatus === "trialing" ? new Date().toISOString() : null,
-            trial_ends_at: subStatus === "trialing" ? (trialEnd || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()) : null,
-          }]);
-        if (error) throw error;
-      }
-
-      await supabase.rpc("log_admin_action", {
-        p_action_type: "plan_changed",
-        p_target_type: "workspace",
-        p_target_id: workspaceId,
-        p_workspace_id: workspaceId,
-        p_details: { new_plan: plan, new_status: subStatus, trial_end: trialEnd, period_end: periodEnd },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
-      toast.success("Plano alterado com sucesso");
-      setActionDialog({ type: null, workspace: null });
-      setNewPlan("");
-      setNewSubStatus("");
-      setNewTrialEnd("");
-      setNewPeriodEnd("");
-    },
-    onError: (error) => {
-      toast.error("Erro ao alterar plano: " + error.message);
-    },
-  });
 
   const assignAgency = useMutation({
     mutationFn: async ({ workspaceId, agencyId }: { workspaceId: string; agencyId: string | null }) => {
@@ -498,32 +449,18 @@ export function WorkspacesSection() {
     },
   });
 
-  const assignCredits = useMutation({
-    mutationFn: async ({ workspaceId, amount, description }: { workspaceId: string; amount: number; description: string }) => {
-      if (!user) throw new Error("Não autenticado");
-      // eslint-disable-next-line no-restricted-syntax -- baseline: docs/security/credits-frontend-hardening.md (legítimo: super-admin protegido por is_super_admin + RLS)
-      const { data, error } = await supabase.rpc("admin_assign_credits", {
-        p_workspace_id: workspaceId,
-        p_admin_user_id: user.id,
-        p_credits_amount: amount,
-        p_description: description || "Créditos atribuídos manualmente pelo admin",
-      });
-      if (error) throw error;
-      const result = (data as unknown as Array<{ success: boolean; new_balance: number; message: string }>)?.[0];
-      if (!result?.success) throw new Error(result?.message || "Erro ao atribuir créditos");
-      return result;
-    },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
-      toast.success(result.message);
-      setActionDialog({ type: null, workspace: null });
-      setCreditsAmount("");
-      setCreditsDescription("");
-    },
-    onError: (error) => {
-      toast.error("Erro ao atribuir créditos: " + error.message);
-    },
-  });
+  const assignCredits = {
+    isPending: sharedAssignCredits.isPending,
+    mutate: (vars: { workspaceId: string; amount: number; description: string }) =>
+      sharedAssignCredits.mutate(vars, {
+        onSuccess: () => {
+          setActionDialog({ type: null, workspace: null });
+          setCreditsAmount("");
+          setCreditsDescription("");
+        },
+      }),
+  };
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {

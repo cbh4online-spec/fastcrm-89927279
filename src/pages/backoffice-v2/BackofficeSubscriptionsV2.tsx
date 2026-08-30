@@ -17,6 +17,11 @@ import {
 import {
   useBillingAdmin, type BillingRow, PLAN_LABEL, PLAN_PRICE_EUR,
 } from "@/hooks/useBillingAdmin";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useWorkspaceSaasSnapshot } from "@/hooks/useSaasAdminActions";
+import { ChangePlanDialog } from "@/components/backoffice-v2/ChangePlanDialog";
+import { AssignCreditsDialog } from "@/components/backoffice-v2/AssignCreditsDialog";
+
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
@@ -147,6 +152,13 @@ export default function BackofficeSubscriptionsV2() {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<BillingRow | null>(null);
+  const [planDialogFor, setPlanDialogFor] = useState<BillingRow | null>(null);
+  const [creditsDialogFor, setCreditsDialogFor] = useState<BillingRow | null>(null);
+  const { isSuperAdmin } = useUserRole();
+  const snapshot = useWorkspaceSaasSnapshot(
+    creditsDialogFor?.workspace_id ?? planDialogFor?.workspace_id ?? null
+  );
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -521,15 +533,38 @@ export default function BackofficeSubscriptionsV2() {
                       <td className="px-4 py-3.5 text-navy-500">{fmtDate(r.trial_ends_at)}</td>
                       <td className="px-4 py-3.5 text-navy-300">{fmtDate(r.updated_at)}</td>
                       <td className="px-4 py-3.5 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
-                          onClick={(e) => { e.stopPropagation(); setSelected(r); }}
-                        >
-                          Ver detalhe
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          {isSuperAdmin && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
+                                onClick={(e) => { e.stopPropagation(); setPlanDialogFor(r); }}
+                              >
+                                Alterar plano
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
+                                onClick={(e) => { e.stopPropagation(); setCreditsDialogFor(r); }}
+                              >
+                                Créditos
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 rounded-lg px-2 text-[11px] font-semibold text-navy-500 hover:bg-brand/10 hover:text-brand"
+                            onClick={(e) => { e.stopPropagation(); setSelected(r); }}
+                          >
+                            Ver detalhe
+                          </Button>
+                        </div>
                       </td>
+
                     </motion.tr>
                   ))
                 )}
@@ -625,6 +660,27 @@ export default function BackofficeSubscriptionsV2() {
                   <Field icon={Calendar} label="Atualizado em" value={fmtDate(selected.updated_at)} />
                 </section>
 
+                {isSuperAdmin && (
+                  <section className="space-y-2 border-t border-navy-100 pt-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-300">
+                      Ações administrativas
+                    </div>
+                    <Button
+                      className="h-10 w-full justify-center gap-2 rounded-xl"
+                      onClick={() => setPlanDialogFor(selected)}
+                    >
+                      <ShieldCheck className="h-4 w-4" /> Alterar plano e subscrição
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-10 w-full justify-center gap-2 rounded-xl border-navy-100 hover:border-brand/40"
+                      onClick={() => setCreditsDialogFor(selected)}
+                    >
+                      <Sparkles className="h-4 w-4" /> Atribuir / remover créditos
+                    </Button>
+                  </section>
+                )}
+
                 <div className="flex flex-col gap-2 border-t border-navy-100 pt-4">
                   <Button
                     variant="outline"
@@ -636,7 +692,7 @@ export default function BackofficeSubscriptionsV2() {
                     </a>
                   </Button>
                   <p className="text-center text-[11px] text-navy-300">
-                    Ações destrutivas (cancelar, alterar plano, reembolsar) só estão disponíveis na shell clássica.
+                    Cancelamentos e reembolsos continuam a ser feitos na shell clássica ou no Stripe.
                   </p>
                 </div>
               </div>
@@ -644,9 +700,27 @@ export default function BackofficeSubscriptionsV2() {
           </>
         )}
       </AnimatePresence>
+
+      <ChangePlanDialog
+        open={!!planDialogFor}
+        onOpenChange={(o) => !o && setPlanDialogFor(null)}
+        workspaceId={planDialogFor?.workspace_id ?? null}
+        workspaceName={planDialogFor?.workspace_name}
+        currentPlan={planDialogFor?.plan}
+        currentStatus={planDialogFor?.status}
+      />
+
+      <AssignCreditsDialog
+        open={!!creditsDialogFor}
+        onOpenChange={(o) => !o && setCreditsDialogFor(null)}
+        workspaceId={creditsDialogFor?.workspace_id ?? null}
+        workspaceName={creditsDialogFor?.workspace_name}
+        currentBalance={snapshot.data?.creditBalance}
+      />
     </BackofficeShellV2>
   );
 }
+
 
 function Field({
   icon: Icon, label, value, mono,
