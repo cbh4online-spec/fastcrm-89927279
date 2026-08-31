@@ -41,7 +41,26 @@ if (isPreviewHost || isInIframe) {
   navigator.serviceWorker?.getRegistrations().then((registrations) => {
     registrations.forEach((r) => r.unregister());
   });
+} else if ("serviceWorker" in navigator) {
+  // Nova versão publicada: quando o novo service worker assume, recarregar UMA vez
+  // para não continuar a servir o app shell antigo em cache.
+  const SW_RELOAD_KEY = "app:sw-reloaded";
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    try {
+      if (sessionStorage.getItem(SW_RELOAD_KEY)) return;
+      sessionStorage.setItem(SW_RELOAD_KEY, "1");
+    } catch {
+      return;
+    }
+    window.location.reload();
+  });
+  // Verificar atualizações periodicamente em sessões longas.
+  navigator.serviceWorker.ready.then((reg) => {
+    setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+  });
 }
+
+
 
 // Stale dynamic-import chunks: recarregar UMA vez por sessão (evita ciclo infinito).
 const STALE_CHUNK_KEY = "app:stale-chunk-reloaded";
