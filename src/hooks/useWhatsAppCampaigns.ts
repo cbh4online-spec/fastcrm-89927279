@@ -36,6 +36,8 @@ export interface CampaignRecipientInput {
   phone: string;
   contact_name?: string | null;
   contact_id?: string | null;
+  lead_id?: string | null;
+  company_id?: string | null;
 }
 
 export function useWhatsAppCampaigns() {
@@ -112,6 +114,8 @@ export function useWhatsAppCampaigns() {
           phone: r.phone,
           contact_name: r.contact_name ?? null,
           contact_id: r.contact_id ?? null,
+          lead_id: r.lead_id ?? null,
+          company_id: r.company_id ?? null,
           status: "pending",
         }));
 
