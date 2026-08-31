@@ -97665,6 +97665,122 @@ export type Database = {
           },
         ]
       }
+      whatsapp_consents: {
+        Row: {
+          company_id: string | null
+          consent_category: string
+          consent_text: string
+          consent_version: string
+          contact_id: string | null
+          created_at: string
+          granted_at: string | null
+          id: string
+          ip_address: string | null
+          lead_id: string | null
+          metadata: Json
+          phone: string
+          revoked_at: string | null
+          source: string
+          source_reference: string | null
+          status: string
+          updated_at: string
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          consent_category?: string
+          consent_text: string
+          consent_version?: string
+          contact_id?: string | null
+          created_at?: string
+          granted_at?: string | null
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          metadata?: Json
+          phone: string
+          revoked_at?: string | null
+          source?: string
+          source_reference?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string | null
+          consent_category?: string
+          consent_text?: string
+          consent_version?: string
+          contact_id?: string | null
+          created_at?: string
+          granted_at?: string | null
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          metadata?: Json
+          phone?: string
+          revoked_at?: string | null
+          source?: string
+          source_reference?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_consents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consents_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_conversation_insight_runs: {
         Row: {
           conversation_id: string
@@ -106651,6 +106767,10 @@ export type Database = {
       }
       has_sj_module_access: {
         Args: { p_user_id: string; p_workspace_id: string }
+        Returns: boolean
+      }
+      has_whatsapp_consent: {
+        Args: { _phone: string; _workspace_id: string }
         Returns: boolean
       }
       has_workspace_role:
