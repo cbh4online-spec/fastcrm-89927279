@@ -14,10 +14,22 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import { Loader2, Users, FileText } from "lucide-react";
 import { toE164 } from "@/utils/phone";
+import { consentPhoneKey } from "@/lib/whatsapp/consent";
+import { fetchConsentSets } from "@/hooks/useWhatsAppConsents";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+}
+
+interface AudienceStats {
+  totalWithPhone: number;
+  withConsent: number;
+  withoutConsent: number;
+  optouts: number;
+  invalid: number;
+  duplicates: number;
+  eligible: number;
 }
 
 type AudienceMode = "manual" | "contacts" | "leads" | "companies";
