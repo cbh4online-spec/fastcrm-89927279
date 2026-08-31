@@ -323,10 +323,14 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
                 <Textarea
                   rows={8}
                   value={phonesText}
-                  onChange={(e) => setPhonesText(e.target.value)}
+                  onChange={(e) => { setPhonesText(e.target.value); setRecipientPreview([]); setStats(null); }}
                   placeholder={"351912345678 | João\n351933333333"}
                 />
-                <p className="text-xs text-muted-foreground">{parseManualPhones().length} contactos válidos</p>
+                <Button type="button" onClick={validateManualList} disabled={loadingPreview || parseManualPhones().length === 0}>
+                  {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
+                  Validar consentimento
+                </Button>
+                <p className="text-xs text-muted-foreground">{parseManualPhones().length} números válidos introduzidos</p>
               </TabsContent>
               <TabsContent value="contacts" className="space-y-2 mt-3">
                 <div className="flex gap-2">
@@ -336,25 +340,54 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
                     Carregar
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">{recipientPreview.length} contactos selecionados</p>
               </TabsContent>
               <TabsContent value="leads" className="space-y-2 mt-3">
-                <p className="text-sm text-muted-foreground">Carrega todos os Leads ativos com telefone válido. Números repetidos são enviados apenas uma vez.</p>
+                <p className="text-sm text-muted-foreground">Carrega todos os Leads ativos com telefone válido e consentimento WhatsApp confirmado.</p>
                 <Button type="button" onClick={() => loadFromWorkspaceRecords("leads")} disabled={loadingPreview}>
                   {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
                   Carregar Leads elegíveis
                 </Button>
-                <p className="text-xs text-muted-foreground">{recipientPreview.length} leads selecionados</p>
               </TabsContent>
               <TabsContent value="companies" className="space-y-2 mt-3">
-                <p className="text-sm text-muted-foreground">Carrega todas as Empresas ativas com telefone válido. Números repetidos são enviados apenas uma vez.</p>
+                <p className="text-sm text-muted-foreground">Carrega todas as Empresas ativas com telefone válido e consentimento WhatsApp confirmado.</p>
                 <Button type="button" onClick={() => loadFromWorkspaceRecords("companies")} disabled={loadingPreview}>
                   {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
                   Carregar Empresas elegíveis
                 </Button>
-                <p className="text-xs text-muted-foreground">{recipientPreview.length} empresas selecionadas</p>
               </TabsContent>
             </Tabs>
+
+            {stats && (
+              <div className="rounded-md border p-3 space-y-2" data-testid="consent-stats">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" /> Verificação de consentimento
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <Stat label="Com telefone" value={stats.totalWithPhone} />
+                  <Stat label="Com consentimento" value={stats.withConsent} />
+                  <Stat label="Sem consentimento" value={stats.withoutConsent} />
+                  <Stat label="Opt-outs" value={stats.optouts} />
+                  <Stat label="Inválidos" value={stats.invalid} />
+                  <Stat label="Duplicados" value={stats.duplicates} />
+                  <Stat label="Total elegível" value={stats.eligible} strong />
+                </div>
+                {stats.withoutConsent > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {stats.withoutConsent} destinatários foram excluídos por não terem consentimento explícito e não serão contactados.
+                  </p>
+                )}
+                {stats.eligible === 0 && (
+                  <p className="text-xs text-destructive">
+                    Não existem destinatários com consentimento. A campanha não pode ser criada.
+                  </p>
+                )}
+              </div>
+            )}
+            {!stats && (
+              <p className="text-xs text-muted-foreground">
+                Carregue a audiência para verificar consentimentos. Só destinatários com consentimento explícito podem ser incluídos.
+              </p>
+            )}
           </TabsContent>
 
           <TabsContent value="s3" className="space-y-3 mt-4">
