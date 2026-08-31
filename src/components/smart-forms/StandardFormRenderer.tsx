@@ -155,6 +155,9 @@ export function StandardFormRenderer({
             ))}
           </div>
         );
+      }
+
+
 
       case 'boolean':
         return (
