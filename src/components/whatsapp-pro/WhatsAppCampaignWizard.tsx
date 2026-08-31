@@ -412,8 +412,13 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
               <p className="text-xs text-muted-foreground mt-1">Vazio = inicia manualmente após criar.</p>
             </div>
             <div className="rounded-md border p-3 bg-muted/30 text-sm space-y-1">
-              <div><span className="text-muted-foreground">Destinatários:</span> <strong>{recipients.length}</strong></div>
+              <div><span className="text-muted-foreground">Destinatários com consentimento:</span> <strong>{recipients.length}</strong></div>
               <div><span className="text-muted-foreground">Tempo estimado:</span> <strong>{recipients.length > 0 ? Math.ceil(recipients.length / throttle) : 0} min</strong></div>
+              {!stats && (
+                <p className="text-xs text-destructive">
+                  Volte ao passo 2 e valide o consentimento da audiência antes de criar a campanha.
+                </p>
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -430,5 +435,14 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Stat({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
+  return (
+    <div className="rounded border bg-muted/30 px-2 py-1.5">
+      <p className="text-muted-foreground">{label}</p>
+      <p className={strong ? "text-sm font-semibold text-foreground" : "text-sm text-foreground"}>{value}</p>
+    </div>
   );
 }
