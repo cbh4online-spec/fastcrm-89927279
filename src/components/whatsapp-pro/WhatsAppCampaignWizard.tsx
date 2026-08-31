@@ -20,6 +20,8 @@ interface Props {
   onOpenChange: (v: boolean) => void;
 }
 
+type AudienceMode = "manual" | "contacts" | "leads" | "companies";
+
 export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
   const { create } = useWhatsAppCampaigns();
   const { data: templates } = useWhatsAppTemplates();
@@ -38,7 +40,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
   const [scheduledAt, setScheduledAt] = useState("");
   const [optoutFooter, setOptoutFooter] = useState(true);
 
-  const [audienceMode, setAudienceMode] = useState<"manual" | "contacts" | "leads" | "companies">("manual");
+  const [audienceMode, setAudienceMode] = useState<AudienceMode>("manual");
   const [phonesText, setPhonesText] = useState("");
   const [tagFilter, setTagFilter] = useState("");
   const [recipientPreview, setRecipientPreview] = useState<CampaignRecipientInput[]>([]);
@@ -125,6 +127,12 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
 
   const recipients =
     audienceMode === "manual" ? parseManualPhones() : recipientPreview;
+
+  const handleAudienceModeChange = (value: string) => {
+    if (value !== "manual" && value !== "contacts" && value !== "leads" && value !== "companies") return;
+    setAudienceMode(value);
+    setRecipientPreview([]);
+  };
 
   const canCreate =
     name.trim().length > 0 &&
@@ -220,8 +228,8 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
           </TabsContent>
 
           <TabsContent value="s2" className="space-y-3 mt-4">
-            <Tabs value={audienceMode} onValueChange={(v) => setAudienceMode(v as any)}>
-              <TabsList>
+            <Tabs value={audienceMode} onValueChange={handleAudienceModeChange}>
+              <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
                 <TabsTrigger value="manual">Lista manual</TabsTrigger>
                 <TabsTrigger value="contacts">Contactos</TabsTrigger>
                 <TabsTrigger value="leads">Leads</TabsTrigger>
