@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
               .from("whatsapp_scheduled_messages")
               .update({ status: "cancelled" })
               .eq("workspace_id", msg.workspace_id)
-              .eq("phone", phone)
+              .eq("to_phone", phone)
               .eq("status", "pending");
             await admin
               .from("whatsapp_sequence_enrollments")
