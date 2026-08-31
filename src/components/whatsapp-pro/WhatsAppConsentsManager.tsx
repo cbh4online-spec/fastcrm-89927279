@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import Papa from "papaparse";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,17 +16,100 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, ShieldCheck, ShieldOff } from "lucide-react";
+import { Download, Search, ShieldCheck, ShieldOff, Users, Loader2 } from "lucide-react";
 import { useWhatsAppConsents } from "@/hooks/useWhatsAppConsents";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toE164 } from "@/utils/phone";
+import { WHATSAPP_CONSENT_TEXT, WHATSAPP_CONSENT_VERSION } from "@/lib/whatsapp/consent";
 import { toast } from "sonner";
 
 export function WhatsAppConsentsManager() {
+  const { currentWorkspace } = useWorkspace();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | "granted" | "revoked">("all");
   const [source, setSource] = useState<string>("all");
+  const [bulkSource, setBulkSource] = useState("");
+  const [bulkTag, setBulkTag] = useState("");
+  const [bulkText, setBulkText] = useState(WHATSAPP_CONSENT_TEXT);
+  const [evidenceRef, setEvidenceRef] = useState("");
+  const [grantedAt, setGrantedAt] = useState("");
+  const [evidenceConfirmed, setEvidenceConfirmed] = useState(false);
+  const [bulkApplying, setBulkApplying] = useState(false);
 
-  const { consents, isLoading, revoke } = useWhatsAppConsents({ search, status, source });
+  const { consents, isLoading, revoke, refetch } = useWhatsAppConsents({ search, status, source });
   const rows = useMemo(() => consents, [consents]);
+
+  async function applyBulkConsent() {
+    if (!currentWorkspace) return;
+    if (!bulkSource.trim() && !bulkTag.trim()) {
+      toast.error("Indica pelo menos uma origem ou tag para limitar o lote");
+      return;
+    }
+    if (!grantedAt || !bulkText.trim() || !evidenceRef.trim() || !evidenceConfirmed) {
+      toast.error("Preenche a data, o texto, a referência da prova e confirma a evidência");
+      return;
+    }
+    setBulkApplying(true);
+    try {
+      const leads: Array<{ id: string; phone: string | null }> = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        let query = supabase
+          .from("leads")
+          .select("id, phone")
+          .eq("workspace_id", currentWorkspace.id)
+          .is("archived_at", null)
+          .eq("is_blocked", false)
+          .not("phone", "is", null);
+        if (bulkSource.trim()) query = query.eq("source", bulkSource.trim());
+        if (bulkTag.trim()) query = query.contains("tags", [bulkTag.trim()]);
+        const { data, error } = await query.range(from, from + pageSize - 1);
+        if (error) throw error;
+        const page = data ?? [];
+        leads.push(...page);
+        if (page.length < pageSize) break;
+      }
+
+      const unique = new Map<string, string>();
+      for (const lead of leads) {
+        const normalized = toE164(lead.phone ?? "");
+        if (normalized) unique.set(normalized, lead.id);
+      }
+      if (unique.size === 0) throw new Error("Nenhuma Lead com telefone válido corresponde aos filtros");
+
+      const now = new Date().toISOString();
+      const records = Array.from(unique.entries()).map(([phone, leadId]) => ({
+        workspace_id: currentWorkspace.id,
+        phone,
+        lead_id: leadId,
+        contact_id: null,
+        company_id: null,
+        status: "granted",
+        consent_category: "marketing",
+        consent_text: bulkText.trim(),
+        consent_version: WHATSAPP_CONSENT_VERSION,
+        source: "manual_import",
+        source_reference: evidenceRef.trim(),
+        granted_at: new Date(grantedAt).toISOString(),
+        revoked_at: null,
+        updated_at: now,
+      }));
+      for (let i = 0; i < records.length; i += 200) {
+        const { error } = await supabase.from("whatsapp_consents").upsert(
+          records.slice(i, i + 200),
+          { onConflict: "workspace_id,phone,consent_category" },
+        );
+        if (error) throw error;
+      }
+      toast.success(`${records.length} consentimentos registados com prova e auditoria`);
+      await refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha na atualização em massa");
+    } finally {
+      setBulkApplying(false);
+    }
+  }
 
   function exportCsv() {
     if (rows.length === 0) {
@@ -72,6 +158,27 @@ export function WhatsAppConsentsManager() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-4 rounded-lg border p-4">
+          <div>
+            <h3 className="flex items-center gap-2 font-medium"><Users className="h-4 w-4" /> Registar opt-in em massa</h3>
+            <p className="text-xs text-muted-foreground">Seleciona Leads por origem/tag e guarda a prova aplicada ao lote.</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1"><Label>Origem da Lead</Label><Input value={bulkSource} onChange={(e) => setBulkSource(e.target.value)} placeholder="ex.: edinforma" /></div>
+            <div className="space-y-1"><Label>Tag</Label><Input value={bulkTag} onChange={(e) => setBulkTag(e.target.value)} placeholder="ex.: pharliss" /></div>
+            <div className="space-y-1"><Label>Data do consentimento</Label><Input type="datetime-local" value={grantedAt} onChange={(e) => setGrantedAt(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Referência da prova</Label><Input value={evidenceRef} onChange={(e) => setEvidenceRef(e.target.value)} placeholder="Contrato, ficheiro, URL ou lote" /></div>
+          </div>
+          <div className="space-y-1"><Label>Texto aceite</Label><Textarea rows={3} value={bulkText} onChange={(e) => setBulkText(e.target.value)} /></div>
+          <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
+            <Checkbox checked={evidenceConfirmed} onCheckedChange={(v) => setEvidenceConfirmed(v === true)} />
+            <span>Confirmo que existe prova verificável para todas as Leads abrangidas pelo filtro.</span>
+          </label>
+          <Button onClick={applyBulkConsent} disabled={bulkApplying || !evidenceConfirmed}>
+            {bulkApplying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+            Aplicar consentimento ao lote
+          </Button>
+        </div>
         <div className="flex flex-wrap gap-2">
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
