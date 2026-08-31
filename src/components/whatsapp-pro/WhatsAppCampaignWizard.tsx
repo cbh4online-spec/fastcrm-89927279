@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
-import { Loader2, Users, FileText } from "lucide-react";
+import { Loader2, Users, FileText, ShieldCheck } from "lucide-react";
 import { toE164 } from "@/utils/phone";
 import { consentPhoneKey } from "@/lib/whatsapp/consent";
 import { fetchConsentSets } from "@/hooks/useWhatsAppConsents";
