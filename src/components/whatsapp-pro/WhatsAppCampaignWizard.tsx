@@ -78,7 +78,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       let from = 0;
 
       while (true) {
-        let query = (supabase as any)
+        let query = supabase
           .from(table)
           .select(source === "contacts" ? "id, name, phone, tags" : "id, name, phone")
           .eq("workspace_id", currentWorkspace.id)
@@ -120,8 +120,8 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       setRecipientPreview(recipients);
       const labels = { contacts: "contactos", leads: "leads", companies: "empresas" };
       toast.success(`${recipients.length} ${labels[source]} elegíveis · ${invalidCount} inválidos · ${duplicateCount} duplicados excluídos`);
-    } catch (e: any) {
-      toast.error(e.message || "Falha a carregar audiência");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Falha a carregar audiência");
     } finally {
       setLoadingPreview(false);
     }
