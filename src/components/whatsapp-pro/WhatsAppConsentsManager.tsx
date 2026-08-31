@@ -22,8 +22,8 @@ export function WhatsAppConsentsManager() {
   const [status, setStatus] = useState<"all" | "granted" | "revoked">("all");
   const [source, setSource] = useState<string>("all");
 
-  const { list, revoke } = useWhatsAppConsents({ search, status, source });
-  const rows = useMemo(() => list.data ?? [], [list.data]);
+  const { consents, isLoading, revoke } = useWhatsAppConsents({ search, status, source });
+  const rows = useMemo(() => consents, [consents]);
 
   function exportCsv() {
     if (rows.length === 0) {
@@ -103,7 +103,7 @@ export function WhatsAppConsentsManager() {
           </Select>
         </div>
 
-        {list.isLoading ? (
+        {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
           </div>
@@ -148,7 +148,7 @@ export function WhatsAppConsentsManager() {
                           variant="ghost"
                           size="sm"
                           disabled={revoke.isPending}
-                          onClick={() => revoke.mutate({ phone: r.phone })}
+                          onClick={() => revoke.mutate(r.id)}
                         >
                           <ShieldOff className="mr-1 h-4 w-4" /> Revogar
                         </Button>
