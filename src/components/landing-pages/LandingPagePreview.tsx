@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WhatsAppConsentCheckbox } from "@/components/whatsapp-pro/WhatsAppConsentCheckbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +26,7 @@ interface LandingPagePreviewProps {
   data: PreviewData;
   sections?: BuilderBlock[];
   isPublic?: boolean;
-  onFormSubmit?: (formData: { name: string; email: string; phone: string }) => Promise<void>;
+  onFormSubmit?: (formData: { name: string; email: string; phone: string; whatsappConsent: boolean }) => Promise<void>;
 }
 
 export function LandingPagePreview({ data, sections, isPublic, onFormSubmit }: LandingPagePreviewProps) {
@@ -211,8 +212,9 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-function FlatPreview({ data, isPublic, onFormSubmit }: { data: PreviewData; isPublic?: boolean; onFormSubmit?: (formData: { name: string; email: string; phone: string }) => Promise<void> }) {
+function FlatPreview({ data, isPublic, onFormSubmit }: { data: PreviewData; isPublic?: boolean; onFormSubmit?: (formData: { name: string; email: string; phone: string; whatsappConsent: boolean }) => Promise<void> }) {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
+  const [whatsappConsent, setWhatsappConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -221,7 +223,7 @@ function FlatPreview({ data, isPublic, onFormSubmit }: { data: PreviewData; isPu
     if (!onFormSubmit) return;
     setIsSubmitting(true);
     try {
-      await onFormSubmit(formData);
+      await onFormSubmit({ ...formData, whatsappConsent });
       setIsSubmitted(true);
     } finally {
       setIsSubmitting(false);
@@ -293,6 +295,9 @@ function FlatPreview({ data, isPublic, onFormSubmit }: { data: PreviewData; isPu
                     <Label htmlFor="phone">Phone (optional)</Label>
                     <Input id="phone" type="tel" placeholder="Your phone number" value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} />
                   </div>
+                  {formData.phone.trim().length > 0 && (
+                    <WhatsAppConsentCheckbox checked={whatsappConsent} onCheckedChange={setWhatsappConsent} id="lp-whatsapp-consent" />
+                  )}
                   <Button type="submit" className="w-full" style={{ backgroundColor: data.cta_color }} disabled={isSubmitting || !isPublic}>
                     {isSubmitting ? "Submitting..." : data.cta_text || "Submit"}
                   </Button>
