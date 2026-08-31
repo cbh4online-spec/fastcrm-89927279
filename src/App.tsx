@@ -69,6 +69,7 @@ const PortalDashboardPage = lazy(() => import("@/pages/public/PortalDashboardPag
 const WorkerRegisterPage = lazy(() => import("@/pages/public/WorkerRegisterPage"));
 const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPage"));
 const PublicInvoicePayPage = lazy(() => import("@/pages/public/PublicInvoicePayPage"));
+const PublicWhatsAppConsentPage = lazy(() => import("@/pages/PublicWhatsAppConsentPage"));
 
 // FastCRM V2 — premium app shell preview
 
@@ -139,6 +140,10 @@ const App = () => (
 
                 {/* Public Invoice Payment */}
                 <Route path="/pay/invoice/:token" element={<PublicInvoicePayPage />} />
+
+                {/* Recolha pública de consentimento WhatsApp */}
+                <Route path="/consentimento-whatsapp" element={<PublicWhatsAppConsentPage />} />
+
 
                 {/* Public Bio Pages */}
                 <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
