@@ -7,6 +7,7 @@ import { SmartForm, SmartFormSchema, AutomationConfig, FormSettings, FormType } 
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Json } from '@/integrations/supabase/types';
+import { WHATSAPP_CONSENT_VERSION } from '@/lib/whatsapp/consent';
 
 function parseJsonField<T>(json: Json | null, defaultValue: T): T {
   if (!json) return defaultValue;
@@ -94,18 +95,43 @@ export default function PublicFormPage() {
   const handleSubmit = async (data: Record<string, unknown>) => {
     if (!form) return;
 
+    const { __whatsapp_consent: whatsappConsent, ...payload } = data as Record<string, unknown> & {
+      __whatsapp_consent?: boolean;
+    };
+
     setIsSubmitting(true);
     try {
       const response = await supabase.functions.invoke('process-form-submission', {
         body: {
           formId: form.id,
-          data,
+          data: payload,
           workspaceId: form.workspace_id,
         },
       });
 
       if (response.error) {
         throw response.error;
+      }
+
+      if (whatsappConsent) {
+        const phoneField = form.schema.fields.find((f) => f.type === 'phone');
+        const phone = phoneField ? String(payload[phoneField.id] ?? '') : '';
+        if (phone.trim()) {
+          try {
+            await supabase.functions.invoke('whatsapp-consent-record', {
+              body: {
+                workspace_id: form.workspace_id,
+                phone,
+                accepted: true,
+                source: 'form',
+                source_reference: `form:${form.id}`,
+                consent_version: WHATSAPP_CONSENT_VERSION,
+              },
+            });
+          } catch (consentError) {
+            console.error('WhatsApp consent registration failed:', consentError);
+          }
+        }
       }
 
       console.log('Form submitted successfully:', response.data);

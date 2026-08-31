@@ -6,6 +6,7 @@ import { FunnelLegalFooter } from "@/components/funnels/FunnelLegalFooter";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
+import { WHATSAPP_CONSENT_VERSION } from "@/lib/whatsapp/consent";
 
 interface Feature {
   title: string;
@@ -65,7 +66,7 @@ export default function PublicLandingPage() {
   });
 
   const createLead = useMutation({
-    mutationFn: async (formData: { name: string; email: string; phone: string }) => {
+    mutationFn: async (formData: { name: string; email: string; phone: string; whatsappConsent: boolean }) => {
       if (!page) throw new Error("Page not loaded");
 
       // Create lead via edge function to bypass RLS
@@ -80,6 +81,26 @@ export default function PublicLandingPage() {
       });
 
       if (error) throw error;
+
+      // Registar consentimento WhatsApp (opcional, apenas se explicitamente aceite)
+      if (formData.whatsappConsent && formData.phone) {
+        try {
+          await supabase.functions.invoke("whatsapp-consent-record", {
+            body: {
+              workspace_id: page.workspace_id,
+              phone: formData.phone,
+              accepted: true,
+              source: "landing_page",
+              source_reference: `landing:${pageSlug}`,
+              consent_version: WHATSAPP_CONSENT_VERSION,
+              lead_id: (data as { lead_id?: string } | null)?.lead_id ?? null,
+            },
+          });
+        } catch (consentError) {
+          console.error("WhatsApp consent registration failed:", consentError);
+        }
+      }
+
       return data;
     },
     onSuccess: () => {

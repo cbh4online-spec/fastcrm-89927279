@@ -5,6 +5,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppOptouts } from "@/hooks/useWhatsAppCampaigns";
 import { WhatsAppOptoutsManager } from "@/components/whatsapp-pro/WhatsAppOptoutsManager";
+import { WhatsAppConsentsManager } from "@/components/whatsapp-pro/WhatsAppConsentsManager";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -161,12 +162,17 @@ export default function WhatsAppConsentPage() {
         </AlertDescription>
       </Alert>
 
-      <Tabs defaultValue="manage" className="space-y-4">
+      <Tabs defaultValue="consents" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="manage">Gestão</TabsTrigger>
+          <TabsTrigger value="consents">Consentimentos</TabsTrigger>
+          <TabsTrigger value="manage">Opt-outs</TabsTrigger>
           <TabsTrigger value="import">Importar CSV</TabsTrigger>
           <TabsTrigger value="tools">Ferramentas</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="consents">
+          <WhatsAppConsentsManager />
+        </TabsContent>
 
         <TabsContent value="manage">
           <WhatsAppOptoutsManager />

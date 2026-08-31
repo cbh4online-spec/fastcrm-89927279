@@ -12,12 +12,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
-import { Loader2, Users, FileText } from "lucide-react";
+import { Loader2, Users, FileText, ShieldCheck } from "lucide-react";
 import { toE164 } from "@/utils/phone";
+import { consentPhoneKey } from "@/lib/whatsapp/consent";
+import { fetchConsentSets } from "@/hooks/useWhatsAppConsents";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+}
+
+interface AudienceStats {
+  totalWithPhone: number;
+  withConsent: number;
+  withoutConsent: number;
+  optouts: number;
+  invalid: number;
+  duplicates: number;
+  eligible: number;
 }
 
 type AudienceMode = "manual" | "contacts" | "leads" | "companies";
@@ -45,6 +57,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
   const [tagFilter, setTagFilter] = useState("");
   const [recipientPreview, setRecipientPreview] = useState<CampaignRecipientInput[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [stats, setStats] = useState<AudienceStats | null>(null);
 
   const reset = () => {
     setStep(1);
@@ -52,7 +65,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
     setThrottle(20); setWindowStart("09:00"); setWindowEnd("20:00");
     setScheduledAt(""); setOptoutFooter(true);
     setAudienceMode("manual"); setPhonesText(""); setTagFilter("");
-    setRecipientPreview([]);
+    setRecipientPreview([]); setStats(null);
   };
 
   const parseManualPhones = (): CampaignRecipientInput[] => {
@@ -66,6 +79,36 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
         return { phone: e164?.replace(/\D/g, "") ?? "", contact_name: rest.join(" ").trim() || null };
       })
       .filter((r) => r.phone.length > 0);
+  };
+
+  /** Aplica consentimento + opt-outs à lista candidata e devolve elegíveis + contadores. */
+  const applyConsentFilter = (
+    candidates: Array<CampaignRecipientInput & { phone: string }>,
+    sets: { granted: Set<string>; revoked: Set<string>; optouts: Set<string> },
+    totalWithPhone: number,
+    invalid: number,
+    duplicates: number,
+  ): { eligible: CampaignRecipientInput[]; stats: AudienceStats } => {
+    let optouts = 0;
+    let withoutConsent = 0;
+    const eligible = candidates.filter((r) => {
+      const key = consentPhoneKey(r.phone);
+      if (sets.optouts.has(key)) { optouts += 1; return false; }
+      if (!sets.granted.has(key)) { withoutConsent += 1; return false; }
+      return true;
+    });
+    return {
+      eligible,
+      stats: {
+        totalWithPhone,
+        withConsent: eligible.length,
+        withoutConsent,
+        optouts,
+        invalid,
+        duplicates,
+        eligible: eligible.length,
+      },
+    };
   };
 
   const loadFromWorkspaceRecords = async (source: "contacts" | "leads" | "companies") => {
@@ -103,7 +146,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       const seen = new Set<string>();
       let invalidCount = 0;
       let duplicateCount = 0;
-      const recipients = records.flatMap((record) => {
+      const candidates = records.flatMap((record) => {
         const e164 = toE164(record.phone ?? "");
         const phone = e164?.replace(/\D/g, "") ?? "";
         if (!phone) { invalidCount += 1; return []; }
@@ -117,9 +160,18 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
           ...(source === "companies" ? { company_id: record.id } : {}),
         }];
       });
-      setRecipientPreview(recipients);
+
+      const sets = await fetchConsentSets(currentWorkspace.id);
+      const { eligible, stats: nextStats } = applyConsentFilter(
+        candidates, sets, records.length, invalidCount, duplicateCount,
+      );
+
+      setRecipientPreview(eligible);
+      setStats(nextStats);
       const labels = { contacts: "contactos", leads: "leads", companies: "empresas" };
-      toast.success(`${recipients.length} ${labels[source]} elegíveis · ${invalidCount} inválidos · ${duplicateCount} duplicados excluídos`);
+      toast.success(
+        `${eligible.length} ${labels[source]} com consentimento · ${nextStats.withoutConsent} sem consentimento · ${nextStats.optouts} opt-outs excluídos`,
+      );
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Falha a carregar audiência");
     } finally {
@@ -127,18 +179,47 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
     }
   };
 
-  const recipients =
-    audienceMode === "manual" ? parseManualPhones() : recipientPreview;
+  const validateManualList = async () => {
+    if (!currentWorkspace) return;
+    setLoadingPreview(true);
+    try {
+      const parsed = parseManualPhones();
+      const seen = new Set<string>();
+      let duplicates = 0;
+      const candidates = parsed.filter((r) => {
+        const key = consentPhoneKey(r.phone);
+        if (seen.has(key)) { duplicates += 1; return false; }
+        seen.add(key);
+        return true;
+      }) as Array<CampaignRecipientInput & { phone: string }>;
+
+      const sets = await fetchConsentSets(currentWorkspace.id);
+      const { eligible, stats: nextStats } = applyConsentFilter(
+        candidates, sets, parsed.length, 0, duplicates,
+      );
+      setRecipientPreview(eligible);
+      setStats(nextStats);
+      toast.success(`${eligible.length} números com consentimento · ${nextStats.withoutConsent} sem consentimento`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Falha a validar consentimento");
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const recipients = recipientPreview;
 
   const handleAudienceModeChange = (value: string) => {
     if (value !== "manual" && value !== "contacts" && value !== "leads" && value !== "companies") return;
     setAudienceMode(value);
     setRecipientPreview([]);
+    setStats(null);
   };
 
   const canCreate =
     name.trim().length > 0 &&
     messageText.trim().length > 0 &&
+    stats !== null &&
     recipients.length > 0;
 
   const submit = async () => {
@@ -242,10 +323,14 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
                 <Textarea
                   rows={8}
                   value={phonesText}
-                  onChange={(e) => setPhonesText(e.target.value)}
+                  onChange={(e) => { setPhonesText(e.target.value); setRecipientPreview([]); setStats(null); }}
                   placeholder={"351912345678 | João\n351933333333"}
                 />
-                <p className="text-xs text-muted-foreground">{parseManualPhones().length} contactos válidos</p>
+                <Button type="button" onClick={validateManualList} disabled={loadingPreview || parseManualPhones().length === 0}>
+                  {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
+                  Validar consentimento
+                </Button>
+                <p className="text-xs text-muted-foreground">{parseManualPhones().length} números válidos introduzidos</p>
               </TabsContent>
               <TabsContent value="contacts" className="space-y-2 mt-3">
                 <div className="flex gap-2">
@@ -255,25 +340,54 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
                     Carregar
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">{recipientPreview.length} contactos selecionados</p>
               </TabsContent>
               <TabsContent value="leads" className="space-y-2 mt-3">
-                <p className="text-sm text-muted-foreground">Carrega todos os Leads ativos com telefone válido. Números repetidos são enviados apenas uma vez.</p>
+                <p className="text-sm text-muted-foreground">Carrega todos os Leads ativos com telefone válido e consentimento WhatsApp confirmado.</p>
                 <Button type="button" onClick={() => loadFromWorkspaceRecords("leads")} disabled={loadingPreview}>
                   {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
                   Carregar Leads elegíveis
                 </Button>
-                <p className="text-xs text-muted-foreground">{recipientPreview.length} leads selecionados</p>
               </TabsContent>
               <TabsContent value="companies" className="space-y-2 mt-3">
-                <p className="text-sm text-muted-foreground">Carrega todas as Empresas ativas com telefone válido. Números repetidos são enviados apenas uma vez.</p>
+                <p className="text-sm text-muted-foreground">Carrega todas as Empresas ativas com telefone válido e consentimento WhatsApp confirmado.</p>
                 <Button type="button" onClick={() => loadFromWorkspaceRecords("companies")} disabled={loadingPreview}>
                   {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
                   Carregar Empresas elegíveis
                 </Button>
-                <p className="text-xs text-muted-foreground">{recipientPreview.length} empresas selecionadas</p>
               </TabsContent>
             </Tabs>
+
+            {stats && (
+              <div className="rounded-md border p-3 space-y-2" data-testid="consent-stats">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" /> Verificação de consentimento
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <Stat label="Com telefone" value={stats.totalWithPhone} />
+                  <Stat label="Com consentimento" value={stats.withConsent} />
+                  <Stat label="Sem consentimento" value={stats.withoutConsent} />
+                  <Stat label="Opt-outs" value={stats.optouts} />
+                  <Stat label="Inválidos" value={stats.invalid} />
+                  <Stat label="Duplicados" value={stats.duplicates} />
+                  <Stat label="Total elegível" value={stats.eligible} strong />
+                </div>
+                {stats.withoutConsent > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {stats.withoutConsent} destinatários foram excluídos por não terem consentimento explícito e não serão contactados.
+                  </p>
+                )}
+                {stats.eligible === 0 && (
+                  <p className="text-xs text-destructive">
+                    Não existem destinatários com consentimento. A campanha não pode ser criada.
+                  </p>
+                )}
+              </div>
+            )}
+            {!stats && (
+              <p className="text-xs text-muted-foreground">
+                Carregue a audiência para verificar consentimentos. Só destinatários com consentimento explícito podem ser incluídos.
+              </p>
+            )}
           </TabsContent>
 
           <TabsContent value="s3" className="space-y-3 mt-4">
@@ -298,8 +412,13 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
               <p className="text-xs text-muted-foreground mt-1">Vazio = inicia manualmente após criar.</p>
             </div>
             <div className="rounded-md border p-3 bg-muted/30 text-sm space-y-1">
-              <div><span className="text-muted-foreground">Destinatários:</span> <strong>{recipients.length}</strong></div>
+              <div><span className="text-muted-foreground">Destinatários com consentimento:</span> <strong>{recipients.length}</strong></div>
               <div><span className="text-muted-foreground">Tempo estimado:</span> <strong>{recipients.length > 0 ? Math.ceil(recipients.length / throttle) : 0} min</strong></div>
+              {!stats && (
+                <p className="text-xs text-destructive">
+                  Volte ao passo 2 e valide o consentimento da audiência antes de criar a campanha.
+                </p>
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -316,5 +435,14 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Stat({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
+  return (
+    <div className="rounded border bg-muted/30 px-2 py-1.5">
+      <p className="text-muted-foreground">{label}</p>
+      <p className={strong ? "text-sm font-semibold text-foreground" : "text-sm text-foreground"}>{value}</p>
+    </div>
   );
 }
