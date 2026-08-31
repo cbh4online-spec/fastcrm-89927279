@@ -94,7 +94,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
         }
         const { data, error } = await query;
         if (error) throw error;
-        const page = (data ?? []) as Array<{ id: string; name: string | null; phone: string | null; tags?: string[] | null }>;
+        const page = (data ?? []) as unknown as Array<{ id: string; name: string | null; phone: string | null; tags?: string[] | null }>;
         records.push(...page);
         if (page.length < pageSize) break;
         from += pageSize;
