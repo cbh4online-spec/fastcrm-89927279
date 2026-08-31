@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import { Loader2, Users, FileText } from "lucide-react";
+import { toE164 } from "@/utils/phone";
 
 interface Props {
   open: boolean;
@@ -37,7 +38,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
   const [scheduledAt, setScheduledAt] = useState("");
   const [optoutFooter, setOptoutFooter] = useState(true);
 
-  const [audienceMode, setAudienceMode] = useState<"manual" | "tag">("manual");
+  const [audienceMode, setAudienceMode] = useState<"manual" | "contacts" | "leads" | "companies">("manual");
   const [phonesText, setPhonesText] = useState("");
   const [tagFilter, setTagFilter] = useState("");
   const [recipientPreview, setRecipientPreview] = useState<CampaignRecipientInput[]>([]);
@@ -59,38 +60,60 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       .filter(Boolean)
       .map((line) => {
         const [phone, ...rest] = line.split(/[|\t]/);
-        return { phone: phone.replace(/\D/g, ""), contact_name: rest.join(" ").trim() || null };
+        const e164 = toE164(phone.trim());
+        return { phone: e164?.replace(/\D/g, "") ?? "", contact_name: rest.join(" ").trim() || null };
       })
-      .filter((r) => r.phone.length >= 8);
+      .filter((r) => r.phone.length > 0);
   };
 
-  const loadFromContacts = async () => {
+  const loadFromWorkspaceRecords = async (source: "contacts" | "leads" | "companies") => {
     if (!currentWorkspace) return;
     setLoadingPreview(true);
     try {
-      let q = supabase
-        .from("contacts")
-        .select("id, name, phone, tags")
-        .eq("workspace_id", currentWorkspace.id)
-        .not("phone", "is", null)
-        .limit(5000);
-      if (tagFilter.trim()) {
-        q = q.contains("tags", [tagFilter.trim()]);
+      const table = source;
+      const records: Array<{ id: string; name: string | null; phone: string | null; tags?: string[] | null }> = [];
+      const pageSize = 1000;
+      let from = 0;
+
+      while (true) {
+        let query = (supabase as any)
+          .from(table)
+          .select("id, name, phone, tags")
+          .eq("workspace_id", currentWorkspace.id)
+          .is("deleted_at", null)
+          .not("phone", "is", null)
+          .range(from, from + pageSize - 1);
+        if (source === "contacts" && tagFilter.trim()) {
+          query = query.contains("tags", [tagFilter.trim()]);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        const page = (data ?? []) as Array<{ id: string; name: string | null; phone: string | null; tags?: string[] | null }>;
+        records.push(...page);
+        if (page.length < pageSize) break;
+        from += pageSize;
       }
-      const { data, error } = await q;
-      if (error) throw error;
-      const recipients = (data ?? [])
-        .filter((c: any) => c.phone)
-        .map((c: any) => ({
-          phone: String(c.phone).replace(/\D/g, ""),
-          contact_name: c.name ?? null,
-          contact_id: c.id,
-        }))
-        .filter((r) => r.phone.length >= 8);
+
+      const seen = new Set<string>();
+      const recipients = records.flatMap((record) => {
+        const e164 = toE164(record.phone ?? "");
+        const phone = e164?.replace(/\D/g, "") ?? "";
+        if (!phone || seen.has(phone)) return [];
+        seen.add(phone);
+        return [{
+          phone,
+          contact_name: record.name ?? null,
+          ...(source === "contacts" ? { contact_id: record.id } : {}),
+          ...(source === "leads" ? { lead_id: record.id } : {}),
+          ...(source === "companies" ? { company_id: record.id } : {}),
+        }];
+      });
       setRecipientPreview(recipients);
-      toast.success(`${recipients.length} contactos carregados`);
+      const labels = { contacts: "contactos", leads: "leads", companies: "empresas" };
+      const invalidCount = records.length - recipients.length;
+      toast.success(`${recipients.length} ${labels[source]} elegíveis carregados${invalidCount ? `; ${invalidCount} inválidos ou duplicados excluídos` : ""}`);
     } catch (e: any) {
-      toast.error(e.message || "Falha a carregar contactos");
+      toast.error(e.message || "Falha a carregar audiência");
     } finally {
       setLoadingPreview(false);
     }
@@ -196,7 +219,9 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
             <Tabs value={audienceMode} onValueChange={(v) => setAudienceMode(v as any)}>
               <TabsList>
                 <TabsTrigger value="manual">Lista manual</TabsTrigger>
-                <TabsTrigger value="tag">Por tag de contacto</TabsTrigger>
+                <TabsTrigger value="contacts">Contactos</TabsTrigger>
+                <TabsTrigger value="leads">Leads</TabsTrigger>
+                <TabsTrigger value="companies">Empresas</TabsTrigger>
               </TabsList>
               <TabsContent value="manual" className="space-y-2 mt-3">
                 <Label>Telefones (um por linha; opcionalmente "telefone | nome")</Label>
@@ -208,15 +233,31 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
                 />
                 <p className="text-xs text-muted-foreground">{parseManualPhones().length} contactos válidos</p>
               </TabsContent>
-              <TabsContent value="tag" className="space-y-2 mt-3">
+              <TabsContent value="contacts" className="space-y-2 mt-3">
                 <div className="flex gap-2">
                   <Input value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} placeholder="Tag (ex: cliente-vip). Vazio = todos" />
-                  <Button type="button" onClick={loadFromContacts} disabled={loadingPreview}>
+                  <Button type="button" onClick={() => loadFromWorkspaceRecords("contacts")} disabled={loadingPreview}>
                     {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4 mr-2" />}
                     Carregar
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">{recipientPreview.length} contactos selecionados</p>
+              </TabsContent>
+              <TabsContent value="leads" className="space-y-2 mt-3">
+                <p className="text-sm text-muted-foreground">Carrega todos os Leads ativos com telefone válido. Números repetidos são enviados apenas uma vez.</p>
+                <Button type="button" onClick={() => loadFromWorkspaceRecords("leads")} disabled={loadingPreview}>
+                  {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
+                  Carregar Leads elegíveis
+                </Button>
+                <p className="text-xs text-muted-foreground">{recipientPreview.length} leads selecionados</p>
+              </TabsContent>
+              <TabsContent value="companies" className="space-y-2 mt-3">
+                <p className="text-sm text-muted-foreground">Carrega todas as Empresas ativas com telefone válido. Números repetidos são enviados apenas uma vez.</p>
+                <Button type="button" onClick={() => loadFromWorkspaceRecords("companies")} disabled={loadingPreview}>
+                  {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
+                  Carregar Empresas elegíveis
+                </Button>
+                <p className="text-xs text-muted-foreground">{recipientPreview.length} empresas selecionadas</p>
               </TabsContent>
             </Tabs>
           </TabsContent>
