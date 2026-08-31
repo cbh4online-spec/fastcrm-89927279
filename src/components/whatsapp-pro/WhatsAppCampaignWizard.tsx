@@ -78,7 +78,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       let from = 0;
 
       while (true) {
-        let query = (supabase as any)
+        let query = supabase
           .from(table)
           .select(source === "contacts" ? "id, name, phone, tags" : "id, name, phone")
           .eq("workspace_id", currentWorkspace.id)
@@ -94,17 +94,20 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
         }
         const { data, error } = await query;
         if (error) throw error;
-        const page = (data ?? []) as Array<{ id: string; name: string | null; phone: string | null; tags?: string[] | null }>;
+        const page = (data ?? []) as unknown as Array<{ id: string; name: string | null; phone: string | null; tags?: string[] | null }>;
         records.push(...page);
         if (page.length < pageSize) break;
         from += pageSize;
       }
 
       const seen = new Set<string>();
+      let invalidCount = 0;
+      let duplicateCount = 0;
       const recipients = records.flatMap((record) => {
         const e164 = toE164(record.phone ?? "");
         const phone = e164?.replace(/\D/g, "") ?? "";
-        if (!phone || seen.has(phone)) return [];
+        if (!phone) { invalidCount += 1; return []; }
+        if (seen.has(phone)) { duplicateCount += 1; return []; }
         seen.add(phone);
         return [{
           phone,
@@ -116,10 +119,9 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       });
       setRecipientPreview(recipients);
       const labels = { contacts: "contactos", leads: "leads", companies: "empresas" };
-      const invalidCount = records.length - recipients.length;
-      toast.success(`${recipients.length} ${labels[source]} elegíveis carregados${invalidCount ? `; ${invalidCount} inválidos ou duplicados excluídos` : ""}`);
-    } catch (e: any) {
-      toast.error(e.message || "Falha a carregar audiência");
+      toast.success(`${recipients.length} ${labels[source]} elegíveis · ${invalidCount} inválidos · ${duplicateCount} duplicados excluídos`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Falha a carregar audiência");
     } finally {
       setLoadingPreview(false);
     }
