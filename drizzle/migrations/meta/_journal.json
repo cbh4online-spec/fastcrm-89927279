@@ -15,6 +15,13 @@
       "when": 1788024606132,
       "tag": "0001_outreach_zapi_channel_link",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788200553902,
+      "tag": "0002_add_whatsapp_recipient_sources",
+      "breakpoints": true
     }
   ]
 }
