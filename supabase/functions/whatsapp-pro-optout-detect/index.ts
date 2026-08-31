@@ -109,7 +109,53 @@ Deno.serve(async (req) => {
           console.warn("[wa-optout] insert error", insErr.message);
         } else {
           optouts++;
+
+          // Revogar consentimento WhatsApp para este número
+          try {
+            const { data: consents } = await admin
+              .from("whatsapp_consents")
+              .select("id, phone")
+              .eq("workspace_id", msg.workspace_id)
+              .eq("status", "granted");
+            const ids = (consents ?? [])
+              .filter((c: { phone: string }) => String(c.phone).replace(/\D/g, "") === phone)
+              .map((c: { id: string }) => c.id);
+            if (ids.length > 0) {
+              await admin
+                .from("whatsapp_consents")
+                .update({ status: "revoked", revoked_at: new Date().toISOString() })
+                .in("id", ids);
+            }
+          } catch (e) {
+            console.warn("[wa-optout] consent revoke failed", (e as Error).message);
+          }
+
+          // Parar campanhas, sequências e mensagens agendadas para este telefone
+          try {
+            await admin
+              .from("whatsapp_campaign_recipients")
+              .update({ status: "skipped_optout" })
+              .eq("workspace_id", msg.workspace_id)
+              .eq("phone", phone)
+              .in("status", ["pending", "sending"]);
+            await admin
+              .from("whatsapp_scheduled_messages")
+              .update({ status: "cancelled" })
+              .eq("workspace_id", msg.workspace_id)
+              .eq("phone", phone)
+              .eq("status", "pending");
+            await admin
+              .from("whatsapp_sequence_enrollments")
+              .update({ status: "cancelled" })
+              .eq("workspace_id", msg.workspace_id)
+              .eq("phone", phone)
+              .eq("status", "active");
+          } catch (e) {
+            console.warn("[wa-optout] cancel pending failed", (e as Error).message);
+          }
+
           // Send confirmation
+
           try {
             await admin.functions.invoke("whatsapp-pro-send", {
               body: {
