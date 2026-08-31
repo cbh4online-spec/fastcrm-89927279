@@ -13,6 +13,11 @@ import type {
   AIResponse 
 } from '@/types/knowledge-base';
 import { toast } from 'sonner';
+import {
+  GOHIGHLEVEL_AUDIT_DATE,
+  GOHIGHLEVEL_KNOWLEDGE_BASES,
+  GOHIGHLEVEL_KNOWLEDGE_GAPS,
+} from '@/data/gohighlevelKnowledgeAudit';
 
 export function useKnowledgeBase() {
   const { currentWorkspace } = useWorkspace();
@@ -92,6 +97,120 @@ export function useKnowledgeBase() {
       console.error('[AI-KNOWLEDGE] PERSONAS_FETCH_FAILED', error);
     }
   }, [currentWorkspace?.id]);
+
+  const fetchFaqSuggestions = useCallback(async () => {
+    if (!currentWorkspace?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('knowledge_faq_suggestions')
+        .select('*')
+        .eq('workspace_id', currentWorkspace.id)
+        .order('frequency', { ascending: false });
+
+      if (error) throw error;
+
+      setFaqSuggestions((data || []).map(suggestion => ({
+        id: suggestion.id,
+        workspaceId: suggestion.workspace_id,
+        knowledgeBaseId: suggestion.knowledge_base_id,
+        question: suggestion.question,
+        suggestedAnswer: suggestion.suggested_answer,
+        frequency: suggestion.frequency || 1,
+        sourceQueries: suggestion.source_queries || [],
+        status: suggestion.status,
+        reviewedBy: suggestion.reviewed_by,
+        reviewedAt: suggestion.reviewed_at,
+        createdAt: suggestion.created_at,
+      })) as FAQSuggestion[]);
+    } catch (error) {
+      console.error('[AI-KNOWLEDGE] FAQ_SUGGESTIONS_FETCH_FAILED', error);
+    }
+  }, [currentWorkspace?.id]);
+
+  const importGoHighLevelAudit = async () => {
+    if (!currentWorkspace?.id || !user?.id) return null;
+
+    try {
+      const { data: existingBases, error: basesError } = await supabase
+        .from('knowledge_bases')
+        .select('id, name')
+        .eq('workspace_id', currentWorkspace.id);
+
+      if (basesError) throw basesError;
+
+      const baseIds = new Map((existingBases || []).map(base => [base.name, base.id]));
+      let createdBases = 0;
+
+      for (const base of GOHIGHLEVEL_KNOWLEDGE_BASES) {
+        if (baseIds.has(base.name)) continue;
+
+        const { data: created, error } = await supabase
+          .from('knowledge_bases')
+          .insert({
+            workspace_id: currentWorkspace.id,
+            name: base.name,
+            description: `${base.description} Auditoria GoHighLevel de ${GOHIGHLEVEL_AUDIT_DATE}.`,
+            type: base.type,
+            is_active: true,
+            allowed_channels: ['inbox', 'chat', 'email'],
+            created_by: user.id,
+          })
+          .select('id, name')
+          .single();
+
+        if (error) throw error;
+        baseIds.set(created.name, created.id);
+        createdBases += 1;
+      }
+
+      const mainBaseId = baseIds.get('myMIA Main Bot Knowledge Base');
+      if (!mainBaseId) throw new Error('Não foi possível localizar a base principal myMIA.');
+
+      const { data: existingGaps, error: gapsError } = await supabase
+        .from('knowledge_faq_suggestions')
+        .select('question')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('knowledge_base_id', mainBaseId);
+
+      if (gapsError) throw gapsError;
+
+      const existingQuestions = new Set((existingGaps || []).map(gap => gap.question));
+      const missingGaps = GOHIGHLEVEL_KNOWLEDGE_GAPS.filter(gap => !existingQuestions.has(gap.question));
+
+      if (missingGaps.length > 0) {
+        const { error } = await supabase.from('knowledge_faq_suggestions').insert(
+          missingGaps.map(gap => ({
+            workspace_id: currentWorkspace.id,
+            knowledge_base_id: mainBaseId,
+            question: gap.question,
+            suggested_answer: null,
+            frequency: gap.frequency,
+            source_queries: [`GoHighLevel · ${gap.category} · auditoria ${GOHIGHLEVEL_AUDIT_DATE}`],
+            status: 'pending',
+          }))
+        );
+        if (error) throw error;
+      }
+
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'KNOWLEDGE.GOHIGHLEVEL_AUDIT_IMPORTED',
+        entity_kind: 'knowledge_base',
+        entity_id: mainBaseId,
+        source_module: 'ai-knowledge',
+        payload: { created_bases: createdBases, created_gaps: missingGaps.length, audit_date: GOHIGHLEVEL_AUDIT_DATE },
+      });
+
+      await Promise.all([fetchKnowledgeBases(), fetchFaqSuggestions(), fetchMetrics()]);
+      toast.success(`Auditoria importada: ${createdBases} bases e ${missingGaps.length} lacunas novas`);
+      return { createdBases, createdGaps: missingGaps.length, mainBaseId };
+    } catch (error) {
+      console.error('[AI-KNOWLEDGE] GOHIGHLEVEL_IMPORT_FAILED', error);
+      toast.error('Não foi possível importar a auditoria do GoHighLevel');
+      return null;
+    }
+  };
 
   // Create knowledge base
   const createKnowledgeBase = async (data: Partial<KnowledgeBase>) => {
@@ -902,6 +1021,7 @@ export function useKnowledgeBase() {
       await Promise.all([
         fetchKnowledgeBases(),
         fetchPersonas(),
+        fetchFaqSuggestions(),
         fetchMetrics()
       ]);
       setIsLoading(false);
@@ -910,7 +1030,7 @@ export function useKnowledgeBase() {
     if (currentWorkspace?.id) {
       loadData();
     }
-  }, [currentWorkspace?.id, fetchKnowledgeBases, fetchPersonas, fetchMetrics]);
+  }, [currentWorkspace?.id, fetchKnowledgeBases, fetchPersonas, fetchFaqSuggestions, fetchMetrics]);
 
   return {
     // Data
@@ -937,6 +1057,7 @@ export function useKnowledgeBase() {
     queryKnowledge,
     semanticSearch,
     generateEmbedding,
-    refresh: () => Promise.all([fetchKnowledgeBases(), fetchPersonas(), fetchMetrics()])
+    importGoHighLevelAudit,
+    refresh: () => Promise.all([fetchKnowledgeBases(), fetchPersonas(), fetchFaqSuggestions(), fetchMetrics()])
   };
 }

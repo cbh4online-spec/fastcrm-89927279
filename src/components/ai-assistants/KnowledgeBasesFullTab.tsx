@@ -16,10 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ListChecks, Link as LinkIcon, ArrowLeft } from "lucide-react";
+import { Plus, ListChecks, Link as LinkIcon, ArrowLeft, Import, AlertTriangle } from "lucide-react";
 import { KNOWLEDGE_BASE_TYPES } from "@/types/knowledge-base";
 import type { KnowledgeEntry, KnowledgeSource } from "@/types/knowledge-base";
 import { toast } from "sonner";
+import { GOHIGHLEVEL_KNOWLEDGE_BASES, GOHIGHLEVEL_KNOWLEDGE_GAPS } from "@/data/gohighlevelKnowledgeAudit";
 
 interface KnowledgeBasesFullTabProps {
   searchValue: string;
@@ -39,12 +40,15 @@ export function KnowledgeBasesFullTab({ searchValue }: KnowledgeBasesFullTabProp
     archiveEntry,
     fetchEntries,
     fetchSources,
+    importGoHighLevelAudit,
   } = useKnowledgeBase();
 
   const [selectedKB, setSelectedKB] = useState<string | null>(null);
   const [showCreateKB, setShowCreateKB] = useState(false);
+  const [showGoHighLevelImport, setShowGoHighLevelImport] = useState(false);
   const [kbDetailTab, setKbDetailTab] = useState<'add' | 'entries' | 'sources'>('entries');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Knowledge base entries and sources for selected KB
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
@@ -168,6 +172,16 @@ export function KnowledgeBasesFullTab({ searchValue }: KnowledgeBasesFullTabProp
     setIsProcessing(false);
   };
 
+  const handleGoHighLevelImport = async () => {
+    setIsImporting(true);
+    const result = await importGoHighLevelAudit();
+    setIsImporting(false);
+    if (result) {
+      setShowGoHighLevelImport(false);
+      setSelectedKB(result.mainBaseId);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Knowledge Bases List - visible when no KB selected */}
@@ -176,10 +190,16 @@ export function KnowledgeBasesFullTab({ searchValue }: KnowledgeBasesFullTabProp
           <p className="text-sm text-muted-foreground">
             Gestão completa das bases de conhecimento que alimentam os agentes IA.
           </p>
-          <Button size="sm" onClick={() => setShowCreateKB(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Nova Base
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowGoHighLevelImport(true)}>
+              <Import className="h-4 w-4 mr-1" />
+              Importar GoHighLevel
+            </Button>
+            <Button size="sm" onClick={() => setShowCreateKB(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Nova Base
+            </Button>
+          </div>
         </div>
         <KnowledgeBaseList 
           knowledgeBases={filteredBases}
@@ -298,6 +318,45 @@ export function KnowledgeBasesFullTab({ searchValue }: KnowledgeBasesFullTabProp
             </div>
             <Button className="w-full" onClick={handleCreateKB} disabled={!kbName.trim()}>
               Criar Base
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showGoHighLevelImport} onOpenChange={setShowGoHighLevelImport}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Importar auditoria do GoHighLevel</DialogTitle>
+            <DialogDescription>
+              Replica a estrutura observada na conta My Mia e regista as perguntas sem resposta para validação humana.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border p-3">
+                <p className="text-2xl font-semibold">{GOHIGHLEVEL_KNOWLEDGE_BASES.length}</p>
+                <p className="text-sm text-muted-foreground">bases identificadas</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-2xl font-semibold">{GOHIGHLEVEL_KNOWLEDGE_GAPS.length}</p>
+                <p className="text-sm text-muted-foreground">lacunas pendentes</p>
+              </div>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <p className="text-sm font-medium mb-2">Estrutura a importar</p>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                {GOHIGHLEVEL_KNOWLEDGE_BASES.map(base => (
+                  <li key={base.name}>• {base.name}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <p>As lacunas são importadas sem respostas e não ficam disponíveis aos agentes até serem revistas e transformadas em FAQs validadas.</p>
+            </div>
+            <Button className="w-full" onClick={handleGoHighLevelImport} disabled={isImporting}>
+              <Import className="h-4 w-4 mr-2" />
+              {isImporting ? 'A importar…' : 'Importar estrutura e lacunas'}
             </Button>
           </div>
         </DialogContent>
