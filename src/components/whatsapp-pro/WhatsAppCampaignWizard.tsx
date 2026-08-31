@@ -78,11 +78,15 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       while (true) {
         let query = (supabase as any)
           .from(table)
-          .select("id, name, phone, tags")
+          .select(source === "contacts" ? "id, name, phone, tags" : "id, name, phone")
           .eq("workspace_id", currentWorkspace.id)
-          .is("deleted_at", null)
+          .is("archived_at", null)
           .not("phone", "is", null)
+          .order("created_at", { ascending: true })
           .range(from, from + pageSize - 1);
+        // "leads" não tem soft delete; contactos e empresas têm.
+        if (source !== "leads") query = query.is("deleted_at", null);
+        query = query.or("is_blocked.is.null,is_blocked.eq.false");
         if (source === "contacts" && tagFilter.trim()) {
           query = query.contains("tags", [tagFilter.trim()]);
         }
