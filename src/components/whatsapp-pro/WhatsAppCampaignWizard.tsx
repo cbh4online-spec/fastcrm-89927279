@@ -45,6 +45,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
   const [tagFilter, setTagFilter] = useState("");
   const [recipientPreview, setRecipientPreview] = useState<CampaignRecipientInput[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [stats, setStats] = useState<AudienceStats | null>(null);
 
   const reset = () => {
     setStep(1);
@@ -52,7 +53,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
     setThrottle(20); setWindowStart("09:00"); setWindowEnd("20:00");
     setScheduledAt(""); setOptoutFooter(true);
     setAudienceMode("manual"); setPhonesText(""); setTagFilter("");
-    setRecipientPreview([]);
+    setRecipientPreview([]); setStats(null);
   };
 
   const parseManualPhones = (): CampaignRecipientInput[] => {
@@ -66,6 +67,36 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
         return { phone: e164?.replace(/\D/g, "") ?? "", contact_name: rest.join(" ").trim() || null };
       })
       .filter((r) => r.phone.length > 0);
+  };
+
+  /** Aplica consentimento + opt-outs à lista candidata e devolve elegíveis + contadores. */
+  const applyConsentFilter = (
+    candidates: Array<CampaignRecipientInput & { phone: string }>,
+    sets: { granted: Set<string>; revoked: Set<string>; optouts: Set<string> },
+    totalWithPhone: number,
+    invalid: number,
+    duplicates: number,
+  ): { eligible: CampaignRecipientInput[]; stats: AudienceStats } => {
+    let optouts = 0;
+    let withoutConsent = 0;
+    const eligible = candidates.filter((r) => {
+      const key = consentPhoneKey(r.phone);
+      if (sets.optouts.has(key)) { optouts += 1; return false; }
+      if (!sets.granted.has(key)) { withoutConsent += 1; return false; }
+      return true;
+    });
+    return {
+      eligible,
+      stats: {
+        totalWithPhone,
+        withConsent: eligible.length,
+        withoutConsent,
+        optouts,
+        invalid,
+        duplicates,
+        eligible: eligible.length,
+      },
+    };
   };
 
   const loadFromWorkspaceRecords = async (source: "contacts" | "leads" | "companies") => {
@@ -103,7 +134,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       const seen = new Set<string>();
       let invalidCount = 0;
       let duplicateCount = 0;
-      const recipients = records.flatMap((record) => {
+      const candidates = records.flatMap((record) => {
         const e164 = toE164(record.phone ?? "");
         const phone = e164?.replace(/\D/g, "") ?? "";
         if (!phone) { invalidCount += 1; return []; }
@@ -117,9 +148,18 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
           ...(source === "companies" ? { company_id: record.id } : {}),
         }];
       });
-      setRecipientPreview(recipients);
+
+      const sets = await fetchConsentSets(currentWorkspace.id);
+      const { eligible, stats: nextStats } = applyConsentFilter(
+        candidates, sets, records.length, invalidCount, duplicateCount,
+      );
+
+      setRecipientPreview(eligible);
+      setStats(nextStats);
       const labels = { contacts: "contactos", leads: "leads", companies: "empresas" };
-      toast.success(`${recipients.length} ${labels[source]} elegíveis · ${invalidCount} inválidos · ${duplicateCount} duplicados excluídos`);
+      toast.success(
+        `${eligible.length} ${labels[source]} com consentimento · ${nextStats.withoutConsent} sem consentimento · ${nextStats.optouts} opt-outs excluídos`,
+      );
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Falha a carregar audiência");
     } finally {
@@ -127,18 +167,47 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
     }
   };
 
-  const recipients =
-    audienceMode === "manual" ? parseManualPhones() : recipientPreview;
+  const validateManualList = async () => {
+    if (!currentWorkspace) return;
+    setLoadingPreview(true);
+    try {
+      const parsed = parseManualPhones();
+      const seen = new Set<string>();
+      let duplicates = 0;
+      const candidates = parsed.filter((r) => {
+        const key = consentPhoneKey(r.phone);
+        if (seen.has(key)) { duplicates += 1; return false; }
+        seen.add(key);
+        return true;
+      }) as Array<CampaignRecipientInput & { phone: string }>;
+
+      const sets = await fetchConsentSets(currentWorkspace.id);
+      const { eligible, stats: nextStats } = applyConsentFilter(
+        candidates, sets, parsed.length, 0, duplicates,
+      );
+      setRecipientPreview(eligible);
+      setStats(nextStats);
+      toast.success(`${eligible.length} números com consentimento · ${nextStats.withoutConsent} sem consentimento`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Falha a validar consentimento");
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const recipients = recipientPreview;
 
   const handleAudienceModeChange = (value: string) => {
     if (value !== "manual" && value !== "contacts" && value !== "leads" && value !== "companies") return;
     setAudienceMode(value);
     setRecipientPreview([]);
+    setStats(null);
   };
 
   const canCreate =
     name.trim().length > 0 &&
     messageText.trim().length > 0 &&
+    stats !== null &&
     recipients.length > 0;
 
   const submit = async () => {
