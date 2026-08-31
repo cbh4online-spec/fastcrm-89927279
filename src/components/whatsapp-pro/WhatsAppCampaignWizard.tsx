@@ -101,10 +101,13 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       }
 
       const seen = new Set<string>();
+      let invalidCount = 0;
+      let duplicateCount = 0;
       const recipients = records.flatMap((record) => {
         const e164 = toE164(record.phone ?? "");
         const phone = e164?.replace(/\D/g, "") ?? "";
-        if (!phone || seen.has(phone)) return [];
+        if (!phone) { invalidCount += 1; return []; }
+        if (seen.has(phone)) { duplicateCount += 1; return []; }
         seen.add(phone);
         return [{
           phone,
@@ -116,8 +119,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       });
       setRecipientPreview(recipients);
       const labels = { contacts: "contactos", leads: "leads", companies: "empresas" };
-      const invalidCount = records.length - recipients.length;
-      toast.success(`${recipients.length} ${labels[source]} elegíveis carregados${invalidCount ? `; ${invalidCount} inválidos ou duplicados excluídos` : ""}`);
+      toast.success(`${recipients.length} ${labels[source]} elegíveis · ${invalidCount} inválidos · ${duplicateCount} duplicados excluídos`);
     } catch (e: any) {
       toast.error(e.message || "Falha a carregar audiência");
     } finally {
