@@ -97304,6 +97304,7 @@ export type Database = {
         Row: {
           attempts: number
           campaign_id: string
+          company_id: string | null
           contact_id: string | null
           contact_name: string | null
           created_at: string
@@ -97311,6 +97312,7 @@ export type Database = {
           error_message: string | null
           failed_at: string | null
           id: string
+          lead_id: string | null
           phone: string
           provider_message_id: string | null
           read_at: string | null
@@ -97323,6 +97325,7 @@ export type Database = {
         Insert: {
           attempts?: number
           campaign_id: string
+          company_id?: string | null
           contact_id?: string | null
           contact_name?: string | null
           created_at?: string
@@ -97330,6 +97333,7 @@ export type Database = {
           error_message?: string | null
           failed_at?: string | null
           id?: string
+          lead_id?: string | null
           phone: string
           provider_message_id?: string | null
           read_at?: string | null
@@ -97342,6 +97346,7 @@ export type Database = {
         Update: {
           attempts?: number
           campaign_id?: string
+          company_id?: string | null
           contact_id?: string | null
           contact_name?: string | null
           created_at?: string
@@ -97349,6 +97354,7 @@ export type Database = {
           error_message?: string | null
           failed_at?: string | null
           id?: string
+          lead_id?: string | null
           phone?: string
           provider_message_id?: string | null
           read_at?: string | null
@@ -97364,6 +97370,20 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaign_recipients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaign_recipients_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
