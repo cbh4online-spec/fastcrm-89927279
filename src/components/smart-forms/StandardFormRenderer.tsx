@@ -134,7 +134,7 @@ export function StandardFormRenderer({
           </Select>
         );
 
-      case 'multiselect':
+      case 'multiselect': {
         const selectedValues = Array.isArray(value) ? value : [];
         return (
           <div className="space-y-2">
