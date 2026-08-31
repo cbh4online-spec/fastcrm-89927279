@@ -7,6 +7,11 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  build: {
+    // The app has thousands of modules. Calculating gzip sizes for every chunk
+    // can exhaust the memory available in Lovable's production builder.
+    reportCompressedSize: false,
+  },
   server: {
     host: "0.0.0.0",
     port: 8080,
