@@ -215,6 +215,21 @@ async function processCampaign(supabase: any, c: Campaign): Promise<{ sent: numb
       continue;
     }
 
+    // Fail-closed: revalidar consentimento explícito imediatamente antes do envio
+    const { data: hasConsent, error: consentErr } = await supabase.rpc("has_whatsapp_consent", {
+      _workspace_id: c.workspace_id,
+      _phone: r.phone,
+    });
+    if (consentErr || hasConsent !== true) {
+      await supabase
+        .from("whatsapp_campaign_recipients")
+        .update({ status: "skipped_optout", error_message: "sem consentimento WhatsApp" })
+        .eq("id", r.id);
+      continue;
+    }
+
+
+
     const result = await sendOne(creds, c, r);
     if (result.ok) {
       sent++;
