@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Check, Loader2, Sparkles } from 'lucide-react';
 import { SmartFormField, SmartFormSchema } from '@/types/smartForm';
+import { WhatsAppConsentCheckbox } from '@/components/whatsapp-pro/WhatsAppConsentCheckbox';
 import { cn } from '@/lib/utils';
 
 interface StandardFormRendererProps {
@@ -31,8 +32,11 @@ export function StandardFormRenderer({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isComplete, setIsComplete] = useState(false);
   const [showEnrichmentHint, setShowEnrichmentHint] = useState(false);
+  const [whatsappConsent, setWhatsappConsent] = useState(false);
 
   const fields = schema.fields;
+  const phoneField = fields.find((f) => f.type === 'phone');
+  const phoneValue = phoneField ? String(formData[phoneField.id] ?? '') : '';
 
   const handleFieldChange = (fieldId: string, value: unknown, field: SmartFormField) => {
     setFormData(prev => ({ ...prev, [fieldId]: value }));
@@ -83,7 +87,7 @@ export function StandardFormRenderer({
     if (!validateForm()) return;
 
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, __whatsapp_consent: whatsappConsent });
       setIsComplete(true);
     } catch (error) {
       console.error('Form submission error:', error);
@@ -277,6 +281,14 @@ export function StandardFormRenderer({
               )}
             </div>
           ))}
+
+          {phoneField && phoneValue.trim().length > 0 && (
+            <WhatsAppConsentCheckbox
+              checked={whatsappConsent}
+              onCheckedChange={setWhatsappConsent}
+              id="form-whatsapp-consent"
+            />
+          )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? (
