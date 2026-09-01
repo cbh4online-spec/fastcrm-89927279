@@ -51,6 +51,29 @@ export function WhatsAppConsentsManager() {
   const { consents, isLoading, revoke, refetch } = useWhatsAppConsents({ search, status, source });
   const rows = useMemo(() => consents, [consents]);
 
+  // Contagens globais do workspace (independentes dos filtros da tabela).
+  const { data: counts = { granted: 0, revoked: 0, pending: 0 } } = useQuery({
+    queryKey: ["whatsapp-consent-counts", currentWorkspace?.id],
+    enabled: !!currentWorkspace,
+    queryFn: async () => {
+      const wsId = currentWorkspace!.id;
+      const [granted, revoked, leadsWithPhone] = await Promise.all([
+        supabase.from("whatsapp_consents").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wsId).eq("status", "granted"),
+        supabase.from("whatsapp_consents").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wsId).eq("status", "revoked"),
+        supabase.from("leads").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wsId).is("archived_at", null).not("phone", "is", null),
+      ]);
+      const grantedCount = granted.count ?? 0;
+      return {
+        granted: grantedCount,
+        revoked: revoked.count ?? 0,
+        pending: Math.max((leadsWithPhone.count ?? 0) - grantedCount, 0),
+      };
+    },
+  });
+
   async function applyBulkConsent() {
     if (!currentWorkspace) return;
     if (!bulkSource.trim() && !bulkTag.trim()) {
