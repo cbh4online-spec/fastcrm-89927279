@@ -16,6 +16,7 @@ import { Loader2, Users, FileText, ShieldCheck } from "lucide-react";
 import { toE164 } from "@/utils/phone";
 import { consentPhoneKey } from "@/lib/whatsapp/consent";
 import { fetchConsentSets } from "@/hooks/useWhatsAppConsents";
+import { supportsTagFilter, normalizedTagFilter, originKey } from "./campaignAudience";
 
 interface Props {
   open: boolean;
@@ -123,7 +124,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
       while (true) {
         let query = supabase
           .from(table)
-          .select(source === "contacts" ? "id, name, phone, tags" : "id, name, phone")
+          .select(supportsTagFilter(source) ? "id, name, phone, tags" : "id, name, phone")
           .eq("workspace_id", currentWorkspace.id)
           .is("archived_at", null)
           .not("phone", "is", null)
@@ -132,8 +133,9 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
         // "leads" não tem soft delete; contactos e empresas têm.
         if (source !== "leads") query = query.is("deleted_at", null);
         query = query.or("is_blocked.is.null,is_blocked.eq.false");
-        if (source === "contacts" && tagFilter.trim()) {
-          query = query.contains("tags", [tagFilter.trim()]);
+        const tag = normalizedTagFilter(source, tagFilter);
+        if (tag) {
+          query = query.contains("tags", [tag]);
         }
         const { data, error } = await query;
         if (error) throw error;
@@ -155,9 +157,7 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
         return [{
           phone,
           contact_name: record.name ?? null,
-          ...(source === "contacts" ? { contact_id: record.id } : {}),
-          ...(source === "leads" ? { lead_id: record.id } : {}),
-          ...(source === "companies" ? { company_id: record.id } : {}),
+          [originKey(source)]: record.id,
         }];
       });
 
@@ -212,6 +212,13 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
   const handleAudienceModeChange = (value: string) => {
     if (value !== "manual" && value !== "contacts" && value !== "leads" && value !== "companies") return;
     setAudienceMode(value);
+    setRecipientPreview([]);
+    setStats(null);
+  };
+
+  /** Alterar a tag invalida a audiência carregada (evita usar resultados de outro filtro). */
+  const handleTagFilterChange = (value: string) => {
+    setTagFilter(value);
     setRecipientPreview([]);
     setStats(null);
   };
@@ -334,7 +341,13 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
               </TabsContent>
               <TabsContent value="contacts" className="space-y-2 mt-3">
                 <div className="flex gap-2">
-                  <Input value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} placeholder="Tag (ex: cliente-vip). Vazio = todos" />
+                  <Input
+                    data-testid="tag-filter-contacts"
+                    aria-label="Filtrar contactos por tag"
+                    value={tagFilter}
+                    onChange={(e) => handleTagFilterChange(e.target.value)}
+                    placeholder="Tag (ex: cliente-vip). Vazio = todos"
+                  />
                   <Button type="button" onClick={() => loadFromWorkspaceRecords("contacts")} disabled={loadingPreview}>
                     {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4 mr-2" />}
                     Carregar
@@ -342,12 +355,22 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
                 </div>
               </TabsContent>
               <TabsContent value="leads" className="space-y-2 mt-3">
-                <p className="text-sm text-muted-foreground">Carrega todos os Leads ativos com telefone válido e consentimento WhatsApp confirmado.</p>
-                <Button type="button" onClick={() => loadFromWorkspaceRecords("leads")} disabled={loadingPreview}>
-                  {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
-                  Carregar Leads elegíveis
-                </Button>
+                <p className="text-sm text-muted-foreground">Carrega os Leads ativos com telefone válido e consentimento WhatsApp confirmado. Filtra por tag exata (ex.: ghl) ou deixa vazio para todos.</p>
+                <div className="flex gap-2">
+                  <Input
+                    data-testid="tag-filter-leads"
+                    aria-label="Filtrar leads por tag"
+                    value={tagFilter}
+                    onChange={(e) => handleTagFilterChange(e.target.value)}
+                    placeholder="Tag (ex: ghl). Vazio = todos"
+                  />
+                  <Button type="button" onClick={() => loadFromWorkspaceRecords("leads")} disabled={loadingPreview}>
+                    {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4 mr-2" />}
+                    Carregar Leads elegíveis
+                  </Button>
+                </div>
               </TabsContent>
+
               <TabsContent value="companies" className="space-y-2 mt-3">
                 <p className="text-sm text-muted-foreground">Carrega todas as Empresas ativas com telefone válido e consentimento WhatsApp confirmado.</p>
                 <Button type="button" onClick={() => loadFromWorkspaceRecords("companies")} disabled={loadingPreview}>
