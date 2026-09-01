@@ -10,7 +10,7 @@
  * pelo `useCapability` hook, não pela matriz.
  */
 
-import type { WorkspaceRole } from "@/contexts/WorkspaceContext";
+import type { WorkspaceRole } from "./workspaceRole";
 
 export const CAPABILITIES = [
   // Workspace administration

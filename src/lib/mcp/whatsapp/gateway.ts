@@ -6,7 +6,7 @@
  * usa o cliente Supabase autenticado com o utilizador do token OAuth (RLS).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { WorkspaceRole } from "@/contexts/WorkspaceContext";
+import type { WorkspaceRole } from "../../permissions/workspaceRole";
 
 export interface ResolvedEntity {
   kind: "contact" | "lead";
