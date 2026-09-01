@@ -98106,6 +98106,36 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_mcp_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          idempotency_key: string
+          result: Json
+          tool: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idempotency_key: string
+          result?: Json
+          tool: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idempotency_key?: string
+          result?: Json
+          tool?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_optouts: {
         Row: {
           created_at: string

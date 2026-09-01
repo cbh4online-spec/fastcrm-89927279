@@ -33,6 +33,8 @@ interface SendBody {
   buttons?: ButtonOption[];
   buttonHeader?: string;
   buttonFooter?: string;
+  /** Atraso de digitação (segundos, 1-15) suportado pelo Z-API. */
+  delayMessage?: number;
 }
 
 function jsonRes(body: Record<string, unknown>, status = 200) {
@@ -220,6 +222,12 @@ Deno.serve(async (req) => {
       // Text
       zapiPath = '/send-text';
       zapiBody = { ...destPayload, message };
+    }
+
+    // Atraso de digitação opcional (aplicável a texto e media)
+    const delaySeconds = Number((body as SendBody).delayMessage);
+    if (Number.isFinite(delaySeconds) && delaySeconds >= 1 && delaySeconds <= 15) {
+      zapiBody.delayMessage = Math.round(delaySeconds);
     }
 
     console.log(`[zapi-send] ws=${workspaceId} to=${targetPhone || targetGroupId} type=${buttons ? 'buttons' : media?.type || 'text'}`);

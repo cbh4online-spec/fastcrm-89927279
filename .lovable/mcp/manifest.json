@@ -364,6 +364,324 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "send_whatsapp_text",
+        "title": "Enviar mensagem WhatsApp",
+        "description": "Envia uma mensagem de texto por WhatsApp (WhatsApp Pro) para um telefone, contacto ou lead do workspace. Marketing exige consentimento explícito; opt-outs bloqueiam sempre o envio.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "phone": {
+              "type": "string",
+              "maxLength": 32,
+              "description": "Telefone do destinatário (formato internacional)."
+            },
+            "contact_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do contacto CRM (alternativa a phone)."
+            },
+            "lead_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID da lead (alternativa a phone)."
+            },
+            "purpose": {
+              "type": "string",
+              "enum": [
+                "transactional",
+                "marketing"
+              ],
+              "description": "Finalidade do envio. 'marketing' exige consentimento explícito. Predefinição: marketing."
+            },
+            "idempotency_key": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Chave de idempotência opcional."
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Texto da mensagem."
+            },
+            "delay_message": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 15,
+              "description": "Atraso de digitação em segundos antes da entrega (1-15)."
+            }
+          },
+          "required": [
+            "workspace_id",
+            "message"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "send_whatsapp_image",
+        "title": "Enviar imagem WhatsApp",
+        "description": "Envia uma imagem por WhatsApp (WhatsApp Pro) para um telefone, contacto ou lead do workspace. O URL tem de ser HTTPS público. Marketing exige consentimento explícito.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "phone": {
+              "type": "string",
+              "maxLength": 32,
+              "description": "Telefone do destinatário (formato internacional)."
+            },
+            "contact_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do contacto CRM (alternativa a phone)."
+            },
+            "lead_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID da lead (alternativa a phone)."
+            },
+            "purpose": {
+              "type": "string",
+              "enum": [
+                "transactional",
+                "marketing"
+              ],
+              "description": "Finalidade do envio. 'marketing' exige consentimento explícito. Predefinição: marketing."
+            },
+            "idempotency_key": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Chave de idempotência opcional."
+            },
+            "image_url": {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048,
+              "description": "URL HTTPS público da imagem (jpg, png, webp, gif)."
+            },
+            "caption": {
+              "type": "string",
+              "maxLength": 1024,
+              "description": "Legenda da imagem."
+            }
+          },
+          "required": [
+            "workspace_id",
+            "image_url"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "send_whatsapp_video",
+        "title": "Enviar vídeo WhatsApp",
+        "description": "Envia um vídeo por WhatsApp (WhatsApp Pro) para um telefone, contacto ou lead do workspace. O URL tem de ser HTTPS público. Marketing exige consentimento explícito.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "phone": {
+              "type": "string",
+              "maxLength": 32,
+              "description": "Telefone do destinatário (formato internacional)."
+            },
+            "contact_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do contacto CRM (alternativa a phone)."
+            },
+            "lead_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID da lead (alternativa a phone)."
+            },
+            "purpose": {
+              "type": "string",
+              "enum": [
+                "transactional",
+                "marketing"
+              ],
+              "description": "Finalidade do envio. 'marketing' exige consentimento explícito. Predefinição: marketing."
+            },
+            "idempotency_key": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Chave de idempotência opcional."
+            },
+            "video_url": {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048,
+              "description": "URL HTTPS público do vídeo (mp4, mov, webm, 3gp)."
+            },
+            "caption": {
+              "type": "string",
+              "maxLength": 1024,
+              "description": "Legenda do vídeo."
+            }
+          },
+          "required": [
+            "workspace_id",
+            "video_url"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_whatsapp_conversation",
+        "title": "Ler conversa WhatsApp",
+        "description": "Devolve o histórico recente de uma conversa WhatsApp do workspace, identificada por telefone, contacto ou lead. Apenas leitura.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "phone": {
+              "type": "string",
+              "maxLength": 32,
+              "description": "Telefone do destinatário (formato internacional)."
+            },
+            "contact_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do contacto CRM (alternativa a phone)."
+            },
+            "lead_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID da lead (alternativa a phone)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "description": "Número máximo de mensagens (mais recentes)."
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "schedule_whatsapp_message",
+        "title": "Agendar mensagem WhatsApp",
+        "description": "Agenda uma mensagem WhatsApp no scheduler existente do WhatsApp Pro. O envio é revalidado (consentimento e opt-out) no momento do disparo.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do workspace (ver list_workspaces)."
+            },
+            "phone": {
+              "type": "string",
+              "maxLength": 32,
+              "description": "Telefone do destinatário (formato internacional)."
+            },
+            "contact_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do contacto CRM (alternativa a phone)."
+            },
+            "lead_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID da lead (alternativa a phone)."
+            },
+            "purpose": {
+              "type": "string",
+              "enum": [
+                "transactional",
+                "marketing"
+              ],
+              "description": "Finalidade do envio. 'marketing' exige consentimento explícito. Predefinição: marketing."
+            },
+            "idempotency_key": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Chave de idempotência opcional."
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Texto da mensagem a agendar."
+            },
+            "scheduled_at": {
+              "type": "string",
+              "maxLength": 40,
+              "description": "Data/hora ISO 8601 (UTC) do envio, no futuro e até 1 ano."
+            }
+          },
+          "required": [
+            "workspace_id",
+            "message",
+            "scheduled_at"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }

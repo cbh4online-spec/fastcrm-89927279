@@ -33,6 +33,7 @@ interface SendPayload {
   buttons?: { id?: string; type?: string; label: string; url?: string }[];
   buttonHeader?: string;
   buttonFooter?: string;
+  delayMessage?: number;
   metadata?: Record<string, unknown>;
 }
 
@@ -122,6 +123,7 @@ Deno.serve(async (req) => {
         groupId: body.groupId || undefined,
         conversationId: body.conversationId ?? undefined,
         message: body.text,
+        delayMessage: body.delayMessage,
       };
       const validCtaUrl = body.ctaUrl && /^https?:\/\//i.test(body.ctaUrl) ? body.ctaUrl : null;
       if (body.buttons?.length) {
