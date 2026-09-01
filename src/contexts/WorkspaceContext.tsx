@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 
-export type WorkspaceRole = "owner" | "admin" | "agent" | "viewer" | "agency" | "hr";
+export type { WorkspaceRole } from "@/lib/permissions/workspaceRole";
 export type WorkspaceUiMode = "auto" | "fastcrm";
 
 export interface Workspace {
