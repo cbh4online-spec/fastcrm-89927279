@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppOptouts } from "@/hooks/useWhatsAppCampaigns";
 import { WhatsAppOptoutsManager } from "@/components/whatsapp-pro/WhatsAppOptoutsManager";
 import { WhatsAppConsentsManager } from "@/components/whatsapp-pro/WhatsAppConsentsManager";
+import { WhatsAppConsentImportCard } from "@/components/whatsapp-pro/WhatsAppConsentImportCard";
+import { WhatsAppConsentLinksCard } from "@/components/whatsapp-pro/WhatsAppConsentLinksCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -165,6 +167,8 @@ export default function WhatsAppConsentPage() {
       <Tabs defaultValue="consents" className="space-y-4">
         <TabsList>
           <TabsTrigger value="consents">Consentimentos</TabsTrigger>
+          <TabsTrigger value="links">Links de opt-in</TabsTrigger>
+          <TabsTrigger value="import-consents">Importar consentimentos</TabsTrigger>
           <TabsTrigger value="manage">Opt-outs</TabsTrigger>
           <TabsTrigger value="import">Importar CSV</TabsTrigger>
           <TabsTrigger value="tools">Ferramentas</TabsTrigger>
@@ -172,6 +176,14 @@ export default function WhatsAppConsentPage() {
 
         <TabsContent value="consents">
           <WhatsAppConsentsManager />
+        </TabsContent>
+
+        <TabsContent value="links">
+          <WhatsAppConsentLinksCard />
+        </TabsContent>
+
+        <TabsContent value="import-consents">
+          <WhatsAppConsentImportCard />
         </TabsContent>
 
         <TabsContent value="manage">

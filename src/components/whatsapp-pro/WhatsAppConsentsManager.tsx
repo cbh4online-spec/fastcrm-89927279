@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Papa from "papaparse";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Download, Search, ShieldCheck, ShieldOff, Users, Loader2 } from "lucide-react";
 import { useWhatsAppConsents } from "@/hooks/useWhatsAppConsents";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -39,6 +51,29 @@ export function WhatsAppConsentsManager() {
 
   const { consents, isLoading, revoke, refetch } = useWhatsAppConsents({ search, status, source });
   const rows = useMemo(() => consents, [consents]);
+
+  // Contagens globais do workspace (independentes dos filtros da tabela).
+  const { data: counts = { granted: 0, revoked: 0, pending: 0 } } = useQuery({
+    queryKey: ["whatsapp-consent-counts", currentWorkspace?.id],
+    enabled: !!currentWorkspace,
+    queryFn: async () => {
+      const wsId = currentWorkspace!.id;
+      const [granted, revoked, leadsWithPhone] = await Promise.all([
+        supabase.from("whatsapp_consents").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wsId).eq("status", "granted"),
+        supabase.from("whatsapp_consents").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wsId).eq("status", "revoked"),
+        supabase.from("leads").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wsId).is("archived_at", null).not("phone", "is", null),
+      ]);
+      const grantedCount = granted.count ?? 0;
+      return {
+        granted: grantedCount,
+        revoked: revoked.count ?? 0,
+        pending: Math.max((leadsWithPhone.count ?? 0) - grantedCount, 0),
+      };
+    },
+  });
 
   async function applyBulkConsent() {
     if (!currentWorkspace) return;
@@ -158,6 +193,11 @@ export function WhatsAppConsentsManager() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-2" data-testid="consent-counts">
+          <CountCard label="Concedidos" value={counts.granted} />
+          <CountCard label="Revogados" value={counts.revoked} />
+          <CountCard label="Pendentes (Leads sem consentimento)" value={counts.pending} />
+        </div>
         <div className="space-y-4 rounded-lg border p-4">
           <div>
             <h3 className="flex items-center gap-2 font-medium"><Users className="h-4 w-4" /> Registar opt-in em massa</h3>
@@ -251,14 +291,25 @@ export function WhatsAppConsentsManager() {
                     </TableCell>
                     <TableCell className="text-right">
                       {r.status === "granted" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={revoke.isPending}
-                          onClick={() => revoke.mutate(r.id)}
-                        >
-                          <ShieldOff className="mr-1 h-4 w-4" /> Revogar
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" disabled={revoke.isPending}>
+                              <ShieldOff className="mr-1 h-4 w-4" /> Revogar
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Revogar consentimento?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                O número {r.phone} deixa de ser elegível para campanhas WhatsApp. A ação fica registada como prova.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => revoke.mutate(r.id)}>Revogar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </TableCell>
                   </TableRow>
@@ -269,5 +320,14 @@ export function WhatsAppConsentsManager() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function CountCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-xl font-semibold">{value}</div>
+    </div>
   );
 }

@@ -396,7 +396,10 @@ export function WhatsAppCampaignWizard({ open, onOpenChange }: Props) {
                 </div>
                 {stats.withoutConsent > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    {stats.withoutConsent} destinatários foram excluídos por não terem consentimento explícito e não serão contactados.
+                    {stats.withoutConsent} destinatários foram excluídos por não terem consentimento explícito e não serão contactados.{" "}
+                    <a href="/dashboard/whatsapp-pro/consent" className="underline" data-testid="consent-screen-link">
+                      Gerir consentimentos
+                    </a>
                   </p>
                 )}
                 {stats.eligible === 0 && (
