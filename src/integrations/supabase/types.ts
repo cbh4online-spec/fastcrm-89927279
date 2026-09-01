@@ -97665,6 +97665,169 @@ export type Database = {
           },
         ]
       }
+      whatsapp_consent_import_batches: {
+        Row: {
+          accepted_rows: number
+          created_at: string
+          created_by: string | null
+          dry_run: boolean
+          duplicate_rows: number
+          existing_rows: number
+          file_name: string | null
+          id: string
+          rejected_rows: number
+          summary: Json
+          total_rows: number
+          without_lead_rows: number
+          workspace_id: string
+        }
+        Insert: {
+          accepted_rows?: number
+          created_at?: string
+          created_by?: string | null
+          dry_run?: boolean
+          duplicate_rows?: number
+          existing_rows?: number
+          file_name?: string | null
+          id?: string
+          rejected_rows?: number
+          summary?: Json
+          total_rows?: number
+          without_lead_rows?: number
+          workspace_id: string
+        }
+        Update: {
+          accepted_rows?: number
+          created_at?: string
+          created_by?: string | null
+          dry_run?: boolean
+          duplicate_rows?: number
+          existing_rows?: number
+          file_name?: string | null
+          id?: string
+          rejected_rows?: number
+          summary?: Json
+          total_rows?: number
+          without_lead_rows?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_consent_import_batches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consent_import_batches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consent_import_batches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consent_import_batches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_consent_links: {
+        Row: {
+          brand_name: string | null
+          campaign_reference: string | null
+          consent_category: string
+          consent_text: string
+          consent_version: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          label: string
+          privacy_policy_url: string | null
+          submission_count: number
+          token: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          brand_name?: string | null
+          campaign_reference?: string | null
+          consent_category?: string
+          consent_text: string
+          consent_version?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          privacy_policy_url?: string | null
+          submission_count?: number
+          token: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          brand_name?: string | null
+          campaign_reference?: string | null
+          consent_category?: string
+          consent_text?: string
+          consent_version?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          privacy_policy_url?: string | null
+          submission_count?: number
+          token?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_consent_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consent_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consent_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_consent_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_consents: {
         Row: {
           company_id: string | null

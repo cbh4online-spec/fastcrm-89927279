@@ -16,6 +16,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Download, Search, ShieldCheck, ShieldOff, Users, Loader2 } from "lucide-react";
 import { useWhatsAppConsents } from "@/hooks/useWhatsAppConsents";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -158,6 +169,11 @@ export function WhatsAppConsentsManager() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-2" data-testid="consent-counts">
+          <CountCard label="Concedidos" value={counts.granted} />
+          <CountCard label="Revogados" value={counts.revoked} />
+          <CountCard label="Pendentes (Leads sem consentimento)" value={counts.pending} />
+        </div>
         <div className="space-y-4 rounded-lg border p-4">
           <div>
             <h3 className="flex items-center gap-2 font-medium"><Users className="h-4 w-4" /> Registar opt-in em massa</h3>
@@ -251,14 +267,25 @@ export function WhatsAppConsentsManager() {
                     </TableCell>
                     <TableCell className="text-right">
                       {r.status === "granted" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={revoke.isPending}
-                          onClick={() => revoke.mutate(r.id)}
-                        >
-                          <ShieldOff className="mr-1 h-4 w-4" /> Revogar
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" disabled={revoke.isPending}>
+                              <ShieldOff className="mr-1 h-4 w-4" /> Revogar
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Revogar consentimento?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                O número {r.phone} deixa de ser elegível para campanhas WhatsApp. A ação fica registada como prova.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => revoke.mutate(r.id)}>Revogar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </TableCell>
                   </TableRow>

@@ -29,6 +29,13 @@
       "when": 1788214406260,
       "tag": "0003_create_whatsapp_consents",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788222098471,
+      "tag": "0004_whatsapp_consent_links_and_import_batches",
+      "breakpoints": true
     }
   ]
 }
