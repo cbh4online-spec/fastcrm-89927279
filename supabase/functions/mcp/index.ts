@@ -391,7 +391,79 @@ function createSupabaseWhatsAppGateway(supabase, userId) {
 
 // src/lib/mcp/whatsapp/policy.ts
 import { parsePhoneNumberFromString } from "npm:libphonenumber-js@^1.12.41";
-import { roleHasCapability } from "npm:@/lib/permissions/capabilities";
+
+// src/lib/permissions/capabilities.ts
+var CAPABILITIES = [
+  // Workspace administration
+  "workspace.manage",
+  "workspace.billing",
+  "members.manage",
+  // Integrations / config
+  "integrations.manage",
+  "ai.configure",
+  // Finance
+  "finance.view",
+  "finance.manage",
+  // CRM
+  "crm.read",
+  "crm.write",
+  "crm.delete",
+  "crm.bulk_export",
+  // Inbox / comms
+  "inbox.read",
+  "inbox.reply",
+  // Catalog
+  "catalog.read",
+  "catalog.write",
+  // Reports
+  "reports.operational",
+  "reports.executive",
+  // Restricted modules
+  "hr.access",
+  "security.access",
+  "audit.view",
+  // Renting / Financiamento
+  "rentals.view",
+  "rentals.manage"
+];
+var ALL = [...CAPABILITIES];
+var ROLE_CAPABILITIES = {
+  owner: ALL,
+  admin: ALL.filter((c) => c !== "workspace.billing"),
+  agency: ALL.filter((c) => c !== "workspace.billing"),
+  hr: [
+    "crm.read",
+    "crm.write",
+    "inbox.read",
+    "inbox.reply",
+    "catalog.read",
+    "reports.operational",
+    "hr.access"
+  ],
+  agent: [
+    "crm.read",
+    "crm.write",
+    "inbox.read",
+    "inbox.reply",
+    "catalog.read",
+    "reports.operational",
+    "rentals.view"
+  ],
+  viewer: [
+    "crm.read",
+    "inbox.read",
+    "catalog.read",
+    "reports.operational",
+    "finance.view",
+    "rentals.view"
+  ]
+};
+function roleHasCapability(role, cap) {
+  if (!role) return false;
+  return ROLE_CAPABILITIES[role]?.includes(cap) ?? false;
+}
+
+// src/lib/mcp/whatsapp/policy.ts
 var McpWhatsAppError = class extends Error {
   constructor(code, message) {
     super(message);

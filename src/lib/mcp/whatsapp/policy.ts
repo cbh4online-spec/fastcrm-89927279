@@ -5,8 +5,8 @@
  * e cobertas por testes unitários.
  */
 import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js";
-import { roleHasCapability, type Capability } from "@/lib/permissions/capabilities";
-import type { WorkspaceRole } from "@/contexts/WorkspaceContext";
+import { roleHasCapability, type Capability } from "../../permissions/capabilities";
+import type { WorkspaceRole } from "../../permissions/workspaceRole";
 
 export type McpWhatsAppPurpose = "transactional" | "marketing";
 
