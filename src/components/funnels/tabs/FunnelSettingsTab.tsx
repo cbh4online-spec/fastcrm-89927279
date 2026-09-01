@@ -9,6 +9,8 @@ import { useFunnel, useFunnelSteps, useUpdateFunnel } from "@/hooks/useFunnels";
 import { Save, Shield, Search, Eye } from "lucide-react";
 import { runFunnelPreflight, type PreflightResult } from "@/utils/funnelPreflight";
 import { FunnelPreflightDialog } from "@/components/funnels/FunnelPreflightDialog";
+import { normalizeFunnelPublicPath } from "@/utils/funnelPath";
+import { toast } from "sonner";
 
 interface FunnelSettingsTabProps {
   funnelId: string;
@@ -72,12 +74,21 @@ export function FunnelSettingsTab({ funnelId }: FunnelSettingsTabProps) {
   }, [funnel]);
 
   const handleSave = () => {
+    const publicPath = normalizeFunnelPublicPath(path);
+    if (!publicPath) {
+      toast.error("Path inválido. Use apenas um nome com pelo menos 3 caracteres.");
+      return;
+    }
+
+    setSlug(publicPath.slug);
+    setPath(publicPath.path);
+
     updateFunnel.mutate({
       id: funnelId,
       name,
-      slug,
+      slug: publicPath.slug,
       domain: domain || null,
-      path: path || null,
+      path: publicPath.path,
       favicon_url: faviconUrl || null,
       head_tracking_code: headCode || null,
       body_tracking_code: bodyCode || null,
