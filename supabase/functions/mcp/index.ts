@@ -261,13 +261,602 @@ var create_task_default = defineTool8({
   }
 });
 
+// src/lib/mcp/tools/send-whatsapp-text.ts
+import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { z as z9 } from "npm:zod@^3.25.76";
+
+// src/lib/mcp/whatsapp/gateway.ts
+var digits = (v) => v.replace(/\D/g, "");
+function createSupabaseWhatsAppGateway(supabase, userId) {
+  const client = supabase;
+  const anyClient = client;
+  return {
+    getUserId: () => userId,
+    async getMembership(workspaceId) {
+      const { data } = await anyClient.from("workspace_members").select("role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
+      return { role: data?.role ?? null, isSuperAdmin: false };
+    },
+    async getContact(workspaceId, contactId) {
+      const { data } = await anyClient.from("contacts").select("id, name, phone, whatsapp_number").eq("workspace_id", workspaceId).eq("id", contactId).maybeSingle();
+      if (!data) return null;
+      return { kind: "contact", id: data.id, name: data.name ?? null, phone: data.whatsapp_number || data.phone || null };
+    },
+    async getLead(workspaceId, leadId) {
+      const { data } = await anyClient.from("leads").select("id, name, phone").eq("workspace_id", workspaceId).eq("id", leadId).maybeSingle();
+      if (!data) return null;
+      return { kind: "lead", id: data.id, name: data.name ?? null, phone: data.phone ?? null };
+    },
+    async findEntitiesByPhone(workspaceId, e164) {
+      const tail = digits(e164).slice(-9);
+      const out = [];
+      const { data: contacts } = await anyClient.from("contacts").select("id, name, phone, whatsapp_number").eq("workspace_id", workspaceId).or(`phone.ilike.%${tail},whatsapp_number.ilike.%${tail}`).limit(5);
+      for (const c of contacts ?? []) {
+        out.push({ kind: "contact", id: c.id, name: c.name ?? null, phone: c.whatsapp_number || c.phone || null });
+      }
+      const { data: leads } = await anyClient.from("leads").select("id, name, phone").eq("workspace_id", workspaceId).is("archived_at", null).ilike("phone", `%${tail}`).limit(5);
+      for (const l of leads ?? []) {
+        out.push({ kind: "lead", id: l.id, name: l.name ?? null, phone: l.phone ?? null });
+      }
+      return out;
+    },
+    async isOptedOut(workspaceId, e164) {
+      const { data, error } = await anyClient.from("whatsapp_optouts").select("id").eq("workspace_id", workspaceId).or(`phone.eq.${e164},phone.eq.${digits(e164)}`).limit(1);
+      if (error) return true;
+      return (data ?? []).length > 0;
+    },
+    async hasConsent(workspaceId, e164) {
+      const { data, error } = await anyClient.rpc("has_whatsapp_consent", {
+        _workspace_id: workspaceId,
+        _phone: e164
+      });
+      if (error) return false;
+      return data === true;
+    },
+    async isRateLimited(key, maxRequests, windowMs) {
+      const { data, error } = await anyClient.rpc("check_rate_limit", {
+        p_key: key,
+        p_max_requests: maxRequests,
+        p_window_ms: windowMs
+      });
+      if (error) return true;
+      return data === true;
+    },
+    async lookupIdempotency(workspaceId, key) {
+      const { data } = await anyClient.from("whatsapp_mcp_requests").select("result").eq("workspace_id", workspaceId).eq("idempotency_key", key).maybeSingle();
+      return data?.result ?? null;
+    },
+    async recordIdempotency(workspaceId, key, tool, result) {
+      await anyClient.from("whatsapp_mcp_requests").upsert(
+        { workspace_id: workspaceId, idempotency_key: key, tool, result, created_by: userId },
+        { onConflict: "workspace_id,idempotency_key" }
+      );
+    },
+    async send(payload) {
+      const { data, error } = await anyClient.functions.invoke("whatsapp-pro-send", {
+        body: {
+          workspaceId: payload.workspaceId,
+          phone: payload.phone,
+          contactId: payload.contactId,
+          messageType: payload.messageType,
+          text: payload.text,
+          mediaUrl: payload.mediaUrl,
+          delayMessage: payload.delayMessage,
+          metadata: payload.metadata
+        }
+      });
+      if (error) return { success: false, error: error.message };
+      if (data?.error) return { success: false, error: String(data.error) };
+      return { success: !!data?.success, providerMessageId: data?.providerMessageId ?? null };
+    },
+    async findConversationId(workspaceId, e164) {
+      const tail = digits(e164).slice(-9);
+      const { data } = await anyClient.from("conversations").select("id, last_message_at").eq("workspace_id", workspaceId).eq("channel", "whatsapp").ilike("external_thread_id", `%${tail}%`).order("last_message_at", { ascending: false }).limit(1);
+      return data?.[0]?.id ?? null;
+    },
+    async listMessages(workspaceId, conversationId, limit) {
+      const { data } = await anyClient.from("messages").select(
+        "id, direction, message_type, content, media_url, provider_status, external_message_id, sent_at, delivered_at, read_at"
+      ).eq("workspace_id", workspaceId).eq("conversation_id", conversationId).order("sent_at", { ascending: false }).limit(limit);
+      return (data ?? []).reverse();
+    },
+    async schedule(payload) {
+      const { data, error } = await anyClient.from("whatsapp_scheduled_messages").insert({
+        workspace_id: payload.workspaceId,
+        to_phone: payload.phone,
+        contact_id: payload.contactId,
+        lead_id: payload.leadId,
+        body: payload.body,
+        scheduled_at: payload.scheduledAt,
+        status: "pending",
+        created_by: userId,
+        metadata: payload.metadata
+      }).select("id").single();
+      if (error) throw new Error(error.message);
+      return { id: data.id };
+    },
+    async audit(entry) {
+      await anyClient.from("entity_activities").insert({
+        workspace_id: entry.workspaceId,
+        entity_type: entry.entityType,
+        entity_id: entry.entityId,
+        activity_type: entry.activityType,
+        title: entry.title,
+        description: entry.description ?? null,
+        metadata: entry.metadata,
+        created_by: userId
+      });
+    }
+  };
+}
+
+// src/lib/mcp/whatsapp/policy.ts
+import { parsePhoneNumberFromString } from "npm:libphonenumber-js@^1.12.41";
+import { roleHasCapability } from "npm:@/lib/permissions/capabilities";
+var McpWhatsAppError = class extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+    this.name = "McpWhatsAppError";
+  }
+  code;
+};
+var MCP_WHATSAPP_READ_CAPABILITY = "inbox.read";
+var MCP_WHATSAPP_WRITE_CAPABILITY = "inbox.reply";
+function assertCapability(role, capability, isSuperAdmin = false) {
+  if (isSuperAdmin) return;
+  if (!role) {
+    throw new McpWhatsAppError("workspace_forbidden", "Sem acesso a este workspace.");
+  }
+  if (!roleHasCapability(role, capability)) {
+    throw new McpWhatsAppError("capability_denied", `Permiss\xE3o em falta: ${capability}.`);
+  }
+}
+function normalizeE164(raw, defaultCountry = "PT") {
+  const parsed = parsePhoneNumberFromString((raw ?? "").trim(), defaultCountry);
+  if (!parsed?.isValid()) {
+    throw new McpWhatsAppError("invalid_phone", "N\xFAmero de telefone inv\xE1lido (use formato internacional).");
+  }
+  return parsed.format("E.164");
+}
+function assertSingleTarget(input) {
+  const provided = ["phone", "contact_id", "lead_id"].filter((k) => {
+    const v = input[k];
+    return typeof v === "string" && v.trim().length > 0;
+  });
+  if (provided.length === 0) {
+    throw new McpWhatsAppError("target_required", "Indique phone, contact_id ou lead_id.");
+  }
+  if (provided.length > 1) {
+    throw new McpWhatsAppError("target_ambiguous", "Indique apenas um destino: phone, contact_id ou lead_id.");
+  }
+  return provided[0];
+}
+var ALLOWED_MEDIA_EXTENSIONS = {
+  image: ["jpg", "jpeg", "png", "webp", "gif"],
+  video: ["mp4", "3gp", "mov", "webm"]
+};
+function assertMediaUrl(url, kind) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new McpWhatsAppError("invalid_media_url", "URL de media inv\xE1lido.");
+  }
+  if (parsed.protocol !== "https:") {
+    throw new McpWhatsAppError("invalid_media_url", "O URL de media tem de usar HTTPS.");
+  }
+  if (parsed.username || parsed.password) {
+    throw new McpWhatsAppError("invalid_media_url", "O URL de media n\xE3o pode conter credenciais.");
+  }
+  if (url.length > 2048) {
+    throw new McpWhatsAppError("invalid_media_url", "URL de media demasiado longo.");
+  }
+  const ext = parsed.pathname.split(".").pop()?.toLowerCase() ?? "";
+  if (!ALLOWED_MEDIA_EXTENSIONS[kind].includes(ext)) {
+    throw new McpWhatsAppError(
+      "invalid_media_url",
+      `Extens\xE3o n\xE3o suportada para ${kind}: use ${ALLOWED_MEDIA_EXTENSIONS[kind].join(", ")}.`
+    );
+  }
+  return parsed.toString();
+}
+function assertConsent(purpose, state) {
+  if (state.optedOut) {
+    throw new McpWhatsAppError("opted_out", "Destinat\xE1rio em opt-out \u2014 envio bloqueado.");
+  }
+  if (purpose === "marketing" && state.hasConsent !== true) {
+    throw new McpWhatsAppError(
+      "consent_required",
+      "Sem consentimento WhatsApp expl\xEDcito para marketing/prospe\xE7\xE3o."
+    );
+  }
+}
+function assertScheduledAt(value, now = /* @__PURE__ */ new Date()) {
+  const when = new Date(value);
+  if (Number.isNaN(when.getTime())) {
+    throw new McpWhatsAppError("schedule_invalid", "scheduled_at inv\xE1lido (use ISO 8601).");
+  }
+  if (when.getTime() <= now.getTime() + 3e4) {
+    throw new McpWhatsAppError("schedule_invalid", "scheduled_at tem de ser pelo menos 30s no futuro.");
+  }
+  if (when.getTime() > now.getTime() + 365 * 24 * 3600 * 1e3) {
+    throw new McpWhatsAppError("schedule_invalid", "scheduled_at n\xE3o pode exceder 1 ano.");
+  }
+  return when.toISOString();
+}
+function buildIdempotencyKey(parts) {
+  if (parts.explicit?.trim()) {
+    return `${parts.tool}:${parts.workspaceId}:${parts.explicit.trim().slice(0, 120)}`;
+  }
+  const raw = `${parts.tool}|${parts.workspaceId}|${parts.userId}|${parts.phone}|${parts.payload}`;
+  let h1 = 2166136261;
+  let h2 = 16777619;
+  for (let i = 0; i < raw.length; i++) {
+    h1 = Math.imul(h1 ^ raw.charCodeAt(i), 16777619) >>> 0;
+    h2 = Math.imul(h2 + raw.charCodeAt(i) + 1, 2246822519) >>> 0;
+  }
+  return `${parts.tool}:${parts.workspaceId}:${h1.toString(16)}${h2.toString(16)}`;
+}
+var SECRET_KEYS = [
+  "instanceid",
+  "instancetoken",
+  "clienttoken",
+  "client_token",
+  "instance_id",
+  "instance_token",
+  "apikey",
+  "api_key",
+  "token",
+  "secret",
+  "authorization",
+  "password"
+];
+function stripSecrets(value) {
+  if (Array.isArray(value)) return value.map((v) => stripSecrets(v));
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (SECRET_KEYS.includes(k.toLowerCase())) continue;
+      out[k] = stripSecrets(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+// src/lib/mcp/whatsapp/service.ts
+var SEND_RATE = { max: 20, windowMs: 6e4 };
+async function authorize(gateway, workspaceId, capability) {
+  const { role, isSuperAdmin } = await gateway.getMembership(workspaceId);
+  assertCapability(role, capability, isSuperAdmin);
+}
+async function resolveTarget(gateway, workspaceId, input) {
+  const kind = assertSingleTarget(input);
+  if (kind === "contact_id") {
+    const contact = await gateway.getContact(workspaceId, input.contact_id);
+    if (!contact) throw new McpWhatsAppError("target_not_found", "Contacto n\xE3o encontrado neste workspace.");
+    if (!contact.phone) throw new McpWhatsAppError("invalid_phone", "O contacto n\xE3o tem telefone registado.");
+    return { phone: normalizeE164(contact.phone), contact, lead: null };
+  }
+  if (kind === "lead_id") {
+    const lead = await gateway.getLead(workspaceId, input.lead_id);
+    if (!lead) throw new McpWhatsAppError("target_not_found", "Lead n\xE3o encontrada neste workspace.");
+    if (!lead.phone) throw new McpWhatsAppError("invalid_phone", "A lead n\xE3o tem telefone registado.");
+    return { phone: normalizeE164(lead.phone), contact: null, lead };
+  }
+  const phone = normalizeE164(input.phone);
+  const matches = await gateway.findEntitiesByPhone(workspaceId, phone);
+  const contacts = matches.filter((m) => m.kind === "contact");
+  const leads = matches.filter((m) => m.kind === "lead");
+  if (contacts.length > 1) {
+    throw new McpWhatsAppError("target_ambiguous", "V\xE1rios contactos com este n\xFAmero \u2014 indique contact_id.");
+  }
+  return { phone, contact: contacts[0] ?? null, lead: contacts.length ? null : leads[0] ?? null };
+}
+async function guardSend(gateway, workspaceId, target, purpose) {
+  const [optedOut, hasConsent] = await Promise.all([
+    gateway.isOptedOut(workspaceId, target.phone),
+    purpose === "marketing" ? gateway.hasConsent(workspaceId, target.phone) : Promise.resolve(true)
+  ]);
+  assertConsent(purpose, { optedOut, hasConsent });
+  const limited = await gateway.isRateLimited(
+    `mcp:whatsapp:${workspaceId}:${gateway.getUserId()}`,
+    SEND_RATE.max,
+    SEND_RATE.windowMs
+  );
+  if (limited) throw new McpWhatsAppError("rate_limited", "Limite de envios MCP atingido. Tente mais tarde.");
+}
+async function sendWhatsApp(gateway, tool, params) {
+  const workspaceId = params.workspace_id;
+  const purpose = params.purpose ?? "marketing";
+  await authorize(gateway, workspaceId, MCP_WHATSAPP_WRITE_CAPABILITY);
+  const target = await resolveTarget(gateway, workspaceId, params);
+  const mediaUrl = params.mediaUrl ? assertMediaUrl(params.mediaUrl, params.messageType === "video" ? "video" : "image") : void 0;
+  const idempotencyKey = buildIdempotencyKey({
+    tool,
+    workspaceId,
+    userId: gateway.getUserId(),
+    phone: target.phone,
+    payload: `${params.messageType}|${params.text ?? ""}|${mediaUrl ?? ""}`,
+    explicit: params.idempotency_key ?? null
+  });
+  const cached = await gateway.lookupIdempotency(workspaceId, idempotencyKey);
+  if (cached) {
+    return { ...cached, status: "duplicate" };
+  }
+  await guardSend(gateway, workspaceId, target, purpose);
+  const result = await gateway.send({
+    workspaceId,
+    phone: target.phone,
+    contactId: target.contact?.id ?? null,
+    messageType: params.messageType,
+    text: params.text,
+    mediaUrl,
+    delayMessage: params.delayMessage,
+    metadata: { source: "mcp", tool, purpose, idempotency_key: idempotencyKey }
+  });
+  if (!result.success) {
+    throw new McpWhatsAppError("send_failed", result.error ?? "Falha ao enviar mensagem WhatsApp.");
+  }
+  const outcome = {
+    status: "sent",
+    message_id: result.providerMessageId ?? null,
+    phone: target.phone,
+    contact_id: target.contact?.id ?? null,
+    lead_id: target.lead?.id ?? null,
+    purpose,
+    message_type: params.messageType
+  };
+  await gateway.recordIdempotency(workspaceId, idempotencyKey, tool, { ...outcome });
+  const entity = target.contact ?? target.lead;
+  if (entity) {
+    await gateway.audit({
+      workspaceId,
+      entityType: entity.kind,
+      entityId: entity.id,
+      activityType: "message_sent",
+      title: `WhatsApp enviado via MCP (${params.messageType})`,
+      description: params.text?.slice(0, 280),
+      metadata: {
+        source: "mcp",
+        tool,
+        purpose,
+        provider_message_id: result.providerMessageId ?? null,
+        idempotency_key: idempotencyKey
+      }
+    });
+  }
+  return stripSecrets(outcome);
+}
+async function getWhatsAppConversation(gateway, params) {
+  const workspaceId = params.workspace_id;
+  await authorize(gateway, workspaceId, MCP_WHATSAPP_READ_CAPABILITY);
+  const target = await resolveTarget(gateway, workspaceId, params);
+  const conversationId = await gateway.findConversationId(workspaceId, target.phone);
+  if (!conversationId) {
+    return stripSecrets({ phone: target.phone, conversation_id: null, count: 0, messages: [] });
+  }
+  const messages = await gateway.listMessages(workspaceId, conversationId, Math.min(params.limit ?? 25, 100));
+  return stripSecrets({
+    phone: target.phone,
+    conversation_id: conversationId,
+    contact_id: target.contact?.id ?? null,
+    lead_id: target.lead?.id ?? null,
+    count: messages.length,
+    messages
+  });
+}
+async function scheduleWhatsAppMessage(gateway, params) {
+  const workspaceId = params.workspace_id;
+  const purpose = params.purpose ?? "marketing";
+  await authorize(gateway, workspaceId, MCP_WHATSAPP_WRITE_CAPABILITY);
+  const target = await resolveTarget(gateway, workspaceId, params);
+  const scheduledAt = assertScheduledAt(params.scheduled_at);
+  const idempotencyKey = buildIdempotencyKey({
+    tool: "schedule_whatsapp_message",
+    workspaceId,
+    userId: gateway.getUserId(),
+    phone: target.phone,
+    payload: `${params.message}|${scheduledAt}`,
+    explicit: params.idempotency_key ?? null
+  });
+  const cached = await gateway.lookupIdempotency(workspaceId, idempotencyKey);
+  if (cached) return stripSecrets({ ...cached, status: "duplicate" });
+  await guardSend(gateway, workspaceId, target, purpose);
+  const { id } = await gateway.schedule({
+    workspaceId,
+    phone: target.phone,
+    contactId: target.contact?.id ?? null,
+    leadId: target.lead?.id ?? null,
+    body: params.message,
+    scheduledAt,
+    metadata: { source: "mcp", purpose, recurrence: "none", idempotency_key: idempotencyKey }
+  });
+  const outcome = {
+    status: "scheduled",
+    scheduled_message_id: id,
+    scheduled_at: scheduledAt,
+    phone: target.phone,
+    contact_id: target.contact?.id ?? null,
+    lead_id: target.lead?.id ?? null,
+    purpose
+  };
+  await gateway.recordIdempotency(workspaceId, idempotencyKey, "schedule_whatsapp_message", { ...outcome });
+  const entity = target.contact ?? target.lead;
+  if (entity) {
+    await gateway.audit({
+      workspaceId,
+      entityType: entity.kind,
+      entityId: entity.id,
+      activityType: "custom",
+      title: "Mensagem WhatsApp agendada via MCP",
+      description: params.message.slice(0, 280),
+      metadata: { source: "mcp", purpose, scheduled_at: scheduledAt, scheduled_message_id: id }
+    });
+  }
+  return stripSecrets(outcome);
+}
+
+// src/lib/mcp/whatsapp/toolShared.ts
+import { z as z8 } from "npm:zod@^3.25.76";
+var whatsappTargetSchema = {
+  workspace_id: z8.string().uuid().describe("ID do workspace (ver list_workspaces)."),
+  phone: z8.string().trim().max(32).optional().describe("Telefone do destinat\xE1rio (formato internacional)."),
+  contact_id: z8.string().uuid().optional().describe("ID do contacto CRM (alternativa a phone)."),
+  lead_id: z8.string().uuid().optional().describe("ID da lead (alternativa a phone)."),
+  purpose: z8.enum(["transactional", "marketing"]).optional().describe("Finalidade do envio. 'marketing' exige consentimento expl\xEDcito. Predefini\xE7\xE3o: marketing."),
+  idempotency_key: z8.string().trim().max(120).optional().describe("Chave de idempot\xEAncia opcional.")
+};
+function toolError(e) {
+  if (e instanceof McpWhatsAppError) return errorResult(`${e.code}: ${e.message}`);
+  const message = e instanceof Error ? e.message : "internal_error";
+  return errorResult(message.replace(/(instance|client)[_-]?token[^\s]*/gi, "[redacted]"));
+}
+
+// src/lib/mcp/tools/send-whatsapp-text.ts
+var send_whatsapp_text_default = defineTool9({
+  name: "send_whatsapp_text",
+  title: "Enviar mensagem WhatsApp",
+  description: "Envia uma mensagem de texto por WhatsApp (WhatsApp Pro) para um telefone, contacto ou lead do workspace. Marketing exige consentimento expl\xEDcito; opt-outs bloqueiam sempre o envio.",
+  inputSchema: {
+    ...whatsappTargetSchema,
+    message: z9.string().trim().min(1).max(4096).describe("Texto da mensagem."),
+    delay_message: z9.number().int().min(1).max(15).optional().describe("Atraso de digita\xE7\xE3o em segundos antes da entrega (1-15).")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
+  handler: async (input, ctx) => {
+    if (!ctx.isAuthenticated()) return unauthenticated();
+    const supabase = supabaseForUser(ctx);
+    const gateway = createSupabaseWhatsAppGateway(supabase, ctx.getUserId());
+    try {
+      const result = await sendWhatsApp(gateway, "send_whatsapp_text", {
+        ...input,
+        messageType: "text",
+        text: input.message,
+        delayMessage: input.delay_message
+      });
+      return jsonResult(result);
+    } catch (e) {
+      return toolError(e);
+    }
+  }
+});
+
+// src/lib/mcp/tools/send-whatsapp-image.ts
+import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { z as z10 } from "npm:zod@^3.25.76";
+var send_whatsapp_image_default = defineTool10({
+  name: "send_whatsapp_image",
+  title: "Enviar imagem WhatsApp",
+  description: "Envia uma imagem por WhatsApp (WhatsApp Pro) para um telefone, contacto ou lead do workspace. O URL tem de ser HTTPS p\xFAblico. Marketing exige consentimento expl\xEDcito.",
+  inputSchema: {
+    ...whatsappTargetSchema,
+    image_url: z10.string().trim().url().max(2048).describe("URL HTTPS p\xFAblico da imagem (jpg, png, webp, gif)."),
+    caption: z10.string().trim().max(1024).optional().describe("Legenda da imagem.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
+  handler: async (input, ctx) => {
+    if (!ctx.isAuthenticated()) return unauthenticated();
+    const gateway = createSupabaseWhatsAppGateway(supabaseForUser(ctx), ctx.getUserId());
+    try {
+      const result = await sendWhatsApp(gateway, "send_whatsapp_image", {
+        ...input,
+        messageType: "image",
+        text: input.caption,
+        mediaUrl: input.image_url
+      });
+      return jsonResult(result);
+    } catch (e) {
+      return toolError(e);
+    }
+  }
+});
+
+// src/lib/mcp/tools/send-whatsapp-video.ts
+import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { z as z11 } from "npm:zod@^3.25.76";
+var send_whatsapp_video_default = defineTool11({
+  name: "send_whatsapp_video",
+  title: "Enviar v\xEDdeo WhatsApp",
+  description: "Envia um v\xEDdeo por WhatsApp (WhatsApp Pro) para um telefone, contacto ou lead do workspace. O URL tem de ser HTTPS p\xFAblico. Marketing exige consentimento expl\xEDcito.",
+  inputSchema: {
+    ...whatsappTargetSchema,
+    video_url: z11.string().trim().url().max(2048).describe("URL HTTPS p\xFAblico do v\xEDdeo (mp4, mov, webm, 3gp)."),
+    caption: z11.string().trim().max(1024).optional().describe("Legenda do v\xEDdeo.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
+  handler: async (input, ctx) => {
+    if (!ctx.isAuthenticated()) return unauthenticated();
+    const gateway = createSupabaseWhatsAppGateway(supabaseForUser(ctx), ctx.getUserId());
+    try {
+      const result = await sendWhatsApp(gateway, "send_whatsapp_video", {
+        ...input,
+        messageType: "video",
+        text: input.caption,
+        mediaUrl: input.video_url
+      });
+      return jsonResult(result);
+    } catch (e) {
+      return toolError(e);
+    }
+  }
+});
+
+// src/lib/mcp/tools/get-whatsapp-conversation.ts
+import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { z as z12 } from "npm:zod@^3.25.76";
+var { purpose: _purpose, idempotency_key: _key, ...targetSchema } = whatsappTargetSchema;
+var get_whatsapp_conversation_default = defineTool12({
+  name: "get_whatsapp_conversation",
+  title: "Ler conversa WhatsApp",
+  description: "Devolve o hist\xF3rico recente de uma conversa WhatsApp do workspace, identificada por telefone, contacto ou lead. Apenas leitura.",
+  inputSchema: {
+    ...targetSchema,
+    limit: z12.number().int().min(1).max(100).default(25).describe("N\xFAmero m\xE1ximo de mensagens (mais recentes).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async (input, ctx) => {
+    if (!ctx.isAuthenticated()) return unauthenticated();
+    const gateway = createSupabaseWhatsAppGateway(supabaseForUser(ctx), ctx.getUserId());
+    try {
+      return jsonResult(await getWhatsAppConversation(gateway, input));
+    } catch (e) {
+      return toolError(e);
+    }
+  }
+});
+
+// src/lib/mcp/tools/schedule-whatsapp-message.ts
+import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { z as z13 } from "npm:zod@^3.25.76";
+var schedule_whatsapp_message_default = defineTool13({
+  name: "schedule_whatsapp_message",
+  title: "Agendar mensagem WhatsApp",
+  description: "Agenda uma mensagem WhatsApp no scheduler existente do WhatsApp Pro. O envio \xE9 revalidado (consentimento e opt-out) no momento do disparo.",
+  inputSchema: {
+    ...whatsappTargetSchema,
+    message: z13.string().trim().min(1).max(4096).describe("Texto da mensagem a agendar."),
+    scheduled_at: z13.string().trim().max(40).describe("Data/hora ISO 8601 (UTC) do envio, no futuro e at\xE9 1 ano.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  handler: async (input, ctx) => {
+    if (!ctx.isAuthenticated()) return unauthenticated();
+    const gateway = createSupabaseWhatsAppGateway(supabaseForUser(ctx), ctx.getUserId());
+    try {
+      return jsonResult(await scheduleWhatsAppMessage(gateway, input));
+    } catch (e) {
+      return toolError(e);
+    }
+  }
+});
+
 // src/lib/mcp/index.ts
 var projectRef = "eumnfkccyvlyoyjchiwe";
 var mcp_default = defineMcp({
   name: "fastcrm-mcp",
   title: "FastCRM",
   version: "0.1.0",
-  instructions: "Ferramentas do FastCRM. Comece sempre por `list_workspaces` para obter o `workspace_id` do utilizador; todas as outras ferramentas exigem esse ID. Pode procurar contactos e empresas, listar leads, oportunidades e faturas, e criar leads e tarefas. Os dados devolvidos respeitam as permiss\xF5es do utilizador autenticado.",
+  instructions: "Ferramentas do FastCRM. Comece sempre por `list_workspaces` para obter o `workspace_id` do utilizador; todas as outras ferramentas exigem esse ID. Pode procurar contactos e empresas, listar leads, oportunidades e faturas, criar leads e tarefas, e usar o WhatsApp Pro (enviar texto/imagem/v\xEDdeo, ler conversas e agendar mensagens). Envios de marketing exigem consentimento expl\xEDcito; opt-outs bloqueiam sempre o envio. Os dados devolvidos respeitam as permiss\xF5es do utilizador autenticado.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
@@ -280,7 +869,12 @@ var mcp_default = defineMcp({
     list_opportunities_default,
     list_invoices_default,
     create_lead_default,
-    create_task_default
+    create_task_default,
+    send_whatsapp_text_default,
+    send_whatsapp_image_default,
+    send_whatsapp_video_default,
+    get_whatsapp_conversation_default,
+    schedule_whatsapp_message_default
   ]
 });
 
