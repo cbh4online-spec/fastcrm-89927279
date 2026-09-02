@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Plus, MoreVertical, Search, CheckCircle2, Clock, XCircle, Pencil, Trash2, Send } from "lucide-react";
 import { Link } from "react-router-dom";
+import { PlaybookLibraryPanel } from "@/components/whatsapp-pro/PlaybookLibraryPanel";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: any; tone: string }> = {
   draft: { label: "Rascunho", icon: Pencil, tone: "bg-muted text-muted-foreground" },
@@ -75,6 +76,8 @@ export default function WhatsAppTemplatesPage() {
             </Button>
           </div>
         </div>
+
+        <PlaybookLibraryPanel />
 
         <div className="flex flex-wrap items-center gap-2">
           <Tabs value={statusFilter} onValueChange={setStatusFilter}>
