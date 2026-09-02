@@ -50,6 +50,13 @@
       "when": 1788274486476,
       "tag": "0006_create_whatsapp_mcp_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788339612430,
+      "tag": "0007_whatsapp_conversion_engine_phase1",
+      "breakpoints": true
     }
   ]
 }

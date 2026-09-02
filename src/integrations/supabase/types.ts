@@ -53344,6 +53344,66 @@ export type Database = {
           },
         ]
       }
+      lead_commercial_profile: {
+        Row: {
+          consequencia: string | null
+          created_at: string
+          first_reply_at: string | null
+          id: string
+          last_inbound_at: string | null
+          last_outbound_at: string | null
+          lead_id: string
+          metadata: Json
+          next_action_at: string | null
+          objecao_principal: string | null
+          objetivo_cliente: string | null
+          problema_principal: string | null
+          snooze_until: string | null
+          stop_contact: boolean
+          timing: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          consequencia?: string | null
+          created_at?: string
+          first_reply_at?: string | null
+          id?: string
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          lead_id: string
+          metadata?: Json
+          next_action_at?: string | null
+          objecao_principal?: string | null
+          objetivo_cliente?: string | null
+          problema_principal?: string | null
+          snooze_until?: string | null
+          stop_contact?: boolean
+          timing?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          consequencia?: string | null
+          created_at?: string
+          first_reply_at?: string | null
+          id?: string
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          lead_id?: string
+          metadata?: Json
+          next_action_at?: string | null
+          objecao_principal?: string | null
+          objetivo_cliente?: string | null
+          problema_principal?: string | null
+          snooze_until?: string | null
+          stop_contact?: boolean
+          timing?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       lead_duplicate_group_items: {
         Row: {
           created_at: string
@@ -99160,6 +99220,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_template_playbook: {
+        Row: {
+          behavioral_principle: string | null
+          channel: string
+          code: string
+          created_at: string
+          cta: string | null
+          description: string | null
+          exclusion_conditions: Json
+          execution_mode: string
+          family: string
+          id: string
+          is_active: boolean
+          message_body: string
+          name: string
+          objective: string | null
+          pipeline_stage: string | null
+          primary_kpi: string | null
+          priority: number
+          required_variables: string[]
+          subfamily: string | null
+          template_id: string | null
+          timing_max_minutes: number | null
+          timing_min_minutes: number | null
+          updated_at: string
+          use_conditions: Json
+          variable_fallbacks: Json
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          behavioral_principle?: string | null
+          channel?: string
+          code: string
+          created_at?: string
+          cta?: string | null
+          description?: string | null
+          exclusion_conditions?: Json
+          execution_mode?: string
+          family: string
+          id?: string
+          is_active?: boolean
+          message_body: string
+          name: string
+          objective?: string | null
+          pipeline_stage?: string | null
+          primary_kpi?: string | null
+          priority?: number
+          required_variables?: string[]
+          subfamily?: string | null
+          template_id?: string | null
+          timing_max_minutes?: number | null
+          timing_min_minutes?: number | null
+          updated_at?: string
+          use_conditions?: Json
+          variable_fallbacks?: Json
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          behavioral_principle?: string | null
+          channel?: string
+          code?: string
+          created_at?: string
+          cta?: string | null
+          description?: string | null
+          exclusion_conditions?: Json
+          execution_mode?: string
+          family?: string
+          id?: string
+          is_active?: boolean
+          message_body?: string
+          name?: string
+          objective?: string | null
+          pipeline_stage?: string | null
+          primary_kpi?: string | null
+          priority?: number
+          required_variables?: string[]
+          subfamily?: string | null
+          template_id?: string | null
+          timing_max_minutes?: number | null
+          timing_min_minutes?: number | null
+          updated_at?: string
+          use_conditions?: Json
+          variable_fallbacks?: Json
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: []
       }
       whatsapp_templates_meta: {
         Row: {
