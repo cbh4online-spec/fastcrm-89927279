@@ -457,8 +457,18 @@ export function useSendMessage() {
         } as Message;
       }
 
+      // Canais externos exigem um provedor: nunca registar localmente uma
+      // mensagem que não foi realmente entregue (falso sucesso na inbox).
+      const providerChannels = ["messenger", "facebook", "instagram", "whatsapp", "sms"];
+      if (providerChannels.includes(conversation.channel)) {
+        throw new Error(
+          "Esta conversa não está ligada a nenhum canal de envio configurado. Ligue o canal (GoHighLevel/Meta) antes de responder."
+        );
+      }
+
       // For other channels, insert message directly
       const { data: message, error: messageError } = await workspaceClient
+
         .from("messages")
         .insert({
           conversation_id: conversationId,
