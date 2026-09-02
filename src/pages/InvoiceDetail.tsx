@@ -24,7 +24,8 @@ import {
   Mail,
   CreditCard,
   ShieldAlert,
-  Pencil
+  Pencil,
+  CalendarDays
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
