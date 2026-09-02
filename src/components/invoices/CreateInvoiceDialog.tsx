@@ -209,15 +209,16 @@ export function CreateInvoiceDialog({
           : item
       ));
     } else {
+      const line = productInvoiceLine(product);
       setCartItems([...cartItems, {
         id: crypto.randomUUID(),
         product_id: product.id,
         name: product.name,
         description: product.name,
         quantity: 1,
-        unit_price: product.base_price || 0,
+        unit_price: line.unit_price,
         discount_percent: 0,
-        tax_rate: 23,
+        tax_rate: line.tax_rate,
       }]);
     }
   };
