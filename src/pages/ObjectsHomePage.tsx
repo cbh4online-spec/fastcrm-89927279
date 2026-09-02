@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Plus, Wand2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { CreateObjectWizard } from "@/components/objects/CreateObjectWizard";
@@ -23,13 +25,16 @@ const EXTENSION_OBJECT_ROUTES: Record<string, string> = {
 };
 
 function useObjectCounts() {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
   return useQuery({
-    queryKey: ["object-counts"],
+    queryKey: ["object-counts", workspaceId],
     queryFn: async () => {
+      if (!workspaceId) return { contacts: 0, companies: 0, deals: 0 };
       const [contacts, companies, deals] = await Promise.all([
-        supabase.from("contacts").select("id", { count: "exact", head: true }),
-        supabase.from("companies").select("id", { count: "exact", head: true }),
-        supabase.from("opportunities").select("id", { count: "exact", head: true }),
+        supabase.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+        supabase.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+        supabase.from("opportunities").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
       ]);
       return {
         contacts: contacts.count ?? 0,
@@ -37,9 +42,11 @@ function useObjectCounts() {
         deals: deals.count ?? 0,
       };
     },
+    enabled: !!workspaceId,
     staleTime: 30000,
   });
 }
+
 
 function useExtensionObjectCounts(extensionObjects: ExtensionObjectDef[]) {
   const tables = extensionObjects.map((o) => o.source_table);

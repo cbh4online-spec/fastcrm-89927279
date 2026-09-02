@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+
 
 interface Props {
   recordId: string;
@@ -44,22 +46,25 @@ function getRecordDisplayName(data: Record<string, unknown> | undefined): string
 }
 
 function useCoreRecords(coreObjectId: string | null) {
+  const { currentWorkspace } = useWorkspace();
   const coreDef = CORE_OBJECTS.find(c => c.id === coreObjectId);
   return useQuery({
-    queryKey: ['core-records-for-rel', coreObjectId],
+    queryKey: ['core-records-for-rel', coreObjectId, currentWorkspace?.id],
     queryFn: async () => {
-      if (!coreDef) return [];
+      if (!coreDef || !currentWorkspace?.id) return [];
       const { data, error } = await supabase
         .from(coreDef.table as any)
         .select(`id, ${coreDef.nameField}`)
+        .eq('workspace_id', currentWorkspace.id)
         .order(coreDef.nameField)
         .limit(200);
       if (error) throw error;
       return (data || []).map((r: any) => ({ id: r.id, name: r[coreDef.nameField] || 'Sem nome' }));
     },
-    enabled: !!coreDef,
+    enabled: !!coreDef && !!currentWorkspace?.id,
   });
 }
+
 
 export function RelationshipsPanel({ recordId, objectId, entityType }: Props) {
   const navigate = useNavigate();
