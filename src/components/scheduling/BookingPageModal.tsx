@@ -9,7 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { useCreateBookingPage, useUpdateBookingPage, type BookingPage, type BookingCustomField } from '@/hooks/useBookingPages';
-import { Plus, X, GripVertical } from 'lucide-react';
+import { Plus, X, GripVertical, ImageIcon, Loader2, Upload } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { toast } from 'sonner';
 import type { Calendar } from '@/hooks/useCalendars';
 
 interface BookingPageModalProps {
@@ -53,6 +56,11 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
   const [requirePhone, setRequirePhone] = useState(false);
   const [customMessageLabel, setCustomMessageLabel] = useState('');
   const [customFields, setCustomFields] = useState<BookingCustomField[]>([]);
+  const [shareImageUrl, setShareImageUrl] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const { currentWorkspace } = useWorkspace();
 
   // Populate form when editing
   useEffect(() => {
@@ -71,6 +79,9 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
       setRequirePhone(editingPage.require_phone);
       setCustomMessageLabel(editingPage.custom_message_label || '');
       setCustomFields(editingPage.custom_fields || []);
+      setShareImageUrl(editingPage.share_image_url || '');
+      setSeoTitle(editingPage.seo_title || '');
+      setSeoDescription(editingPage.seo_description || '');
     } else {
       resetForm();
     }
@@ -117,6 +128,9 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
       require_phone: requirePhone,
       custom_message_label: customMessageLabel || null,
       custom_fields: customFields,
+      share_image_url: shareImageUrl.trim() || null,
+      seo_title: seoTitle.trim() || null,
+      seo_description: seoDescription.trim() || null,
     };
     if (isEditing) {
       await updatePage.mutateAsync({ id: editingPage!.id, ...payload });
@@ -132,6 +146,37 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
     setDuration('30'); setBuffer('0'); setMaxDays('30'); setBrandColor('#6366f1');
     setWorkingDays([1, 2, 3, 4, 5]); setStartHour('09:00'); setEndHour('18:00');
     setRequirePhone(false); setCustomMessageLabel(''); setCustomFields([]);
+    setShareImageUrl(''); setSeoTitle(''); setSeoDescription('');
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!currentWorkspace?.id) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast.error('Formato inválido', { description: 'Use PNG, JPG ou WEBP.' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem demasiado grande', { description: 'Máximo 5 MB.' });
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const path = `${currentWorkspace.id}/booking/${slug || crypto.randomUUID()}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('landing-assets').upload(path, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from('landing-assets').getPublicUrl(path);
+      setShareImageUrl(data.publicUrl);
+      toast.success('Imagem de partilha carregada');
+    } catch (e) {
+      toast.error('Erro ao carregar imagem', { description: (e as Error).message });
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const isPending = createPage.isPending || updatePage.isPending;
@@ -379,6 +424,86 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Partilha e SEO */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-muted-foreground">Partilha e SEO</h4>
+            <p className="text-xs text-muted-foreground">
+              Define a imagem e o texto que aparecem quando o link é partilhado no WhatsApp, LinkedIn ou Facebook.
+              Sem imagem própria, é usado o logótipo da tua marca.
+            </p>
+
+            <div className="space-y-2">
+              <Label>Imagem de partilha (1200×630 px)</Label>
+              <div className="flex items-start gap-3">
+                <div className="h-[63px] w-[120px] shrink-0 overflow-hidden rounded-md border bg-muted flex items-center justify-center">
+                  {shareImageUrl ? (
+                    <img src={shareImageUrl} alt="Pré-visualização da imagem de partilha" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" disabled={uploadingImage} asChild>
+                      <label className="cursor-pointer">
+                        {uploadingImage ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        {uploadingImage ? 'A carregar...' : 'Carregar imagem'}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="sr-only"
+                          disabled={uploadingImage}
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    </Button>
+                    {shareImageUrl && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setShareImageUrl('')}>
+                        Remover
+                      </Button>
+                    )}
+                  </div>
+                  <Input
+                    placeholder="Ou colar URL da imagem"
+                    value={shareImageUrl}
+                    onChange={e => setShareImageUrl(e.target.value)}
+                    maxLength={500}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Título de partilha (opcional)</Label>
+              <Input
+                placeholder={title || 'Título da reunião'}
+                value={seoTitle}
+                onChange={e => setSeoTitle(e.target.value)}
+                maxLength={120}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição de partilha (opcional)</Label>
+              <Textarea
+                rows={2}
+                placeholder={description || 'Escolhe o melhor horário e confirma a tua marcação online.'}
+                value={seoDescription}
+                onChange={e => setSeoDescription(e.target.value)}
+                maxLength={200}
+              />
             </div>
           </div>
 

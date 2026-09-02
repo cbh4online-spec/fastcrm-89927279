@@ -31,6 +31,9 @@ export interface BookingPage {
   require_phone: boolean;
   custom_message_label: string | null;
   custom_fields: BookingCustomField[];
+  share_image_url: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
   created_at: string;
   updated_at: string;
 }

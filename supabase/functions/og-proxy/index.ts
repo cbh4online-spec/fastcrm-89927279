@@ -46,6 +46,15 @@ function isCrawler(userAgent: string | null): boolean {
  * Parse a direct path like /store/{slug}/product/{id} into type+slug params.
  */
 function parsePathToTypeSlug(path: string): { type: string; slug: string } | null {
+  // /{wsSlug}/book/{pageSlug} or /book/{pageSlug}
+  const bookingWithWs = path.match(/^\/([^/]+)\/book\/([^/?#]+)/);
+  if (bookingWithWs && bookingWithWs[1] !== "book") {
+    return { type: "booking", slug: `${bookingWithWs[1]}/${bookingWithWs[2]}` };
+  }
+  const bookingMatch = path.match(/^\/book\/([^/?#]+)/);
+  if (bookingMatch) {
+    return { type: "booking", slug: `-/${bookingMatch[1]}` };
+  }
   // /store/{wsSlug}/product/{productId}
   const productMatch = path.match(/^\/store\/([^/]+)\/product\/([^/]+)/);
   if (productMatch) {
@@ -189,7 +198,68 @@ Deno.serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      if (type === "bio") {
+      if (type === "booking") {
+        // Página pública de marcação — slug: "{wsSlug|-}/{pageSlug}"
+        const parts = slug.split("/");
+        if (parts.length === 2) {
+          const [wsSlug, pageSlug] = parts;
+          let wsId: string | null = null;
+          if (wsSlug && wsSlug !== "-") {
+            const { data: ws } = await supabase.from("workspaces").select("id").eq("slug", wsSlug).maybeSingle();
+            if (ws) wsId = ws.id;
+          }
+          let bookingQuery = supabase
+            .from("booking_pages")
+            .select("title, description, duration_minutes, share_image_url, seo_title, seo_description, workspace_id")
+            .eq("slug", pageSlug)
+            .eq("is_active", true);
+          if (wsId) bookingQuery = bookingQuery.eq("workspace_id", wsId);
+          const { data: bookingPage } = await bookingQuery.limit(1).maybeSingle();
+
+          if (bookingPage) {
+            pageTitle = bookingPage.seo_title || bookingPage.title || pageTitle;
+            const durationNote = bookingPage.duration_minutes ? `${bookingPage.duration_minutes} min · ` : "";
+            const rawDesc =
+              bookingPage.seo_description ||
+              bookingPage.description ||
+              "Escolhe o melhor horário e confirma a tua marcação online.";
+            const composed = `${durationNote}${rawDesc}`;
+            pageDescription = composed.length > 200 ? `${composed.slice(0, 197)}...` : composed;
+
+            if (bookingPage.share_image_url) {
+              pageImage = bookingPage.share_image_url;
+            } else {
+              // Fallback: identidade visual do workspace
+              const { data: store } = await supabase
+                .from("store_settings")
+                .select("banner_url, logo_url")
+                .eq("workspace_id", bookingPage.workspace_id)
+                .maybeSingle();
+              if (store?.banner_url || store?.logo_url) {
+                pageImage = store.banner_url || store.logo_url;
+              }
+            }
+          }
+
+          pageUrl =
+            wsSlug && wsSlug !== "-"
+              ? `${BASE_URL}/${wsSlug}/book/${pageSlug}`
+              : `${BASE_URL}/book/${pageSlug}`;
+
+          if (isCrawler(userAgent)) {
+            const extra = `<meta property="og:image:height" content="630"/>`;
+            const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl, extra);
+            return new Response(html, {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=600" },
+            });
+          }
+          return new Response(null, {
+            status: 302,
+            headers: { ...corsHeaders, Location: pageUrl },
+          });
+        }
+      } else if (type === "bio") {
         const parts = slug.split("/");
         if (parts.length === 2) {
           const [wsSlug, pageSlug] = parts;
