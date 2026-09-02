@@ -240,6 +240,22 @@ export function InvoiceItemsCart({
                         />
                       </div>
                     </div>
+                    {onUpdateLineTotal && (
+                      <div className="mt-2 space-y-0.5">
+                        <label
+                          className="text-[10px] text-muted-foreground"
+                          htmlFor={`line-total-${item.id}`}
+                        >
+                          Total da linha (c/IVA)
+                        </label>
+                        <LineTotalInput
+                          id={`line-total-${item.id}`}
+                          value={itemTotal * (1 + item.tax_rate / 100)}
+                          onCommit={(value) => onUpdateLineTotal(item.id, value)}
+                        />
+                      </div>
+                    )}
+
                   </CollapsibleContent>
                 </Card>
               </Collapsible>
