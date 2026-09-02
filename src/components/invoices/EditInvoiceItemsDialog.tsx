@@ -110,16 +110,17 @@ export function EditInvoiceItemsDialog({ open, onOpenChange, invoice }: EditInvo
       return;
     }
     const result = distributeTargetTotal(cart, discountAmount, round2(target));
-    if (!result.ok) {
-      toast.error(
-        result.reason === "no_base"
-          ? "Precisa de pelo menos uma linha com valor para distribuir o total"
-          : "Indique um total válido"
-      );
+    if (result.ok === true) {
+      setCart(result.items);
+      setAdjusted(true);
       return;
     }
-    setCart(result.items);
-    setAdjusted(true);
+    toast.error(
+      result.reason === "no_base"
+        ? "Precisa de pelo menos uma linha com valor para distribuir o total"
+        : "Indique um total válido"
+    );
+
   };
 
   const handleReset = () => {
