@@ -76,9 +76,15 @@ export default function BuilderPublicPage() {
   // O HTML publicado corre integralmente dentro de um iframe sandboxed sem
   // `allow-same-origin`: executa scripts/forms próprios mas fica em origem
   // opaca, sem acesso a DOM, cookies ou storage do FastCRM.
-  const publishedHtml = /<html/i.test(data.html)
+  const wrapped = /<html/i.test(data.html)
     ? data.html
     : `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${data.html}</body></html>`;
+
+  // Sem <base>, o srcdoc herda o URL do documento pai e os links de âncora
+  // (#servicos, #contacto, ...) provocariam navegação em vez de scroll.
+  const publishedHtml = /<base\b/i.test(wrapped)
+    ? wrapped
+    : wrapped.replace(/<head([^>]*)>/i, '<head$1><base href="about:srcdoc">');
 
   return (
     <>
