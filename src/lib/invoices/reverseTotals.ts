@@ -9,6 +9,12 @@ export interface ReverseTotalsLine {
 
 export const round2 = (value: number) => toMoney(value).toDecimalPlaces(2).toNumber();
 
+/**
+ * Unit prices keep up to 6 decimals so that a manually typed line/invoice total
+ * (VAT included) can be matched exactly to the cent. Monetary aggregates stay at 2 decimals.
+ */
+export const round6 = (value: number) => toMoney(value).toDecimalPlaces(6).toNumber();
+
 /** Net value of a line (quantity x price - line discount), rounded to cents. */
 export function lineNet(item: ReverseTotalsLine): number {
   return round2(
@@ -65,7 +71,7 @@ export function unitPriceFromLineTotal(
 ): number | null {
   const factor = grossFactorPerUnit(item);
   if (factor.lessThanOrEqualTo(0)) return null;
-  return round2(toMoney(lineTotalGross).dividedBy(factor).toNumber());
+  return round6(toMoney(lineTotalGross).dividedBy(factor).toNumber());
 }
 
 export type DistributeResult<T extends ReverseTotalsLine> =
@@ -96,7 +102,7 @@ export function distributeTargetTotal<T extends ReverseTotalsLine>(
 
   let next = items.map((item) => {
     if (grossFactorPerUnit(item).lessThanOrEqualTo(0)) return item;
-    return { ...item, unit_price: round2(toMoney(item.unit_price).times(factor).toNumber()) };
+    return { ...item, unit_price: round6(toMoney(item.unit_price).times(factor).toNumber()) };
   });
 
   // Absorb the rounding residue in the highest-value solvable line.
@@ -117,12 +123,12 @@ export function distributeTargetTotal<T extends ReverseTotalsLine>(
       if (diff === 0) break;
       const anchor = next[anchorIndex];
       const perUnit = grossFactorPerUnit(anchor);
-      let adjusted = round2(
+      let adjusted = round6(
         toMoney(anchor.unit_price).minus(toMoney(diff).dividedBy(perUnit)).toNumber()
       );
       if (adjusted === anchor.unit_price) {
-        // The exact correction is smaller than a cent of unit price: nudge by one cent.
-        adjusted = round2(anchor.unit_price + (diff > 0 ? -0.01 : 0.01));
+        // The exact correction is smaller than the smallest representable unit price step.
+        adjusted = round6(anchor.unit_price + (diff > 0 ? -0.000001 : 0.000001));
       }
       if (adjusted < 0) break;
       const candidate = next.map((item, index) =>
