@@ -27,6 +27,7 @@ import { Loader2, Building2 } from "lucide-react";
 import { InvoiceProductSelector } from "./InvoiceProductSelector";
 import { InvoiceItemsCart, type InvoiceCartItem } from "./InvoiceItemsCart";
 import type { Product } from "@/types/product";
+import { productInvoiceLine } from "@/lib/invoices/productLine";
 
 // Helper function to convert payment conditions to days
 function getPaymentDays(paymentCondition: string | null | undefined): number {
@@ -209,15 +210,16 @@ export function CreateInvoiceDialog({
           : item
       ));
     } else {
+      const line = productInvoiceLine(product);
       setCartItems([...cartItems, {
         id: crypto.randomUUID(),
         product_id: product.id,
         name: product.name,
         description: product.name,
         quantity: 1,
-        unit_price: product.base_price || 0,
+        unit_price: line.unit_price,
         discount_percent: 0,
-        tax_rate: 23,
+        tax_rate: line.tax_rate,
       }]);
     }
   };
