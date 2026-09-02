@@ -176,6 +176,22 @@ function renderCell(col: string, lead: SmartLead) {
           )}
         </div>
       );
+    case "address": {
+      const parts = [lead.address, lead.address_number, lead.address_floor]
+        .map((v) => (v || "").trim())
+        .filter(Boolean);
+      return (
+        <span className="truncate text-sm text-foreground" title={parts.join(", ")}>
+          {parts.length ? parts.join(", ") : "—"}
+        </span>
+      );
+    }
+    case "postal_code":
+      return <span className="text-sm text-foreground">{lead.postal_code || "—"}</span>;
+    case "city":
+      return <span className="truncate text-sm text-foreground">{lead.city || "—"}</span>;
+    case "country":
+      return <span className="truncate text-sm text-foreground">{lead.country || "—"}</span>;
     default:
       return null;
   }
@@ -195,6 +211,10 @@ const COLUMN_WIDTH: Record<string, string> = {
   last_contact: "w-[140px] shrink-0",
   assigned_to: "w-[120px] shrink-0",
   tags: "min-w-[140px] flex-1",
+  address: "min-w-[200px] flex-1",
+  postal_code: "w-[110px] shrink-0",
+  city: "w-[140px] shrink-0",
+  country: "w-[120px] shrink-0",
 };
 
 const NUMERIC_COLUMNS = ["score", "value", "created_at", "last_contact"];

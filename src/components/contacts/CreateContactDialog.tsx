@@ -41,6 +41,7 @@ import {
   MessageSquare,
   Loader2,
   User,
+  MapPin,
   ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -222,6 +223,13 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
     job_title: "",
     notes: "",
     tags: "",
+    address: "",
+    address_number: "",
+    address_floor: "",
+    postal_code: "",
+    city: "",
+    region: "",
+    country: "Portugal",
   });
 
   // Check for duplicates
@@ -334,6 +342,13 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
         company: formData.company.trim() || undefined,
         job_title: formData.job_title.trim() || undefined,
         notes: formData.notes.trim() || undefined,
+        address: formData.address.trim() || undefined,
+        address_number: formData.address_number.trim() || undefined,
+        address_floor: formData.address_floor.trim() || undefined,
+        postal_code: formData.postal_code.trim() || undefined,
+        city: formData.city.trim() || undefined,
+        region: formData.region.trim() || undefined,
+        country: formData.country.trim() || undefined,
         tags: formData.tags
           .split(",")
           .map((t) => t.trim())
@@ -560,6 +575,84 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
                     onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
                     placeholder="Diretor Comercial"
                   />
+                </div>
+              </div>
+              <div className="space-y-3 rounded-lg border border-border/60 p-3">
+                <Label className="flex items-center gap-1 text-sm font-medium">
+                  <MapPin className="w-3.5 h-3.5" />
+                  Morada
+                </Label>
+                <div className="grid gap-3 sm:grid-cols-6">
+                  <div className="space-y-2 sm:col-span-4">
+                    <Label htmlFor="contact_address">Endereço</Label>
+                    <Input
+                      id="contact_address"
+                      maxLength={300}
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="Rua, avenida, lugar..."
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="contact_address_number">Número</Label>
+                    <Input
+                      id="contact_address_number"
+                      maxLength={100}
+                      value={formData.address_number}
+                      onChange={(e) => setFormData({ ...formData, address_number: e.target.value })}
+                      placeholder="12"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="contact_address_floor">Andar</Label>
+                    <Input
+                      id="contact_address_floor"
+                      maxLength={100}
+                      value={formData.address_floor}
+                      onChange={(e) => setFormData({ ...formData, address_floor: e.target.value })}
+                      placeholder="3.º Esq."
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="contact_postal_code">Código Postal</Label>
+                    <Input
+                      id="contact_postal_code"
+                      maxLength={20}
+                      value={formData.postal_code}
+                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                      placeholder="1000-001"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="contact_city">Cidade</Label>
+                    <Input
+                      id="contact_city"
+                      maxLength={100}
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="Lisboa"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="contact_region">Região</Label>
+                    <Input
+                      id="contact_region"
+                      maxLength={100}
+                      value={formData.region}
+                      onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                      placeholder="Lisboa"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="contact_country">País</Label>
+                    <Input
+                      id="contact_country"
+                      maxLength={100}
+                      value={formData.country}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      placeholder="Portugal"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">

@@ -133,7 +133,6 @@
   "statusAtivo": "Activo",
   "statusInativo": "Inactivo",
   "statusSemCompras": "Sin compras recientes",
-
   "col_lead": "Lead",
   "col_email": "Email",
   "col_phone": "Teléfono",
@@ -207,7 +206,6 @@
   "col_opportunitiesCount": "Oportunidades",
   "col_opportunitiesCountDesc": "Oportunidades asociadas",
   "col_socialPresence": "Redes Sociales",
-
   "filterTemperature": "Temperatura",
   "filterStatus": "Estado",
   "filterActivity": "Actividad",
@@ -245,14 +243,12 @@
   "filterNeverContacted": "Nunca contactadas",
   "filterSize": "Tamaño",
   "filterIndustry": "Industria",
-
   "tabLeads": "Leads",
   "tabSmartLists": "Listas Inteligentes",
   "tabAutomations": "Automatizaciones",
   "tabImport": "Importar",
   "tabCompanies": "Empresas",
   "tabBulkActions": "Acciones Masivas",
-
   "sortNewest": "Más recientes",
   "sortOldest": "Más antiguos",
   "sortOldestFem": "Más antiguas",
@@ -266,7 +262,6 @@
   "sortHotFirst": "Más calientes",
   "sortColdFirst": "Más fríos",
   "sortHighestRevenue": "Mayor facturación",
-
   "import": "Importar",
   "newLead": "Nuevo Lead",
   "refresh": "Actualizar",
@@ -287,7 +282,6 @@
   "newCompany": "Nueva Empresa",
   "newContact": "Nuevo contacto",
   "newOpportunity": "Nueva Oportunidad",
-
   "noLeadsYet": "Aún no hay leads",
   "noLeadsDesc": "Cuando lleguen leads, la IA los organizará por ti",
   "noCompaniesYet": "Aún no hay empresas",
@@ -295,7 +289,6 @@
   "noContactsYet": "Aún no hay contactos",
   "noContactsDesc": "Cuando lleguen contactos, la IA los organizará por ti",
   "noOpportunitiesFound": "No se encontraron oportunidades",
-
   "show": "Mostrar",
   "perPage": "por página",
   "totalLeads": "{{count}} lead en total",
@@ -304,7 +297,6 @@
   "totalCompanies_plural": "{{count}} empresas en total",
   "totalContactsLabel": "contactos",
   "pageOf": "Página {{current}} de {{total}}",
-
   "leadsDeleted": "{{count}} lead(s) eliminados",
   "errorDeletingLeads": "Error al eliminar leads",
   "leadAnalyzed": "Lead analizado con éxito",
@@ -335,7 +327,6 @@
   "importContacts": "Importar contactos",
   "importCSV": "Importar CSV",
   "exportCSV": "Exportar CSV",
-
   "kpiLeadsToday": "Leads Hoy",
   "kpiLeadsTodayDesc": "Nuevos leads recibidos",
   "kpiHotLeads": "Leads Calientes",
@@ -348,7 +339,6 @@
   "kpiConversionsDesc": "Esta semana",
   "kpiPipeline": "Pipeline",
   "kpiPipelineDesc": "Valor total",
-
   "kpiTotalContacts": "Total Contactos",
   "kpiTotalContactsDesc": "Base de contactos",
   "kpiHotContacts": "Contactos Calientes",
@@ -361,7 +351,6 @@
   "kpiDecisionMakersDesc": "Contactos clave",
   "kpiContactsPipeline": "Pipeline",
   "kpiContactsPipelineDesc": "Valor estimado",
-
   "kpiTotalCompanies": "Total Empresas",
   "kpiTotalCompaniesDesc": "Base de empresas",
   "kpiHotCompanies": "Empresas Calientes",
@@ -374,10 +363,8 @@
   "kpiProspectsDesc": "Oportunidades",
   "kpiCompaniesPipeline": "Pipeline",
   "kpiCompaniesPipelineDesc": "Valor estimado",
-
   "contactsTitle": "Contactos",
   "contactsTooltip": "Base de datos de contactos con análisis IA integrado",
-
   "smartFilterHotLeads": "Leads Calientes",
   "smartFilterNoResponse": "Sin Respuesta",
   "smartFilterHighIntent": "Alta Intención",
@@ -397,7 +384,6 @@
   "channelForm": "Formulario",
   "advancedColumns": "Columnas Avanzadas",
   "clearFilters": "Limpiar ({{count}})",
-
   "statusNewLabel": "Nuevo",
   "statusInProgressLabel": "En contacto",
   "statusQualifiedLabel": "Calificado",
@@ -414,7 +400,6 @@
   "automationActive": "Activa",
   "now": "Ahora",
   "analyzeWithAI": "Analizar con IA",
-
   "importLeads": "Importar leads",
   "smartListsTitle": "Listas Inteligentes",
   "smartListsWIP": "Funcionalidad en desarrollo",
@@ -427,7 +412,6 @@
   "deleteCompaniesTitle": "¿Eliminar {{count}} empresa(s)?",
   "deleteCompaniesDesc": "Esta acción no se puede deshacer.",
   "importCompanies": "Importar empresas",
-
   "opportunitiesTitle": "Oportunidades",
   "opportunitiesDesc": "Gestione su pipeline de ventas",
   "pipelineSettings": "Pipeline",
@@ -456,7 +440,6 @@
   "openFilter": "Abiertas",
   "wonFilter": "Ganadas",
   "lostFilter": "Perdidas",
-
   "oppKpiPipelineValue": "Valor en Pipeline",
   "oppKpiPipelineValueDesc": "Total de oportunidades abiertas",
   "oppKpiWeightedValue": "Valor Ponderado",
@@ -473,7 +456,6 @@
   "oppKpiAvgDealSizeDesc": "Por negocio ganado",
   "oppKpiAvgCloseTime": "Tiempo Medio de Cierre",
   "oppKpiAvgCloseTimeDesc": "Días hasta cerrar",
-
   "pipelineActiveDeals": "Negocios Activos",
   "pipelineTotalValue": "Valor en Pipeline",
   "pipelineWeightedValue": "Valor Ponderado",
@@ -482,7 +464,6 @@
   "pipelineAvgCycleDays": "{{days}} días",
   "pipelineConversionRate": "Tasa de Conversión",
   "pipelineWonCount": "{{count}} ganadas",
-
   "oppTableOpportunity": "Oportunidad",
   "oppTableContact": "Contacto",
   "oppTableCompany": "Empresa",
@@ -499,7 +480,6 @@
   "oppStatusWon": "Ganado",
   "oppStatusLost": "Perdido",
   "oppStatusOpen": "Abierto",
-
   "bulkEditSourceWebsite": "Sitio Web",
   "bulkEditSourceReferral": "Referencia",
   "bulkEditSourceLinkedIn": "LinkedIn",
@@ -512,7 +492,6 @@
   "bulkEditStatusChurned": "Perdido",
   "bulkEditStatusInactive": "Inactivo",
   "bulkEditClientStatus": "Estado del Cliente",
-
   "smartListFieldName": "Nombre",
   "smartListFieldEmail": "Email",
   "smartListFieldIndustry": "Industria",
@@ -524,9 +503,7 @@
   "smartListFieldRevenue": "Facturación",
   "smartListFieldEmployees": "Empleados",
   "smartListFieldCreatedAt": "Creado",
-
-  "importExport": "Importar/Exportar",
-
+  "importExport": "Importar / Exportar",
   "kanbanAddOpportunity": "Añadir oportunidad",
   "kanbanTotalValue": "Valor Total",
   "kanbanWeighted": "Ponderado",
@@ -554,7 +531,6 @@
   "sourceAdvertising": "Publicidad",
   "sourcePartner": "Socio",
   "sourceOther": "Otro",
-
   "oppDetailTitle": "Detalles de la Oportunidad",
   "oppDetailNotFound": "Oportunidad no encontrada",
   "oppDetailBackToList": "Volver a oportunidades",
@@ -583,7 +559,7 @@
   "oppDetail_associations": "Asociaciones",
   "oppDetail_details": "Detalles",
   "oppDetail_comments": "Comentarios",
-  "oppDetail_noComments": "Sin comentarios",
+  "oppDetail_noComments": "Sin comentarios aún",
   "oppDetail_noNotes": "Sin notas registradas",
   "oppDetail_addNote": "Añadir nota",
   "oppDetail_saveNote": "Guardar",
@@ -646,7 +622,6 @@
   "oppDetail_noRecordAssociated": "Ningún {{type}} asociado",
   "oppDetail_associate": "+ Asociar",
   "oppDetail_commentsTab": "Comentarios",
-  "oppDetail_noComments": "Sin comentarios aún",
   "oppDetail_addComment": "Escribir un comentario...",
   "oppDetail_postComment": "Publicar",
   "oppDetail_reply": "Responder",
@@ -657,7 +632,6 @@
   "oppDetail_mentionSearch": "Buscar miembros...",
   "oppDetail_commentPosted": "Comentario publicado",
   "oppDetail_commentDeleted": "Comentario eliminado",
-
   "companyTypeProspect": "Prospecto",
   "companyTypeClient": "Cliente",
   "companyTypePartner": "Socio",
@@ -668,7 +642,6 @@
   "actionResearch": "Investigar",
   "insightQuickSummary": "Resumen rápido para decidir:",
   "tempAutoClassification": "Clasificación automática basada en la intención",
-
   "sidebarViews": "Vistas",
   "sidebarFavorites": "Favoritos",
   "sidebarRecords": "Registros",
@@ -693,13 +666,11 @@
   "sidebarAddToFavorites": "Añadir a favoritos",
   "sidebarRemoveFavorite": "Quitar de favoritos",
   "sidebarNoLists": "Sin listas aún",
-
   "filterPillAdd": "Añadir filtro",
   "filterPillRemove": "Eliminar filtro",
   "sortedBy": "Ordenado por",
   "viewSettings": "Ajustes de vista",
   "viewSettingsRename": "Renombrar",
-  "importExport": "Importar / Exportar",
   "exportExcel": "Exportar Excel",
   "tableRowCount": "registros",
   "addColumn": "+ Añadir columna",
@@ -732,7 +703,6 @@
   "oppLayout_dealValue": "Valor del negocio",
   "oppLayout_dragToReorder": "Arrastrar para reordenar secciones y alternar visibilidad",
   "oppLayout_intelligence": "Inteligencia",
-
   "col_whatsapp": "WhatsApp",
   "col_hasWhatsapp": "Tiene WhatsApp",
   "col_commercialName": "Nombre Comercial",
@@ -766,7 +736,6 @@
   "col_sales2024": "Ventas 2024 €",
   "col_sales2025": "Ventas 2025 €",
   "col_sales2026": "Ventas 2026 €",
-
   "filterChurned": "Perdidos",
   "filterCategoryABC": "Categoría ABC",
   "filterCatA": "A - Alto valor",
@@ -780,7 +749,6 @@
   "analyzingRevenueIntelligence": "Analizando revenue intelligence...",
   "revenueAnalyzed": "{{count}} empresa(s) analizadas con Revenue Intelligence",
   "errorRevenueAnalysis": "Error al analizar revenue",
-
   "bulkEditTypeDecisionMaker": "Decisor",
   "bulkEditTypeInfluencer": "Influenciador",
   "bulkEditTypeChampion": "Champion",
@@ -792,12 +760,12 @@
   "bulkEditPayCard": "Tarjeta",
   "bulkEditPayCheck": "Cheque",
   "bulkEditPayCash": "Efectivo",
-
   "smartListFieldCompany": "Empresa",
   "smartListFieldState": "Estado",
   "smartListFieldEstimatedValue": "Valor Estimado",
   "smartListFieldLastContact": "Último contacto",
-
-  "viewLifecycle": "Ver Ciclo de Vida"
+  "viewLifecycle": "Ver Ciclo de Vida",
+  "addressNumber": "Número",
+  "addressFloor": "Piso",
+  "region": "Región"
 }
-

@@ -78,6 +78,13 @@
       "when": 1788364513251,
       "tag": "0010_fix_is_workspace_member_arg_order",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788375532957,
+      "tag": "0011_add_contacts_address_fields",
+      "breakpoints": true
     }
   ]
 }

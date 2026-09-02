@@ -32,6 +32,10 @@ export const LEAD_COLUMNS: LeadColumnDef[] = [
   { key: "last_contact", label: "Último contacto", defaultVisible: false },
   { key: "assigned_to", label: "Responsável", defaultVisible: false },
   { key: "tags", label: "Tags", defaultVisible: false },
+  { key: "address", label: "Morada", defaultVisible: false },
+  { key: "postal_code", label: "Código Postal", defaultVisible: false },
+  { key: "city", label: "Cidade", defaultVisible: false },
+  { key: "country", label: "País", defaultVisible: false },
 ];
 
 const STORAGE_KEY = "leads-list-columns-v2";
