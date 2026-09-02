@@ -19,6 +19,7 @@ import { InvoiceProductSelector } from "./InvoiceProductSelector";
 import { InvoiceItemsCart, type InvoiceCartItem } from "./InvoiceItemsCart";
 import { useInvoiceItems, useUpdateInvoiceItems, type Invoice } from "@/hooks/useInvoices";
 import type { Product } from "@/types/product";
+import { productInvoiceLine } from "@/lib/invoices/productLine";
 
 interface EditInvoiceItemsDialogProps {
   open: boolean;
