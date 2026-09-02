@@ -15,19 +15,22 @@ export const round2 = (value: number) => toMoney(value).toDecimalPlaces(2).toNum
  */
 export const round6 = (value: number) => toMoney(value).toDecimalPlaces(6).toNumber();
 
-/** Net value of a line (quantity x price - line discount), rounded to cents. */
+/** Net value of a line (quantity x price - line discount), full precision. */
+export function lineNetRaw(item: ReverseTotalsLine): number {
+  return toMoney(item.quantity)
+    .times(item.unit_price)
+    .times(toMoney(1).minus(toMoney(item.discount_percent || 0).dividedBy(100)))
+    .toNumber();
+}
+
+/** Net value of a line, rounded to cents (display / persisted line total). */
 export function lineNet(item: ReverseTotalsLine): number {
-  return round2(
-    toMoney(item.quantity)
-      .times(item.unit_price)
-      .times(toMoney(1).minus(toMoney(item.discount_percent || 0).dividedBy(100)))
-      .toNumber()
-  );
+  return round2(lineNetRaw(item));
 }
 
 /** Gross value of a line (net + VAT), unrounded, used for proportional weights. */
 export function lineGross(item: ReverseTotalsLine): number {
-  return toMoney(lineNet(item))
+  return toMoney(lineNetRaw(item))
     .times(toMoney(1).plus(toMoney(item.tax_rate || 0).dividedBy(100)))
     .toNumber();
 }
@@ -38,12 +41,12 @@ export function lineGross(item: ReverseTotalsLine): number {
  */
 export function computeTotals(items: ReverseTotalsLine[], discountAmount = 0) {
   const subtotal = round2(
-    items.reduce((sum, item) => sum.plus(lineNet(item)), toMoney(0)).toNumber()
+    items.reduce((sum, item) => sum.plus(lineNetRaw(item)), toMoney(0)).toNumber()
   );
   const taxAmount = round2(
     items
       .reduce(
-        (sum, item) => sum.plus(toMoney(lineNet(item)).times(item.tax_rate || 0).dividedBy(100)),
+        (sum, item) => sum.plus(toMoney(lineNetRaw(item)).times(item.tax_rate || 0).dividedBy(100)),
         toMoney(0)
       )
       .toNumber()
