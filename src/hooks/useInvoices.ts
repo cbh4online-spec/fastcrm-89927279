@@ -368,21 +368,22 @@ export function useUpdateInvoiceItems() {
       const computed = input.items.map((item, index) => {
         const discountMultiplier = 1 - (item.discount_percent || 0) / 100;
         const precisePrice = round6(item.unit_price || 0);
-        const total = round2(item.quantity * precisePrice * discountMultiplier);
+        const rawTotal = item.quantity * precisePrice * discountMultiplier;
         return {
           ...item,
           unit_price: round2(precisePrice),
           unit_price_precise: precisePrice,
           discount_percent: item.discount_percent || 0,
           tax_rate: item.tax_rate ?? 23,
-          total,
+          rawTotal,
+          total: round2(rawTotal),
           position: index,
         };
       });
 
-      const subtotal = round2(computed.reduce((sum, item) => sum + item.total, 0));
+      const subtotal = round2(computed.reduce((sum, item) => sum + item.rawTotal, 0));
       const taxAmount = round2(
-        computed.reduce((sum, item) => sum + (item.total * (item.tax_rate || 0)) / 100, 0)
+        computed.reduce((sum, item) => sum + (item.rawTotal * (item.tax_rate || 0)) / 100, 0)
       );
       const discountAmount = round2(input.discount_amount || 0);
       const total = round2(subtotal + taxAmount - discountAmount);
