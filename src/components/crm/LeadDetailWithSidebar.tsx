@@ -59,6 +59,7 @@ import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
 import { AIDealInsightPanel } from "@/components/contacts/sections/AIDealInsightPanel";
 import { LeadScoresCard } from "@/components/leads/sections/LeadScoresCard";
 import { LeadNextBestActionCard } from "@/components/whatsapp-pro/LeadNextBestActionCard";
+import { OutreachOneToOneSection } from "@/modules/outreach/components/OutreachOneToOneSection";
 import { LeadLifecycleSection } from "@/components/leads/sections/LeadLifecycleSection";
 import { LeadAuditSection } from "@/components/leads/sections/LeadAuditSection";
 import { IXEntityHeader } from "@/components/entity/ix/IXEntityHeader";
