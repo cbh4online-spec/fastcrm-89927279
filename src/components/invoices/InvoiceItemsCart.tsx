@@ -24,6 +24,47 @@ export interface InvoiceCartItem {
   tax_rate: number;
 }
 
+/** Numeric field that only commits on blur or Enter, keeping typing fluid. */
+function LineTotalInput({
+  id,
+  value,
+  onCommit,
+}: {
+  id: string;
+  value: number;
+  onCommit: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const commit = () => {
+    if (draft === null) return;
+    const parsed = parseFloat(draft.replace(",", "."));
+    setDraft(null);
+    if (!Number.isFinite(parsed) || parsed < 0) return;
+    onCommit(parsed);
+  };
+
+  return (
+    <Input
+      id={id}
+      inputMode="decimal"
+      value={draft ?? value.toFixed(2)}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit();
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      className="h-7 text-xs"
+    />
+  );
+}
+
+
+
 interface InvoiceItemsCartProps {
   items: InvoiceCartItem[];
   onUpdateQuantity: (id: string, quantity: number) => void;
@@ -32,6 +73,8 @@ interface InvoiceItemsCartProps {
   onUpdateTaxRate: (id: string, taxRate: number) => void;
   onRemoveItem: (id: string) => void;
   onClear: () => void;
+  /** When provided, shows an editable "line total (VAT incl.)" field. */
+  onUpdateLineTotal?: (id: string, lineTotalGross: number) => void;
 }
 
 export function InvoiceItemsCart({
@@ -42,7 +85,9 @@ export function InvoiceItemsCart({
   onUpdateTaxRate,
   onRemoveItem,
   onClear,
+  onUpdateLineTotal,
 }: InvoiceItemsCartProps) {
+
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const toggleExpanded = (id: string) => {
@@ -236,6 +281,22 @@ export function InvoiceItemsCart({
                         />
                       </div>
                     </div>
+                    {onUpdateLineTotal && (
+                      <div className="mt-2 space-y-0.5">
+                        <label
+                          className="text-[10px] text-muted-foreground"
+                          htmlFor={`line-total-${item.id}`}
+                        >
+                          Total da linha (c/IVA)
+                        </label>
+                        <LineTotalInput
+                          id={`line-total-${item.id}`}
+                          value={itemTotal * (1 + item.tax_rate / 100)}
+                          onCommit={(value) => onUpdateLineTotal(item.id, value)}
+                        />
+                      </div>
+                    )}
+
                   </CollapsibleContent>
                 </Card>
               </Collapsible>
