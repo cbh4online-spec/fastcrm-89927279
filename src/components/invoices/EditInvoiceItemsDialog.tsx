@@ -135,6 +135,7 @@ export function EditInvoiceItemsDialog({ open, onOpenChange, invoice }: EditInvo
 
 
   const handleAddProduct = (product: Product) => {
+    const line = productInvoiceLine(product);
     setCart((prev) => [
       ...prev,
       {
@@ -143,9 +144,9 @@ export function EditInvoiceItemsDialog({ open, onOpenChange, invoice }: EditInvo
         name: product.name,
         description: product.name,
         quantity: 1,
-        unit_price: product.base_price || 0,
+        unit_price: line.unit_price,
         discount_percent: 0,
-        tax_rate: 23,
+        tax_rate: line.tax_rate,
       },
     ]);
   };
