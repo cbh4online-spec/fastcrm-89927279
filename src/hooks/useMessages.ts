@@ -138,22 +138,28 @@ export function useSendMessage() {
       // Get conversation to check channel and email details
       const { data: conversation, error: convError } = await workspaceClient
         .from("conversations")
-        .select("channel, channel_metadata, external_thread_id, lead:leads(email, ghl_contact_id, phone)")
+        .select("channel, channel_metadata, external_thread_id, lead:leads(email, ghl_contact_id, phone), contact:contacts(email, ghl_contact_id, phone)")
         .eq("id", conversationId)
         .single();
 
       if (convError) throw convError;
 
-      // Check if this is a GHL-linked conversation (SMS/WhatsApp from GHL)
+      // Check if this is a GHL-linked conversation (SMS/WhatsApp/Messenger/Instagram from GHL)
       const channelMeta = conversation.channel_metadata as Record<string, unknown> | null;
-      const leadData = conversation.lead as unknown;
-      const lead = (Array.isArray(leadData) ? leadData[0] : leadData) as { email: string | null; ghl_contact_id: string | null } | null;
+      const pickOne = <T,>(v: unknown) => (Array.isArray(v) ? (v[0] as T) : (v as T)) ?? null;
+      type Party = { email: string | null; ghl_contact_id: string | null; phone: string | null };
+      const lead = pickOne<Party>(conversation.lead);
+      const contact = pickOne<Party>((conversation as { contact?: unknown }).contact);
       const isGHLConversation = Boolean(
         channelMeta?.source === "ghl" || 
         channelMeta?.source === "ghl_sync" ||
         channelMeta?.ghl_contact_id || 
-        lead?.ghl_contact_id
+        lead?.ghl_contact_id ||
+        contact?.ghl_contact_id ||
+        // Conversas sincronizadas do GHL têm o thread com prefixo "ghl_"
+        (typeof conversation.external_thread_id === "string" && conversation.external_thread_id.startsWith("ghl_"))
       );
+
 
       // For GHL-linked conversations (SMS, WhatsApp, Instagram, Messenger, Facebook, or "other" with GHL metadata), use the GHL send function
       if (isGHLConversation && ["sms", "whatsapp", "instagram", "messenger", "facebook", "other"].includes(conversation.channel)) {
@@ -451,8 +457,18 @@ export function useSendMessage() {
         } as Message;
       }
 
+      // Canais externos exigem um provedor: nunca registar localmente uma
+      // mensagem que não foi realmente entregue (falso sucesso na inbox).
+      const providerChannels = ["messenger", "facebook", "instagram", "whatsapp", "sms"];
+      if (providerChannels.includes(conversation.channel)) {
+        throw new Error(
+          "Esta conversa não está ligada a nenhum canal de envio configurado. Ligue o canal (GoHighLevel/Meta) antes de responder."
+        );
+      }
+
       // For other channels, insert message directly
       const { data: message, error: messageError } = await workspaceClient
+
         .from("messages")
         .insert({
           conversation_id: conversationId,
