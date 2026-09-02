@@ -172,6 +172,12 @@ export default function InvoiceDetail() {
                 Editar itens
               </Button>
             )}
+            {invoice.status !== "cancelled" && !(invoice as any).external_provider && (
+              <Button variant="outline" onClick={() => setEditDatesOpen(true)}>
+                <CalendarDays className="w-4 h-4 mr-2" />
+                Editar datas
+              </Button>
+            )}
             {canRegisterPayment && (
               <Button onClick={() => setPaymentDialogOpen(true)}>
                 <CreditCard className="w-4 h-4 mr-2" />
