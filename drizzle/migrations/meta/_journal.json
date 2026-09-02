@@ -71,6 +71,13 @@
       "when": 1788345779580,
       "tag": "0009_booking_pages_share_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788364513251,
+      "tag": "0010_fix_is_workspace_member_arg_order",
+      "breakpoints": true
     }
   ]
 }
