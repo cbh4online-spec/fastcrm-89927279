@@ -73,7 +73,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         </div>
 
         <div className="flex items-center gap-4 text-primary-foreground/60 text-sm">
-          <span>© 2024 FastCRM</span>
+          <span>© 2026 FastCRM</span>
           <span>•</span>
           <span>Privacidade</span>
           <span>•</span>
