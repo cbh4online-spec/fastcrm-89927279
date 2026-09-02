@@ -14,7 +14,7 @@
  *    - fastcrm.metodopare.ai/c2c/*
  *    - fastcrm.metodopare.ai/marketplace/*
  *    - fastcrm.metodopare.ai/book/*
- *    - fastcrm.metodopare.ai/*&#47;book/*   (páginas de marcação com workspace no caminho)
+ *    - fastcrm.metodopare.ai/<workspace>/book/*   (páginas de marcação com workspace no caminho)
  *    - fastcrm.metodopare.ai/sitemap-dynamic.xml
  *
  * VERIFICAR SE A ROTA ESTÁ ATIVA (exemplo com uma página de marcação):
@@ -29,7 +29,7 @@
  *     "https://fastcrm.metodopare.ai/{workspace}/book/{slug}" | grep 'og:image'
  *
  * Se (1) mostra a imagem da reunião e (2) mostra a imagem genérica do FastCRM,
- * a rota `/*&#47;book/*` não está associada ao Worker ou o Worker publicado está desatualizado.
+ * a rota `/<workspace>/book/*` não está associada ao Worker ou o Worker publicado está desatualizado.
  */
 
 const OG_PROXY_BASE = "https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/og-proxy";
