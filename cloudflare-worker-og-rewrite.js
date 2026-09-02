@@ -4,16 +4,32 @@
  * Intercepta crawlers de redes sociais em paths da loja/bio/landing
  * e redireciona para a edge function og-proxy que serve OG tags corretas.
  *
- * CONFIGURAÇÃO:
+ * CONFIGURAÇÃO (painel Cloudflare → Workers & Pages → o Worker → Settings → Domains & Routes):
  * 1. Criar Worker no painel Cloudflare
- * 2. Colar este código
- * 3. Associar às rotas:
+ * 2. Colar este código e fazer Deploy da versão atual
+ * 3. Associar EXATAMENTE a estas rotas (todas necessárias):
  *    - fastcrm.metodopare.ai/store/*
  *    - fastcrm.metodopare.ai/bio/*
  *    - fastcrm.metodopare.ai/p/*
  *    - fastcrm.metodopare.ai/c2c/*
+ *    - fastcrm.metodopare.ai/marketplace/*
  *    - fastcrm.metodopare.ai/book/*
- *    - fastcrm.metodopare.ai/*/book/*
+ *    - fastcrm.metodopare.ai/*&#47;book/*   (páginas de marcação com workspace no caminho)
+ *    - fastcrm.metodopare.ai/sitemap-dynamic.xml
+ *
+ * VERIFICAR SE A ROTA ESTÁ ATIVA (exemplo com uma página de marcação):
+ *
+ *   # 1) Direto à edge function — deve devolver o título/imagem da reunião
+ *   curl -s -A "WhatsApp/2.0" \
+ *     "https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/og-proxy?path=%2F{workspace}%2Fbook%2F{slug}" \
+ *     | grep 'og:image'
+ *
+ *   # 2) Pelo domínio público — tem de devolver o MESMO resultado
+ *   curl -s -A "WhatsApp/2.0" \
+ *     "https://fastcrm.metodopare.ai/{workspace}/book/{slug}" | grep 'og:image'
+ *
+ * Se (1) mostra a imagem da reunião e (2) mostra a imagem genérica do FastCRM,
+ * a rota `/*&#47;book/*` não está associada ao Worker ou o Worker publicado está desatualizado.
  */
 
 const OG_PROXY_BASE = "https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/og-proxy";
