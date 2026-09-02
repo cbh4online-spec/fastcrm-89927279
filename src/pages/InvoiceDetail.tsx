@@ -35,6 +35,7 @@ import { PaymentActionsCard } from "@/components/invoices/PaymentActionsCard";
 import { InvoiceWhatsAppHistoryCard } from "@/components/invoices/InvoiceWhatsAppHistoryCard";
 import { PushToInvoiceXpressButton } from "@/components/invoices/PushToInvoiceXpressButton";
 import { EditInvoiceItemsDialog } from "@/components/invoices/EditInvoiceItemsDialog";
+import { EditInvoiceDatesDialog } from "@/components/invoices/EditInvoiceDatesDialog";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -56,6 +57,7 @@ export default function InvoiceDetail() {
   const forceStatus = useForceInvoiceStatus();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [editItemsOpen, setEditItemsOpen] = useState(false);
+  const [editDatesOpen, setEditDatesOpen] = useState(false);
 
   const { data: company } = useQuery({
     queryKey: ["invoice-company", invoice?.company_id],
@@ -435,6 +437,12 @@ export default function InvoiceDetail() {
           currency={invoice.currency}
         />
       )}
+
+      <EditInvoiceDatesDialog
+        open={editDatesOpen}
+        onOpenChange={setEditDatesOpen}
+        invoice={invoice}
+      />
 
       <EditInvoiceItemsDialog
         open={editItemsOpen}
