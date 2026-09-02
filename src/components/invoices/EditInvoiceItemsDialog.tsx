@@ -324,11 +324,39 @@ export function EditInvoiceItemsDialog({ open, onOpenChange, invoice }: EditInvo
                 <span className="text-muted-foreground">IVA</span>
                 <span>{formatEur(totals.taxAmount)}</span>
               </div>
-              <div className="flex justify-between font-semibold">
-                <span>Total c/IVA</span>
-                <span>{formatEur(totals.total)}</span>
+              <div className="flex items-center justify-between gap-3 font-semibold">
+                <Label htmlFor="target-total" className="text-sm font-semibold">
+                  Total c/IVA
+                </Label>
+                <Input
+                  id="target-total"
+                  className="w-32 h-8 text-right font-semibold"
+                  inputMode="decimal"
+                  value={totalDraft ?? totals.total.toFixed(2)}
+                  onChange={(e) => setTotalDraft(e.target.value)}
+                  onBlur={(e) => applyTargetTotal(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyTargetTotal((e.target as HTMLInputElement).value);
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                />
               </div>
+              <p className="text-[11px] text-muted-foreground">
+                Escreva o total pretendido e os preços das linhas são ajustados proporcionalmente.
+              </p>
+              {adjusted && (
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground">Preços ajustados manualmente.</span>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-xs" onClick={handleReset}>
+                    Repor
+                  </Button>
+                </div>
+              )}
               {diff !== 0 && (
+
                 <p className="text-xs text-muted-foreground">
                   Diferença face ao valor atual ({formatEur(invoice.total || 0)}):{" "}
                   <span className={diff > 0 ? "text-destructive" : "text-primary"}>
