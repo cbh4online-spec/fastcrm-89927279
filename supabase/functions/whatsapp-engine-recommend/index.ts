@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     const recommendations: Array<Record<string, unknown>> = [];
     for (const lead of leads as any[]) {
       const p: any = profileByLead.get(lead.id) ?? {};
-      const proposal: any = proposalByLead.get(lead.id);
+      const meta: any = p.metadata ?? {};
 
       const ctx: EngineLeadContext = {
         leadId: lead.id,
@@ -136,9 +136,9 @@ Deno.serve(async (req) => {
         automationActive: lead.automation_active !== false,
         snoozeUntil: p.snooze_until ?? null,
         hasMeeting: meetingLeads.has(lead.id),
-        hasProposal: Boolean(proposal) && !proposal?.accepted_at,
-        proposalViewed: Boolean(proposal?.viewed_at),
-        proposalAcceptedAt: proposal?.accepted_at ?? null,
+        hasProposal: Boolean(meta.proposal_sent_at) && !meta.proposal_accepted_at,
+        proposalViewed: Boolean(meta.proposal_viewed_at),
+        proposalAcceptedAt: meta.proposal_accepted_at ?? null,
         isLost: typeof lead.status === "string" && /lost|perdid/i.test(lead.status),
         intent: p.objecao_principal ? "objection" : null,
         objetivoCliente: p.objetivo_cliente ?? null,
