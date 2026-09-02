@@ -30,6 +30,29 @@ export function sanitizeBuilderHtml(dirty: string): string {
   });
 }
 
+/**
+ * Proteção mínima aplicada ANTES de persistir o HTML do Builder.
+ *
+ * Ao contrário de `sanitizeBuilderHtml()` (usada só no editor/preview), esta
+ * versão NÃO destrói o código original da landing page: mantém `<script>`,
+ * `<form>`, handlers inline (`onclick`, `onsubmit`, ...), IDs, âncoras
+ * internas, `target="_blank"` e atributos `data-*`.
+ *
+ * A proteção real da página publicada é o iframe sandboxed sem
+ * `allow-same-origin`, que isola a landing page do FastCRM.
+ */
+export function sanitizeBuilderHtmlForPersistence(dirty: string): string {
+  if (!dirty) return "";
+
+  return (
+    dirty
+      // remove <base> — reescreveria a resolução de URLs relativas do documento
+      .replace(/<base\b[^>]*>/gi, "")
+      // neutraliza javascript: em href/src (mantendo o resto do markup intacto)
+      .replace(/\b(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1="#"')
+  );
+}
+
 /** Gera um slug seguro a partir de um nome livre. */
 export function slugify(input: string): string {
   return input

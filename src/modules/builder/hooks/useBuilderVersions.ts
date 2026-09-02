@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { sanitizeBuilderHtml } from "../lib/sanitizeBuilderHtml";
+import { sanitizeBuilderHtmlForPersistence } from "../lib/sanitizeBuilderHtml";
 
 export interface BuilderAssetVersion {
   id: string;
@@ -57,7 +57,7 @@ export function useCreateBuilderVersion() {
         .maybeSingle();
 
       const nextNumber = (last?.version_number ?? 0) + 1;
-      const cleanHtml = sanitizeBuilderHtml(input.html);
+      const cleanHtml = sanitizeBuilderHtmlForPersistence(input.html);
 
       const { data, error } = await supabase
         .from("builder_asset_versions")

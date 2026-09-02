@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { BuilderAsset, BuilderAssetStatus, BuilderAssetType } from "../types";
-import { sanitizeBuilderHtml, slugify } from "../lib/sanitizeBuilderHtml";
+import { sanitizeBuilderHtmlForPersistence, slugify } from "../lib/sanitizeBuilderHtml";
 
 export function useBuilderAssets(filterType?: BuilderAssetType | "all") {
   const { currentWorkspace } = useWorkspace();
@@ -67,7 +67,7 @@ export function useCreateBuilderAsset() {
       if (!currentWorkspace?.id) throw new Error("Workspace não selecionado");
       if (!user?.id) throw new Error("Sessão inválida");
 
-      const cleanHtml = sanitizeBuilderHtml(input.html);
+      const cleanHtml = sanitizeBuilderHtmlForPersistence(input.html);
       const baseSlug = slugify(input.name);
 
       const { data: existing } = await supabase
@@ -122,7 +122,7 @@ export function useUpdateBuilderAsset() {
   return useMutation({
     mutationFn: async (input: UpdateBuilderAssetInput): Promise<BuilderAsset> => {
       const patch: Record<string, unknown> = {};
-      if (input.html !== undefined) patch.html = sanitizeBuilderHtml(input.html);
+      if (input.html !== undefined) patch.html = sanitizeBuilderHtmlForPersistence(input.html);
       if (input.name !== undefined) patch.name = input.name.trim();
       if (input.description !== undefined) patch.description = input.description?.trim() || null;
       if (input.status !== undefined) patch.status = input.status;

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { sanitizeBuilderHtml } from "../lib/sanitizeBuilderHtml";
+import { sanitizeBuilderHtmlForPersistence } from "../lib/sanitizeBuilderHtml";
 
 export interface BuilderAssetVariant {
   id: string;
@@ -47,7 +47,7 @@ export function useCreateBuilderVariant() {
   return useMutation({
     mutationFn: async (input: CreateVariantInput): Promise<BuilderAssetVariant> => {
       if (!user?.id) throw new Error("Sessão inválida");
-      const cleanHtml = sanitizeBuilderHtml(input.html);
+      const cleanHtml = sanitizeBuilderHtmlForPersistence(input.html);
       const { data, error } = await supabase
         .from("builder_asset_variants")
         .insert({
@@ -76,7 +76,7 @@ export function useUpdateBuilderVariant() {
       const patch: Record<string, unknown> = {};
       if (input.label !== undefined) patch.label = input.label.trim().slice(0, 80);
       if (input.notes !== undefined) patch.notes = input.notes?.toString().trim() || null;
-      if (input.html !== undefined) patch.html = sanitizeBuilderHtml(input.html);
+      if (input.html !== undefined) patch.html = sanitizeBuilderHtmlForPersistence(input.html);
       const { error } = await supabase.from("builder_asset_variants").update(patch).eq("id", input.id);
       if (error) throw error;
       return input;
