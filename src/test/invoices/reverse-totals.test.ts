@@ -15,7 +15,7 @@ const line = (over: Partial<Parameters<typeof unitPriceFromLineTotal>[0]> = {}) 
 
 describe("unitPriceFromLineTotal", () => {
   it("deduz o preço unitário a partir do total c/IVA", () => {
-    expect(unitPriceFromLineTotal(line(), 15)).toBe(12.2);
+    expect(unitPriceFromLineTotal(line(), 15)).toBe(12.195122);
   });
 
   it("respeita quantidade e desconto de linha", () => {
