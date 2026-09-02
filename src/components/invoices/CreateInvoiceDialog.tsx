@@ -27,6 +27,7 @@ import { Loader2, Building2 } from "lucide-react";
 import { InvoiceProductSelector } from "./InvoiceProductSelector";
 import { InvoiceItemsCart, type InvoiceCartItem } from "./InvoiceItemsCart";
 import type { Product } from "@/types/product";
+import { productInvoiceLine } from "@/lib/invoices/productLine";
 
 // Helper function to convert payment conditions to days
 function getPaymentDays(paymentCondition: string | null | undefined): number {
