@@ -46,6 +46,15 @@ function isCrawler(userAgent: string | null): boolean {
  * Parse a direct path like /store/{slug}/product/{id} into type+slug params.
  */
 function parsePathToTypeSlug(path: string): { type: string; slug: string } | null {
+  // /{wsSlug}/book/{pageSlug} or /book/{pageSlug}
+  const bookingWithWs = path.match(/^\/([^/]+)\/book\/([^/?#]+)/);
+  if (bookingWithWs && bookingWithWs[1] !== "book") {
+    return { type: "booking", slug: `${bookingWithWs[1]}/${bookingWithWs[2]}` };
+  }
+  const bookingMatch = path.match(/^\/book\/([^/?#]+)/);
+  if (bookingMatch) {
+    return { type: "booking", slug: `-/${bookingMatch[1]}` };
+  }
   // /store/{wsSlug}/product/{productId}
   const productMatch = path.match(/^\/store\/([^/]+)\/product\/([^/]+)/);
   if (productMatch) {
