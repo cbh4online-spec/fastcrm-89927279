@@ -31,16 +31,21 @@ export function lineGross(item: ReverseTotalsLine): number {
  * invoice edit dialog and the persistence layer.
  */
 export function computeTotals(items: ReverseTotalsLine[], discountAmount = 0) {
-  const subtotal = round2(items.reduce((sum, item) => sum + lineNet(item), 0));
-  const taxAmount = round2(
-    items.reduce(
-      (sum, item) => sum + toMoney(lineNet(item)).times(item.tax_rate || 0).dividedBy(100).toNumber(),
-      0
-    )
+  const subtotal = round2(
+    items.reduce((sum, item) => sum.plus(lineNet(item)), toMoney(0)).toNumber()
   );
-  const total = round2(subtotal + taxAmount - round2(discountAmount || 0));
+  const taxAmount = round2(
+    items
+      .reduce(
+        (sum, item) => sum.plus(toMoney(lineNet(item)).times(item.tax_rate || 0).dividedBy(100)),
+        toMoney(0)
+      )
+      .toNumber()
+  );
+  const total = round2(toMoney(subtotal).plus(taxAmount).minus(round2(discountAmount || 0)).toNumber());
   return { subtotal, taxAmount, total };
 }
+
 
 /** Multiplier that turns a unit price into the line gross value (per unit). */
 function grossFactorPerUnit(item: ReverseTotalsLine) {
