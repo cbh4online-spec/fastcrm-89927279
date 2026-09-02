@@ -32,6 +32,8 @@ interface InvoiceItemsCartProps {
   onUpdateTaxRate: (id: string, taxRate: number) => void;
   onRemoveItem: (id: string) => void;
   onClear: () => void;
+  /** When provided, shows an editable "line total (VAT incl.)" field. */
+  onUpdateLineTotal?: (id: string, lineTotalGross: number) => void;
 }
 
 export function InvoiceItemsCart({
@@ -42,7 +44,9 @@ export function InvoiceItemsCart({
   onUpdateTaxRate,
   onRemoveItem,
   onClear,
+  onUpdateLineTotal,
 }: InvoiceItemsCartProps) {
+
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const toggleExpanded = (id: string) => {
