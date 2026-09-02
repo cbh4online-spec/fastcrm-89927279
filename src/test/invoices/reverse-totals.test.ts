@@ -15,7 +15,7 @@ const line = (over: Partial<Parameters<typeof unitPriceFromLineTotal>[0]> = {}) 
 
 describe("unitPriceFromLineTotal", () => {
   it("deduz o preço unitário a partir do total c/IVA", () => {
-    expect(unitPriceFromLineTotal(line(), 15)).toBe(12.2);
+    expect(unitPriceFromLineTotal(line(), 15)).toBe(12.195122);
   });
 
   it("respeita quantidade e desconto de linha", () => {
@@ -67,5 +67,25 @@ describe("distributeTargetTotal", () => {
       ok: false,
       reason: "invalid_target",
     });
+  });
+});
+
+describe("precisão de preço unitário (6 casas)", () => {
+  it("total de linha 15,00 com IVA 23% e qty 1 bate exactamente", () => {
+    const item = { quantity: 1, unit_price: 12.2, discount_percent: 0, tax_rate: 23 };
+    const price = unitPriceFromLineTotal(item, 15);
+    expect(price).not.toBeNull();
+    const next = { ...item, unit_price: price as number };
+    expect(computeTotals([next], 0).total).toBe(15);
+  });
+
+  it("total geral escrito bate ao cêntimo com IVA misto e desconto global", () => {
+    const items = [
+      { quantity: 2, unit_price: 33.33, discount_percent: 0, tax_rate: 23 },
+      { quantity: 1, unit_price: 10, discount_percent: 10, tax_rate: 6 },
+    ];
+    const result = distributeTargetTotal(items, 5, 1000);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(computeTotals(result.items, 5).total).toBe(1000);
   });
 });

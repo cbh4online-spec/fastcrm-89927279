@@ -48998,6 +48998,7 @@ export type Database = {
           tax_rate: number | null
           total: number
           unit_price: number
+          unit_price_precise: number | null
           vat_exemption_reason: string | null
         }
         Insert: {
@@ -49016,6 +49017,7 @@ export type Database = {
           tax_rate?: number | null
           total?: number
           unit_price?: number
+          unit_price_precise?: number | null
           vat_exemption_reason?: string | null
         }
         Update: {
@@ -49034,6 +49036,7 @@ export type Database = {
           tax_rate?: number | null
           total?: number
           unit_price?: number
+          unit_price_precise?: number | null
           vat_exemption_reason?: string | null
         }
         Relationships: [
