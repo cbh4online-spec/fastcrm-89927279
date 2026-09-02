@@ -203,10 +203,13 @@ export function ProductDetailDialog({
     }).format(value);
   };
 
-  // Convenção do projeto: `base_price` e `direct_cost` são SEMPRE valores líquidos (sem IVA).
-  // O IVA só é aplicado na apresentação ao cliente (loja, fatura), nunca aqui.
-  const netBasePrice = product?.base_price ?? 0;
+  // `base_price` pode estar com ou sem IVA, conforme `tax_included`.
+  // Para análise (margens) usamos sempre o valor líquido.
+  const netBasePrice = product ? getNetPrice(product) : 0;
+  const grossBasePrice = product ? getGrossPrice(product) : 0;
+  const priceIncludesVat = Boolean(product?.tax_included);
   const netDirectCost = product?.direct_cost ?? null;
+
 
   const handleArchive = async () => {
     if (!product) return;
