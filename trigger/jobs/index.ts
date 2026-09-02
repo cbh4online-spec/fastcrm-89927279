@@ -7,6 +7,7 @@ export * from './imo-ai'
 export * from './renewals'
 export * from './sequences'
 export * from './b2b-plans'
+export * from './whatsapp-engine'
 
 // Reporting
 export * from './daily-brief'
