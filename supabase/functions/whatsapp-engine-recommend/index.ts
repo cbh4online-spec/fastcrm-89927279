@@ -37,21 +37,25 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // 1. Autorização: o utilizador tem de pertencer ao workspace.
+    // 1. Autorização: utilizador membro do workspace OU execução agendada (service role).
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
     if (!token) return json({ error: "unauthorized" }, 401);
-    const { data: userRes } = await admin.auth.getUser(token);
-    const userId = userRes?.user?.id;
-    if (!userId) return json({ error: "unauthorized" }, 401);
 
-    const { data: member } = await admin
-      .from("workspace_members")
-      .select("id")
-      .eq("workspace_id", workspaceId)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!member) return json({ error: "forbidden" }, 403);
+    const isScheduledRun = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!isScheduledRun) {
+      const { data: userRes } = await admin.auth.getUser(token);
+      const userId = userRes?.user?.id;
+      if (!userId) return json({ error: "unauthorized" }, 401);
+
+      const { data: member } = await admin
+        .from("workspace_members")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!member) return json({ error: "forbidden" }, 403);
+    }
 
     // 2. Leads alvo.
     let leadQuery = admin
@@ -89,19 +93,63 @@ Deno.serve(async (req) => {
     const meetingLeads = new Set((meetings ?? []).map((m: any) => m.lead_id));
     const convByLead = new Map((convs ?? []).map((c: any) => [c.lead_id, c.id]));
 
-    // Contagem de outbound por conversa.
+    // Sincronização do perfil comercial a partir das mensagens reais:
+    // contagem de outbound, última inbound/outbound e primeira resposta.
     const outboundByLead = new Map<string, number>();
+    const lastOutboundByLead = new Map<string, string>();
+    const lastInboundByLead = new Map<string, string>();
+    const firstInboundByLead = new Map<string, string>();
     const convIds = Array.from(convByLead.values());
+
     if (convIds.length) {
       const { data: msgs } = await admin
         .from("messages")
-        .select("conversation_id, direction")
+        .select("conversation_id, direction, created_at")
         .in("conversation_id", convIds)
-        .eq("direction", "outbound")
-        .limit(5000);
-      const byConv = new Map<string, number>();
-      for (const m of msgs ?? []) byConv.set(m.conversation_id, (byConv.get(m.conversation_id) ?? 0) + 1);
-      for (const [leadId, convId] of convByLead) outboundByLead.set(leadId, byConv.get(convId) ?? 0);
+        .order("created_at", { ascending: true })
+        .limit(10000);
+
+      const convToLead = new Map<string, string>();
+      for (const [leadId, convId] of convByLead) convToLead.set(convId as string, leadId as string);
+
+      for (const m of msgs ?? []) {
+        const leadId = convToLead.get(m.conversation_id);
+        if (!leadId) continue;
+        if (m.direction === "outbound") {
+          outboundByLead.set(leadId, (outboundByLead.get(leadId) ?? 0) + 1);
+          lastOutboundByLead.set(leadId, m.created_at);
+        } else if (m.direction === "inbound") {
+          if (!firstInboundByLead.has(leadId)) firstInboundByLead.set(leadId, m.created_at);
+          lastInboundByLead.set(leadId, m.created_at);
+        }
+      }
+    }
+
+    // Escreve o perfil comercial (upsert por lead) com os sinais derivados.
+    const profileRows = (leads as any[]).map((l) => {
+      const prev: any = profileByLead.get(l.id) ?? {};
+      return {
+        ...(prev.id ? { id: prev.id } : {}),
+        workspace_id: workspaceId,
+        lead_id: l.id,
+        last_outbound_at: lastOutboundByLead.get(l.id) ?? prev.last_outbound_at ?? null,
+        last_inbound_at: lastInboundByLead.get(l.id) ?? prev.last_inbound_at ?? null,
+        first_reply_at: prev.first_reply_at ?? firstInboundByLead.get(l.id) ?? null,
+        updated_at: new Date().toISOString(),
+      };
+    });
+
+    if (profileRows.length) {
+      const { error: upsertErr } = await admin
+        .from("lead_commercial_profile")
+        .upsert(profileRows, { onConflict: "lead_id" });
+      if (upsertErr) console.error("[whatsapp-engine-recommend] profile upsert", upsertErr.message);
+      else {
+        for (const row of profileRows) {
+          const prev: any = profileByLead.get(row.lead_id) ?? {};
+          profileByLead.set(row.lead_id, { ...prev, ...row });
+        }
+      }
     }
 
     // Opt-outs por telefone.

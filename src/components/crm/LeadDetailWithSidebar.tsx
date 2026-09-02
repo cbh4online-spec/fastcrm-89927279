@@ -58,6 +58,7 @@ import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulin
 import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
 import { AIDealInsightPanel } from "@/components/contacts/sections/AIDealInsightPanel";
 import { LeadScoresCard } from "@/components/leads/sections/LeadScoresCard";
+import { LeadNextBestActionCard } from "@/components/whatsapp-pro/LeadNextBestActionCard";
 import { LeadLifecycleSection } from "@/components/leads/sections/LeadLifecycleSection";
 import { LeadAuditSection } from "@/components/leads/sections/LeadAuditSection";
 import { IXEntityHeader } from "@/components/entity/ix/IXEntityHeader";
@@ -189,6 +190,7 @@ export function LeadDetailWithSidebar() {
               />
             </div>
             <TagsSection lead={lead} onFieldChange={handleFieldChange} />
+            {id && <LeadNextBestActionCard leadId={id} />}
             <RecommendationPanel
               leadId={id}
               context="lead_view"
