@@ -122,18 +122,18 @@ export async function checkStopConditions(
     }
   }
 
-  // 4. Agendamento futuro para este contacto → suspende a prospeção.
-  if (enr.contact_id) {
-    const { data: appt } = await supabase
-      .from("whatsapp_appointments")
+  // 4. Reunião futura para este contacto/lead → suspende a prospeção.
+  if (enr.contact_id || leadId) {
+    let q = supabase
+      .from("meetings")
       .select("id")
       .eq("workspace_id", wsId)
-      .eq("contact_id", enr.contact_id)
-      .gt("starts_at", new Date().toISOString())
-      .not("status", "in", '("cancelled","canceled")')
-      .limit(1)
-      .maybeSingle();
-    if (appt) return { allowed: false, reason: "meeting_scheduled", terminal: true };
+      .gt("start_time", new Date().toISOString())
+      .not("status", "in", '("cancelled","canceled","no_show")')
+      .limit(1);
+    q = enr.contact_id ? q.eq("contact_id", enr.contact_id) : q.eq("lead_id", leadId);
+    const { data: meeting } = await q.maybeSingle();
+    if (meeting) return { allowed: false, reason: "meeting_scheduled", terminal: true };
   }
 
   return ALLOWED;
