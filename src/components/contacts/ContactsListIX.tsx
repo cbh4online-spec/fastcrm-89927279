@@ -221,6 +221,14 @@ export function ContactsListIX() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
+            onClick={() => setDuplicatesOpen(true)}
+            className="h-12 rounded-full px-6 text-sm font-semibold"
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            Duplicados
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setImportOpen(true)}
             className="h-12 rounded-full px-6 text-sm font-semibold"
           >
@@ -236,6 +244,7 @@ export function ContactsListIX() {
           </Button>
         </div>
       }
+
       toolbar={
         <DocumentListToolbar
           sortOptions={[
@@ -263,18 +272,34 @@ export function ContactsListIX() {
     >
       <ListKPIStrip items={kpis} isLoading={isLoading} note="Valores calculados sobre os resultados filtrados." />
 
+      <EntitySelectionBar
+        count={selection.count}
+        entityLabel="contacto"
+        onMerge={() => setMergeOpen(true)}
+        onClear={selection.clear}
+      />
+
       {isLoading ? (
         <div className="flex justify-center py-12"><LoadingSpinner /></div>
       ) : pageItems.length === 0 ? (
         <EmptyState title="Sem contactos" description="Não foram encontrados contactos com os filtros atuais." />
       ) : (
         <div className="flex flex-col gap-2">
-          <ListColumnsHeader
-            orderedColumns={orderedColumns}
-            definitions={availableColumns}
-            columnWidth={COLUMN_WIDTH}
-            rightAlignedKeys={NUMERIC_COLUMNS}
-          />
+          <div className="flex items-center gap-4 px-4">
+            <Checkbox
+              checked={selection.allPageSelected}
+              onCheckedChange={() => selection.togglePage()}
+              aria-label="Selecionar todos os contactos da página"
+            />
+            <div className="min-w-0 flex-1">
+              <ListColumnsHeader
+                orderedColumns={orderedColumns}
+                definitions={availableColumns}
+                columnWidth={COLUMN_WIDTH}
+                rightAlignedKeys={NUMERIC_COLUMNS}
+              />
+            </div>
+          </div>
           {pageItems.map((c, idx) => (
             <div
               key={c.id}
@@ -291,8 +316,16 @@ export function ContactsListIX() {
                 "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
                 idx % 2 === 1 ? "bg-muted/20" : "bg-card",
                 ((c as any).is_blocked || (c as any).archived_at) && "opacity-60",
+                selection.isSelected(c.id) && "border-primary/50 bg-primary/5",
               )}
             >
+              <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={selection.isSelected(c.id)}
+                  onCheckedChange={() => selection.toggle(c.id)}
+                  aria-label={`Selecionar ${c.name || "contacto"}`}
+                />
+              </div>
               {orderedColumns.map((col) => (
                 <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
                   {renderCell(col, c)}
@@ -333,11 +366,20 @@ export function ContactsListIX() {
 
       <CreateContactDialog open={createOpen} onOpenChange={setCreateOpen} />
       <ContactsCsvImportDialog open={importOpen} onOpenChange={setImportOpen} />
+      <EntityMergeDialog
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        entity="contact"
+        records={selectedRecords as any}
+        onMerged={selection.clear}
+      />
+      <UnifiedDuplicateDialog open={duplicatesOpen} onOpenChange={setDuplicatesOpen} entityType="contacts" />
       <EntityArchiveBlockDialogs
         entity="contact"
         request={entityAction}
         onOpenChange={(o) => { if (!o) setEntityAction(null); }}
       />
+
     </DocumentListLayout>
   );
 }

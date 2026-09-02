@@ -43,6 +43,13 @@ import { useCompaniesFinancials, type CompanyFinancials } from "@/hooks/useCompa
 import { CreateCompanyDialog } from "@/components/companies/CreateCompanyDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
 import { cn } from "@/lib/utils";
+import { Copy } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useEntityListSelection } from "@/hooks/useEntityListSelection";
+import { EntitySelectionBar } from "@/components/entity/EntitySelectionBar";
+import { EntityMergeDialog } from "@/components/entity/EntityMergeDialog";
+import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
+
 
 type SortKey = "name" | "created_at" | "total_revenue" | "pending_total";
 
@@ -266,6 +273,9 @@ export function CompaniesListIX() {
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [duplicatesOpen, setDuplicatesOpen] = useState(false);
+
   const { isElementVisible } = usePageElementVisibility("companies");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
@@ -309,6 +319,13 @@ export function CompaniesListIX() {
     () => availableColumns.filter((c) => columns.includes(c.key)).map((c) => c.key),
     [availableColumns, columns],
   );
+  const pageIds = useMemo(() => pageItems.map((c) => c.id), [pageItems]);
+  const selection = useEntityListSelection(pageIds);
+  const selectedRecords = useMemo(
+    () => filtered.filter((c) => selection.selectedSet.has(c.id)),
+    [filtered, selection.selectedSet],
+  );
+
 
   const kpis = useMemo<ListKPI[]>(() => {
     let revenue = 0, paid = 0, pending = 0, overdue = 0, invoices = 0, active = 0;
@@ -351,14 +368,25 @@ export function CompaniesListIX() {
       onSearchChange={(v) => { setSearch(v); setPage(0); }}
       searchPlaceholder="Pesquisar por nome, NIF, e-mail ou website"
       primaryAction={
-        <Button
-          onClick={() => setCreateOpen(true)}
-          className="h-12 rounded-full bg-primary px-6 text-sm font-semibold shadow-sm hover:bg-primary/90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Criar Empresa
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setDuplicatesOpen(true)}
+            className="h-12 rounded-full px-6 text-sm font-semibold"
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            Duplicados
+          </Button>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="h-12 rounded-full bg-primary px-6 text-sm font-semibold shadow-sm hover:bg-primary/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Criar Empresa
+          </Button>
+        </div>
       }
+
       toolbar={
         <DocumentListToolbar
           sortOptions={[
@@ -392,18 +420,35 @@ export function CompaniesListIX() {
         note="Valores calculados sobre os resultados filtrados."
       />
 
+      <EntitySelectionBar
+        count={selection.count}
+        entityLabel="empresa"
+        onMerge={() => setMergeOpen(true)}
+        onClear={selection.clear}
+      />
+
       {isLoading ? (
         <div className="flex justify-center py-12"><LoadingSpinner /></div>
       ) : pageItems.length === 0 ? (
         <EmptyState title="Sem empresas" description="Não foram encontradas empresas com os filtros atuais." />
       ) : (
         <div className="flex flex-col gap-2">
-          <ListColumnsHeader
-            orderedColumns={orderedColumns}
-            definitions={availableColumns}
-            columnWidth={COLUMN_WIDTH}
-            rightAlignedKeys={NUMERIC_COLUMNS}
-          />
+          <div className="flex items-center gap-4 px-4">
+            <Checkbox
+              checked={selection.allPageSelected}
+              onCheckedChange={() => selection.togglePage()}
+              aria-label="Selecionar todas as empresas da página"
+            />
+            <div className="min-w-0 flex-1">
+              <ListColumnsHeader
+                orderedColumns={orderedColumns}
+                definitions={availableColumns}
+                columnWidth={COLUMN_WIDTH}
+                rightAlignedKeys={NUMERIC_COLUMNS}
+              />
+            </div>
+          </div>
+
           {pageItems.map((c, idx) => {
             const fin = financialsById.get(c.id);
             const hasOverdue = (fin?.overdue_total ?? 0) > 0.01;
@@ -421,9 +466,18 @@ export function CompaniesListIX() {
                 idx % 2 === 1 ? "bg-muted/20" : "bg-card",
                 hasOverdue ? "border-l-4 border-l-destructive border-border" : "border-border",
                 inactive && "opacity-60",
+                selection.isSelected(c.id) && "border-primary/50 bg-primary/5",
               )}
             >
+              <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={selection.isSelected(c.id)}
+                  onCheckedChange={() => selection.toggle(c.id)}
+                  aria-label={`Selecionar ${c.name || "empresa"}`}
+                />
+              </div>
               {orderedColumns.map((col) => (
+
                 <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
                   {renderCell(col, c, financialsById.get(c.id))}
                 </div>
@@ -463,6 +517,15 @@ export function CompaniesListIX() {
       )}
 
       <CreateCompanyDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <EntityMergeDialog
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        entity="company"
+        records={selectedRecords as any}
+        onMerged={selection.clear}
+      />
+      <UnifiedDuplicateDialog open={duplicatesOpen} onOpenChange={setDuplicatesOpen} entityType="companies" />
+
       <EntityArchiveBlockDialogs
         entity="company"
         request={entityAction}

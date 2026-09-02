@@ -29,6 +29,13 @@ import {
   useLeadColumns,
 } from "./LeadsColumnsPicker";
 import { cn } from "@/lib/utils";
+import { Copy } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useEntityListSelection } from "@/hooks/useEntityListSelection";
+import { EntitySelectionBar } from "@/components/entity/EntitySelectionBar";
+import { EntityMergeDialog } from "@/components/entity/EntityMergeDialog";
+import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
+
 
 type SortKey = "name" | "created_at" | "lead_score";
 
@@ -234,6 +241,16 @@ export function LeadsListIX() {
     [columns]
   );
 
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [duplicatesOpen, setDuplicatesOpen] = useState(false);
+  const pageIds = useMemo(() => sortedLeads.map((l) => l.id), [sortedLeads]);
+  const selection = useEntityListSelection(pageIds);
+  const selectedRecords = useMemo(
+    () => sortedLeads.filter((l) => selection.selectedSet.has(l.id)),
+    [sortedLeads, selection.selectedSet],
+  );
+
+
   const kpis = useMemo<ListKPI[]>(() => {
     let hot = 0, pipeline = 0, stale = 0, scored = 0, scoreSum = 0;
     const staleCut = Date.now() - 14 * 24 * 60 * 60 * 1000;
@@ -263,14 +280,25 @@ export function LeadsListIX() {
       }}
       searchPlaceholder="Pesquisar por nome, email ou empresa"
       primaryAction={
-        <Button
-          onClick={() => setCreateOpen(true)}
-          className="h-12 rounded-full bg-primary px-6 text-sm font-semibold shadow-sm hover:bg-primary/90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Criar Lead
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setDuplicatesOpen(true)}
+            className="h-12 rounded-full px-6 text-sm font-semibold"
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            Duplicados
+          </Button>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="h-12 rounded-full bg-primary px-6 text-sm font-semibold shadow-sm hover:bg-primary/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Criar Lead
+          </Button>
+        </div>
       }
+
       toolbar={
         <DocumentListToolbar
           sortOptions={[
@@ -303,6 +331,13 @@ export function LeadsListIX() {
     >
       <ListKPIStrip items={kpis} isLoading={isLoading} note="Valores calculados sobre a página atual de resultados." />
 
+      <EntitySelectionBar
+        count={selection.count}
+        entityLabel="lead"
+        onMerge={() => setMergeOpen(true)}
+        onClear={selection.clear}
+      />
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <LoadingSpinner />
@@ -314,12 +349,21 @@ export function LeadsListIX() {
         />
       ) : (
         <div className="flex flex-col gap-2">
-          <ListColumnsHeader
-            orderedColumns={orderedColumns}
-            definitions={LEAD_COLUMNS}
-            columnWidth={COLUMN_WIDTH}
-            rightAlignedKeys={NUMERIC_COLUMNS}
-          />
+          <div className="flex items-center gap-4 px-4">
+            <Checkbox
+              checked={selection.allPageSelected}
+              onCheckedChange={() => selection.togglePage()}
+              aria-label="Selecionar todas as leads da página"
+            />
+            <div className="min-w-0 flex-1">
+              <ListColumnsHeader
+                orderedColumns={orderedColumns}
+                definitions={LEAD_COLUMNS}
+                columnWidth={COLUMN_WIDTH}
+                rightAlignedKeys={NUMERIC_COLUMNS}
+              />
+            </div>
+          </div>
           {sortedLeads.map((lead, idx) => (
             <div
               key={lead.id}
@@ -332,9 +376,18 @@ export function LeadsListIX() {
                 "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
                 idx % 2 === 1 ? "bg-muted/20" : "bg-card",
                 ((lead as any).is_blocked || (lead as any).archived_at) && "opacity-60",
+                selection.isSelected(lead.id) && "border-primary/50 bg-primary/5",
               )}
             >
+              <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={selection.isSelected(lead.id)}
+                  onCheckedChange={() => selection.toggle(lead.id)}
+                  aria-label={`Selecionar ${lead.name || "lead"}`}
+                />
+              </div>
               {orderedColumns.map((col) => (
+
                 <div
                   key={col}
                   className={cn(
@@ -395,6 +448,15 @@ export function LeadsListIX() {
       )}
 
       <CreateLeadDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <EntityMergeDialog
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        entity="lead"
+        records={selectedRecords as any}
+        onMerged={selection.clear}
+      />
+      <UnifiedDuplicateDialog open={duplicatesOpen} onOpenChange={setDuplicatesOpen} entityType="leads" />
+
       <EntityArchiveBlockDialogs
         entity="lead"
         request={entityAction}
