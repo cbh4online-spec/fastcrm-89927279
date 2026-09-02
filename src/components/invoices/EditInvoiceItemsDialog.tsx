@@ -42,6 +42,9 @@ export function EditInvoiceItemsDialog({ open, onOpenChange, invoice }: EditInvo
   const updateItems = useUpdateInvoiceItems();
 
   const [cart, setCart] = useState<InvoiceCartItem[]>([]);
+  const [baseline, setBaseline] = useState<InvoiceCartItem[]>([]);
+  const [adjusted, setAdjusted] = useState(false);
+  const [totalDraft, setTotalDraft] = useState<string | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [freeName, setFreeName] = useState("");
   const [freePrice, setFreePrice] = useState("");
@@ -51,22 +54,24 @@ export function EditInvoiceItemsDialog({ open, onOpenChange, invoice }: EditInvo
     setDiscountAmount(invoice.discount_amount || 0);
     setFreeName("");
     setFreePrice("");
+    setAdjusted(false);
+    setTotalDraft(null);
   }, [open, invoice.discount_amount]);
 
   useEffect(() => {
     if (!open || !items) return;
-    setCart(
-      items.map((item) => ({
-        id: item.id,
-        product_id: item.product_id || undefined,
-        name: item.description,
-        description: item.description,
-        quantity: Number(item.quantity) || 1,
-        unit_price: Number(item.unit_price) || 0,
-        discount_percent: Number(item.discount_percent) || 0,
-        tax_rate: Number(item.tax_rate) ?? 23,
-      }))
-    );
+    const mapped: InvoiceCartItem[] = items.map((item) => ({
+      id: item.id,
+      product_id: item.product_id || undefined,
+      name: item.description,
+      description: item.description,
+      quantity: Number(item.quantity) || 1,
+      unit_price: Number(item.unit_price) || 0,
+      discount_percent: Number(item.discount_percent) || 0,
+      tax_rate: Number(item.tax_rate) ?? 23,
+    }));
+    setCart(mapped);
+    setBaseline(mapped);
   }, [open, items]);
 
   const selectedProductIds = useMemo(
@@ -74,26 +79,56 @@ export function EditInvoiceItemsDialog({ open, onOpenChange, invoice }: EditInvo
     [cart]
   );
 
-  const totals = useMemo(() => {
-    const subtotal = round2(
-      cart.reduce(
-        (sum, item) => sum + round2(item.quantity * item.unit_price * (1 - item.discount_percent / 100)),
-        0
-      )
-    );
-    const taxAmount = round2(
-      cart.reduce((sum, item) => {
-        const lineNet = round2(item.quantity * item.unit_price * (1 - item.discount_percent / 100));
-        return sum + (lineNet * item.tax_rate) / 100;
-      }, 0)
-    );
-    const total = round2(subtotal + taxAmount - round2(discountAmount || 0));
-    return { subtotal, taxAmount, total };
-  }, [cart, discountAmount]);
+  const totals = useMemo(() => computeTotals(cart, discountAmount), [cart, discountAmount]);
 
   const alreadyPaid = round2(invoice.amount_paid || 0);
   const diff = round2(totals.total - (invoice.total || 0));
   const belowPaid = alreadyPaid > 0 && totals.total < alreadyPaid;
+
+  const handleLineTotal = (id: string, lineTotalGross: number) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const price = unitPriceFromLineTotal(item, lineTotalGross);
+        if (price === null) {
+          toast.error("Não é possível deduzir o preço desta linha (quantidade ou desconto).");
+          return item;
+        }
+        return { ...item, unit_price: price };
+      })
+    );
+    setAdjusted(true);
+  };
+
+  const applyTargetTotal = (raw: string) => {
+    setTotalDraft(null);
+    const target = parseFloat(raw.replace(",", "."));
+    if (!Number.isFinite(target)) return;
+    if (round2(target) === totals.total) return;
+    if (alreadyPaid > 0 && target < alreadyPaid) {
+      toast.error("O total não pode ser inferior ao valor já pago");
+      return;
+    }
+    const result = distributeTargetTotal(cart, discountAmount, round2(target));
+    if (!result.ok) {
+      toast.error(
+        result.reason === "no_base"
+          ? "Precisa de pelo menos uma linha com valor para distribuir o total"
+          : "Indique um total válido"
+      );
+      return;
+    }
+    setCart(result.items);
+    setAdjusted(true);
+  };
+
+  const handleReset = () => {
+    setCart(baseline);
+    setDiscountAmount(invoice.discount_amount || 0);
+    setAdjusted(false);
+    setTotalDraft(null);
+  };
+
 
   const handleAddProduct = (product: Product) => {
     setCart((prev) => [
