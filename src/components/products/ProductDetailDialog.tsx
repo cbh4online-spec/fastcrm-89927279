@@ -588,6 +588,11 @@ export function ProductDetailDialog({
                         <p className="text-xl font-bold mt-0.5">
                           {formatCurrency(netBasePrice, product.currency)}
                         </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {formatCurrency(grossBasePrice, product.currency)} c/IVA
+                          {priceIncludesVat && " · preço de catálogo inclui IVA"}
+                        </p>
+
                         <p className="text-[10px] text-muted-foreground mt-1">
                           {billingTypeLabels[product.billing_type]}
                           {isBundle && product.bundle_price_mode && (
