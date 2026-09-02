@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Plus, Wand2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { CreateObjectWizard } from "@/components/objects/CreateObjectWizard";
