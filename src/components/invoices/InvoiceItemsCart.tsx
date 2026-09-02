@@ -241,7 +241,7 @@ export function InvoiceItemsCart({
                         </label>
                         <Input
                           type="number"
-                          step="0.01"
+                          step="0.000001"
                           value={item.unit_price}
                           onChange={(e) =>
                             onUpdatePrice(item.id, parseFloat(e.target.value) || 0)

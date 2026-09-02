@@ -66,7 +66,9 @@ export function EditInvoiceItemsDialog({ open, onOpenChange, invoice }: EditInvo
       name: item.description,
       description: item.description,
       quantity: Number(item.quantity) || 1,
-      unit_price: Number(item.unit_price) || 0,
+      unit_price:
+        Number((item as { unit_price_precise?: number | string | null }).unit_price_precise ??
+          item.unit_price) || 0,
       discount_percent: Number(item.discount_percent) || 0,
       tax_rate: Number(item.tax_rate) ?? 23,
     }));
