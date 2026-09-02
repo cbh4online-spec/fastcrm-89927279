@@ -15,9 +15,11 @@ export interface ProductLineResult {
 
 /** Taxa de IVA a aplicar a uma linha de fatura para um produto do catálogo. */
 export function productTaxRate(product: ProductLineInput): number {
-  const rate = Number(product.tax_rate_estimate_pct);
-  if (Number.isFinite(rate) && rate >= 0) return rate;
-  return DEFAULT_VAT_RATE;
+  const raw = product.tax_rate_estimate_pct;
+  if (raw === null || raw === undefined) return DEFAULT_VAT_RATE;
+  const rate = Number(raw);
+  if (!Number.isFinite(rate) || rate < 0) return DEFAULT_VAT_RATE;
+  return rate;
 }
 
 /**
