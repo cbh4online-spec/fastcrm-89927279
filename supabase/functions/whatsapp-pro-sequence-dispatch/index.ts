@@ -49,23 +49,41 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Optout check
-      const { data: optout } = await supabase
-        .from("whatsapp_optouts")
+      // Claim atómico: só uma execução pode processar este enrollment.
+      const { data: claimed } = await supabase
+        .from("whatsapp_sequence_enrollments")
+        .update({ next_run_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() })
+        .eq("id", enr.id)
+        .eq("status", "active")
+        .eq("next_run_at", enr.next_run_at)
         .select("id")
-        .eq("workspace_id", enr.workspace_id)
-        .eq("phone", enr.phone)
         .maybeSingle();
+      if (!claimed) continue; // outra execução já apanhou este enrollment
 
-      if (optout) {
-        await supabase.from("whatsapp_sequence_enrollments")
-          .update({ status: "opted_out", completed_at: new Date().toISOString() })
-          .eq("id", enr.id);
+      // Condições de paragem (revalidadas imediatamente antes do envio)
+      const guard = await checkStopConditions(supabase, enr as any, {
+        stopOnReply: seq.stop_on_reply !== false,
+      });
+      if (!guard.allowed) {
+        if (guard.terminal) {
+          await supabase.from("whatsapp_sequence_enrollments")
+            .update({
+              status: guard.reason === "opted_out" ? "opted_out" : "stopped",
+              completed_at: new Date().toISOString(),
+              last_error: guard.reason,
+            })
+            .eq("id", enr.id);
+        } else {
+          await supabase.from("whatsapp_sequence_enrollments")
+            .update({ next_run_at: guard.retryAt ?? new Date(Date.now() + 60 * 60 * 1000).toISOString() })
+            .eq("id", enr.id);
+        }
         await supabase.from("whatsapp_sequence_logs").insert({
           enrollment_id: enr.id,
           workspace_id: enr.workspace_id,
           step_order: enr.current_step_order,
-          status: "optout",
+          status: guard.reason === "opted_out" ? "optout" : "skipped",
+          error: guard.reason,
         });
         continue;
       }
@@ -86,11 +104,31 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Variable substitution: {{name}}, {{phone}}
+      // Variable substitution: {{name}}, {{phone}} + variáveis do contexto do enrollment
       const meta = (enr.metadata as any) || {};
       let body = step.message_body || "";
       body = body.replace(/\{\{\s*name\s*\}\}/gi, meta.name || "")
                  .replace(/\{\{\s*phone\s*\}\}/gi, enr.phone || "");
+      const engineVars = (meta.variables as Record<string, string>) || {};
+      body = body.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (raw: string, key: string) => {
+        const v = engineVars[key];
+        return typeof v === "string" && v.trim() ? v.trim() : raw;
+      });
+
+      // Nunca enviar automaticamente com variáveis por resolver.
+      if (hasUnresolvedVariables(body)) {
+        await supabase.from("whatsapp_sequence_enrollments")
+          .update({ status: "stopped", completed_at: new Date().toISOString(), last_error: "unresolved_variables" })
+          .eq("id", enr.id);
+        await supabase.from("whatsapp_sequence_logs").insert({
+          enrollment_id: enr.id,
+          workspace_id: enr.workspace_id,
+          step_order: nextOrder,
+          status: "skipped",
+          error: "unresolved_variables",
+        });
+        continue;
+      }
 
       // Send via whatsapp-pro-send
       try {
