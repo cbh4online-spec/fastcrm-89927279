@@ -11115,6 +11115,9 @@ export type Database = {
           is_active: boolean
           max_advance_days: number
           require_phone: boolean
+          seo_description: string | null
+          seo_title: string | null
+          share_image_url: string | null
           slug: string
           start_hour: string
           title: string
@@ -11138,6 +11141,9 @@ export type Database = {
           is_active?: boolean
           max_advance_days?: number
           require_phone?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
+          share_image_url?: string | null
           slug: string
           start_hour?: string
           title: string
@@ -11161,6 +11167,9 @@ export type Database = {
           is_active?: boolean
           max_advance_days?: number
           require_phone?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
+          share_image_url?: string | null
           slug?: string
           start_hour?: string
           title?: string
