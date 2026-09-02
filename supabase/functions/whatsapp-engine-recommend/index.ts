@@ -68,8 +68,8 @@ Deno.serve(async (req) => {
 
     const ids = leads.map((l: any) => l.id);
 
-    // 3. Contexto agregado (perfil comercial, opt-outs, reuniões, propostas, conversas).
-    const [{ data: profiles }, { data: meetings }, { data: proposals }, { data: convs }] = await Promise.all([
+    // 3. Contexto agregado (perfil comercial, reuniões, conversas).
+    const [{ data: profiles }, { data: meetings }, { data: convs }] = await Promise.all([
       admin.from("lead_commercial_profile").select("*").in("lead_id", ids),
       admin
         .from("meetings")
@@ -79,11 +79,6 @@ Deno.serve(async (req) => {
         .gt("start_time", new Date().toISOString())
         .not("status", "in", '("cancelled","canceled","no_show")'),
       admin
-        .from("proposals")
-        .select("lead_id, status, accepted_at, viewed_at")
-        .eq("workspace_id", workspaceId)
-        .in("lead_id", ids),
-      admin
         .from("conversations")
         .select("id, lead_id")
         .eq("workspace_id", workspaceId)
@@ -92,7 +87,6 @@ Deno.serve(async (req) => {
 
     const profileByLead = new Map((profiles ?? []).map((p: any) => [p.lead_id, p]));
     const meetingLeads = new Set((meetings ?? []).map((m: any) => m.lead_id));
-    const proposalByLead = new Map((proposals ?? []).map((p: any) => [p.lead_id, p]));
     const convByLead = new Map((convs ?? []).map((c: any) => [c.lead_id, c.id]));
 
     // Contagem de outbound por conversa.
