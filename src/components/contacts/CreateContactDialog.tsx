@@ -390,6 +390,13 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
       job_title: "",
       notes: "",
       tags: "",
+      address: "",
+      address_number: "",
+      address_floor: "",
+      postal_code: "",
+      city: "",
+      region: "",
+      country: "Portugal",
     });
     setEnrichmentResult(null);
     setShowEnrichPrompt(false);
