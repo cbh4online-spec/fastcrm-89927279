@@ -26,7 +26,13 @@ interface EditInvoiceItemsDialogProps {
   invoice: Invoice;
 }
 
-const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+import {
+  computeTotals,
+  distributeTargetTotal,
+  round2,
+  unitPriceFromLineTotal,
+} from "@/lib/invoices/reverseTotals";
+
 
 const formatEur = (value: number) =>
   new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(value);
