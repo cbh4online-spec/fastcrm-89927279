@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { sanitizeBuilderHtml } from "../lib/sanitizeBuilderHtml";
+import { sanitizeBuilderHtmlForPersistence } from "../lib/sanitizeBuilderHtml";
 import type { BuilderBlockCategory } from "../lib/blocks";
 
 export interface BuilderBlockRecord {
@@ -70,7 +70,7 @@ export function useSaveBuilderBlock() {
           description: input.description?.trim() || null,
           category: input.category,
           asset_type: input.asset_type ?? "any",
-          html: sanitizeBuilderHtml(input.html),
+          html: sanitizeBuilderHtmlForPersistence(input.html),
           tags: input.tags ?? [],
           created_by: user.id,
         })
