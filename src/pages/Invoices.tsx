@@ -26,6 +26,7 @@ import {
   useSendInvoice,
   useDeleteInvoice,
   type InvoiceStatus,
+  type Invoice,
 } from "@/hooks/useInvoices";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDialog";
