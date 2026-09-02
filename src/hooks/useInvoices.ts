@@ -341,6 +341,7 @@ export interface UpdateInvoiceItemsInput {
 }
 
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+const round6 = (value: number) => Math.round((value + Number.EPSILON) * 1e6) / 1e6;
 
 export function useUpdateInvoiceItems() {
   const queryClient = useQueryClient();
