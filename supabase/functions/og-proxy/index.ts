@@ -144,7 +144,7 @@ function buildOgHtml(title: string, description: string, image: string, url: str
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(description)}"/>
 <meta property="og:image" content="${esc(safeImage)}"/>
-<meta property="og:image:type" content="image/jpeg"/>
+<meta property="og:image:type" content="${imageType}"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:url" content="${esc(url)}"/>
 <meta property="og:type" content="${esc(ogType)}"/>
