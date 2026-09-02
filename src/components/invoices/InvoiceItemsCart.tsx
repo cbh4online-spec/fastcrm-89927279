@@ -24,6 +24,47 @@ export interface InvoiceCartItem {
   tax_rate: number;
 }
 
+/** Numeric field that only commits on blur or Enter, keeping typing fluid. */
+function LineTotalInput({
+  id,
+  value,
+  onCommit,
+}: {
+  id: string;
+  value: number;
+  onCommit: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const commit = () => {
+    if (draft === null) return;
+    const parsed = parseFloat(draft.replace(",", "."));
+    setDraft(null);
+    if (!Number.isFinite(parsed) || parsed < 0) return;
+    onCommit(parsed);
+  };
+
+  return (
+    <Input
+      id={id}
+      inputMode="decimal"
+      value={draft ?? value.toFixed(2)}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit();
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      className="h-7 text-xs"
+    />
+  );
+}
+
+
+
 interface InvoiceItemsCartProps {
   items: InvoiceCartItem[];
   onUpdateQuantity: (id: string, quantity: number) => void;
