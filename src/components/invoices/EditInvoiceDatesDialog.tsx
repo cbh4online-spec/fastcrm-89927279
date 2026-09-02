@@ -50,7 +50,7 @@ export function EditInvoiceDatesDialog({ open, onOpenChange, invoice }: EditInvo
       id: invoice.id,
       issue_date: issueDate,
       due_date: dueDate || null,
-    } as never);
+    });
     onOpenChange(false);
   };
 
