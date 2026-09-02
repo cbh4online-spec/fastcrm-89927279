@@ -107,20 +107,28 @@ export function distributeTargetTotal<T extends ReverseTotalsLine>(
   });
 
   if (anchorIndex >= 0) {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
       const diff = round2(computeTotals(next, discountAmount).total - round2(targetTotal));
       if (diff === 0) break;
       const anchor = next[anchorIndex];
       const perUnit = grossFactorPerUnit(anchor);
-      const adjusted = round2(
+      let adjusted = round2(
         toMoney(anchor.unit_price).minus(toMoney(diff).dividedBy(perUnit)).toNumber()
       );
+      if (adjusted === anchor.unit_price) {
+        // The exact correction is smaller than a cent of unit price: nudge by one cent.
+        adjusted = round2(anchor.unit_price + (diff > 0 ? -0.01 : 0.01));
+      }
       if (adjusted < 0) break;
-      next = next.map((item, index) =>
+      const candidate = next.map((item, index) =>
         index === anchorIndex ? { ...item, unit_price: adjusted } : item
       );
+      const newDiff = round2(computeTotals(candidate, discountAmount).total - round2(targetTotal));
+      if (Math.abs(newDiff) >= Math.abs(diff)) break;
+      next = candidate;
     }
   }
+
 
   return { ok: true, items: next };
 }
