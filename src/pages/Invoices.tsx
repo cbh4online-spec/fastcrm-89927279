@@ -29,6 +29,7 @@ import {
 } from "@/hooks/useInvoices";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDialog";
+import { EditInvoiceDatesDialog } from "@/components/invoices/EditInvoiceDatesDialog";
 import { InvoiceSettingsTab } from "@/components/invoices/InvoiceSettingsTab";
 import { RecurringInvoicesTab } from "@/components/invoices/RecurringInvoicesTab";
 import { FiscalSettingsTab } from "@/components/invoices/FiscalSettingsTab";
@@ -77,6 +78,7 @@ export default function Invoices() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [paymentInvoice, setPaymentInvoice] = useState<{ id: string; total: number; amount_paid: number; currency: string } | null>(null);
+  const [datesInvoice, setDatesInvoice] = useState<Invoice | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("invoices");
@@ -436,6 +438,9 @@ export default function Invoices() {
                             <DropdownMenuItem className="gap-2">
                               <Download className="h-4 w-4" /> {t("downloadPdf")}
                             </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2" onClick={() => setDatesInvoice(invoice)}>
+                              <CalendarDays className="h-4 w-4" /> Editar datas
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {invoice.status === "draft" && (
                               <DropdownMenuItem className="gap-2" onClick={() => sendInvoice.mutate(invoice.id)}>
@@ -517,6 +522,14 @@ export default function Invoices() {
       </DocumentListLayout>
 
       <CreateInvoiceDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+
+      {datesInvoice && (
+        <EditInvoiceDatesDialog
+          open={!!datesInvoice}
+          onOpenChange={(o) => !o && setDatesInvoice(null)}
+          invoice={datesInvoice}
+        />
+      )}
 
       {paymentInvoice && (
         <RegisterPaymentDialog
