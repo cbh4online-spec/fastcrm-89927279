@@ -130,6 +130,13 @@ function toFacebookSafeImage(imageUrl: string): string {
 function buildOgHtml(title: string, description: string, image: string, url: string, extra = "", ogType = "website"): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeImage = toFacebookSafeImage(image);
+  // Tipo declarado tem de coincidir com o formato real do ficheiro
+  const imagePath = safeImage.split("?")[0].toLowerCase();
+  const imageType = imagePath.endsWith(".png")
+    ? "image/png"
+    : imagePath.endsWith(".webp")
+      ? "image/webp"
+      : "image/jpeg";
   return `<!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -137,7 +144,7 @@ function buildOgHtml(title: string, description: string, image: string, url: str
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(description)}"/>
 <meta property="og:image" content="${esc(safeImage)}"/>
-<meta property="og:image:type" content="image/jpeg"/>
+<meta property="og:image:type" content="${imageType}"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:url" content="${esc(url)}"/>
 <meta property="og:type" content="${esc(ogType)}"/>
