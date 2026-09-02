@@ -107,6 +107,8 @@ import { ProductWeightAIPanel } from "./ProductWeightAIPanel";
 import { Search as SearchIcon } from "lucide-react";
 import { useFieldPermissions } from "@/hooks/useFieldPermissions";
 import { useAdaptiveDashboard } from "@/contexts/AdaptiveDashboardContext";
+import { getNetPrice, getGrossPrice } from "@/utils/productPricing";
+
 
 interface ProductDetailDialogProps {
   open: boolean;
