@@ -295,6 +295,8 @@ export function EditInvoiceItemsDialog({ open, onOpenChange, invoice }: EditInvo
                 onUpdateTaxRate={(id, tax_rate) => patch(id, { tax_rate })}
                 onRemoveItem={(id) => setCart((prev) => prev.filter((item) => item.id !== id))}
                 onClear={() => setCart([])}
+                onUpdateLineTotal={handleLineTotal}
+
               />
             )}
 
