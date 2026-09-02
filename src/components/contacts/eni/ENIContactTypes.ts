@@ -60,8 +60,11 @@ export interface ENIContact {
   
   // Address
   address?: string | null;
+  address_number?: string | null;
+  address_floor?: string | null;
   city?: string | null;
   postal_code?: string | null;
+  region?: string | null;
   country?: string | null;
   is_fiscal_address?: boolean;
   timezone?: string | null;

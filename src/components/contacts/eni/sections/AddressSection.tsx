@@ -38,6 +38,24 @@ export function AddressSection({
         />
 
         <InlineEditableField
+          label={t('addressNumber')}
+          fieldId="address_number"
+          fieldType="text"
+          value={contact.address_number || ''}
+          onChange={(value) => onFieldChange('address_number', value)}
+          placeholder="12"
+        />
+
+        <InlineEditableField
+          label={t('addressFloor')}
+          fieldId="address_floor"
+          fieldType="text"
+          value={contact.address_floor || ''}
+          onChange={(value) => onFieldChange('address_floor', value)}
+          placeholder="3.º Esq."
+        />
+
+        <InlineEditableField
           label={t('locality')}
           fieldId="city"
           fieldType="text"
@@ -53,6 +71,15 @@ export function AddressSection({
           value={contact.postal_code || ''}
           onChange={(value) => onFieldChange('postal_code', value)}
           placeholder={t('postalCodePlaceholder')}
+        />
+
+        <InlineEditableField
+          label={t('region')}
+          fieldId="region"
+          fieldType="text"
+          value={contact.region || ''}
+          onChange={(value) => onFieldChange('region', value)}
+          placeholder="Lisboa"
         />
 
         <InlineEditableField

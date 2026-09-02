@@ -26670,6 +26670,8 @@ export type Database = {
           activity_profile_override: Json | null
           activity_start_date: string | null
           address: string | null
+          address_floor: string | null
+          address_number: string | null
           ai_analyzed_at: string | null
           ai_contact_type: string | null
           ai_insight: string | null
@@ -26767,6 +26769,7 @@ export type Database = {
           preferred_payment_method: string | null
           price_list_id: string | null
           price_tier_id: string | null
+          region: string | null
           saft_import_id: string | null
           sales_2023: number | null
           sales_2024: number | null
@@ -26794,6 +26797,8 @@ export type Database = {
           activity_profile_override?: Json | null
           activity_start_date?: string | null
           address?: string | null
+          address_floor?: string | null
+          address_number?: string | null
           ai_analyzed_at?: string | null
           ai_contact_type?: string | null
           ai_insight?: string | null
@@ -26891,6 +26896,7 @@ export type Database = {
           preferred_payment_method?: string | null
           price_list_id?: string | null
           price_tier_id?: string | null
+          region?: string | null
           saft_import_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
@@ -26918,6 +26924,8 @@ export type Database = {
           activity_profile_override?: Json | null
           activity_start_date?: string | null
           address?: string | null
+          address_floor?: string | null
+          address_number?: string | null
           ai_analyzed_at?: string | null
           ai_contact_type?: string | null
           ai_insight?: string | null
@@ -27015,6 +27023,7 @@ export type Database = {
           preferred_payment_method?: string | null
           price_list_id?: string | null
           price_tier_id?: string | null
+          region?: string | null
           saft_import_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null

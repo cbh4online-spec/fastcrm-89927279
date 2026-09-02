@@ -30,6 +30,7 @@ import { useGenerateFieldSuggestions } from "@/hooks/useFieldSuggestions";
 import { InsightsSidebar } from "@/components/insights";
 import { ConvertLeadDialog } from "@/components/crm/ConvertLeadDialog";
 import { TagsSection } from "@/components/leads/sections/TagsSection";
+import { LeadAddressSection } from "@/components/leads/sections/LeadAddressSection";
 import { NotesSection } from "@/components/leads/sections/NotesSection";
 import { EntitySocialMediaAnalysisSection } from "@/components/shared/EntitySocialMediaAnalysisSection";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
@@ -191,6 +192,7 @@ export function LeadDetailWithSidebar() {
               />
             </div>
             <TagsSection lead={lead} onFieldChange={handleFieldChange} />
+            <LeadAddressSection lead={lead} onFieldChange={handleFieldChange} />
             {id && <LeadNextBestActionCard leadId={id} />}
             <RecommendationPanel
               leadId={id}

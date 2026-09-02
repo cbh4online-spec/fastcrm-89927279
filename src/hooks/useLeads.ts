@@ -83,7 +83,10 @@ export interface Lead {
   // NIF enrichment fields
   tax_id: string | null;
   address: string | null;
+  address_number: string | null;
+  address_floor: string | null;
   postal_code: string | null;
+  country: string | null;
   cae_codes: string[] | null;
   cae_description: string | null;
   legal_nature: string | null;
@@ -133,8 +136,11 @@ export interface CreateLeadInput {
   contact_person?: string;
   contact_person_role?: string;
   address?: string;
+  address_number?: string;
+  address_floor?: string;
   city?: string;
   postal_code?: string;
+  country?: string;
   // NIF enrichment fields
   cae_codes?: string[];
   cae_description?: string;
@@ -246,8 +252,11 @@ export function useCreateLead() {
           contact_person: input.contact_person || null,
           contact_person_role: input.contact_person_role || null,
           address: input.address || null,
+          address_number: input.address_number || null,
+          address_floor: input.address_floor || null,
           city: input.city || null,
           postal_code: input.postal_code || null,
+          country: input.country || null,
           // NIF enrichment fields
           cae_codes: input.cae_codes || null,
           cae_description: input.cae_description || null,

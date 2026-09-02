@@ -51,6 +51,10 @@ const COLUMNS: ListColumnDef[] = [
   { key: "created_at", label: "Data de criação", defaultVisible: true },
   { key: "next_followup_at", label: "Próximo follow-up", defaultVisible: false },
   { key: "tags", label: "Tags", defaultVisible: false },
+  { key: "address", label: "Morada", defaultVisible: false },
+  { key: "postal_code", label: "Código Postal", defaultVisible: false },
+  { key: "city", label: "Cidade", defaultVisible: false },
+  { key: "country", label: "País", defaultVisible: false },
 ];
 
 const COLUMN_WIDTH: Record<string, string> = {
@@ -68,6 +72,10 @@ const COLUMN_WIDTH: Record<string, string> = {
   created_at: "w-[120px] shrink-0",
   next_followup_at: "w-[140px] shrink-0",
   tags: "min-w-[140px] flex-1",
+  address: "min-w-[200px] flex-1",
+  postal_code: "w-[110px] shrink-0",
+  city: "w-[140px] shrink-0",
+  country: "w-[120px] shrink-0",
 };
 
 const NUMERIC_COLUMNS = [
@@ -130,6 +138,22 @@ function renderCell(col: string, c: Contact) {
           {(!c.tags || c.tags.length === 0) && <span className="text-xs text-muted-foreground">—</span>}
         </div>
       );
+    case "address": {
+      const parts = [c.address, c.address_number, c.address_floor]
+        .map((v) => (v || "").trim())
+        .filter(Boolean);
+      return (
+        <span className="truncate text-sm text-foreground" title={parts.join(", ")}>
+          {parts.length ? parts.join(", ") : "—"}
+        </span>
+      );
+    }
+    case "postal_code":
+      return <span className="text-sm text-foreground">{c.postal_code || "—"}</span>;
+    case "city":
+      return <span className="truncate text-sm text-foreground">{c.city || "—"}</span>;
+    case "country":
+      return <span className="truncate text-sm text-foreground">{c.country || "—"}</span>;
     default: return null;
   }
 }

@@ -29,6 +29,13 @@ export interface Contact {
   facebook_url: string | null;
   instagram_url: string | null;
   twitter_url: string | null;
+  address: string | null;
+  address_number: string | null;
+  address_floor: string | null;
+  postal_code: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
   lead_status: string;
   icp_fit_score: number;
   engagement_score: number;
@@ -56,6 +63,13 @@ export interface CreateContactData {
   facebook_url?: string;
   instagram_url?: string;
   twitter_url?: string;
+  address?: string;
+  address_number?: string;
+  address_floor?: string;
+  postal_code?: string;
+  city?: string;
+  region?: string;
+  country?: string;
 }
 
 export interface UpdateContactData extends Partial<CreateContactData> {

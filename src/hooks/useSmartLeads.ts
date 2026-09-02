@@ -35,6 +35,13 @@ export interface SmartLead {
   assigned_to: string | null;
   automation_active: boolean;
   company_name: string | null;
+  address?: string | null;
+  address_number?: string | null;
+  address_floor?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+  region?: string | null;
+  country?: string | null;
   hoursSinceLastContact: number | null;
   slaBreach: boolean;
   conversations?: Array<{
@@ -86,7 +93,8 @@ const LEADS_SELECT_COLUMNS = `
   ai_temperature, lead_score, ai_next_action, ai_next_action_type,
   ai_insight, ai_lead_type, estimated_value, conversion_probability,
   ai_analyzed_at, assigned_to, automation_active, company_name,
-  address, city, county, parish, region, postal_code, tax_id,
+  address, address_number, address_floor, city, county, parish, region,
+  postal_code, country, tax_id,
   website, business_category, cae_description, capital_social,
   legal_nature, external_email, external_username, linkedin_url,
   facebook_url, instagram_url, twitter_url, fax, company_status,

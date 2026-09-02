@@ -1,0 +1,4 @@
+ALTER TABLE public.contacts
+  ADD COLUMN IF NOT EXISTS address_number TEXT,
+  ADD COLUMN IF NOT EXISTS address_floor TEXT,
+  ADD COLUMN IF NOT EXISTS region TEXT;

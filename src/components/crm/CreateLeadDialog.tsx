@@ -64,8 +64,12 @@ const leadSchema = z.object({
   contact_person: z.string().max(100).optional().or(z.literal("")),
   contact_person_role: z.string().max(100).optional().or(z.literal("")),
   address: z.string().max(300).optional().or(z.literal("")),
+  address_number: z.string().max(100).optional().or(z.literal("")),
+  address_floor: z.string().max(100).optional().or(z.literal("")),
   city: z.string().max(100).optional().or(z.literal("")),
   postal_code: z.string().max(20).optional().or(z.literal("")),
+  region: z.string().max(100).optional().or(z.literal("")),
+  country: z.string().max(100).optional().or(z.literal("")),
 });
 
 type LeadFormValues = z.infer<typeof leadSchema>;
@@ -122,6 +126,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       if (data.address) form.setValue("address", data.address);
       if (data.city) form.setValue("city", data.city);
       if (data.postal_code) form.setValue("postal_code", data.postal_code);
+      if (data.region) form.setValue("region", data.region);
       if (data.email) form.setValue("email", data.email);
       if (data.phone) form.setValue("phone", data.phone);
       if (data.website) form.setValue("website", data.website);
@@ -166,8 +171,12 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       contact_person: "",
       contact_person_role: "",
       address: "",
+      address_number: "",
+      address_floor: "",
       city: "",
       postal_code: "",
+      region: "",
+      country: "Portugal",
     },
   });
 
@@ -202,16 +211,19 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
         number_of_employees: values.number_of_employees || undefined,
         contact_person: values.contact_person || undefined,
         contact_person_role: values.contact_person_role || undefined,
-        address: values.address || undefined,
-        city: values.city || undefined,
-        postal_code: values.postal_code || undefined,
+        address: values.address?.trim() || undefined,
+        address_number: values.address_number?.trim() || undefined,
+        address_floor: values.address_floor?.trim() || undefined,
+        city: values.city?.trim() || undefined,
+        postal_code: values.postal_code?.trim() || undefined,
+        country: values.country?.trim() || undefined,
         // NIF enrichment fields
         cae_codes: nifData.cae_codes.length > 0 ? nifData.cae_codes : undefined,
         cae_description: nifData.cae_description || undefined,
         legal_nature: nifData.legal_nature || undefined,
         capital_social: nifData.capital_social || undefined,
         founding_date: nifData.founding_date || undefined,
-        region: nifData.region || undefined,
+        region: values.region?.trim() || nifData.region || undefined,
         county: nifData.county || undefined,
         parish: nifData.parish || undefined,
         fax: nifData.fax || undefined,
@@ -481,57 +493,113 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                   )}
                 />
 
-                {/* Address fields - collapsible if not already filled by NIF */}
-                <Collapsible open={optionalsOpen} onOpenChange={setOptionalsOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button type="button" variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
-                      Morada e mais campos
-                      <ChevronDown className={`h-4 w-4 transition-transform ${optionalsOpen ? "rotate-180" : ""}`} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-3 pt-2">
-                    <div className="grid grid-cols-3 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="address"
-                        render={({ field }) => (
-                          <FormItem className="col-span-3 sm:col-span-1">
-                            <FormLabel>Morada</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Rua..." {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cidade</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Lisboa" {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="postal_code"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Código Postal</FormLabel>
-                            <FormControl>
-                              <Input placeholder="1000-001" {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
               </>
             )}
+
+            {/* Morada — disponível para leads pessoa e empresa */}
+            <Collapsible open={optionalsOpen} onOpenChange={setOptionalsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button type="button" variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
+                  Morada
+                  <ChevronDown className={`h-4 w-4 transition-transform ${optionalsOpen ? "rotate-180" : ""}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-4">
+                        <FormLabel>Morada</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Rua..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address_number"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-1">
+                        <FormLabel>Número</FormLabel>
+                        <FormControl>
+                          <Input placeholder="12" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address_floor"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-1">
+                        <FormLabel>Andar</FormLabel>
+                        <FormControl>
+                          <Input placeholder="3.º Esq." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="postal_code"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>Código Postal</FormLabel>
+                        <FormControl>
+                          <Input placeholder="1000-001" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>Cidade</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Lisboa" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="region"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>Região</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Lisboa" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-3">
+                        <FormLabel>País</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Portugal" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* Person-specific: company_name as optional */}
             {leadType === "person" && (
