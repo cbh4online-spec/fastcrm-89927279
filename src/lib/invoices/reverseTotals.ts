@@ -7,7 +7,7 @@ export interface ReverseTotalsLine {
   tax_rate: number;
 }
 
-export const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+export const round2 = (value: number) => toMoney(value).toDecimalPlaces(2).toNumber();
 
 /** Net value of a line (quantity x price - line discount), rounded to cents. */
 export function lineNet(item: ReverseTotalsLine): number {
