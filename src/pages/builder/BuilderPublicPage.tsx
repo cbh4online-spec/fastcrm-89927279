@@ -80,11 +80,12 @@ export default function BuilderPublicPage() {
     ? data.html
     : `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${data.html}</body></html>`;
 
-  // Sem <base>, o srcdoc herda o URL do documento pai e os links de âncora
-  // (#servicos, #contacto, ...) provocariam navegação em vez de scroll.
+  const baseTag = '<base href="about:srcdoc">';
   const publishedHtml = /<base\b/i.test(wrapped)
     ? wrapped
-    : wrapped.replace(/<head([^>]*)>/i, '<head$1><base href="about:srcdoc">');
+    : /<head[^>]*>/i.test(wrapped)
+      ? wrapped.replace(/<head([^>]*)>/i, `<head$1>${baseTag}`)
+      : wrapped.replace(/<html([^>]*)>/i, `<html$1><head>${baseTag}</head>`);
 
   return (
     <>
