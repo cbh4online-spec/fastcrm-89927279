@@ -121,6 +121,9 @@ export function InvoiceProductSelector({
                       <p className="text-xs font-medium truncate">{product.name}</p>
                       <p className="text-xs text-primary font-semibold">
                         {formatPrice(product.base_price || 0)}
+                        <span className="ml-1 font-normal text-muted-foreground">
+                          {product.tax_included ? "c/IVA" : "s/IVA"}
+                        </span>
                       </p>
                     </div>
                     {isSelected && (
