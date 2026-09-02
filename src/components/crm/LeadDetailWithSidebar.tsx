@@ -59,6 +59,7 @@ import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
 import { AIDealInsightPanel } from "@/components/contacts/sections/AIDealInsightPanel";
 import { LeadScoresCard } from "@/components/leads/sections/LeadScoresCard";
 import { LeadNextBestActionCard } from "@/components/whatsapp-pro/LeadNextBestActionCard";
+import { OutreachOneToOneSection } from "@/modules/outreach/components/OutreachOneToOneSection";
 import { LeadLifecycleSection } from "@/components/leads/sections/LeadLifecycleSection";
 import { LeadAuditSection } from "@/components/leads/sections/LeadAuditSection";
 import { IXEntityHeader } from "@/components/entity/ix/IXEntityHeader";
@@ -198,6 +199,20 @@ export function LeadDetailWithSidebar() {
               onAddToProposal={(productId) => {
                 navigate(`/dashboard/proposals/new?lead=${id}&product=${productId}`);
               }}
+            />
+            <OutreachOneToOneSection
+              entityType="lead"
+              entityId={id || ""}
+              entityName={lead.name}
+              email={(lead as any).email || (lead as any).preferred_contact_email || null}
+              phone={(lead as any).phone || (lead as any).preferred_contact_phone || null}
+              companyId={null}
+              companyName={(lead as any).company_name || null}
+              socialUrls={[
+                (lead as any).linkedin_url ? { label: "LinkedIn", url: (lead as any).linkedin_url } : null,
+                (lead as any).instagram_url ? { label: "Instagram", url: (lead as any).instagram_url } : null,
+                (lead as any).facebook_url ? { label: "Facebook", url: (lead as any).facebook_url } : null,
+              ].filter(Boolean) as Array<{ label: string; url: string }>}
             />
           </div>
         );
