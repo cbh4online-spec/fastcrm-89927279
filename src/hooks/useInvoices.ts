@@ -96,7 +96,8 @@ export interface UpdateInvoiceInput {
   client_email?: string;
   client_address?: string;
   client_tax_id?: string;
-  due_date?: string;
+  issue_date?: string;
+  due_date?: string | null;
   tax_rate?: number;
   discount_amount?: number;
   notes?: string;
