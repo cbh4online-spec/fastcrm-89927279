@@ -381,7 +381,11 @@ export function ProductDetailDialog({
                         {formatCurrency(netBasePrice, product.currency)}
                       </span>
                       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">s/IVA</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatCurrency(grossBasePrice, product.currency)} c/IVA
+                      </span>
                       {showMargin && netDirectCost !== null && netBasePrice > 0 && (
+
                         <span className="text-xs text-muted-foreground">
                           Margem {((netBasePrice - netDirectCost) / netBasePrice * 100).toFixed(0)}%
                         </span>
