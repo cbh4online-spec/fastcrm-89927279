@@ -655,13 +655,24 @@ export function useForceInvoiceStatus() {
     mutationFn: async ({ id, status }: { id: string; status: InvoiceStatus }) => {
       const updates: Record<string, any> = { status };
 
+      // Estado atual necessário para acertar o montante recebido.
+      const { data: current, error: currentError } = await workspaceClient
+        .from("invoices")
+        .select("total, amount_paid")
+        .eq("id", id)
+        .maybeSingle();
+      if (currentError) throw currentError;
+
       // Reset paid fields when moving away from paid
       if (status !== "paid") {
         updates.paid_at = null;
+        // Só zera o recebido se o pagamento tinha sido registado pelo próprio estado.
+        if (status === "draft" || status === "cancelled") updates.amount_paid = 0;
       }
-      // Set paid_at when forcing to paid
+      // Set paid_at + amount_paid when forcing to paid (KPI "Recebido" usa amount_paid)
       if (status === "paid") {
         updates.paid_at = new Date().toISOString();
+        updates.amount_paid = Number((current as any)?.total ?? 0);
       }
       // Set sent_at when forcing to sent
       if (status === "sent") {
