@@ -26,17 +26,57 @@ export interface SendZapiMessagePayload {
   buttonFooter?: string;
 }
 
+export type WhatsAppGroupStatus =
+  | "ACTIVE"
+  | "INACTIVE"
+  | "LEFT"
+  | "REMOVED"
+  | "SYNC_ERROR"
+  | "UNKNOWN";
+
 export interface WhatsAppZapiGroup {
   id: string;
   workspace_id: string;
+  provider_instance_id: string | null;
   group_id: string;
   name: string | null;
   description: string | null;
   picture_url: string | null;
   participants_count: number;
   is_admin: boolean;
+  is_owner: boolean;
+  is_announcement: boolean;
+  is_community: boolean;
+  is_archived: boolean;
+  is_muted: boolean;
+  is_pinned: boolean;
+  unread_count: number;
+  status: WhatsAppGroupStatus;
+  sync_error: string | null;
+  category: string | null;
+  tags: string[];
+  last_message_at: string | null;
   last_synced_at: string;
 }
+
+export interface WhatsAppGroupParticipant {
+  id: string;
+  workspace_id: string;
+  whatsapp_group_id: string;
+  group_id: string;
+  participant_id_raw: string;
+  normalized_phone: string | null;
+  lid: string | null;
+  contact_id: string | null;
+  lead_id: string | null;
+  display_name: string | null;
+  is_admin: boolean;
+  is_owner: boolean;
+  membership_status: string;
+  messages_count: number;
+  last_message_at: string | null;
+}
+
 
 export function useSendWhatsAppZapi() {
   const queryClient = useQueryClient();
