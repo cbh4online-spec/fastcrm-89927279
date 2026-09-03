@@ -75,3 +75,22 @@ if (!check.ok) {
   });
 }
 ```
+
+## WhatsApp — Grupos
+
+18 capabilities dedicadas (`whatsapp_groups.*`): `view`, `sync`, `create`,
+`edit`, `participants_manage`, `approve`, `admins_manage`, `settings_manage`,
+`invite_link_view`, `invite_link_reset`, `accept_invite`, `leave`, `post`,
+`schedule_post`, `mention_all`, `multi_send`, `audit_view`, `analytics_view`.
+
+| Role | Capabilities de grupos |
+|---|---|
+| `owner` / `admin` / `agency` | todas |
+| `hr` | nenhuma |
+| `agent` | `view`, `post` |
+| `viewer` | `view` |
+
+Regras: todo o envio para grupos passa por `whatsapp-pro-send` (nunca chamadas
+directas à Z-API a partir do frontend); as operações administrativas são
+enfileiradas em `whatsapp_group_operations` com `idempotency_key` e auditadas
+em `whatsapp_group_audit_log`.
