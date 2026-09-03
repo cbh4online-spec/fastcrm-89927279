@@ -5,6 +5,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { validateWebhook, logSecurityEvent, getRemoteIp } from '../_shared/hmac.ts';
+import { extractGroupIdFromPayload, normalizeParticipantId } from '../_shared/whatsappGroups.ts';
+
 
 function jsonRes(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -213,10 +215,18 @@ Deno.serve(async (req) => {
     const externalMessageId: string | null = payload?.messageId || payload?.id || null;
 
     const phoneRaw: string = payload?.phone || payload?.from || '';
-    const isGroup: boolean = payload?.isGroup === true || /-/.test(phoneRaw) || /@g\.us$/.test(phoneRaw);
-    const groupId: string | null = isGroup ? phoneRaw.replace('@g.us', '') : null;
-    const senderPhoneRaw: string = isGroup ? (payload?.participantPhone || payload?.senderPhone || '') : phoneRaw;
+    // Identificação canónica: só é grupo quando há um JID de grupo (`@g.us`
+    // ou `<criador>-<timestamp>`). Nunca inferir grupo a partir de um telefone.
+    const groupId: string | null = extractGroupIdFromPayload(payload);
+    const isGroup: boolean = !!groupId;
+    const participantIdent = isGroup
+      ? normalizeParticipantId(
+          payload?.participantPhone || payload?.participantLid || payload?.senderPhone || payload?.participant || '',
+        )
+      : null;
+    const senderPhoneRaw: string = isGroup ? (participantIdent?.normalizedPhone ?? '') : phoneRaw;
     const senderPhone = normalizePhone(senderPhoneRaw.replace('@c.us', ''));
+
 
     const channelKey = isGroup ? groupId! : senderPhone;
     if (!channelKey) {
@@ -343,7 +353,17 @@ Deno.serve(async (req) => {
 
     const messageMetadata: Record<string, unknown> = {
       source: 'zapi',
-      ...(isGroup ? { participant_phone: senderPhone, participant_name: senderName } : {}),
+      ...(isGroup
+        ? {
+            is_group: true,
+            group_id: groupId,
+            participant_id_raw: participantIdent?.participantIdRaw ?? null,
+            participant_phone: senderPhone || null,
+            participant_lid: participantIdent?.lid ?? null,
+            participant_name: senderName,
+          }
+        : {}),
+
     };
 
     const { error: msgErr } = await admin.from('messages').insert({
@@ -372,6 +392,65 @@ Deno.serve(async (req) => {
         external_message_id: externalMessageId,
       });
     }
+
+    // ---- Actividade de grupo (nunca cria leads/contactos) ----
+    if (isGroup && groupId) {
+      try {
+        const { data: groupRow } = await admin
+          .from('whatsapp_zapi_groups')
+          .select('id')
+          .eq('workspace_id', workspaceId)
+          .eq('group_id', groupId)
+          .maybeSingle();
+
+        if (groupRow?.id) {
+          await admin
+            .from('whatsapp_zapi_groups')
+            .update({ last_message_at: messageTimestamp, updated_at: now })
+            .eq('id', groupRow.id);
+
+          if (participantIdent?.participantIdRaw) {
+            const { data: partRow } = await admin
+              .from('whatsapp_zapi_group_participants')
+              .select('id, messages_count')
+              .eq('whatsapp_group_id', groupRow.id)
+              .eq('participant_id_raw', participantIdent.participantIdRaw)
+              .maybeSingle();
+
+            if (partRow?.id) {
+              await admin
+                .from('whatsapp_zapi_group_participants')
+                .update({
+                  last_message_at: messageTimestamp,
+                  last_seen_in_group_at: messageTimestamp,
+                  messages_count: (partRow.messages_count ?? 0) + 1,
+                  display_name: senderName || undefined,
+                  updated_at: now,
+                })
+                .eq('id', partRow.id);
+            } else {
+              await admin.from('whatsapp_zapi_group_participants').insert({
+                workspace_id: workspaceId,
+                whatsapp_group_id: groupRow.id,
+                group_id: groupId,
+                participant_id_raw: participantIdent.participantIdRaw,
+                normalized_phone: participantIdent.normalizedPhone,
+                lid: participantIdent.lid,
+                display_name: senderName || null,
+                membership_status: 'ACTIVE',
+                messages_count: 1,
+                last_message_at: messageTimestamp,
+                last_seen_in_group_at: messageTimestamp,
+              });
+            }
+          }
+        }
+      } catch (gErr) {
+        console.warn('[zapi-webhook] group activity update failed', (gErr as Error).message);
+      }
+    }
+
+
 
     // Update connection sync
     const syncUpdate: Record<string, unknown> = { last_seen_at: now, last_sync_at: now };

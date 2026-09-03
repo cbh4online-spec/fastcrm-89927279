@@ -424,7 +424,26 @@ var CAPABILITIES = [
   "audit.view",
   // Renting / Financiamento
   "rentals.view",
-  "rentals.manage"
+  "rentals.manage",
+  // WhatsApp — Grupos (18 permissões separadas)
+  "whatsapp_groups.view",
+  "whatsapp_groups.sync",
+  "whatsapp_groups.create",
+  "whatsapp_groups.edit",
+  "whatsapp_groups.participants_manage",
+  "whatsapp_groups.approve",
+  "whatsapp_groups.admins_manage",
+  "whatsapp_groups.settings_manage",
+  "whatsapp_groups.invite_link_view",
+  "whatsapp_groups.invite_link_reset",
+  "whatsapp_groups.accept_invite",
+  "whatsapp_groups.leave",
+  "whatsapp_groups.post",
+  "whatsapp_groups.schedule_post",
+  "whatsapp_groups.mention_all",
+  "whatsapp_groups.multi_send",
+  "whatsapp_groups.audit_view",
+  "whatsapp_groups.analytics_view"
 ];
 var ALL = [...CAPABILITIES];
 var ROLE_CAPABILITIES = {
@@ -447,7 +466,9 @@ var ROLE_CAPABILITIES = {
     "inbox.reply",
     "catalog.read",
     "reports.operational",
-    "rentals.view"
+    "rentals.view",
+    "whatsapp_groups.view",
+    "whatsapp_groups.post"
   ],
   viewer: [
     "crm.read",
@@ -455,7 +476,8 @@ var ROLE_CAPABILITIES = {
     "catalog.read",
     "reports.operational",
     "finance.view",
-    "rentals.view"
+    "rentals.view",
+    "whatsapp_groups.view"
   ]
 };
 function roleHasCapability(role, cap) {

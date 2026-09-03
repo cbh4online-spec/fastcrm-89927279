@@ -52,7 +52,28 @@ export const CAPABILITIES = [
   // Renting / Financiamento
   "rentals.view",
   "rentals.manage",
+
+  // WhatsApp — Grupos (18 permissões separadas)
+  "whatsapp_groups.view",
+  "whatsapp_groups.sync",
+  "whatsapp_groups.create",
+  "whatsapp_groups.edit",
+  "whatsapp_groups.participants_manage",
+  "whatsapp_groups.approve",
+  "whatsapp_groups.admins_manage",
+  "whatsapp_groups.settings_manage",
+  "whatsapp_groups.invite_link_view",
+  "whatsapp_groups.invite_link_reset",
+  "whatsapp_groups.accept_invite",
+  "whatsapp_groups.leave",
+  "whatsapp_groups.post",
+  "whatsapp_groups.schedule_post",
+  "whatsapp_groups.mention_all",
+  "whatsapp_groups.multi_send",
+  "whatsapp_groups.audit_view",
+  "whatsapp_groups.analytics_view",
 ] as const;
+
 
 export type Capability = (typeof CAPABILITIES)[number];
 
@@ -96,6 +117,8 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "catalog.read",
     "reports.operational",
     "rentals.view",
+    "whatsapp_groups.view",
+    "whatsapp_groups.post",
   ],
 
   viewer: [
@@ -105,7 +128,9 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "reports.operational",
     "finance.view",
     "rentals.view",
+    "whatsapp_groups.view",
   ],
+
 };
 
 export function roleHasCapability(
@@ -140,4 +165,23 @@ export const CAPABILITY_LABELS: Record<Capability, string> = {
   "audit.view": "Ver logs de auditoria",
   "rentals.view": "Ver contratos de renting",
   "rentals.manage": "Gerir contratos de renting",
+  "whatsapp_groups.view": "Ver grupos WhatsApp",
+  "whatsapp_groups.sync": "Sincronizar grupos WhatsApp",
+  "whatsapp_groups.create": "Criar grupos WhatsApp",
+  "whatsapp_groups.edit": "Editar nome/imagem/descrição do grupo",
+  "whatsapp_groups.participants_manage": "Adicionar/remover participantes",
+  "whatsapp_groups.approve": "Aprovar/rejeitar entradas no grupo",
+  "whatsapp_groups.admins_manage": "Promover/despromover administradores",
+  "whatsapp_groups.settings_manage": "Alterar configurações do grupo",
+  "whatsapp_groups.invite_link_view": "Ver link de convite",
+  "whatsapp_groups.invite_link_reset": "Redefinir link de convite",
+  "whatsapp_groups.accept_invite": "Aceitar convites de grupo",
+  "whatsapp_groups.leave": "Sair de grupos",
+  "whatsapp_groups.post": "Publicar em grupos",
+  "whatsapp_groups.schedule_post": "Agendar publicações em grupos",
+  "whatsapp_groups.mention_all": "Mencionar todos",
+  "whatsapp_groups.multi_send": "Envio para vários grupos",
+  "whatsapp_groups.audit_view": "Ver auditoria de grupos",
+  "whatsapp_groups.analytics_view": "Ver métricas de grupos",
 };
+

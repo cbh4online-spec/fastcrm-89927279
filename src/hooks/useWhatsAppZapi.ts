@@ -26,17 +26,57 @@ export interface SendZapiMessagePayload {
   buttonFooter?: string;
 }
 
+export type WhatsAppGroupStatus =
+  | "ACTIVE"
+  | "INACTIVE"
+  | "LEFT"
+  | "REMOVED"
+  | "SYNC_ERROR"
+  | "UNKNOWN";
+
 export interface WhatsAppZapiGroup {
   id: string;
   workspace_id: string;
+  provider_instance_id: string | null;
   group_id: string;
   name: string | null;
   description: string | null;
   picture_url: string | null;
   participants_count: number;
   is_admin: boolean;
+  is_owner: boolean;
+  is_announcement: boolean;
+  is_community: boolean;
+  is_archived: boolean;
+  is_muted: boolean;
+  is_pinned: boolean;
+  unread_count: number;
+  status: WhatsAppGroupStatus;
+  sync_error: string | null;
+  category: string | null;
+  tags: string[];
+  last_message_at: string | null;
   last_synced_at: string;
 }
+
+export interface WhatsAppGroupParticipant {
+  id: string;
+  workspace_id: string;
+  whatsapp_group_id: string;
+  group_id: string;
+  participant_id_raw: string;
+  normalized_phone: string | null;
+  lid: string | null;
+  contact_id: string | null;
+  lead_id: string | null;
+  display_name: string | null;
+  is_admin: boolean;
+  is_owner: boolean;
+  membership_status: string;
+  messages_count: number;
+  last_message_at: string | null;
+}
+
 
 export function useSendWhatsAppZapi() {
   const queryClient = useQueryClient();
@@ -103,7 +143,9 @@ export function useWhatsAppZapiGroups() {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
         .from("whatsapp_zapi_groups" as any)
-        .select("id, workspace_id, group_id, name, description, picture_url, participants_count, is_admin, last_synced_at")
+        .select(
+          "id, workspace_id, provider_instance_id, group_id, name, description, picture_url, participants_count, is_admin, is_owner, is_announcement, is_community, is_archived, is_muted, is_pinned, unread_count, status, sync_error, category, tags, last_message_at, last_synced_at",
+        )
         .eq("workspace_id", currentWorkspace.id)
         .order("name", { ascending: true });
       if (error) throw error;
@@ -112,6 +154,31 @@ export function useWhatsAppZapiGroups() {
     enabled: !!currentWorkspace,
   });
 }
+
+/** Participantes de um grupo (isolados por workspace via RLS). */
+export function useWhatsAppGroupParticipants(whatsappGroupId: string | null) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["whatsapp-group-participants", currentWorkspace?.id, whatsappGroupId],
+    queryFn: async () => {
+      if (!currentWorkspace?.id || !whatsappGroupId) return [];
+      const { data, error } = await supabase
+        .from("whatsapp_zapi_group_participants" as any)
+        .select(
+          "id, workspace_id, whatsapp_group_id, group_id, participant_id_raw, normalized_phone, lid, contact_id, lead_id, display_name, is_admin, is_owner, membership_status, messages_count, last_message_at",
+        )
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("whatsapp_group_id", whatsappGroupId)
+        .order("is_admin", { ascending: false })
+        .order("display_name", { ascending: true });
+      if (error) throw error;
+      return (data as unknown) as WhatsAppGroupParticipant[];
+    },
+    enabled: !!currentWorkspace && !!whatsappGroupId,
+  });
+}
+
 
 export function useSyncWhatsAppZapiGroups() {
   const queryClient = useQueryClient();
