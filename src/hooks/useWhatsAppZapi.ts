@@ -143,7 +143,9 @@ export function useWhatsAppZapiGroups() {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
         .from("whatsapp_zapi_groups" as any)
-        .select("id, workspace_id, group_id, name, description, picture_url, participants_count, is_admin, last_synced_at")
+        .select(
+          "id, workspace_id, provider_instance_id, group_id, name, description, picture_url, participants_count, is_admin, is_owner, is_announcement, is_community, is_archived, is_muted, is_pinned, unread_count, status, sync_error, category, tags, last_message_at, last_synced_at",
+        )
         .eq("workspace_id", currentWorkspace.id)
         .order("name", { ascending: true });
       if (error) throw error;
@@ -152,6 +154,31 @@ export function useWhatsAppZapiGroups() {
     enabled: !!currentWorkspace,
   });
 }
+
+/** Participantes de um grupo (isolados por workspace via RLS). */
+export function useWhatsAppGroupParticipants(whatsappGroupId: string | null) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["whatsapp-group-participants", currentWorkspace?.id, whatsappGroupId],
+    queryFn: async () => {
+      if (!currentWorkspace?.id || !whatsappGroupId) return [];
+      const { data, error } = await supabase
+        .from("whatsapp_zapi_group_participants" as any)
+        .select(
+          "id, workspace_id, whatsapp_group_id, group_id, participant_id_raw, normalized_phone, lid, contact_id, lead_id, display_name, is_admin, is_owner, membership_status, messages_count, last_message_at",
+        )
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("whatsapp_group_id", whatsappGroupId)
+        .order("is_admin", { ascending: false })
+        .order("display_name", { ascending: true });
+      if (error) throw error;
+      return (data as unknown) as WhatsAppGroupParticipant[];
+    },
+    enabled: !!currentWorkspace && !!whatsappGroupId,
+  });
+}
+
 
 export function useSyncWhatsAppZapiGroups() {
   const queryClient = useQueryClient();
