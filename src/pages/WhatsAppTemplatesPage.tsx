@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Plus, MoreVertical, Search, CheckCircle2, Clock, XCircle, Pencil, Trash2, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PlaybookLibraryPanel } from "@/components/whatsapp-pro/PlaybookLibraryPanel";
+import { PlaybookTemplatesList } from "@/components/whatsapp-pro/PlaybookTemplatesList";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: any; tone: string }> = {
   draft: { label: "Rascunho", icon: Pencil, tone: "bg-muted text-muted-foreground" },
@@ -31,6 +32,7 @@ export default function WhatsAppTemplatesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [view, setView] = useState<"mine" | "playbook">("mine");
 
   const filtered = useMemo(() => {
     return (templates || []).filter(t => {
@@ -79,6 +81,15 @@ export default function WhatsAppTemplatesPage() {
 
         <PlaybookLibraryPanel />
 
+        <Tabs value={view} onValueChange={(v) => setView(v as "mine" | "playbook")}>
+          <TabsList>
+            <TabsTrigger value="mine">Os meus templates ({counts.all})</TabsTrigger>
+            <TabsTrigger value="playbook">Biblioteca comercial</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {view === "playbook" ? <PlaybookTemplatesList /> : (
+        <>
         <div className="flex flex-wrap items-center gap-2">
           <Tabs value={statusFilter} onValueChange={setStatusFilter}>
             <TabsList>
@@ -190,6 +201,9 @@ export default function WhatsAppTemplatesPage() {
             })}
           </div>
         )}
+        </>
+        )}
+
 
         <WhatsAppTemplateDialog open={dialogOpen} onOpenChange={setDialogOpen} template={editing} />
       </div>
