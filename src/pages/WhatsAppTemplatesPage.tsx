@@ -32,6 +32,7 @@ export default function WhatsAppTemplatesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [view, setView] = useState<"mine" | "playbook">("mine");
 
   const filtered = useMemo(() => {
     return (templates || []).filter(t => {
