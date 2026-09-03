@@ -393,6 +393,65 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ---- Actividade de grupo (nunca cria leads/contactos) ----
+    if (isGroup && groupId) {
+      try {
+        const { data: groupRow } = await admin
+          .from('whatsapp_zapi_groups')
+          .select('id')
+          .eq('workspace_id', workspaceId)
+          .eq('group_id', groupId)
+          .maybeSingle();
+
+        if (groupRow?.id) {
+          await admin
+            .from('whatsapp_zapi_groups')
+            .update({ last_message_at: messageTimestamp, updated_at: now })
+            .eq('id', groupRow.id);
+
+          if (participantIdent?.participantIdRaw) {
+            const { data: partRow } = await admin
+              .from('whatsapp_zapi_group_participants')
+              .select('id, messages_count')
+              .eq('whatsapp_group_id', groupRow.id)
+              .eq('participant_id_raw', participantIdent.participantIdRaw)
+              .maybeSingle();
+
+            if (partRow?.id) {
+              await admin
+                .from('whatsapp_zapi_group_participants')
+                .update({
+                  last_message_at: messageTimestamp,
+                  last_seen_in_group_at: messageTimestamp,
+                  messages_count: (partRow.messages_count ?? 0) + 1,
+                  display_name: senderName || undefined,
+                  updated_at: now,
+                })
+                .eq('id', partRow.id);
+            } else {
+              await admin.from('whatsapp_zapi_group_participants').insert({
+                workspace_id: workspaceId,
+                whatsapp_group_id: groupRow.id,
+                group_id: groupId,
+                participant_id_raw: participantIdent.participantIdRaw,
+                normalized_phone: participantIdent.normalizedPhone,
+                lid: participantIdent.lid,
+                display_name: senderName || null,
+                membership_status: 'ACTIVE',
+                messages_count: 1,
+                last_message_at: messageTimestamp,
+                last_seen_in_group_at: messageTimestamp,
+              });
+            }
+          }
+        }
+      } catch (gErr) {
+        console.warn('[zapi-webhook] group activity update failed', (gErr as Error).message);
+      }
+    }
+
+
+
     // Update connection sync
     const syncUpdate: Record<string, unknown> = { last_seen_at: now, last_sync_at: now };
     if (direction === 'inbound') {
