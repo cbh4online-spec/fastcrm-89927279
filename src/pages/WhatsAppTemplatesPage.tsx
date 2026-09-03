@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Plus, MoreVertical, Search, CheckCircle2, Clock, XCircle, Pencil, Trash2, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PlaybookLibraryPanel } from "@/components/whatsapp-pro/PlaybookLibraryPanel";
+import { PlaybookTemplatesList } from "@/components/whatsapp-pro/PlaybookTemplatesList";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: any; tone: string }> = {
   draft: { label: "Rascunho", icon: Pencil, tone: "bg-muted text-muted-foreground" },
