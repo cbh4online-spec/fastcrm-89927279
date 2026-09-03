@@ -351,7 +351,17 @@ Deno.serve(async (req) => {
 
     const messageMetadata: Record<string, unknown> = {
       source: 'zapi',
-      ...(isGroup ? { participant_phone: senderPhone, participant_name: senderName } : {}),
+      ...(isGroup
+        ? {
+            is_group: true,
+            group_id: groupId,
+            participant_id_raw: participantIdent?.participantIdRaw ?? null,
+            participant_phone: senderPhone || null,
+            participant_lid: participantIdent?.lid ?? null,
+            participant_name: senderName,
+          }
+        : {}),
+
     };
 
     const { error: msgErr } = await admin.from('messages').insert({
