@@ -213,10 +213,18 @@ Deno.serve(async (req) => {
     const externalMessageId: string | null = payload?.messageId || payload?.id || null;
 
     const phoneRaw: string = payload?.phone || payload?.from || '';
-    const isGroup: boolean = payload?.isGroup === true || /-/.test(phoneRaw) || /@g\.us$/.test(phoneRaw);
-    const groupId: string | null = isGroup ? phoneRaw.replace('@g.us', '') : null;
-    const senderPhoneRaw: string = isGroup ? (payload?.participantPhone || payload?.senderPhone || '') : phoneRaw;
+    // Identificação canónica: só é grupo quando há um JID de grupo (`@g.us`
+    // ou `<criador>-<timestamp>`). Nunca inferir grupo a partir de um telefone.
+    const groupId: string | null = extractGroupIdFromPayload(payload);
+    const isGroup: boolean = !!groupId;
+    const participantIdent = isGroup
+      ? normalizeParticipantId(
+          payload?.participantPhone || payload?.participantLid || payload?.senderPhone || payload?.participant || '',
+        )
+      : null;
+    const senderPhoneRaw: string = isGroup ? (participantIdent?.normalizedPhone ?? '') : phoneRaw;
     const senderPhone = normalizePhone(senderPhoneRaw.replace('@c.us', ''));
+
 
     const channelKey = isGroup ? groupId! : senderPhone;
     if (!channelKey) {
