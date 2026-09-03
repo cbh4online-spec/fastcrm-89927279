@@ -199,6 +199,9 @@ export default function WhatsAppTemplatesPage() {
             })}
           </div>
         )}
+        </>
+        )}
+
 
         <WhatsAppTemplateDialog open={dialogOpen} onOpenChange={setDialogOpen} template={editing} />
       </div>
