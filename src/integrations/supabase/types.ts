@@ -98151,6 +98151,150 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_group_audit_log: {
+        Row: {
+          action: string
+          actor_label: string | null
+          actor_user_id: string | null
+          after_state: Json | null
+          before_state: Json | null
+          correlation_id: string | null
+          created_at: string
+          group_id: string | null
+          id: string
+          operation_id: string | null
+          whatsapp_group_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_label?: string | null
+          actor_user_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          operation_id?: string | null
+          whatsapp_group_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_label?: string | null
+          actor_user_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          operation_id?: string | null
+          whatsapp_group_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_group_audit_log_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_group_operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_group_audit_log_whatsapp_group_id_fkey"
+            columns: ["whatsapp_group_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_zapi_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_group_operations: {
+        Row: {
+          attempts: number
+          correlation_id: string
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          group_id: string | null
+          id: string
+          idempotency_key: string
+          max_attempts: number
+          operation_type: string
+          payload: Json
+          provider_instance_id: string | null
+          requested_by: string | null
+          result: Json | null
+          scheduled_for: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          whatsapp_group_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          correlation_id?: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          group_id?: string | null
+          id?: string
+          idempotency_key: string
+          max_attempts?: number
+          operation_type: string
+          payload?: Json
+          provider_instance_id?: string | null
+          requested_by?: string | null
+          result?: Json | null
+          scheduled_for?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_group_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          correlation_id?: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          group_id?: string | null
+          id?: string
+          idempotency_key?: string
+          max_attempts?: number
+          operation_type?: string
+          payload?: Json
+          provider_instance_id?: string | null
+          requested_by?: string | null
+          result?: Json | null
+          scheduled_for?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_group_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_group_operations_provider_instance_id_fkey"
+            columns: ["provider_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_provider_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_group_operations_whatsapp_group_id_fkey"
+            columns: ["whatsapp_group_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_zapi_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_health_events: {
         Row: {
           connection_id: string | null
@@ -99639,50 +99783,226 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_zapi_group_participants: {
+        Row: {
+          added_by: string | null
+          approved_at: string | null
+          contact_id: string | null
+          created_at: string
+          display_name: string | null
+          group_id: string
+          id: string
+          invited_at: string | null
+          is_admin: boolean
+          is_owner: boolean
+          joined_at: string | null
+          last_message_at: string | null
+          last_seen_in_group_at: string | null
+          last_synced_at: string | null
+          lead_id: string | null
+          lid: string | null
+          membership_status: string
+          messages_count: number
+          metadata_json: Json
+          normalized_phone: string | null
+          participant_id_raw: string
+          profile_picture_url: string | null
+          provider_instance_id: string | null
+          rejected_at: string | null
+          removed_at: string | null
+          updated_at: string
+          whatsapp_group_id: string
+          workspace_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          approved_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          group_id: string
+          id?: string
+          invited_at?: string | null
+          is_admin?: boolean
+          is_owner?: boolean
+          joined_at?: string | null
+          last_message_at?: string | null
+          last_seen_in_group_at?: string | null
+          last_synced_at?: string | null
+          lead_id?: string | null
+          lid?: string | null
+          membership_status?: string
+          messages_count?: number
+          metadata_json?: Json
+          normalized_phone?: string | null
+          participant_id_raw: string
+          profile_picture_url?: string | null
+          provider_instance_id?: string | null
+          rejected_at?: string | null
+          removed_at?: string | null
+          updated_at?: string
+          whatsapp_group_id: string
+          workspace_id: string
+        }
+        Update: {
+          added_by?: string | null
+          approved_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          group_id?: string
+          id?: string
+          invited_at?: string | null
+          is_admin?: boolean
+          is_owner?: boolean
+          joined_at?: string | null
+          last_message_at?: string | null
+          last_seen_in_group_at?: string | null
+          last_synced_at?: string | null
+          lead_id?: string | null
+          lid?: string | null
+          membership_status?: string
+          messages_count?: number
+          metadata_json?: Json
+          normalized_phone?: string | null
+          participant_id_raw?: string
+          profile_picture_url?: string | null
+          provider_instance_id?: string | null
+          rejected_at?: string | null
+          removed_at?: string | null
+          updated_at?: string
+          whatsapp_group_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_zapi_group_participants_provider_instance_id_fkey"
+            columns: ["provider_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_provider_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_zapi_group_participants_whatsapp_group_id_fkey"
+            columns: ["whatsapp_group_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_zapi_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_zapi_groups: {
         Row: {
+          admin_only_add_member: boolean | null
+          admin_only_message: boolean | null
+          admin_only_settings: boolean | null
+          category: string | null
           created_at: string
           description: string | null
           group_id: string
           id: string
+          invite_link: string | null
+          invite_link_updated_at: string | null
           is_admin: boolean | null
+          is_announcement: boolean
+          is_archived: boolean
+          is_community: boolean
+          is_muted: boolean
+          is_owner: boolean
+          is_pinned: boolean
+          last_message_at: string | null
           last_synced_at: string
           metadata_json: Json
           name: string | null
+          owner_user_id: string | null
           participants_count: number | null
           picture_url: string | null
+          provider_instance_id: string | null
+          require_admin_approval: boolean | null
+          status: string
+          sync_error: string | null
+          tags: string[]
+          unread_count: number
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          admin_only_add_member?: boolean | null
+          admin_only_message?: boolean | null
+          admin_only_settings?: boolean | null
+          category?: string | null
           created_at?: string
           description?: string | null
           group_id: string
           id?: string
+          invite_link?: string | null
+          invite_link_updated_at?: string | null
           is_admin?: boolean | null
+          is_announcement?: boolean
+          is_archived?: boolean
+          is_community?: boolean
+          is_muted?: boolean
+          is_owner?: boolean
+          is_pinned?: boolean
+          last_message_at?: string | null
           last_synced_at?: string
           metadata_json?: Json
           name?: string | null
+          owner_user_id?: string | null
           participants_count?: number | null
           picture_url?: string | null
+          provider_instance_id?: string | null
+          require_admin_approval?: boolean | null
+          status?: string
+          sync_error?: string | null
+          tags?: string[]
+          unread_count?: number
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          admin_only_add_member?: boolean | null
+          admin_only_message?: boolean | null
+          admin_only_settings?: boolean | null
+          category?: string | null
           created_at?: string
           description?: string | null
           group_id?: string
           id?: string
+          invite_link?: string | null
+          invite_link_updated_at?: string | null
           is_admin?: boolean | null
+          is_announcement?: boolean
+          is_archived?: boolean
+          is_community?: boolean
+          is_muted?: boolean
+          is_owner?: boolean
+          is_pinned?: boolean
+          last_message_at?: string | null
           last_synced_at?: string
           metadata_json?: Json
           name?: string | null
+          owner_user_id?: string | null
           participants_count?: number | null
           picture_url?: string | null
+          provider_instance_id?: string | null
+          require_admin_approval?: boolean | null
+          status?: string
+          sync_error?: string | null
+          tags?: string[]
+          unread_count?: number
           updated_at?: string
           workspace_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_zapi_groups_provider_instance_id_fkey"
+            columns: ["provider_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_provider_instances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       widget_configurations: {
         Row: {
