@@ -79,6 +79,15 @@ export default function WhatsAppTemplatesPage() {
 
         <PlaybookLibraryPanel />
 
+        <Tabs value={view} onValueChange={(v) => setView(v as "mine" | "playbook")}>
+          <TabsList>
+            <TabsTrigger value="mine">Os meus templates ({counts.all})</TabsTrigger>
+            <TabsTrigger value="playbook">Biblioteca comercial</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {view === "playbook" ? <PlaybookTemplatesList /> : (
+        <>
         <div className="flex flex-wrap items-center gap-2">
           <Tabs value={statusFilter} onValueChange={setStatusFilter}>
             <TabsList>
