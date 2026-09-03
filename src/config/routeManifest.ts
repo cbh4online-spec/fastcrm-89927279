@@ -219,7 +219,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("whatsapp-catalog",        "Catálogo WhatsApp",          "/dashboard/whatsapp-pro/catalog",         Package,       "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
   e("whatsapp-analytics",      "Métricas WhatsApp",          "/dashboard/whatsapp-pro/analytics",       BarChart3,     "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
   e("whatsapp-consent",        "Consentimento WhatsApp",     "/dashboard/whatsapp-pro/consent",         ShieldCheck,   "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
-  e("whatsapp-throttle",       "Anti-spam & Throttling",     "/dashboard/whatsapp-pro/throttle",        Gauge,         "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+ e("whatsapp-throttle",       "Anti-spam & Throttling",     "/dashboard/whatsapp-pro/throttle",        Gauge,         "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
+ e("whatsapp-groups",         "Grupos WhatsApp",            "/dashboard/whatsapp-pro/groups",          Users,         "comunicacao", { moduleSlug: "whatsapp-business", visibleInSidebar: false }),
 
 
   // Itens administrativos / executivos (movidos para grupos próprios)
