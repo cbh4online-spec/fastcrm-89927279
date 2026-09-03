@@ -69,6 +69,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     items: [
       { label: "Inbox WhatsApp", to: "/dashboard/whatsapp-pro/inbox", icon: Inbox },
       { label: "Mensagens agendadas", to: "/dashboard/whatsapp-pro/scheduled", icon: Clock },
+      { label: "Grupos", to: "/dashboard/whatsapp-pro/groups", icon: Users },
       { label: "Quick replies", to: "/dashboard/whatsapp-pro/quick-replies", icon: Zap },
     ],
   },
