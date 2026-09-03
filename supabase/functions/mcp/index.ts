@@ -466,7 +466,9 @@ var ROLE_CAPABILITIES = {
     "inbox.reply",
     "catalog.read",
     "reports.operational",
-    "rentals.view"
+    "rentals.view",
+    "whatsapp_groups.view",
+    "whatsapp_groups.post"
   ],
   viewer: [
     "crm.read",
@@ -474,7 +476,8 @@ var ROLE_CAPABILITIES = {
     "catalog.read",
     "reports.operational",
     "finance.view",
-    "rentals.view"
+    "rentals.view",
+    "whatsapp_groups.view"
   ]
 };
 function roleHasCapability(role, cap) {

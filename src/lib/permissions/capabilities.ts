@@ -117,6 +117,8 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "catalog.read",
     "reports.operational",
     "rentals.view",
+    "whatsapp_groups.view",
+    "whatsapp_groups.post",
   ],
 
   viewer: [
@@ -126,7 +128,9 @@ export const ROLE_CAPABILITIES: Record<WorkspaceRole, Capability[]> = {
     "reports.operational",
     "finance.view",
     "rentals.view",
+    "whatsapp_groups.view",
   ],
+
 };
 
 export function roleHasCapability(
