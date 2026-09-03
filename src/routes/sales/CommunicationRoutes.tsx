@@ -21,6 +21,7 @@ const WhatsAppConsentPage = lazy(() => import("@/pages/WhatsAppConsentPage"));
 const WhatsAppQuickTemplatesPage = lazy(() => import("@/pages/WhatsAppQuickTemplatesPage"));
 const WhatsAppRecurringPage = lazy(() => import("@/pages/WhatsAppRecurringPage"));
 const WhatsAppThrottlePage = lazy(() => import("@/pages/WhatsAppThrottlePage"));
+const WhatsAppGroupsPage = lazy(() => import("@/pages/WhatsAppGroupsPage"));
 const Groups = lazy(() => import("@/pages/Groups"));
 const TelegramPage = lazy(() => import("@/pages/TelegramPage"));
 const CommunicationTemplates = lazy(() => import("@/pages/CommunicationTemplates"));
