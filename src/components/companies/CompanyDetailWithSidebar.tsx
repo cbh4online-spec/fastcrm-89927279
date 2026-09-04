@@ -106,6 +106,7 @@ import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
 import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
+import { EditableEntityTitle } from "@/components/entity/EditableEntityTitle";
 import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSummaryCard";
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
 import { InvoiceHistorySection } from "@/components/contacts/eni/sections/InvoiceHistorySection";
@@ -551,9 +552,12 @@ export function CompanyDetailWithSidebar() {
           />
 
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              {company.name}
-            </h1>
+            <EditableEntityTitle
+              value={company.name}
+              onSave={async (name) => {
+                await updateCompany.mutateAsync({ id: company.id, name });
+              }}
+            />
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
               <span>Empresa</span>
               {company.industry && (

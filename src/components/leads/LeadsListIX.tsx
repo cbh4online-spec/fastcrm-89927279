@@ -4,8 +4,9 @@ import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
 import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
 import { EntityArchiveBlockActions, EntityArchiveBlockDialogs, type EntityActionRequest } from "@/components/entity/EntityArchiveBlockActions";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Pencil } from "lucide-react";
+import { RenameEntityDialog, type RenameEntityTarget } from "@/components/entity/RenameEntityDialog";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -242,6 +243,7 @@ export function LeadsListIX() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
+  const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);
   const { columns, setColumns } = useLeadColumns();
 
   const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
@@ -482,12 +484,19 @@ export function LeadsListIX() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onSelect={() => setTimeout(() => setRenameTarget({ id: lead.id, name: lead.name }), 0)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Renomear
+                    </DropdownMenuItem>
                     <EntityArchiveBlockActions
                       entity="lead"
                       id={lead.id}
                       isBlocked={(lead as any).is_blocked}
                       archivedAt={(lead as any).archived_at}
-                      withSeparator={false}
+                      withSeparator
                       onRequestBlock={(rid) => setEntityAction({ action: "block", id: rid })}
                       onRequestArchive={(rid) => setEntityAction({ action: "archive", id: rid })}
                     />
@@ -532,6 +541,12 @@ export function LeadsListIX() {
         onMerged={selection.clear}
       />
       <UnifiedDuplicateDialog open={duplicatesOpen} onOpenChange={setDuplicatesOpen} entityType="leads" />
+
+      <RenameEntityDialog
+        entity="lead"
+        target={renameTarget}
+        onOpenChange={(o) => { if (!o) setRenameTarget(null); }}
+      />
 
       <EntityArchiveBlockDialogs
         entity="lead"
