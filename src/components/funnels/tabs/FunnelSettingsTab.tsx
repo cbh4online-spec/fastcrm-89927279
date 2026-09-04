@@ -25,6 +25,7 @@ export function FunnelSettingsTab({ funnelId }: FunnelSettingsTabProps) {
   const [slug, setSlug] = useState("");
   const [domain, setDomain] = useState("");
   const [path, setPath] = useState("");
+  const [initialPath, setInitialPath] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
   const [headCode, setHeadCode] = useState("");
   const [bodyCode, setBodyCode] = useState("");
@@ -55,6 +56,7 @@ export function FunnelSettingsTab({ funnelId }: FunnelSettingsTabProps) {
       setSlug(funnel.slug);
       setDomain((funnel as any).domain || "");
       setPath((funnel as any).path || `/${funnel.slug}`);
+      setInitialPath((funnel as any).path || `/${funnel.slug}`);
       setFaviconUrl((funnel as any).favicon_url || "");
       setHeadCode((funnel as any).head_tracking_code || "");
       setBodyCode((funnel as any).body_tracking_code || "");
@@ -94,7 +96,7 @@ export function FunnelSettingsTab({ funnelId }: FunnelSettingsTabProps) {
     updateFunnel.mutate({
       id: funnelId,
       name,
-      slug: publicPath ? publicPath.slug : funnel.slug,
+      slug: publicPath ? publicPath.slug : slug,
       domain: domain || null,
       path: publicPath ? publicPath.path : (path || null),
 
