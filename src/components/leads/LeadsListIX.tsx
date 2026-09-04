@@ -396,6 +396,7 @@ export function LeadsListIX() {
           extra={
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
+              <EntityFacetFilters facets={facets} />
               <LeadsColumnsPicker value={columns} onChange={setColumns} />
             </div>
           }
@@ -403,6 +404,8 @@ export function LeadsListIX() {
       }
     >
       <ListKPIStrip items={kpis} isLoading={isLoading} note="Valores calculados sobre a página atual de resultados." />
+
+      <EntityFacetChips facets={facets} />
 
       <EntitySelectionBar
         count={selection.count}
