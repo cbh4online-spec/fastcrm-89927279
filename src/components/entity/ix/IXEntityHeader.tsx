@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { EditableEntityTitle } from "@/components/entity/EditableEntityTitle";
 
 export interface IXHeaderAction {
   id: string;
@@ -25,6 +26,8 @@ interface IXEntityHeaderProps {
   backTo?: string;
   avatar?: ReactNode;
   title: string;
+  /** Quando definido, o título passa a ser editável em linha. */
+  onTitleSave?: (name: string) => Promise<void> | void;
   status?: { label: string; tone?: "neutral" | "info" | "warning" | "success" | "danger" };
   metaItems?: { label: string; value?: ReactNode }[];
   updatedAgo?: string;
@@ -45,6 +48,7 @@ export function IXEntityHeader({
   backTo,
   avatar,
   title,
+  onTitleSave,
   status,
   metaItems = [],
   updatedAgo,
@@ -71,7 +75,11 @@ export function IXEntityHeader({
           {avatar && <div className="shrink-0">{avatar}</div>}
           <div className="min-w-0 flex-1 pt-0.5">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold tracking-tight text-foreground truncate">{title}</h1>
+              {onTitleSave ? (
+                <EditableEntityTitle value={title} onSave={onTitleSave} className="sm:text-3xl" />
+              ) : (
+                <h1 className="text-3xl font-bold tracking-tight text-foreground truncate">{title}</h1>
+              )}
               {status && (
                 <Badge
                   variant="outline"

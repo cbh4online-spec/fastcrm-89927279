@@ -44,6 +44,7 @@ import { FinancialKPIStrip } from "@/components/shared/FinancialKPIStrip";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
 import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
+import { EditableEntityTitle } from "@/components/entity/EditableEntityTitle";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";
@@ -534,7 +535,12 @@ export function ENIContactDetailWithSidebar() {
             className="shrink-0"
           />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{contact.name}</h1>
+            <EditableEntityTitle
+              value={contact.name}
+              onSave={async (name) => {
+                await updateContact.mutateAsync({ id: contact.id, name } as { id: string });
+              }}
+            />
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
               <span>{ENTITY_TYPE_LABELS[entityType]}</span>
               {contact.company && (

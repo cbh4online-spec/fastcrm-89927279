@@ -418,6 +418,9 @@ export function LeadDetailWithSidebar() {
           />
         }
         title={lead.name}
+        onTitleSave={async (name) => {
+          await updateLead.mutateAsync({ id: lead.id, name });
+        }}
         status={
           lead.status
             ? { label: statusLabels[lead.status] ?? lead.status, tone: statusToTone[lead.status] ?? "neutral" }

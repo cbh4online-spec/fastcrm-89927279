@@ -25,8 +25,9 @@ import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { EntityArchiveFilter, type EntityArchiveState } from "@/components/entity/EntityArchiveFilter";
 import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
 import { EntityArchiveBlockActions, EntityArchiveBlockDialogs, type EntityActionRequest } from "@/components/entity/EntityArchiveBlockActions";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Copy } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { RenameEntityDialog, type RenameEntityTarget } from "@/components/entity/RenameEntityDialog";
+import { MoreHorizontal, Copy, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEntityListSelection } from "@/hooks/useEntityListSelection";
@@ -185,6 +186,7 @@ export function ContactsListIX() {
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
+  const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
@@ -437,12 +439,19 @@ export function ContactsListIX() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onSelect={() => setTimeout(() => setRenameTarget({ id: c.id, name: c.name }), 0)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Renomear
+                    </DropdownMenuItem>
                     <EntityArchiveBlockActions
                       entity="contact"
                       id={c.id}
                       isBlocked={(c as any).is_blocked}
                       archivedAt={(c as any).archived_at}
-                      withSeparator={false}
+                      withSeparator
                       onRequestBlock={(rid) => setEntityAction({ action: "block", id: rid })}
                       onRequestArchive={(rid) => setEntityAction({ action: "archive", id: rid })}
                     />
@@ -472,6 +481,12 @@ export function ContactsListIX() {
         onMerged={selection.clear}
       />
       <UnifiedDuplicateDialog open={duplicatesOpen} onOpenChange={setDuplicatesOpen} entityType="contacts" />
+      <RenameEntityDialog
+        entity="contact"
+        target={renameTarget}
+        onOpenChange={(o) => { if (!o) setRenameTarget(null); }}
+      />
+
       <EntityArchiveBlockDialogs
         entity="contact"
         request={entityAction}
