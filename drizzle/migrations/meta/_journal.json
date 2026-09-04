@@ -92,6 +92,13 @@
       "when": 1788442666338,
       "tag": "0012_whatsapp_groups_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788535468092,
+      "tag": "0013_drop_legacy_whatsapp_group_unique",
+      "breakpoints": true
     }
   ]
 }
