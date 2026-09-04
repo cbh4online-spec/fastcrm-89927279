@@ -33,6 +33,7 @@ export interface Company {
   phone: string | null;
   email: string | null;
   address: string | null;
+  source: string | null;
   notes: string | null;
   tags: string[];
   linkedin_url: string | null;

@@ -35,9 +35,23 @@ import { useEntityListSelection } from "@/hooks/useEntityListSelection";
 import { EntitySelectionBar } from "@/components/entity/EntitySelectionBar";
 import { EntityMergeDialog } from "@/components/entity/EntityMergeDialog";
 import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
+import {
+  EntityFacetFilters,
+  EntityFacetChips,
+  type FacetDef,
+  type FacetOption,
+} from "@/components/entity/EntityFacetFilters";
+import { getSourceLabel } from "@/lib/leadSourceLabels";
+import { useLeadFilterOptions } from "@/hooks/useSmartLeads";
 
-
-type SortKey = "name" | "created_at" | "lead_score";
+type SortKey =
+  | "name"
+  | "created_at"
+  | "lead_score"
+  | "estimated_value"
+  | "last_contact_at"
+  | "source"
+  | "status";
 
 const STATUS_LABEL: Record<string, { label: string; tone: DocumentStatusTone }> = {
   new: { label: "Novo", tone: "pending" },
@@ -231,6 +245,10 @@ export function LeadsListIX() {
   const { columns, setColumns } = useLeadColumns();
 
   const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
+  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [temperatureFilter, setTemperatureFilter] = useState<string[]>([]);
 
   const { data, isLoading } = useSmartLeads({
     search,
@@ -238,23 +256,54 @@ export function LeadsListIX() {
     pageSize,
     archiveState,
     sortBy: `${sortBy}:${sortDir}`,
+    sources: sourceFilter,
+    tags: tagFilter,
+    statuses: statusFilter,
+    temperatures: temperatureFilter,
   });
+
+  const { data: filterOptions } = useLeadFilterOptions(archiveState === "all" ? "all" : archiveState);
+
+  const facets = useMemo<FacetDef[]>(() => {
+    const toOptions = (values: string[] | undefined, labelize?: (v: string) => string): FacetOption[] =>
+      (values ?? []).map((v) => ({ value: v, label: labelize ? labelize(v) : v, count: 0 }));
+    return [
+      {
+        key: "source",
+        label: "Origem",
+        options: toOptions(filterOptions?.sources, getSourceLabel),
+        selected: sourceFilter,
+        onChange: (v) => { setSourceFilter(v); setPage(0); },
+      },
+      {
+        key: "status",
+        label: "Estado",
+        options: toOptions(filterOptions?.statuses),
+        selected: statusFilter,
+        onChange: (v) => { setStatusFilter(v); setPage(0); },
+      },
+      {
+        key: "temperature",
+        label: "Temperatura",
+        options: toOptions(filterOptions?.temperatures),
+        selected: temperatureFilter,
+        onChange: (v) => { setTemperatureFilter(v); setPage(0); },
+      },
+      {
+        key: "tags",
+        label: "Tags",
+        options: toOptions(filterOptions?.tags),
+        selected: tagFilter,
+        onChange: (v) => { setTagFilter(v); setPage(0); },
+      },
+    ];
+  }, [filterOptions, sourceFilter, statusFilter, temperatureFilter, tagFilter]);
 
   const leads: SmartLead[] = data?.data ?? [];
   const totalCount = data?.totalCount ?? 0;
 
-  const sortedLeads = useMemo(() => {
-    const arr = [...leads];
-    arr.sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === "name") cmp = (a.name || "").localeCompare(b.name || "");
-      else if (sortBy === "created_at")
-        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      else if (sortBy === "lead_score") cmp = (a.lead_score || 0) - (b.lead_score || 0);
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [leads, sortBy, sortDir]);
+  // A ordenação é feita no servidor (sortBy: "coluna:direção").
+  const sortedLeads = leads;
 
   const orderedColumns = useMemo(
     () => LEAD_COLUMNS.filter((c) => columns.includes(c.key)).map((c) => c.key),
@@ -325,6 +374,10 @@ export function LeadsListIX() {
             { value: "name", label: "Nome" },
             { value: "created_at", label: "Data de criação" },
             { value: "lead_score", label: "Score" },
+            { value: "estimated_value", label: "Valor estimado" },
+            { value: "last_contact_at", label: "Último contacto" },
+            { value: "source", label: "Origem" },
+            { value: "status", label: "Estado" },
           ]}
           sortValue={sortBy}
           onSortChange={(v) => setSortBy(v as SortKey)}
@@ -343,6 +396,7 @@ export function LeadsListIX() {
           extra={
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
+              <EntityFacetFilters facets={facets} />
               <LeadsColumnsPicker value={columns} onChange={setColumns} />
             </div>
           }
@@ -350,6 +404,8 @@ export function LeadsListIX() {
       }
     >
       <ListKPIStrip items={kpis} isLoading={isLoading} note="Valores calculados sobre a página atual de resultados." />
+
+      <EntityFacetChips facets={facets} />
 
       <EntitySelectionBar
         count={selection.count}
