@@ -374,6 +374,10 @@ export function LeadsListIX() {
             { value: "name", label: "Nome" },
             { value: "created_at", label: "Data de criação" },
             { value: "lead_score", label: "Score" },
+            { value: "estimated_value", label: "Valor estimado" },
+            { value: "last_contact_at", label: "Último contacto" },
+            { value: "source", label: "Origem" },
+            { value: "status", label: "Estado" },
           ]}
           sortValue={sortBy}
           onSortChange={(v) => setSortBy(v as SortKey)}
