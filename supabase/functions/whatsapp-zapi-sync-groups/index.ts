@@ -131,10 +131,25 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date().toISOString();
+
+    // Grupos importados antes de existir `provider_instance_id` ficam órfãos:
+    // adotamo-los para a instância atual para que o upsert por
+    // (workspace_id, provider_instance_id, group_id) atualize a linha existente
+    // em vez de criar um duplicado.
+    const { error: adoptErr } = await admin
+      .from('whatsapp_zapi_groups')
+      .update({ provider_instance_id: providerInstanceId as string })
+      .eq('workspace_id', workspaceId)
+      .is('provider_instance_id', null);
+    if (adoptErr) {
+      console.error('[zapi-sync-groups] adopt legacy rows failed', adoptErr.message);
+    }
+
     let upserted = 0;
     let skipped = 0;
     let participantsUpserted = 0;
     const errors: { groupId: string; error: string }[] = [];
+
 
     for (const raw of rawGroups) {
       const g = mapZapiGroup(raw);
