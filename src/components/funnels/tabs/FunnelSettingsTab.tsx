@@ -25,6 +25,7 @@ export function FunnelSettingsTab({ funnelId }: FunnelSettingsTabProps) {
   const [slug, setSlug] = useState("");
   const [domain, setDomain] = useState("");
   const [path, setPath] = useState("");
+  const [initialPath, setInitialPath] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
   const [headCode, setHeadCode] = useState("");
   const [bodyCode, setBodyCode] = useState("");
@@ -55,6 +56,7 @@ export function FunnelSettingsTab({ funnelId }: FunnelSettingsTabProps) {
       setSlug(funnel.slug);
       setDomain((funnel as any).domain || "");
       setPath((funnel as any).path || `/${funnel.slug}`);
+      setInitialPath((funnel as any).path || `/${funnel.slug}`);
       setFaviconUrl((funnel as any).favicon_url || "");
       setHeadCode((funnel as any).head_tracking_code || "");
       setBodyCode((funnel as any).body_tracking_code || "");
@@ -74,21 +76,30 @@ export function FunnelSettingsTab({ funnelId }: FunnelSettingsTabProps) {
   }, [funnel]);
 
   const handleSave = () => {
-    const publicPath = normalizeFunnelPublicPath(path);
-    if (!publicPath) {
+    // O endereço público só é recalculado quando o utilizador altera o campo
+    // "Path". Guardar o nome ou o código de tracking nunca muda o link já
+    // partilhado com os leads.
+    const pathChanged = path.trim() !== initialPath.trim();
+    const publicPath = pathChanged ? normalizeFunnelPublicPath(path) : null;
+
+    if (pathChanged && !publicPath) {
       toast.error("Path inválido. Use apenas um nome com pelo menos 3 caracteres.");
       return;
     }
 
-    setSlug(publicPath.slug);
-    setPath(publicPath.path);
+    if (publicPath) {
+      setSlug(publicPath.slug);
+      setPath(publicPath.path);
+      setInitialPath(publicPath.path);
+    }
 
     updateFunnel.mutate({
       id: funnelId,
       name,
-      slug: publicPath.slug,
+      slug: publicPath ? publicPath.slug : slug,
       domain: domain || null,
-      path: publicPath.path,
+      path: publicPath ? publicPath.path : (path || null),
+
       favicon_url: faviconUrl || null,
       head_tracking_code: headCode || null,
       body_tracking_code: bodyCode || null,
