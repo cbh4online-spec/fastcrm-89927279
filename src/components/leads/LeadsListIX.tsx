@@ -266,7 +266,7 @@ export function LeadsListIX() {
 
   const facets = useMemo<FacetDef[]>(() => {
     const toOptions = (values: string[] | undefined, labelize?: (v: string) => string): FacetOption[] =>
-      (values ?? []).map((v) => ({ value: v, label: labelize ? labelize(v) : v }));
+      (values ?? []).map((v) => ({ value: v, label: labelize ? labelize(v) : v, count: 0 }));
     return [
       {
         key: "source",
