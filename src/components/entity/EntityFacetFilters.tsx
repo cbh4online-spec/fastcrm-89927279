@@ -126,9 +126,11 @@ function FacetSection({ facet }: { facet: FacetDef }) {
                     onCheckedChange={() => toggle(o.value)}
                   />
                   <span className="min-w-0 flex-1 truncate">{o.label}</span>
-                  <span className="tabular-nums text-xs text-muted-foreground">
-                    {o.count}
-                  </span>
+                  {o.count > 0 && (
+                    <span className="tabular-nums text-xs text-muted-foreground">
+                      {o.count}
+                    </span>
+                  )}
                 </label>
               );
             })}
