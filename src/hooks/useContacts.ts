@@ -37,6 +37,8 @@ export interface Contact {
   region: string | null;
   country: string | null;
   lead_status: string;
+  source: string | null;
+  lead_source: string | null;
   icp_fit_score: number;
   engagement_score: number;
   pare_score: number;

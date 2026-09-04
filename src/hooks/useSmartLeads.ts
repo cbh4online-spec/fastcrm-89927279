@@ -63,6 +63,14 @@ export interface SmartLeadsFilters {
   status?: LeadStatus | "all";
   temperature?: LeadTemperature | "all";
   source?: string | "all";
+  /** Multi-seleção de origens (OR). */
+  sources?: string[];
+  /** Multi-seleção de tags (o lead tem pelo menos uma). */
+  tags?: string[];
+  /** Multi-seleção de estados (OR). */
+  statuses?: string[];
+  /** Multi-seleção de temperaturas (OR). */
+  temperatures?: string[];
   smartFilter?: SmartFilterType;
   assignedTo?: string | "all";
   hasField?: string;
@@ -119,19 +127,31 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-      // Determine sort column and direction
+      // Determine sort column and direction.
+      // Aceita presets ("score_desc") e o formato "coluna:asc|desc".
       const sortBy = filters?.sortBy || "score_desc";
       let sortColumn = "lead_score";
       let sortAscending = false;
-      switch (sortBy) {
-        case "created_desc": sortColumn = "created_at"; sortAscending = false; break;
-        case "created_asc": sortColumn = "created_at"; sortAscending = true; break;
-        case "score_desc": sortColumn = "lead_score"; sortAscending = false; break;
-        case "score_asc": sortColumn = "lead_score"; sortAscending = true; break;
-        case "value_desc": sortColumn = "estimated_value"; sortAscending = false; break;
-        case "last_contact_desc": sortColumn = "last_contact_at"; sortAscending = false; break;
-        default: sortColumn = "lead_score"; sortAscending = false;
+      if (sortBy.includes(":")) {
+        const [rawCol, rawDir] = sortBy.split(":");
+        const ALLOWED_SORT_COLUMNS = [
+          "name", "created_at", "updated_at", "lead_score", "estimated_value",
+          "last_contact_at", "status", "source", "ai_temperature", "city",
+        ];
+        sortColumn = ALLOWED_SORT_COLUMNS.includes(rawCol) ? rawCol : "lead_score";
+        sortAscending = rawDir !== "desc";
+      } else {
+        switch (sortBy) {
+          case "created_desc": sortColumn = "created_at"; sortAscending = false; break;
+          case "created_asc": sortColumn = "created_at"; sortAscending = true; break;
+          case "score_desc": sortColumn = "lead_score"; sortAscending = false; break;
+          case "score_asc": sortColumn = "lead_score"; sortAscending = true; break;
+          case "value_desc": sortColumn = "estimated_value"; sortAscending = false; break;
+          case "last_contact_desc": sortColumn = "last_contact_at"; sortAscending = false; break;
+          default: sortColumn = "lead_score"; sortAscending = false;
+        }
       }
+
 
       let query = workspaceClient
         .from("leads")
@@ -152,6 +172,18 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
       }
       if (filters?.source && filters.source !== "all") {
         query = query.eq("source", filters.source);
+      }
+      if (filters?.sources?.length) {
+        query = query.in("source", filters.sources);
+      }
+      if (filters?.statuses?.length) {
+        query = query.in("status", filters.statuses);
+      }
+      if (filters?.temperatures?.length) {
+        query = query.in("ai_temperature", filters.temperatures);
+      }
+      if (filters?.tags?.length) {
+        query = query.overlaps("tags", filters.tags);
       }
       if (filters?.assignedTo && filters.assignedTo !== "all") {
         query = query.eq("assigned_to", filters.assignedTo);
@@ -362,5 +394,68 @@ export function useBulkAnalyzeLeads() {
       queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
     }
+  });
+}
+
+export interface LeadFilterOptions {
+  sources: string[];
+  tags: string[];
+  statuses: string[];
+  temperatures: string[];
+}
+
+/**
+ * Valores distintos de origem/tags/estado/temperatura das leads do workspace,
+ * para alimentar os filtros multi-seleção das listagens.
+ */
+export function useLeadFilterOptions(archiveState: "active" | "archived" | "all" = "active") {
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useQuery({
+    queryKey: ["lead-filter-options", currentWorkspace?.id, archiveState],
+    queryFn: async (): Promise<LeadFilterOptions> => {
+      if (!currentWorkspace) return { sources: [], tags: [], statuses: [], temperatures: [] };
+
+      let query = workspaceClient
+        .from("leads")
+        .select("source, tags, status, ai_temperature")
+        .eq("workspace_id", currentWorkspace.id)
+        .limit(5000);
+
+      if (archiveState === "active") query = query.is("archived_at", null);
+      else if (archiveState === "archived") query = query.not("archived_at", "is", null);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const sources = new Set<string>();
+      const tags = new Set<string>();
+      const statuses = new Set<string>();
+      const temperatures = new Set<string>();
+
+      for (const row of (data || []) as Array<Record<string, unknown>>) {
+        const source = (row.source as string | null)?.trim();
+        if (source) sources.add(source);
+        for (const t of (row.tags as string[] | null) || []) {
+          const tag = (t || "").trim();
+          if (tag) tags.add(tag);
+        }
+        const status = (row.status as string | null)?.trim();
+        if (status) statuses.add(status);
+        const temp = (row.ai_temperature as string | null)?.trim();
+        if (temp) temperatures.add(temp);
+      }
+
+      const sorted = (s: Set<string>) => Array.from(s).sort((a, b) => a.localeCompare(b));
+      return {
+        sources: sorted(sources),
+        tags: sorted(tags),
+        statuses: sorted(statuses),
+        temperatures: sorted(temperatures),
+      };
+    },
+    enabled: !!currentWorkspace,
+    staleTime: 300_000,
   });
 }

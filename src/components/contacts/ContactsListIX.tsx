@@ -33,8 +33,23 @@ import { useEntityListSelection } from "@/hooks/useEntityListSelection";
 import { EntitySelectionBar } from "@/components/entity/EntitySelectionBar";
 import { EntityMergeDialog } from "@/components/entity/EntityMergeDialog";
 import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
+import {
+  EntityFacetFilters,
+  EntityFacetChips,
+  buildFacetOptions,
+  matchesFacet,
+  type FacetDef,
+} from "@/components/entity/EntityFacetFilters";
+import { getSourceLabel } from "@/lib/leadSourceLabels";
 
-type SortKey = "name" | "created_at" | "pare_score";
+type SortKey =
+  | "name"
+  | "created_at"
+  | "pare_score"
+  | "icp_fit_score"
+  | "engagement_score"
+  | "next_followup_at"
+  | "city";
 
 const COLUMNS: ListColumnDef[] = [
   { key: "name", label: "Nome", required: true },
@@ -172,6 +187,10 @@ export function ContactsListIX() {
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string[]>([]);
   const { isElementVisible } = usePageElementVisibility("contacts");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
@@ -180,6 +199,42 @@ export function ContactsListIX() {
   const { columns, setColumns } = useListColumns("contacts-list-columns-v1", COLUMNS);
 
   const all = (contacts as Contact[]) ?? [];
+
+  const contactSource = (c: Contact) => c.source || c.lead_source || null;
+
+  const facets = useMemo<FacetDef[]>(
+    () => [
+      {
+        key: "source",
+        label: "Origem",
+        options: buildFacetOptions(all, contactSource, getSourceLabel),
+        selected: sourceFilter,
+        onChange: (v) => { setSourceFilter(v); setPage(0); },
+      },
+      {
+        key: "tags",
+        label: "Tags",
+        options: buildFacetOptions(all, (c) => c.tags),
+        selected: tagFilter,
+        onChange: (v) => { setTagFilter(v); setPage(0); },
+      },
+      {
+        key: "lead_status",
+        label: "Estado",
+        options: buildFacetOptions(all, (c) => c.lead_status),
+        selected: statusFilter,
+        onChange: (v) => { setStatusFilter(v); setPage(0); },
+      },
+      {
+        key: "city",
+        label: "Cidade",
+        options: buildFacetOptions(all, (c) => c.city),
+        selected: cityFilter,
+        onChange: (v) => { setCityFilter(v); setPage(0); },
+      },
+    ],
+    [all, sourceFilter, tagFilter, statusFilter, cityFilter],
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -191,16 +246,27 @@ export function ContactsListIX() {
           .some((v) => String(v).toLowerCase().includes(q)),
       );
     }
+    arr = arr.filter(
+      (c) =>
+        matchesFacet(sourceFilter, contactSource(c)) &&
+        matchesFacet(tagFilter, c.tags) &&
+        matchesFacet(statusFilter, c.lead_status) &&
+        matchesFacet(cityFilter, c.city),
+    );
+    const time = (v?: string | null) => (v ? new Date(v).getTime() : 0);
     arr = [...arr].sort((a, b) => {
       let cmp = 0;
       if (sortBy === "name") cmp = (a.name || "").localeCompare(b.name || "");
-      else if (sortBy === "created_at")
-        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      else if (sortBy === "created_at") cmp = time(a.created_at) - time(b.created_at);
       else if (sortBy === "pare_score") cmp = (a.pare_score || 0) - (b.pare_score || 0);
+      else if (sortBy === "icp_fit_score") cmp = (a.icp_fit_score || 0) - (b.icp_fit_score || 0);
+      else if (sortBy === "engagement_score") cmp = (a.engagement_score || 0) - (b.engagement_score || 0);
+      else if (sortBy === "next_followup_at") cmp = time(a.next_followup_at) - time(b.next_followup_at);
+      else if (sortBy === "city") cmp = (a.city || "").localeCompare(b.city || "");
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [all, search, sortBy, sortDir]);
+  }, [all, search, sortBy, sortDir, sourceFilter, tagFilter, statusFilter, cityFilter]);
 
   const totalCount = filtered.length;
   const pageItems = filtered.slice(page * pageSize, page * pageSize + pageSize);
@@ -275,6 +341,10 @@ export function ContactsListIX() {
             { value: "name", label: "Nome" },
             { value: "created_at", label: "Data de criação" },
             { value: "pare_score", label: "Score PARE" },
+            { value: "icp_fit_score", label: "ICP Fit" },
+            { value: "engagement_score", label: "Engagement" },
+            { value: "next_followup_at", label: "Próximo follow-up" },
+            { value: "city", label: "Cidade" },
           ]}
           sortValue={sortBy}
           onSortChange={(v) => setSortBy(v as SortKey)}
@@ -288,6 +358,7 @@ export function ContactsListIX() {
           extra={
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
+              <EntityFacetFilters facets={facets} />
               <ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} />
             </div>
           }
@@ -295,6 +366,9 @@ export function ContactsListIX() {
       }
     >
       <ListKPIStrip items={kpis} isLoading={isLoading} note="Valores calculados sobre os resultados filtrados." />
+
+      <EntityFacetChips facets={facets} />
+
 
       <EntitySelectionBar
         count={selection.count}

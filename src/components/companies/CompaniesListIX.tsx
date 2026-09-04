@@ -49,9 +49,24 @@ import { useEntityListSelection } from "@/hooks/useEntityListSelection";
 import { EntitySelectionBar } from "@/components/entity/EntitySelectionBar";
 import { EntityMergeDialog } from "@/components/entity/EntityMergeDialog";
 import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
+import {
+  EntityFacetFilters,
+  EntityFacetChips,
+  buildFacetOptions,
+  matchesFacet,
+  type FacetDef,
+} from "@/components/entity/EntityFacetFilters";
+import { getSourceLabel } from "@/lib/leadSourceLabels";
 
 
-type SortKey = "name" | "created_at" | "total_revenue" | "pending_total";
+type SortKey =
+  | "name"
+  | "created_at"
+  | "total_revenue"
+  | "pending_total"
+  | "overdue_total"
+  | "last_purchase"
+  | "pare_score";
 
 const COLUMNS: ListColumnDef[] = [
   { key: "name", label: "Nome", required: true },
@@ -275,6 +290,11 @@ export function CompaniesListIX() {
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const [industryFilter, setIndustryFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string[]>([]);
+  const [abcFilter, setAbcFilter] = useState<string[]>([]);
 
   const { isElementVisible } = usePageElementVisibility("companies");
   const availableColumns = useMemo(
@@ -284,6 +304,47 @@ export function CompaniesListIX() {
   const { columns, setColumns } = useListColumns("companies-list-columns-v1", COLUMNS);
 
   const all = (companies as Company[]) ?? [];
+
+  const facets = useMemo<FacetDef[]>(
+    () => [
+      {
+        key: "source",
+        label: "Origem",
+        options: buildFacetOptions(all, (c) => c.source, getSourceLabel),
+        selected: sourceFilter,
+        onChange: (v) => { setSourceFilter(v); setPage(0); },
+      },
+      {
+        key: "tags",
+        label: "Tags",
+        options: buildFacetOptions(all, (c) => c.tags),
+        selected: tagFilter,
+        onChange: (v) => { setTagFilter(v); setPage(0); },
+      },
+      {
+        key: "industry",
+        label: "Indústria",
+        options: buildFacetOptions(all, (c) => c.industry),
+        selected: industryFilter,
+        onChange: (v) => { setIndustryFilter(v); setPage(0); },
+      },
+      {
+        key: "city",
+        label: "Cidade",
+        options: buildFacetOptions(all, (c) => (c as { city?: string | null }).city),
+        selected: cityFilter,
+        onChange: (v) => { setCityFilter(v); setPage(0); },
+      },
+      {
+        key: "abc",
+        label: "Categoria ABC",
+        options: buildFacetOptions(all, (c) => c.abc_category),
+        selected: abcFilter,
+        onChange: (v) => { setAbcFilter(v); setPage(0); },
+      },
+    ],
+    [all, sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter],
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -298,19 +359,33 @@ export function CompaniesListIX() {
     if (onlyOverdue) {
       arr = arr.filter((c) => (financialsById.get(c.id)?.overdue_total ?? 0) > 0.01);
     }
+    arr = arr.filter(
+      (c) =>
+        matchesFacet(sourceFilter, c.source) &&
+        matchesFacet(tagFilter, c.tags) &&
+        matchesFacet(industryFilter, c.industry) &&
+        matchesFacet(cityFilter, (c as { city?: string | null }).city) &&
+        matchesFacet(abcFilter, c.abc_category),
+    );
+    const time = (v?: string | null) => (v ? new Date(v).getTime() : 0);
     arr = [...arr].sort((a, b) => {
       let cmp = 0;
       if (sortBy === "name") cmp = (a.name || "").localeCompare(b.name || "");
-      else if (sortBy === "created_at")
-        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      else if (sortBy === "created_at") cmp = time(a.created_at) - time(b.created_at);
       else if (sortBy === "total_revenue")
         cmp = (financialsById.get(a.id)?.net_total ?? a.total_revenue ?? 0) - (financialsById.get(b.id)?.net_total ?? b.total_revenue ?? 0);
       else if (sortBy === "pending_total")
         cmp = (financialsById.get(a.id)?.pending_total ?? 0) - (financialsById.get(b.id)?.pending_total ?? 0);
+      else if (sortBy === "overdue_total")
+        cmp = (financialsById.get(a.id)?.overdue_total ?? 0) - (financialsById.get(b.id)?.overdue_total ?? 0);
+      else if (sortBy === "last_purchase")
+        cmp = time(financialsById.get(a.id)?.last_invoice_date ?? a.last_purchase_date)
+          - time(financialsById.get(b.id)?.last_invoice_date ?? b.last_purchase_date);
+      else if (sortBy === "pare_score") cmp = (a.pare_score || 0) - (b.pare_score || 0);
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [all, search, sortBy, sortDir, financialsById, onlyOverdue]);
+  }, [all, search, sortBy, sortDir, financialsById, onlyOverdue, sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter]);
 
 
   const totalCount = filtered.length;
@@ -394,7 +469,9 @@ export function CompaniesListIX() {
             { value: "created_at", label: "Data de criação" },
             { value: "total_revenue", label: "Faturação" },
             { value: "pending_total", label: "Valor pendente" },
-
+            { value: "overdue_total", label: "Valor vencido" },
+            { value: "last_purchase", label: "Última compra" },
+            { value: "pare_score", label: "Score PARE" },
           ]}
           sortValue={sortBy}
           onSortChange={(v) => setSortBy(v as SortKey)}
@@ -408,6 +485,7 @@ export function CompaniesListIX() {
           extra={
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
+              <EntityFacetFilters facets={facets} />
               <ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} />
             </div>
           }
@@ -419,6 +497,9 @@ export function CompaniesListIX() {
         isLoading={isLoading}
         note="Valores calculados sobre os resultados filtrados."
       />
+
+      <EntityFacetChips facets={facets} />
+
 
       <EntitySelectionBar
         count={selection.count}
