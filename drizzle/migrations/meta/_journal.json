@@ -113,6 +113,13 @@
       "when": 1789402316865,
       "tag": "0015_instagram_extraction_web_search_source",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789404355470,
+      "tag": "0016_schedule_instagram_token_refresh",
+      "breakpoints": true
     }
   ]
 }
