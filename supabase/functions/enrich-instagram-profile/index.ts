@@ -175,6 +175,36 @@ Deno.serve(async (req) => {
       logStep("Profile updated successfully");
     }
 
+    // Update the lead if leadId provided
+    if (leadId) {
+      const leadUpdate: Record<string, unknown> = {
+        instagram_url: `https://www.instagram.com/${cleanUsername}/`,
+        instagram_followers_count: followersCount,
+        instagram_following_count: followingCount,
+        instagram_posts_count: postsCount,
+        instagram_bio: fullBio,
+        instagram_external_url: externalUrl,
+        instagram_category: category,
+        instagram_is_verified: isVerified,
+        instagram_is_business: isBusiness,
+        instagram_enriched_at: new Date().toISOString(),
+      };
+
+      const { error: leadUpdateError } = await supabaseClient
+        .from("leads")
+        .update(leadUpdate)
+        .eq("id", leadId)
+        .eq("workspace_id", workspaceId);
+
+      if (leadUpdateError) {
+        logStep("Error updating lead", { error: leadUpdateError.message });
+        throw new Error(`Failed to update lead: ${leadUpdateError.message}`);
+      }
+
+      logStep("Lead updated successfully", { leadId });
+    }
+
+
     return new Response(JSON.stringify({
       success: true,
       data: {
