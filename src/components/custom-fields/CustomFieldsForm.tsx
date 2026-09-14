@@ -222,6 +222,7 @@ export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, Cust
               field={field}
               value={values[field.id]}
               onChange={(value) => handleValueChange(field, value)}
+              showRequiredMarkers={showRequiredMarkers}
             />
           ))}
         </div>
