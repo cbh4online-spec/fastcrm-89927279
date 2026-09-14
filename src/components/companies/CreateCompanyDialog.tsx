@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useContacts } from "@/hooks/useContacts";
@@ -21,39 +21,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CustomFieldsFormCreate, CustomFieldsFormCreateRef, type AIAutofillResult } from "@/components/custom-fields/CustomFieldsForm";
 import { AIAutofillPreviewDialog } from "@/components/custom-fields/AIAutofillPreviewDialog";
+import { OptionalFieldsSection } from "@/components/crm/shared/OptionalFieldsSection";
+import { DuplicateWarningCard, type DuplicateWarningItem } from "@/components/crm/shared/DuplicateWarningCard";
 import {
   Building2,
   Globe,
   Mail,
-  ChevronDown,
   Sparkles,
   Loader2,
   CheckCircle,
-  AlertTriangle,
   Link2,
   Phone,
   Tag,
   Search,
-  X,
-  Plus,
+  MapPin,
   User,
   UserPlus,
 } from "lucide-react";
@@ -80,13 +64,12 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
   const nifLookup = useNifLookup({ showToasts: false });
   const customFieldsPrimaryRef = useRef<CustomFieldsFormCreateRef>(null);
   const customFieldsSecondaryRef = useRef<CustomFieldsFormCreateRef>(null);
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [enrichmentData, setEnrichmentData] = useState<EnrichmentResult | null>(null);
   const [enrichmentStarted, setEnrichmentStarted] = useState(false);
-  const [selectedDuplicate, setSelectedDuplicate] = useState<DuplicateMatch | null>(null);
-  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [dismissedDuplicates, setDismissedDuplicates] = useState(false);
   const [createAssociatedContact, setCreateAssociatedContact] = useState(false);
   const [isIndividual, setIsIndividual] = useState(false);
   const [previewResults, setPreviewResults] = useState<AIAutofillResult[]>([]);
@@ -139,19 +122,21 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
     formData.email
   );
 
+  const duplicateItems: DuplicateWarningItem[] = duplicates.map((dup) => ({
+    id: dup.company.id,
+    title: dup.company.name,
+    matchLabel:
+      dup.matchType === "domain"
+        ? "Mesmo domínio"
+        : dup.matchType === "email_domain"
+          ? "Domínio de email"
+          : `Nome similar (${Math.round(dup.similarity * 100)}%)`,
+    blocking: false,
+  }));
+
+  const showDuplicates = duplicateItems.length > 0 && !dismissedDuplicates;
+
   const canEnrich = formData.website.trim() || formData.email.trim();
-  const hasValidInput = formData.name.trim() && (formData.website.trim() || formData.email.trim());
-
-  // Trigger enrichment when user stops typing
-  useEffect(() => {
-    if (!canEnrich || enrichmentStarted) return;
-
-    const timeout = setTimeout(() => {
-      // Don't auto-start, wait for user to click
-    }, 1000);
-
-    return () => clearTimeout(timeout);
-  }, [formData.website, formData.email]);
 
   const handleEnrich = async () => {
     if (!canEnrich) return;
@@ -165,8 +150,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
 
     if (result) {
       setEnrichmentData(result);
-      
-      // Pre-populate enriched fields for user to confirm
+
       const newEnrichedFields: typeof enrichedFields = {};
       if (result.industry?.value) newEnrichedFields.industry = result.industry.value;
       if (result.size?.value) newEnrichedFields.size = result.size.value;
@@ -174,7 +158,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
       if (result.email?.value && !formData.email) newEnrichedFields.email = result.email.value;
       if (result.address?.value) newEnrichedFields.address = result.address.value;
       if (result.description?.value) newEnrichedFields.description = result.description.value;
-      
+
       setEnrichedFields(newEnrichedFields);
     }
   };
@@ -191,20 +175,17 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
     });
   };
 
+  const handleUseDuplicate = (companyId: string) => {
+    onOpenChange(false);
+    navigate(`/dashboard/companies/${companyId}`);
+  };
+
   const handleSubmit = async (e: React.FormEvent, withEnrich = false) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    // Check duplicates first
-    if (duplicates.length > 0 && !selectedDuplicate) {
-      setShowDuplicateDialog(true);
-      return;
-    }
-
-    // If user selected to use existing company, navigate there
-    if (selectedDuplicate) {
-      navigate(`/dashboard/companies/${selectedDuplicate.company.id}`);
-      onOpenChange(false);
+    // Duplicados: aviso inline, o utilizador confirma com "Criar mesmo assim"
+    if (duplicates.length > 0 && !dismissedDuplicates) {
       return;
     }
 
@@ -263,7 +244,6 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
       if (result?.id) {
         await customFieldsPrimaryRef.current?.saveCustomFields(result.id);
         await customFieldsSecondaryRef.current?.saveCustomFields(result.id);
-        // Run AI autofill and collect results for preview
         const aiRecordData = {
           name: formData.name,
           website: formData.website,
@@ -314,8 +294,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
 
       resetForm();
       onOpenChange(false);
-      
-      // Navigate to the new company
+
       if (result?.id) {
         navigate(`/dashboard/companies/${result.id}`);
       }
@@ -354,7 +333,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
     setEnrichedFields({});
     setAcceptedFields(new Set());
     setEnrichmentStarted(false);
-    setSelectedDuplicate(null);
+    setDismissedDuplicates(false);
     setShowOptionalFields(false);
     setCreateAssociatedContact(false);
     setIsIndividual(false);
@@ -367,16 +346,6 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
     onOpenChange(newOpen);
   };
 
-  const handleUseDuplicate = (duplicate: DuplicateMatch) => {
-    setSelectedDuplicate(duplicate);
-    setShowDuplicateDialog(false);
-  };
-
-  const handleCreateAnyway = () => {
-    setShowDuplicateDialog(false);
-    // Continue with create
-  };
-
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -387,29 +356,172 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
               Nova Empresa
             </DialogTitle>
             <DialogDescription>
-              Introduz o nome e website ou email. Eu preencho o resto por ti. ✨
+              Preencha o nome. O resto pode ser completado depois.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
-            {/* Required Fields */}
-            <div className="space-y-4">
+            {/* Campos principais */}
+            <div className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome da Empresa *</Label>
+                <Label htmlFor="name">Nome</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Acme Corporation"
-                  required
                   autoFocus
                 />
               </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5" />
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="geral@empresa.pt"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5" />
+                    Telefone
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+351 21 123 4567"
+                  />
+                </div>
+              </div>
+            </div>
 
-              {/* NIF Lookup Section */}
+            {/* Enrichment CTA */}
+            {canEnrich && !enrichmentData && !enrichment.isPending && (
+              <Card className="p-3 border-primary/30 bg-primary/5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <span className="text-sm">Posso completar esta empresa automaticamente. Queres?</span>
+                  </div>
+                  <Button type="button" size="sm" onClick={handleEnrich} className="shrink-0">
+                    Sim
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* Enrichment Loading */}
+            {enrichment.isPending && (
+              <Card className="p-3 border-primary/30 bg-primary/5">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  <span className="text-sm">A analisar informações…</span>
+                </div>
+              </Card>
+            )}
+
+            {/* Enrichment Results */}
+            {enrichmentData && Object.keys(enrichedFields).length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="tax_id" className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4" />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  Sugestões
+                </p>
+                <div className="grid gap-2">
+                  {Object.entries(enrichedFields).map(([key, value]) => {
+                    if (!value) return null;
+                    const field = enrichmentData[key as keyof EnrichmentResult];
+                    const confidence = (field as any)?.confidence || "medium";
+                    const isAccepted = acceptedFields.has(key);
+
+                    const labels: Record<string, string> = {
+                      industry: "Setor",
+                      size: "Tamanho",
+                      phone: "Telefone",
+                      email: "Email",
+                      address: "Morada",
+                      description: "Descrição",
+                    };
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => toggleAcceptField(key)}
+                        className={cn(
+                          "flex items-center justify-between p-2 rounded-md border text-left transition-colors",
+                          isAccepted
+                            ? "bg-primary/10 border-primary/40"
+                            : "bg-muted/30 border-border hover:border-primary/50"
+                        )}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-muted-foreground">{labels[key] || key}</p>
+                          <p className="text-sm truncate">{value}</p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-2">
+                          <Badge variant="outline" className={cn("text-xs", confidenceColors[confidence])}>
+                            {confidence === "high" ? "Alta" : confidence === "medium" ? "Média" : "Baixa"}
+                          </Badge>
+                          {isAccepted && <CheckCircle className="w-4 h-4 text-green-600" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {enrichmentData.socialLinks && Object.keys(enrichmentData.socialLinks).length > 0 && (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground mb-2">Redes sociais encontradas:</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {Object.entries(enrichmentData.socialLinks).map(([platform, url]) => (
+                        <a
+                          key={platform}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          <Link2 className="w-3 h-3" />
+                          {platform}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Aviso de duplicados */}
+            {showDuplicates && (
+              <DuplicateWarningCard
+                items={duplicateItems}
+                onUseExisting={handleUseDuplicate}
+                onContinue={() => setDismissedDuplicates(true)}
+                useLabel="Usar esta"
+              />
+            )}
+
+            {/* Primary Custom Fields (position 0-1) */}
+            <CustomFieldsFormCreate
+              ref={customFieldsPrimaryRef}
+              entityType="company"
+              positionFilter="primary"
+            />
+
+            {/* Campos opcionais */}
+            <OptionalFieldsSection open={showOptionalFields} onOpenChange={setShowOptionalFields}>
+              {/* NIF */}
+              <div className="space-y-2">
+                <Label htmlFor="tax_id" className="flex items-center gap-1">
+                  <Building2 className="w-3.5 h-3.5" />
                   NIF
                 </Label>
                 <div className="flex gap-2">
@@ -424,7 +536,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                     type="button"
                     variant="outline"
                     onClick={async () => {
-                      const result = await nifLookup.lookup(formData.tax_id);
+                      const result: NifLookupResult | null = await nifLookup.lookup(formData.tax_id);
                       if (result) {
                         setFormData(prev => ({
                           ...prev,
@@ -449,9 +561,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                           activity_description: result.activity_description || prev.activity_description,
                           racius_url: result.racius_url || prev.racius_url,
                         }));
-                        setShowOptionalFields(true);
-                        
-                        // Check if it's an individual NIF
+
                         const individual = isIndividualNif(formData.tax_id);
                         setIsIndividual(individual);
                         if (individual) {
@@ -478,35 +588,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                 )}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="website" className="flex items-center gap-2">
-                    <Globe className="w-4 h-4" />
-                    Website
-                  </Label>
-                  <Input
-                    id="website"
-                    value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    placeholder="www.empresa.pt"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="geral@empresa.pt"
-                  />
-                </div>
-              </div>
-
-              {/* Create Associated Contact Option - ENI Visual Enhancement */}
+              {/* ENI / contacto associado */}
               {isIndividual ? (
                 <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
                   <CardContent className="p-4 space-y-3">
@@ -520,7 +602,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                       </Badge>
                     </div>
                     <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Este NIF pertence a uma pessoa singular com atividade comercial. 
+                      Este NIF pertence a uma pessoa singular com atividade comercial.
                       Serão criados automaticamente:
                     </p>
                     <div className="flex flex-col gap-1 text-xs text-amber-700 dark:text-amber-300">
@@ -535,8 +617,8 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                     </div>
                     <div className="flex items-center gap-2 pt-1">
                       <Checkbox
-                        id="createContact"
-                        checked={true}
+                        id="createContactEni"
+                        checked
                         disabled
                         className="data-[state=checked]:bg-amber-600"
                       />
@@ -556,7 +638,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                   <div className="grid gap-1.5 leading-none">
                     <label
                       htmlFor="createContact"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                      className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
                     >
                       <UserPlus className="w-4 h-4" />
                       Criar contacto associado automaticamente
@@ -568,298 +650,161 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                 </div>
               )}
 
-              {/* Enrichment CTA */}
-              {canEnrich && !enrichmentData && !enrichment.isPending && (
-                <Card className="border-primary/30 bg-primary/5">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <Sparkles className="w-5 h-5 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium">
-                            Se quiseres, eu preencho isto por ti.
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Vou buscar informação ao website.
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleEnrich}
-                        className="shrink-0"
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Enriquecer
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Enrichment Loading */}
-              {enrichment.isPending && (
-                <Card className="border-primary/30 bg-primary/5">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                      <p className="text-sm">A analisar o website...</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Enrichment Results */}
-              {enrichmentData && Object.keys(enrichedFields).length > 0 && (
-                <Card className="border-green-200 bg-green-50/50">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <p className="text-sm font-medium text-green-700">
-                        Encontrei estes dados. Confirmas?
-                      </p>
-                    </div>
-                    <div className="grid gap-2">
-                      {Object.entries(enrichedFields).map(([key, value]) => {
-                        if (!value) return null;
-                        const field = enrichmentData[key as keyof EnrichmentResult];
-                        const confidence = (field as any)?.confidence || "medium";
-                        const isAccepted = acceptedFields.has(key);
-
-                        const labels: Record<string, string> = {
-                          industry: "Indústria",
-                          size: "Tamanho",
-                          phone: "Telefone",
-                          email: "Email",
-                          address: "Morada",
-                          description: "Descrição",
-                        };
-
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => toggleAcceptField(key)}
-                            className={cn(
-                              "flex items-center justify-between p-2 rounded-md border text-left transition-colors",
-                              isAccepted
-                                ? "bg-green-100 border-green-300"
-                                : "bg-white border-border hover:border-primary/50"
-                            )}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs text-muted-foreground">{labels[key] || key}</p>
-                              <p className="text-sm truncate">{value}</p>
-                            </div>
-                            <div className="flex items-center gap-2 ml-2">
-                              <Badge
-                                variant="outline"
-                                className={cn("text-xs", confidenceColors[confidence])}
-                              >
-                                {confidence === "high" ? "Alta" : confidence === "medium" ? "Média" : "Baixa"}
-                              </Badge>
-                              {isAccepted && (
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {enrichmentData.socialLinks && Object.keys(enrichmentData.socialLinks).length > 0 && (
-                      <div className="pt-2 border-t border-green-200">
-                        <p className="text-xs text-muted-foreground mb-2">Redes sociais encontradas:</p>
-                        <div className="flex gap-2 flex-wrap">
-                          {Object.entries(enrichmentData.socialLinks).map(([platform, url]) => (
-                            <a
-                              key={platform}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:underline flex items-center gap-1"
-                            >
-                              <Link2 className="w-3 h-3" />
-                              {platform}
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Duplicate Warning */}
-              {duplicates.length > 0 && (
-                <Card className="border-yellow-200 bg-yellow-50/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
-                      <div className="space-y-2 flex-1">
-                        <p className="text-sm font-medium text-yellow-700">
-                          Possível duplicado encontrado
-                        </p>
-                        {duplicates.slice(0, 2).map((dup) => (
-                          <div
-                            key={dup.company.id}
-                            className="flex items-center justify-between p-2 bg-white rounded border border-yellow-200"
-                          >
-                            <div>
-                              <p className="text-sm font-medium">{dup.company.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {dup.matchType === "domain" && "Mesmo domínio"}
-                                {dup.matchType === "name" && `Nome similar (${Math.round(dup.similarity * 100)}%)`}
-                                {dup.matchType === "email_domain" && "Mesmo domínio de email"}
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleUseDuplicate(dup)}
-                            >
-                              Usar esta
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* Primary Custom Fields (position 0-1) - shown outside collapsible */}
-            <CustomFieldsFormCreate 
-              ref={customFieldsPrimaryRef} 
-              entityType="company" 
-              positionFilter="primary"
-            />
-
-            {/* Optional Fields - Collapsible */}
-            <Collapsible open={showOptionalFields} onOpenChange={setShowOptionalFields}>
-              <CollapsibleTrigger asChild>
-                <Button type="button" variant="ghost" className="w-full justify-between">
-                  Campos opcionais
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 transition-transform",
-                      showOptionalFields && "rotate-180"
-                    )}
-                  />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 pt-2">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Telefone
-                    </Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+351 21 123 4567"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tags" className="flex items-center gap-2">
-                      <Tag className="w-4 h-4" />
-                      Tags
-                    </Label>
-                    <Input
-                      id="tags"
-                      value={formData.tags}
-                      onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                      placeholder="parceiro, premium"
-                    />
-                  </div>
-                </div>
-                {/* NIF Data Preview - shown when populated from lookup */}
-                {(formData.address || formData.legal_nature || formData.cae_codes.length > 0 || formData.about) && (
-                  <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
-                    <CardContent className="p-4 space-y-3">
-                      <p className="text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
-                        <Search className="w-3.5 h-3.5" />
-                        Dados obtidos via NIF
-                      </p>
-                      <div className="grid gap-1.5 text-xs">
-                        {formData.address && (
-                          <div><span className="text-muted-foreground">Morada:</span> {formData.address}{formData.postal_code ? `, ${formData.postal_code}` : ""}{formData.city ? ` ${formData.city}` : ""}</div>
-                        )}
-                        {formData.region && (
-                          <div><span className="text-muted-foreground">Distrito/Concelho:</span> {formData.region}{formData.county ? ` / ${formData.county}` : ""}{formData.parish ? ` / ${formData.parish}` : ""}</div>
-                        )}
-                        {formData.legal_nature && (
-                          <div><span className="text-muted-foreground">Natureza Jurídica:</span> {formData.legal_nature}</div>
-                        )}
-                        {formData.capital_social && (
-                          <div><span className="text-muted-foreground">Capital Social:</span> {formData.capital_social}</div>
-                        )}
-                        {formData.founding_date && (
-                          <div><span className="text-muted-foreground">Data de Constituição:</span> {formData.founding_date}</div>
-                        )}
-                        {formData.company_status && (
-                          <div><span className="text-muted-foreground">Estado:</span> {formData.company_status}</div>
-                        )}
-                        {formData.cae_codes.length > 0 && (
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <span className="text-muted-foreground">CAE:</span>
-                            {formData.cae_codes.map((code) => (
-                              <Badge key={code} variant="secondary" className="text-[10px] px-1.5 py-0">{code}</Badge>
-                            ))}
-                            {formData.cae_description && <span className="text-muted-foreground">— {formData.cae_description}</span>}
-                          </div>
-                        )}
-                        {formData.activity_description && (
-                          <div><span className="text-muted-foreground">Atividade:</span> {formData.activity_description}</div>
-                        )}
-                        {formData.about && (
-                          <div className="pt-1 border-t border-blue-200 dark:border-blue-800 mt-1">
-                            <span className="text-muted-foreground">Acerca:</span> <span className="line-clamp-3">{formData.about}</span>
-                          </div>
-                        )}
-                        {formData.racius_url && (
-                          <div>
-                            <a href={formData.racius_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                              <Link2 className="w-3 h-3" /> Ver no Racius
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notas</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Informações adicionais..."
-                    rows={2}
+                  <Label htmlFor="website" className="flex items-center gap-1">
+                    <Globe className="w-3.5 h-3.5" />
+                    Website
+                  </Label>
+                  <Input
+                    id="website"
+                    value={formData.website}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    placeholder="www.empresa.pt"
                   />
                 </div>
-                {/* Secondary Custom Fields (position > 1) */}
-                <CustomFieldsFormCreate 
-                  ref={customFieldsSecondaryRef} 
-                  entityType="company" 
-                  positionFilter="secondary"
-                  hideLabel
+                <div className="space-y-2">
+                  <Label htmlFor="tags" className="flex items-center gap-1">
+                    <Tag className="w-3.5 h-3.5" />
+                    Tags (separadas por vírgula)
+                  </Label>
+                  <Input
+                    id="tags"
+                    value={formData.tags}
+                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                    placeholder="parceiro, premium"
+                  />
+                </div>
+              </div>
+
+              {/* Morada */}
+              <div className="space-y-3 rounded-lg border border-border/60 p-3">
+                <Label className="flex items-center gap-1 text-sm font-medium">
+                  <MapPin className="w-3.5 h-3.5" />
+                  Morada
+                </Label>
+                <div className="grid gap-3 sm:grid-cols-6">
+                  <div className="space-y-2 sm:col-span-6">
+                    <Label htmlFor="company_address">Endereço</Label>
+                    <Input
+                      id="company_address"
+                      maxLength={300}
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="Rua, avenida, lugar..."
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="company_postal_code">Código Postal</Label>
+                    <Input
+                      id="company_postal_code"
+                      maxLength={20}
+                      value={formData.postal_code}
+                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                      placeholder="1000-001"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="company_city">Cidade</Label>
+                    <Input
+                      id="company_city"
+                      maxLength={100}
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="Lisboa"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="company_region">Região</Label>
+                    <Input
+                      id="company_region"
+                      maxLength={100}
+                      value={formData.region}
+                      onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                      placeholder="Lisboa"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* NIF Data Preview */}
+              {(formData.legal_nature || formData.cae_codes.length > 0 || formData.about) && (
+                <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
+                  <CardContent className="p-4 space-y-3">
+                    <p className="text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                      <Search className="w-3.5 h-3.5" />
+                      Dados obtidos via NIF
+                    </p>
+                    <div className="grid gap-1.5 text-xs">
+                      {formData.region && (
+                        <div><span className="text-muted-foreground">Distrito/Concelho:</span> {formData.region}{formData.county ? ` / ${formData.county}` : ""}{formData.parish ? ` / ${formData.parish}` : ""}</div>
+                      )}
+                      {formData.legal_nature && (
+                        <div><span className="text-muted-foreground">Natureza Jurídica:</span> {formData.legal_nature}</div>
+                      )}
+                      {formData.capital_social && (
+                        <div><span className="text-muted-foreground">Capital Social:</span> {formData.capital_social}</div>
+                      )}
+                      {formData.founding_date && (
+                        <div><span className="text-muted-foreground">Data de Constituição:</span> {formData.founding_date}</div>
+                      )}
+                      {formData.company_status && (
+                        <div><span className="text-muted-foreground">Estado:</span> {formData.company_status}</div>
+                      )}
+                      {formData.cae_codes.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="text-muted-foreground">CAE:</span>
+                          {formData.cae_codes.map((code) => (
+                            <Badge key={code} variant="secondary" className="text-[10px] px-1.5 py-0">{code}</Badge>
+                          ))}
+                          {formData.cae_description && <span className="text-muted-foreground">— {formData.cae_description}</span>}
+                        </div>
+                      )}
+                      {formData.activity_description && (
+                        <div><span className="text-muted-foreground">Atividade:</span> {formData.activity_description}</div>
+                      )}
+                      {formData.about && (
+                        <div className="pt-1 border-t border-blue-200 dark:border-blue-800 mt-1">
+                          <span className="text-muted-foreground">Acerca:</span> <span className="line-clamp-3">{formData.about}</span>
+                        </div>
+                      )}
+                      {formData.racius_url && (
+                        <div>
+                          <a href={formData.racius_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                            <Link2 className="w-3 h-3" /> Ver no Racius
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notas</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Informações adicionais..."
+                  rows={3}
                 />
-              </CollapsibleContent>
-            </Collapsible>
+              </div>
+
+              {/* Secondary Custom Fields (position > 1) */}
+              <CustomFieldsFormCreate
+                ref={customFieldsSecondaryRef}
+                entityType="company"
+                positionFilter="secondary"
+                hideLabel
+              />
+            </OptionalFieldsSection>
 
             <DialogFooter className="gap-2 sm:gap-0">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              {canEnrich ? (
+              {canEnrich && !enrichmentStarted ? (
                 <div className="flex gap-2">
                   <Button
                     type="submit"
@@ -883,10 +828,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                   </Button>
                 </div>
               ) : (
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || !formData.name.trim()}
-                >
+                <Button type="submit" disabled={isSubmitting || !formData.name.trim()}>
                   {isSubmitting ? "A criar..." : "Criar Empresa"}
                 </Button>
               )}
@@ -895,46 +837,6 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
         </DialogContent>
       </Dialog>
 
-      {/* Duplicate Confirmation Dialog */}
-      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Possível duplicado</AlertDialogTitle>
-            <AlertDialogDescription>
-              Encontrámos empresas similares. Queres usar uma existente ou criar uma nova?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-2 my-4">
-            {duplicates.map((dup) => (
-              <Card
-                key={dup.company.id}
-                className="cursor-pointer hover:border-primary transition-colors"
-                onClick={() => handleUseDuplicate(dup)}
-              >
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{dup.company.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {dup.company.website || dup.company.email || "Sem contacto"}
-                    </p>
-                  </div>
-                  <Badge variant="outline">
-                    {Math.round(dup.similarity * 100)}% similar
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCreateAnyway}>
-              Criar nova empresa
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => setShowDuplicateDialog(false)}>
-              Cancelar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       <AIAutofillPreviewDialog
         open={showPreview}
         onOpenChange={setShowPreview}

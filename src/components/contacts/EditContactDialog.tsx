@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
 import { AIAutofillPreviewDialog, type AIAutofillResult } from "@/components/custom-fields/AIAutofillPreviewDialog";
 import { SocialMediaFields } from "@/components/shared/SocialMediaFields";
+import { OptionalFieldsSection } from "@/components/crm/shared/OptionalFieldsSection";
 import { useManagedFields } from "@/hooks/useManagedFields";
 import { supabase } from "@/integrations/supabase/client";
 import { useSetCustomFieldValue } from "@/hooks/useCustomFields";
@@ -35,6 +36,7 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [optionalsOpen, setOptionalsOpen] = useState(false);
   const [previewResults, setPreviewResults] = useState<AIAutofillResult[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [isApplyingPreview, setIsApplyingPreview] = useState(false);
@@ -206,7 +208,7 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Contacto</DialogTitle>
           <DialogDescription>
@@ -214,9 +216,9 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Nome *</Label>
+              <Label htmlFor="edit-name">Nome</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
@@ -225,45 +227,53 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
                 required
               />
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="joao@empresa.pt"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Telefone</Label>
+                <Input
+                  id="edit-phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+351 912 345 678"
+                />
+              </div>
+            </div>
+          </div>
+
+          <OptionalFieldsSection open={optionalsOpen} onOpenChange={setOptionalsOpen}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-company">Empresa</Label>
+                <Input
+                  id="edit-company"
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  placeholder="Empresa XYZ"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-job_title">Cargo</Label>
+                <Input
+                  id="edit-job_title"
+                  value={formData.job_title}
+                  onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+                  placeholder="Diretor Comercial"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="joao@empresa.pt"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone">Telefone</Label>
-              <Input
-                id="edit-phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+351 912 345 678"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-company">Empresa</Label>
-              <Input
-                id="edit-company"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                placeholder="Empresa XYZ"
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="edit-job_title">Cargo</Label>
-              <Input
-                id="edit-job_title"
-                value={formData.job_title}
-                onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
-                placeholder="Diretor Comercial"
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="edit-tags">Tags (separadas por vírgula)</Label>
               <Input
                 id="edit-tags"
@@ -272,7 +282,8 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
                 placeholder="cliente, vip, parceiro"
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+
+            <div className="space-y-2">
               <Label htmlFor="edit-notes">Notas</Label>
               <Textarea
                 id="edit-notes"
@@ -282,9 +293,8 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
                 rows={3}
               />
             </div>
-            
-            {/* Social Media Fields */}
-            <div className="sm:col-span-2 pt-2 border-t">
+
+            <div className="pt-2 border-t">
               <SocialMediaFields
                 linkedinUrl={formData.linkedin_url}
                 facebookUrl={formData.facebook_url}
@@ -297,12 +307,11 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
                 onChange={handleSocialChange}
               />
             </div>
-            
-            {/* Custom Fields */}
-            <div className="sm:col-span-2 pt-2 border-t">
+
+            <div className="pt-2 border-t">
               <CustomFieldsForm entityType="contact" entityId={contact.id} />
             </div>
-          </div>
+          </OptionalFieldsSection>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             {hasAIFields && (
               <Button

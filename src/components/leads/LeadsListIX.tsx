@@ -23,6 +23,7 @@ import {
 import { Flame, Target, Euro, Clock } from "lucide-react";
 import { useSmartLeads, type SmartLead } from "@/hooks/useSmartLeads";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
+import { EditLeadDialog, type EditableLead } from "@/components/crm/EditLeadDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
 import {
   LEAD_COLUMNS,
@@ -244,6 +245,7 @@ export function LeadsListIX() {
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);
+  const [editTarget, setEditTarget] = useState<EditableLead | null>(null);
   const { columns, setColumns } = useLeadColumns();
 
   const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
@@ -491,6 +493,13 @@ export function LeadsListIX() {
                       <Pencil className="h-4 w-4" />
                       Renomear
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onSelect={() => setTimeout(() => setEditTarget(lead as unknown as EditableLead), 0)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Editar
+                    </DropdownMenuItem>
                     <EntityArchiveBlockActions
                       entity="lead"
                       id={lead.id}
@@ -547,6 +556,14 @@ export function LeadsListIX() {
         target={renameTarget}
         onOpenChange={(o) => { if (!o) setRenameTarget(null); }}
       />
+
+      <EditLeadDialog
+        lead={editTarget}
+        open={!!editTarget}
+        onOpenChange={(o) => { if (!o) setEditTarget(null); }}
+      />
+
+
 
       <EntityArchiveBlockDialogs
         entity="lead"

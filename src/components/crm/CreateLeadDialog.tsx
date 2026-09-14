@@ -7,6 +7,8 @@ import { z } from "zod";
 import { isValidPhone } from "@/utils/phone";
 import { useCreateLead, LeadStatus, LeadType } from "@/hooks/useLeads";
 import { useNifLookup, NifLookupResult } from "@/hooks/useNifLookup";
+import { useLeadDuplicateCheck } from "@/hooks/useLeadDuplicates";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -31,14 +33,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
-import { User, Building2, Search, Loader2, ChevronDown, Link2 } from "lucide-react";
+import { OptionalFieldsSection } from "@/components/crm/shared/OptionalFieldsSection";
+import { DuplicateWarningCard, type DuplicateWarningItem } from "@/components/crm/shared/DuplicateWarningCard";
+import { User, Building2, Search, Loader2, Link2, MapPin } from "lucide-react";
 
 const leadSchema = z.object({
   lead_type: z.enum(["person", "company"]).default("person"),
@@ -55,14 +60,12 @@ const leadSchema = z.object({
     ),
   source: z.string().max(50).optional().or(z.literal("")),
   status: z.enum(["new", "in_progress", "completed"]).default("new"),
-  // Company fields
   company_name: z.string().max(200).optional().or(z.literal("")),
   tax_id: z.string().max(50).optional().or(z.literal("")),
   website: z.string().max(200).optional().or(z.literal("")),
   industry: z.string().max(2000).optional().or(z.literal("")),
-  number_of_employees: z.string().max(50).optional().or(z.literal("")),
-  contact_person: z.string().max(100).optional().or(z.literal("")),
-  contact_person_role: z.string().max(100).optional().or(z.literal("")),
+  tags: z.string().max(300).optional().or(z.literal("")),
+  notes: z.string().max(2000).optional().or(z.literal("")),
   address: z.string().max(300).optional().or(z.literal("")),
   address_number: z.string().max(100).optional().or(z.literal("")),
   address_floor: z.string().max(100).optional().or(z.literal("")),
@@ -112,16 +115,17 @@ interface CreateLeadDialogProps {
 }
 
 export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) {
+  const navigate = useNavigate();
   const createLead = useCreateLead();
   const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
   const { trackLeadCreated } = useCRMAnalytics();
   const [nifData, setNifData] = useState<NifEnrichmentState>(emptyEnrichment);
   const [optionalsOpen, setOptionalsOpen] = useState(false);
+  const [dismissedDuplicates, setDismissedDuplicates] = useState(false);
 
   const { lookup, isLoading: isNifSearching } = useNifLookup({
     showToasts: true,
     onSuccess: (data: NifLookupResult) => {
-      // Auto-fill form fields
       if (data.company_name) form.setValue("name", data.company_name);
       if (data.address) form.setValue("address", data.address);
       if (data.city) form.setValue("city", data.city);
@@ -132,7 +136,6 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       if (data.website) form.setValue("website", data.website);
       if (data.cae_description) form.setValue("industry", data.cae_description);
 
-      // Store enrichment state for card display and submission
       setNifData({
         cae_codes: data.cae_codes || [],
         cae_description: data.cae_description || null,
@@ -149,7 +152,6 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
         racius_url: data.racius_url || null,
       });
 
-      // Auto-expand optional fields when NIF data is found
       setOptionalsOpen(true);
     },
   });
@@ -167,9 +169,8 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       tax_id: "",
       website: "",
       industry: "",
-      number_of_employees: "",
-      contact_person: "",
-      contact_person_role: "",
+      tags: "",
+      notes: "",
       address: "",
       address_number: "",
       address_floor: "",
@@ -181,6 +182,30 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
   });
 
   const leadType = form.watch("lead_type");
+  const watchedName = form.watch("name");
+  const watchedEmail = form.watch("email");
+  const watchedPhone = form.watch("phone");
+
+  const { data: duplicates = [] } = useLeadDuplicateCheck(
+    watchedName,
+    watchedEmail,
+    watchedPhone,
+  );
+
+  const duplicateItems: DuplicateWarningItem[] = duplicates.map((dup) => ({
+    id: dup.id,
+    title: dup.name,
+    matchLabel:
+      dup.matchType === "email"
+        ? "Email duplicado"
+        : dup.matchType === "phone"
+          ? "Telefone"
+          : "Nome igual",
+    blocking: dup.isBlockingDuplicate,
+  }));
+
+  const hasBlockingDuplicate = duplicateItems.some((d) => d.blocking);
+  const showDuplicates = duplicateItems.length > 0 && (!dismissedDuplicates || hasBlockingDuplicate);
 
   const handleNifSearch = async () => {
     const nif = form.getValues("tax_id");
@@ -193,9 +218,17 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
     await lookup(cleanNif);
   };
 
-  const hasNifData = nifData.cae_codes.length > 0 || nifData.legal_nature || nifData.about || nifData.region;
+  const hasNifData = nifData.cae_codes.length > 0 || !!nifData.legal_nature || !!nifData.about || !!nifData.region;
 
   const onSubmit = async (values: LeadFormValues) => {
+    if (hasBlockingDuplicate) {
+      toast.error("Já existe uma lead com este email neste workspace");
+      return;
+    }
+    if (duplicateItems.length > 0 && !dismissedDuplicates) {
+      return;
+    }
+
     try {
       const result = await createLead.mutateAsync({
         lead_type: values.lead_type as LeadType,
@@ -208,9 +241,11 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
         tax_id: values.tax_id || undefined,
         website: values.website || undefined,
         industry: values.industry || undefined,
-        number_of_employees: values.number_of_employees || undefined,
-        contact_person: values.contact_person || undefined,
-        contact_person_role: values.contact_person_role || undefined,
+        tags: (values.tags || "")
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        notes: values.notes?.trim() || undefined,
         address: values.address?.trim() || undefined,
         address_number: values.address_number?.trim() || undefined,
         address_floor: values.address_floor?.trim() || undefined,
@@ -231,7 +266,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
         activity_description: nifData.activity_description || undefined,
         racius_url: nifData.racius_url || undefined,
       });
-      
+
       if (result?.id && customFieldsRef.current) {
         await customFieldsRef.current.saveCustomFields(result.id);
       }
@@ -241,11 +276,12 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
         industry_segment: undefined,
         lead_score: 0,
       });
-      
+
       toast.success("Lead criado com sucesso");
       form.reset();
       setNifData(emptyEnrichment);
       setOptionalsOpen(false);
+      setDismissedDuplicates(false);
       onOpenChange(false);
     } catch (error: any) {
       if (error?.message === "DUPLICATE_EMAIL") {
@@ -262,7 +298,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
         <DialogHeader>
           <DialogTitle>Novo Lead</DialogTitle>
           <DialogDescription>
-            Crie um novo lead pessoa ou empresa.
+            Preencha o nome. O resto pode ser completado depois.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -274,13 +310,16 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Lead</FormLabel>
-                  <Tabs value={field.value} onValueChange={(val) => {
-                    field.onChange(val);
-                    // Reset NIF data when switching type
-                    if (val === "person") {
-                      setNifData(emptyEnrichment);
-                    }
-                  }} className="w-full">
+                  <Tabs
+                    value={field.value}
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      if (val === "person") {
+                        setNifData(emptyEnrichment);
+                      }
+                    }}
+                    className="w-full"
+                  >
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="person" className="flex items-center gap-2">
                         <User className="h-4 w-4" />
@@ -296,148 +335,197 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
               )}
             />
 
-            {/* Name - changes label based on type */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{leadType === "company" ? "Nome da Empresa *" : "Nome *"}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={leadType === "company" ? "Empresa Lda" : "João Silva"}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Company-specific fields */}
-            {leadType === "company" && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="tax_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>NIF</FormLabel>
-                        <FormControl>
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="123456789"
-                              maxLength={9}
-                              {...field}
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, "").slice(0, 9);
-                                field.onChange(val);
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="shrink-0"
-                              onClick={handleNifSearch}
-                              disabled={isNifSearching || (field.value || "").replace(/\D/g, "").length !== 9}
-                              title="Pesquisar dados pelo NIF"
-                            >
-                              {isNifSearching ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Search className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="industry"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Setor / CAE</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Tecnologia, Saúde..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* NIF Data Card - identical to CreateCompanyDialog */}
-                {hasNifData && (
-                  <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
-                    <CardContent className="p-4 space-y-3">
-                      <p className="text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
-                        <Search className="w-3.5 h-3.5" />
-                        Dados obtidos via NIF
-                      </p>
-                      <div className="grid gap-1.5 text-xs">
-                        {form.getValues("address") && (
-                          <div>
-                            <span className="text-muted-foreground">Morada:</span>{" "}
-                            {form.getValues("address")}
-                            {form.getValues("postal_code") ? `, ${form.getValues("postal_code")}` : ""}
-                            {form.getValues("city") ? ` ${form.getValues("city")}` : ""}
-                          </div>
-                        )}
-                        {nifData.region && (
-                          <div>
-                            <span className="text-muted-foreground">Distrito/Concelho:</span>{" "}
-                            {nifData.region}
-                            {nifData.county ? ` / ${nifData.county}` : ""}
-                            {nifData.parish ? ` / ${nifData.parish}` : ""}
-                          </div>
-                        )}
-                        {nifData.legal_nature && (
-                          <div><span className="text-muted-foreground">Natureza Jurídica:</span> {nifData.legal_nature}</div>
-                        )}
-                        {nifData.capital_social && (
-                          <div><span className="text-muted-foreground">Capital Social:</span> {nifData.capital_social}</div>
-                        )}
-                        {nifData.founding_date && (
-                          <div><span className="text-muted-foreground">Data de Constituição:</span> {nifData.founding_date}</div>
-                        )}
-                        {nifData.company_status && (
-                          <div><span className="text-muted-foreground">Estado:</span> {nifData.company_status}</div>
-                        )}
-                        {nifData.cae_codes.length > 0 && (
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <span className="text-muted-foreground">CAE:</span>
-                            {nifData.cae_codes.map((code) => (
-                              <Badge key={code} variant="secondary" className="text-[10px] px-1.5 py-0">{code}</Badge>
-                            ))}
-                            {nifData.cae_description && <span className="text-muted-foreground">— {nifData.cae_description}</span>}
-                          </div>
-                        )}
-                        {nifData.activity_description && (
-                          <div><span className="text-muted-foreground">Atividade:</span> {nifData.activity_description}</div>
-                        )}
-                        {nifData.about && (
-                          <div className="pt-1 border-t border-blue-200 dark:border-blue-800 mt-1">
-                            <span className="text-muted-foreground">Acerca:</span>{" "}
-                            <span className="line-clamp-3">{nifData.about}</span>
-                          </div>
-                        )}
-                        {nifData.racius_url && (
-                          <div>
-                            <a href={nifData.racius_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                              <Link2 className="w-3 h-3" /> Ver no Racius
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+            {/* Campos principais */}
+            <div className="space-y-3">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{leadType === "company" ? "Nome da Empresa" : "Nome"}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={leadType === "company" ? "Empresa Lda" : "João Silva"}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="joao@empresa.pt" type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="+351 912 345 678"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
+            {/* Aviso de duplicados */}
+            {showDuplicates && (
+              <DuplicateWarningCard
+                items={duplicateItems}
+                onUseExisting={(id) => {
+                  onOpenChange(false);
+                  navigate(`/dashboard/leads/${id}`);
+                }}
+                onContinue={() => setDismissedDuplicates(true)}
+              />
+            )}
+
+            {/* Campos opcionais */}
+            <OptionalFieldsSection open={optionalsOpen} onOpenChange={setOptionalsOpen}>
+              {leadType === "company" && (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="tax_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>NIF</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="123456789"
+                                maxLength={9}
+                                {...field}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                                  field.onChange(val);
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="shrink-0"
+                                onClick={handleNifSearch}
+                                disabled={isNifSearching || (field.value || "").replace(/\D/g, "").length !== 9}
+                                title="Pesquisar dados pelo NIF"
+                              >
+                                {isNifSearching ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Search className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="industry"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Setor / CAE</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Tecnologia, Saúde..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {hasNifData && (
+                    <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
+                      <CardContent className="p-4 space-y-3">
+                        <p className="text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                          <Search className="w-3.5 h-3.5" />
+                          Dados obtidos via NIF
+                        </p>
+                        <div className="grid gap-1.5 text-xs">
+                          {form.getValues("address") && (
+                            <div>
+                              <span className="text-muted-foreground">Morada:</span>{" "}
+                              {form.getValues("address")}
+                              {form.getValues("postal_code") ? `, ${form.getValues("postal_code")}` : ""}
+                              {form.getValues("city") ? ` ${form.getValues("city")}` : ""}
+                            </div>
+                          )}
+                          {nifData.region && (
+                            <div>
+                              <span className="text-muted-foreground">Distrito/Concelho:</span>{" "}
+                              {nifData.region}
+                              {nifData.county ? ` / ${nifData.county}` : ""}
+                              {nifData.parish ? ` / ${nifData.parish}` : ""}
+                            </div>
+                          )}
+                          {nifData.legal_nature && (
+                            <div><span className="text-muted-foreground">Natureza Jurídica:</span> {nifData.legal_nature}</div>
+                          )}
+                          {nifData.capital_social && (
+                            <div><span className="text-muted-foreground">Capital Social:</span> {nifData.capital_social}</div>
+                          )}
+                          {nifData.founding_date && (
+                            <div><span className="text-muted-foreground">Data de Constituição:</span> {nifData.founding_date}</div>
+                          )}
+                          {nifData.company_status && (
+                            <div><span className="text-muted-foreground">Estado:</span> {nifData.company_status}</div>
+                          )}
+                          {nifData.cae_codes.length > 0 && (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="text-muted-foreground">CAE:</span>
+                              {nifData.cae_codes.map((code) => (
+                                <Badge key={code} variant="secondary" className="text-[10px] px-1.5 py-0">{code}</Badge>
+                              ))}
+                              {nifData.cae_description && <span className="text-muted-foreground">— {nifData.cae_description}</span>}
+                            </div>
+                          )}
+                          {nifData.activity_description && (
+                            <div><span className="text-muted-foreground">Atividade:</span> {nifData.activity_description}</div>
+                          )}
+                          {nifData.about && (
+                            <div className="pt-1 border-t border-blue-200 dark:border-blue-800 mt-1">
+                              <span className="text-muted-foreground">Acerca:</span>{" "}
+                              <span className="line-clamp-3">{nifData.about}</span>
+                            </div>
+                          )}
+                          {nifData.racius_url && (
+                            <div>
+                              <a href={nifData.racius_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                                <Link2 className="w-3 h-3" /> Ver no Racius
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+
+              <div className="grid gap-3 sm:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="website"
@@ -451,69 +539,39 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="number_of_employees"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nº Funcionários</FormLabel>
-                        <FormControl>
-                          <Input placeholder="1-10, 11-50..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="contact_person"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Pessoa de Contacto</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nome do contacto" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
                 <FormField
                   control={form.control}
-                  name="contact_person_role"
+                  name="company_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Cargo</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5" />
+                        Empresa
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="CEO, Diretor Comercial..." {...field} />
+                        <Input placeholder="Empresa onde trabalha" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              </div>
 
-              </>
-            )}
-
-            {/* Morada — disponível para leads pessoa e empresa */}
-            <Collapsible open={optionalsOpen} onOpenChange={setOptionalsOpen}>
-              <CollapsibleTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
+              {/* Morada */}
+              <div className="space-y-3 rounded-lg border border-border/60 p-3">
+                <Label className="flex items-center gap-1 text-sm font-medium">
+                  <MapPin className="w-3.5 h-3.5" />
                   Morada
-                  <ChevronDown className={`h-4 w-4 transition-transform ${optionalsOpen ? "rotate-180" : ""}`} />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-2">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
+                </Label>
+                <div className="grid gap-3 sm:grid-cols-6">
                   <FormField
                     control={form.control}
                     name="address"
                     render={({ field }) => (
                       <FormItem className="sm:col-span-4">
-                        <FormLabel>Morada</FormLabel>
+                        <FormLabel>Endereço</FormLabel>
                         <FormControl>
-                          <Input placeholder="Rua..." {...field} />
+                          <Input placeholder="Rua, avenida, lugar..." {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -575,7 +633,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                     control={form.control}
                     name="region"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
+                      <FormItem className="sm:col-span-1">
                         <FormLabel>Região</FormLabel>
                         <FormControl>
                           <Input placeholder="Lisboa" {...field} />
@@ -588,7 +646,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                     control={form.control}
                     name="country"
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-3">
+                      <FormItem className="sm:col-span-1">
                         <FormLabel>País</FormLabel>
                         <FormControl>
                           <Input placeholder="Portugal" {...field} />
@@ -598,105 +656,94 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                     )}
                   />
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
+              </div>
 
-            {/* Person-specific: company_name as optional */}
-            {leadType === "person" && (
-              <FormField
-                control={form.control}
-                name="company_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Empresa (opcional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Empresa onde trabalha" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* Common fields */}
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="email@exemplo.com" type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone</FormLabel>
-                    <FormControl>
-                      <PhoneInput value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="source"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Origem</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Website, Referência..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="source"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Origem</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar estado" />
-                        </SelectTrigger>
+                        <Input placeholder="Website, Referência..." {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="new">Novo</SelectItem>
-                        <SelectItem value="in_progress">Em Progresso</SelectItem>
-                        <SelectItem value="completed">Concluído</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar estado" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="new">Novo</SelectItem>
+                          <SelectItem value="in_progress">Em Progresso</SelectItem>
+                          <SelectItem value="completed">Concluído</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tags (separadas por vírgula)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="cliente, vip, parceiro" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-            
-            {/* Custom Fields */}
-            <CustomFieldsFormCreate
-              ref={customFieldsRef}
-              entityType="lead"
-              showRequiredMarkers={false}
-            />
-            
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notas</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Informações adicionais sobre o lead..."
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Custom Fields */}
+              <CustomFieldsFormCreate
+                ref={customFieldsRef}
+                entityType="lead"
+                showRequiredMarkers={false}
+              />
+            </OptionalFieldsSection>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createLead.isPending}>
+              <Button
+                type="submit"
+                disabled={createLead.isPending || !form.watch("name").trim() || hasBlockingDuplicate}
+              >
                 {createLead.isPending ? "A criar..." : "Criar Lead"}
               </Button>
             </DialogFooter>
