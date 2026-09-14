@@ -161,7 +161,7 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-commerce-autofill", {
-        body: { productId: product.id },
+        body: { productId: product.id, baseUrl: getPublicBaseUrl() },
       });
       if (error) throw error;
       const s = (data as { suggestion?: Record<string, unknown> })?.suggestion;
