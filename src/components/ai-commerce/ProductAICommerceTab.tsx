@@ -265,6 +265,30 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
         </CardHeader>
       </Card>
 
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+          <div>
+            <p className="text-sm font-medium">Preencher com IA</p>
+            <p className="text-sm text-muted-foreground">
+              Gera conteúdo a partir dos dados reais do produto. Não inventa preços, stock nem códigos.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => handleAutofill(false)} disabled={isGenerating}>
+              {isGenerating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="mr-2 h-4 w-4" />
+              )}
+              Preencher campos vazios
+            </Button>
+            <Button variant="ghost" onClick={() => handleAutofill(true)} disabled={isGenerating}>
+              Reescrever tudo
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <ReadinessScoreCard readiness={readiness} />
 
       <Card>
