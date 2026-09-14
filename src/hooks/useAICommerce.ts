@@ -183,13 +183,14 @@ export function useAICommerceOverview() {
 export function useProductAICommerce(productId: string | undefined) {
   const { currentWorkspace } = useWorkspace();
   return useQuery({
-    queryKey: ["product-ai-commerce", productId],
+    queryKey: ["product-ai-commerce", currentWorkspace?.id, productId],
     enabled: !!productId && !!currentWorkspace?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_ai_commerce")
         .select("*")
         .eq("product_id", productId!)
+        .eq("workspace_id", currentWorkspace!.id)
         .maybeSingle();
       if (error) throw error;
       return (data as unknown as ProductAICommerce) ?? null;
@@ -224,7 +225,7 @@ export function useSaveProductAICommerce(productId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["product-ai-commerce", productId] });
+      qc.invalidateQueries({ queryKey: ["product-ai-commerce", currentWorkspace?.id, productId] });
       qc.invalidateQueries({ queryKey: ["ai-commerce-products"] });
       toast.success("AI Commerce atualizado");
     },
@@ -235,10 +236,16 @@ export function useSaveProductAICommerce(productId: string | undefined) {
 /** Atualiza campos comerciais do produto (usado pelos CTA "Corrigir"). */
 export function useUpdateCommerceProduct(productId: string | undefined) {
   const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async (patch: Partial<CommerceProduct>) => {
       if (!productId) throw new Error("Produto indisponível");
-      const { error } = await supabase.from("products").update(patch as never).eq("id", productId);
+      if (!currentWorkspace?.id) throw new Error("Workspace indisponível");
+      const { error } = await supabase
+        .from("products")
+        .update(patch as never)
+        .eq("id", productId)
+        .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -293,9 +300,15 @@ export function useCreateCommerceFeed() {
 
 export function useUpdateCommerceFeed() {
   const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async ({ id, ...patch }: Partial<CommerceFeed> & { id: string }) => {
-      const { error } = await supabase.from("commerce_feeds").update(patch as never).eq("id", id);
+      if (!currentWorkspace?.id) throw new Error("Workspace indisponível");
+      const { error } = await supabase
+        .from("commerce_feeds")
+        .update(patch as never)
+        .eq("id", id)
+        .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -307,9 +320,15 @@ export function useUpdateCommerceFeed() {
 
 export function useDeleteCommerceFeed() {
   const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("commerce_feeds").delete().eq("id", id);
+      if (!currentWorkspace?.id) throw new Error("Workspace indisponível");
+      const { error } = await supabase
+        .from("commerce_feeds")
+        .delete()
+        .eq("id", id)
+        .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
     },
     onSuccess: () => {
