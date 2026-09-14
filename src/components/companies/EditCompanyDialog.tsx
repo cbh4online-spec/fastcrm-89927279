@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
 import { SocialMediaFields } from "@/components/shared/SocialMediaFields";
+import { OptionalFieldsSection } from "@/components/crm/shared/OptionalFieldsSection";
 
 interface EditCompanyDialogProps {
   company: Company;
@@ -55,6 +56,7 @@ const industries = [
 export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDialogProps) {
   const { updateCompany } = useCompanies();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [optionalsOpen, setOptionalsOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     website: "",
@@ -136,7 +138,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Empresa</DialogTitle>
           <DialogDescription>
@@ -144,9 +146,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="edit-name">Nome da Empresa *</Label>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nome da Empresa</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
@@ -155,81 +157,89 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-industry">Indústria</Label>
-              <Select
-                value={formData.industry}
-                onValueChange={(value) => setFormData({ ...formData, industry: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar indústria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {industries.map((industry) => (
-                    <SelectItem key={industry} value={industry}>
-                      {industry}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="geral@empresa.pt"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Telefone</Label>
+                <Input
+                  id="edit-phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+351 21 123 4567"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-size">Tamanho</Label>
-              <Select
-                value={formData.size}
-                onValueChange={(value) => setFormData({ ...formData, size: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar tamanho" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companySizes.map((size) => (
-                    <SelectItem key={size.value} value={size.value}>
-                      {size.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          </div>
+
+          <OptionalFieldsSection open={optionalsOpen} onOpenChange={setOptionalsOpen}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-industry">Indústria</Label>
+                <Select
+                  value={formData.industry}
+                  onValueChange={(value) => setFormData({ ...formData, industry: value })}
+                >
+                  <SelectTrigger id="edit-industry">
+                    <SelectValue placeholder="Selecionar indústria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {industries.map((industry) => (
+                      <SelectItem key={industry} value={industry}>
+                        {industry}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-size">Tamanho</Label>
+                <Select
+                  value={formData.size}
+                  onValueChange={(value) => setFormData({ ...formData, size: value })}
+                >
+                  <SelectTrigger id="edit-size">
+                    <SelectValue placeholder="Selecionar tamanho" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companySizes.map((size) => (
+                      <SelectItem key={size.value} value={size.value}>
+                        {size.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-website">Website</Label>
+                <Input
+                  id="edit-website"
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="www.empresa.pt"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-tags">Tags (separadas por vírgula)</Label>
+                <Input
+                  id="edit-tags"
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  placeholder="parceiro, premium, ativo"
+                />
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="edit-website">Website</Label>
-              <Input
-                id="edit-website"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                placeholder="www.empresa.pt"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="geral@empresa.pt"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone">Telefone</Label>
-              <Input
-                id="edit-phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+351 21 123 4567"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-tags">Tags (separadas por vírgula)</Label>
-              <Input
-                id="edit-tags"
-                value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                placeholder="parceiro, premium, ativo"
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="edit-address">Morada</Label>
               <Input
                 id="edit-address"
@@ -238,7 +248,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 placeholder="Rua, Cidade, País"
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+
+            <div className="space-y-2">
               <Label htmlFor="edit-notes">Notas</Label>
               <Textarea
                 id="edit-notes"
@@ -248,9 +259,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 rows={3}
               />
             </div>
-            
-            {/* Social Media Fields */}
-            <div className="sm:col-span-2 pt-2 border-t">
+
+            <div className="pt-2 border-t">
               <SocialMediaFields
                 linkedinUrl={formData.linkedin_url}
                 facebookUrl={formData.facebook_url}
@@ -263,12 +273,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 onChange={handleSocialChange}
               />
             </div>
-            
-            {/* Custom Fields */}
-            <div className="sm:col-span-2 pt-2 border-t">
+
+            <div className="pt-2 border-t">
               <CustomFieldsForm entityType="company" entityId={company.id} />
             </div>
-          </div>
+          </OptionalFieldsSection>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar

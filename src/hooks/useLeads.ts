@@ -128,6 +128,7 @@ export interface CreateLeadInput {
   whatsapp_url?: string;
   // Company fields
   company_name?: string;
+  notes?: string;
   tax_id?: string;
   website?: string;
   industry?: string;
