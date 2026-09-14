@@ -197,6 +197,13 @@ schema_type: escolhe exatamente um de "Product", "SoftwareApplication", "Service
         ai_faq: faq,
         seo_title: str(parsed.seo_title, 60),
         seo_description: str(parsed.seo_description, 160),
+        main_benefits: list(parsed.main_benefits, 6, 180),
+        schema_type: SCHEMA_TYPES.includes(str(parsed.schema_type, 40)) ? str(parsed.schema_type, 40) : "Product",
+        // Derivados de dados reais da loja — não gerados pelo modelo.
+        canonical_url: canonicalUrl,
+        checkout_url: checkoutUrl,
+        languages: ["pt"],
+        countries: ["PT"],
       },
     });
   } catch (error) {
