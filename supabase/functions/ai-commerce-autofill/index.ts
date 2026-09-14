@@ -33,8 +33,12 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
 
-    const { productId } = await req.json().catch(() => ({}));
+    const { productId, baseUrl } = await req.json().catch(() => ({}));
     if (!productId || !UUID.test(String(productId))) return json({ error: "invalid_product" }, 400);
+
+    const safeBaseUrl = typeof baseUrl === "string" && /^https:\/\/[a-z0-9.-]+(\/)?$/i.test(baseUrl.trim())
+      ? baseUrl.trim().replace(/\/+$/, "")
+      : null;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
