@@ -5,6 +5,7 @@ const ProspectingHub = lazy(() => import("@/pages/ProspectingHub"));
 const GoogleLocalProspecting = lazy(() => import("@/pages/GoogleLocalProspecting"));
 const WebSearchProspecting = lazy(() => import("@/pages/WebSearchProspecting"));
 const ProfessionalProspecting = lazy(() => import("@/pages/ProfessionalProspecting"));
+const ProspectingInstagramExtractor = lazy(() => import("@/pages/ProspectingInstagramExtractor"));
 const CompetitorTrackerPage = lazy(() => import("@/pages/CompetitorTrackerPage"));
 const LeadEnricher = lazy(() => import("@/pages/LeadEnricher"));
 const FastMatchDiscoveryPage = lazy(() => import("@/pages/fastmatch/FastMatchDiscoveryPage"));
