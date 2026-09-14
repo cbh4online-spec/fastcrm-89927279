@@ -7,6 +7,7 @@ import { AICommerceFeeds } from "@/components/ai-commerce/AICommerceFeeds";
 import { AICommerceChannels } from "@/components/ai-commerce/AICommerceChannels";
 import { AICommerceAnalytics } from "@/components/ai-commerce/AICommerceAnalytics";
 import { AICommerceLogs } from "@/components/ai-commerce/AICommerceLogs";
+import { AICommerceReadinessSettings } from "@/components/ai-commerce/AICommerceReadinessSettings";
 
 export default function AICommercePage() {
   return (
@@ -30,6 +31,7 @@ export default function AICommercePage() {
             <TabsTrigger value="channels">Canais e API</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
+            <TabsTrigger value="settings">Critérios</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
@@ -49,6 +51,9 @@ export default function AICommercePage() {
           </TabsContent>
           <TabsContent value="logs" className="mt-4">
             <AICommerceLogs />
+          </TabsContent>
+          <TabsContent value="settings" className="mt-4">
+            <AICommerceReadinessSettings />
           </TabsContent>
         </Tabs>
       </div>
