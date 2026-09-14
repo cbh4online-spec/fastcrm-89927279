@@ -3,7 +3,7 @@ import {
   extractUsernameFromUrl,
   parseCount,
   parseInstagramMetaDescription,
-} from "../../../supabase/functions/_shared/instagramFirecrawl.ts";
+} from "@/lib/instagram/instagramSearch";
 
 describe("extractUsernameFromUrl", () => {
   it("aceita URLs de perfil", () => {
