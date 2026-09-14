@@ -7,7 +7,7 @@ import {
   Globe, Search, Users, ArrowRight, Coins,
   BarChart3, Lock, Crown, Target, Activity, History,
   Clock, Download, CheckCircle2, XCircle, Shield,
-  Rocket, Star, Info, Zap,
+  Rocket, Star, Info, Zap, Instagram,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
@@ -47,6 +47,13 @@ const modules = [
     description: "Descubra profissionais em redes sociais e plataformas especializadas.",
     icon: Users,
     path: "/dashboard/prospecting/professionals",
+    actionKey: "prospecting_professional_search",
+  },
+  {
+    title: "Extrator de Instagram",
+    description: "Recolha em massa perfis públicos de Instagram, com contactos da bio e importação como Leads.",
+    icon: Instagram,
+    path: "/dashboard/prospecting/instagram",
     actionKey: "prospecting_professional_search",
   },
 ];

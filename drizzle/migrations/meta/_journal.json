@@ -99,6 +99,13 @@
       "when": 1788535468092,
       "tag": "0013_drop_legacy_whatsapp_group_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789400879288,
+      "tag": "0014_create_instagram_extraction_jobs",
+      "breakpoints": true
     }
   ]
 }
