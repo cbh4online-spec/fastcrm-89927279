@@ -118,10 +118,12 @@ interface CustomFieldsFormCreateProps {
   positionFilter?: 'primary' | 'secondary' | 'all';
   /** Hide the "Campos Personalizados" label */
   hideLabel?: boolean;
+  /** Show the required (*) marker next to custom field labels */
+  showRequiredMarkers?: boolean;
 }
 
 export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, CustomFieldsFormCreateProps>(
-  function CustomFieldsFormCreate({ entityType, className, positionFilter = 'all', hideLabel = false }, ref) {
+  function CustomFieldsFormCreate({ entityType, className, positionFilter = 'all', hideLabel = false, showRequiredMarkers = true }, ref) {
     const { data: allFields = [] } = useCustomFields(entityType);
     const { data: managedFields = [] } = useManagedFields(entityType as any);
     const setFieldValue = useSetCustomFieldValue();
