@@ -60,6 +60,30 @@ Deno.serve(async (req) => {
       return json({ success: true, skipped: job.status });
     }
 
+    // Requisitos por origem: cada origem depende do serviço que a alimenta
+    const needsApi = ["followers", "following", "hashtag", "location"].includes(job.source);
+    const missing = needsApi && !apiKey
+      ? "A recolha por seguidores, hashtag ou localização exige a API de Instagram configurada."
+      : job.source === "web_search" && !hasFirecrawl
+      ? "A pesquisa web exige o Firecrawl ligado ao projeto."
+      : !apiKey && !hasFirecrawl
+      ? "Nenhum serviço de recolha está configurado."
+      : null;
+
+    if (missing) {
+      await admin
+        .from("instagram_extraction_jobs")
+        .update({
+          status: "failed",
+          error: missing,
+          lease_until: null,
+          finished_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+      return json({ success: false, error: missing }, 200);
+    }
+
     // Single-flight: só avança quem conseguir a lease
     const nowIso = new Date().toISOString();
     const leaseUntil = new Date(Date.now() + LEASE_SECONDS * 1000).toISOString();
