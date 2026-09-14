@@ -1,6 +1,13 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Linkedin, Facebook, Instagram, Twitter, Youtube, Pin, MessageCircle } from "lucide-react";
+import { Linkedin, Facebook, Instagram, Twitter, Youtube, Pin, MessageCircle, AlertCircle } from "lucide-react";
+import type { ReactNode } from "react";
+import {
+  type SocialNetwork,
+  normalizeSocialValue,
+  parseSocialProfile,
+  socialPlaceholder,
+} from "@/lib/social/socialProfiles";
 
 // TikTok SVG icon (not available in lucide)
 function TikTokIcon({ className }: { className?: string }) {
@@ -23,6 +30,46 @@ interface SocialMediaFieldsProps {
   onChange: (field: string, value: string) => void;
 }
 
+interface SocialFieldProps {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  network: SocialNetwork;
+  value: string;
+  onChange: (field: string, value: string) => void;
+}
+
+function SocialField({ id, label, icon, network, value, onChange }: SocialFieldProps) {
+  const parsed = parseSocialProfile(network, value);
+  const hasValue = !!value.trim();
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className="text-xs text-muted-foreground flex items-center gap-1">
+        {icon} {label}
+      </Label>
+      <Input
+        id={id}
+        placeholder={socialPlaceholder(network)}
+        value={value}
+        onChange={(e) => onChange(id, e.target.value)}
+        onBlur={(e) => {
+          const normalized = normalizeSocialValue(network, e.target.value) ?? "";
+          if (normalized !== e.target.value) onChange(id, normalized);
+        }}
+      />
+      {hasValue && parsed && (
+        <p className="text-[11px] text-muted-foreground">Perfil: {parsed.displayHandle}</p>
+      )}
+      {hasValue && !parsed && (
+        <p className="text-[11px] text-amber-600 dark:text-amber-500 flex items-center gap-1">
+          <AlertCircle className="h-3 w-3" /> Não reconhecido — indique o @utilizador ou o endereço do perfil.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function SocialMediaFields({
   linkedinUrl = "",
   facebookUrl = "",
@@ -36,103 +83,21 @@ export function SocialMediaFields({
 }: SocialMediaFieldsProps) {
   return (
     <div className="space-y-4">
-      <Label className="text-sm font-medium">Redes Sociais</Label>
+      <div className="space-y-1">
+        <Label className="text-sm font-medium">Redes Sociais</Label>
+        <p className="text-xs text-muted-foreground">
+          Basta indicar o @utilizador — também aceitamos o endereço completo.
+        </p>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="linkedin_url" className="text-xs text-muted-foreground flex items-center gap-1">
-            <Linkedin className="h-3 w-3" /> LinkedIn
-          </Label>
-          <Input
-            id="linkedin_url"
-            placeholder="https://linkedin.com/in/..."
-            value={linkedinUrl}
-            onChange={(e) => onChange("linkedin_url", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="facebook_url" className="text-xs text-muted-foreground flex items-center gap-1">
-            <Facebook className="h-3 w-3" /> Facebook
-          </Label>
-          <Input
-            id="facebook_url"
-            placeholder="https://facebook.com/..."
-            value={facebookUrl}
-            onChange={(e) => onChange("facebook_url", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="instagram_url" className="text-xs text-muted-foreground flex items-center gap-1">
-            <Instagram className="h-3 w-3" /> Instagram
-          </Label>
-          <Input
-            id="instagram_url"
-            placeholder="https://instagram.com/..."
-            value={instagramUrl}
-            onChange={(e) => onChange("instagram_url", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="twitter_url" className="text-xs text-muted-foreground flex items-center gap-1">
-            <Twitter className="h-3 w-3" /> X (Twitter)
-          </Label>
-          <Input
-            id="twitter_url"
-            placeholder="https://x.com/..."
-            value={twitterUrl}
-            onChange={(e) => onChange("twitter_url", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="youtube_url" className="text-xs text-muted-foreground flex items-center gap-1">
-            <Youtube className="h-3 w-3" /> YouTube
-          </Label>
-          <Input
-            id="youtube_url"
-            placeholder="https://youtube.com/@..."
-            value={youtubeUrl}
-            onChange={(e) => onChange("youtube_url", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="tiktok_url" className="text-xs text-muted-foreground flex items-center gap-1">
-            <TikTokIcon className="h-3 w-3" /> TikTok
-          </Label>
-          <Input
-            id="tiktok_url"
-            placeholder="https://tiktok.com/@..."
-            value={tiktokUrl}
-            onChange={(e) => onChange("tiktok_url", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="pinterest_url" className="text-xs text-muted-foreground flex items-center gap-1">
-            <Pin className="h-3 w-3" /> Pinterest
-          </Label>
-          <Input
-            id="pinterest_url"
-            placeholder="https://pinterest.com/..."
-            value={pinterestUrl}
-            onChange={(e) => onChange("pinterest_url", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="whatsapp_url" className="text-xs text-muted-foreground flex items-center gap-1">
-            <MessageCircle className="h-3 w-3" /> WhatsApp Business
-          </Label>
-          <Input
-            id="whatsapp_url"
-            placeholder="https://wa.me/..."
-            value={whatsappUrl}
-            onChange={(e) => onChange("whatsapp_url", e.target.value)}
-          />
-        </div>
+        <SocialField id="linkedin_url" label="LinkedIn" network="linkedin" value={linkedinUrl} onChange={onChange} icon={<Linkedin className="h-3 w-3" />} />
+        <SocialField id="facebook_url" label="Facebook" network="facebook" value={facebookUrl} onChange={onChange} icon={<Facebook className="h-3 w-3" />} />
+        <SocialField id="instagram_url" label="Instagram" network="instagram" value={instagramUrl} onChange={onChange} icon={<Instagram className="h-3 w-3" />} />
+        <SocialField id="twitter_url" label="Twitter/X" network="twitter" value={twitterUrl} onChange={onChange} icon={<Twitter className="h-3 w-3" />} />
+        <SocialField id="youtube_url" label="YouTube" network="youtube" value={youtubeUrl} onChange={onChange} icon={<Youtube className="h-3 w-3" />} />
+        <SocialField id="tiktok_url" label="TikTok" network="tiktok" value={tiktokUrl} onChange={onChange} icon={<TikTokIcon className="h-3 w-3" />} />
+        <SocialField id="pinterest_url" label="Pinterest" network="pinterest" value={pinterestUrl} onChange={onChange} icon={<Pin className="h-3 w-3" />} />
+        <SocialField id="whatsapp_url" label="WhatsApp Business" network="whatsapp" value={whatsappUrl} onChange={onChange} icon={<MessageCircle className="h-3 w-3" />} />
       </div>
     </div>
   );
