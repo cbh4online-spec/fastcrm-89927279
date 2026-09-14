@@ -305,8 +305,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const ws = await resolveWorkspace(supabase, url.searchParams.get("workspace"));
-    if (!ws) return json({ error: "workspace_required", message: "Indique ?workspace=<slug>" }, 400);
+    const workspaceParam = url.searchParams.get("workspace");
+    if (!workspaceParam) {
+      return json({ error: "workspace_required", message: "Indique ?workspace=<slug>" }, 400);
+    }
+    const ws = await resolveWorkspace(supabase, workspaceParam);
+    if (!ws) return json({ error: "workspace_not_found", message: "Loja não encontrada." }, 404);
 
     // ---------- CATEGORIES ----------
     if (route === "categories") {
