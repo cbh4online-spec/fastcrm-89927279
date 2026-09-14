@@ -70,7 +70,9 @@ export function parseInstagramMetaDescription(
   };
 
   let fullName: string | null = null;
-  const fromDesc = desc.match(/(?:videos? from|—|-)\s*([^(@|·]{2,80}?)\s*[(@]/i);
+  const fromDesc =
+    desc.match(/videos?\s+from\s+([^(@|·]{2,80}?)\s*[(@]/i) ??
+    desc.match(/(?:—|\s-\s)\s*([^(@|·]{2,80}?)\s*[(@]/i);
   if (fromDesc?.[1]) fullName = fromDesc[1].trim().replace(/[|·-]+$/, "").trim() || null;
   if (!fullName && title) {
     const fromTitle = title.match(/^([^(@|·]{2,80}?)\s*[(@|·]/);
