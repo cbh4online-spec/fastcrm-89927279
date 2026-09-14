@@ -14,6 +14,7 @@ import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { Sentry } from "@/lib/sentry";
 import { trackEvent } from "@/lib/analytics";
+import { trackCommerceEvent } from "@/lib/ai-commerce/tracking";
 import { CheckoutLeadStep } from "@/components/store/checkout/CheckoutLeadStep";
 import { CheckoutPaymentStep } from "@/components/store/checkout/CheckoutPaymentStep";
 import { CheckoutSummaryCard } from "@/components/store/checkout/CheckoutSummaryCard";
@@ -56,6 +57,14 @@ export default function StoreCheckoutPage() {
 
 
     trackEvent("checkout_submit", { workspaceSlug: wsSlug, subtotal, total: pricing.finalTotal, itemCount: items.length, currency: items[0]?.currency });
+    if (wsId) {
+      void trackCommerceEvent({
+        workspaceId: wsId,
+        eventType: "checkout_start",
+        value: pricing.finalTotal,
+        currency: items[0]?.currency || "EUR",
+      });
+    }
     form.setIsProcessing(true);
 
     try {

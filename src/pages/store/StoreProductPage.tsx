@@ -1,6 +1,8 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ProductSeoHead } from "@/components/store/storefront/ProductSeoHead";
+import { AICommerceProductExtras } from "@/components/ai-commerce/AICommerceProductExtras";
+import { trackCommerceEvent } from "@/lib/ai-commerce/tracking";
 import { StoreProductDescription } from "@/components/store/StoreProductDescription";
 import { StoreProductHighlights } from "@/components/store/StoreProductHighlights";
 import { humanizeSpecKey, filterValidSpecs } from "@/utils/specLabels";
@@ -329,6 +331,13 @@ export default function StoreProductPage() {
       quantity
     );
     setCartAnimTrigger((c) => c + 1);
+    void trackCommerceEvent({
+      workspaceId: (product as any).workspace_id,
+      eventType: "add_to_cart",
+      productId: product.id,
+      value: (pricing?.price ?? product.base_price) * quantity,
+      currency: product.currency,
+    });
   };
 
   if (isResolving || isProductLoading) {
@@ -413,6 +422,7 @@ export default function StoreProductPage() {
         <StoreHeader workspaceSlug={wsSlug} />
         <StoreCartDrawer workspaceSlug={wsSlug} />
         <StoreProductViewTracker productId={product.id} workspaceId={(product as any).workspace_id} />
+        <AICommerceProductExtras productId={product.id} workspaceId={(product as any).workspace_id} />
         <StoreVisitorTracker workspaceId={(product as any).workspace_id} currentPage={`/store/${wsSlug}/product/${productSlug}`} productId={product.id} />
 
         {/* Sticky Add to Cart bar — hidden for price on request */}
