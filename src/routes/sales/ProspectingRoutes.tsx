@@ -18,6 +18,7 @@ export function ProspectingRoutes() {
       <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
       <Route path="/dashboard/prospecting/web-search" element={<WebSearchProspecting />} />
       <Route path="/dashboard/prospecting/professionals" element={<ProfessionalProspecting />} />
+      <Route path="/dashboard/prospecting/instagram" element={<ProspectingInstagramExtractor />} />
       <Route path="/dashboard/competitors" element={<CompetitorTrackerPage />} />
       <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
       <Route path="/dashboard/fastmatch" element={<FastMatchDiscoveryPage />} />
