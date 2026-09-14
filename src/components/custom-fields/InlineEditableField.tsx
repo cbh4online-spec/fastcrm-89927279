@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/select";
 import { CalendarIcon, Check, Pencil, X, Loader2, ExternalLink, Sparkles } from "lucide-react";
 import { format } from "date-fns";
+import {
+  type SocialNetwork,
+  normalizeSocialValue,
+  parseSocialProfile,
+  socialPlaceholder,
+} from "@/lib/social/socialProfiles";
 import { pt } from "date-fns/locale";
 
 // Robust date parser — handles dd/MM/yyyy, dd-MM-yyyy, yyyy-MM-dd and 2-digit years.
