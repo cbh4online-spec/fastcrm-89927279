@@ -48782,6 +48782,113 @@ export type Database = {
           },
         ]
       }
+      instagram_extraction_items: {
+        Row: {
+          attempts: number
+          created_at: string
+          error: string | null
+          id: string
+          job_id: string
+          processed_at: string | null
+          profile_id: string | null
+          status: string
+          username: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_id: string
+          processed_at?: string | null
+          profile_id?: string | null
+          status?: string
+          username: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_id?: string
+          processed_at?: string | null
+          profile_id?: string | null
+          status?: string
+          username?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_extraction_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_extraction_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_extraction_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error: string | null
+          finished_at: string | null
+          found_count: number
+          id: string
+          lease_until: string | null
+          limit_count: number
+          listing_done: boolean
+          next_cursor: string | null
+          processed_count: number
+          queued_count: number
+          source: string
+          status: string
+          target: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          finished_at?: string | null
+          found_count?: number
+          id?: string
+          lease_until?: string | null
+          limit_count?: number
+          listing_done?: boolean
+          next_cursor?: string | null
+          processed_count?: number
+          queued_count?: number
+          source: string
+          status?: string
+          target: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          finished_at?: string | null
+          found_count?: number
+          id?: string
+          lease_until?: string | null
+          limit_count?: number
+          listing_done?: boolean
+          next_cursor?: string | null
+          processed_count?: number
+          queued_count?: number
+          source?: string
+          status?: string
+          target?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       internal_posts: {
         Row: {
           ai_generated: boolean | null
@@ -75102,6 +75209,7 @@ export type Database = {
           created_at: string
           extracted_email: string | null
           extracted_phone: string | null
+          extraction_job_id: string | null
           id: string
           inferred_location: string | null
           inferred_profession: string | null
@@ -75118,6 +75226,8 @@ export type Database = {
           instagram_is_verified: boolean | null
           instagram_posts_count: number | null
           instagram_raw_data: Json | null
+          instagram_username: string | null
+          is_private: boolean | null
           lead_score: number | null
           lead_score_explanation: string | null
           lead_score_factors: Json | null
@@ -75146,6 +75256,7 @@ export type Database = {
           created_at?: string
           extracted_email?: string | null
           extracted_phone?: string | null
+          extraction_job_id?: string | null
           id?: string
           inferred_location?: string | null
           inferred_profession?: string | null
@@ -75162,6 +75273,8 @@ export type Database = {
           instagram_is_verified?: boolean | null
           instagram_posts_count?: number | null
           instagram_raw_data?: Json | null
+          instagram_username?: string | null
+          is_private?: boolean | null
           lead_score?: number | null
           lead_score_explanation?: string | null
           lead_score_factors?: Json | null
@@ -75190,6 +75303,7 @@ export type Database = {
           created_at?: string
           extracted_email?: string | null
           extracted_phone?: string | null
+          extraction_job_id?: string | null
           id?: string
           inferred_location?: string | null
           inferred_profession?: string | null
@@ -75206,6 +75320,8 @@ export type Database = {
           instagram_is_verified?: boolean | null
           instagram_posts_count?: number | null
           instagram_raw_data?: Json | null
+          instagram_username?: string | null
+          is_private?: boolean | null
           lead_score?: number | null
           lead_score_explanation?: string | null
           lead_score_factors?: Json | null
@@ -75229,6 +75345,13 @@ export type Database = {
             columns: ["converted_lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_prospecting_profiles_extraction_job_id_fkey"
+            columns: ["extraction_job_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_extraction_jobs"
             referencedColumns: ["id"]
           },
           {
