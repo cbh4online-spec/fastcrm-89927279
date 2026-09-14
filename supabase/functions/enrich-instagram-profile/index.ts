@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch Instagram profile data
-    const url = `${RAPIDAPI_URL}/profile?username=${encodeURIComponent(username)}`;
+    const url = `${RAPIDAPI_URL}/profile?username=${encodeURIComponent(cleanUsername)}`;
     logStep("Fetching from Instagram API", { url });
 
     const apiResponse = await fetch(url, {
