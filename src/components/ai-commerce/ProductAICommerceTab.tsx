@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Save, Sparkles, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,7 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
     languages: "",
     countries: "",
   });
+  const [benefits, setBenefits] = useState("");
 
   useEffect(() => {
     setForm({
@@ -107,6 +109,7 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
       languages: (product.languages || []).join(", "),
       countries: (product.countries || []).join(", "),
     });
+    setBenefits(toLines(product.main_benefits ?? product.benefits));
   }, [product]);
 
   const draftAi = useMemo<Partial<ProductAICommerce>>(
@@ -142,8 +145,9 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
       checkout_url: seo.checkout_url || null,
       languages: seo.languages.split(",").map((v) => v.trim()).filter(Boolean),
       countries: seo.countries.split(",").map((v) => v.trim()).filter(Boolean),
+      main_benefits: fromLines(benefits),
     }),
-    [product, seo],
+    [product, seo, benefits],
   );
 
   const readiness = useMemo(
@@ -158,7 +162,7 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-commerce-autofill", {
-        body: { productId: product.id },
+        body: { productId: product.id, baseUrl: getPublicBaseUrl() },
       });
       if (error) throw error;
       const s = (data as { suggestion?: Record<string, unknown> })?.suggestion;
@@ -196,7 +200,19 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
         ...prev,
         seo_title: text(prev.seo_title, s.seo_title),
         seo_description: text(prev.seo_description, s.seo_description),
+        schema_type: text(prev.schema_type, s.schema_type),
+        canonical_url: text(prev.canonical_url, s.canonical_url),
+        checkout_url: text(prev.checkout_url, s.checkout_url),
+        languages:
+          Array.isArray(s.languages) && s.languages.length && (overwrite || !prev.languages.trim())
+            ? (s.languages as string[]).join(", ")
+            : prev.languages,
+        countries:
+          Array.isArray(s.countries) && s.countries.length && (overwrite || !prev.countries.trim())
+            ? (s.countries as string[]).join(", ")
+            : prev.countries,
       }));
+      setBenefits((prev) => lines(prev, s.main_benefits));
 
       toast.success("Sugestões preenchidas. Reveja e guarde.");
     } catch (error) {
@@ -219,6 +235,7 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
         checkout_url: draftProduct.checkout_url,
         languages: draftProduct.languages,
         countries: draftProduct.countries,
+        main_benefits: draftProduct.main_benefits,
       });
       await save.mutateAsync({ ...draftAi, readiness } as never);
     } catch (error) {
@@ -488,6 +505,26 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
               />
             </div>
           ))}
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="main_benefits">Benefícios (um por linha)</Label>
+            <Textarea
+              id="main_benefits"
+              rows={4}
+              value={benefits}
+              onChange={(e) => setBenefits(e.target.value)}
+              placeholder={"Ex.: Reduz o tempo de resposta\nMantém o histórico completo"}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="py-4">
+          <p className="text-sm font-medium">Feed externo</p>
+          <p className="text-sm text-muted-foreground">
+            O feed não se define aqui: crie ou ative um feed em Loja online → AI Commerce → Feeds. Depois de
+            guardar este produto, ele passa a ser incluído no próximo feed gerado.
+          </p>
         </CardContent>
       </Card>
 
