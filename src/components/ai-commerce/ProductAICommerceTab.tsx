@@ -108,6 +108,7 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
       languages: (product.languages || []).join(", "),
       countries: (product.countries || []).join(", "),
     });
+    setBenefits(toLines(product.main_benefits ?? product.benefits));
   }, [product]);
 
   const draftAi = useMemo<Partial<ProductAICommerce>>(
