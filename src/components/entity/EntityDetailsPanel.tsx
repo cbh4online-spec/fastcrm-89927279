@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { usePageElementVisibility } from '@/hooks/usePageElementVisibility';
-import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil, Clock, Youtube, Pin, MessageCircle } from 'lucide-react';
+import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil, Clock, Youtube, Pin, MessageCircle, ExternalLink } from 'lucide-react';
+import { normalizeSocialValue, socialNetworkForField, parseSocialProfile, socialPlaceholder } from '@/lib/social/socialProfiles';
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
