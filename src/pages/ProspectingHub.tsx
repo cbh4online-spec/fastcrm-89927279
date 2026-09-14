@@ -49,6 +49,13 @@ const modules = [
     path: "/dashboard/prospecting/professionals",
     actionKey: "prospecting_professional_search",
   },
+  {
+    title: "Extrator de Instagram",
+    description: "Recolha em massa perfis públicos de Instagram, com contactos da bio e importação como Leads.",
+    icon: Instagram,
+    path: "/dashboard/prospecting/instagram",
+    actionKey: "prospecting_professional_search",
+  },
 ];
 
 function SearchHistorySection() {
