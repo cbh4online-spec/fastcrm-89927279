@@ -5,7 +5,7 @@ const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-START] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 
 const USERNAME_RE = /^[A-Za-z0-9._]{1,60}$/;
-const SOURCES = ["followers", "following", "hashtag", "location", "list"] as const;
+const SOURCES = ["followers", "following", "hashtag", "location", "list", "web_search"] as const;
 type Source = (typeof SOURCES)[number];
 
 function json(body: unknown, status = 200) {

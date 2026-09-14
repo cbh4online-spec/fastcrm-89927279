@@ -8,6 +8,11 @@ import {
   parseProfile,
 } from "../_shared/instagramLooter.ts";
 import { extractContactsFromBio } from "../_shared/instagramContacts.ts";
+import {
+  firecrawlProfile,
+  firecrawlSearchUsernames,
+  type FirecrawlProfileResult,
+} from "../_shared/instagramFirecrawl.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-WORKER] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
