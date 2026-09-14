@@ -144,8 +144,9 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
       checkout_url: seo.checkout_url || null,
       languages: seo.languages.split(",").map((v) => v.trim()).filter(Boolean),
       countries: seo.countries.split(",").map((v) => v.trim()).filter(Boolean),
+      main_benefits: fromLines(benefits),
     }),
-    [product, seo],
+    [product, seo, benefits],
   );
 
   const readiness = useMemo(
