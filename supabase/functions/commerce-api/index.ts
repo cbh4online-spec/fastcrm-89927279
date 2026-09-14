@@ -324,30 +324,62 @@ Deno.serve(async (req) => {
       const started = Date.now();
       const result = buildFeed(feed.channel as FeedChannel, rows, ctx);
 
+      // Um feed sem produtos válidos NUNCA substitui a última versão válida:
+      // é registado como erro e não é servido.
+      const hasValidOutput = result.productCount > 0;
+      const status = hasValidOutput ? (result.errors.length ? "partial" : "success") : "error";
+      const version = Number(feed.version ?? 1);
+
       if (feed.id) {
         await supabase.from("commerce_feed_runs").insert({
           workspace_id: workspaceId,
           feed_id: feed.id,
-          status: result.errors.length ? "error" : "success",
+          status,
           product_count: result.productCount,
+          valid_count: result.productCount,
+          rejected_count: result.rejectedCount,
+          feed_version: hasValidOutput ? version + 1 : version,
+          served: hasValidOutput,
           errors: result.errors,
           warnings: result.warnings,
           duration_ms: Date.now() - started,
         });
-        await supabase
-          .from("commerce_feeds")
-          .update({
-            last_generated_at: new Date().toISOString(),
-            last_status: result.errors.length ? "error" : "success",
-            last_product_count: result.productCount,
-            last_error_count: result.errors.length,
-            last_warning_count: result.warnings.length,
-          })
-          .eq("id", feed.id);
+
+        const patch: Record<string, unknown> = {
+          last_generated_at: new Date().toISOString(),
+          last_status: status,
+          last_error_count: result.errors.length,
+          last_warning_count: result.warnings.length,
+          last_error_message: result.summary || null,
+        };
+        if (hasValidOutput) {
+          patch.version = version + 1;
+          patch.last_product_count = result.productCount;
+          patch.last_valid_generated_at = new Date().toISOString();
+          patch.last_valid_version = version + 1;
+        }
+        await supabase.from("commerce_feeds").update(patch).eq("id", feed.id).eq("workspace_id", workspaceId);
+      }
+
+      if (!hasValidOutput) {
+        return json(
+          {
+            error: "feed_invalid",
+            message: "Nenhum produto passou a validação do canal. A última versão válida foi preservada.",
+            details: result.summary,
+            rejected_count: result.rejectedCount,
+          },
+          422,
+        );
       }
 
       return new Response(result.body, {
-        headers: { ...corsHeaders, "Content-Type": result.contentType, "Cache-Control": "public, max-age=900" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": result.contentType,
+          "Cache-Control": "public, max-age=900",
+          "X-Feed-Version": String(version + 1),
+        },
       });
     }
 
