@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/select";
 import { CalendarIcon, Check, Pencil, X, Loader2, ExternalLink, Sparkles } from "lucide-react";
 import { format } from "date-fns";
+import {
+  type SocialNetwork,
+  normalizeSocialValue,
+  parseSocialProfile,
+  socialPlaceholder,
+} from "@/lib/social/socialProfiles";
 import { pt } from "date-fns/locale";
 
 // Robust date parser — handles dd/MM/yyyy, dd-MM-yyyy, yyyy-MM-dd and 2-digit years.
@@ -82,6 +88,8 @@ export interface InlineEditableFieldProps {
   emptyOption?: string;
   isLink?: boolean;
   linkType?: "email" | "phone" | "url";
+  /** Quando definido, o valor é tratado como perfil de rede social (aceita @handle). */
+  socialNetwork?: SocialNetwork;
   suggestion?: FieldSuggestion;
   onAcceptSuggestion?: (value: unknown) => Promise<void>;
   onRejectSuggestion?: () => void;
@@ -103,6 +111,7 @@ export function InlineEditableField({
   emptyOption,
   isLink = false,
   linkType = "url",
+  socialNetwork,
   suggestion,
   onAcceptSuggestion,
   onRejectSuggestion,
@@ -154,6 +163,9 @@ export function InlineEditableField({
           }
           toSave = toIsoDate(d);
         }
+      }
+      if (socialNetwork) {
+        toSave = normalizeSocialValue(socialNetwork, toSave as string | null);
       }
       await onChange(toSave);
       setIsEditing(false);
@@ -237,7 +249,7 @@ export function InlineEditableField({
             onKeyDown={handleKeyDown}
             className="h-8 text-sm"
             autoFocus
-            placeholder={placeholder || `Introduza ${label.toLowerCase()}`}
+            placeholder={socialNetwork ? socialPlaceholder(socialNetwork) : (placeholder || `Introduza ${label.toLowerCase()}`)}
           />
         );
 
@@ -411,7 +423,48 @@ export function InlineEditableField({
           </div>
         ) : (
           <div className="flex items-center gap-2 flex-wrap">
-            {isLink && hasValue && typeof value === 'string' ? (
+            {socialNetwork && hasValue && typeof value === 'string' ? (
+              (() => {
+                const parsed = parseSocialProfile(socialNetwork, value);
+                if (!parsed) {
+                  return (
+                    <span
+                      className="cursor-pointer text-muted-foreground hover:text-primary transition-colors"
+                      title="Perfil não reconhecido"
+                      onClick={handleStartEdit}
+                    >
+                      {value}
+                    </span>
+                  );
+                }
+                return (
+                  <span className="flex items-center gap-1.5">
+                    <a
+                      href={parsed.messageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={parsed.supportsMessaging ? 'Abrir mensagens' : 'Abrir perfil'}
+                      className="text-primary hover:underline cursor-pointer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {parsed.displayHandle}
+                    </a>
+                    {parsed.supportsMessaging && (
+                      <a
+                        href={parsed.profileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Ver perfil"
+                        className="text-muted-foreground hover:text-primary"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </span>
+                );
+              })()
+            ) : isLink && hasValue && typeof value === 'string' ? (
               <a 
                 href={getHref()}
                 target={linkType === "url" ? "_blank" : undefined}

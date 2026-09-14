@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { socialMessageUrl } from '@/lib/social/socialProfiles';
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useContacts } from "@/hooks/useContacts";
@@ -250,8 +251,8 @@ export function ENIContactDetailWithSidebar() {
               companyId={(contact as any).company_id ?? null}
               companyName={(contact as any).company_name ?? null}
               socialUrls={[
-                (contact as any).linkedin_url ? { label: 'LinkedIn', url: (contact as any).linkedin_url } : null,
-                (contact as any).instagram_url ? { label: 'Instagram', url: (contact as any).instagram_url } : null,
+                (contact as any).linkedin_url ? { label: 'LinkedIn', url: socialMessageUrl('linkedin', (contact as any).linkedin_url) ?? (contact as any).linkedin_url } : null,
+                (contact as any).instagram_url ? { label: 'Instagram', url: socialMessageUrl('instagram', (contact as any).instagram_url) ?? (contact as any).instagram_url } : null,
               ].filter(Boolean) as Array<{ label: string; url: string }>}
             />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

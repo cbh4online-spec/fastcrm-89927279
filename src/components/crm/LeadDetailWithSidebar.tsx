@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { socialMessageUrl } from '@/lib/social/socialProfiles';
 import { useNavigate, useParams } from "react-router-dom";
 import { useLead, useUpdateLead, useDeleteLead, Lead } from "@/hooks/useLeads";
 import { useEntityNavIds } from "@/hooks/useEntityNavIds";
@@ -214,9 +215,9 @@ export function LeadDetailWithSidebar() {
               companyId={null}
               companyName={(lead as any).company_name || null}
               socialUrls={[
-                (lead as any).linkedin_url ? { label: "LinkedIn", url: (lead as any).linkedin_url } : null,
-                (lead as any).instagram_url ? { label: "Instagram", url: (lead as any).instagram_url } : null,
-                (lead as any).facebook_url ? { label: "Facebook", url: (lead as any).facebook_url } : null,
+                (lead as any).linkedin_url ? { label: "LinkedIn", url: socialMessageUrl('linkedin', (lead as any).linkedin_url) ?? (lead as any).linkedin_url } : null,
+                (lead as any).instagram_url ? { label: "Instagram", url: socialMessageUrl('instagram', (lead as any).instagram_url) ?? (lead as any).instagram_url } : null,
+                (lead as any).facebook_url ? { label: "Facebook", url: socialMessageUrl('facebook', (lead as any).facebook_url) ?? (lead as any).facebook_url } : null,
               ].filter(Boolean) as Array<{ label: string; url: string }>}
             />
           </div>

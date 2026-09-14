@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { usePageElementVisibility } from '@/hooks/usePageElementVisibility';
-import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil, Clock, Youtube, Pin, MessageCircle } from 'lucide-react';
+import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil, Clock, Youtube, Pin, MessageCircle, ExternalLink } from 'lucide-react';
+import { normalizeSocialValue, socialNetworkForField, parseSocialProfile, socialPlaceholder } from '@/lib/social/socialProfiles';
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -94,10 +95,15 @@ function EditableFieldRow({
     }
   }, [editing]);
 
+  const socialNetwork = fieldKey ? socialNetworkForField(fieldKey) : undefined;
+
   const commit = () => {
     setEditing(false);
-    if (onUpdate && fieldKey && draft !== String(value ?? '')) {
-      onUpdate(fieldKey, draft || null);
+    if (onUpdate && fieldKey) {
+      const next = socialNetwork ? normalizeSocialValue(socialNetwork, draft) : (draft || null);
+      if (String(next ?? '') !== String(value ?? '')) {
+        onUpdate(fieldKey, next);
+      }
     }
   };
 
@@ -126,7 +132,8 @@ function EditableFieldRow({
         </div>
         <Input
           ref={inputRef}
-          type={inputType}
+          type={socialNetwork ? 'text' : inputType}
+          placeholder={socialNetwork ? socialPlaceholder(socialNetwork) : undefined}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
@@ -140,6 +147,45 @@ function EditableFieldRow({
   const renderValue = () => {
     if (!value) return <span className="text-muted-foreground/60 text-[13px]">—</span>;
     const stopProp = (e: React.MouseEvent) => e.stopPropagation();
+    if (socialNetwork) {
+      const parsed = parseSocialProfile(socialNetwork, String(value));
+      if (!parsed) {
+        return (
+          <span className="text-muted-foreground text-[13px] break-all" title="Perfil não reconhecido">
+            {String(value)}
+          </span>
+        );
+      }
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          <a
+            href={parsed.messageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={stopProp}
+            title={parsed.supportsMessaging ? 'Abrir mensagens' : 'Abrir perfil'}
+            className={cn(
+              "hover:underline text-[13px] font-medium break-all",
+              socialNetwork === 'whatsapp' ? "text-[#25D366]" : "text-primary"
+            )}
+          >
+            {parsed.displayHandle}
+          </a>
+          {parsed.supportsMessaging && (
+            <a
+              href={parsed.profileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={stopProp}
+              title="Ver perfil"
+              className="text-muted-foreground hover:text-primary"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </span>
+      );
+    }
     if (isLink && linkType === 'whatsapp') {
       const raw = String(value);
       const href = raw.startsWith('http')
