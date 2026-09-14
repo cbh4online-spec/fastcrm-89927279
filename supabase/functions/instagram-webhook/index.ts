@@ -33,12 +33,47 @@ Deno.serve(async (req) => {
   // Handle incoming messages (POST request)
   if (req.method === "POST") {
     try {
-      const body = await req.json();
-      console.log("Webhook received:", JSON.stringify(body, null, 2));
+      const rawBody = await req.text();
 
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
       const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+      // Validação obrigatória da assinatura da Meta (fail-closed).
+      const appSecret =
+        Deno.env.get("INSTAGRAM_APP_SECRET") || Deno.env.get("META_APP_SECRET") || null;
+      const signatureHeader = req.headers.get("x-hub-signature-256");
+      const validation = await validateWebhook({
+        mode: "hmac",
+        rawBody,
+        secret: appSecret,
+        signatureHeader,
+        provider: "instagram",
+        functionName: "instagram-webhook",
+        signaturePrefix: "sha256=",
+        signatureEncoding: "hex",
+      });
+
+      await logSecurityEvent(supabase, {
+        provider: "instagram",
+        function_name: "instagram-webhook",
+        validation_mode: "hmac",
+        outcome: validation.outcome,
+        reason: validation.reason ?? null,
+        remote_ip: getRemoteIp(req),
+        signature_header: signatureHeader,
+        payload_size: rawBody.length,
+      });
+
+      if (!validation.ok) {
+        console.warn(`[instagram-webhook] Assinatura inválida: ${validation.outcome} ${validation.reason ?? ""}`);
+        return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const body = JSON.parse(rawBody);
 
       // Process each entry
       for (const entry of body.entry || []) {
