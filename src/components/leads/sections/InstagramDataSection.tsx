@@ -19,13 +19,61 @@ interface InstagramDataSectionProps {
 }
 
 export function InstagramDataSection({ lead }: InstagramDataSectionProps) {
-  // Verificar se há dados Instagram para mostrar
+  // Verificar se há dados Instagram enriquecidos para mostrar
   const hasData = lead.instagram_bio || 
                   lead.instagram_followers_count || 
                   lead.instagram_posts_count ||
                   lead.instagram_category;
 
-  if (!hasData) return null;
+  const parsedProfile = lead.instagram_url
+    ? parseSocialProfile('instagram', lead.instagram_url)
+    : null;
+
+  if (!hasData) {
+    return (
+      <Card className="border-pink-500/20 bg-gradient-to-br from-pink-500/5 via-purple-500/5 to-transparent">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Instagram className="w-4 h-4 text-pink-500" />
+            Dados Instagram
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {parsedProfile ? (
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="text-xs">{parsedProfile.displayHandle}</Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="text-xs h-7 gap-1 border-pink-500/30 text-pink-600 hover:bg-pink-500/10"
+                >
+                  <a href={parsedProfile.profileUrl} target="_blank" rel="noopener noreferrer">
+                    <Instagram className="w-3 h-3" />
+                    Ver Perfil
+                  </a>
+                </Button>
+                <Button variant="ghost" size="sm" asChild className="text-xs h-7 gap-1">
+                  <a href={parsedProfile.messageUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-3 h-3" />
+                    Abrir mensagens
+                  </a>
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Ainda não existem métricas de Instagram recolhidas para este perfil.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Sem perfil de Instagram associado. Adicione o perfil (por exemplo, @utilizador) nos dados sociais da lead.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   const formatNumber = (num: number | null) => {
     if (!num) return "0";
