@@ -184,7 +184,7 @@ export function InstagramDataSection({ lead }: InstagramDataSectionProps) {
                 className="text-xs h-7 gap-1 border-pink-500/30 text-pink-600 hover:bg-pink-500/10"
               >
                 <a 
-                  href={lead.instagram_url}
+                  href={parsedProfile?.profileUrl ?? lead.instagram_url}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
