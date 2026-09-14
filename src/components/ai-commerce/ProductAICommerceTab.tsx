@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Save, Sparkles, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
