@@ -94,10 +94,15 @@ function EditableFieldRow({
     }
   }, [editing]);
 
+  const socialNetwork = fieldKey ? socialNetworkForField(fieldKey) : undefined;
+
   const commit = () => {
     setEditing(false);
-    if (onUpdate && fieldKey && draft !== String(value ?? '')) {
-      onUpdate(fieldKey, draft || null);
+    if (onUpdate && fieldKey) {
+      const next = socialNetwork ? normalizeSocialValue(socialNetwork, draft) : (draft || null);
+      if (String(next ?? '') !== String(value ?? '')) {
+        onUpdate(fieldKey, next);
+      }
     }
   };
 
