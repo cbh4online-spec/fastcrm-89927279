@@ -203,11 +203,74 @@ Deno.serve(async (req) => {
 
       for (const item of items ?? []) {
         try {
-          const profile = parseProfile(
-            await looterGet("/profile", { username: item.username }, apiKey),
-            item.username,
-          );
-          const contacts = extractContactsFromBio(profile.biography, profile.externalUrl);
+          let apiProfile: ReturnType<typeof parseProfile> | null = null;
+          let apiError: unknown = null;
+
+          if (apiKey) {
+            try {
+              apiProfile = parseProfile(
+                await looterGet("/profile", { username: item.username }, apiKey),
+                item.username,
+              );
+            } catch (error) {
+              if (error instanceof InstagramApiError && (error.fatal || error.status === 429)) {
+                throw error;
+              }
+              apiError = error;
+            }
+          }
+
+          // Reforço via Firecrawl quando a API falhou ou não trouxe dados públicos
+          let fc: FirecrawlProfileResult | null = null;
+          const needsBackup =
+            !apiProfile || (apiProfile.followers === null && !apiProfile.biography);
+          if (hasFirecrawl && needsBackup) {
+            try {
+              fc = await firecrawlProfile(item.username);
+            } catch (error) {
+              if (!apiProfile) throw error;
+            }
+          }
+
+          if (!apiProfile && !fc) throw apiError ?? new Error("Perfil não recolhido");
+
+          const profile = {
+            username: apiProfile?.username ?? fc?.username ?? item.username,
+            fullName: apiProfile?.fullName ?? fc?.fullName ?? null,
+            biography: apiProfile?.biography ?? null,
+            externalUrl: apiProfile?.externalUrl ?? null,
+            profilePicUrl: apiProfile?.profilePicUrl ?? fc?.profilePicUrl ?? null,
+            followers: apiProfile?.followers ?? fc?.followers ?? null,
+            following: apiProfile?.following ?? fc?.following ?? null,
+            posts: apiProfile?.posts ?? fc?.posts ?? null,
+            category: apiProfile?.category ?? null,
+            isVerified: apiProfile?.isVerified ?? false,
+            isBusiness: apiProfile?.isBusiness ?? false,
+            isPrivate: apiProfile?.isPrivate ?? null,
+            city: apiProfile?.city ?? null,
+            raw: {
+              api: apiProfile?.raw ?? null,
+              firecrawl: fc
+                ? {
+                    full_name: fc.fullName,
+                    followers: fc.followers,
+                    following: fc.following,
+                    posts: fc.posts,
+                  }
+                : null,
+            } as Record<string, unknown>,
+          };
+
+          let contacts = extractContactsFromBio(profile.biography, profile.externalUrl);
+          if (!contacts.email && !contacts.phone && fc?.pageText) {
+            // Só aceita sinais inequívocos do texto público da página
+            const fromPage = extractContactsFromBio(fc.pageText, null);
+            contacts = {
+              email: fromPage.email,
+              phone: fromPage.source === "whatsapp_link" ? fromPage.phone : null,
+              source: fromPage.email || fromPage.source === "whatsapp_link" ? fromPage.source : null,
+            };
+          }
 
           const { data: saved, error: saveError } = await admin
             .from("professional_prospecting_profiles")
