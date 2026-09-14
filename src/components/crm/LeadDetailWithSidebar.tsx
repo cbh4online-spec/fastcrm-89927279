@@ -519,6 +519,14 @@ export function LeadDetailWithSidebar() {
         <ConvertLeadDialog lead={lead} trigger={<button id="ix-convert-lead-trigger" />} />
       </div>
 
+      <EditLeadDialog
+        lead={lead}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+      />
+
+
+
       <IXEntityTabs
         tabs={ixTabs}
         activeId={activeTab}
