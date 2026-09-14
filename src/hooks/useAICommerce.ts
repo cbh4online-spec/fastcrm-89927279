@@ -390,6 +390,8 @@ export interface AICommerceAnalyticsFilters {
   country?: string | null;
   channel?: string | null;
   campaign?: string | null;
+  /** Modelo de atribuição: primeira ou última origem. */
+  attribution?: "last_touch" | "first_touch";
 }
 
 export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
@@ -399,9 +401,12 @@ export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
     enabled: !!currentWorkspace?.id,
     queryFn: async () => {
       const since = new Date(Date.now() - filters.days * 86400000).toISOString();
+      const model = filters.attribution ?? "last_touch";
       let q = supabase
         .from("ai_commerce_events")
-        .select("event_type, channel, is_ai_channel, value, currency, product_id, country, campaign")
+        .select(
+          "event_type, channel, is_ai_channel, value, currency, product_id, country, campaign, first_touch_channel, last_touch_channel, server_verified",
+        )
         .eq("workspace_id", currentWorkspace!.id)
         .gte("created_at", since)
         .limit(10000);
@@ -415,7 +420,11 @@ export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
 
       const map = new Map<string, ChannelPerformanceRow>();
       for (const row of data || []) {
-        const channel = (row.channel as string) || "direct";
+        const attributed =
+          model === "first_touch"
+            ? (row.first_touch_channel as string | null)
+            : (row.last_touch_channel as string | null);
+        const channel = attributed || (row.channel as string) || "direct";
         if (!map.has(channel)) {
           map.set(channel, {
             channel,
@@ -436,10 +445,15 @@ export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
           case "visit":
             entry.visits += 1;
             break;
+          case "commerce_page_view":
+            entry.visits += 1;
+            break;
           case "product_view":
+          case "product_click":
             entry.productViews += 1;
             break;
           case "lead":
+          case "lead_created":
             entry.leads += 1;
             break;
           case "add_to_cart":
@@ -449,8 +463,12 @@ export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
             entry.checkouts += 1;
             break;
           case "purchase":
+          case "checkout_completed":
+          case "subscription_started":
+          case "subscription_renewed":
             entry.purchases += 1;
-            entry.revenue += Number(row.value || 0);
+            // Receita apenas de eventos validados no servidor.
+            if (row.server_verified) entry.revenue += Number(row.value || 0);
             break;
         }
       }
