@@ -249,7 +249,7 @@ export function InlineEditableField({
             onKeyDown={handleKeyDown}
             className="h-8 text-sm"
             autoFocus
-            placeholder={placeholder || `Introduza ${label.toLowerCase()}`}
+            placeholder={socialNetwork ? socialPlaceholder(socialNetwork) : (placeholder || `Introduza ${label.toLowerCase()}`)}
           />
         );
 
