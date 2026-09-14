@@ -133,6 +133,28 @@ Deno.serve(async (req) => {
 
     const connectionId = connection.id;
 
+    // 4b. Espelhar em instagram_connections (usada pelo Inbox: webhook + envio)
+    const { error: igConnError } = await supabase
+      .from("instagram_connections")
+      .upsert(
+        {
+          workspace_id,
+          instagram_user_id: String(igUserId),
+          instagram_username: username,
+          page_id: String(igUserId),
+          access_token: longLivedToken,
+          token_expires_at: tokenExpiry.toISOString(),
+          is_active: true,
+          connected_by: user_id,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "workspace_id" },
+      );
+    if (igConnError) {
+      console.error("[instagram-oauth-callback] instagram_connections upsert error:", igConnError.message);
+    }
+
+
     // 5. Insert instagram_account asset
     await supabase.from("meta_assets").upsert(
       {
