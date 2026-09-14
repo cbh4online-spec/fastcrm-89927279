@@ -46,20 +46,30 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const CRON_SECRET = Deno.env.get("CRON_SECRET");
-  const provided = req.headers.get("x-cron-secret");
-  if (!CRON_SECRET || provided !== CRON_SECRET) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } },
   );
+
+  // Autenticação fail-closed: CRON_SECRET (env) ou o segredo dedicado em _cron_config.
+  const provided = req.headers.get("x-cron-secret");
+  const envSecret = Deno.env.get("CRON_SECRET");
+  let authorized = !!provided && !!envSecret && provided === envSecret;
+  if (!authorized && provided) {
+    const { data: cfg } = await supabase
+      .from("_cron_config")
+      .select("value")
+      .eq("key", "instagram_token_refresh_cron_secret")
+      .maybeSingle();
+    authorized = !!cfg?.value && cfg.value === provided;
+  }
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const now = Date.now();
   const threshold = new Date(now + REFRESH_WINDOW_DAYS * 24 * 3600 * 1000).toISOString();
