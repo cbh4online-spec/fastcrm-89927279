@@ -41,12 +41,53 @@ Deno.serve(async (req) => {
     logStep("User authenticated", { userId: user.id });
 
     // Parse request body
-    const { profileId, username, workspaceId } = await req.json();
+    const { profileId, leadId, username, workspaceId } = await req.json();
     if (!username || !workspaceId) {
       throw new Error("Missing required parameters: username, workspaceId");
     }
+    if (typeof username !== "string" || !/^[A-Za-z0-9._]{1,60}$/.test(username.replace(/^@/, ""))) {
+      throw new Error("Invalid username");
+    }
+    const cleanUsername = username.replace(/^@/, "");
 
-    logStep("Enriching profile", { profileId, username });
+    // Verify workspace membership (fail-closed)
+    const { data: memberData, error: memberError } = await supabaseClient
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (memberError || !memberData) {
+      logStep("Workspace access denied", { workspaceId });
+      return new Response(JSON.stringify({ success: false, error: "Sem acesso a este workspace" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+    if (memberData.role === "viewer") {
+      return new Response(JSON.stringify({ success: false, error: "Sem permissão para enriquecer dados" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
+    // When enriching a lead, confirm it belongs to this workspace
+    if (leadId) {
+      const { data: leadRow, error: leadError } = await supabaseClient
+        .from("leads")
+        .select("id, workspace_id, avatar_url")
+        .eq("id", leadId)
+        .maybeSingle();
+      if (leadError || !leadRow || leadRow.workspace_id !== workspaceId) {
+        return new Response(JSON.stringify({ success: false, error: "Lead não encontrada neste workspace" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404,
+        });
+      }
+    }
+
+    logStep("Enriching profile", { profileId, leadId, username: cleanUsername });
 
     // Get RapidAPI key
     const rapidApiKey = Deno.env.get("RAPIDAPI_KEY");
@@ -55,7 +96,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch Instagram profile data
-    const url = `${RAPIDAPI_URL}/profile?username=${encodeURIComponent(username)}`;
+    const url = `${RAPIDAPI_URL}/profile?username=${encodeURIComponent(cleanUsername)}`;
     logStep("Fetching from Instagram API", { url });
 
     const apiResponse = await fetch(url, {
@@ -133,6 +174,36 @@ Deno.serve(async (req) => {
 
       logStep("Profile updated successfully");
     }
+
+    // Update the lead if leadId provided
+    if (leadId) {
+      const leadUpdate: Record<string, unknown> = {
+        instagram_url: `https://www.instagram.com/${cleanUsername}/`,
+        instagram_followers_count: followersCount,
+        instagram_following_count: followingCount,
+        instagram_posts_count: postsCount,
+        instagram_bio: fullBio,
+        instagram_external_url: externalUrl,
+        instagram_category: category,
+        instagram_is_verified: isVerified,
+        instagram_is_business: isBusiness,
+        instagram_enriched_at: new Date().toISOString(),
+      };
+
+      const { error: leadUpdateError } = await supabaseClient
+        .from("leads")
+        .update(leadUpdate)
+        .eq("id", leadId)
+        .eq("workspace_id", workspaceId);
+
+      if (leadUpdateError) {
+        logStep("Error updating lead", { error: leadUpdateError.message });
+        throw new Error(`Failed to update lead: ${leadUpdateError.message}`);
+      }
+
+      logStep("Lead updated successfully", { leadId });
+    }
+
 
     return new Response(JSON.stringify({
       success: true,
