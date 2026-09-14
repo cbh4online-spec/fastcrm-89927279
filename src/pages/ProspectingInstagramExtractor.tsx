@@ -245,6 +245,9 @@ export default function ProspectingInstagramExtractor() {
                   placeholder={SOURCE_PLACEHOLDER[source]}
                 />
               )}
+              {SOURCE_HINT[source] && (
+                <p className="text-xs text-muted-foreground">{SOURCE_HINT[source]}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
