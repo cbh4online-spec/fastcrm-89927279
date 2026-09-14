@@ -118,10 +118,12 @@ interface CustomFieldsFormCreateProps {
   positionFilter?: 'primary' | 'secondary' | 'all';
   /** Hide the "Campos Personalizados" label */
   hideLabel?: boolean;
+  /** Show the required (*) marker next to custom field labels */
+  showRequiredMarkers?: boolean;
 }
 
 export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, CustomFieldsFormCreateProps>(
-  function CustomFieldsFormCreate({ entityType, className, positionFilter = 'all', hideLabel = false }, ref) {
+  function CustomFieldsFormCreate({ entityType, className, positionFilter = 'all', hideLabel = false, showRequiredMarkers = true }, ref) {
     const { data: allFields = [] } = useCustomFields(entityType);
     const { data: managedFields = [] } = useManagedFields(entityType as any);
     const setFieldValue = useSetCustomFieldValue();
@@ -220,6 +222,7 @@ export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, Cust
               field={field}
               value={values[field.id]}
               onChange={(value) => handleValueChange(field, value)}
+              showRequiredMarkers={showRequiredMarkers}
             />
           ))}
         </div>
@@ -234,9 +237,10 @@ interface CustomFieldInputProps {
   value: unknown;
   onChange: (value: unknown) => void;
   isAIGenerated?: boolean;
+  showRequiredMarkers?: boolean;
 }
 
-function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: CustomFieldInputProps) {
+function CustomFieldInput({ field, value, onChange, isAIGenerated = false, showRequiredMarkers = true }: CustomFieldInputProps) {
   const fieldId = `custom-field-${field.id}`;
 
   const aiTag = isAIGenerated ? (
@@ -252,7 +256,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="space-y-2">
           <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Input
@@ -269,7 +273,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="space-y-2">
           <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Input
@@ -288,7 +292,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="space-y-2">
           <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Popover>
@@ -322,7 +326,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="flex items-center justify-between space-y-0 rounded-lg border p-3">
           <Label htmlFor={fieldId} className="cursor-pointer flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Switch
@@ -340,7 +344,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="space-y-2">
           <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Select
