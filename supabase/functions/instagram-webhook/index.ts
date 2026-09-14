@@ -1,6 +1,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { normalizeIncomingMessage } from "../_shared/normalize-message.ts";
+import { validateWebhook, logSecurityEvent, getRemoteIp } from "../_shared/hmac.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
