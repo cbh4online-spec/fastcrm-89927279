@@ -52,12 +52,31 @@ serve(async (req) => {
     const { data: product, error: productError } = await supabase
       .from("products")
       .select(
-        "id, workspace_id, name, sku, brand, category, subcategory, product_type, short_description, commercial_description, base_price, currency, stock_status, main_benefits, benefits, features, target_audience, problem_solved, use_cases, seo_title, seo_description",
+        "id, workspace_id, name, sku, brand, category, subcategory, product_type, short_description, commercial_description, base_price, currency, stock_status, main_benefits, benefits, features, target_audience, problem_solved, use_cases, seo_title, seo_description, store_slug, schema_type, canonical_url, checkout_url, languages, countries",
       )
       .eq("id", productId)
       .maybeSingle();
 
     if (productError || !product) return json({ error: "not_found" }, 404);
+
+    // Publicação externa: URLs derivadas da loja real (nunca inventadas).
+    let workspaceSlug: string | null = null;
+    if (product.workspace_id) {
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("slug")
+        .eq("id", product.workspace_id)
+        .maybeSingle();
+      workspaceSlug = (ws?.slug as string | null) ?? null;
+    }
+
+    const storeSlug = (product.store_slug as string | null) ?? null;
+    const canonicalUrl =
+      safeBaseUrl && workspaceSlug && storeSlug
+        ? `${safeBaseUrl}/store/${workspaceSlug}/product/${storeSlug}`
+        : "";
+    const checkoutUrl =
+      safeBaseUrl && workspaceSlug ? `${safeBaseUrl}/store/${workspaceSlug}/checkout` : "";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "ai_not_configured" }, 500);
