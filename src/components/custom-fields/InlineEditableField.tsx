@@ -82,6 +82,8 @@ export interface InlineEditableFieldProps {
   emptyOption?: string;
   isLink?: boolean;
   linkType?: "email" | "phone" | "url";
+  /** Quando definido, o valor é tratado como perfil de rede social (aceita @handle). */
+  socialNetwork?: SocialNetwork;
   suggestion?: FieldSuggestion;
   onAcceptSuggestion?: (value: unknown) => Promise<void>;
   onRejectSuggestion?: () => void;
