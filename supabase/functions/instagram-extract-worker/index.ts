@@ -107,33 +107,41 @@ Deno.serve(async (req) => {
     // ---------- 1) Listagem (uma página por execução) ----------
     if (!listingDone && queued < job.limit_count) {
       try {
-        let payload: unknown;
-        if (job.source === "followers" || job.source === "following") {
-          const profile = parseProfile(
-            await looterGet("/profile", { username: job.target }, apiKey),
-            job.target,
-          );
-          if (!profile.userId) throw new Error("Perfil não encontrado ou privado");
-          const params: Record<string, string> = { id: profile.userId, count: "50" };
-          if (cursor) params.end_cursor = cursor;
-          payload = await looterGet(
-            job.source === "followers" ? "/followers" : "/following",
-            params,
-            apiKey,
-          );
-        } else if (job.source === "hashtag") {
-          const params: Record<string, string> = { hashtag: job.target };
-          if (cursor) params.end_cursor = cursor;
-          payload = await looterGet("/hashtag-medias", params, apiKey);
+        const room = Math.max(0, job.limit_count - queued);
+        let usernames: string[] = [];
+        let page: { cursor: string | null; hasNext: boolean } = { cursor: null, hasNext: false };
+
+        if (job.source === "web_search") {
+          // Pesquisa web (Firecrawl): uma passagem, sem paginação por cursor
+          usernames = await firecrawlSearchUsernames(job.target, room || 25);
         } else {
-          const params: Record<string, string> = { id: job.target };
-          if (cursor) params.end_cursor = cursor;
-          payload = await looterGet("/location-medias", params, apiKey);
+          let payload: unknown;
+          if (job.source === "followers" || job.source === "following") {
+            const profile = parseProfile(
+              await looterGet("/profile", { username: job.target }, apiKey!),
+              job.target,
+            );
+            if (!profile.userId) throw new Error("Perfil não encontrado ou privado");
+            const params: Record<string, string> = { id: profile.userId, count: "50" };
+            if (cursor) params.end_cursor = cursor;
+            payload = await looterGet(
+              job.source === "followers" ? "/followers" : "/following",
+              params,
+              apiKey!,
+            );
+          } else if (job.source === "hashtag") {
+            const params: Record<string, string> = { hashtag: job.target };
+            if (cursor) params.end_cursor = cursor;
+            payload = await looterGet("/hashtag-medias", params, apiKey!);
+          } else {
+            const params: Record<string, string> = { id: job.target };
+            if (cursor) params.end_cursor = cursor;
+            payload = await looterGet("/location-medias", params, apiKey!);
+          }
+          usernames = collectUsernames(payload).filter((u) => u !== job.target);
+          page = findCursor(payload);
         }
 
-        const usernames = collectUsernames(payload).filter((u) => u !== job.target);
-        const page = findCursor(payload);
-        const room = Math.max(0, job.limit_count - queued);
         const slice = usernames.slice(0, room);
 
         if (slice.length > 0) {
