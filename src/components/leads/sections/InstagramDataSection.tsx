@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Lead } from "@/hooks/useLeads";
 import { cn } from "@/lib/utils";
+import { parseSocialProfile } from "@/lib/social/socialProfiles";
 
 interface InstagramDataSectionProps {
   lead: Lead;
