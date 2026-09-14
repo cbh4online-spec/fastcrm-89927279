@@ -146,6 +146,45 @@ function EditableFieldRow({
   const renderValue = () => {
     if (!value) return <span className="text-muted-foreground/60 text-[13px]">—</span>;
     const stopProp = (e: React.MouseEvent) => e.stopPropagation();
+    if (socialNetwork) {
+      const parsed = parseSocialProfile(socialNetwork, String(value));
+      if (!parsed) {
+        return (
+          <span className="text-muted-foreground text-[13px] break-all" title="Perfil não reconhecido">
+            {String(value)}
+          </span>
+        );
+      }
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          <a
+            href={parsed.messageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={stopProp}
+            title={parsed.supportsMessaging ? 'Abrir mensagens' : 'Abrir perfil'}
+            className={cn(
+              "hover:underline text-[13px] font-medium break-all",
+              socialNetwork === 'whatsapp' ? "text-[#25D366]" : "text-primary"
+            )}
+          >
+            {parsed.displayHandle}
+          </a>
+          {parsed.supportsMessaging && (
+            <a
+              href={parsed.profileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={stopProp}
+              title="Ver perfil"
+              className="text-muted-foreground hover:text-primary"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </span>
+      );
+    }
     if (isLink && linkType === 'whatsapp') {
       const raw = String(value);
       const href = raw.startsWith('http')
