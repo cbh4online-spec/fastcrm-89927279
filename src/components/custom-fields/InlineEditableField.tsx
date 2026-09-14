@@ -164,6 +164,9 @@ export function InlineEditableField({
           toSave = toIsoDate(d);
         }
       }
+      if (socialNetwork) {
+        toSave = normalizeSocialValue(socialNetwork, toSave as string | null);
+      }
       await onChange(toSave);
       setIsEditing(false);
     } catch (error) {
