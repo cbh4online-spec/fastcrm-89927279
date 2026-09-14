@@ -83,9 +83,14 @@ export interface CommerceProduct {
   languages?: string[] | null;
   product_condition?: string | null;
   origin_country?: string | null;
+  /** Variantes ativas (preço/subscrição). Nunca inventadas: vêm de `product_variants`. */
+  variants?: CommerceVariant[] | null;
 }
 
 export type ReadinessSeverity = "error" | "warning";
+
+/** Agrupamento apresentado ao utilizador (score por categoria). */
+export type ReadinessCategory = "identification" | "commercial" | "content" | "publishing";
 
 export interface ReadinessIssue {
   /** Chave estável do critério — usada para o CTA "Corrigir". */
@@ -93,9 +98,25 @@ export interface ReadinessIssue {
   label: string;
   message: string;
   severity: ReadinessSeverity;
+  category: ReadinessCategory;
   /** Onde corrigir: `product` (ficha) ou `ai` (separador AI Commerce). */
   target: "product" | "ai" | "feed";
   field?: string;
+}
+
+/** Override configurável (tabela `ai_commerce_readiness_config`). */
+export interface ReadinessConfigOverride {
+  code: string;
+  weight?: number | null;
+  severity?: ReadinessSeverity | null;
+  enabled?: boolean | null;
+}
+
+export interface ReadinessCategoryScore {
+  category: ReadinessCategory;
+  earned: number;
+  max: number;
+  score: number;
 }
 
 export interface ReadinessResult {
@@ -104,6 +125,20 @@ export interface ReadinessResult {
   issues: ReadinessIssue[];
   passed: string[];
   isReady: boolean;
+  /** Pronto para venda: preço, moeda, disponibilidade e checkout válidos. */
+  isCommerceReady: boolean;
+  categories: ReadinessCategoryScore[];
+}
+
+/** Variante de produto relevante para preço/feeds (fonte: `product_variants`). */
+export interface CommerceVariant {
+  id: string;
+  name: string | null;
+  sku: string | null;
+  price_override: number | null;
+  stock_quantity?: number | null;
+  is_active?: boolean | null;
+  attributes?: Record<string, string> | null;
 }
 
 export type FeedChannel = "openai" | "google" | "meta" | "xml" | "json" | "csv";

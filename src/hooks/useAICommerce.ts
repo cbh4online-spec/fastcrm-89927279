@@ -34,7 +34,7 @@ export function useAICommerceProducts() {
     queryKey: ["ai-commerce-products", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      const [productsRes, aiRes, feedsRes] = await Promise.all([
+      const [productsRes, aiRes, feedsRes, configRes] = await Promise.all([
         supabase
           .from("products")
           .select(PRODUCT_FIELDS)
@@ -43,28 +43,95 @@ export function useAICommerceProducts() {
           .order("name"),
         supabase.from("product_ai_commerce").select("*").eq("workspace_id", workspaceId!),
         supabase.from("commerce_feeds").select("id").eq("workspace_id", workspaceId!).eq("is_active", true),
+        supabase
+          .from("ai_commerce_readiness_config")
+          .select("code, weight, severity, enabled")
+          .eq("workspace_id", workspaceId!),
       ]);
 
       if (productsRes.error) throw productsRes.error;
       if (aiRes.error) throw aiRes.error;
 
+      const products = (productsRes.data || []) as unknown as CommerceProduct[];
+
+      // Variantes ativas (preço/subscrição) — nunca inventadas.
+      let variantsByProduct = new Map<string, CommerceVariant[]>();
+      if (products.length) {
+        const { data: variants } = await supabase
+          .from("product_variants")
+          .select("id, product_id, name, sku, price_override, stock_quantity, is_active, attributes")
+          .in(
+            "product_id",
+            products.map((p) => p.id),
+          );
+        variantsByProduct = ((variants || []) as unknown as (CommerceVariant & { product_id: string })[]).reduce(
+          (acc, v) => {
+            const list = acc.get(v.product_id) || [];
+            list.push(v);
+            acc.set(v.product_id, list);
+            return acc;
+          },
+          new Map<string, CommerceVariant[]>(),
+        );
+      }
+
       const activeFeeds = feedsRes.data?.length ?? 0;
+      const overrides = (configRes.data || []) as unknown as ReadinessConfigOverride[];
       const aiMap = new Map(
         ((aiRes.data || []) as unknown as ProductAICommerce[]).map((r) => [r.product_id, r]),
       );
 
-      return ((productsRes.data || []) as unknown as CommerceProduct[]).map<AICommerceProductRow>((product) => {
+      return products.map<AICommerceProductRow>((row) => {
+        const product = { ...row, variants: variantsByProduct.get(row.id) ?? [] };
         const ai = aiMap.get(product.id) ?? null;
         return {
           product,
           ai,
-          readiness: evaluateReadiness(product, ai, { activeFeeds }),
+          readiness: evaluateReadiness(product, ai, { activeFeeds, overrides }),
         };
       });
     },
   });
 
   return query;
+}
+
+/** Configuração de readiness por workspace (pesos, severidade, critérios ativos). */
+export function useReadinessConfig() {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+  const qc = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["ai-commerce-readiness-config", workspaceId],
+    enabled: !!workspaceId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ai_commerce_readiness_config")
+        .select("code, weight, severity, enabled")
+        .eq("workspace_id", workspaceId!);
+      if (error) throw error;
+      return (data || []) as unknown as ReadinessConfigOverride[];
+    },
+  });
+
+  const save = useMutation({
+    mutationFn: async (override: ReadinessConfigOverride) => {
+      if (!workspaceId) throw new Error("Workspace indisponível");
+      const { error } = await supabase
+        .from("ai_commerce_readiness_config")
+        .upsert({ ...override, workspace_id: workspaceId } as never, { onConflict: "workspace_id,code" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ai-commerce-readiness-config", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["ai-commerce-products"] });
+      toast.success("Critério atualizado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return { ...query, save };
 }
 
 export interface AICommerceOverview {

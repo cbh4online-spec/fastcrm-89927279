@@ -101,7 +101,32 @@ function analyticsAllowed(): boolean {
   }
 }
 
-/** Captura a atribuição na primeira visita da sessão e devolve-a. */
+const FIRST_TOUCH_KEY = "ai_commerce_first_touch";
+
+function readJson<T>(store: Storage | null, key: string): T | null {
+  if (!store) return null;
+  try {
+    const raw = store.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeJson(store: Storage | null, key: string, value: unknown): void {
+  if (!store) return;
+  try {
+    store.setItem(key, JSON.stringify(value));
+  } catch {
+    /* noop */
+  }
+}
+
+/**
+ * Captura a atribuição da visita.
+ * - `first touch` fica em localStorage e nunca é sobrescrito.
+ * - `last touch` fica em sessionStorage e é atualizado sempre que há novo sinal.
+ */
 export function captureAttribution(): CommerceAttribution | null {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
@@ -112,49 +137,110 @@ export function captureAttribution(): CommerceAttribution | null {
 
   const existing = getAttribution();
   const hasNewSignal = !!(utmSource || utmMedium || utmCampaign);
-  if (existing && !hasNewSignal) return existing;
 
-  const { channel, isAi } = resolveChannel({ source: utmSource, medium: utmMedium, referrer });
-  const attribution: CommerceAttribution = {
-    source: utmSource,
-    medium: utmMedium,
-    campaign: utmCampaign,
-    referrer,
-    landing_page: window.location.pathname,
-    channel,
-    is_ai_channel: isAi,
-    captured_at: new Date().toISOString(),
-  };
-  try {
-    sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution));
-  } catch {
-    /* noop */
+  let attribution = existing;
+  if (!existing || hasNewSignal) {
+    const { channel, isAi } = resolveChannel({ source: utmSource, medium: utmMedium, referrer });
+    attribution = {
+      source: utmSource,
+      medium: utmMedium,
+      campaign: utmCampaign,
+      referrer,
+      landing_page: window.location.pathname,
+      channel,
+      is_ai_channel: isAi,
+      captured_at: new Date().toISOString(),
+    };
+    writeJson(window.sessionStorage, ATTRIBUTION_KEY, attribution);
   }
+
+  // First touch — escrito uma única vez por dispositivo/navegador.
+  if (attribution && !getFirstTouch()) {
+    writeJson(window.localStorage, FIRST_TOUCH_KEY, attribution);
+  }
+
   return attribution;
 }
 
 export function getAttribution(): CommerceAttribution | null {
   if (typeof window === "undefined") return null;
+  return readJson<CommerceAttribution>(window.sessionStorage, ATTRIBUTION_KEY);
+}
+
+export function getFirstTouch(): CommerceAttribution | null {
+  if (typeof window === "undefined") return null;
+  return readJson<CommerceAttribution>(window.localStorage, FIRST_TOUCH_KEY);
+}
+
+/** Payload de atribuição enviado para o servidor (checkout/encomenda). */
+export interface AttributionPayload {
+  session_id: string | null;
+  first_touch_source: string | null;
+  first_touch_medium: string | null;
+  first_touch_campaign: string | null;
+  first_touch_channel: string | null;
+  last_touch_source: string | null;
+  last_touch_medium: string | null;
+  last_touch_campaign: string | null;
+  last_touch_channel: string | null;
+}
+
+export function attributionPayload(): AttributionPayload {
+  const first = getFirstTouch();
+  const last = getAttribution() ?? captureAttribution();
+  return {
+    session_id: currentSessionId(),
+    first_touch_source: first?.source ?? null,
+    first_touch_medium: first?.medium ?? null,
+    first_touch_campaign: first?.campaign ?? null,
+    first_touch_channel: first?.channel ?? null,
+    last_touch_source: last?.source ?? null,
+    last_touch_medium: last?.medium ?? null,
+    last_touch_campaign: last?.campaign ?? null,
+    last_touch_channel: last?.channel ?? null,
+  };
+}
+
+function currentSessionId(): string | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(ATTRIBUTION_KEY);
-    return raw ? (JSON.parse(raw) as CommerceAttribution) : null;
+    return window.localStorage.getItem(SESSION_KEY);
   } catch {
     return null;
   }
 }
 
+/** Eventos normalizados do funil AI Commerce. */
 export type CommerceEventType =
   | "visit"
+  | "commerce_page_view"
   | "product_view"
+  | "product_click"
   | "lead"
+  | "lead_created"
   | "add_to_cart"
   | "checkout_start"
-  | "purchase";
+  | "checkout_completed"
+  | "purchase"
+  | "subscription_started"
+  | "subscription_renewed"
+  | "subscription_cancelled";
+
+/** Eventos que o navegador pode registar diretamente (sem valor monetário). */
+const CLIENT_ALLOWED_EVENTS: CommerceEventType[] = [
+  "visit",
+  "commerce_page_view",
+  "product_view",
+  "product_click",
+  "add_to_cart",
+  "checkout_start",
+];
 
 export interface TrackCommerceEventInput {
   workspaceId: string;
   eventType: CommerceEventType;
   productId?: string | null;
+  variantId?: string | null;
   orderId?: string | null;
   customerId?: string | null;
   value?: number | null;
@@ -162,16 +248,39 @@ export interface TrackCommerceEventInput {
   country?: string | null;
 }
 
-/** Registo do evento no funil, com a atribuição da sessão. Falha em silêncio. */
+/**
+ * Registo do evento no funil.
+ *
+ * Eventos com valor monetário (compra, subscrição, lead, checkout concluído)
+ * NUNCA são aceites a partir do navegador: são delegados na Edge Function
+ * `commerce-track`, que valida a encomenda real e é idempotente.
+ */
 export async function trackCommerceEvent(input: TrackCommerceEventInput): Promise<void> {
   if (!input.workspaceId) return;
   if (!analyticsAllowed()) return;
+
   const attribution = getAttribution() ?? captureAttribution();
-  let sessionId: string | null = null;
-  try {
-    sessionId = localStorage.getItem(SESSION_KEY);
-  } catch {
-    /* noop */
+  const first = getFirstTouch();
+  const sessionId = currentSessionId();
+
+  // Eventos de receita/estado: validados no servidor.
+  if (!CLIENT_ALLOWED_EVENTS.includes(input.eventType)) {
+    try {
+      await supabase.functions.invoke("commerce-track", {
+        body: {
+          event_type: input.eventType,
+          workspace_id: input.workspaceId,
+          order_id: input.orderId ?? null,
+          product_id: input.productId ?? null,
+          variant_id: input.variantId ?? null,
+          session_id: sessionId,
+          attribution: attributionPayload(),
+        },
+      });
+    } catch {
+      /* tracking nunca bloqueia a UX */
+    }
+    return;
   }
 
   try {
@@ -186,11 +295,20 @@ export async function trackCommerceEvent(input: TrackCommerceEventInput): Promis
       channel: attribution?.channel ?? "direct",
       is_ai_channel: attribution?.is_ai_channel ?? false,
       product_id: input.productId ?? null,
-      order_id: input.orderId ?? null,
-      customer_id: input.customerId ?? null,
+      variant_id: input.variantId ?? null,
       session_id: sessionId,
       country: input.country ?? null,
-      value: typeof input.value === "number" ? input.value : null,
+      first_touch_source: first?.source ?? null,
+      first_touch_medium: first?.medium ?? null,
+      first_touch_campaign: first?.campaign ?? null,
+      first_touch_channel: first?.channel ?? null,
+      last_touch_source: attribution?.source ?? null,
+      last_touch_medium: attribution?.medium ?? null,
+      last_touch_campaign: attribution?.campaign ?? null,
+      last_touch_channel: attribution?.channel ?? null,
+      // valor e encomenda ficam sempre a cargo do servidor
+      value: null,
+      order_id: null,
       currency: input.currency ?? "EUR",
     });
   } catch {
