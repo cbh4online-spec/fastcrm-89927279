@@ -73,8 +73,8 @@ describe("feeds", () => {
     const good = { product, ai };
     const bad = { product: { ...product, id: "p2", name: null, images: [] }, ai };
     const result = buildFeed("openai", [good, bad] as never, {
-      workspaceId: "ws",
-      storeBaseUrl: "https://fastcrm.lovable.app/store/fastcrm",
+      baseUrl: "https://fastcrm.lovable.app",
+      workspaceSlug: "fastcrm",
       language: "pt",
       country: "PT",
     });
