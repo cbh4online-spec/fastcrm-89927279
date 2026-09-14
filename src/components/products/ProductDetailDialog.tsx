@@ -97,6 +97,8 @@ import { ProductPublicSheetTab } from "./ProductPublicSheetTab";
 import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
 import { ProductActivityLog } from "./ProductActivityLog";
 import { ProductPublishingPanel } from "./ProductPublishingPanel";
+import { ProductAICommerceTab } from "@/components/ai-commerce/ProductAICommerceTab";
+import type { CommerceProduct } from "@/lib/ai-commerce/types";
 import { useProductImages } from "@/hooks/useProductImages";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
@@ -471,7 +473,7 @@ export function ProductDetailDialog({
                     financial: "pricing", "price-history": "pricing", cycles: "pricing",
                     stock: "stock", variants: "stock",
                     analytics: "sales", usage: "sales", lifecycle: "sales", playbook: "sales",
-                    publishing: "publishing", deliverables: "publishing",
+                    publishing: "publishing", deliverables: "publishing", "ai-commerce": "publishing",
                     relations: "relations", documents: "relations",
                     audit: "audit",
                   };
@@ -519,6 +521,7 @@ export function ProductDetailDialog({
                     publishing: [
                       { value: "publishing", label: "Publicação" },
                       { value: "deliverables", label: "Entregáveis" },
+                      { value: "ai-commerce", label: "AI Commerce" },
                     ],
                     relations: [
                       { value: "relations", label: "Relações" },
@@ -844,6 +847,10 @@ export function ProductDetailDialog({
 
                   <TabsContent value="publishing" className="mt-4">
                     <ProductPublishingPanel productId={product.id} />
+                  </TabsContent>
+
+                  <TabsContent value="ai-commerce" className="mt-4">
+                    <ProductAICommerceTab product={product as unknown as CommerceProduct} />
                   </TabsContent>
 
                   <TabsContent value="relations" className="mt-4">

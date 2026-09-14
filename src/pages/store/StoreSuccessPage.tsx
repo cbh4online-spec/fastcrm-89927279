@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Package, Truck } from "lucide-react";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { trackEvent } from "@/lib/analytics";
+import { trackCommerceEvent } from "@/lib/ai-commerce/tracking";
 
 export default function StoreSuccessPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -29,7 +30,7 @@ export default function StoreSuccessPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("store_orders")
-        .select("id, order_number, status")
+        .select("id, order_number, status, total, currency, workspace_id")
         .eq("id", orderId!)
         .maybeSingle();
       if (error) throw error;
@@ -37,6 +38,18 @@ export default function StoreSuccessPage() {
     },
     enabled: !!orderId,
   });
+
+  useEffect(() => {
+    const ws = (order as any)?.workspace_id;
+    if (!ws || !order) return;
+    void trackCommerceEvent({
+      workspaceId: ws,
+      eventType: "purchase",
+      orderId: order.id,
+      value: Number((order as any).total || 0),
+      currency: (order as any).currency || "EUR",
+    });
+  }, [order]);
 
   return (
     <>

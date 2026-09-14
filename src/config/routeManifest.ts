@@ -307,6 +307,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("store-returns",   "Devoluções",     "/dashboard/store-returns",    RotateCcw,    "loja-online", { moduleSlug: "online-store" }),
   e("store-analytics",  "Analíticas",     "/dashboard/store-analytics",  BarChart3,    "loja-online", { moduleSlug: "online-store" }),
   e("store-settings",   "Definições",     "/dashboard/store-settings",   Settings,     "loja-online", { moduleSlug: "online-store" }),
+  e("ai-commerce",      "AI Commerce",    "/dashboard/ai-commerce",      Sparkles,     "loja-online", { moduleSlug: "online-store" }),
 
   // ══════════════════════════════════════════════════════════════
   // MARKETPLACE C2C

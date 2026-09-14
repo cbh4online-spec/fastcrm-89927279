@@ -120,6 +120,20 @@
       "when": 1789404355470,
       "tag": "0016_schedule_instagram_token_refresh",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789419333091,
+      "tag": "0017_ai_commerce_layer",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789420060804,
+      "tag": "0018_ai_commerce_public_read",
+      "breakpoints": true
     }
   ]
 }

@@ -6951,6 +6951,133 @@ export type Database = {
           },
         ]
       }
+      ai_commerce_events: {
+        Row: {
+          campaign: string | null
+          channel: string
+          country: string | null
+          created_at: string
+          currency: string | null
+          customer_id: string | null
+          event_type: string
+          id: string
+          is_ai_channel: boolean
+          landing_page: string | null
+          medium: string | null
+          order_id: string | null
+          product_id: string | null
+          referrer: string | null
+          session_id: string | null
+          source: string | null
+          value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign?: string | null
+          channel?: string
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_id?: string | null
+          event_type: string
+          id?: string
+          is_ai_channel?: boolean
+          landing_page?: string | null
+          medium?: string | null
+          order_id?: string | null
+          product_id?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          source?: string | null
+          value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          campaign?: string | null
+          channel?: string
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_id?: string | null
+          event_type?: string
+          id?: string
+          is_ai_channel?: boolean
+          landing_page?: string | null
+          medium?: string | null
+          order_id?: string | null
+          product_id?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          source?: string | null
+          value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_commerce_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_field_suggestions: {
         Row: {
           applied_at: string | null
@@ -22889,6 +23016,173 @@ export type Database = {
           },
           {
             foreignKeyName: "command_conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commerce_feed_runs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          errors: Json
+          feed_id: string
+          id: string
+          product_count: number
+          status: string
+          triggered_by: string | null
+          warnings: Json
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          errors?: Json
+          feed_id: string
+          id?: string
+          product_count?: number
+          status?: string
+          triggered_by?: string | null
+          warnings?: Json
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          errors?: Json
+          feed_id?: string
+          id?: string
+          product_count?: number
+          status?: string
+          triggered_by?: string | null
+          warnings?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commerce_feed_runs_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: false
+            referencedRelation: "commerce_feeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commerce_feed_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commerce_feed_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "commerce_feed_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commerce_feed_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commerce_feeds: {
+        Row: {
+          channel: string
+          country: string | null
+          created_at: string
+          created_by: string | null
+          filters: Json
+          format: string
+          id: string
+          is_active: boolean
+          language: string | null
+          last_error_count: number
+          last_generated_at: string | null
+          last_product_count: number
+          last_status: string | null
+          last_warning_count: number
+          name: string
+          public_token: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          channel: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          filters?: Json
+          format?: string
+          id?: string
+          is_active?: boolean
+          language?: string | null
+          last_error_count?: number
+          last_generated_at?: string | null
+          last_product_count?: number
+          last_status?: string | null
+          last_warning_count?: number
+          name: string
+          public_token?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          filters?: Json
+          format?: string
+          id?: string
+          is_active?: boolean
+          language?: string | null
+          last_error_count?: number
+          last_generated_at?: string | null
+          last_product_count?: number
+          last_status?: string | null
+          last_warning_count?: number
+          name?: string
+          public_token?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commerce_feeds_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commerce_feeds_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "commerce_feeds_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commerce_feeds_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces_public"
@@ -70222,6 +70516,142 @@ export type Database = {
           },
         ]
       }
+      product_ai_commerce: {
+        Row: {
+          ai_category: string | null
+          ai_commerce_enabled: boolean
+          ai_exclusions: string | null
+          ai_faq: Json
+          ai_key_features: string[] | null
+          ai_keywords: string[] | null
+          ai_last_validation: string | null
+          ai_long_description: string | null
+          ai_problem_solved: string | null
+          ai_readiness_issues: Json
+          ai_readiness_score: number
+          ai_recommendation_context: string | null
+          ai_short_description: string | null
+          ai_target_audience: string | null
+          ai_title: string | null
+          ai_use_cases: string[] | null
+          created_at: string
+          id: string
+          product_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_category?: string | null
+          ai_commerce_enabled?: boolean
+          ai_exclusions?: string | null
+          ai_faq?: Json
+          ai_key_features?: string[] | null
+          ai_keywords?: string[] | null
+          ai_last_validation?: string | null
+          ai_long_description?: string | null
+          ai_problem_solved?: string | null
+          ai_readiness_issues?: Json
+          ai_readiness_score?: number
+          ai_recommendation_context?: string | null
+          ai_short_description?: string | null
+          ai_target_audience?: string | null
+          ai_title?: string | null
+          ai_use_cases?: string[] | null
+          created_at?: string
+          id?: string
+          product_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_category?: string | null
+          ai_commerce_enabled?: boolean
+          ai_exclusions?: string | null
+          ai_faq?: Json
+          ai_key_features?: string[] | null
+          ai_keywords?: string[] | null
+          ai_last_validation?: string | null
+          ai_long_description?: string | null
+          ai_problem_solved?: string | null
+          ai_readiness_issues?: Json
+          ai_readiness_score?: number
+          ai_recommendation_context?: string | null
+          ai_short_description?: string | null
+          ai_target_audience?: string | null
+          ai_title?: string | null
+          ai_use_cases?: string[] | null
+          created_at?: string
+          id?: string
+          product_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_ai_commerce_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ai_commerce_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_ai_commerce_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ai_commerce_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_ai_commerce_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ai_commerce_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ai_commerce_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "product_ai_commerce_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ai_commerce_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_attributes: {
         Row: {
           attribute_type: Database["public"]["Enums"]["product_attribute_type"]
@@ -74679,6 +75109,7 @@ export type Database = {
       }
       products: {
         Row: {
+          activation_fee: number | null
           allow_backorder: boolean | null
           avg_cost: number | null
           b2b_published: boolean | null
@@ -74689,10 +75120,13 @@ export type Database = {
           benefits: string[] | null
           billing_frequency: string | null
           billing_type: string
+          brand: string | null
           brand_logo_url: string | null
           bundle_price_mode: string | null
           business_types: string[] | null
+          canonical_url: string | null
           category: string | null
+          checkout_url: string | null
           commercial_description: string | null
           commercial_name: string | null
           commission_base: string
@@ -74703,6 +75137,7 @@ export type Database = {
           competitor_source: string | null
           conditions: string | null
           consumption_model: string | null
+          countries: string[] | null
           created_at: string
           created_by: string
           created_channel: string | null
@@ -74718,6 +75153,8 @@ export type Database = {
           discontinued_reason: string | null
           distributor: string | null
           embedding: string | null
+          features: string[] | null
+          gtin: string | null
           height_cm: number | null
           id: string
           images: string[] | null
@@ -74736,6 +75173,7 @@ export type Database = {
           labor_hours: number | null
           labor_included_in_price: boolean | null
           labor_notes: string | null
+          languages: string[] | null
           last_cost: number | null
           last_purchase_date: string | null
           length_cm: number | null
@@ -74743,9 +75181,12 @@ export type Database = {
           location: string | null
           low_stock_threshold: number
           lowest_price_30d: number | null
+          main_benefits: string[] | null
+          manufacturer: string | null
           metadata: Json | null
           min_order_quantity: number | null
           moq: number | null
+          mpn: string | null
           name: string
           ocr_source_document_id: string | null
           operational_cost: number | null
@@ -74760,6 +75201,7 @@ export type Database = {
           pending_fields: Json | null
           price_on_request: boolean
           primary_image_index: number | null
+          problem_solved: string | null
           product_condition: string | null
           product_type: string
           promo_end_at: string | null
@@ -74776,7 +75218,10 @@ export type Database = {
           saft_import_id: string | null
           saft_product_code: string | null
           sales_playbook: Json
+          schema_type: string | null
           search_keywords: string | null
+          seo_description: string | null
+          seo_title: string | null
           setup_fee: number | null
           sheet_published: boolean | null
           sheet_slug: string | null
@@ -74797,8 +75242,10 @@ export type Database = {
           store_visibility: string
           subcategory: string | null
           tags: string[]
+          target_audience: string | null
           target_margin_mode: string
           target_margin_pct: number | null
+          tax_class: string | null
           tax_included: boolean
           tax_rate_estimate_pct: number | null
           tax_rate_mode: string
@@ -74809,6 +75256,7 @@ export type Database = {
           unit_name: string | null
           unit_of_sale: string | null
           updated_at: string
+          use_cases: string[] | null
           validity_days: number | null
           variant_attributes: Json
           variant_label: string | null
@@ -74823,6 +75271,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          activation_fee?: number | null
           allow_backorder?: boolean | null
           avg_cost?: number | null
           b2b_published?: boolean | null
@@ -74833,10 +75282,13 @@ export type Database = {
           benefits?: string[] | null
           billing_frequency?: string | null
           billing_type?: string
+          brand?: string | null
           brand_logo_url?: string | null
           bundle_price_mode?: string | null
           business_types?: string[] | null
+          canonical_url?: string | null
           category?: string | null
+          checkout_url?: string | null
           commercial_description?: string | null
           commercial_name?: string | null
           commission_base?: string
@@ -74847,6 +75299,7 @@ export type Database = {
           competitor_source?: string | null
           conditions?: string | null
           consumption_model?: string | null
+          countries?: string[] | null
           created_at?: string
           created_by: string
           created_channel?: string | null
@@ -74862,6 +75315,8 @@ export type Database = {
           discontinued_reason?: string | null
           distributor?: string | null
           embedding?: string | null
+          features?: string[] | null
+          gtin?: string | null
           height_cm?: number | null
           id?: string
           images?: string[] | null
@@ -74880,6 +75335,7 @@ export type Database = {
           labor_hours?: number | null
           labor_included_in_price?: boolean | null
           labor_notes?: string | null
+          languages?: string[] | null
           last_cost?: number | null
           last_purchase_date?: string | null
           length_cm?: number | null
@@ -74887,9 +75343,12 @@ export type Database = {
           location?: string | null
           low_stock_threshold?: number
           lowest_price_30d?: number | null
+          main_benefits?: string[] | null
+          manufacturer?: string | null
           metadata?: Json | null
           min_order_quantity?: number | null
           moq?: number | null
+          mpn?: string | null
           name: string
           ocr_source_document_id?: string | null
           operational_cost?: number | null
@@ -74904,6 +75363,7 @@ export type Database = {
           pending_fields?: Json | null
           price_on_request?: boolean
           primary_image_index?: number | null
+          problem_solved?: string | null
           product_condition?: string | null
           product_type?: string
           promo_end_at?: string | null
@@ -74920,7 +75380,10 @@ export type Database = {
           saft_import_id?: string | null
           saft_product_code?: string | null
           sales_playbook?: Json
+          schema_type?: string | null
           search_keywords?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null
           sheet_slug?: string | null
@@ -74941,8 +75404,10 @@ export type Database = {
           store_visibility?: string
           subcategory?: string | null
           tags?: string[]
+          target_audience?: string | null
           target_margin_mode?: string
           target_margin_pct?: number | null
+          tax_class?: string | null
           tax_included?: boolean
           tax_rate_estimate_pct?: number | null
           tax_rate_mode?: string
@@ -74953,6 +75418,7 @@ export type Database = {
           unit_name?: string | null
           unit_of_sale?: string | null
           updated_at?: string
+          use_cases?: string[] | null
           validity_days?: number | null
           variant_attributes?: Json
           variant_label?: string | null
@@ -74967,6 +75433,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          activation_fee?: number | null
           allow_backorder?: boolean | null
           avg_cost?: number | null
           b2b_published?: boolean | null
@@ -74977,10 +75444,13 @@ export type Database = {
           benefits?: string[] | null
           billing_frequency?: string | null
           billing_type?: string
+          brand?: string | null
           brand_logo_url?: string | null
           bundle_price_mode?: string | null
           business_types?: string[] | null
+          canonical_url?: string | null
           category?: string | null
+          checkout_url?: string | null
           commercial_description?: string | null
           commercial_name?: string | null
           commission_base?: string
@@ -74991,6 +75461,7 @@ export type Database = {
           competitor_source?: string | null
           conditions?: string | null
           consumption_model?: string | null
+          countries?: string[] | null
           created_at?: string
           created_by?: string
           created_channel?: string | null
@@ -75006,6 +75477,8 @@ export type Database = {
           discontinued_reason?: string | null
           distributor?: string | null
           embedding?: string | null
+          features?: string[] | null
+          gtin?: string | null
           height_cm?: number | null
           id?: string
           images?: string[] | null
@@ -75024,6 +75497,7 @@ export type Database = {
           labor_hours?: number | null
           labor_included_in_price?: boolean | null
           labor_notes?: string | null
+          languages?: string[] | null
           last_cost?: number | null
           last_purchase_date?: string | null
           length_cm?: number | null
@@ -75031,9 +75505,12 @@ export type Database = {
           location?: string | null
           low_stock_threshold?: number
           lowest_price_30d?: number | null
+          main_benefits?: string[] | null
+          manufacturer?: string | null
           metadata?: Json | null
           min_order_quantity?: number | null
           moq?: number | null
+          mpn?: string | null
           name?: string
           ocr_source_document_id?: string | null
           operational_cost?: number | null
@@ -75048,6 +75525,7 @@ export type Database = {
           pending_fields?: Json | null
           price_on_request?: boolean
           primary_image_index?: number | null
+          problem_solved?: string | null
           product_condition?: string | null
           product_type?: string
           promo_end_at?: string | null
@@ -75064,7 +75542,10 @@ export type Database = {
           saft_import_id?: string | null
           saft_product_code?: string | null
           sales_playbook?: Json
+          schema_type?: string | null
           search_keywords?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null
           sheet_slug?: string | null
@@ -75085,8 +75566,10 @@ export type Database = {
           store_visibility?: string
           subcategory?: string | null
           tags?: string[]
+          target_audience?: string | null
           target_margin_mode?: string
           target_margin_pct?: number | null
+          tax_class?: string | null
           tax_included?: boolean
           tax_rate_estimate_pct?: number | null
           tax_rate_mode?: string
@@ -75097,6 +75580,7 @@ export type Database = {
           unit_name?: string | null
           unit_of_sale?: string | null
           updated_at?: string
+          use_cases?: string[] | null
           validity_days?: number | null
           variant_attributes?: Json
           variant_label?: string | null
