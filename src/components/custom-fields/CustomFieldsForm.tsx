@@ -252,7 +252,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="space-y-2">
           <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Input
@@ -269,7 +269,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="space-y-2">
           <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Input
@@ -288,7 +288,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="space-y-2">
           <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Popover>
@@ -322,7 +322,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="flex items-center justify-between space-y-0 rounded-lg border p-3">
           <Label htmlFor={fieldId} className="cursor-pointer flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Switch
@@ -340,7 +340,7 @@ function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: Cus
         <div className="space-y-2">
           <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {showRequiredMarkers && field.required && <span className="text-destructive ml-1">*</span>}
             {aiTag}
           </Label>
           <Select
