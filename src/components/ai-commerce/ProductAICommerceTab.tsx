@@ -200,7 +200,19 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
         ...prev,
         seo_title: text(prev.seo_title, s.seo_title),
         seo_description: text(prev.seo_description, s.seo_description),
+        schema_type: text(prev.schema_type, s.schema_type),
+        canonical_url: text(prev.canonical_url, s.canonical_url),
+        checkout_url: text(prev.checkout_url, s.checkout_url),
+        languages:
+          Array.isArray(s.languages) && s.languages.length && (overwrite || !prev.languages.trim())
+            ? (s.languages as string[]).join(", ")
+            : prev.languages,
+        countries:
+          Array.isArray(s.countries) && s.countries.length && (overwrite || !prev.countries.trim())
+            ? (s.countries as string[]).join(", ")
+            : prev.countries,
       }));
+      setBenefits((prev) => lines(prev, s.main_benefits));
 
       toast.success("Sugestões preenchidas. Reveja e guarde.");
     } catch (error) {
