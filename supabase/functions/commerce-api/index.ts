@@ -227,12 +227,13 @@ Deno.serve(async (req) => {
   const baseUrl = Deno.env.get("PUBLIC_SITE_URL") || url.origin.replace("supabase.co", "lovable.app");
 
   try {
-    const { data: allowed, error: rlError } = await supabase.rpc("check_rate_limit", {
+    // `check_rate_limit` devolve TRUE quando o limite foi excedido.
+    const { data: isLimited, error: rlError } = await supabase.rpc("check_rate_limit", {
       p_key: `commerce-api:${clientIp(req)}`,
       p_max_requests: RATE_LIMIT_MAX,
       p_window_ms: RATE_LIMIT_WINDOW_MS,
     });
-    if (!rlError && allowed === false) {
+    if (!rlError && isLimited === true) {
       return json({ error: "rate_limited", message: "Demasiados pedidos. Tente novamente em breve." }, 429);
     }
 
