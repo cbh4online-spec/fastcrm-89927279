@@ -235,6 +235,7 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
         checkout_url: draftProduct.checkout_url,
         languages: draftProduct.languages,
         countries: draftProduct.countries,
+        main_benefits: draftProduct.main_benefits,
       });
       await save.mutateAsync({ ...draftAi, readiness } as never);
     } catch (error) {
