@@ -689,6 +689,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
             <CustomFieldsFormCreate
               ref={customFieldsRef}
               entityType="lead"
+              showRequiredMarkers={false}
             />
             
             <DialogFooter>
