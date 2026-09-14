@@ -132,7 +132,8 @@ function EditableFieldRow({
         </div>
         <Input
           ref={inputRef}
-          type={inputType}
+          type={socialNetwork ? 'text' : inputType}
+          placeholder={socialNetwork ? socialPlaceholder(socialNetwork) : undefined}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
