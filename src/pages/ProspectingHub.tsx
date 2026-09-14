@@ -7,7 +7,7 @@ import {
   Globe, Search, Users, ArrowRight, Coins,
   BarChart3, Lock, Crown, Target, Activity, History,
   Clock, Download, CheckCircle2, XCircle, Shield,
-  Rocket, Star, Info, Zap,
+  Rocket, Star, Info, Zap, Instagram,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
