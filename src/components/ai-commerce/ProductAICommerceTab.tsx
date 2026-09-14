@@ -75,6 +75,7 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
     languages: "",
     countries: "",
   });
+  const [benefits, setBenefits] = useState("");
 
   useEffect(() => {
     setForm({
