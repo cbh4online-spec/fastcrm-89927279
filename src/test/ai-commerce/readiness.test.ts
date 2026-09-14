@@ -25,6 +25,7 @@ const product: CommerceProduct = {
   checkout_url: "https://fastcrm.lovable.app/store/fastcrm/checkout",
   languages: ["pt"],
   countries: ["PT"],
+  main_benefits: ["Centraliza dados comerciais", "Automatiza follow-ups"],
 };
 
 const ai: Partial<ProductAICommerce> = {
@@ -33,7 +34,7 @@ const ai: Partial<ProductAICommerce> = {
   ai_title: "FastCRM",
   ai_short_description: "CRM comercial com automações e WhatsApp para equipas em Portugal.",
   ai_long_description:
-    "O FastCRM centraliza contactos, propostas, faturação e comunicação comercial, com automações e assistentes de IA para equipas de vendas.",
+    "O FastCRM centraliza contactos, propostas, faturação e comunicação comercial num único sistema, com automações, sequências de follow-up e assistentes de IA que ajudam equipas de vendas portuguesas a responder mais depressa, a manter o histórico completo de cada cliente e a fechar mais negócio sem trocar de ferramenta.",
   ai_category: "Software de CRM",
   ai_target_audience: "PME portuguesas com equipas comerciais.",
   ai_problem_solved: "Dispersão de dados comerciais entre folhas de cálculo e canais de mensagens.",
