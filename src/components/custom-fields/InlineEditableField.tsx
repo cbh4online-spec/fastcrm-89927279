@@ -111,6 +111,7 @@ export function InlineEditableField({
   emptyOption,
   isLink = false,
   linkType = "url",
+  socialNetwork,
   suggestion,
   onAcceptSuggestion,
   onRejectSuggestion,
