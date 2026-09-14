@@ -505,6 +505,26 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
               />
             </div>
           ))}
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="main_benefits">Benefícios (um por linha)</Label>
+            <Textarea
+              id="main_benefits"
+              rows={4}
+              value={benefits}
+              onChange={(e) => setBenefits(e.target.value)}
+              placeholder={"Ex.: Reduz o tempo de resposta\nMantém o histórico completo"}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="py-4">
+          <p className="text-sm font-medium">Feed externo</p>
+          <p className="text-sm text-muted-foreground">
+            O feed não se define aqui: crie ou ative um feed em Loja online → AI Commerce → Feeds. Depois de
+            guardar este produto, ele passa a ser incluído no próximo feed gerado.
+          </p>
         </CardContent>
       </Card>
 
