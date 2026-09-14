@@ -39,7 +39,7 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             icon={<Linkedin className="w-4 h-4" />}
             isLink={!!lead.linkedin_url}
             linkType="url"
-            placeholder="https://linkedin.com/in/..."
+            socialNetwork="linkedin"
           />
           <InlineEditableField
             label="Instagram"
@@ -50,7 +50,7 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             icon={<Instagram className="w-4 h-4" />}
             isLink={!!lead.instagram_url}
             linkType="url"
-            placeholder="https://instagram.com/..."
+            socialNetwork="instagram"
           />
           <InlineEditableField
             label="Facebook"
@@ -61,7 +61,7 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             icon={<Facebook className="w-4 h-4" />}
             isLink={!!lead.facebook_url}
             linkType="url"
-            placeholder="https://facebook.com/..."
+            socialNetwork="facebook"
           />
           <InlineEditableField
             label="Twitter/X"
@@ -72,7 +72,7 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             icon={<Twitter className="w-4 h-4" />}
             isLink={!!lead.twitter_url}
             linkType="url"
-            placeholder="https://x.com/..."
+            socialNetwork="twitter"
           />
           <InlineEditableField
             label="YouTube"
@@ -83,7 +83,7 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             icon={<Youtube className="w-4 h-4" />}
             isLink={!!lead.youtube_url}
             linkType="url"
-            placeholder="https://youtube.com/@..."
+            socialNetwork="youtube"
           />
           <InlineEditableField
             label="TikTok"
@@ -94,7 +94,7 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             icon={<TikTokIcon className="w-4 h-4" />}
             isLink={!!lead.tiktok_url}
             linkType="url"
-            placeholder="https://tiktok.com/@..."
+            socialNetwork="tiktok"
           />
           <InlineEditableField
             label="Pinterest"
@@ -105,7 +105,7 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             icon={<Pin className="w-4 h-4" />}
             isLink={!!lead.pinterest_url}
             linkType="url"
-            placeholder="https://pinterest.com/..."
+            socialNetwork="pinterest"
           />
           <InlineEditableField
             label="WhatsApp Business"
@@ -116,7 +116,7 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             icon={<MessageCircle className="w-4 h-4" />}
             isLink={!!lead.whatsapp_url}
             linkType="url"
-            placeholder="https://wa.me/..."
+            socialNetwork="whatsapp"
           />
         </div>
       </CardContent>
