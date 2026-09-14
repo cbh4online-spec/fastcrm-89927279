@@ -5,7 +5,8 @@
  * produto que a camada de IA precisa. Nunca gera preços nem dados inventados.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save, Sparkles } from "lucide-react";
+import { Loader2, Save, Sparkles, Wand2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
