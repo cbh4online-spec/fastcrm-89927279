@@ -151,6 +151,61 @@ export function ProductAICommerceTab({ product, activeFeeds = 0 }: Props) {
     [draftProduct, draftAi, activeFeeds],
   );
 
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  /** Preenche apenas campos vazios, a partir dos dados reais do produto. */
+  const handleAutofill = async (overwrite: boolean) => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-commerce-autofill", {
+        body: { productId: product.id },
+      });
+      if (error) throw error;
+      const s = (data as { suggestion?: Record<string, unknown> })?.suggestion;
+      if (!s) throw new Error("Sem sugestões");
+
+      const text = (current: string, next: unknown) =>
+        typeof next === "string" && next.trim() && (overwrite || !current.trim()) ? next.trim() : current;
+      const lines = (current: string, next: unknown) =>
+        Array.isArray(next) && next.length && (overwrite || !current.trim())
+          ? (next as string[]).join("\n")
+          : current;
+
+      setForm((f) => ({
+        ...f,
+        ai_title: text(f.ai_title, s.ai_title),
+        ai_category: text(f.ai_category, s.ai_category),
+        ai_short_description: text(f.ai_short_description, s.ai_short_description),
+        ai_long_description: text(f.ai_long_description, s.ai_long_description),
+        ai_target_audience: text(f.ai_target_audience, s.ai_target_audience),
+        ai_problem_solved: text(f.ai_problem_solved, s.ai_problem_solved),
+        ai_use_cases: lines(f.ai_use_cases, s.ai_use_cases),
+        ai_key_features: lines(f.ai_key_features, s.ai_key_features),
+        ai_keywords:
+          Array.isArray(s.ai_keywords) && s.ai_keywords.length && (overwrite || !f.ai_keywords.trim())
+            ? (s.ai_keywords as string[]).join(", ")
+            : f.ai_keywords,
+        ai_recommendation_context: text(f.ai_recommendation_context, s.ai_recommendation_context),
+        ai_exclusions: text(f.ai_exclusions, s.ai_exclusions),
+      }));
+
+      if (Array.isArray(s.ai_faq) && s.ai_faq.length) {
+        setFaq((prev) => (overwrite || prev.length === 0 ? (s.ai_faq as AIFaqEntry[]) : prev));
+      }
+      setSeo((prev) => ({
+        ...prev,
+        seo_title: text(prev.seo_title, s.seo_title),
+        seo_description: text(prev.seo_description, s.seo_description),
+      }));
+
+      toast.success("Sugestões preenchidas. Reveja e guarde.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível gerar sugestões");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       await updateProduct.mutateAsync({
