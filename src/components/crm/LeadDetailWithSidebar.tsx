@@ -22,6 +22,7 @@ import {
   User,
   Mail,
   Trash2,
+  Pencil,
   Sparkles,
 } from "lucide-react";
 import { getSourceLabel } from "@/lib/leadSourceLabels";
@@ -29,6 +30,7 @@ import { toast } from "sonner";
 import { useGenerateFieldSuggestions } from "@/hooks/useFieldSuggestions";
 import { InsightsSidebar } from "@/components/insights";
 import { ConvertLeadDialog } from "@/components/crm/ConvertLeadDialog";
+import { EditLeadDialog } from "@/components/crm/EditLeadDialog";
 import { TagsSection } from "@/components/leads/sections/TagsSection";
 import { LeadAddressSection } from "@/components/leads/sections/LeadAddressSection";
 import { NotesSection } from "@/components/leads/sections/NotesSection";
@@ -111,6 +113,7 @@ export function LeadDetailWithSidebar() {
   const [activeBusinessSub, setActiveBusinessSub] = useState("opportunities");
   const [activeDataSub, setActiveDataSub] = useState("insights");
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [emailTo, setEmailTo] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const generateSuggestions = useGenerateFieldSuggestions();
