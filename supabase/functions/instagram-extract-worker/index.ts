@@ -44,14 +44,8 @@ Deno.serve(async (req) => {
     jobId = typeof body?.jobId === "string" ? body.jobId : null;
     if (!jobId) return json({ success: false, error: "jobId em falta" }, 400);
 
-    const apiKey = Deno.env.get("RAPIDAPI_KEY");
-    if (!apiKey) {
-      await admin
-        .from("instagram_extraction_jobs")
-        .update({ status: "failed", error: "Chave da API de Instagram não configurada", updated_at: new Date().toISOString() })
-        .eq("id", jobId);
-      return json({ success: false, error: "RAPIDAPI_KEY não configurada" }, 500);
-    }
+    const apiKey = Deno.env.get("RAPIDAPI_KEY") ?? null;
+    const hasFirecrawl = !!Deno.env.get("FIRECRAWL_API_KEY");
 
     const { data: job } = await admin
       .from("instagram_extraction_jobs")
