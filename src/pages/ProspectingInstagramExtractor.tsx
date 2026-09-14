@@ -47,6 +47,7 @@ const SOURCE_LABELS: Record<ExtractionSource, string> = {
   hashtag: "Hashtag",
   location: "Localização (ID)",
   list: "Lista de @perfis",
+  web_search: "Pesquisa na web",
 };
 
 const SOURCE_PLACEHOLDER: Record<ExtractionSource, string> = {
@@ -55,6 +56,13 @@ const SOURCE_PLACEHOLDER: Record<ExtractionSource, string> = {
   hashtag: "terapiacapilar",
   location: "ID da localização do Instagram",
   list: "@perfil1, @perfil2, @perfil3",
+  web_search: "tricologia Lisboa",
+};
+
+const SOURCE_HINT: Partial<Record<ExtractionSource, string>> = {
+  web_search: "Encontra perfis públicos por pesquisa na web. Não lê listas de seguidores.",
+  followers: "Requer a API de Instagram configurada.",
+  following: "Requer a API de Instagram configurada.",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -236,6 +244,9 @@ export default function ProspectingInstagramExtractor() {
                   onChange={(e) => setTarget(e.target.value)}
                   placeholder={SOURCE_PLACEHOLDER[source]}
                 />
+              )}
+              {SOURCE_HINT[source] && (
+                <p className="text-xs text-muted-foreground">{SOURCE_HINT[source]}</p>
               )}
             </div>
 

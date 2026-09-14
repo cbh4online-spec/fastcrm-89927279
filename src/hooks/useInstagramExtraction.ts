@@ -3,7 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
-export type ExtractionSource = "followers" | "following" | "hashtag" | "location" | "list";
+export type ExtractionSource =
+  | "followers"
+  | "following"
+  | "hashtag"
+  | "location"
+  | "list"
+  | "web_search";
 export type ExtractionStatus =
   | "pending"
   | "running"

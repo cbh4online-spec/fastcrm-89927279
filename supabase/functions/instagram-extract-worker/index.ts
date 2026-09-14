@@ -8,6 +8,11 @@ import {
   parseProfile,
 } from "../_shared/instagramLooter.ts";
 import { extractContactsFromBio } from "../_shared/instagramContacts.ts";
+import {
+  firecrawlProfile,
+  firecrawlSearchUsernames,
+  type FirecrawlProfileResult,
+} from "../_shared/instagramFirecrawl.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-WORKER] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
@@ -39,14 +44,8 @@ Deno.serve(async (req) => {
     jobId = typeof body?.jobId === "string" ? body.jobId : null;
     if (!jobId) return json({ success: false, error: "jobId em falta" }, 400);
 
-    const apiKey = Deno.env.get("RAPIDAPI_KEY");
-    if (!apiKey) {
-      await admin
-        .from("instagram_extraction_jobs")
-        .update({ status: "failed", error: "Chave da API de Instagram não configurada", updated_at: new Date().toISOString() })
-        .eq("id", jobId);
-      return json({ success: false, error: "RAPIDAPI_KEY não configurada" }, 500);
-    }
+    const apiKey = Deno.env.get("RAPIDAPI_KEY") ?? null;
+    const hasFirecrawl = !!Deno.env.get("FIRECRAWL_API_KEY");
 
     const { data: job } = await admin
       .from("instagram_extraction_jobs")
@@ -59,6 +58,30 @@ Deno.serve(async (req) => {
     // Guarda de estado: pausado/cancelado/terminado não trabalha
     if (["paused", "cancelled", "completed", "failed"].includes(job.status)) {
       return json({ success: true, skipped: job.status });
+    }
+
+    // Requisitos por origem: cada origem depende do serviço que a alimenta
+    const needsApi = ["followers", "following", "hashtag", "location"].includes(job.source);
+    const missing = needsApi && !apiKey
+      ? "A recolha por seguidores, hashtag ou localização exige a API de Instagram configurada."
+      : job.source === "web_search" && !hasFirecrawl
+      ? "A pesquisa web exige o Firecrawl ligado ao projeto."
+      : !apiKey && !hasFirecrawl
+      ? "Nenhum serviço de recolha está configurado."
+      : null;
+
+    if (missing) {
+      await admin
+        .from("instagram_extraction_jobs")
+        .update({
+          status: "failed",
+          error: missing,
+          lease_until: null,
+          finished_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+      return json({ success: false, error: missing }, 200);
     }
 
     // Single-flight: só avança quem conseguir a lease
@@ -84,33 +107,41 @@ Deno.serve(async (req) => {
     // ---------- 1) Listagem (uma página por execução) ----------
     if (!listingDone && queued < job.limit_count) {
       try {
-        let payload: unknown;
-        if (job.source === "followers" || job.source === "following") {
-          const profile = parseProfile(
-            await looterGet("/profile", { username: job.target }, apiKey),
-            job.target,
-          );
-          if (!profile.userId) throw new Error("Perfil não encontrado ou privado");
-          const params: Record<string, string> = { id: profile.userId, count: "50" };
-          if (cursor) params.end_cursor = cursor;
-          payload = await looterGet(
-            job.source === "followers" ? "/followers" : "/following",
-            params,
-            apiKey,
-          );
-        } else if (job.source === "hashtag") {
-          const params: Record<string, string> = { hashtag: job.target };
-          if (cursor) params.end_cursor = cursor;
-          payload = await looterGet("/hashtag-medias", params, apiKey);
+        const room = Math.max(0, job.limit_count - queued);
+        let usernames: string[] = [];
+        let page: { cursor: string | null; hasNext: boolean } = { cursor: null, hasNext: false };
+
+        if (job.source === "web_search") {
+          // Pesquisa web (Firecrawl): uma passagem, sem paginação por cursor
+          usernames = await firecrawlSearchUsernames(job.target, room || 25);
         } else {
-          const params: Record<string, string> = { id: job.target };
-          if (cursor) params.end_cursor = cursor;
-          payload = await looterGet("/location-medias", params, apiKey);
+          let payload: unknown;
+          if (job.source === "followers" || job.source === "following") {
+            const profile = parseProfile(
+              await looterGet("/profile", { username: job.target }, apiKey!),
+              job.target,
+            );
+            if (!profile.userId) throw new Error("Perfil não encontrado ou privado");
+            const params: Record<string, string> = { id: profile.userId, count: "50" };
+            if (cursor) params.end_cursor = cursor;
+            payload = await looterGet(
+              job.source === "followers" ? "/followers" : "/following",
+              params,
+              apiKey!,
+            );
+          } else if (job.source === "hashtag") {
+            const params: Record<string, string> = { hashtag: job.target };
+            if (cursor) params.end_cursor = cursor;
+            payload = await looterGet("/hashtag-medias", params, apiKey!);
+          } else {
+            const params: Record<string, string> = { id: job.target };
+            if (cursor) params.end_cursor = cursor;
+            payload = await looterGet("/location-medias", params, apiKey!);
+          }
+          usernames = collectUsernames(payload).filter((u) => u !== job.target);
+          page = findCursor(payload);
         }
 
-        const usernames = collectUsernames(payload).filter((u) => u !== job.target);
-        const page = findCursor(payload);
-        const room = Math.max(0, job.limit_count - queued);
         const slice = usernames.slice(0, room);
 
         if (slice.length > 0) {
@@ -172,11 +203,74 @@ Deno.serve(async (req) => {
 
       for (const item of items ?? []) {
         try {
-          const profile = parseProfile(
-            await looterGet("/profile", { username: item.username }, apiKey),
-            item.username,
-          );
-          const contacts = extractContactsFromBio(profile.biography, profile.externalUrl);
+          let apiProfile: ReturnType<typeof parseProfile> | null = null;
+          let apiError: unknown = null;
+
+          if (apiKey) {
+            try {
+              apiProfile = parseProfile(
+                await looterGet("/profile", { username: item.username }, apiKey),
+                item.username,
+              );
+            } catch (error) {
+              if (error instanceof InstagramApiError && (error.fatal || error.status === 429)) {
+                throw error;
+              }
+              apiError = error;
+            }
+          }
+
+          // Reforço via Firecrawl quando a API falhou ou não trouxe dados públicos
+          let fc: FirecrawlProfileResult | null = null;
+          const needsBackup =
+            !apiProfile || (apiProfile.followers === null && !apiProfile.biography);
+          if (hasFirecrawl && needsBackup) {
+            try {
+              fc = await firecrawlProfile(item.username);
+            } catch (error) {
+              if (!apiProfile) throw error;
+            }
+          }
+
+          if (!apiProfile && !fc) throw apiError ?? new Error("Perfil não recolhido");
+
+          const profile = {
+            username: apiProfile?.username ?? fc?.username ?? item.username,
+            fullName: apiProfile?.fullName ?? fc?.fullName ?? null,
+            biography: apiProfile?.biography ?? null,
+            externalUrl: apiProfile?.externalUrl ?? null,
+            profilePicUrl: apiProfile?.profilePicUrl ?? fc?.profilePicUrl ?? null,
+            followers: apiProfile?.followers ?? fc?.followers ?? null,
+            following: apiProfile?.following ?? fc?.following ?? null,
+            posts: apiProfile?.posts ?? fc?.posts ?? null,
+            category: apiProfile?.category ?? null,
+            isVerified: apiProfile?.isVerified ?? false,
+            isBusiness: apiProfile?.isBusiness ?? false,
+            isPrivate: apiProfile?.isPrivate ?? null,
+            city: apiProfile?.city ?? null,
+            raw: {
+              api: apiProfile?.raw ?? null,
+              firecrawl: fc
+                ? {
+                    full_name: fc.fullName,
+                    followers: fc.followers,
+                    following: fc.following,
+                    posts: fc.posts,
+                  }
+                : null,
+            } as Record<string, unknown>,
+          };
+
+          let contacts = extractContactsFromBio(profile.biography, profile.externalUrl);
+          if (!contacts.email && !contacts.phone && fc?.pageText) {
+            // Só aceita sinais inequívocos do texto público da página
+            const fromPage = extractContactsFromBio(fc.pageText, null);
+            contacts = {
+              email: fromPage.email,
+              phone: fromPage.source === "whatsapp_link" ? fromPage.phone : null,
+              source: fromPage.email || fromPage.source === "whatsapp_link" ? fromPage.source : null,
+            };
+          }
 
           const { data: saved, error: saveError } = await admin
             .from("professional_prospecting_profiles")
