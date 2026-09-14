@@ -236,9 +236,10 @@ interface CustomFieldInputProps {
   value: unknown;
   onChange: (value: unknown) => void;
   isAIGenerated?: boolean;
+  showRequiredMarkers?: boolean;
 }
 
-function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: CustomFieldInputProps) {
+function CustomFieldInput({ field, value, onChange, isAIGenerated = false, showRequiredMarkers = true }: CustomFieldInputProps) {
   const fieldId = `custom-field-${field.id}`;
 
   const aiTag = isAIGenerated ? (
