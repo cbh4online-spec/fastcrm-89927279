@@ -449,6 +449,12 @@ export function LeadDetailWithSidebar() {
         }}
         secondaryActions={[
           {
+            id: "edit",
+            label: "Editar lead",
+            icon: <Pencil className="w-4 h-4" />,
+            onClick: () => setShowEditDialog(true),
+          },
+          {
             id: "ai",
             label: generateSuggestions.isPending ? "A analisar…" : "Analisar com IA",
             icon: <Sparkles className="w-4 h-4" />,
