@@ -423,7 +423,48 @@ export function InlineEditableField({
           </div>
         ) : (
           <div className="flex items-center gap-2 flex-wrap">
-            {isLink && hasValue && typeof value === 'string' ? (
+            {socialNetwork && hasValue && typeof value === 'string' ? (
+              (() => {
+                const parsed = parseSocialProfile(socialNetwork, value);
+                if (!parsed) {
+                  return (
+                    <span
+                      className="cursor-pointer text-muted-foreground hover:text-primary transition-colors"
+                      title="Perfil não reconhecido"
+                      onClick={handleStartEdit}
+                    >
+                      {value}
+                    </span>
+                  );
+                }
+                return (
+                  <span className="flex items-center gap-1.5">
+                    <a
+                      href={parsed.messageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={parsed.supportsMessaging ? 'Abrir mensagens' : 'Abrir perfil'}
+                      className="text-primary hover:underline cursor-pointer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {parsed.displayHandle}
+                    </a>
+                    {parsed.supportsMessaging && (
+                      <a
+                        href={parsed.profileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Ver perfil"
+                        className="text-muted-foreground hover:text-primary"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </span>
+                );
+              })()
+            ) : isLink && hasValue && typeof value === 'string' ? (
               <a 
                 href={getHref()}
                 target={linkType === "url" ? "_blank" : undefined}
