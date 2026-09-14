@@ -12,7 +12,9 @@ import type {
   CommerceFeed,
   CommerceFeedRun,
   CommerceProduct,
+  CommerceVariant,
   ProductAICommerce,
+  ReadinessConfigOverride,
   ReadinessResult,
 } from "@/lib/ai-commerce/types";
 
