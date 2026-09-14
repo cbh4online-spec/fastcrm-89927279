@@ -41,12 +41,53 @@ Deno.serve(async (req) => {
     logStep("User authenticated", { userId: user.id });
 
     // Parse request body
-    const { profileId, username, workspaceId } = await req.json();
+    const { profileId, leadId, username, workspaceId } = await req.json();
     if (!username || !workspaceId) {
       throw new Error("Missing required parameters: username, workspaceId");
     }
+    if (typeof username !== "string" || !/^[A-Za-z0-9._]{1,60}$/.test(username.replace(/^@/, ""))) {
+      throw new Error("Invalid username");
+    }
+    const cleanUsername = username.replace(/^@/, "");
 
-    logStep("Enriching profile", { profileId, username });
+    // Verify workspace membership (fail-closed)
+    const { data: memberData, error: memberError } = await supabaseClient
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (memberError || !memberData) {
+      logStep("Workspace access denied", { workspaceId });
+      return new Response(JSON.stringify({ success: false, error: "Sem acesso a este workspace" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+    if (memberData.role === "viewer") {
+      return new Response(JSON.stringify({ success: false, error: "Sem permissão para enriquecer dados" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
+    // When enriching a lead, confirm it belongs to this workspace
+    if (leadId) {
+      const { data: leadRow, error: leadError } = await supabaseClient
+        .from("leads")
+        .select("id, workspace_id, avatar_url")
+        .eq("id", leadId)
+        .maybeSingle();
+      if (leadError || !leadRow || leadRow.workspace_id !== workspaceId) {
+        return new Response(JSON.stringify({ success: false, error: "Lead não encontrada neste workspace" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404,
+        });
+      }
+    }
+
+    logStep("Enriching profile", { profileId, leadId, username: cleanUsername });
 
     // Get RapidAPI key
     const rapidApiKey = Deno.env.get("RAPIDAPI_KEY");
