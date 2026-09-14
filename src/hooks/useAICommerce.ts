@@ -12,7 +12,9 @@ import type {
   CommerceFeed,
   CommerceFeedRun,
   CommerceProduct,
+  CommerceVariant,
   ProductAICommerce,
+  ReadinessConfigOverride,
   ReadinessResult,
 } from "@/lib/ai-commerce/types";
 
@@ -34,7 +36,7 @@ export function useAICommerceProducts() {
     queryKey: ["ai-commerce-products", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      const [productsRes, aiRes, feedsRes] = await Promise.all([
+      const [productsRes, aiRes, feedsRes, configRes] = await Promise.all([
         supabase
           .from("products")
           .select(PRODUCT_FIELDS)
@@ -43,28 +45,95 @@ export function useAICommerceProducts() {
           .order("name"),
         supabase.from("product_ai_commerce").select("*").eq("workspace_id", workspaceId!),
         supabase.from("commerce_feeds").select("id").eq("workspace_id", workspaceId!).eq("is_active", true),
+        supabase
+          .from("ai_commerce_readiness_config")
+          .select("code, weight, severity, enabled")
+          .eq("workspace_id", workspaceId!),
       ]);
 
       if (productsRes.error) throw productsRes.error;
       if (aiRes.error) throw aiRes.error;
 
+      const products = (productsRes.data || []) as unknown as CommerceProduct[];
+
+      // Variantes ativas (preço/subscrição) — nunca inventadas.
+      let variantsByProduct = new Map<string, CommerceVariant[]>();
+      if (products.length) {
+        const { data: variants } = await supabase
+          .from("product_variants")
+          .select("id, product_id, name, sku, price_override, stock_quantity, is_active, attributes")
+          .in(
+            "product_id",
+            products.map((p) => p.id),
+          );
+        variantsByProduct = ((variants || []) as unknown as (CommerceVariant & { product_id: string })[]).reduce(
+          (acc, v) => {
+            const list = acc.get(v.product_id) || [];
+            list.push(v);
+            acc.set(v.product_id, list);
+            return acc;
+          },
+          new Map<string, CommerceVariant[]>(),
+        );
+      }
+
       const activeFeeds = feedsRes.data?.length ?? 0;
+      const overrides = (configRes.data || []) as unknown as ReadinessConfigOverride[];
       const aiMap = new Map(
         ((aiRes.data || []) as unknown as ProductAICommerce[]).map((r) => [r.product_id, r]),
       );
 
-      return ((productsRes.data || []) as unknown as CommerceProduct[]).map<AICommerceProductRow>((product) => {
+      return products.map<AICommerceProductRow>((row) => {
+        const product = { ...row, variants: variantsByProduct.get(row.id) ?? [] };
         const ai = aiMap.get(product.id) ?? null;
         return {
           product,
           ai,
-          readiness: evaluateReadiness(product, ai, { activeFeeds }),
+          readiness: evaluateReadiness(product, ai, { activeFeeds, overrides }),
         };
       });
     },
   });
 
   return query;
+}
+
+/** Configuração de readiness por workspace (pesos, severidade, critérios ativos). */
+export function useReadinessConfig() {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+  const qc = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["ai-commerce-readiness-config", workspaceId],
+    enabled: !!workspaceId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ai_commerce_readiness_config")
+        .select("code, weight, severity, enabled")
+        .eq("workspace_id", workspaceId!);
+      if (error) throw error;
+      return (data || []) as unknown as ReadinessConfigOverride[];
+    },
+  });
+
+  const save = useMutation({
+    mutationFn: async (override: ReadinessConfigOverride) => {
+      if (!workspaceId) throw new Error("Workspace indisponível");
+      const { error } = await supabase
+        .from("ai_commerce_readiness_config")
+        .upsert({ ...override, workspace_id: workspaceId } as never, { onConflict: "workspace_id,code" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ai-commerce-readiness-config", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["ai-commerce-products"] });
+      toast.success("Critério atualizado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return { ...query, save };
 }
 
 export interface AICommerceOverview {
@@ -114,13 +183,14 @@ export function useAICommerceOverview() {
 export function useProductAICommerce(productId: string | undefined) {
   const { currentWorkspace } = useWorkspace();
   return useQuery({
-    queryKey: ["product-ai-commerce", productId],
+    queryKey: ["product-ai-commerce", currentWorkspace?.id, productId],
     enabled: !!productId && !!currentWorkspace?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_ai_commerce")
         .select("*")
         .eq("product_id", productId!)
+        .eq("workspace_id", currentWorkspace!.id)
         .maybeSingle();
       if (error) throw error;
       return (data as unknown as ProductAICommerce) ?? null;
@@ -155,7 +225,7 @@ export function useSaveProductAICommerce(productId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["product-ai-commerce", productId] });
+      qc.invalidateQueries({ queryKey: ["product-ai-commerce", currentWorkspace?.id, productId] });
       qc.invalidateQueries({ queryKey: ["ai-commerce-products"] });
       toast.success("AI Commerce atualizado");
     },
@@ -166,10 +236,16 @@ export function useSaveProductAICommerce(productId: string | undefined) {
 /** Atualiza campos comerciais do produto (usado pelos CTA "Corrigir"). */
 export function useUpdateCommerceProduct(productId: string | undefined) {
   const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async (patch: Partial<CommerceProduct>) => {
       if (!productId) throw new Error("Produto indisponível");
-      const { error } = await supabase.from("products").update(patch as never).eq("id", productId);
+      if (!currentWorkspace?.id) throw new Error("Workspace indisponível");
+      const { error } = await supabase
+        .from("products")
+        .update(patch as never)
+        .eq("id", productId)
+        .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -224,9 +300,15 @@ export function useCreateCommerceFeed() {
 
 export function useUpdateCommerceFeed() {
   const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async ({ id, ...patch }: Partial<CommerceFeed> & { id: string }) => {
-      const { error } = await supabase.from("commerce_feeds").update(patch as never).eq("id", id);
+      if (!currentWorkspace?.id) throw new Error("Workspace indisponível");
+      const { error } = await supabase
+        .from("commerce_feeds")
+        .update(patch as never)
+        .eq("id", id)
+        .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -238,9 +320,15 @@ export function useUpdateCommerceFeed() {
 
 export function useDeleteCommerceFeed() {
   const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("commerce_feeds").delete().eq("id", id);
+      if (!currentWorkspace?.id) throw new Error("Workspace indisponível");
+      const { error } = await supabase
+        .from("commerce_feeds")
+        .delete()
+        .eq("id", id)
+        .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -302,6 +390,8 @@ export interface AICommerceAnalyticsFilters {
   country?: string | null;
   channel?: string | null;
   campaign?: string | null;
+  /** Modelo de atribuição: primeira ou última origem. */
+  attribution?: "last_touch" | "first_touch";
 }
 
 export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
@@ -311,9 +401,12 @@ export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
     enabled: !!currentWorkspace?.id,
     queryFn: async () => {
       const since = new Date(Date.now() - filters.days * 86400000).toISOString();
+      const model = filters.attribution ?? "last_touch";
       let q = supabase
         .from("ai_commerce_events")
-        .select("event_type, channel, is_ai_channel, value, currency, product_id, country, campaign")
+        .select(
+          "event_type, channel, is_ai_channel, value, currency, product_id, country, campaign, first_touch_channel, last_touch_channel, server_verified",
+        )
         .eq("workspace_id", currentWorkspace!.id)
         .gte("created_at", since)
         .limit(10000);
@@ -327,7 +420,11 @@ export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
 
       const map = new Map<string, ChannelPerformanceRow>();
       for (const row of data || []) {
-        const channel = (row.channel as string) || "direct";
+        const attributed =
+          model === "first_touch"
+            ? (row.first_touch_channel as string | null)
+            : (row.last_touch_channel as string | null);
+        const channel = attributed || (row.channel as string) || "direct";
         if (!map.has(channel)) {
           map.set(channel, {
             channel,
@@ -348,10 +445,15 @@ export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
           case "visit":
             entry.visits += 1;
             break;
+          case "commerce_page_view":
+            entry.visits += 1;
+            break;
           case "product_view":
+          case "product_click":
             entry.productViews += 1;
             break;
           case "lead":
+          case "lead_created":
             entry.leads += 1;
             break;
           case "add_to_cart":
@@ -361,8 +463,12 @@ export function useAICommerceAnalytics(filters: AICommerceAnalyticsFilters) {
             entry.checkouts += 1;
             break;
           case "purchase":
+          case "checkout_completed":
+          case "subscription_started":
+          case "subscription_renewed":
             entry.purchases += 1;
-            entry.revenue += Number(row.value || 0);
+            // Receita apenas de eventos validados no servidor.
+            if (row.server_verified) entry.revenue += Number(row.value || 0);
             break;
         }
       }

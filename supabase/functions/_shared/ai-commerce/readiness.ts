@@ -8,6 +8,9 @@
 import type {
   CommerceProduct,
   ProductAICommerce,
+  ReadinessCategory,
+  ReadinessCategoryScore,
+  ReadinessConfigOverride,
   ReadinessIssue,
   ReadinessResult,
 } from "./types.ts";
@@ -49,6 +52,59 @@ export interface ReadinessContext {
   activeFeeds?: number;
   /** URL pública base da loja, quando conhecida. */
   storeBaseUrl?: string | null;
+  /** Overrides configuráveis por workspace (pesos, severidade, ativação). */
+  overrides?: ReadinessConfigOverride[] | null;
+}
+
+/** Categoria de cada critério — usada no score por categoria. */
+const CATEGORY_BY_CODE: Record<string, ReadinessCategory> = {
+  name: "identification",
+  sku: "identification",
+  brand: "identification",
+  category: "identification",
+  schema: "identification",
+  price: "commercial",
+  currency: "commercial",
+  availability: "commercial",
+  checkout: "commercial",
+  public_url: "commercial",
+  short_description: "content",
+  long_description: "content",
+  main_image: "content",
+  target_audience: "content",
+  benefits: "content",
+  features: "content",
+  faq: "content",
+  recommendation_context: "content",
+  canonical: "publishing",
+  language: "publishing",
+  country: "publishing",
+  external_feed: "publishing",
+};
+
+/** Preço efetivo: base_price ou o menor preço de variante ativa. */
+export function effectivePrice(p: CommerceProduct): number | null {
+  const variantPrices = (p.variants || [])
+    .filter((v) => v?.is_active !== false && typeof v?.price_override === "number" && (v!.price_override as number) > 0)
+    .map((v) => v!.price_override as number);
+  const candidates = [
+    ...(typeof p.base_price === "number" && p.base_price > 0 ? [p.base_price] : []),
+    ...variantPrices,
+  ];
+  if (!candidates.length) return null;
+  return Math.min(...candidates);
+}
+
+/** Intervalo de preços quando há variantes com preços diferentes. */
+export function priceRange(p: CommerceProduct): { min: number; max: number } | null {
+  const prices = [
+    ...(typeof p.base_price === "number" && p.base_price > 0 ? [p.base_price] : []),
+    ...(p.variants || [])
+      .filter((v) => v?.is_active !== false && typeof v?.price_override === "number" && (v!.price_override as number) > 0)
+      .map((v) => v!.price_override as number),
+  ];
+  if (!prices.length) return null;
+  return { min: Math.min(...prices), max: Math.max(...prices) };
 }
 
 const CRITERIA: Criterion[] = [
@@ -95,12 +151,12 @@ const CRITERIA: Criterion[] = [
   {
     code: "price",
     label: "Preço",
-    message: "Preço não definido.",
+    message: "Preço não definido (nem no produto nem em variantes ativas).",
     weight: 7,
     severity: "error",
     target: "product",
     field: "base_price",
-    test: (p) => typeof p.base_price === "number" && p.base_price > 0,
+    test: (p) => effectivePrice(p) !== null,
   },
   {
     code: "currency",
@@ -281,16 +337,48 @@ const CRITERIA: Criterion[] = [
 
 export const READINESS_MAX_SCORE = CRITERIA.reduce((sum, c) => sum + c.weight, 0);
 
+/** Critérios que definem "pronto para venda" (Commerce Ready). */
+export const COMMERCE_READY_CODES = ["price", "currency", "availability", "checkout"] as const;
+
+function categoryOf(code: string): ReadinessCategory {
+  return CATEGORY_BY_CODE[code] ?? "publishing";
+}
+
+function applyOverrides(ctx: ReadinessContext): Criterion[] {
+  const map = new Map<string, ReadinessConfigOverride>();
+  for (const o of ctx.overrides || []) {
+    if (o?.code) map.set(o.code, o);
+  }
+  if (!map.size) return CRITERIA;
+  return CRITERIA.filter((c) => map.get(c.code)?.enabled !== false).map((c) => {
+    const o = map.get(c.code);
+    if (!o) return c;
+    return {
+      ...c,
+      weight: typeof o.weight === "number" && o.weight >= 0 ? o.weight : c.weight,
+      severity: o.severity === "error" || o.severity === "warning" ? o.severity : c.severity,
+    };
+  });
+}
+
 export function evaluateReadiness(
   product: CommerceProduct,
   ai: Partial<ProductAICommerce> | null,
   ctx: ReadinessContext = {},
 ): ReadinessResult {
+  const criteria = applyOverrides(ctx);
   const issues: ReadinessIssue[] = [];
   const passed: string[] = [];
+  const byCategory = new Map<ReadinessCategory, { earned: number; max: number }>();
   let earned = 0;
+  let maxWeight = 0;
 
-  for (const criterion of CRITERIA) {
+  for (const criterion of criteria) {
+    const category = categoryOf(criterion.code);
+    const bucket = byCategory.get(category) || { earned: 0, max: 0 };
+    bucket.max += criterion.weight;
+    maxWeight += criterion.weight;
+
     let ok = false;
     try {
       ok = criterion.test(product, ai, ctx);
@@ -299,6 +387,7 @@ export function evaluateReadiness(
     }
     if (ok) {
       earned += criterion.weight;
+      bucket.earned += criterion.weight;
       passed.push(criterion.code);
     } else {
       issues.push({
@@ -306,19 +395,34 @@ export function evaluateReadiness(
         label: criterion.label,
         message: criterion.message,
         severity: criterion.severity,
+        category,
         target: criterion.target,
         field: criterion.field,
       });
     }
+    byCategory.set(category, bucket);
   }
 
-  const score = Math.round((earned / READINESS_MAX_SCORE) * 100);
+  const score = maxWeight > 0 ? Math.round((earned / maxWeight) * 100) : 0;
+  const categories: ReadinessCategoryScore[] = Array.from(byCategory.entries()).map(
+    ([category, b]) => ({
+      category,
+      earned: b.earned,
+      max: b.max,
+      score: b.max > 0 ? Math.round((b.earned / b.max) * 100) : 0,
+    }),
+  );
+
   return {
     score,
     maxScore: 100,
     issues,
     passed,
     isReady: issues.every((i) => i.severity !== "error"),
+    isCommerceReady: COMMERCE_READY_CODES.every(
+      (code) => !criteria.some((c) => c.code === code) || passed.includes(code),
+    ),
+    categories,
   };
 }
 
@@ -329,8 +433,17 @@ export function readinessBand(score: number): "critical" | "low" | "good" | "exc
   return "excellent";
 }
 
+export const READINESS_CATEGORY_LABELS: Record<ReadinessCategory, string> = {
+  identification: "Identificação",
+  commercial: "Comercial",
+  content: "Conteúdo",
+  publishing: "Publicação",
+};
+
 export const READINESS_CRITERIA_LABELS = CRITERIA.map((c) => ({
   code: c.code,
   label: c.label,
   weight: c.weight,
+  severity: c.severity,
+  category: categoryOf(c.code),
 }));

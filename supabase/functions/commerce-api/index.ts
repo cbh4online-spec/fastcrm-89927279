@@ -16,6 +16,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { buildFeed, type FeedContext } from "../_shared/ai-commerce/feeds.ts";
 import type { CommerceProduct, FeedChannel, ProductAICommerce } from "../_shared/ai-commerce/types.ts";
 import { productPublicUrl } from "../_shared/ai-commerce/schemaOrg.ts";
+import { effectivePrice, priceRange } from "../_shared/ai-commerce/readiness.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_RE = /^[a-z0-9][a-z0-9-_]{0,120}$/i;
@@ -112,6 +113,17 @@ interface AiRow extends Partial<ProductAICommerce> {
   product_id: string;
 }
 
+interface VariantRow {
+  id: string;
+  product_id: string;
+  name: string | null;
+  sku: string | null;
+  price_override: number | null;
+  stock_quantity: number | null;
+  is_active: boolean | null;
+  attributes: Record<string, string> | null;
+}
+
 async function loadPublishedProducts(
   supabase: ReturnType<typeof admin>,
   workspaceId: string,
@@ -158,9 +170,27 @@ async function loadPublishedProducts(
   const { data, count, error } = await query;
   if (error) throw new Error(error.message);
 
-  const rows = ((data || []) as unknown as CommerceProduct[]).map((product) => ({
-    product,
-    ai: aiByProduct.get(product.id) ?? null,
+  const products = (data || []) as unknown as CommerceProduct[];
+
+  // Variantes ativas: fonte do preço mínimo e das opções expostas.
+  const variantsByProduct = new Map<string, VariantRow[]>();
+  if (products.length) {
+    const { data: variants } = await supabase
+      .from("product_variants")
+      .select("id, product_id, name, sku, price_override, stock_quantity, is_active, attributes, sort_order")
+      .in("product_id", products.map((p) => p.id))
+      .eq("is_active", true)
+      .order("sort_order");
+    for (const v of (variants || []) as unknown as VariantRow[]) {
+      const list = variantsByProduct.get(v.product_id) || [];
+      list.push(v);
+      variantsByProduct.set(v.product_id, list);
+    }
+  }
+
+  const rows = products.map((p) => ({
+    product: { ...p, variants: variantsByProduct.get(p.id) ?? [] } as CommerceProduct,
+    ai: aiByProduct.get(p.id) ?? null,
   }));
   return { rows, total: count ?? rows.length };
 }
@@ -185,7 +215,9 @@ function publicProduct(
     subcategory: product.subcategory ?? null,
     short_description: ai?.ai_short_description || product.short_description,
     long_description: ai?.ai_long_description || product.commercial_description || null,
-    price: product.base_price,
+    price: effectivePrice(product) ?? product.base_price,
+    price_min: priceRange(product)?.min ?? null,
+    price_max: priceRange(product)?.max ?? null,
     regular_price: product.compare_at_price ?? null,
     currency: product.currency || "EUR",
     tax_included: product.tax_included ?? null,
@@ -212,6 +244,14 @@ function publicProduct(
     languages: product.languages || [],
     condition: product.product_condition || null,
     origin_country: product.origin_country || null,
+    variants: (product.variants || []).map((v) => ({
+      id: v.id,
+      name: v.name,
+      sku: v.sku,
+      price: v.price_override ?? product.base_price,
+      currency: product.currency || "EUR",
+      attributes: v.attributes ?? {},
+    })),
   };
 }
 
@@ -221,8 +261,14 @@ Deno.serve(async (req) => {
 
   const supabase = admin();
   const url = new URL(req.url);
-  const parts = url.pathname.replace(/^\/+/, "").split("/").filter(Boolean);
-  // parts[0] === "commerce-api"
+  const rawParts = url.pathname.replace(/^\/+/, "").split("/").filter(Boolean);
+  // rawParts[0] === "commerce-api"; o segmento de versão é opcional (/v1).
+  const versioned = /^v\d+$/i.test(rawParts[1] || "");
+  const apiVersion = versioned ? rawParts[1].toLowerCase() : "v1";
+  if (versioned && apiVersion !== "v1") {
+    return json({ error: "unsupported_version", supported: ["v1"] }, 404);
+  }
+  const parts = versioned ? [rawParts[0], ...rawParts.slice(2)] : rawParts;
   const route = parts[1] || "";
   const baseUrl = Deno.env.get("PUBLIC_SITE_URL") || url.origin.replace("supabase.co", "lovable.app");
 
@@ -278,30 +324,62 @@ Deno.serve(async (req) => {
       const started = Date.now();
       const result = buildFeed(feed.channel as FeedChannel, rows, ctx);
 
+      // Um feed sem produtos válidos NUNCA substitui a última versão válida:
+      // é registado como erro e não é servido.
+      const hasValidOutput = result.productCount > 0;
+      const status = hasValidOutput ? (result.errors.length ? "partial" : "success") : "error";
+      const version = Number(feed.version ?? 1);
+
       if (feed.id) {
         await supabase.from("commerce_feed_runs").insert({
           workspace_id: workspaceId,
           feed_id: feed.id,
-          status: result.errors.length ? "error" : "success",
+          status,
           product_count: result.productCount,
+          valid_count: result.productCount,
+          rejected_count: result.rejectedCount,
+          feed_version: hasValidOutput ? version + 1 : version,
+          served: hasValidOutput,
           errors: result.errors,
           warnings: result.warnings,
           duration_ms: Date.now() - started,
         });
-        await supabase
-          .from("commerce_feeds")
-          .update({
-            last_generated_at: new Date().toISOString(),
-            last_status: result.errors.length ? "error" : "success",
-            last_product_count: result.productCount,
-            last_error_count: result.errors.length,
-            last_warning_count: result.warnings.length,
-          })
-          .eq("id", feed.id);
+
+        const patch: Record<string, unknown> = {
+          last_generated_at: new Date().toISOString(),
+          last_status: status,
+          last_error_count: result.errors.length,
+          last_warning_count: result.warnings.length,
+          last_error_message: result.summary || null,
+        };
+        if (hasValidOutput) {
+          patch.version = version + 1;
+          patch.last_product_count = result.productCount;
+          patch.last_valid_generated_at = new Date().toISOString();
+          patch.last_valid_version = version + 1;
+        }
+        await supabase.from("commerce_feeds").update(patch).eq("id", feed.id).eq("workspace_id", workspaceId);
+      }
+
+      if (!hasValidOutput) {
+        return json(
+          {
+            error: "feed_invalid",
+            message: "Nenhum produto passou a validação do canal. A última versão válida foi preservada.",
+            details: result.summary,
+            rejected_count: result.rejectedCount,
+          },
+          422,
+        );
       }
 
       return new Response(result.body, {
-        headers: { ...corsHeaders, "Content-Type": result.contentType, "Cache-Control": "public, max-age=900" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": result.contentType,
+          "Cache-Control": "public, max-age=900",
+          "X-Feed-Version": String(version + 1),
+        },
       });
     }
 
@@ -375,13 +453,32 @@ Deno.serve(async (req) => {
 
       return json({
         data: rows.map((r) => publicProduct(r.product, r.ai, { baseUrl, workspaceSlug: ws.slug })),
-        meta: { page, per_page: perPage, total, total_pages: Math.ceil(total / perPage) },
+        meta: {
+          api_version: apiVersion,
+          page,
+          per_page: perPage,
+          total,
+          total_pages: Math.ceil(total / perPage),
+        },
       });
     }
 
-    return json({ error: "not_found", routes: ["products", "products/{slug}", "products/{slug}/variants", "categories", "feed"] }, 404);
+    return json(
+      {
+        error: "not_found",
+        api_version: apiVersion,
+        routes: [
+          "v1/products",
+          "v1/products/{slug}",
+          "v1/products/{slug}/variants",
+          "v1/categories",
+          "v1/feed",
+        ],
+      },
+      404,
+    );
   } catch (error) {
     console.error("[commerce-api] erro:", error instanceof Error ? error.message : error);
-    return json({ error: "internal_error", message: "Não foi possível processar o pedido." }, 200);
+    return json({ error: "internal_error", message: "Não foi possível processar o pedido." }, 500);
   }
 });

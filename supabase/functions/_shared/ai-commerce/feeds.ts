@@ -5,6 +5,7 @@
  * As regras de cada canal externo vivem exclusivamente no respetivo adaptador,
  * nunca no modelo central de produtos.
  */
+import { effectivePrice, priceRange } from "./readiness.ts";
 import { productPublicUrl, resolveAvailability, resolveSchemaType } from "./schemaOrg.ts";
 import type { CommerceProduct, FeedChannel, FeedFormat, ProductAICommerce } from "./types.ts";
 
@@ -53,8 +54,32 @@ function availabilityLabel(product: CommerceProduct): string {
 }
 
 function priceString(product: CommerceProduct): string {
-  if (typeof product.base_price !== "number") return "";
-  return `${product.base_price.toFixed(2)} ${product.currency || "EUR"}`;
+  const price = effectivePrice(product);
+  if (price === null) return "";
+  return `${price.toFixed(2)} ${product.currency || "EUR"}`;
+}
+
+/** Variantes ativas normalizadas para os canais que as suportam. */
+function variantRecords(product: CommerceProduct): Record<string, unknown>[] {
+  return (product.variants || [])
+    .filter((v) => v && v.is_active !== false)
+    .map((v) => ({
+      id: v.id,
+      name: v.name || null,
+      sku: v.sku || null,
+      price:
+        typeof v.price_override === "number" && v.price_override > 0
+          ? Number(v.price_override.toFixed(2))
+          : typeof product.base_price === "number"
+            ? Number(product.base_price.toFixed(2))
+            : null,
+      currency: product.currency || "EUR",
+      availability:
+        typeof v.stock_quantity === "number" && v.stock_quantity <= 0
+          ? "out_of_stock"
+          : availabilityLabel(product),
+      attributes: v.attributes || {},
+    }));
 }
 
 function xmlEscape(value: unknown): string {
@@ -126,7 +151,10 @@ const openaiAdapter: ChannelAdapter = {
       category: text(ai?.ai_category) || text(product.category),
       short_description: b.description,
       long_description: text(ai?.ai_long_description) || text(product.commercial_description),
-      price: typeof product.base_price === "number" ? Number(product.base_price.toFixed(2)) : null,
+      price: effectivePrice(product),
+      price_min: priceRange(product)?.min ?? null,
+      price_max: priceRange(product)?.max ?? null,
+      variants: variantRecords(product),
       currency: product.currency || "EUR",
       availability: b.availability,
       product_url: b.link,
@@ -292,8 +320,27 @@ export interface FeedBuildResult {
   body: string;
   contentType: string;
   productCount: number;
+  /** Produtos analisados (antes da validação do canal). */
+  inputCount: number;
+  /** Produtos rejeitados por erros do canal. */
+  rejectedCount: number;
   errors: FeedIssue[];
   warnings: FeedIssue[];
+  /** Mensagem legível, ex.: "4 produtos sem preço." */
+  summary: string;
+}
+
+/** Agrupa erros por mensagem para produzir um resumo compreensível. */
+export function summarizeIssues(issues: FeedIssue[]): string {
+  if (!issues.length) return "";
+  const counts = new Map<string, number>();
+  for (const issue of issues) {
+    counts.set(issue.message, (counts.get(issue.message) || 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([message, count]) => `${count} ${count === 1 ? "produto" : "produtos"}: ${message}`)
+    .join(" · ");
 }
 
 export function buildFeed(
@@ -319,7 +366,10 @@ export function buildFeed(
     body: adapter.serialize(records, ctx),
     contentType: adapter.contentType,
     productCount: records.length,
+    inputCount: rows.length,
+    rejectedCount: rows.length - records.length,
     errors,
     warnings,
+    summary: summarizeIssues(errors),
   };
 }

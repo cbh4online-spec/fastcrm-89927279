@@ -6959,17 +6959,28 @@ export type Database = {
           created_at: string
           currency: string | null
           customer_id: string | null
+          event_id: string | null
           event_type: string
+          first_touch_campaign: string | null
+          first_touch_channel: string | null
+          first_touch_medium: string | null
+          first_touch_source: string | null
           id: string
           is_ai_channel: boolean
           landing_page: string | null
+          last_touch_campaign: string | null
+          last_touch_channel: string | null
+          last_touch_medium: string | null
+          last_touch_source: string | null
           medium: string | null
           order_id: string | null
           product_id: string | null
           referrer: string | null
+          server_verified: boolean
           session_id: string | null
           source: string | null
           value: number | null
+          variant_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -6979,17 +6990,28 @@ export type Database = {
           created_at?: string
           currency?: string | null
           customer_id?: string | null
+          event_id?: string | null
           event_type: string
+          first_touch_campaign?: string | null
+          first_touch_channel?: string | null
+          first_touch_medium?: string | null
+          first_touch_source?: string | null
           id?: string
           is_ai_channel?: boolean
           landing_page?: string | null
+          last_touch_campaign?: string | null
+          last_touch_channel?: string | null
+          last_touch_medium?: string | null
+          last_touch_source?: string | null
           medium?: string | null
           order_id?: string | null
           product_id?: string | null
           referrer?: string | null
+          server_verified?: boolean
           session_id?: string | null
           source?: string | null
           value?: number | null
+          variant_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -6999,17 +7021,28 @@ export type Database = {
           created_at?: string
           currency?: string | null
           customer_id?: string | null
+          event_id?: string | null
           event_type?: string
+          first_touch_campaign?: string | null
+          first_touch_channel?: string | null
+          first_touch_medium?: string | null
+          first_touch_source?: string | null
           id?: string
           is_ai_channel?: boolean
           landing_page?: string | null
+          last_touch_campaign?: string | null
+          last_touch_channel?: string | null
+          last_touch_medium?: string | null
+          last_touch_source?: string | null
           medium?: string | null
           order_id?: string | null
           product_id?: string | null
           referrer?: string | null
+          server_verified?: boolean
           session_id?: string | null
           source?: string | null
           value?: number | null
+          variant_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -7073,6 +7106,121 @@ export type Database = {
             foreignKeyName: "ai_commerce_events_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_commerce_readiness_config: {
+        Row: {
+          code: string
+          created_at: string
+          enabled: boolean
+          id: string
+          severity: string
+          updated_at: string
+          weight: number
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          severity?: string
+          updated_at?: string
+          weight?: number
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          severity?: string
+          updated_at?: string
+          weight?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_commerce_readiness_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_readiness_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_readiness_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_readiness_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_commerce_settings: {
+        Row: {
+          channel_status: Json
+          created_at: string
+          flags: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          channel_status?: Json
+          created_at?: string
+          flags?: Json
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          channel_status?: Json
+          created_at?: string
+          flags?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_commerce_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces_public"
             referencedColumns: ["id"]
           },
@@ -23029,10 +23177,14 @@ export type Database = {
           duration_ms: number | null
           errors: Json
           feed_id: string
+          feed_version: number | null
           id: string
           product_count: number
+          rejected_count: number
+          served: boolean
           status: string
           triggered_by: string | null
+          valid_count: number
           warnings: Json
           workspace_id: string
         }
@@ -23041,10 +23193,14 @@ export type Database = {
           duration_ms?: number | null
           errors?: Json
           feed_id: string
+          feed_version?: number | null
           id?: string
           product_count?: number
+          rejected_count?: number
+          served?: boolean
           status?: string
           triggered_by?: string | null
+          valid_count?: number
           warnings?: Json
           workspace_id: string
         }
@@ -23053,10 +23209,14 @@ export type Database = {
           duration_ms?: number | null
           errors?: Json
           feed_id?: string
+          feed_version?: number | null
           id?: string
           product_count?: number
+          rejected_count?: number
+          served?: boolean
           status?: string
           triggered_by?: string | null
+          valid_count?: number
           warnings?: Json
           workspace_id?: string
         }
@@ -23110,13 +23270,17 @@ export type Database = {
           is_active: boolean
           language: string | null
           last_error_count: number
+          last_error_message: string | null
           last_generated_at: string | null
           last_product_count: number
           last_status: string | null
+          last_valid_generated_at: string | null
+          last_valid_version: number | null
           last_warning_count: number
           name: string
           public_token: string
           updated_at: string
+          version: number
           workspace_id: string
         }
         Insert: {
@@ -23130,13 +23294,17 @@ export type Database = {
           is_active?: boolean
           language?: string | null
           last_error_count?: number
+          last_error_message?: string | null
           last_generated_at?: string | null
           last_product_count?: number
           last_status?: string | null
+          last_valid_generated_at?: string | null
+          last_valid_version?: number | null
           last_warning_count?: number
           name: string
           public_token?: string
           updated_at?: string
+          version?: number
           workspace_id: string
         }
         Update: {
@@ -23150,13 +23318,17 @@ export type Database = {
           is_active?: boolean
           language?: string | null
           last_error_count?: number
+          last_error_message?: string | null
           last_generated_at?: string | null
           last_product_count?: number
           last_status?: string | null
+          last_valid_generated_at?: string | null
+          last_valid_version?: number | null
           last_warning_count?: number
           name?: string
           public_token?: string
           updated_at?: string
+          version?: number
           workspace_id?: string
         }
         Relationships: [
@@ -86930,6 +87102,7 @@ export type Database = {
       store_orders: {
         Row: {
           abandoned_cart_id: string | null
+          attribution_session_id: string | null
           billing_address: Json | null
           campaign_id: string | null
           company_id: string | null
@@ -86943,10 +87116,18 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           discount_amount: number | null
+          first_touch_campaign: string | null
+          first_touch_channel: string | null
+          first_touch_medium: string | null
+          first_touch_source: string | null
           gift_card_id: string | null
           gift_card_reserved_amount: number | null
           id: string
           items: Json
+          last_touch_campaign: string | null
+          last_touch_channel: string | null
+          last_touch_medium: string | null
+          last_touch_source: string | null
           notes: string | null
           opportunity_id: string | null
           order_number: string
@@ -86977,6 +87158,7 @@ export type Database = {
         }
         Insert: {
           abandoned_cart_id?: string | null
+          attribution_session_id?: string | null
           billing_address?: Json | null
           campaign_id?: string | null
           company_id?: string | null
@@ -86990,10 +87172,18 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           discount_amount?: number | null
+          first_touch_campaign?: string | null
+          first_touch_channel?: string | null
+          first_touch_medium?: string | null
+          first_touch_source?: string | null
           gift_card_id?: string | null
           gift_card_reserved_amount?: number | null
           id?: string
           items?: Json
+          last_touch_campaign?: string | null
+          last_touch_channel?: string | null
+          last_touch_medium?: string | null
+          last_touch_source?: string | null
           notes?: string | null
           opportunity_id?: string | null
           order_number: string
@@ -87024,6 +87214,7 @@ export type Database = {
         }
         Update: {
           abandoned_cart_id?: string | null
+          attribution_session_id?: string | null
           billing_address?: Json | null
           campaign_id?: string | null
           company_id?: string | null
@@ -87037,10 +87228,18 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           discount_amount?: number | null
+          first_touch_campaign?: string | null
+          first_touch_channel?: string | null
+          first_touch_medium?: string | null
+          first_touch_source?: string | null
           gift_card_id?: string | null
           gift_card_reserved_amount?: number | null
           id?: string
           items?: Json
+          last_touch_campaign?: string | null
+          last_touch_channel?: string | null
+          last_touch_medium?: string | null
+          last_touch_source?: string | null
           notes?: string | null
           opportunity_id?: string | null
           order_number?: string
