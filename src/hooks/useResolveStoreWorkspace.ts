@@ -35,6 +35,17 @@ export function useResolveStoreWorkspace(param: string | undefined) {
         return { workspaceId: storeData.workspace_id, slug: storeData.store_slug || param };
       }
 
+      // Fallback: slug do workspace (links antigos/partilhados continuam a abrir)
+      const { data: wsData } = await (supabase as any)
+        .from("public_workspaces")
+        .select("id, slug")
+        .eq("slug", param)
+        .maybeSingle();
+
+      if (wsData?.id) {
+        return { workspaceId: wsData.id, slug: wsData.slug || param };
+      }
+
       // Fallback: not found
       return null;
     },
