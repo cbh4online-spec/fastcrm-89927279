@@ -62,14 +62,24 @@ serve(async (req) => {
     if (productError || !product) return json({ error: "not_found" }, 404);
 
     // Publicação externa: URLs derivadas da loja real (nunca inventadas).
+    // A rota pública resolve primeiro store_settings.store_slug; só depois workspaces.slug.
     let workspaceSlug: string | null = null;
     if (product.workspace_id) {
-      const { data: ws } = await supabase
-        .from("workspaces")
-        .select("slug")
-        .eq("id", product.workspace_id)
+      const { data: storeSettings } = await supabase
+        .from("store_settings")
+        .select("store_slug")
+        .eq("workspace_id", product.workspace_id)
         .maybeSingle();
-      workspaceSlug = (ws?.slug as string | null) ?? null;
+      workspaceSlug = (storeSettings?.store_slug as string | null) ?? null;
+
+      if (!workspaceSlug) {
+        const { data: ws } = await supabase
+          .from("workspaces")
+          .select("slug")
+          .eq("id", product.workspace_id)
+          .maybeSingle();
+        workspaceSlug = (ws?.slug as string | null) ?? null;
+      }
     }
 
     const storeSlug = (product.store_slug as string | null) ?? null;
