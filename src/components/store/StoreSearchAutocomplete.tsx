@@ -186,6 +186,11 @@ export function StoreSearchAutocomplete({ workspaceSlug, onSearch, onClose }: St
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{product.name}</p>
+                         {(product.matched_reference || product.sku) && (
+                           <p className="text-[11px] font-mono text-muted-foreground truncate">
+                             Ref. {product.matched_reference || product.sku}
+                           </p>
+                         )}
                         <p className="text-xs text-muted-foreground">€{product.base_price.toFixed(2)} <StoreVatLabel /></p>
                       </div>
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />

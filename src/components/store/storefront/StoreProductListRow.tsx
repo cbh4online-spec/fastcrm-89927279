@@ -65,7 +65,9 @@ export function StoreProductListRow({
             <p className="mt-1 line-clamp-2 text-xs sm:text-sm text-muted-foreground">{product.short_description}</p>
           )}
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-            {product.sku && <span className="font-mono">{product.sku}</span>}
+            {(product.matched_reference || product.sku) && (
+              <span className="font-mono">Ref. {product.matched_reference || product.sku}</span>
+            )}
             {rating !== null && (
               <span className="inline-flex items-center gap-0.5">
                 <Star className="h-3 w-3 fill-amber-400 text-amber-400" />

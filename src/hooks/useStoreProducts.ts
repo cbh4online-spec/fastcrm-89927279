@@ -1,5 +1,10 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  buildStorefrontProductSearchFilter,
+  getMatchingProductReference,
+  normalizeStorefrontSearchTerm,
+} from "@/lib/store/productSearch";
 
 export interface StoreProduct {
   id: string;
@@ -18,6 +23,9 @@ export interface StoreProduct {
   primary_image_index: number | null;
   benefits: string[] | null;
   sku: string | null;
+  barcode?: string | null;
+  saft_product_code?: string | null;
+  matched_reference?: string | null;
   stock_status: string | null;
   stock_quantity: number | null;
   track_stock: boolean | null;
@@ -62,13 +70,43 @@ interface UseStoreProductsOptions {
   sortBy?: "price_asc" | "price_desc" | "name" | "newest";
 }
 
+type VariantSearchMatch = { product_id: string; sku: string | null };
+
+async function findVariantReferences(workspaceId: string | undefined, search?: string): Promise<VariantSearchMatch[]> {
+  const normalizedSearch = normalizeStorefrontSearchTerm(search);
+  if (!workspaceId || !normalizedSearch) return [];
+
+  const { data, error } = await supabase
+    .from("product_variants")
+    .select("product_id, sku")
+    .eq("workspace_id", workspaceId)
+    .eq("is_active", true)
+    .ilike("sku", `%${normalizedSearch}%`)
+    .limit(100);
+
+  if (error) throw error;
+  return (data || []) as VariantSearchMatch[];
+}
+
+function addMatchedReferences(products: StoreProduct[], search: string | undefined, variants: VariantSearchMatch[]) {
+  const variantByProduct = new Map(variants.map((variant) => [variant.product_id, variant.sku]));
+  return products.map((product) => ({
+    ...product,
+    matched_reference: search
+      ? getMatchingProductReference(product, search, variantByProduct.get(product.id))
+      : null,
+  }));
+}
+
 export function useStoreProducts({ workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy }: UseStoreProductsOptions) {
   return useQuery({
     queryKey: ["store-products", workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy],
     queryFn: async () => {
+      const normalizedSearch = normalizeStorefrontSearchTerm(search);
+      const variantMatches = await findVariantReferences(workspaceId, normalizedSearch);
       let query = supabase
         .from("products")
-        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
+        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
         .eq("status", "active");
@@ -79,8 +117,8 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
         query = query.eq("category", category);
       }
 
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,short_description.ilike.%${search}%,sku.ilike.%${search}%`);
+      if (normalizedSearch) {
+        query = query.or(buildStorefrontProductSearchFilter(normalizedSearch, variantMatches.map((match) => match.product_id)));
       }
 
       if (featured) {
@@ -107,7 +145,7 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as StoreProduct[];
+      return addMatchedReferences((data || []) as StoreProduct[], normalizedSearch, variantMatches);
     },
     enabled: !!workspaceId,
   });
@@ -119,9 +157,11 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
   return useInfiniteQuery({
     queryKey: ["store-products-infinite", workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy],
     queryFn: async ({ pageParam = 0 }) => {
+      const normalizedSearch = normalizeStorefrontSearchTerm(search);
+      const variantMatches = await findVariantReferences(workspaceId, normalizedSearch);
       let query = supabase
         .from("products")
-        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
+        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
         .eq("status", "active");
@@ -132,8 +172,8 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
         query = query.eq("category", category);
       }
 
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,short_description.ilike.%${search}%,sku.ilike.%${search}%`);
+      if (normalizedSearch) {
+        query = query.or(buildStorefrontProductSearchFilter(normalizedSearch, variantMatches.map((match) => match.product_id)));
       }
 
       if (featured) {
@@ -163,7 +203,7 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as StoreProduct[];
+      return addMatchedReferences((data || []) as StoreProduct[], normalizedSearch, variantMatches);
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
