@@ -28,17 +28,19 @@ export default defineConfig(({ mode }) => ({
     mcpPlugin(),
     VitePWA({
 
-      registerType: "autoUpdate",
+      // A nova versão fica em espera até a sessão terminar, evitando misturar
+      // o HTML antigo com chunks de uma publicação mais recente.
+      registerType: "prompt",
       devOptions: {
         enabled: false,
       },
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        // Garante que uma nova publicação substitui de imediato o app shell em cache.
+        // Remove caches antigos quando a próxima versão for ativada em segurança.
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
+        clientsClaim: false,
+        skipWaiting: false,
       },
       manifest: {
         name: "FastCRM",

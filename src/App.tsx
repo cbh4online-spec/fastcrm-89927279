@@ -1,11 +1,10 @@
-const BUILD_VERSION = "v20260313-2130";
+const BUILD_VERSION = "v20260916-1505";
 
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { NuqsAdapter } from "nuqs/adapters/react";
 import { HelmetProvider } from "react-helmet-async";
@@ -14,14 +13,30 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 
-import { GTMProvider, MetaPixelLoader } from "./modules/growth-seo";
+import { GTMProvider } from "./modules/growth-seo/components/tracking/GTMProvider";
+import { MetaPixelLoader } from "./modules/growth-seo/components/tracking/MetaPixelLoader";
 
 // Standalone route modules
-import { StoreRoutes } from "@/routes/StoreRoutes";
-import { ClientPortalRoutes } from "@/routes/ClientPortalRoutes";
-import { PartnerRoutes } from "@/routes/PartnerRoutes";
-import CRMRoutesV2 from "@/routes/CRMRoutes";
 import { FastClubPortalRoutes } from "@/routes/FastClubRoutes";
+
+const StoreRoutes = lazy(() =>
+  import("@/routes/StoreRoutes").then((module) => ({ default: module.StoreRoutes })),
+);
+const ClientPortalRoutes = lazy(() =>
+  import("@/routes/ClientPortalRoutes").then((module) => ({ default: module.ClientPortalRoutes })),
+);
+const PartnerRoutes = lazy(() =>
+  import("@/routes/PartnerRoutes").then((module) => ({ default: module.PartnerRoutes })),
+);
+const CRMRoutesV2 = lazy(() => import("@/routes/CRMRoutes"));
+const FastCRMLanding = lazy(() => import("@/pages/FastCRMLanding"));
+const ReactQueryDevtools = import.meta.env.DEV
+  ? lazy(() =>
+      import("@tanstack/react-query-devtools").then((module) => ({
+        default: module.ReactQueryDevtools,
+      })),
+    )
+  : null;
 
 // Lazy-loaded pages (top-level public only)
 const PublicFunnelPage = lazy(() => import("@/pages/PublicFunnelPage"));
@@ -129,6 +144,10 @@ const App = () => (
             <ChunkErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                {/* Public home stays independent from the authenticated CRM bundle. */}
+                <Route path="/" element={<FastCRMLanding />} />
+                <Route path="/fastcrm" element={<FastCRMLanding />} />
+
                 {/* PWA install helper */}
                 <Route path="/install" element={<InstallPage />} />
 
@@ -260,7 +279,11 @@ const App = () => (
         </BrowserRouter>
         </NuqsAdapter>
       </TooltipProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {ReactQueryDevtools ? (
+        <Suspense fallback={null}>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </Suspense>
+      ) : null}
     </QueryClientProvider>
     </ThemeProvider>
   <div data-build-version={BUILD_VERSION} style={{ display: 'none' }} />

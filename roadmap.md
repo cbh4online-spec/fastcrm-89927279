@@ -12,3 +12,8 @@
 
 ## Loja pública (pedido 2026-09-16)
 - [x] Pesquisar artigos por SKU, código de barras, código SAF-T e SKU de variante, com isolamento por workspace.
+
+## Estabilidade e desempenho (pedido 2026-09-16)
+- [x] Corrigir recuperação de chunks desatualizados e evitar ciclos de reload da PWA.
+- [x] Reduzir o carregamento inicial com rotas principais e ferramentas de desenvolvimento lazy.
+- [x] Validar landing, autenticação e loja em desktop; landing também validada em mobile.
