@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStoreProducts, type StoreProduct } from "@/hooks/useStoreProducts";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { StoreVisualSearch } from "@/components/store/StoreVisualSearch";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
