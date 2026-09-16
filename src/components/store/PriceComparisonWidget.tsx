@@ -45,9 +45,14 @@ export function PriceComparisonWidget({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <BarChart3 className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">Comparar Preços</h3>
+        {competitorRefs.length > 0 && (
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+            Melhor preço
+          </Badge>
+        )}
       </div>
 
       {/* Internal comparison */}
