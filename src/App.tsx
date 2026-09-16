@@ -1,4 +1,4 @@
-const BUILD_VERSION = "v20260313-2130";
+const BUILD_VERSION = "v20260916-1505";
 
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,7 +13,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 
-import { GTMProvider, MetaPixelLoader } from "./modules/growth-seo";
+import { GTMProvider } from "./modules/growth-seo/components/tracking/GTMProvider";
+import { MetaPixelLoader } from "./modules/growth-seo/components/tracking/MetaPixelLoader";
 
 // Standalone route modules
 import { FastClubPortalRoutes } from "@/routes/FastClubRoutes";
