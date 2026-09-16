@@ -19,8 +19,8 @@ describe("computeUndercutPrice", () => {
   });
 
   it("desce apenas até ao limite da margem mínima", () => {
-    // custo 80 -> líquido mínimo 88.89 -> bruto mínimo ~109.33
-    const r = computeUndercutPrice({ ...base, currentPrice: 130, competitorLowest: 115, totalCost: 80 });
+    // custo 83.5 -> líquido mínimo 92.78 -> bruto mínimo ~114.12 (acima do alvo 113.85)
+    const r = computeUndercutPrice({ ...base, currentPrice: 130, competitorLowest: 115, totalCost: 83.5 });
     expect(r.shouldApply).toBe(true);
     expect(r.limitedByMargin).toBe(true);
     expect(r.reason).toBe("limited_by_margin");
