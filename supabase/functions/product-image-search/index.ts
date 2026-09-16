@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (!Deno.env.get('FIRECRAWL_API_KEY')) {
+    if (!Deno.env.get('FIRECRAWL_API_KEY') && !pageUrl) {
       return new Response(
         JSON.stringify({
           success: false,
