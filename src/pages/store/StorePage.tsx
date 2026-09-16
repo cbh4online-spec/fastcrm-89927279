@@ -39,8 +39,15 @@ import { Loader2 } from "lucide-react";
 
 export default function StorePage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const queryParam = searchParams.get("q") || "";
+  const [search, setSearch] = useState(queryParam);
   const [filters, setFilters] = useState<StoreFilters>({});
+
+  // Mantém a pesquisa sincronizada com o endereço (?q=)
+  useEffect(() => {
+    setSearch(queryParam);
+  }, [queryParam]);
 
   const { workspaceId: wsId, slug: wsSlug, isLoading: isResolving } = useResolveStoreWorkspace(workspaceSlug);
 
