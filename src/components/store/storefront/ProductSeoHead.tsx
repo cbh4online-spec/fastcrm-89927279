@@ -56,7 +56,7 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
 
   // Fichas incompletas (sem descrição própria ou sem imagem) não devem ser
   // indexadas nem emitir dados estruturados de produto — evita thin content.
-  const hasDescription = !!product.short_description && product.short_description.trim().length >= 40;
+  const hasDescription = description !== product.name && description.trim().length >= 40;
   const isComplete = hasDescription && !!primaryImage;
 
 
