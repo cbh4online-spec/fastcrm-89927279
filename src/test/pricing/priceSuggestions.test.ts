@@ -72,7 +72,7 @@ describe("buildPriceSuggestion", () => {
 
   it("marca sugestões limitadas pela margem mínima", () => {
     const { draft } = buildPriceSuggestion(
-      { ...product, base_price: 500, direct_cost: 380, operational_cost: 0 },
+      { ...product, base_price: 500, direct_cost: 300, operational_cost: 0 },
       [{ price: 490, source_name: "worten.pt", expires_at: future }],
       { undercutPct: 20, minMarginPct: 10, maxDropPct: 50, now },
     );
