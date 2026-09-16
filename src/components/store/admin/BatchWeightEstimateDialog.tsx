@@ -64,7 +64,8 @@ export function BatchWeightEstimateDialog({ open, onOpenChange, missingWeightCou
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success(`${data.data.updated} produtos atualizados com peso estimado pela IA`);
     } catch (err) {
-      toast.error("Erro ao estimar pesos em massa");
+      const message = err instanceof Error ? err.message : "";
+      toast.error(message ? `Erro ao estimar pesos: ${message}` : "Erro ao estimar pesos em massa");
       console.error(err);
     } finally {
       setRunning(false);
