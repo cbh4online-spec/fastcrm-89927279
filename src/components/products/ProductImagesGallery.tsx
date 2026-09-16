@@ -83,6 +83,8 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [isAddingUrls, setIsAddingUrls] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: images = [], isLoading } = useProductImages(product.id);
