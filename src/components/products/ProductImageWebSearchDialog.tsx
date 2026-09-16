@@ -147,14 +147,29 @@ export function ProductImageWebSearchDialog({
       }));
 
       // O download é feito no servidor (o browser é bloqueado por CORS na origem)
-      const { data, error } = await supabase.functions.invoke("product-images-import-url", {
-        body: { items },
-        headers: { "X-Workspace-Id": currentWorkspace.id },
-      });
-      if (error) throw new Error(error.message || "Falha ao importar imagens");
+      // Em lotes de 5 para não exceder limites nem tempos de execução.
+      const imported: Array<{ url: string; public_url: string }> = [];
+      const failed: Array<{ url: string; reason: string }> = [];
 
-      const imported = (data?.imported ?? []) as Array<{ url: string; public_url: string }>;
-      const failed = (data?.failed ?? []) as Array<{ url: string; reason: string }>;
+      for (let i = 0; i < items.length; i += 5) {
+        const chunk = items.slice(i, i + 5);
+        const { data, error } = await supabase.functions.invoke("product-images-import-url", {
+          body: { items: chunk },
+          headers: { "X-Workspace-Id": currentWorkspace.id },
+        });
+        if (error) {
+          const details = await (error as { context?: { text?: () => Promise<string> } })
+            .context?.text?.()
+            .catch(() => undefined);
+          console.error("product-images-import-url falhou:", details ?? error.message);
+          chunk.forEach((c) =>
+            failed.push({ url: c.url, reason: "Serviço de importação indisponível" }),
+          );
+          continue;
+        }
+        imported.push(...((data?.imported ?? []) as typeof imported));
+        failed.push(...((data?.failed ?? []) as typeof failed));
+      }
 
       if (imported.length === 0) {
         const reason = failed[0]?.reason || data?.message || "origem indisponível";
