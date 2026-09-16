@@ -182,6 +182,30 @@ export function useStoreAdminProducts(search: string) {
     toast.success(!current ? "Preço sob consulta ativado" : "Preço visível na loja");
   };
 
+  const bulkSetPublished = useMutation({
+    mutationFn: async ({ ids, published }: { ids: string[]; published: boolean }) => {
+      if (!currentWorkspace?.id || ids.length === 0) return 0;
+      const chunkSize = 200;
+      let updated = 0;
+      for (let i = 0; i < ids.length; i += chunkSize) {
+        const chunk = ids.slice(i, i + chunkSize);
+        const { error, count } = await supabase
+          .from("products")
+          .update({ store_published: published }, { count: "exact" })
+          .eq("workspace_id", currentWorkspace.id)
+          .in("id", chunk);
+        if (error) throw error;
+        updated += count ?? chunk.length;
+      }
+      return updated;
+    },
+    onSuccess: (updated, { published }) => {
+      queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
+      toast.success(published ? `${updated} produtos publicados na loja` : `${updated} produtos removidos da loja`);
+    },
+    onError: (error: any) => toast.error("Erro na publicação em massa: " + error.message),
+  });
+
   const moveOrder = (id: string, currentOrder: number | null, direction: "up" | "down") => {
     const newOrder = (currentOrder || 0) + (direction === "up" ? -1 : 1);
     updateProduct.mutate({ id, store_sort_order: Math.max(0, newOrder) });
