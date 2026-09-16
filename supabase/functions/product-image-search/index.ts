@@ -54,10 +54,15 @@ function absolutize(raw: string, base: string): string | null {
   }
 }
 
-/** Extrai URLs de imagem do HTML (src, data-src, data-original, srcset). */
+/** Remove sufixos de miniatura (_thumb, _thumb2, -small…) para obter a original. */
+function upgradeThumb(url: string): string {
+  return url.replace(/([._-])(thumb|thumbnail|small|mini)\d*(?=\.[a-z0-9]+(\?|$))/i, '')
+}
+
+/** Extrai URLs de imagem do HTML (src, data-src, data-original, srcset, href). */
 function extractImageUrlsFromHtml(html: string, base: string): string[] {
   const out: string[] = []
-  const attrRe = /(?:src|data-src|data-original|data-lazy|data-image|content)\s*=\s*["']([^"']+)["']/gi
+  const attrRe = /(?:src|data-src|data-original|data-lazy|data-image|data-zoom-image|data-large|content|href)\s*=\s*["']([^"']+)["']/gi
   let m: RegExpExecArray | null
   while ((m = attrRe.exec(html)) !== null) {
     const abs = absolutize(m[1], base)
