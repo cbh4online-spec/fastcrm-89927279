@@ -286,18 +286,34 @@ export function useStoreCategories(workspaceId: string) {
       // Fetch product counts per category (only published + active)
       const { data: products, error: pErr } = await supabase
         .from("products")
-        .select("store_category_id")
+        .select("store_category_id, category")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
-        .eq("status", "active")
-        .not("store_category_id", "is", null);
+        .eq("status", "active");
 
       if (pErr) throw pErr;
 
+      const normalize = (value: string) =>
+        value
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .trim();
+
+      // Fallback: produtos ainda sem ligação contam pelo nome da categoria
+      const idByName = new Map<string, string>();
+      ((cats || []) as StoreCategory[]).forEach((c) => {
+        if (c.name) idByName.set(normalize(c.name), c.id);
+        if ((c as any).slug) idByName.set(normalize((c as any).slug), c.id);
+      });
+
       const counts: Record<string, number> = {};
       (products || []).forEach((p: any) => {
-        if (p.store_category_id) {
-          counts[p.store_category_id] = (counts[p.store_category_id] || 0) + 1;
+        const id =
+          p.store_category_id ||
+          (p.category ? idByName.get(normalize(p.category)) : undefined);
+        if (id) {
+          counts[id] = (counts[id] || 0) + 1;
         }
       });
 
