@@ -1,9 +1,11 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck, MessageSquareText } from "lucide-react";
+import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck, MessageSquareText, Store, EyeOff } from "lucide-react";
 import type { ProductStoreData } from "./useStoreAdminProducts";
 
 interface CatalogProductsTableProps {
@@ -14,6 +16,8 @@ interface CatalogProductsTableProps {
   onTogglePriceOnRequest: (id: string, current: boolean) => void;
   onMoveOrder: (id: string, currentOrder: number | null, direction: "up" | "down") => void;
   onEdit: (productId: string) => void;
+  onBulkPublish?: (ids: string[], published: boolean) => void;
+  bulkPending?: boolean;
 }
 
 function ProductIndicators({ product }: { product: ProductStoreData }) {
@@ -65,13 +69,55 @@ function ProductIndicators({ product }: { product: ProductStoreData }) {
   );
 }
 
-export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit }: CatalogProductsTableProps) {
+export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit, onBulkPublish, bulkPending }: CatalogProductsTableProps) {
   const navigate = useNavigate();
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  const selectedIds = useMemo(() => products.filter((p) => selected[p.id]).map((p) => p.id), [products, selected]);
+  const allSelected = products.length > 0 && selectedIds.length === products.length;
+
+  const toggleAll = () => {
+    if (allSelected) { setSelected({}); return; }
+    const next: Record<string, boolean> = {};
+    products.forEach((p) => { next[p.id] = true; });
+    setSelected(next);
+  };
+
+  const toggleOne = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const runBulk = (published: boolean) => {
+    if (!onBulkPublish || selectedIds.length === 0) return;
+    onBulkPublish(selectedIds, published);
+    setSelected({});
+  };
+
   return (
-    <div className="border rounded-lg">
+    <div className="space-y-3">
+      {onBulkPublish && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+          <span className="text-sm text-muted-foreground">
+            {selectedIds.length > 0 ? `${selectedIds.length} selecionado${selectedIds.length > 1 ? "s" : ""}` : "Selecione produtos para publicar em massa"}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" className="gap-2" disabled={selectedIds.length === 0 || bulkPending} onClick={() => runBulk(true)}>
+              {bulkPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Store className="h-3.5 w-3.5" />} Publicar na loja
+            </Button>
+            <Button size="sm" variant="outline" className="gap-2" disabled={selectedIds.length === 0 || bulkPending} onClick={() => runBulk(false)}>
+              <EyeOff className="h-3.5 w-3.5" /> Despublicar
+            </Button>
+            <Button size="sm" variant="ghost" disabled={products.length === 0 || bulkPending} onClick={toggleAll}>
+              {allSelected ? "Limpar seleção" : "Selecionar todos os visíveis"}
+            </Button>
+          </div>
+        </div>
+      )}
+      <div className="border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Selecionar todos os produtos visíveis" disabled={products.length === 0} />
+            </TableHead>
             <TableHead className="w-14" />
             <TableHead>Produto</TableHead>
             <TableHead>Categoria</TableHead>
@@ -85,15 +131,18 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+            <TableRow><TableCell colSpan={10} className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
           ) : products.length === 0 ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sem produtos ativos</TableCell></TableRow>
+            <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sem produtos ativos</TableCell></TableRow>
           ) : (
             products.map((product) => {
               const imgIdx = product.primary_image_index ?? 0;
               const img = product.images?.[imgIdx] || product.images?.[0];
               return (
-                <TableRow key={product.id}>
+                <TableRow key={product.id} data-state={selected[product.id] ? "selected" : undefined}>
+                  <TableCell>
+                    <Checkbox checked={!!selected[product.id]} onCheckedChange={() => toggleOne(product.id)} aria-label={`Selecionar ${product.name}`} />
+                  </TableCell>
                   <TableCell>
                     <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden">
                       {img ? <img src={img} alt="" className="h-full w-full object-cover" /> : (
@@ -149,6 +198,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
           )}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
