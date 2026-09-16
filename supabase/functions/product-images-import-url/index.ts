@@ -9,7 +9,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-workspace-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_FILES = 6;
+const MAX_FILES = 10;
 const MAX_SIZE_BYTES = 8_388_608; // 8MB
 const FETCH_TIMEOUT_MS = 12_000;
 
