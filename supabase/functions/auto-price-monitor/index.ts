@@ -451,6 +451,10 @@ Deno.serve(async (req) => {
                 optimization_type: decision.limitedByMargin ? "margin_protection" : "undercut",
                 reasoning: `Ajuste automático: ${undercutPct}% abaixo de ${lowest.source_name} (€${lowest.price.toFixed(2)}), com ${externalPrices.length} referência(s).${decision.limitedByMargin ? " Limitado pela margem mínima." : ""}`,
                 applied: true,
+                status: "applied",
+                refs_count: externalPrices.length,
+                source_name: lowest.source_name,
+                limited_by_margin: decision.limitedByMargin,
                 applied_at: checkedAt,
               });
 
