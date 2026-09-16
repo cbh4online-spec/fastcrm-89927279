@@ -364,6 +364,24 @@ Deno.serve(async (req) => {
         .update({
           competitor_price_low: lowest.price,
           competitor_source: lowest.source_name,
+          competitor_refs_count: externalPrices.length,
+          competitor_checked_at: new Date().toISOString(),
+        })
+        .eq("id", productId);
+    } else {
+      // Sem referências válidas: limpar o valor antigo em vez de o manter.
+      await supabase
+        .from("product_external_prices")
+        .delete()
+        .eq("product_id", productId);
+
+      await supabase
+        .from("products")
+        .update({
+          competitor_price_low: null,
+          competitor_source: null,
+          competitor_refs_count: 0,
+          competitor_checked_at: new Date().toISOString(),
         })
         .eq("id", productId);
     }
