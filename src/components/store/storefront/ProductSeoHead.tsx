@@ -30,13 +30,28 @@ interface ProductSeoHeadProps {
   isOutOfStock: boolean;
   /** Rich image metadata for SEO */
   productImages?: ProductSeoImage[];
+  /** Conteúdo AI Commerce usado como reforço (nunca substitui texto próprio) */
+  aiSeo?: {
+    title?: string | null;
+    description?: string | null;
+    schemaType?: string | null;
+    canonicalUrl?: string | null;
+  } | null;
 }
 
-export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg, reviewCount, images, primaryIndex, isOutOfStock, productImages }: ProductSeoHeadProps) {
-  const canonical = `${getPublicBaseUrl()}/store/${wsSlug}/product/${(product as any).store_slug || product.id}`;
+const ALLOWED_SCHEMA_TYPES = ["Product", "SoftwareApplication", "Service", "Course"];
+
+export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg, reviewCount, images, primaryIndex, isOutOfStock, productImages, aiSeo }: ProductSeoHeadProps) {
+  const defaultCanonical = `${getPublicBaseUrl()}/store/${wsSlug}/product/${(product as any).store_slug || product.id}`;
+  // Só aceita canonical do AI Commerce se apontar para esta própria loja.
+  const canonical = aiSeo?.canonicalUrl?.startsWith(`${getPublicBaseUrl()}/store/${wsSlug}/`)
+    ? aiSeo.canonicalUrl
+    : defaultCanonical;
   const price = (pricing?.price ?? product.base_price).toFixed(2);
   const currency = product.currency || "EUR";
-  const description = product.short_description || product.name;
+  const schemaType = ALLOWED_SCHEMA_TYPES.includes(aiSeo?.schemaType || "") ? aiSeo!.schemaType! : "Product";
+  const description = product.short_description || aiSeo?.description?.trim() || product.name;
+  const metaTitle = aiSeo?.title?.trim() || `${product.name} | ${storeName}`;
   const primaryImage = images[primaryIndex] || images[0];
 
   // Fichas incompletas (sem descrição própria ou sem imagem) não devem ser
