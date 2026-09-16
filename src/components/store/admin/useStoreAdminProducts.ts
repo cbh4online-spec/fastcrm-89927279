@@ -148,7 +148,7 @@ export function useStoreAdminProducts(search: string) {
     mutationFn: async (suggestion: PriceSuggestion) => {
       const { error: prodErr } = await supabase.from("products").update({ base_price: suggestion.suggested_price }).eq("id", suggestion.product_id);
       if (prodErr) throw prodErr;
-      const { error: logErr } = await supabase.from("price_optimization_logs").update({ applied: true, applied_at: new Date().toISOString(), applied_by: user?.id }).eq("id", suggestion.id);
+      const { error: logErr } = await supabase.from("price_optimization_logs").update({ applied: true, status: "applied", applied_at: new Date().toISOString(), applied_by: user?.id }).eq("id", suggestion.id);
       if (logErr) throw logErr;
     },
     onMutate: async (suggestion) => {
@@ -169,7 +169,7 @@ export function useStoreAdminProducts(search: string) {
 
   const dismissSuggestion = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("price_optimization_logs").update({ applied: true, applied_at: new Date().toISOString() }).eq("id", id);
+      const { error } = await supabase.from("price_optimization_logs").update({ status: "dismissed", dismissed_at: new Date().toISOString() }).eq("id", id);
       if (error) throw error;
     },
     onMutate: async (id) => {
