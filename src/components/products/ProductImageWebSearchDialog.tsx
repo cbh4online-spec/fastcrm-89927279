@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Globe, Check, ExternalLink, AlertCircle } from "lucide-react";
+import { Loader2, Search, Globe, Check, ExternalLink, AlertCircle, Link2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -47,10 +48,14 @@ export function ProductImageWebSearchDialog({
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [importing, setImporting] = useState(false);
   const [failedThumbs, setFailedThumbs] = useState<Set<string>>(new Set());
+  const [mode, setMode] = useState<"search" | "link">("search");
+  const [pageUrl, setPageUrl] = useState("");
 
   useEffect(() => {
     if (open) {
       setQuery(defaultQuery);
+      setPageUrl("");
+      setMode("search");
       setCandidates([]);
       setPicked(new Set());
       setFailedThumbs(new Set());
@@ -58,16 +63,20 @@ export function ProductImageWebSearchDialog({
     }
   }, [open, defaultQuery]);
 
+  const resetResults = () => {
+    setCandidates([]);
+    setPicked(new Set());
+    setFailedThumbs(new Set());
+    setWarning(null);
+  };
+
   const runSearch = useCallback(async () => {
     if (!query.trim()) {
       toast.error("Indica o nome do produto a pesquisar");
       return;
     }
     setSearching(true);
-    setCandidates([]);
-    setPicked(new Set());
-    setFailedThumbs(new Set());
-    setWarning(null);
+    resetResults();
     try {
       const { data, error } = await supabase.functions.invoke("product-image-search", {
         body: { query: query.trim(), limit: 5 },
@@ -85,6 +94,32 @@ export function ProductImageWebSearchDialog({
       setSearching(false);
     }
   }, [query]);
+
+  const runPageImport = useCallback(async () => {
+    const url = pageUrl.trim();
+    if (!/^https?:\/\/\S+$/i.test(url)) {
+      toast.error("Cola um endereço completo (começa por http:// ou https://)");
+      return;
+    }
+    setSearching(true);
+    resetResults();
+    try {
+      const { data, error } = await supabase.functions.invoke("product-image-search", {
+        body: { pageUrl: url, query: query.trim() || undefined },
+      });
+      if (error) throw new Error(error.message);
+      if (!data?.success && data?.error) setWarning(data.error);
+      const list: Candidate[] = Array.isArray(data?.candidates) ? data.candidates : [];
+      setCandidates(list);
+      if (list.length === 0 && !data?.error) {
+        setWarning(data?.warning || "Não foram encontradas imagens nesta página.");
+      }
+    } catch (e) {
+      toast.error("Falha a ler a página: " + (e as Error).message);
+    } finally {
+      setSearching(false);
+    }
+  }, [pageUrl, query]);
 
   const togglePick = (url: string) => {
     setPicked((prev) => {
@@ -163,23 +198,61 @@ export function ProductImageWebSearchDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-2">
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nome do produto, marca, modelo…"
-            onKeyDown={(e) => e.key === "Enter" && runSearch()}
-            disabled={searching}
-          />
-          <Button onClick={runSearch} disabled={searching || !query.trim()}>
-            {searching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-            <span className="ml-2 hidden sm:inline">Pesquisar</span>
-          </Button>
-        </div>
+        <Tabs value={mode} onValueChange={(v) => { setMode(v as "search" | "link"); resetResults(); }}>
+          <TabsList className="w-full">
+            <TabsTrigger value="search" className="flex-1 gap-1.5">
+              <Search className="h-3.5 w-3.5" /> Pesquisar
+            </TabsTrigger>
+            <TabsTrigger value="link" className="flex-1 gap-1.5">
+              <Link2 className="h-3.5 w-3.5" /> Importar de link
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="search" className="mt-3">
+            <div className="flex gap-2">
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Nome do produto, marca, modelo…"
+                onKeyDown={(e) => e.key === "Enter" && runSearch()}
+                disabled={searching}
+              />
+              <Button onClick={runSearch} disabled={searching || !query.trim()}>
+                {searching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                <span className="ml-2 hidden sm:inline">Pesquisar</span>
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="link" className="mt-3 space-y-2">
+            <div className="flex gap-2">
+              <Input
+                value={pageUrl}
+                onChange={(e) => setPageUrl(e.target.value)}
+                placeholder="https://exemplo.com/produto/…"
+                onKeyDown={(e) => e.key === "Enter" && runPageImport()}
+                disabled={searching}
+              />
+              <Button onClick={runPageImport} disabled={searching || !pageUrl.trim()}>
+                {searching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
+                <span className="ml-2 hidden sm:inline">Ler página</span>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Cola o endereço da página do produto. As imagens são de terceiros — confirma que tens
+              direito a utilizá-las.
+            </p>
+          </TabsContent>
+        </Tabs>
+
 
         {warning && (
           <div className="flex items-start gap-2 rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-800 dark:text-amber-200">

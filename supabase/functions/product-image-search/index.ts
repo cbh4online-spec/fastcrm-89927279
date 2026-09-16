@@ -38,6 +38,57 @@ function looksLikeImage(url: string): boolean {
   return IMAGE_EXT_RE.test(url)
 }
 
+const THUMB_RE = /(_|-)(\d{1,3})x(\d{1,3})\.|thumb|thumbnail|mini|small|swatch/i
+
+function isThumbLike(url: string): boolean {
+  return THUMB_RE.test(url)
+}
+
+function absolutize(raw: string, base: string): string | null {
+  try {
+    const u = new URL(raw.trim(), base)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
+/** Extrai URLs de imagem do HTML (src, data-src, data-original, srcset). */
+function extractImageUrlsFromHtml(html: string, base: string): string[] {
+  const out: string[] = []
+  const attrRe = /(?:src|data-src|data-original|data-lazy|data-image|content)\s*=\s*["']([^"']+)["']/gi
+  let m: RegExpExecArray | null
+  while ((m = attrRe.exec(html)) !== null) {
+    const abs = absolutize(m[1], base)
+    if (abs) out.push(abs)
+  }
+  const srcsetRe = /srcset\s*=\s*["']([^"']+)["']/gi
+  while ((m = srcsetRe.exec(html)) !== null) {
+    for (const part of m[1].split(',')) {
+      const candidate = part.trim().split(/\s+/)[0]
+      const abs = candidate ? absolutize(candidate, base) : null
+      if (abs) out.push(abs)
+    }
+  }
+  return out
+}
+
+/** Palavras-chave do produto (SKU/slug) para ordenar as imagens mais relevantes. */
+function relevanceTokens(pageUrl: string, query: string): string[] {
+  const tokens = new Set<string>()
+  const add = (value: string) => {
+    const cleaned = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    if (cleaned.length >= 6) tokens.add(cleaned)
+  }
+  try {
+    const last = new URL(pageUrl).pathname.split('/').filter(Boolean).pop()
+    if (last) add(last.replace(/-detail$/i, '').replace(/\.\w+$/, ''))
+  } catch { /* ignore */ }
+  if (query) add(query)
+  return Array.from(tokens)
+}
+
 interface ImageCandidate {
   url: string
   source_url: string
@@ -77,9 +128,31 @@ Deno.serve(async (req) => {
     const query: string = (body.query ?? '').toString().trim()
     const limit: number = Math.min(Math.max(body.limit ?? 4, 1), 8)
 
-    if (!query) {
+    // Modo alternativo: importar as imagens de uma página de produto indicada
+    const rawPageUrl: string = (body.pageUrl ?? '').toString().trim()
+    let pageUrl: string | null = null
+    if (rawPageUrl) {
+      if (rawPageUrl.length > 2048) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'pageUrl demasiado longo' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+      try {
+        const parsed = new URL(rawPageUrl)
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('protocol')
+        pageUrl = parsed.toString()
+      } catch {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Endereço inválido. Usa um link http(s) completo.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+    }
+
+    if (!query && !pageUrl) {
       return new Response(
-        JSON.stringify({ success: false, error: 'query required' }),
+        JSON.stringify({ success: false, error: 'query ou pageUrl obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -95,6 +168,95 @@ Deno.serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
+
+    if (pageUrl) {
+      const found: ImageCandidate[] = []
+      const pageSeen = new Set<string>()
+      let pageTitle: string | undefined
+
+      try {
+        const scrape = await firecrawl.scrape(pageUrl, {
+          formats: ['html', 'links'],
+          onlyMainContent: false,
+          waitFor: 2000,
+        })
+
+        if ((scrape as any)?.success === false) {
+          throw new Error((scrape as any)?.error || 'scrape sem sucesso')
+        }
+        const payload = (scrape as any)?.data ?? scrape
+        if (!payload) throw new Error('sem resposta')
+
+        pageTitle = payload.metadata?.title
+        const urls: string[] = []
+
+        const ogImage = payload.metadata?.ogImage
+        if (typeof ogImage === 'string') {
+          const abs = absolutize(ogImage, pageUrl)
+          if (abs) urls.push(abs)
+        }
+
+        const html = typeof payload.html === 'string'
+          ? payload.html
+          : typeof payload.rawHtml === 'string'
+            ? payload.rawHtml
+            : ''
+        if (html) urls.push(...extractImageUrlsFromHtml(html, pageUrl))
+
+        if (Array.isArray(payload.links)) {
+          for (const link of payload.links) {
+            if (typeof link !== 'string') continue
+            const abs = absolutize(link, pageUrl)
+            if (abs) urls.push(abs)
+          }
+        }
+
+        for (const url of urls) {
+          if (!looksLikeImage(url) || /\/templates\//i.test(url)) continue
+          // Muitas lojas só publicam miniaturas no HTML: tenta a versão original
+          const fullSize = url.replace(/(_|-)(thumb|thumbnail|small|mini)(?=\.[a-z0-9]+(\?|$))/i, '')
+          const finalUrl = fullSize !== url ? fullSize : url
+          if (fullSize === url && isThumbLike(url)) continue
+          if (pageSeen.has(finalUrl)) continue
+          pageSeen.add(finalUrl)
+          found.push({ url: finalUrl, source_url: pageUrl, source_title: pageTitle })
+        }
+
+        // Coloca primeiro as imagens cujo endereço contém a referência do produto
+        const tokens = relevanceTokens(pageUrl, query)
+        if (tokens.length > 0) {
+          const score = (url: string) => {
+            const lower = url.toLowerCase()
+            return tokens.some((t) => lower.includes(t)) ? 0 : 1
+          }
+          found.sort((a, b) => score(a.url) - score(b.url))
+        }
+      } catch (err) {
+        console.warn('[product-image-search] pageUrl scrape failed', pageUrl, (err as Error).message)
+        return new Response(
+          JSON.stringify({
+            success: false,
+            fallback: true,
+            candidates: [],
+            error: 'Não foi possível ler esta página (pode estar protegida). Tenta a pesquisa por nome.',
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          candidates: found.slice(0, 24),
+          page_url: pageUrl,
+          warning: found.length === 0
+            ? 'Não foram encontradas imagens nesta página. Tenta a pesquisa por nome.'
+            : undefined,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
 
     // Estratégia primária: Firecrawl v2 /search com sources=["images"]
     // — devolve imagens reais indexadas pelo Google sem precisar de scraping.
