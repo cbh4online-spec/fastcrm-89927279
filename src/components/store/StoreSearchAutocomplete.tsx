@@ -55,13 +55,22 @@ export function StoreSearchAutocomplete({ workspaceSlug, onSearch, onClose }: St
 
   const limitedSuggestions = suggestions.slice(0, 6);
 
+  const runSearch = useCallback(
+    (term: string) => {
+      const clean = term.trim();
+      if (!clean) return;
+      saveSearchHistory(clean);
+      onSearch(clean);
+      setIsFocused(false);
+      // Garante que a pesquisa também funciona a partir de páginas internas da loja.
+      navigate(`/store/${workspaceSlug}?q=${encodeURIComponent(clean)}`);
+    },
+    [navigate, onSearch, workspaceSlug],
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      saveSearchHistory(query.trim());
-      onSearch(query.trim());
-      setIsFocused(false);
-    }
+    runSearch(query);
   };
 
   const handleSelectProduct = (product: StoreProduct) => {
