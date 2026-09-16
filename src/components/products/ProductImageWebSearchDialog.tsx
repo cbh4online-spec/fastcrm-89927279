@@ -48,10 +48,14 @@ export function ProductImageWebSearchDialog({
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [importing, setImporting] = useState(false);
   const [failedThumbs, setFailedThumbs] = useState<Set<string>>(new Set());
+  const [mode, setMode] = useState<"search" | "link">("search");
+  const [pageUrl, setPageUrl] = useState("");
 
   useEffect(() => {
     if (open) {
       setQuery(defaultQuery);
+      setPageUrl("");
+      setMode("search");
       setCandidates([]);
       setPicked(new Set());
       setFailedThumbs(new Set());
@@ -59,16 +63,20 @@ export function ProductImageWebSearchDialog({
     }
   }, [open, defaultQuery]);
 
+  const resetResults = () => {
+    setCandidates([]);
+    setPicked(new Set());
+    setFailedThumbs(new Set());
+    setWarning(null);
+  };
+
   const runSearch = useCallback(async () => {
     if (!query.trim()) {
       toast.error("Indica o nome do produto a pesquisar");
       return;
     }
     setSearching(true);
-    setCandidates([]);
-    setPicked(new Set());
-    setFailedThumbs(new Set());
-    setWarning(null);
+    resetResults();
     try {
       const { data, error } = await supabase.functions.invoke("product-image-search", {
         body: { query: query.trim(), limit: 5 },
@@ -86,6 +94,32 @@ export function ProductImageWebSearchDialog({
       setSearching(false);
     }
   }, [query]);
+
+  const runPageImport = useCallback(async () => {
+    const url = pageUrl.trim();
+    if (!/^https?:\/\/\S+$/i.test(url)) {
+      toast.error("Cola um endereço completo (começa por http:// ou https://)");
+      return;
+    }
+    setSearching(true);
+    resetResults();
+    try {
+      const { data, error } = await supabase.functions.invoke("product-image-search", {
+        body: { pageUrl: url, query: query.trim() || undefined },
+      });
+      if (error) throw new Error(error.message);
+      if (!data?.success && data?.error) setWarning(data.error);
+      const list: Candidate[] = Array.isArray(data?.candidates) ? data.candidates : [];
+      setCandidates(list);
+      if (list.length === 0 && !data?.error) {
+        setWarning(data?.warning || "Não foram encontradas imagens nesta página.");
+      }
+    } catch (e) {
+      toast.error("Falha a ler a página: " + (e as Error).message);
+    } finally {
+      setSearching(false);
+    }
+  }, [pageUrl, query]);
 
   const togglePick = (url: string) => {
     setPicked((prev) => {
