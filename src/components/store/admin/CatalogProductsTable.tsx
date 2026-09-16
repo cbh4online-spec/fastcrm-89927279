@@ -198,6 +198,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
           )}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
