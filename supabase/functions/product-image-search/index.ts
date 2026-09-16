@@ -212,7 +212,15 @@ Deno.serve(async (req) => {
         }
 
         for (const url of urls) {
-          if (!looksLikeImage(url) || isThumbLike(url) || pageSeen.has(url)) continue
+          if (!looksLikeImage(url) || /\/templates\//i.test(url)) continue
+          // Muitas lojas só publicam miniaturas no HTML: tenta a versão original
+          const fullSize = url.replace(/(_|-)(thumb|thumbnail|small|mini)(?=\.[a-z0-9]+(\?|$))/i, '')
+          const finalUrl = fullSize !== url ? fullSize : url
+          if (fullSize === url && isThumbLike(url)) continue
+          if (pageSeen.has(finalUrl)) continue
+          pageSeen.add(finalUrl)
+          found.push({ url: finalUrl, source_url: pageUrl, source_title: pageTitle })
+          continue
           pageSeen.add(url)
           found.push({ url, source_url: pageUrl, source_title: pageTitle })
         }
