@@ -105,6 +105,8 @@ export default function StoreProductsAdminPage() {
                 onTogglePriceOnRequest={admin.togglePriceOnRequest}
                 onMoveOrder={admin.moveOrder}
                 onEdit={(id: string) => setEditProductId(id)}
+                onBulkPublish={(ids, published) => admin.bulkSetPublished.mutate({ ids, published })}
+                bulkPending={admin.bulkSetPublished.isPending}
               />
             </TabsContent>
 
