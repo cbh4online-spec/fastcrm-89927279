@@ -128,9 +128,31 @@ Deno.serve(async (req) => {
     const query: string = (body.query ?? '').toString().trim()
     const limit: number = Math.min(Math.max(body.limit ?? 4, 1), 8)
 
-    if (!query) {
+    // Modo alternativo: importar as imagens de uma página de produto indicada
+    const rawPageUrl: string = (body.pageUrl ?? '').toString().trim()
+    let pageUrl: string | null = null
+    if (rawPageUrl) {
+      if (rawPageUrl.length > 2048) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'pageUrl demasiado longo' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+      try {
+        const parsed = new URL(rawPageUrl)
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('protocol')
+        pageUrl = parsed.toString()
+      } catch {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Endereço inválido. Usa um link http(s) completo.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+    }
+
+    if (!query && !pageUrl) {
       return new Response(
-        JSON.stringify({ success: false, error: 'query required' }),
+        JSON.stringify({ success: false, error: 'query ou pageUrl obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -146,6 +168,87 @@ Deno.serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
+
+    if (pageUrl) {
+      const found: ImageCandidate[] = []
+      const pageSeen = new Set<string>()
+      let pageTitle: string | undefined
+
+      try {
+        const scrape = await firecrawl.scrape(pageUrl, {
+          formats: ['html', 'links'],
+          onlyMainContent: false,
+          waitFor: 2000,
+        })
+
+        const payload = (scrape as any)?.data ?? scrape
+        if (!payload) throw new Error('sem resposta')
+
+        pageTitle = payload.metadata?.title
+        const urls: string[] = []
+
+        const ogImage = payload.metadata?.ogImage
+        if (typeof ogImage === 'string') {
+          const abs = absolutize(ogImage, pageUrl)
+          if (abs) urls.push(abs)
+        }
+
+        const html = typeof payload.html === 'string'
+          ? payload.html
+          : typeof payload.rawHtml === 'string'
+            ? payload.rawHtml
+            : ''
+        if (html) urls.push(...extractImageUrlsFromHtml(html, pageUrl))
+
+        if (Array.isArray(payload.links)) {
+          for (const link of payload.links) {
+            if (typeof link !== 'string') continue
+            const abs = absolutize(link, pageUrl)
+            if (abs) urls.push(abs)
+          }
+        }
+
+        for (const url of urls) {
+          if (!looksLikeImage(url) || isThumbLike(url) || pageSeen.has(url)) continue
+          pageSeen.add(url)
+          found.push({ url, source_url: pageUrl, source_title: pageTitle })
+        }
+
+        // Coloca primeiro as imagens cujo endereço contém a referência do produto
+        const tokens = relevanceTokens(pageUrl, query)
+        if (tokens.length > 0) {
+          const score = (url: string) => {
+            const lower = url.toLowerCase()
+            return tokens.some((t) => lower.includes(t)) ? 0 : 1
+          }
+          found.sort((a, b) => score(a.url) - score(b.url))
+        }
+      } catch (err) {
+        console.warn('[product-image-search] pageUrl scrape failed', pageUrl, (err as Error).message)
+        return new Response(
+          JSON.stringify({
+            success: false,
+            fallback: true,
+            candidates: [],
+            error: 'Não foi possível ler esta página (pode estar protegida). Tenta a pesquisa por nome.',
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          candidates: found.slice(0, 24),
+          page_url: pageUrl,
+          warning: found.length === 0
+            ? 'Não foram encontradas imagens nesta página. Tenta a pesquisa por nome.'
+            : undefined,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
 
     // Estratégia primária: Firecrawl v2 /search com sources=["images"]
     // — devolve imagens reais indexadas pelo Google sem precisar de scraping.
