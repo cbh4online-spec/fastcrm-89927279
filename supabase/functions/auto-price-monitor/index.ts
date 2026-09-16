@@ -389,6 +389,31 @@ Deno.serve(async (req) => {
             autoPriceExcluded: product.auto_price_excluded,
           });
 
+          // Sugestão anterior deixa de ser válida em qualquer caso.
+          await supabase
+            .from("price_optimization_logs")
+            .update({ status: "superseded" })
+            .eq("product_id", product.id)
+            .eq("status", "pending");
+
+          if (!settings.enabled) {
+            // Ajuste automático desligado: guardar sugestão para revisão manual.
+            const { draft } = buildPriceSuggestion(product as any, refRows, {
+              undercutPct,
+              maxDropPct,
+              minMarginPct: minMarginFor(product.id, product.category ?? null),
+            });
+            if (draft) {
+              await supabase
+                .from("price_optimization_logs")
+                .insert({ ...draft, workspace_id: product.workspace_id });
+            }
+            skipped++;
+            processed++;
+            await new Promise((r) => setTimeout(r, 1000));
+            continue;
+          }
+
           if (decision.shouldApply && decision.proposedPrice) {
             const oldPrice = Number(product.base_price);
             const { error: updateError } = await supabase
