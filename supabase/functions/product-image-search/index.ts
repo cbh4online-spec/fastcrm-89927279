@@ -220,9 +220,6 @@ Deno.serve(async (req) => {
           if (pageSeen.has(finalUrl)) continue
           pageSeen.add(finalUrl)
           found.push({ url: finalUrl, source_url: pageUrl, source_title: pageTitle })
-          continue
-          pageSeen.add(url)
-          found.push({ url, source_url: pageUrl, source_title: pageTitle })
         }
 
         // Coloca primeiro as imagens cujo endereço contém a referência do produto
