@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStoreProducts, type StoreProduct } from "@/hooks/useStoreProducts";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { StoreVisualSearch } from "@/components/store/StoreVisualSearch";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
@@ -44,20 +45,32 @@ export function StoreSearchAutocomplete({ workspaceSlug, onSearch, onClose }: St
 
   const showSuggestions = debouncedQuery.length >= MIN_CHARS;
 
+  // O slug da loja não é o id do workspace — é preciso resolvê-lo primeiro.
+  const { workspaceId } = useResolveStoreWorkspace(workspaceSlug);
+
   const { data: suggestions = [] } = useStoreProducts({
-    workspaceId: workspaceSlug,
+    workspaceId: showSuggestions ? workspaceId : undefined,
     search: showSuggestions ? debouncedQuery : undefined,
   });
 
   const limitedSuggestions = suggestions.slice(0, 6);
 
+  const runSearch = useCallback(
+    (term: string) => {
+      const clean = term.trim();
+      if (!clean) return;
+      saveSearchHistory(clean);
+      onSearch(clean);
+      setIsFocused(false);
+      // Garante que a pesquisa também funciona a partir de páginas internas da loja.
+      navigate(`/store/${workspaceSlug}?q=${encodeURIComponent(clean)}`);
+    },
+    [navigate, onSearch, workspaceSlug],
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      saveSearchHistory(query.trim());
-      onSearch(query.trim());
-      setIsFocused(false);
-    }
+    runSearch(query);
   };
 
   const handleSelectProduct = (product: StoreProduct) => {
@@ -68,8 +81,7 @@ export function StoreSearchAutocomplete({ workspaceSlug, onSearch, onClose }: St
 
   const handleSelectHistory = (term: string) => {
     setQuery(term);
-    onSearch(term);
-    setIsFocused(false);
+    runSearch(term);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { StoreCouponBanner } from "@/components/store/sections/StoreCouponBanner";
@@ -39,8 +39,15 @@ import { Loader2 } from "lucide-react";
 
 export default function StorePage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const queryParam = searchParams.get("q") || "";
+  const [search, setSearch] = useState(queryParam);
   const [filters, setFilters] = useState<StoreFilters>({});
+
+  // Mantém a pesquisa sincronizada com o endereço (?q=)
+  useEffect(() => {
+    setSearch(queryParam);
+  }, [queryParam]);
 
   const { workspaceId: wsId, slug: wsSlug, isLoading: isResolving } = useResolveStoreWorkspace(workspaceSlug);
 

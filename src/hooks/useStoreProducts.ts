@@ -52,7 +52,7 @@ export interface StoreCategory {
 }
 
 interface UseStoreProductsOptions {
-  workspaceId: string;
+  workspaceId?: string;
   categoryId?: string;
   category?: string;
   search?: string;
