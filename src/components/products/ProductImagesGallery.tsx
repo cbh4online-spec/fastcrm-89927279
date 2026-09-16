@@ -499,19 +499,23 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adicionar Imagem por URL</DialogTitle>
+            <DialogTitle>Adicionar Imagens por URL</DialogTitle>
             <DialogDescription>
-              Insira o endereço de uma imagem disponível online.
+              Insira um ou vários endereços de imagens, um por linha.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>URL da Imagem</Label>
-              <Input
+              <Label>URL das Imagens</Label>
+              <Textarea
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://exemplo.com/imagem.jpg"
+                rows={4}
+                placeholder={"https://exemplo.com/imagem-1.jpg\nhttps://exemplo.com/imagem-2.jpg"}
               />
+              <p className="text-xs text-muted-foreground">
+                Pode colar vários endereços separados por linha ou vírgula.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Texto Alternativo (opcional)</Label>
@@ -523,11 +527,11 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)} disabled={isAddingUrls}>
               Cancelar
             </Button>
-            <Button onClick={handleAddUrl} disabled={!imageUrl.trim() || addImage.isPending}>
-              {addImage.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button onClick={handleAddUrls} disabled={!imageUrl.trim() || isAddingUrls}>
+              {isAddingUrls && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Adicionar
             </Button>
           </DialogFooter>
