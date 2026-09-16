@@ -102,7 +102,7 @@ export function useStoreAdminProducts(search: string) {
     enabled: !!currentWorkspace?.id,
   });
 
-  const { data: suggestions = [] } = useQuery({
+  const { data: rawSuggestions = [] } = useQuery({
     queryKey: ["price-suggestions", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
@@ -110,12 +110,23 @@ export function useStoreAdminProducts(search: string) {
         .from("price_optimization_logs")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
-        .eq("applied", false)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as PriceSuggestion[];
     },
     enabled: !!currentWorkspace?.id,
+  });
+
+  // Uma sugestão por produto (a mais recente) e apenas se ainda fizer sentido face ao preço atual.
+  const priceById = new Map(products.map((p) => [p.id, p.base_price]));
+  const seenProducts = new Set<string>();
+  const suggestions = rawSuggestions.filter((s) => {
+    if (seenProducts.has(s.product_id)) return false;
+    if (!isSuggestionShowable(s, priceById.get(s.product_id))) return false;
+    seenProducts.add(s.product_id);
+    return true;
   });
 
   const updateProduct = useMutation({
