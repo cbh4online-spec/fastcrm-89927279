@@ -29,7 +29,7 @@ const dateLabel = (value: string | null | undefined) => {
 };
 
 export function PricingIntelligenceSection({ products, isLoading, loadingPrices, bulkProgress, onUpdateSinglePrice, onUpdateAllPrices }: PricingIntelligenceSectionProps) {
-  const { settings, saveSettings, toggleExcluded } = useAutoPriceSettings();
+  const { settings, isLoading: settingsLoading, saveSettings, toggleExcluded } = useAutoPriceSettings();
   const [undercutDraft, setUndercutDraft] = useState<string>("");
 
   const undercutPct = Number(settings?.undercut_pct ?? 1);
@@ -85,6 +85,16 @@ export function PricingIntelligenceSection({ products, isLoading, loadingPrices,
             />
           </div>
         </div>
+
+        {!settingsLoading && !settings && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Ajuste automático desligado — a configuração nunca foi guardada. Ligue o interruptor para começar a
+              guardar as regras deste espaço de trabalho.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {settings?.paused_reason && (
           <Alert variant="destructive">
@@ -189,6 +199,9 @@ export function PricingIntelligenceSection({ products, isLoading, loadingPrices,
                             <p className="text-[11px] text-muted-foreground">
                               {refsCount} ref. · {dateLabel(product.competitor_checked_at)}
                             </p>
+                            {refsCount === 1 && (
+                              <p className="text-[11px] text-amber-600">Pouco sustentada (1 loja)</p>
+                            )}
                           </div>
                         ) : (
                           <div className="text-right">

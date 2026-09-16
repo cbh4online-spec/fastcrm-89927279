@@ -1,6 +1,68 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { logAIUsage } from "../_shared/ai-instrumentation.ts";
+import { buildPriceSuggestion } from "../_shared/price-suggestions.ts";
+
+/**
+ * Recalcula a sugestão de preço do produto a partir das referências vivas.
+ * A sugestão anterior é marcada como substituída — nunca acumulam.
+ */
+async function regenerateSuggestion(supabase: any, productId: string) {
+  const { data: product } = await supabase
+    .from("products")
+    .select(
+      "id, workspace_id, category, base_price, direct_cost, operational_cost, tax_included, tax_rate_estimate_pct, price_on_request, auto_price_excluded",
+    )
+    .eq("id", productId)
+    .maybeSingle();
+  if (!product) return;
+
+  await supabase
+    .from("price_optimization_logs")
+    .update({ status: "superseded" })
+    .eq("product_id", productId)
+    .eq("status", "pending");
+
+  const { data: refs } = await supabase
+    .from("product_external_prices")
+    .select("source_name, price, expires_at")
+    .eq("product_id", productId);
+
+  const { data: settings } = await supabase
+    .from("store_auto_price_settings")
+    .select("undercut_pct, max_drop_pct, default_min_margin_pct")
+    .eq("workspace_id", product.workspace_id)
+    .maybeSingle();
+
+  const { data: rules } = await supabase
+    .from("product_pricing_rules")
+    .select("applies_to, category, product_id, min_margin_pct")
+    .eq("workspace_id", product.workspace_id)
+    .eq("is_active", true);
+
+  const list = rules || [];
+  const minMarginPct =
+    list.find((r: any) => r.applies_to === "product" && r.product_id === productId)?.min_margin_pct ??
+    (product.category
+      ? list.find((r: any) => r.applies_to === "category" && r.category === product.category)?.min_margin_pct
+      : undefined) ??
+    list.find((r: any) => r.applies_to === "all")?.min_margin_pct ??
+    settings?.default_min_margin_pct ??
+    null;
+
+  const { draft } = buildPriceSuggestion(product, refs || [], {
+    undercutPct: settings?.undercut_pct ?? 1,
+    maxDropPct: settings?.max_drop_pct ?? null,
+    minMarginPct: minMarginPct != null ? Number(minMarginPct) : null,
+  });
+
+  if (draft) {
+    await supabase.from("price_optimization_logs").insert({
+      ...draft,
+      workspace_id: product.workspace_id,
+    });
+  }
+}
 
 // ── AI usage logging helper (auto-injected) ───────────────────────────────────
 async function __loggedAIFetch(
@@ -255,6 +317,8 @@ Deno.serve(async (req) => {
         })
         .eq("id", productId);
 
+      await regenerateSuggestion(supabase, productId);
+
       return new Response(
         JSON.stringify({ success: true, data: cached, source: "cache" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -385,6 +449,8 @@ Deno.serve(async (req) => {
         })
         .eq("id", productId);
     }
+
+    await regenerateSuggestion(supabase, productId);
 
     console.log(`Found ${externalPrices.length} validated external prices`);
     return new Response(

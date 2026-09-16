@@ -7,6 +7,7 @@ import {
   DEFAULT_MIN_MARGIN_PCT,
   DEFAULT_UNDERCUT_PCT,
 } from "../_shared/undercut-pricing.ts";
+import { buildPriceSuggestion } from "../_shared/price-suggestions.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -194,7 +195,6 @@ Deno.serve(async (req) => {
     const { data: settingsRows, error: settingsError } = await supabase
       .from("store_auto_price_settings")
       .select("workspace_id, enabled, undercut_pct, max_drop_pct, default_min_margin_pct, paused_reason, lock_until")
-      .eq("enabled", true)
       .is("paused_reason", null);
 
     if (settingsError) throw settingsError;
@@ -360,6 +360,12 @@ Deno.serve(async (req) => {
             })),
           );
 
+          const refRows = externalPrices.map((ep) => ({
+            source_name: ep.source_name,
+            price: ep.price,
+            expires_at: expiresAt,
+          }));
+
           const lowest = externalPrices.reduce(
             (min, ep) => (ep.price < min.price ? ep : min),
             externalPrices[0],
@@ -389,6 +395,31 @@ Deno.serve(async (req) => {
             priceOnRequest: product.price_on_request,
             autoPriceExcluded: product.auto_price_excluded,
           });
+
+          // Sugestão anterior deixa de ser válida em qualquer caso.
+          await supabase
+            .from("price_optimization_logs")
+            .update({ status: "superseded" })
+            .eq("product_id", product.id)
+            .eq("status", "pending");
+
+          if (!settings.enabled) {
+            // Ajuste automático desligado: guardar sugestão para revisão manual.
+            const { draft } = buildPriceSuggestion(product as any, refRows, {
+              undercutPct,
+              maxDropPct,
+              minMarginPct: minMarginFor(product.id, product.category ?? null),
+            });
+            if (draft) {
+              await supabase
+                .from("price_optimization_logs")
+                .insert({ ...draft, workspace_id: product.workspace_id });
+            }
+            skipped++;
+            processed++;
+            await new Promise((r) => setTimeout(r, 1000));
+            continue;
+          }
 
           if (decision.shouldApply && decision.proposedPrice) {
             const oldPrice = Number(product.base_price);
@@ -420,6 +451,10 @@ Deno.serve(async (req) => {
                 optimization_type: decision.limitedByMargin ? "margin_protection" : "undercut",
                 reasoning: `Ajuste automático: ${undercutPct}% abaixo de ${lowest.source_name} (€${lowest.price.toFixed(2)}), com ${externalPrices.length} referência(s).${decision.limitedByMargin ? " Limitado pela margem mínima." : ""}`,
                 applied: true,
+                status: "applied",
+                refs_count: externalPrices.length,
+                source_name: lowest.source_name,
+                limited_by_margin: decision.limitedByMargin,
                 applied_at: checkedAt,
               });
 

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { isSuggestionShowable } from "@/lib/pricing/priceSuggestions";
 
 export interface ProductStoreData {
   id: string;
@@ -49,6 +50,11 @@ export interface PriceSuggestion {
   reasoning: string | null;
   applied: boolean;
   created_at: string;
+  status?: string | null;
+  expires_at?: string | null;
+  refs_count?: number | null;
+  source_name?: string | null;
+  limited_by_margin?: boolean | null;
 }
 
 type StoreProductRow = Omit<ProductStoreData, "variants_count"> & {
@@ -102,7 +108,7 @@ export function useStoreAdminProducts(search: string) {
     enabled: !!currentWorkspace?.id,
   });
 
-  const { data: suggestions = [] } = useQuery({
+  const { data: rawSuggestions = [] } = useQuery({
     queryKey: ["price-suggestions", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
@@ -110,12 +116,23 @@ export function useStoreAdminProducts(search: string) {
         .from("price_optimization_logs")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
-        .eq("applied", false)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as PriceSuggestion[];
     },
     enabled: !!currentWorkspace?.id,
+  });
+
+  // Uma sugestão por produto (a mais recente) e apenas se ainda fizer sentido face ao preço atual.
+  const priceById = new Map(products.map((p) => [p.id, p.base_price]));
+  const seenProducts = new Set<string>();
+  const suggestions = rawSuggestions.filter((s) => {
+    if (seenProducts.has(s.product_id)) return false;
+    if (!isSuggestionShowable(s, priceById.get(s.product_id))) return false;
+    seenProducts.add(s.product_id);
+    return true;
   });
 
   const updateProduct = useMutation({
@@ -131,7 +148,7 @@ export function useStoreAdminProducts(search: string) {
     mutationFn: async (suggestion: PriceSuggestion) => {
       const { error: prodErr } = await supabase.from("products").update({ base_price: suggestion.suggested_price }).eq("id", suggestion.product_id);
       if (prodErr) throw prodErr;
-      const { error: logErr } = await supabase.from("price_optimization_logs").update({ applied: true, applied_at: new Date().toISOString(), applied_by: user?.id }).eq("id", suggestion.id);
+      const { error: logErr } = await supabase.from("price_optimization_logs").update({ applied: true, status: "applied", applied_at: new Date().toISOString(), applied_by: user?.id }).eq("id", suggestion.id);
       if (logErr) throw logErr;
     },
     onMutate: async (suggestion) => {
@@ -152,7 +169,7 @@ export function useStoreAdminProducts(search: string) {
 
   const dismissSuggestion = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("price_optimization_logs").update({ applied: true, applied_at: new Date().toISOString() }).eq("id", id);
+      const { error } = await supabase.from("price_optimization_logs").update({ status: "dismissed", dismissed_at: new Date().toISOString() }).eq("id", id);
       if (error) throw error;
     },
     onMutate: async (id) => {
@@ -230,19 +247,25 @@ export function useStoreAdminProducts(search: string) {
     const publishedProducts = products.filter((p) => p.store_published);
     if (publishedProducts.length === 0) { toast.info("Sem produtos publicados para atualizar"); return; }
     setBulkProgress({ current: 0, total: publishedProducts.length });
-    let successCount = 0;
+    let withRefs = 0;
+    let withoutRefs = 0;
+    let failed = 0;
     for (let i = 0; i < publishedProducts.length; i++) {
       setBulkProgress({ current: i + 1, total: publishedProducts.length });
       try {
-        await supabase.functions.invoke("compare-prices", { body: { productId: publishedProducts[i].id } });
-        successCount++;
+        const { data } = await supabase.functions.invoke("compare-prices", { body: { productId: publishedProducts[i].id } });
+        if ((data?.data?.length || 0) > 0) withRefs++; else withoutRefs++;
       } catch (err) {
+        failed++;
         console.error(`Failed to update prices for ${publishedProducts[i].name}:`, err);
       }
     }
     setBulkProgress(null);
     queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
-    toast.success(`Preços atualizados para ${successCount}/${publishedProducts.length} produtos`);
+    queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
+    toast.success(
+      `${publishedProducts.length} produtos analisados · ${withRefs} com referências · ${withoutRefs} sem referências${failed ? ` · ${failed} com erro` : ""}`,
+    );
   };
 
   return {

@@ -69687,13 +69687,19 @@ export type Database = {
           applied_at: string | null
           applied_by: string | null
           created_at: string | null
+          dismissed_at: string | null
+          expires_at: string | null
           id: string
+          limited_by_margin: boolean
           margin_change: number | null
           optimization_type: string
           original_price: number
           price_table_id: string | null
           product_id: string | null
           reasoning: string | null
+          refs_count: number | null
+          source_name: string | null
+          status: string
           suggested_price: number
           workspace_id: string
         }
@@ -69702,13 +69708,19 @@ export type Database = {
           applied_at?: string | null
           applied_by?: string | null
           created_at?: string | null
+          dismissed_at?: string | null
+          expires_at?: string | null
           id?: string
+          limited_by_margin?: boolean
           margin_change?: number | null
           optimization_type: string
           original_price: number
           price_table_id?: string | null
           product_id?: string | null
           reasoning?: string | null
+          refs_count?: number | null
+          source_name?: string | null
+          status?: string
           suggested_price: number
           workspace_id: string
         }
@@ -69717,13 +69729,19 @@ export type Database = {
           applied_at?: string | null
           applied_by?: string | null
           created_at?: string | null
+          dismissed_at?: string | null
+          expires_at?: string | null
           id?: string
+          limited_by_margin?: boolean
           margin_change?: number | null
           optimization_type?: string
           original_price?: number
           price_table_id?: string | null
           product_id?: string | null
           reasoning?: string | null
+          refs_count?: number | null
+          source_name?: string | null
+          status?: string
           suggested_price?: number
           workspace_id?: string
         }
