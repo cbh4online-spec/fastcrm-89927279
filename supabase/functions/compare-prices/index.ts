@@ -250,6 +250,8 @@ Deno.serve(async (req) => {
         .update({
           competitor_price_low: lowest.price,
           competitor_source: lowest.source_name,
+          competitor_refs_count: cached.length,
+          competitor_checked_at: new Date().toISOString(),
         })
         .eq("id", productId);
 
