@@ -104,6 +104,7 @@ interface AIValidation {
 
 async function validateWithAI(
   lovableKey: string,
+  workspaceId: string | null,
   productName: string,
   productSku: string | null,
   basePrice: number,
@@ -112,7 +113,7 @@ async function validateWithAI(
 ): Promise<AIValidation | null> {
   try {
     const snippet = resultText.slice(0, 2000);
-    const resp = await __loggedAIFetch(workspace_id ?? null, "compare-prices", {
+    const resp = await __loggedAIFetch(workspaceId, "compare-prices", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableKey}`,
