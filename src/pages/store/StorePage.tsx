@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { StoreCouponBanner } from "@/components/store/sections/StoreCouponBanner";
