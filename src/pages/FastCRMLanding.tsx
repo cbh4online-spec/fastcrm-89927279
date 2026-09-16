@@ -79,7 +79,9 @@ export default function FastCRMLanding() {
         </script>
       </Helmet>
 
-      <div className="min-h-screen bg-background text-foreground antialiased">
+      {/* `light`: a landing pública usa sempre a paleta clara, independentemente
+          do tema escolhido na aplicação. */}
+      <div className="light min-h-screen bg-background text-foreground antialiased">
         <HeaderV2 />
         <main>
           <HeroV2 />
