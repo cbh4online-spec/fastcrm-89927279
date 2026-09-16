@@ -54,10 +54,15 @@ function absolutize(raw: string, base: string): string | null {
   }
 }
 
-/** Extrai URLs de imagem do HTML (src, data-src, data-original, srcset). */
+/** Remove sufixos de miniatura (_thumb, _thumb2, -small…) para obter a original. */
+function upgradeThumb(url: string): string {
+  return url.replace(/([._-])(thumb|thumbnail|small|mini)\d*(?=\.[a-z0-9]+(\?|$))/i, '')
+}
+
+/** Extrai URLs de imagem do HTML (src, data-src, data-original, srcset, href). */
 function extractImageUrlsFromHtml(html: string, base: string): string[] {
   const out: string[] = []
-  const attrRe = /(?:src|data-src|data-original|data-lazy|data-image|content)\s*=\s*["']([^"']+)["']/gi
+  const attrRe = /(?:src|data-src|data-original|data-lazy|data-image|data-zoom-image|data-large|content|href)\s*=\s*["']([^"']+)["']/gi
   let m: RegExpExecArray | null
   while ((m = attrRe.exec(html)) !== null) {
     const abs = absolutize(m[1], base)
@@ -157,7 +162,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (!Deno.env.get('FIRECRAWL_API_KEY')) {
+    if (!Deno.env.get('FIRECRAWL_API_KEY') && !pageUrl) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -173,10 +178,31 @@ Deno.serve(async (req) => {
       const found: ImageCandidate[] = []
       const pageSeen = new Set<string>()
       let pageTitle: string | undefined
+      let onlyThumbs = false
+      let readFailed = false
 
+      const collect = (urls: string[]) => {
+        for (const url of urls) {
+          if (!looksLikeImage(url) || /\/templates\//i.test(url)) continue
+          // Muitas lojas só publicam miniaturas no HTML: junta a versão original
+          const fullSize = upgradeThumb(url)
+          const variants = fullSize !== url ? [fullSize, url] : [url]
+          for (const variant of variants) {
+            if (variant === url && fullSize === url && isThumbLike(url)) {
+              onlyThumbs = true
+              continue
+            }
+            if (pageSeen.has(variant)) continue
+            pageSeen.add(variant)
+            found.push({ url: variant, source_url: pageUrl!, source_title: pageTitle })
+          }
+        }
+      }
+
+      // 1) Leitura via Firecrawl (HTML tratado + original + ligações)
       try {
         const scrape = await firecrawl.scrape(pageUrl, {
-          formats: ['html', 'links'],
+          formats: ['html', 'rawHtml', 'links'],
           onlyMainContent: false,
           waitFor: 2000,
         })
@@ -196,12 +222,12 @@ Deno.serve(async (req) => {
           if (abs) urls.push(abs)
         }
 
-        const html = typeof payload.html === 'string'
-          ? payload.html
-          : typeof payload.rawHtml === 'string'
-            ? payload.rawHtml
-            : ''
-        if (html) urls.push(...extractImageUrlsFromHtml(html, pageUrl))
+        if (typeof payload.html === 'string' && payload.html) {
+          urls.push(...extractImageUrlsFromHtml(payload.html, pageUrl))
+        }
+        if (typeof payload.rawHtml === 'string' && payload.rawHtml) {
+          urls.push(...extractImageUrlsFromHtml(payload.rawHtml, pageUrl))
+        }
 
         if (Array.isArray(payload.links)) {
           for (const link of payload.links) {
@@ -211,37 +237,67 @@ Deno.serve(async (req) => {
           }
         }
 
-        for (const url of urls) {
-          if (!looksLikeImage(url) || /\/templates\//i.test(url)) continue
-          // Muitas lojas só publicam miniaturas no HTML: tenta a versão original
-          const fullSize = url.replace(/(_|-)(thumb|thumbnail|small|mini)(?=\.[a-z0-9]+(\?|$))/i, '')
-          const finalUrl = fullSize !== url ? fullSize : url
-          if (fullSize === url && isThumbLike(url)) continue
-          if (pageSeen.has(finalUrl)) continue
-          pageSeen.add(finalUrl)
-          found.push({ url: finalUrl, source_url: pageUrl, source_title: pageTitle })
-        }
-
-        // Coloca primeiro as imagens cujo endereço contém a referência do produto
-        const tokens = relevanceTokens(pageUrl, query)
-        if (tokens.length > 0) {
-          const score = (url: string) => {
-            const lower = url.toLowerCase()
-            return tokens.some((t) => lower.includes(t)) ? 0 : 1
-          }
-          found.sort((a, b) => score(a.url) - score(b.url))
-        }
+        collect(urls)
       } catch (err) {
+        readFailed = true
         console.warn('[product-image-search] pageUrl scrape failed', pageUrl, (err as Error).message)
+      }
+
+      // 2) Plano B: leitura directa da página quando não vieram imagens
+      if (found.length === 0) {
+        try {
+          const direct = await fetch(pageUrl, {
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml',
+              'Accept-Language': 'pt-PT,pt;q=0.9,en;q=0.8',
+            },
+            signal: AbortSignal.timeout(8000),
+            redirect: 'follow',
+          })
+          if (direct.ok) {
+            const contentType = direct.headers.get('content-type') ?? ''
+            if (contentType.includes('html')) {
+              const raw = (await direct.text()).slice(0, 3_000_000)
+              const titleMatch = raw.match(/<title[^>]*>([^<]{1,200})<\/title>/i)
+              if (!pageTitle && titleMatch) pageTitle = titleMatch[1].trim()
+              collect(extractImageUrlsFromHtml(raw, pageUrl))
+              if (found.length > 0) readFailed = false
+            }
+          } else {
+            console.warn('[product-image-search] direct fetch status', direct.status)
+          }
+        } catch (err) {
+          console.warn('[product-image-search] direct fetch failed', (err as Error).message)
+        }
+      }
+
+      if (found.length === 0) {
         return new Response(
           JSON.stringify({
             success: false,
             fallback: true,
             candidates: [],
-            error: 'Não foi possível ler esta página (pode estar protegida). Tenta a pesquisa por nome.',
+            page_url: pageUrl,
+            error: readFailed
+              ? 'Não foi possível ler esta página (pode estar protegida). Tenta a pesquisa por nome.'
+              : onlyThumbs
+                ? 'Só foram encontradas miniaturas nesta página. Tenta a pesquisa por nome.'
+                : 'Esta página não tem imagens de produto acessíveis. Tenta a pesquisa por nome.',
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         )
+      }
+
+      // Coloca primeiro as imagens cujo endereço contém a referência do produto
+      const tokens = relevanceTokens(pageUrl, query)
+      if (tokens.length > 0) {
+        const score = (url: string) => {
+          const lower = url.toLowerCase()
+          return tokens.some((t) => lower.includes(t)) ? 0 : 1
+        }
+        found.sort((a, b) => score(a.url) - score(b.url))
       }
 
       return new Response(
@@ -249,9 +305,6 @@ Deno.serve(async (req) => {
           success: true,
           candidates: found.slice(0, 24),
           page_url: pageUrl,
-          warning: found.length === 0
-            ? 'Não foram encontradas imagens nesta página. Tenta a pesquisa por nome.'
-            : undefined,
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
