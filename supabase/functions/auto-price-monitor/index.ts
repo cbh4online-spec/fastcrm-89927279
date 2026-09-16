@@ -194,7 +194,6 @@ Deno.serve(async (req) => {
     const { data: settingsRows, error: settingsError } = await supabase
       .from("store_auto_price_settings")
       .select("workspace_id, enabled, undercut_pct, max_drop_pct, default_min_margin_pct, paused_reason, lock_until")
-      .eq("enabled", true)
       .is("paused_reason", null);
 
     if (settingsError) throw settingsError;
