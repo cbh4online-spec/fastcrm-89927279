@@ -69,13 +69,55 @@ function ProductIndicators({ product }: { product: ProductStoreData }) {
   );
 }
 
-export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit }: CatalogProductsTableProps) {
+export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit, onBulkPublish, bulkPending }: CatalogProductsTableProps) {
   const navigate = useNavigate();
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  const selectedIds = useMemo(() => products.filter((p) => selected[p.id]).map((p) => p.id), [products, selected]);
+  const allSelected = products.length > 0 && selectedIds.length === products.length;
+
+  const toggleAll = () => {
+    if (allSelected) { setSelected({}); return; }
+    const next: Record<string, boolean> = {};
+    products.forEach((p) => { next[p.id] = true; });
+    setSelected(next);
+  };
+
+  const toggleOne = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const runBulk = (published: boolean) => {
+    if (!onBulkPublish || selectedIds.length === 0) return;
+    onBulkPublish(selectedIds, published);
+    setSelected({});
+  };
+
   return (
-    <div className="border rounded-lg">
+    <div className="space-y-3">
+      {onBulkPublish && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+          <span className="text-sm text-muted-foreground">
+            {selectedIds.length > 0 ? `${selectedIds.length} selecionado${selectedIds.length > 1 ? "s" : ""}` : "Selecione produtos para publicar em massa"}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" className="gap-2" disabled={selectedIds.length === 0 || bulkPending} onClick={() => runBulk(true)}>
+              {bulkPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Store className="h-3.5 w-3.5" />} Publicar na loja
+            </Button>
+            <Button size="sm" variant="outline" className="gap-2" disabled={selectedIds.length === 0 || bulkPending} onClick={() => runBulk(false)}>
+              <EyeOff className="h-3.5 w-3.5" /> Despublicar
+            </Button>
+            <Button size="sm" variant="ghost" disabled={products.length === 0 || bulkPending} onClick={toggleAll}>
+              {allSelected ? "Limpar seleção" : "Selecionar todos os visíveis"}
+            </Button>
+          </div>
+        </div>
+      )}
+      <div className="border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Selecionar todos os produtos visíveis" disabled={products.length === 0} />
+            </TableHead>
             <TableHead className="w-14" />
             <TableHead>Produto</TableHead>
             <TableHead>Categoria</TableHead>
