@@ -169,6 +169,13 @@
       "when": 1789579314218,
       "tag": "0023_price_suggestions_status",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789595444153,
+      "tag": "0024_sync_product_images_array",
+      "breakpoints": true
     }
   ]
 }

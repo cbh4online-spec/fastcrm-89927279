@@ -109029,6 +109029,10 @@ export type Database = {
         Args: { p_plan_id: string; p_workspace_id: string }
         Returns: undefined
       }
+      sync_product_images_array: {
+        Args: { p_product_id: string }
+        Returns: undefined
+      }
       track_builder_event: {
         Args: {
           _asset_id: string
