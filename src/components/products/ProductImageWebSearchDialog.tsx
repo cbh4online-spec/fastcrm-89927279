@@ -172,7 +172,7 @@ export function ProductImageWebSearchDialog({
       }
 
       if (imported.length === 0) {
-        const reason = failed[0]?.reason || data?.message || "origem indisponível";
+        const reason = failed[0]?.reason || "origem indisponível";
         toast.error(`Não foi possível importar nenhuma imagem (${reason}).`);
         setWarning(
           failed.length
