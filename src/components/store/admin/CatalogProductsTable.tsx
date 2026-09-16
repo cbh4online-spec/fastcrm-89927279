@@ -1,9 +1,11 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck, MessageSquareText } from "lucide-react";
+import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck, MessageSquareText, Store, EyeOff } from "lucide-react";
 import type { ProductStoreData } from "./useStoreAdminProducts";
 
 interface CatalogProductsTableProps {
@@ -14,6 +16,8 @@ interface CatalogProductsTableProps {
   onTogglePriceOnRequest: (id: string, current: boolean) => void;
   onMoveOrder: (id: string, currentOrder: number | null, direction: "up" | "down") => void;
   onEdit: (productId: string) => void;
+  onBulkPublish?: (ids: string[], published: boolean) => void;
+  bulkPending?: boolean;
 }
 
 function ProductIndicators({ product }: { product: ProductStoreData }) {
