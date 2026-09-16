@@ -325,6 +325,11 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
             <h3 className="text-sm sm:text-base font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors duration-200">
               {product.name}
             </h3>
+             {(product.matched_reference || product.sku) && (
+               <p className="text-[11px] font-mono text-muted-foreground truncate">
+                 Ref. {product.matched_reference || product.sku}
+               </p>
+             )}
 
             {/* Stars + review count */}
             {reviewCount > 0 && (

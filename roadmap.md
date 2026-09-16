@@ -9,3 +9,6 @@
 ## Produtos / WhatsApp (pedido 2026-09-02)
 - [x] Ficha de produto: "Preço Base (s/IVA)" mostrava o valor de catálogo c/IVA quando `tax_included = true`.
 - [x] Mensagem na inbox (Messenger/GHL) gravada localmente sem envio real — deteção GHL alargada + guarda contra falso sucesso.
+
+## Loja pública (pedido 2026-09-16)
+- [x] Pesquisar artigos por SKU, código de barras, código SAF-T e SKU de variante, com isolamento por workspace.
