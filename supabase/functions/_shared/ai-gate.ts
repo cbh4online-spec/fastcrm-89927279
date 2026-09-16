@@ -9,8 +9,10 @@ const OVERAGE_PRICES: Partial<Record<AITier, number>> = {
 
 const INCLUDED_TIERS: Record<string, AITier[]> = {
   free: [],
+  basic: ["micro", "light", "medium"],
   growth: ["micro", "light", "medium"],
   pro: ["micro", "light", "medium", "heavy"],
+  agency: ["micro", "light", "medium", "heavy"],
 };
 
 export async function aiGate(
