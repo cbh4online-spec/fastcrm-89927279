@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     // Get products without weight
     let query = supabase
       .from("products")
-      .select("id, name, sku, category, description")
+      .select("id, name, sku, category, short_description, commercial_description")
       .eq("workspace_id", workspaceId)
       .is("weight", null)
       .eq("status", "active")
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
 
       const batchPrompt = `Estime o peso (com embalagem, em kg) de cada produto abaixo.
 
-${batch.map((p, idx) => `${idx + 1}. "${p.name}"${p.sku ? ` (SKU: ${p.sku})` : ""}${p.category ? ` [${p.category}]` : ""}${p.description ? ` — ${(p.description as string).substring(0, 100)}` : ""}`).join("\n")}
+${batch.map((p, idx) => `${idx + 1}. "${p.name}"${p.sku ? ` (SKU: ${p.sku})` : ""}${p.category ? ` [${p.category}]` : ""}${(p.short_description || p.commercial_description) ? ` — ${String(p.short_description || p.commercial_description).substring(0, 100)}` : ""}`).join("\n")}
 
 Responda APENAS em JSON válido, um array:
 [
