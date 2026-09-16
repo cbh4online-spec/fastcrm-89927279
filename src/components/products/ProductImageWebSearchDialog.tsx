@@ -198,23 +198,61 @@ export function ProductImageWebSearchDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-2">
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nome do produto, marca, modelo…"
-            onKeyDown={(e) => e.key === "Enter" && runSearch()}
-            disabled={searching}
-          />
-          <Button onClick={runSearch} disabled={searching || !query.trim()}>
-            {searching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-            <span className="ml-2 hidden sm:inline">Pesquisar</span>
-          </Button>
-        </div>
+        <Tabs value={mode} onValueChange={(v) => { setMode(v as "search" | "link"); resetResults(); }}>
+          <TabsList className="w-full">
+            <TabsTrigger value="search" className="flex-1 gap-1.5">
+              <Search className="h-3.5 w-3.5" /> Pesquisar
+            </TabsTrigger>
+            <TabsTrigger value="link" className="flex-1 gap-1.5">
+              <Link2 className="h-3.5 w-3.5" /> Importar de link
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="search" className="mt-3">
+            <div className="flex gap-2">
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Nome do produto, marca, modelo…"
+                onKeyDown={(e) => e.key === "Enter" && runSearch()}
+                disabled={searching}
+              />
+              <Button onClick={runSearch} disabled={searching || !query.trim()}>
+                {searching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                <span className="ml-2 hidden sm:inline">Pesquisar</span>
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="link" className="mt-3 space-y-2">
+            <div className="flex gap-2">
+              <Input
+                value={pageUrl}
+                onChange={(e) => setPageUrl(e.target.value)}
+                placeholder="https://exemplo.com/produto/…"
+                onKeyDown={(e) => e.key === "Enter" && runPageImport()}
+                disabled={searching}
+              />
+              <Button onClick={runPageImport} disabled={searching || !pageUrl.trim()}>
+                {searching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
+                <span className="ml-2 hidden sm:inline">Ler página</span>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Cola o endereço da página do produto. As imagens são de terceiros — confirma que tens
+              direito a utilizá-las.
+            </p>
+          </TabsContent>
+        </Tabs>
+
 
         {warning && (
           <div className="flex items-start gap-2 rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-800 dark:text-amber-200">
