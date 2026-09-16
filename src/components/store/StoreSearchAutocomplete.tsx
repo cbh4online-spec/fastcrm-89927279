@@ -45,8 +45,11 @@ export function StoreSearchAutocomplete({ workspaceSlug, onSearch, onClose }: St
 
   const showSuggestions = debouncedQuery.length >= MIN_CHARS;
 
+  // O slug da loja não é o id do workspace — é preciso resolvê-lo primeiro.
+  const { workspaceId } = useResolveStoreWorkspace(workspaceSlug);
+
   const { data: suggestions = [] } = useStoreProducts({
-    workspaceId: workspaceSlug,
+    workspaceId: showSuggestions ? workspaceId : undefined,
     search: showSuggestions ? debouncedQuery : undefined,
   });
 
