@@ -450,6 +450,8 @@ Deno.serve(async (req) => {
         .eq("id", productId);
     }
 
+    await regenerateSuggestion(supabase, productId);
+
     console.log(`Found ${externalPrices.length} validated external prices`);
     return new Response(
       JSON.stringify({ success: true, data: externalPrices, source: "fresh" }),
