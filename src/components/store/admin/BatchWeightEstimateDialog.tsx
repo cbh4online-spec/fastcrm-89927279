@@ -53,8 +53,13 @@ export function BatchWeightEstimateDialog({ open, onOpenChange, missingWeightCou
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro no processamento");
 
-      setResults(data.data.results || []);
-      setStats({ updated: data.data.updated, skipped: data.data.skipped, total: data.data.total });
+      const results = data.data.results || [];
+      setResults(results);
+      setStats({
+        updated: data.data.updated ?? 0,
+        skipped: data.data.skipped ?? 0,
+        total: data.data.total ?? results.length,
+      });
       setDone(true);
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success(`${data.data.updated} produtos atualizados com peso estimado pela IA`);
