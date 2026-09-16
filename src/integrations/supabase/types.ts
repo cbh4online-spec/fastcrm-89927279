@@ -75283,6 +75283,7 @@ export type Database = {
         Row: {
           activation_fee: number | null
           allow_backorder: boolean | null
+          auto_price_excluded: boolean
           avg_cost: number | null
           b2b_published: boolean | null
           b2b_sellable: boolean | null
@@ -75305,7 +75306,9 @@ export type Database = {
           commission_default: number | null
           commission_mode: string
           compare_at_price: number | null
+          competitor_checked_at: string | null
           competitor_price_low: number | null
+          competitor_refs_count: number | null
           competitor_source: string | null
           conditions: string | null
           consumption_model: string | null
@@ -75445,6 +75448,7 @@ export type Database = {
         Insert: {
           activation_fee?: number | null
           allow_backorder?: boolean | null
+          auto_price_excluded?: boolean
           avg_cost?: number | null
           b2b_published?: boolean | null
           b2b_sellable?: boolean | null
@@ -75467,7 +75471,9 @@ export type Database = {
           commission_default?: number | null
           commission_mode?: string
           compare_at_price?: number | null
+          competitor_checked_at?: string | null
           competitor_price_low?: number | null
+          competitor_refs_count?: number | null
           competitor_source?: string | null
           conditions?: string | null
           consumption_model?: string | null
@@ -75607,6 +75613,7 @@ export type Database = {
         Update: {
           activation_fee?: number | null
           allow_backorder?: boolean | null
+          auto_price_excluded?: boolean
           avg_cost?: number | null
           b2b_published?: boolean | null
           b2b_sellable?: boolean | null
@@ -75629,7 +75636,9 @@ export type Database = {
           commission_default?: number | null
           commission_mode?: string
           compare_at_price?: number | null
+          competitor_checked_at?: string | null
           competitor_price_low?: number | null
+          competitor_refs_count?: number | null
           competitor_source?: string | null
           conditions?: string | null
           consumption_model?: string | null
@@ -85955,6 +85964,74 @@ export type Database = {
             foreignKeyName: "store_ai_offers_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_auto_price_settings: {
+        Row: {
+          created_at: string
+          default_min_margin_pct: number
+          enabled: boolean
+          last_run_at: string | null
+          lock_until: string | null
+          max_drop_pct: number
+          paused_reason: string | null
+          undercut_pct: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_min_margin_pct?: number
+          enabled?: boolean
+          last_run_at?: string | null
+          lock_until?: string | null
+          max_drop_pct?: number
+          paused_reason?: string | null
+          undercut_pct?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          default_min_margin_pct?: number
+          enabled?: boolean
+          last_run_at?: string | null
+          lock_until?: string | null
+          max_drop_pct?: number
+          paused_reason?: string | null
+          undercut_pct?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_auto_price_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_auto_price_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "store_auto_price_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_auto_price_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces_public"
             referencedColumns: ["id"]
           },
