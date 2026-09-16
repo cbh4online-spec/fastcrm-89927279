@@ -3,6 +3,7 @@ import { usePriceComparison, useExternalPrices } from "@/hooks/usePriceCompariso
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, BarChart3 } from "lucide-react";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
+import { prepareCompetitorRefs } from "@/lib/pricing/competitorDisplay";
 
 interface PriceComparisonWidgetProps {
   productId: string;
