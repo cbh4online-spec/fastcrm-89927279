@@ -89,96 +89,189 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
   const reorderImages = useReorderProductImages();
   const updateProduct = useUpdateProduct();
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentWorkspace?.id) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Ficheiro tem de ser uma imagem");
-      return;
-    }
-
-    setIsUploading(true);
+  const uploadSingleFile = async (file: File, position: number) => {
+    // Redimensiona/comprime para max 1920px e ~1MB (jpeg)
+    let uploadFile: File = file;
     try {
-      // Redimensiona/comprime para max 1920px e ~1MB (jpeg)
-      let uploadFile: File = file;
-      try {
-        uploadFile = await compressImageFile(file, {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
-          fileType: "image/jpeg",
-        });
-      } catch (compressErr) {
-        console.warn("[PRODUCTS] IMAGE_COMPRESS_FAILED, using original", compressErr);
-      }
-
-      const fileExt = "jpg";
-      const nextPosition = images.length;
-      const seoFilename = buildSeoFilename(product, nextPosition, fileExt);
-      // Sufixo único para evitar colisão "resource already exists"
-      const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const storedFilename = seoFilename.replace(/\.([^.]+)$/, `-${uniqueSuffix}.$1`);
-      const filePath = `${currentWorkspace.id}/products/${storedFilename}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("product-images")
-        .upload(filePath, uploadFile, {
-          contentType: "image/jpeg",
-          upsert: false,
-          cacheControl: "3600",
-        });
-
-      if (uploadError) {
-        if (uploadError.message.includes("Bucket not found")) {
-          toast.error("Storage não configurado. Use URL de imagem em vez disso.");
-          return;
-        }
-        throw uploadError;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(filePath);
-
-      const altText = buildAutoAltText(product);
-
-      await addImage.mutateAsync({
-        productId: product.id,
-        url: publicUrl,
-        altText,
-        seoFilename,
-        title: product.name,
-        caption: product.short_description || product.name,
+      uploadFile = await compressImageFile(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        fileType: "image/jpeg",
       });
-    } catch (error: any) {
-      toast.error("Erro ao carregar imagem: " + (error?.message || "desconhecido"));
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    } catch (compressErr) {
+      console.warn("[PRODUCTS] IMAGE_COMPRESS_FAILED, using original", compressErr);
     }
-  };
 
-  const handleAddUrl = async () => {
-    if (!imageUrl.trim()) return;
+    const seoFilename = buildSeoFilename(product, position, "jpg");
+    // Sufixo único para evitar colisão "resource already exists"
+    const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const storedFilename = seoFilename.replace(/\.([^.]+)$/, `-${uniqueSuffix}.$1`);
+    const filePath = `${currentWorkspace!.id}/products/${storedFilename}`;
 
-    const altText = imageAlt || buildAutoAltText(product);
-    const ext = imageUrl.split(".").pop()?.split("?")[0] || "jpg";
-    const seoFilename = buildSeoFilename(product, images.length, ext);
+    const { error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(filePath, uploadFile, {
+        contentType: "image/jpeg",
+        upsert: false,
+        cacheControl: "3600",
+      });
+
+    if (uploadError) {
+      if (uploadError.message.includes("Bucket not found")) {
+        throw new Error("Storage não configurado. Use URL de imagem em vez disso.");
+      }
+      throw uploadError;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(filePath);
 
     await addImage.mutateAsync({
       productId: product.id,
-      url: imageUrl.trim(),
-      altText,
+      url: publicUrl,
+      altText: buildAutoAltText(product),
       seoFilename,
       title: product.name,
       caption: product.short_description || product.name,
     });
+  };
 
-    setImageUrl("");
-    setImageAlt("");
-    setAddDialogOpen(false);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    if (picked.length === 0 || !currentWorkspace?.id) return;
+
+    const invalidCount = picked.filter((f) => !f.type.startsWith("image/")).length;
+    let files = picked.filter((f) => f.type.startsWith("image/"));
+    if (invalidCount > 0) {
+      toast.error(`${invalidCount} ficheiro(s) ignorado(s): não são imagens`);
+    }
+    if (files.length === 0) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const remaining = Math.max(MAX_IMAGES - images.length, 0);
+    if (remaining === 0) {
+      toast.error(`Limite de ${MAX_IMAGES} imagens atingido`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    const skipped = Math.max(files.length - remaining, 0);
+    files = files.slice(0, remaining);
+
+    setIsUploading(true);
+    setUploadProgress({ current: 0, total: files.length });
+
+    let ok = 0;
+    const failures: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      setUploadProgress({ current: i + 1, total: files.length });
+      try {
+        await uploadSingleFile(files[i], images.length + i);
+        ok++;
+      } catch (error: any) {
+        failures.push(`${files[i].name}: ${error?.message || "erro desconhecido"}`);
+      }
+    }
+
+    setIsUploading(false);
+    setUploadProgress(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    if (ok > 0) {
+      toast.success(ok === 1 ? "1 imagem adicionada" : `${ok} imagens adicionadas`);
+    }
+    if (failures.length > 0) {
+      toast.error(
+        `${failures.length} imagem(ns) falhou(aram)`,
+        { description: failures.slice(0, 3).join(" · ") },
+      );
+    }
+    if (skipped > 0) {
+      toast.warning(`${skipped} imagem(ns) não adicionada(s): limite de ${MAX_IMAGES} atingido`);
+    }
+  };
+
+  const handleAddUrls = async () => {
+    if (!imageUrl.trim() || isAddingUrls) return;
+
+    const candidates = imageUrl
+      .split(/[\n,;\s]+/)
+      .map((u) => u.trim())
+      .filter(Boolean);
+
+    const valid: string[] = [];
+    const invalid: string[] = [];
+    for (const candidate of candidates) {
+      try {
+        const parsed = new URL(candidate);
+        if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+          valid.push(parsed.toString());
+        } else {
+          invalid.push(candidate);
+        }
+      } catch {
+        invalid.push(candidate);
+      }
+    }
+
+    if (valid.length === 0) {
+      toast.error("Nenhum endereço válido encontrado");
+      return;
+    }
+
+    const remaining = Math.max(MAX_IMAGES - images.length, 0);
+    if (remaining === 0) {
+      toast.error(`Limite de ${MAX_IMAGES} imagens atingido`);
+      return;
+    }
+    const skipped = Math.max(valid.length - remaining, 0);
+    const toAdd = valid.slice(0, remaining);
+
+    const altText = imageAlt || buildAutoAltText(product);
+    let ok = 0;
+    const failures: string[] = [];
+
+    setIsAddingUrls(true);
+    for (let i = 0; i < toAdd.length; i++) {
+      const url = toAdd[i];
+      const ext = url.split(".").pop()?.split("?")[0] || "jpg";
+      try {
+        await addImage.mutateAsync({
+          productId: product.id,
+          url,
+          altText,
+          seoFilename: buildSeoFilename(product, images.length + i, ext),
+          title: product.name,
+          caption: product.short_description || product.name,
+        });
+        ok++;
+      } catch (error: any) {
+        failures.push(`${url}: ${error?.message || "erro desconhecido"}`);
+      }
+    }
+    setIsAddingUrls(false);
+
+    if (ok > 0) {
+      toast.success(ok === 1 ? "1 imagem adicionada" : `${ok} imagens adicionadas`);
+      setImageUrl("");
+      setImageAlt("");
+      setAddDialogOpen(false);
+    }
+    if (invalid.length > 0) {
+      toast.warning(`${invalid.length} endereço(s) inválido(s) ignorado(s)`);
+    }
+    if (failures.length > 0) {
+      toast.error(
+        `${failures.length} endereço(s) falhou(aram)`,
+        { description: failures.slice(0, 3).join(" · ") },
+      );
+    }
+    if (skipped > 0) {
+      toast.warning(`${skipped} endereço(s) não adicionado(s): limite de ${MAX_IMAGES} atingido`);
+    }
   };
 
   const handleDelete = async () => {
