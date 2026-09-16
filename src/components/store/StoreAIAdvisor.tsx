@@ -70,7 +70,41 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        let status: number | undefined;
+        let payload: { error?: string } | null = null;
+        const ctx = (error as { context?: Response }).context;
+        if (ctx && typeof ctx === "object" && "status" in ctx) {
+          status = ctx.status;
+          try {
+            payload = await ctx.clone().json();
+          } catch {
+            payload = null;
+          }
+        }
+        if (status === 402 || payload?.error === "quota_exceeded") {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content:
+                "O assistente está temporariamente indisponível por limite de utilização. Entretanto pode contactar-nos diretamente que respondemos de imediato.",
+            },
+          ]);
+          return;
+        }
+        if (status === 429) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "Muitos pedidos ao mesmo tempo. Aguarde alguns segundos e tente novamente.",
+            },
+          ]);
+          return;
+        }
+        throw error;
+      }
 
       const assistantMsg: Message = {
         role: "assistant",
