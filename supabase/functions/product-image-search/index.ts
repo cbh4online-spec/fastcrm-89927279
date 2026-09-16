@@ -38,6 +38,57 @@ function looksLikeImage(url: string): boolean {
   return IMAGE_EXT_RE.test(url)
 }
 
+const THUMB_RE = /(_|-)(\d{1,3})x(\d{1,3})\.|thumb|thumbnail|mini|small|swatch/i
+
+function isThumbLike(url: string): boolean {
+  return THUMB_RE.test(url)
+}
+
+function absolutize(raw: string, base: string): string | null {
+  try {
+    const u = new URL(raw.trim(), base)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
+/** Extrai URLs de imagem do HTML (src, data-src, data-original, srcset). */
+function extractImageUrlsFromHtml(html: string, base: string): string[] {
+  const out: string[] = []
+  const attrRe = /(?:src|data-src|data-original|data-lazy|data-image|content)\s*=\s*["']([^"']+)["']/gi
+  let m: RegExpExecArray | null
+  while ((m = attrRe.exec(html)) !== null) {
+    const abs = absolutize(m[1], base)
+    if (abs) out.push(abs)
+  }
+  const srcsetRe = /srcset\s*=\s*["']([^"']+)["']/gi
+  while ((m = srcsetRe.exec(html)) !== null) {
+    for (const part of m[1].split(',')) {
+      const candidate = part.trim().split(/\s+/)[0]
+      const abs = candidate ? absolutize(candidate, base) : null
+      if (abs) out.push(abs)
+    }
+  }
+  return out
+}
+
+/** Palavras-chave do produto (SKU/slug) para ordenar as imagens mais relevantes. */
+function relevanceTokens(pageUrl: string, query: string): string[] {
+  const tokens = new Set<string>()
+  const add = (value: string) => {
+    const cleaned = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    if (cleaned.length >= 6) tokens.add(cleaned)
+  }
+  try {
+    const last = new URL(pageUrl).pathname.split('/').filter(Boolean).pop()
+    if (last) add(last.replace(/-detail$/i, '').replace(/\.\w+$/, ''))
+  } catch { /* ignore */ }
+  if (query) add(query)
+  return Array.from(tokens)
+}
+
 interface ImageCandidate {
   url: string
   source_url: string
