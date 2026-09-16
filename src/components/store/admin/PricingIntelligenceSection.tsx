@@ -29,7 +29,7 @@ const dateLabel = (value: string | null | undefined) => {
 };
 
 export function PricingIntelligenceSection({ products, isLoading, loadingPrices, bulkProgress, onUpdateSinglePrice, onUpdateAllPrices }: PricingIntelligenceSectionProps) {
-  const { settings, saveSettings, toggleExcluded } = useAutoPriceSettings();
+  const { settings, isLoading: settingsLoading, saveSettings, toggleExcluded } = useAutoPriceSettings();
   const [undercutDraft, setUndercutDraft] = useState<string>("");
 
   const undercutPct = Number(settings?.undercut_pct ?? 1);
