@@ -86,6 +86,16 @@ export function PricingIntelligenceSection({ products, isLoading, loadingPrices,
           </div>
         </div>
 
+        {!settingsLoading && !settings && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Ajuste automático desligado — a configuração nunca foi guardada. Ligue o interruptor para começar a
+              guardar as regras deste espaço de trabalho.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {settings?.paused_reason && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
