@@ -255,6 +255,8 @@ export default function StoreProductPage() {
     error: productError,
   } = useStoreProduct(productId, resolvedWsId);
   const productSlug = (product as any)?.store_slug || product?.id;
+  // Conteúdo estruturado do AI Commerce (preenche lacunas da ficha)
+  const { data: aiContent } = useStoreProductAICommerce(product?.id);
 
   // URLs antigos com UUID passam a redirecionar para o slug (SEO + partilha legível)
   useEffect(() => {
@@ -405,6 +407,7 @@ export default function StoreProductPage() {
   const hasVideo = !!product.demo_video_url;
   const primaryIndex = product.primary_image_index ?? 0;
   const currentImage = images[selectedImage];
+  const storeContent = resolveStoreProductContent(product, aiContent);
 
   return (
     <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23} isB2B={tierPricing?.isB2B ?? false}>
