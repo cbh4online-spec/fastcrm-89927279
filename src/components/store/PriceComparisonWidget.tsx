@@ -27,10 +27,21 @@ export function PriceComparisonWidget({
   const { data: internalProducts = [] } = usePriceComparison(productId, category, workspaceId);
   const { data: externalPrices = [] } = useExternalPrices(productId);
 
-  if (internalProducts.length === 0 && externalPrices.length === 0) return null;
+  const {
+    refs: competitorRefs,
+    cheapestVisible,
+    lastFetchedAt,
+  } = prepareCompetitorRefs(externalPrices, currentPrice, { max: 4 });
 
-  const cheaperInternal = internalProducts.filter((p) => p.base_price < currentPrice);
-  const cheaperExternal = externalPrices.filter((p) => p.price < currentPrice);
+  if (internalProducts.length === 0 && competitorRefs.length === 0) return null;
+
+  const savings = cheapestVisible !== null ? cheapestVisible - currentPrice : null;
+  const savingsPct =
+    savings !== null && cheapestVisible ? Math.round((savings / cheapestVisible) * 100) : null;
+  const updatedLabel = lastFetchedAt
+    ? new Date(lastFetchedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })
+    : null;
+
 
   return (
     <div className="space-y-4">
