@@ -81,8 +81,7 @@ export function StoreSearchAutocomplete({ workspaceSlug, onSearch, onClose }: St
 
   const handleSelectHistory = (term: string) => {
     setQuery(term);
-    onSearch(term);
-    setIsFocused(false);
+    runSearch(term);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
