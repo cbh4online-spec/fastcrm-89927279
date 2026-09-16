@@ -362,6 +362,7 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
           ref={fileInputRef}
           className="hidden"
           accept="image/*"
+          multiple
           onChange={handleFileUpload}
         />
         <Button
@@ -375,7 +376,9 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
           ) : (
             <Upload className="h-4 w-4 mr-2" />
           )}
-          Upload
+          {isUploading && uploadProgress
+            ? `A enviar ${uploadProgress.current} de ${uploadProgress.total}…`
+            : "Upload"}
         </Button>
         <Button
           variant="outline"
