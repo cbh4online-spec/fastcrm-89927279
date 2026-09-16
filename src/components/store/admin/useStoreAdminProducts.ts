@@ -20,6 +20,11 @@ export interface ProductStoreData {
   primary_image_index: number | null;
   competitor_price_low: number | null;
   competitor_source: string | null;
+  competitor_refs_count: number | null;
+  competitor_checked_at: string | null;
+  auto_price_excluded: boolean | null;
+  tax_included: boolean | null;
+  tax_rate_estimate_pct: number | null;
   brand_logo_url: string | null;
   specifications: Record<string, string> | null;
   direct_cost: number | null;
@@ -63,7 +68,7 @@ export function useStoreAdminProducts(search: string) {
       if (!currentWorkspace?.id) return [];
       let query = supabase
         .from("products")
-        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications, direct_cost, operational_cost, short_description, product_condition, stock_status, stock_quantity, price_on_request, weight, product_variants(count), product_images(url, position, is_cover, created_at)")
+        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, competitor_refs_count, competitor_checked_at, auto_price_excluded, tax_included, tax_rate_estimate_pct, brand_logo_url, specifications, direct_cost, operational_cost, short_description, product_condition, stock_status, stock_quantity, price_on_request, weight, product_variants(count), product_images(url, position, is_cover, created_at)")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active")
         .order("store_sort_order", { ascending: true, nullsFirst: false })

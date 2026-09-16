@@ -104,6 +104,7 @@ interface AIValidation {
 
 async function validateWithAI(
   lovableKey: string,
+  workspaceId: string | null,
   productName: string,
   productSku: string | null,
   basePrice: number,
@@ -112,7 +113,7 @@ async function validateWithAI(
 ): Promise<AIValidation | null> {
   try {
     const snippet = resultText.slice(0, 2000);
-    const resp = await __loggedAIFetch(workspace_id ?? null, "compare-prices", {
+    const resp = await __loggedAIFetch(workspaceId, "compare-prices", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableKey}`,
@@ -249,6 +250,8 @@ Deno.serve(async (req) => {
         .update({
           competitor_price_low: lowest.price,
           competitor_source: lowest.source_name,
+          competitor_refs_count: cached.length,
+          competitor_checked_at: new Date().toISOString(),
         })
         .eq("id", productId);
 
@@ -292,6 +295,7 @@ Deno.serve(async (req) => {
       if (lovableKey) {
         const validation = await validateWithAI(
           lovableKey,
+          product.workspace_id ?? null,
           product.name,
           product.sku || null,
           product.base_price,
@@ -360,6 +364,24 @@ Deno.serve(async (req) => {
         .update({
           competitor_price_low: lowest.price,
           competitor_source: lowest.source_name,
+          competitor_refs_count: externalPrices.length,
+          competitor_checked_at: new Date().toISOString(),
+        })
+        .eq("id", productId);
+    } else {
+      // Sem referências válidas: limpar o valor antigo em vez de o manter.
+      await supabase
+        .from("product_external_prices")
+        .delete()
+        .eq("product_id", productId);
+
+      await supabase
+        .from("products")
+        .update({
+          competitor_price_low: null,
+          competitor_source: null,
+          competitor_refs_count: 0,
+          competitor_checked_at: new Date().toISOString(),
         })
         .eq("id", productId);
     }
