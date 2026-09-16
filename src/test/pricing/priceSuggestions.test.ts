@@ -36,12 +36,12 @@ describe("liveCompetitorRefs", () => {
 describe("buildPriceSuggestion", () => {
   it("gera sugestão 1% abaixo da referência mais baixa viva", () => {
     const { draft, refsCount } = buildPriceSuggestion(
-      product,
+      { ...product, base_price: 700 },
       [
         { price: 520, source_name: "worten.pt", expires_at: future },
         { price: 600, source_name: "aquario.pt", expires_at: future },
       ],
-      { undercutPct: 1, minMarginPct: 10, now },
+      { undercutPct: 1, minMarginPct: 10, maxDropPct: 40, now },
     );
     expect(refsCount).toBe(2);
     expect(draft?.suggested_price).toBe(514.8);
