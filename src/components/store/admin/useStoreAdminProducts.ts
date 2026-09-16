@@ -247,19 +247,25 @@ export function useStoreAdminProducts(search: string) {
     const publishedProducts = products.filter((p) => p.store_published);
     if (publishedProducts.length === 0) { toast.info("Sem produtos publicados para atualizar"); return; }
     setBulkProgress({ current: 0, total: publishedProducts.length });
-    let successCount = 0;
+    let withRefs = 0;
+    let withoutRefs = 0;
+    let failed = 0;
     for (let i = 0; i < publishedProducts.length; i++) {
       setBulkProgress({ current: i + 1, total: publishedProducts.length });
       try {
-        await supabase.functions.invoke("compare-prices", { body: { productId: publishedProducts[i].id } });
-        successCount++;
+        const { data } = await supabase.functions.invoke("compare-prices", { body: { productId: publishedProducts[i].id } });
+        if ((data?.data?.length || 0) > 0) withRefs++; else withoutRefs++;
       } catch (err) {
+        failed++;
         console.error(`Failed to update prices for ${publishedProducts[i].name}:`, err);
       }
     }
     setBulkProgress(null);
     queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
-    toast.success(`Preços atualizados para ${successCount}/${publishedProducts.length} produtos`);
+    queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
+    toast.success(
+      `${publishedProducts.length} produtos analisados · ${withRefs} com referências · ${withoutRefs} sem referências${failed ? ` · ${failed} com erro` : ""}`,
+    );
   };
 
   return {
