@@ -181,6 +181,9 @@ Deno.serve(async (req) => {
           waitFor: 2000,
         })
 
+        if ((scrape as any)?.success === false) {
+          throw new Error((scrape as any)?.error || 'scrape sem sucesso')
+        }
         const payload = (scrape as any)?.data ?? scrape
         if (!payload) throw new Error('sem resposta')
 
