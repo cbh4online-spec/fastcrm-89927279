@@ -5,6 +5,9 @@ import { AICommerceProductExtras } from "@/components/ai-commerce/AICommerceProd
 import { trackCommerceEvent } from "@/lib/ai-commerce/tracking";
 import { StoreProductDescription } from "@/components/store/StoreProductDescription";
 import { StoreProductHighlights } from "@/components/store/StoreProductHighlights";
+import { StoreProductAIContext, StoreProductAIFaq } from "@/components/store/sections/StoreProductAIContent";
+import { useStoreProductAICommerce } from "@/hooks/useStoreProductAICommerce";
+import { resolveStoreProductContent } from "@/lib/store/productContent";
 import { humanizeSpecKey, filterValidSpecs } from "@/utils/specLabels";
 import { addDays, format, isWeekend, nextMonday } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -408,6 +411,12 @@ export default function StoreProductPage() {
     <>
       <ProductSeoHead
         product={product}
+        aiSeo={{
+          title: (product as any).seo_title,
+          description: (product as any).seo_description || aiContent?.ai_short_description,
+          schemaType: (product as any).schema_type,
+          canonicalUrl: (product as any).canonical_url,
+        }}
         storeName={storeName}
         wsSlug={wsSlug}
         pricing={pricing}
@@ -915,15 +924,18 @@ export default function StoreProductPage() {
           >
             {/* 1. Highlights */}
             <StoreProductHighlights
-              benefits={product.benefits}
-              shortDescription={product.short_description}
+              benefits={storeContent.highlights}
+              shortDescription={storeContent.shortDescription}
               specs={specs}
             />
 
             {/* 2. Description with Read More */}
-            {product.commercial_description && (
-              <StoreProductDescription description={product.commercial_description} />
+            {storeContent.longDescription && (
+              <StoreProductDescription description={storeContent.longDescription} />
             )}
+
+            {/* 2b. Contexto estruturado do AI Commerce */}
+            <StoreProductAIContext content={storeContent} />
 
             {/* 3. Specifications — humanized */}
             {Object.keys(specs).length > 0 && (
@@ -932,6 +944,9 @@ export default function StoreProductPage() {
 
             {/* 4. Secções estruturadas publicadas (com âncoras) */}
             {pageConfig.sections_enabled && <StoreProductSections productId={product.id} />}
+
+            {/* 4b. Perguntas frequentes (AI Commerce) */}
+            <StoreProductAIFaq content={storeContent} />
 
             {/* 5. Faixa de confiança */}
             {pageConfig.trust_enabled && (
