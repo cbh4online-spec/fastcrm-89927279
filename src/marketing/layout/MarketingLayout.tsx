@@ -9,7 +9,7 @@ import { FooterV2 } from "@/components/landing-fastcrm-v2/Sections3";
  */
 export default function MarketingLayout() {
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased">
+    <div className="light min-h-screen bg-background text-foreground antialiased">
       <HeaderV2 />
       <main>
         <Outlet />
