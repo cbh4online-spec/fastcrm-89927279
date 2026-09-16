@@ -131,15 +131,18 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+            <TableRow><TableCell colSpan={10} className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
           ) : products.length === 0 ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sem produtos ativos</TableCell></TableRow>
+            <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sem produtos ativos</TableCell></TableRow>
           ) : (
             products.map((product) => {
               const imgIdx = product.primary_image_index ?? 0;
               const img = product.images?.[imgIdx] || product.images?.[0];
               return (
-                <TableRow key={product.id}>
+                <TableRow key={product.id} data-state={selected[product.id] ? "selected" : undefined}>
+                  <TableCell>
+                    <Checkbox checked={!!selected[product.id]} onCheckedChange={() => toggleOne(product.id)} aria-label={`Selecionar ${product.name}`} />
+                  </TableCell>
                   <TableCell>
                     <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden">
                       {img ? <img src={img} alt="" className="h-full w-full object-cover" /> : (
