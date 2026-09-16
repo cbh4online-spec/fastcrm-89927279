@@ -317,6 +317,8 @@ Deno.serve(async (req) => {
         })
         .eq("id", productId);
 
+      await regenerateSuggestion(supabase, productId);
+
       return new Response(
         JSON.stringify({ success: true, data: cached, source: "cache" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
