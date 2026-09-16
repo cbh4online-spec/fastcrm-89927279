@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { isSuggestionShowable } from "@/lib/pricing/priceSuggestions";
 
 export interface ProductStoreData {
   id: string;
@@ -49,6 +50,11 @@ export interface PriceSuggestion {
   reasoning: string | null;
   applied: boolean;
   created_at: string;
+  status?: string | null;
+  expires_at?: string | null;
+  refs_count?: number | null;
+  source_name?: string | null;
+  limited_by_margin?: boolean | null;
 }
 
 type StoreProductRow = Omit<ProductStoreData, "variants_count"> & {
