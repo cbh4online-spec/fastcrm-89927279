@@ -293,6 +293,7 @@ Deno.serve(async (req) => {
       if (lovableKey) {
         const validation = await validateWithAI(
           lovableKey,
+          product.workspace_id ?? null,
           product.name,
           product.sku || null,
           product.base_price,
