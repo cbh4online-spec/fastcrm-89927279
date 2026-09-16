@@ -28,6 +28,7 @@ const PartnerRoutes = lazy(() =>
   import("@/routes/PartnerRoutes").then((module) => ({ default: module.PartnerRoutes })),
 );
 const CRMRoutesV2 = lazy(() => import("@/routes/CRMRoutes"));
+const FastCRMLanding = lazy(() => import("@/pages/FastCRMLanding"));
 const ReactQueryDevtools = import.meta.env.DEV
   ? lazy(() =>
       import("@tanstack/react-query-devtools").then((module) => ({
@@ -142,6 +143,10 @@ const App = () => (
             <ChunkErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                {/* Public home stays independent from the authenticated CRM bundle. */}
+                <Route path="/" element={<FastCRMLanding />} />
+                <Route path="/fastcrm" element={<FastCRMLanding />} />
+
                 {/* PWA install helper */}
                 <Route path="/install" element={<InstallPage />} />
 

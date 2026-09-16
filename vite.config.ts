@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        // Garante que uma nova publicação substitui de imediato o app shell em cache.
+        // Remove caches antigos quando a próxima versão for ativada em segurança.
         cleanupOutdatedCaches: true,
         clientsClaim: false,
         skipWaiting: false,
