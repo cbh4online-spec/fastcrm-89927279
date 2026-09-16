@@ -359,6 +359,12 @@ Deno.serve(async (req) => {
             })),
           );
 
+          const refRows = externalPrices.map((ep) => ({
+            source_name: ep.source_name,
+            price: ep.price,
+            expires_at: expiresAt,
+          }));
+
           const lowest = externalPrices.reduce(
             (min, ep) => (ep.price < min.price ? ep : min),
             externalPrices[0],
