@@ -108846,6 +108846,10 @@ export type Database = {
       }
       reset_fastmatch_quotas: { Args: never; Returns: undefined }
       reset_monthly_ai_budgets: { Args: never; Returns: undefined }
+      resolve_store_category_id: {
+        Args: { p_category: string; p_workspace_id: string }
+        Returns: string
+      }
       restore_partner_cart_by_token: {
         Args: { p_token: string }
         Returns: Json
