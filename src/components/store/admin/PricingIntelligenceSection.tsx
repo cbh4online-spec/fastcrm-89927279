@@ -199,6 +199,9 @@ export function PricingIntelligenceSection({ products, isLoading, loadingPrices,
                             <p className="text-[11px] text-muted-foreground">
                               {refsCount} ref. · {dateLabel(product.competitor_checked_at)}
                             </p>
+                            {refsCount === 1 && (
+                              <p className="text-[11px] text-amber-600">Pouco sustentada (1 loja)</p>
+                            )}
                           </div>
                         ) : (
                           <div className="text-right">
