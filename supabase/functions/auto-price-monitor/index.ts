@@ -7,6 +7,7 @@ import {
   DEFAULT_MIN_MARGIN_PCT,
   DEFAULT_UNDERCUT_PCT,
 } from "../_shared/undercut-pricing.ts";
+import { buildPriceSuggestion } from "../_shared/price-suggestions.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
