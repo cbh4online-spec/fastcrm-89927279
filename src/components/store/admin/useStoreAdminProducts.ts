@@ -20,6 +20,11 @@ export interface ProductStoreData {
   primary_image_index: number | null;
   competitor_price_low: number | null;
   competitor_source: string | null;
+  competitor_refs_count: number | null;
+  competitor_checked_at: string | null;
+  auto_price_excluded: boolean | null;
+  tax_included: boolean | null;
+  tax_rate_estimate_pct: number | null;
   brand_logo_url: string | null;
   specifications: Record<string, string> | null;
   direct_cost: number | null;
