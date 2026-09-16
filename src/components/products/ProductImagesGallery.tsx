@@ -65,6 +65,8 @@ function buildAutoAltText(product: Product): string {
   return parts.join(" - ");
 }
 
+const MAX_IMAGES = 10;
+
 interface ProductImagesGalleryProps {
   product: Product;
 }
