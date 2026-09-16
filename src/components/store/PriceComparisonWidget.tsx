@@ -3,6 +3,7 @@ import { usePriceComparison, useExternalPrices } from "@/hooks/usePriceCompariso
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, BarChart3 } from "lucide-react";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
+import { prepareCompetitorRefs } from "@/lib/pricing/competitorDisplay";
 
 interface PriceComparisonWidgetProps {
   productId: string;
@@ -26,16 +27,32 @@ export function PriceComparisonWidget({
   const { data: internalProducts = [] } = usePriceComparison(productId, category, workspaceId);
   const { data: externalPrices = [] } = useExternalPrices(productId);
 
-  if (internalProducts.length === 0 && externalPrices.length === 0) return null;
+  const {
+    refs: competitorRefs,
+    cheapestVisible,
+    lastFetchedAt,
+  } = prepareCompetitorRefs(externalPrices, currentPrice, { max: 4 });
 
-  const cheaperInternal = internalProducts.filter((p) => p.base_price < currentPrice);
-  const cheaperExternal = externalPrices.filter((p) => p.price < currentPrice);
+  if (internalProducts.length === 0 && competitorRefs.length === 0) return null;
+
+  const savings = cheapestVisible !== null ? cheapestVisible - currentPrice : null;
+  const savingsPct =
+    savings !== null && cheapestVisible ? Math.round((savings / cheapestVisible) * 100) : null;
+  const updatedLabel = lastFetchedAt
+    ? new Date(lastFetchedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })
+    : null;
+
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <BarChart3 className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">Comparar Preços</h3>
+        {competitorRefs.length > 0 && (
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+            Melhor preço
+          </Badge>
+        )}
       </div>
 
       {/* Internal comparison */}
@@ -77,32 +94,36 @@ export function PriceComparisonWidget({
         </div>
       )}
 
-      {/* External prices */}
-      {externalPrices.length > 0 && (
+      {/* External prices — uma loja por linha, apenas acima do nosso preço */}
+      {competitorRefs.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground font-medium">Noutras lojas</p>
           <div className="space-y-1.5">
-            {externalPrices.slice(0, 4).map((ep) => {
-              const isCheaper = ep.price < currentPrice;
-              return (
-                <a
-                  key={ep.id}
-                  href={ep.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium">{ep.source_name}</p>
-                  </div>
-                  <span className={`text-sm font-bold ${isCheaper ? "text-green-600" : "text-foreground"}`}>
-                    €{ep.price.toFixed(2)}
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                </a>
-              );
-            })}
+            {competitorRefs.map((ep) => (
+              <a
+                key={ep.id}
+                href={ep.url ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{ep.storeLabel}</p>
+                </div>
+                <span className="text-sm font-bold text-foreground">€{ep.price.toFixed(2)}</span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground" />
+              </a>
+            ))}
           </div>
+          {savings !== null && savings > 0 && (
+            <p className="text-xs text-green-600 font-medium">
+              Poupa €{savings.toFixed(2)}
+              {savingsPct ? ` (${savingsPct}%)` : ""} face à loja mais barata listada
+            </p>
+          )}
+          {updatedLabel && (
+            <p className="text-[11px] text-muted-foreground">Atualizado a {updatedLabel}</p>
+          )}
         </div>
       )}
     </div>
