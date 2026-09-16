@@ -1,12 +1,5 @@
 import { Component, ReactNode } from "react";
-
-const isStaleChunkError = (err: unknown): boolean => {
-  const message =
-    (typeof err === "string" ? err : (err as Error)?.message) || "";
-  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|ChunkLoadError/i.test(
-    message,
-  );
-};
+import { isChunkLoadError, recoverFromChunkError } from "@/lib/chunkRecovery";
 
 interface Props {
   children: ReactNode;
@@ -21,15 +14,24 @@ export class ChunkErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, reloading: false };
 
   static getDerivedStateFromError(error: Error): State | null {
-    if (isStaleChunkError(error)) {
-      return { hasError: true, reloading: false };
+    if (isChunkLoadError(error)) {
+      return { hasError: true, reloading: true };
     }
     // Not a chunk error — don't claim it; let it bubble.
     return null;
   }
 
+  componentDidCatch(error: Error) {
+    if (!isChunkLoadError(error)) return;
+
+    void recoverFromChunkError().then((started) => {
+      if (!started) this.setState({ reloading: false });
+    });
+  }
+
   handleManualReload = () => {
-    window.location.reload();
+    this.setState({ reloading: true });
+    void recoverFromChunkError(true);
   };
 
   render() {
@@ -56,6 +58,7 @@ export class ChunkErrorBoundary extends Component<Props, State> {
                   Verifique a sua ligação e tente novamente.
                 </p>
                 <button
+                  type="button"
                   onClick={this.handleManualReload}
                   className="mt-2 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
