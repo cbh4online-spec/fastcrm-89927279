@@ -25,7 +25,9 @@ function usePublicSellerProfile(sellerId: string | undefined, workspaceId: strin
       const filter = isUUID ? { column: "user_id", value: sellerId } : { column: "slug", value: sellerId };
       const { data, error } = await (supabase as any)
         .from("c2c_sellers")
-        .select("*")
+        .select(
+          "id, user_id, workspace_id, display_name, bio, location, slug, status, avatar_url, is_verified, verification_status, avg_rating, total_reviews, total_sales, tier, created_at",
+        )
         .eq("workspace_id", workspaceId)
         .eq(filter.column, filter.value)
         .eq("status", "approved")
