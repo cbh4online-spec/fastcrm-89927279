@@ -25,7 +25,9 @@ export default function StoreSellerPage() {
       // Try slug first, then UUID
       let query = supabase
         .from("c2c_sellers")
-        .select("*")
+        .select(
+          "id, user_id, workspace_id, display_name, bio, location, slug, status, avatar_url, is_verified, verification_status, avg_rating, total_reviews, total_sales, tier, created_at",
+        )
         .eq("workspace_id", wsId)
         .eq("status", "approved");
 
