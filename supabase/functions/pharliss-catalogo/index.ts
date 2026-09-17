@@ -129,16 +129,16 @@ Deno.serve(async (req) => {
       const chunk = missing.slice(i, i + 200);
       const { data, error } = await supabase
         .from("product_images")
-        .select("product_id, image_url, is_primary, position, created_at")
+        .select("product_id, url, is_cover, position, created_at")
         .in("product_id", chunk)
-        .order("is_primary", { ascending: false })
+        .order("is_cover", { ascending: false })
         .order("position", { ascending: true })
         .order("created_at", { ascending: true });
       if (error) throw error;
-      for (const img of (data ?? []) as { product_id: string; image_url: string }[]) {
-        if (!img.image_url) continue;
+      for (const img of (data ?? []) as { product_id: string; url: string }[]) {
+        if (!img.url) continue;
         const list = galleryByProduct.get(img.product_id) ?? [];
-        list.push(img.image_url);
+        list.push(img.url);
         galleryByProduct.set(img.product_id, list);
       }
     }
