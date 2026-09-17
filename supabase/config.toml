@@ -168,3 +168,6 @@ verify_jwt = false
 
 [functions.commerce-track]
 verify_jwt = false
+
+[functions.pharliss-catalogo]
+verify_jwt = false
