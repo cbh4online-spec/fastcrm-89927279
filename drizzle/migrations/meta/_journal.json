@@ -190,6 +190,20 @@
       "when": 1789640650151,
       "tag": "0026_harden_ambassadors_sensitive_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1789640936466,
+      "tag": "0027_harden_c2c_public_read",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1789640968091,
+      "tag": "0028_restore_c2c_listings_anon_select",
+      "breakpoints": true
     }
   ]
 }
