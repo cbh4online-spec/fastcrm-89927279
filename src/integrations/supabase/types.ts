@@ -108094,6 +108094,13 @@ export type Database = {
         Args: { p_module_id: string; p_workspace_id: string }
         Returns: Json
       }
+      get_my_ambassador_banking: {
+        Args: never
+        Returns: {
+          iban: string
+          nif: string
+        }[]
+      }
       get_my_gdpr_consent: {
         Args: { p_visitor_id: string }
         Returns: {

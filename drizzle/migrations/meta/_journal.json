@@ -183,6 +183,13 @@
       "when": 1789595795634,
       "tag": "0025_sync_product_store_category",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789640650151,
+      "tag": "0026_harden_ambassadors_sensitive_columns",
+      "breakpoints": true
     }
   ]
 }
