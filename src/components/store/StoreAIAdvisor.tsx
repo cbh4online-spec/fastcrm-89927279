@@ -12,10 +12,14 @@ import {
   Bot,
   User,
   Package,
+  ShoppingBag,
+  Check,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useStoreCartSafe } from "@/contexts/StoreCartContext";
+import { toast } from "sonner";
 
 interface StoreAIAdvisorProps {
   workspaceId: string;
@@ -23,10 +27,21 @@ interface StoreAIAdvisorProps {
   productContext?: { name: string; category?: string };
 }
 
+interface AdvisorProduct {
+  id: string;
+  name: string;
+  slug?: string;
+  sku?: string | null;
+  price: number;
+  currency?: string;
+  image?: string | null;
+  available?: boolean;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
-  products?: { id: string; name: string; price: number; image?: string }[];
+  products?: AdvisorProduct[];
 }
 
 export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: StoreAIAdvisorProps) {
@@ -35,8 +50,28 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
+  const [addedIds, setAddedIds] = useState<string[]>([]);
+  const cart = useStoreCartSafe();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddToCart = (product: AdvisorProduct) => {
+    if (!cart || product.available === false) return;
+    cart.addItem(
+      {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        currency: product.currency || "EUR",
+        image: product.image || undefined,
+        sku: product.sku || undefined,
+      },
+      1,
+    );
+    setAddedIds((prev) => (prev.includes(product.id) ? prev : [...prev, product.id]));
+    toast.success(`${product.name} adicionado ao carrinho`);
+  };
+
 
   useEffect(() => {
     if (isOpen && inputRef.current) {

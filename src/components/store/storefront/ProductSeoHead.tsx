@@ -30,6 +30,8 @@ interface ProductSeoHeadProps {
   isOutOfStock: boolean;
   /** Rich image metadata for SEO */
   productImages?: ProductSeoImage[];
+  /** Perguntas frequentes reais da ficha (AI Commerce) — geram rich snippets FAQPage. */
+  faq?: { question: string; answer: string }[];
   /** Conteúdo AI Commerce usado como reforço (nunca substitui texto próprio) */
   aiSeo?: {
     title?: string | null;
@@ -41,7 +43,7 @@ interface ProductSeoHeadProps {
 
 const ALLOWED_SCHEMA_TYPES = ["Product", "SoftwareApplication", "Service", "Course"];
 
-export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg, reviewCount, images, primaryIndex, isOutOfStock, productImages, aiSeo }: ProductSeoHeadProps) {
+export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg, reviewCount, images, primaryIndex, isOutOfStock, productImages, faq, aiSeo }: ProductSeoHeadProps) {
   const defaultCanonical = `${getPublicBaseUrl()}/store/${wsSlug}/product/${(product as any).store_slug || product.id}`;
   // Só aceita canonical do AI Commerce se apontar para esta própria loja.
   const canonical = aiSeo?.canonicalUrl?.startsWith(`${getPublicBaseUrl()}/store/${wsSlug}/`)
@@ -122,6 +124,28 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
     itemListElement: breadcrumbItems,
   };
 
+  // FAQ real da ficha → rich snippet FAQPage. Nada é inventado: só pares
+  // pergunta/resposta preenchidos, com limite de 10 (recomendação do Google).
+  const faqEntries = (faq || [])
+    .map((entry) => ({
+      question: (entry?.question || "").trim(),
+      answer: (entry?.answer || "").trim(),
+    }))
+    .filter((entry) => entry.question.length >= 5 && entry.answer.length >= 15)
+    .slice(0, 10);
+
+  const faqJsonLd = faqEntries.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqEntries.map((entry) => ({
+          "@type": "Question",
+          name: entry.question,
+          acceptedAnswer: { "@type": "Answer", text: entry.answer },
+        })),
+      }
+    : null;
+
   // Primary image alt for og:image:alt
   const primaryAlt = productImages?.[primaryIndex]?.alt_text || description;
 
@@ -154,6 +178,7 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
       {primaryImage && <meta name="twitter:image:alt" content={primaryAlt} />}
       {isComplete && <script type="application/ld+json">{JSON.stringify(productJsonLd)}</script>}
       <script type="application/ld+json">{JSON.stringify(breadcrumbJsonLd)}</script>
+      {faqJsonLd && <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>}
     </Helmet>
   );
 }

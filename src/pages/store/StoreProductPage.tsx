@@ -428,6 +428,7 @@ export default function StoreProductPage() {
         images={images}
         primaryIndex={primaryIndex}
         isOutOfStock={isOutOfStock}
+        faq={storeContent.faq}
       />
 
       <div className="min-h-screen bg-background">
