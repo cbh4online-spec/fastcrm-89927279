@@ -150,6 +150,8 @@ export function CreateProductDialog({
   const [isTrackable, setIsTrackable] = useState(true);
   const [showConsumption, setShowConsumption] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(true);
+  // Conteúdo estruturado gerado pelo motor AI Commerce (aplicado ao gravar).
+  const [aiCommerceContent, setAiCommerceContent] = useState<AICommerceSuggestion | null>(null);
   const [productImages, setProductImages] = useState<string[]>([]);
   const [skuFoundImages, setSkuFoundImages] = useState<string[]>([]);
   const [specifications, setSpecifications] = useState<Record<string, string>>({});
