@@ -42,6 +42,7 @@ import { StorePurchasePanel } from "@/components/store/purchase/StorePurchasePan
 import { StorePriceRequestDialog } from "@/components/store/StorePriceRequestDialog";
 import { StoreProductAlertWidget } from "@/components/store/StoreProductAlertWidget";
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
+import { StoreAIAccessories } from "@/components/store/sections/StoreAIAccessories";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
 import { StoreProductDocuments } from "@/components/store/sections/StoreProductDocuments";
