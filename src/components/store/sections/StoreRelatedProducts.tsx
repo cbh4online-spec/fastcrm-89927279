@@ -4,6 +4,11 @@ import { Link } from "react-router-dom";
 import { Package } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
+import {
+  classifyRelationIntent,
+  rankRelationOffers,
+  type RelationIntent,
+} from "@/lib/ai-commerce/relationIntent";
 
 interface StoreRelatedProductsProps {
   productId: string;
