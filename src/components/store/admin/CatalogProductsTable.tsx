@@ -106,6 +106,23 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
             <Button size="sm" variant="outline" className="gap-2" disabled={selectedIds.length === 0 || bulkPending} onClick={() => runBulk(false)}>
               <EyeOff className="h-3.5 w-3.5" /> Despublicar
             </Button>
+            {onBulkEnrich && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                disabled={selectedIds.length === 0 || bulkPending}
+                onClick={() =>
+                  onBulkEnrich(
+                    products
+                      .filter((p) => selected[p.id])
+                      .map((p) => ({ id: p.id, name: p.name || "Produto sem nome", sku: p.sku })),
+                  )
+                }
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Enriquecer com IA
+              </Button>
+            )}
             <Button size="sm" variant="ghost" disabled={products.length === 0 || bulkPending} onClick={toggleAll}>
               {allSelected ? "Limpar seleção" : "Selecionar todos os visíveis"}
             </Button>
