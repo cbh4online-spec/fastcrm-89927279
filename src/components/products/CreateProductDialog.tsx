@@ -506,6 +506,7 @@ export function CreateProductDialog({
     setPhysical(EMPTY_PHYSICAL);
     // Reset post-creation suggestions
     setCreatedProduct(null);
+    setAiCommerceContent(null);
   };
 
   const handleActualSubmit = async () => {
