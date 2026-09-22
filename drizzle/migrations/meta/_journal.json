@@ -204,6 +204,13 @@
       "when": 1789640968091,
       "tag": "0028_restore_c2c_listings_anon_select",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790077217747,
+      "tag": "0029_fix_store_visitor_sessions_anon_upsert",
+      "breakpoints": true
     }
   ]
 }
