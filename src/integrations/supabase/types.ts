@@ -73914,9 +73914,11 @@ export type Database = {
       }
       product_relations: {
         Row: {
+          commercial_intent: string | null
           confidence: string | null
           created_at: string
           created_by: string | null
+          evidence: Json | null
           id: string
           is_active: boolean
           reason: string | null
@@ -73934,9 +73936,11 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          commercial_intent?: string | null
           confidence?: string | null
           created_at?: string
           created_by?: string | null
+          evidence?: Json | null
           id?: string
           is_active?: boolean
           reason?: string | null
@@ -73954,9 +73958,11 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          commercial_intent?: string | null
           confidence?: string | null
           created_at?: string
           created_by?: string | null
+          evidence?: Json | null
           id?: string
           is_active?: boolean
           reason?: string | null
