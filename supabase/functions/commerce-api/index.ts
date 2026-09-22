@@ -142,24 +142,16 @@ async function loadPublishedProducts(
     offset?: number;
   },
 ): Promise<{ rows: { product: CommerceProduct; ai: Partial<ProductAICommerce> | null }[]; total: number }> {
-  const { data: enabled } = await supabase
-    .from("product_ai_commerce")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .eq("ai_commerce_enabled", true);
-
-  const aiRows = (enabled || []) as AiRow[];
-  if (!aiRows.length) return { rows: [], total: 0 };
-  const aiByProduct = new Map(aiRows.map((r) => [r.product_id, r]));
-
+  // Junção no servidor: evita listas `in(...)` gigantes no URL (HTTP 400).
   let query = supabase
     .from("products")
-    .select(PRODUCT_COLUMNS, { count: "exact" })
+    .select(`${PRODUCT_COLUMNS}, product_ai_commerce!inner(*)`, { count: "exact" })
     .eq("workspace_id", workspaceId)
     .eq("store_published", true)
     .eq("status", "active")
     .eq("ai_commerce_gate_blocked", false)
-    .in("id", aiRows.map((r) => r.product_id));
+    .eq("product_ai_commerce.workspace_id", workspaceId)
+    .eq("product_ai_commerce.ai_commerce_enabled", true);
 
   if (opts.slug) query = query.eq("store_slug", opts.slug);
   if (opts.category) query = query.eq("category", opts.category);
@@ -175,7 +167,16 @@ async function loadPublishedProducts(
   const { data, count, error } = await query;
   if (error) throw new Error(error.message);
 
-  const products = (data || []) as unknown as CommerceProduct[];
+  const joined = (data || []) as unknown as (CommerceProduct & { product_ai_commerce?: AiRow | AiRow[] | null })[];
+  if (!joined.length) return { rows: [], total: count ?? 0 };
+
+  const aiByProduct = new Map<string, AiRow>();
+  const products: CommerceProduct[] = joined.map((row) => {
+    const { product_ai_commerce, ...product } = row;
+    const ai = Array.isArray(product_ai_commerce) ? product_ai_commerce[0] : product_ai_commerce;
+    if (ai) aiByProduct.set((product as CommerceProduct).id, ai);
+    return product as CommerceProduct;
+  });
 
   // Variantes ativas: fonte do preço mínimo e das opções expostas.
   const variantsByProduct = new Map<string, VariantRow[]>();
