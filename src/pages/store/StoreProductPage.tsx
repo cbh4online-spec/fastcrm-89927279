@@ -1053,15 +1053,17 @@ export default function StoreProductPage() {
 
 
 
-          {/* Related */}
-          <StoreRelatedProducts
-            productId={product.id}
-            categoryId={product.store_category_id}
-            workspaceId={(product as any).workspace_id}
-            workspaceSlug={wsSlug}
-            sourcePrice={pricing?.price ?? product.base_price}
-            sourceAvailable={!isOutOfStock}
-          />
+          {/* Relacionados por categoria — só se a ficha não tiver relações validadas */}
+          {!relations.hasRelations && (
+            <StoreRelatedProducts
+              productId={product.id}
+              categoryId={product.store_category_id}
+              workspaceId={(product as any).workspace_id}
+              workspaceSlug={wsSlug}
+              sourcePrice={pricing?.price ?? product.base_price}
+              sourceAvailable={!isOutOfStock}
+            />
+          )}
 
           {/* Recently Viewed */}
           <StoreRecentlyViewed
