@@ -32,7 +32,7 @@ import {
   useUpdateCommerceFeed,
 } from "@/hooks/useAICommerce";
 import { useQueryClient } from "@tanstack/react-query";
-import type { FeedChannel, FeedFormat } from "@/lib/ai-commerce/types";
+import type { CommerceFeed, FeedChannel, FeedFormat } from "@/lib/ai-commerce/types";
 
 const CHANNELS: { value: FeedChannel; label: string; format: FeedFormat }[] = [
   { value: "openai", label: "OpenAI / ChatGPT", format: "json" },
