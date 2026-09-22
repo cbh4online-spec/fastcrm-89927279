@@ -218,6 +218,13 @@
       "when": 1790077333263,
       "tag": "0030_tighten_store_visitor_sessions_anon_select",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790077363691,
+      "tag": "0031_restore_store_visitor_sessions_anon_select_grant",
+      "breakpoints": true
     }
   ]
 }
