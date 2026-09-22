@@ -103,9 +103,13 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       ...extraFields,
     };
 
-    const { error } = await supabase
-      .from("store_visitor_sessions" as any)
-      .upsert(sessionData, { onConflict: "workspace_id,session_id" });
+    const { workspace_id, session_id, ...payload } = sessionData as Record<string, any>;
+
+    const { error } = await (supabase as any).rpc("track_store_visitor_session", {
+      p_workspace_id: workspace_id,
+      p_session_id: session_id,
+      p_payload: payload,
+    });
 
     if (error) {
       console.warn("[ECOMMERCE] VISITOR_SESSION_FAILED", error.message);

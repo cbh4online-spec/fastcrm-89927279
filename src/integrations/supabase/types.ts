@@ -109058,6 +109058,10 @@ export type Database = {
         }
         Returns: string
       }
+      track_store_visitor_session: {
+        Args: { p_payload?: Json; p_session_id: string; p_workspace_id: string }
+        Returns: undefined
+      }
       unaccent: { Args: { "": string }; Returns: string }
       unaccent_safe: { Args: { _txt: string }; Returns: string }
       update_user_status_admin: {

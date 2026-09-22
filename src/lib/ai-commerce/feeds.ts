@@ -96,9 +96,10 @@ function toXml(records: Record<string, unknown>[], rootTag: string, itemTag: str
     .map((r) => {
       const fields = Object.entries(r)
         .filter(([, v]) => v !== null && v !== undefined && v !== "")
-        .map(([k, v]) => {
-          const value = Array.isArray(v) ? v.join(", ") : v;
-          return `    <${prefix}${k}>${xmlEscape(value)}</${prefix}${k}>`;
+        .flatMap(([k, v]) => {
+          // Arrays geram um elemento por valor (ex.: g:additional_image_link).
+          const values = Array.isArray(v) ? v.filter((x) => x !== null && x !== undefined && x !== "") : [v];
+          return values.map((value) => `    <${prefix}${k}>${xmlEscape(value)}</${prefix}${k}>`);
         })
         .join("\n");
       return `  <${itemTag}>\n${fields}\n  </${itemTag}>`;
