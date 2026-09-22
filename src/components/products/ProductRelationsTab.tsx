@@ -274,10 +274,12 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
       targetId,
       type,
       reasonText,
+      targetPrice,
     }: {
       targetId: string;
       type: RelationType;
       reasonText: string;
+      targetPrice?: number | null;
     }) => {
       const { error } = await workspaceClient
         .from("product_relations")
@@ -286,7 +288,14 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
           source_product_id: product.id,
           target_product_id: targetId,
           relation_type: type,
+          commercial_intent: classifyRelationIntent(
+            type,
+            sourcePrice,
+            targetPrice ?? null
+          ),
           reason: reasonText || null,
+          source: "manual",
+          validation_status: "approved",
           sort_order: outgoingRelations.filter((r: any) => r.relation_type === type)
             .length,
         });
