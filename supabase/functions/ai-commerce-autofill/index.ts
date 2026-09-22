@@ -35,8 +35,11 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
 
-    const { productId, baseUrl } = await req.json().catch(() => ({}));
-    if (!productId || !UUID.test(String(productId))) return json({ error: "invalid_product" }, 400);
+    const body = await req.json().catch(() => ({}));
+    const { productId, baseUrl, draft } = body ?? {};
+    const hasProductId = productId && UUID.test(String(productId));
+    const hasDraft = draft && typeof draft === "object" && typeof draft.name === "string" && draft.name.trim().length >= 3;
+    if (!hasProductId && !hasDraft) return json({ error: "invalid_product" }, 400);
 
     const safeBaseUrl = typeof baseUrl === "string" && /^https:\/\/[a-z0-9.-]+(\/)?$/i.test(baseUrl.trim())
       ? baseUrl.trim().replace(/\/+$/, "")
@@ -51,24 +54,53 @@ serve(async (req) => {
     const { data: user } = await supabase.auth.getUser();
     if (!user?.user) return json({ error: "unauthorized" }, 401);
 
-    const { data: product, error: productError } = await supabase
-      .from("products")
-      .select(
-        "id, workspace_id, name, sku, brand, category, subcategory, product_type, short_description, commercial_description, base_price, currency, stock_status, main_benefits, benefits, features, target_audience, problem_solved, use_cases, seo_title, seo_description, store_slug, schema_type, canonical_url, checkout_url, languages, countries",
-      )
-      .eq("id", productId)
-      .maybeSingle();
+    let product: Record<string, unknown> | null = null;
 
-    if (productError || !product) return json({ error: "not_found" }, 404);
+    if (hasProductId) {
+      const { data, error: productError } = await supabase
+        .from("products")
+        .select(
+          "id, workspace_id, name, sku, brand, category, subcategory, product_type, short_description, commercial_description, base_price, currency, stock_status, main_benefits, benefits, features, target_audience, problem_solved, use_cases, seo_title, seo_description, store_slug, schema_type, canonical_url, checkout_url, languages, countries",
+        )
+        .eq("id", productId)
+        .maybeSingle();
+      if (productError || !data) return json({ error: "not_found" }, 404);
+      product = data as Record<string, unknown>;
+    } else {
+      // Produto ainda não criado: usa apenas os dados do rascunho do formulário.
+      const clean = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : null);
+      let workspaceId: string | null = null;
+      if (draft.workspaceId && UUID.test(String(draft.workspaceId))) {
+        // Confirma acesso ao workspace via RLS antes de usar para instrumentação.
+        const { data: ws } = await supabase
+          .from("workspaces")
+          .select("id")
+          .eq("id", draft.workspaceId)
+          .maybeSingle();
+        workspaceId = (ws?.id as string | null) ?? null;
+      }
+      product = {
+        id: null,
+        workspace_id: workspaceId,
+        name: clean(draft.name, 250),
+        sku: clean(draft.sku, 80),
+        brand: clean(draft.brand, 120),
+        category: clean(draft.category, 120),
+        subcategory: null,
+        product_type: clean(draft.productType, 40),
+        short_description: clean(draft.shortDescription, 1000),
+        commercial_description: clean(draft.commercialDescription, 5000),
+        store_slug: null,
+      };
+    }
 
     // Publicação externa: URLs derivadas da loja real (nunca inventadas).
-    // A rota pública resolve primeiro store_settings.store_slug; só depois workspaces.slug.
     let workspaceSlug: string | null = null;
     if (product.workspace_id) {
       const { data: storeSettings } = await supabase
         .from("store_settings")
         .select("store_slug")
-        .eq("workspace_id", product.workspace_id)
+        .eq("workspace_id", product.workspace_id as string)
         .maybeSingle();
       workspaceSlug = (storeSettings?.store_slug as string | null) ?? null;
 
@@ -76,7 +108,7 @@ serve(async (req) => {
         const { data: ws } = await supabase
           .from("workspaces")
           .select("slug")
-          .eq("id", product.workspace_id)
+          .eq("id", product.workspace_id as string)
           .maybeSingle();
         workspaceSlug = (ws?.slug as string | null) ?? null;
       }

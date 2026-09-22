@@ -50,6 +50,7 @@ import { toast } from "sonner";
 import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFrequency } from "@/types/product";
 import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/product";
 import { AIProductAssistant } from "./AIProductAssistant";
+import { AICommerceAssistantPanel, type AICommerceSuggestion } from "./AICommerceAssistantPanel";
 import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
 import { CostInput, type CostMode, type CostBase, resolveCostAmount } from "./CostInput";
@@ -149,6 +150,8 @@ export function CreateProductDialog({
   const [isTrackable, setIsTrackable] = useState(true);
   const [showConsumption, setShowConsumption] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(true);
+  // Conteúdo estruturado gerado pelo motor AI Commerce (aplicado ao gravar).
+  const [aiCommerceContent, setAiCommerceContent] = useState<AICommerceSuggestion | null>(null);
   const [productImages, setProductImages] = useState<string[]>([]);
   const [skuFoundImages, setSkuFoundImages] = useState<string[]>([]);
   const [specifications, setSpecifications] = useState<Record<string, string>>({});
@@ -503,6 +506,7 @@ export function CreateProductDialog({
     setPhysical(EMPTY_PHYSICAL);
     // Reset post-creation suggestions
     setCreatedProduct(null);
+    setAiCommerceContent(null);
   };
 
   const handleActualSubmit = async () => {
@@ -560,10 +564,25 @@ export function CreateProductDialog({
     // Physical attributes (frascos líquidos, peso, dimensões, embalagem)
     Object.assign(data, physicalToPayload(physical));
 
+    // Conteúdo estruturado do motor AI Commerce (sem preços nem stock)
+    if (aiCommerceContent) {
+      const ai = aiCommerceContent;
+      if (ai.ai_long_description) data.commercial_description = ai.ai_long_description;
+      if (ai.main_benefits.length) data.main_benefits = ai.main_benefits;
+      if (ai.ai_key_features.length) data.features = ai.ai_key_features;
+      if (ai.ai_use_cases.length) data.use_cases = ai.ai_use_cases;
+      if (ai.ai_target_audience) data.target_audience = ai.ai_target_audience;
+      if (ai.ai_problem_solved) data.problem_solved = ai.ai_problem_solved;
+      if (ai.seo_title) data.seo_title = ai.seo_title;
+      if (ai.seo_description) data.seo_description = ai.seo_description;
+      if (ai.schema_type) data.schema_type = ai.schema_type;
+    }
+
     let savedProductId: string | null = null;
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product!.id, ...data });
       savedProductId = product!.id;
+      await persistAICommerce(product!.id, (product as any)?.workspace_id ?? null);
     } else {
       const created = await createProduct.mutateAsync(data);
       savedProductId = created?.id ?? null;
@@ -571,6 +590,7 @@ export function CreateProductDialog({
       if (created?.id && created?.workspace_id) {
         // Apply selected digital catalogs (create mode)
         await applyPendingCatalogs(created.id);
+        await persistAICommerce(created.id, created.workspace_id);
         setCreatedProduct({ id: created.id, name: created.name, workspace_id: created.workspace_id });
         // Clear draft after successful save
         localStorage.removeItem(DRAFT_STORAGE_KEY);
@@ -592,6 +612,39 @@ export function CreateProductDialog({
     setDraftSavedAt(null);
     setShowCostWarning(false);
     onOpenChange(false);
+  };
+
+  /** Guarda o conteúdo gerado na camada AI Commerce do produto. */
+  const persistAICommerce = async (productId: string, workspaceId: string | null) => {
+    if (!aiCommerceContent || !workspaceId) return;
+    const ai = aiCommerceContent;
+    try {
+      const { error } = await supabase.from("product_ai_commerce").upsert(
+        {
+          workspace_id: workspaceId,
+          product_id: productId,
+          ai_title: ai.ai_title || null,
+          ai_category: ai.ai_category || null,
+          ai_short_description: ai.ai_short_description || null,
+          ai_long_description: ai.ai_long_description || null,
+          ai_target_audience: ai.ai_target_audience || null,
+          ai_problem_solved: ai.ai_problem_solved || null,
+          ai_use_cases: ai.ai_use_cases,
+          ai_key_features: ai.ai_key_features,
+          ai_keywords: ai.ai_keywords,
+          ai_recommendation_context: ai.ai_recommendation_context || null,
+          ai_exclusions: ai.ai_exclusions || null,
+          ai_faq: ai.ai_faq,
+        } as any,
+        { onConflict: "product_id" },
+      );
+      if (error) {
+        console.error("[AI Commerce] upsert failed:", error);
+        toast.error("Produto guardado, mas o conteúdo AI Commerce não foi gravado");
+      }
+    } catch (e) {
+      console.error("[AI Commerce] persist error:", e);
+    }
   };
 
   const applyPendingCatalogs = async (productId: string) => {
@@ -1364,6 +1417,21 @@ export function CreateProductDialog({
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-4 pt-2">
+                  <AICommerceAssistantPanel
+                    productId={product?.id}
+                    draft={{
+                      name,
+                      sku,
+                      category,
+                      productType,
+                      shortDescription,
+                    }}
+                    onApplyName={handleApplyName}
+                    onApplyCategory={handleApplyCategory}
+                    onApplyShortDescription={handleApplyDescription}
+                    onApplyStructured={setAiCommerceContent}
+                  />
+
                   <AIProductAssistant
                     productName={name}
                     currentCategory={category}
