@@ -8,6 +8,10 @@ import { useStoreVat } from "@/contexts/StoreVatContext";
 import { useNavigate } from "react-router-dom";
 import { StoreFreeShippingBar } from "@/components/store/StoreFreeShippingBar";
 import { StoreCartUpsell } from "@/components/store/StoreCartUpsell";
+import { StoreCartComplements } from "@/components/store/StoreCartComplements";
+import { StoreCartStockGuard } from "@/components/store/StoreCartStockGuard";
+import { useStoreCartOffers } from "@/hooks/useStoreCartOffers";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { formatMoney } from "@/lib/money";
 
 interface StoreCartDrawerProps {
