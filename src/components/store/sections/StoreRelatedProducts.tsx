@@ -8,6 +8,7 @@ import {
   classifyRelationIntent,
   rankRelationOffers,
   type RelationIntent,
+  type RelationOffer,
 } from "@/lib/ai-commerce/relationIntent";
 
 interface StoreRelatedProductsProps {
