@@ -22,6 +22,9 @@ import { useCheckoutForm } from "@/components/store/checkout/useCheckoutForm";
 import { useCheckoutPricing } from "@/components/store/checkout/useCheckoutPricing";
 import { CheckoutBankTransferInfo } from "@/components/store/checkout/CheckoutBankTransferInfo";
 import { formatMoney } from "@/lib/money";
+import { useStoreCartOffers } from "@/hooks/useStoreCartOffers";
+import { StoreCartComplements } from "@/components/store/StoreCartComplements";
+import { StoreCartStockGuard } from "@/components/store/StoreCartStockGuard";
 import type { PaymentMethodType } from "@/components/store/checkout/CheckoutPaymentMethodPicker";
 
 export default function StoreCheckoutPage() {
