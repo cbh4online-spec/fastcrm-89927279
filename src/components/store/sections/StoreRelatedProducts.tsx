@@ -10,16 +10,20 @@ interface StoreRelatedProductsProps {
   categoryId: string | null;
   workspaceId: string;
   workspaceSlug: string;
+  /** Preço do produto principal — usado para ordenar up-sell vs down-sell. */
+  sourcePrice?: number | null;
+  /** Produto principal disponível? Se não, prioriza alternativas (nunca perder a venda). */
+  sourceAvailable?: boolean;
 }
 
-export function StoreRelatedProducts({ productId, categoryId, workspaceId, workspaceSlug }: StoreRelatedProductsProps) {
+export function StoreRelatedProducts({ productId, categoryId, workspaceId, workspaceSlug, sourcePrice = null, sourceAvailable = true }: StoreRelatedProductsProps) {
   const { data: products } = useQuery({
-    queryKey: ["store-related", productId, categoryId],
+    queryKey: ["store-related", productId, categoryId, sourceAvailable],
     queryFn: async () => {
       // First try: get "related" relations from product_relations
       const { data: relations } = await supabase
         .from("product_relations")
-        .select("target_product_id")
+        .select("target_product_id, relation_type, commercial_intent")
         .eq("source_product_id", productId)
         .in("relation_type", ["related", "alternative", "upgrade"])
         .eq("is_active", true)
@@ -30,16 +34,40 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
         const targetIds = relations.map((r: any) => r.target_product_id);
         const { data: prods } = await supabase
           .from("products")
-          .select("id, store_slug, name, base_price, images, primary_image_index, category")
+          .select("id, store_slug, name, base_price, images, primary_image_index, category, stock_status")
           .in("id", targetIds)
           .eq("store_published", true)
           .eq("status", "active");
 
         if (prods && prods.length > 0) {
-          // Maintain sort order from relations
-          return targetIds
-            .map((tid: string) => prods.find((p) => p.id === tid))
-            .filter(Boolean) as typeof prods;
+          const byId = new Map(prods.map((p) => [p.id, p]));
+          const offers = relations
+            .map((r: any) => {
+              const product = byId.get(r.target_product_id);
+              if (!product) return null;
+              return {
+                item: product,
+                intent: (r.commercial_intent ||
+                  classifyRelationIntent(r.relation_type, sourcePrice, product.base_price ?? null)) as RelationIntent,
+                price: product.base_price ?? null,
+                available: product.stock_status !== "out_of_stock",
+              };
+            })
+            .filter(Boolean) as {
+              item: (typeof prods)[number];
+              intent: RelationIntent;
+              price: number | null;
+              available: boolean;
+            }[];
+
+          const ranked = rankRelationOffers(offers, {
+            sourcePrice,
+            sourceAvailable,
+            limit: 8,
+          });
+          if (ranked.offers.length > 0) {
+            return ranked.offers.map((o) => o.item);
+          }
         }
       }
 
