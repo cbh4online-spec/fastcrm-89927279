@@ -73,7 +73,7 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
             })
             .filter(Boolean) as RelationOffer<StoreProduct>[];
 
-          const ranked = rankRelationOffers(offers, {
+          const ranked = rankRelationOffers<StoreProduct>(offers, {
             sourcePrice,
             sourceAvailable,
             limit: 8,
