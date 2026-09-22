@@ -107,6 +107,7 @@ export default function StoreProductsAdminPage() {
                 onEdit={(id: string) => setEditProductId(id)}
                 onBulkPublish={(ids, published) => admin.bulkSetPublished.mutate({ ids, published })}
                 bulkPending={admin.bulkSetPublished.isPending}
+                onBulkEnrich={(targets) => { setEnrichTargets(targets); setEnrichOpen(true); }}
               />
             </TabsContent>
 
