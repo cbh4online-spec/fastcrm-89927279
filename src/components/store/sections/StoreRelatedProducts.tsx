@@ -45,34 +45,46 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
           .eq("status", "active");
 
         if (prods && prods.length > 0) {
+          type StoreProduct = (typeof prods)[number];
           const byId = new Map(prods.map((p) => [p.id, p]));
           const offers = relations
             .map((r: any) => {
               const product = byId.get(r.target_product_id);
               if (!product) return null;
               return {
-                item: product,
+                relationType: r.relation_type,
                 intent: (r.commercial_intent ||
-                  classifyRelationIntent(r.relation_type, sourcePrice, product.base_price ?? null)) as RelationIntent,
-                price: product.base_price ?? null,
-                available: product.stock_status !== "out_of_stock",
+                  classifyRelationIntent(
+                    r.relation_type,
+                    sourcePrice,
+                    product.base_price ?? null,
+                  )) as RelationIntent,
+                target: {
+                  id: product.id,
+                  name: product.name,
+                  price: product.base_price ?? null,
+                  status: "active",
+                  stockStatus: product.stock_status ?? null,
+                  storePublished: true,
+                },
+                payload: product,
               };
             })
-            .filter(Boolean) as {
-              item: (typeof prods)[number];
-              intent: RelationIntent;
-              price: number | null;
-              available: boolean;
-            }[];
+            .filter(Boolean) as RelationOffer<StoreProduct>[];
 
           const ranked = rankRelationOffers(offers, {
             sourcePrice,
             sourceAvailable,
             limit: 8,
           });
-          if (ranked.offers.length > 0) {
-            return ranked.offers.map((o) => o.item);
+          const ordered = sourceAvailable
+            ? [...ranked.upsell, ...ranked.downsell]
+            : [...ranked.downsell, ...ranked.upsell];
+          const unique: StoreProduct[] = [];
+          for (const offer of ordered) {
+            if (!unique.some((p) => p.id === offer.payload.id)) unique.push(offer.payload);
           }
+          if (unique.length > 0) return unique.slice(0, 8);
         }
       }
 
