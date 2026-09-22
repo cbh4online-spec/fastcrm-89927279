@@ -22,8 +22,18 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, subtotal, totalItems } = useStoreCart();
   const { isB2B, vatRate } = useStoreVat();
   const navigate = useNavigate();
+  const { workspaceId } = useResolveStoreWorkspace(workspaceSlug);
+  const { complements, unavailable, hasBlockingIssue, isLoading, refetch } = useStoreCartOffers(
+    workspaceId,
+    items,
+    { enabled: isOpen },
+  );
 
   const handleCheckout = () => {
+    if (hasBlockingIssue) {
+      toast.error("Há artigos indisponíveis no carrinho. Escolha uma alternativa para continuar.");
+      return;
+    }
     setIsOpen(false);
     navigate(`/store/${workspaceSlug}/checkout`);
   };
