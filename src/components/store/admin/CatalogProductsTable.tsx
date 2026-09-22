@@ -18,6 +18,7 @@ interface CatalogProductsTableProps {
   onEdit: (productId: string) => void;
   onBulkPublish?: (ids: string[], published: boolean) => void;
   bulkPending?: boolean;
+  onBulkEnrich?: (targets: { id: string; name: string; sku?: string | null }[]) => void;
 }
 
 function ProductIndicators({ product }: { product: ProductStoreData }) {
