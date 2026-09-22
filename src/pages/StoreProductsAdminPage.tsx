@@ -93,6 +93,8 @@ export default function StoreProductsAdminPage() {
             missingWeightCount={admin.missingWeightCount}
           />
 
+          <BulkAICommerceDialog open={enrichOpen} onOpenChange={setEnrichOpen} targets={enrichTargets} />
+
           <Tabs defaultValue="catalog">
             <TabsList>
               <TabsTrigger value="catalog">Catálogo</TabsTrigger>
