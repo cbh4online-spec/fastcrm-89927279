@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AICommerceOverview } from "@/components/ai-commerce/AICommerceOverview";
 import { AICommerceReadinessList } from "@/components/ai-commerce/AICommerceReadinessList";
+import { AICommerceCopilot } from "@/components/ai-commerce/AICommerceCopilot";
 import { AICommerceFeeds } from "@/components/ai-commerce/AICommerceFeeds";
 import { AICommerceChannels } from "@/components/ai-commerce/AICommerceChannels";
 import { AICommerceAnalytics } from "@/components/ai-commerce/AICommerceAnalytics";
@@ -26,6 +27,7 @@ export default function AICommercePage() {
         <Tabs defaultValue="overview">
           <TabsList className="flex-wrap">
             <TabsTrigger value="overview">Visão geral</TabsTrigger>
+            <TabsTrigger value="copilot">Copiloto</TabsTrigger>
             <TabsTrigger value="readiness">Produtos e readiness</TabsTrigger>
             <TabsTrigger value="feeds">Feeds</TabsTrigger>
             <TabsTrigger value="channels">Canais e API</TabsTrigger>
@@ -36,6 +38,9 @@ export default function AICommercePage() {
 
           <TabsContent value="overview" className="mt-4">
             <AICommerceOverview />
+          </TabsContent>
+          <TabsContent value="copilot" className="mt-4">
+            <AICommerceCopilot />
           </TabsContent>
           <TabsContent value="readiness" className="mt-4">
             <AICommerceReadinessList />
