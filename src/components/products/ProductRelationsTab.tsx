@@ -172,6 +172,19 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
 
   const debouncedSearch = useDebounce(searchTerm, 300);
 
+  // Preço real do produto de origem — necessário para classificar up-sell/down-sell.
+  const { data: sourcePrice = null } = useQuery({
+    queryKey: ["product-relations-source-price", product.id],
+    queryFn: async () => {
+      const { data } = await workspaceClient
+        .from("products")
+        .select("base_price")
+        .eq("id", product.id)
+        .maybeSingle();
+      return (data?.base_price as number | null) ?? null;
+    },
+  });
+
   // Fetch existing relations (both directions)
   const { data: outgoingRelations = [], isLoading } = useQuery({
     queryKey: ["product-relations", product.id],
