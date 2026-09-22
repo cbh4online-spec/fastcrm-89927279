@@ -313,6 +313,15 @@ export default function StoreCheckoutPage() {
                 selectedCttOptionName={pricing.selectedCttOption?.name}
                 finalTotal={pricing.finalTotal}
               />
+              {offers.complements.length > 0 && (
+                <div className="rounded-xl border bg-card p-4">
+                  <StoreCartComplements
+                    complements={offers.complements}
+                    title="Adicione antes de pagar"
+                    compact
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
