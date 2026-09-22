@@ -30,14 +30,14 @@ export function StoreTrustStrip({
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("shipping_methods")
-        .select("name, price, estimated_delivery, free_shipping_threshold")
+        .select("name, base_price, estimated_delivery, free_shipping_threshold")
         .eq("workspace_id", workspaceId)
         .eq("is_active", true)
-        .order("price", { ascending: true });
+        .order("base_price", { ascending: true });
       if (error) throw error;
       return (data || []) as Array<{
         name: string;
-        price: number | null;
+        base_price: number | null;
         estimated_delivery: string | null;
         free_shipping_threshold: number | null;
       }>;
