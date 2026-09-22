@@ -51,7 +51,15 @@ import {
   Eye,
   EyeOff,
   ArrowLeftRight,
+  TrendingUp,
+  TrendingDown,
+  ShieldCheck,
 } from "lucide-react";
+import {
+  classifyRelationIntent,
+  RELATION_INTENT_LABEL,
+  type RelationIntent,
+} from "@/lib/ai-commerce/relationIntent";
 
 interface ProductRelationsTabProps {
   product: {
