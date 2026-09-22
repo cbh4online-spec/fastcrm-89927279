@@ -24,6 +24,8 @@ export default function StoreProductsAdminPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editProductId, setEditProductId] = useState<string | null>(null);
   const [batchWeightOpen, setBatchWeightOpen] = useState(false);
+  const [enrichOpen, setEnrichOpen] = useState(false);
+  const [enrichTargets, setEnrichTargets] = useState<{ id: string; name: string; sku?: string | null }[]>([]);
 
   const admin = useStoreAdminProducts(search);
 
