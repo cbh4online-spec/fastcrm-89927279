@@ -117,6 +117,93 @@ function toCsv(records: Record<string, unknown>[]): string {
   return [headers.join(","), ...records.map((r) => headers.map((h) => escape(r[h])).join(","))].join("\n");
 }
 
+/** Imagens adicionais (galeria sem a imagem principal). */
+function extraImages(product: CommerceProduct): string[] {
+  const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+  const main = firstImage(product);
+  return images.filter((img) => img !== main && isSecureImage(img));
+}
+
+/** Google e Meta exigem URLs https acessíveis publicamente. */
+function isSecureImage(value: unknown): boolean {
+  const url = text(value);
+  if (!url) return false;
+  return /^https:\/\/[^\s"'<>]+$/i.test(url);
+}
+
+/**
+ * Peso para cálculo de portes. Usa apenas valores reais registados no produto
+ * (bruto tem prioridade sobre líquido) — nunca estimativas.
+ */
+function shippingWeight(product: CommerceProduct): string {
+  const kg = [product.weight_gross, product.weight, product.weight_net].find(
+    (v) => typeof v === "number" && Number.isFinite(v) && (v as number) > 0,
+  );
+  return typeof kg === "number" ? `${Number(kg.toFixed(3))} kg` : "";
+}
+
+/** Preço promocional apenas quando existe um preço de comparação superior. */
+function salePrice(product: CommerceProduct): string {
+  const price = effectivePrice(product);
+  const compare = product.compare_at_price;
+  if (price === null || typeof compare !== "number" || compare <= price) return "";
+  return `${price.toFixed(2)} ${product.currency || "EUR"}`;
+}
+
+/** Grupo de variantes: só faz sentido quando o produto tem variantes ativas. */
+function itemGroupId(product: CommerceProduct): string {
+  const active = (product.variants || []).filter((v) => v && v.is_active !== false);
+  return active.length > 1 ? String(product.sku || product.id) : "";
+}
+
+export interface CampaignLabels {
+  priceBand: string;
+  readinessBand: string;
+  availability: string;
+  marginBand: string;
+  brandLabel: string;
+}
+
+/**
+ * Etiquetas personalizadas (`custom_label_0..4`) para segmentar lances em
+ * Performance Max e Advantage+. Derivadas de dados reais, nunca inventadas.
+ */
+function campaignLabels(product: CommerceProduct, ai: Partial<ProductAICommerce> | null): CampaignLabels {
+  const price = effectivePrice(product);
+  const priceBand =
+    price === null
+      ? "sem-preco"
+      : price < 50
+        ? "ate-50"
+        : price < 150
+          ? "50-150"
+          : price < 500
+            ? "150-500"
+            : "500-mais";
+
+  const score = typeof ai?.ai_readiness_score === "number" ? ai.ai_readiness_score : null;
+  const readinessBand =
+    score === null ? "sem-ia" : score >= 85 ? "excelente" : score >= 60 ? "bom" : score >= 35 ? "basico" : "critico";
+
+  const margin = product.target_margin_pct;
+  const marginBand =
+    typeof margin !== "number" || !Number.isFinite(margin)
+      ? "sem-margem"
+      : margin >= 40
+        ? "margem-alta"
+        : margin >= 20
+          ? "margem-media"
+          : "margem-baixa";
+
+  return {
+    priceBand,
+    readinessBand,
+    availability: availabilityLabel(product),
+    marginBand,
+    brandLabel: text(product.brand) || text(product.manufacturer) || "sem-marca",
+  };
+}
+
 function baseRecord(product: CommerceProduct, ai: Partial<ProductAICommerce> | null, ctx: FeedContext) {
   const url = productPublicUrl(product, { baseUrl: ctx.baseUrl, workspaceSlug: ctx.workspaceSlug });
   return {
