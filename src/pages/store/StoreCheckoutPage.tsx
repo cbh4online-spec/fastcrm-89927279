@@ -288,7 +288,11 @@ export default function StoreCheckoutPage() {
             </div>
 
             {/* Summary sidebar */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-4">
+              <StoreCartStockGuard
+                unavailable={offers.unavailable}
+                onResolved={() => void offers.refetch()}
+              />
               <CheckoutSummaryCard
                 items={items}
                 subtotal={subtotal}
