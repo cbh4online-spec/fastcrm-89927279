@@ -110,7 +110,9 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
 
   return (
     <div className="mt-12">
-      <h2 className="text-xl font-semibold mb-6">Clientes também viram</h2>
+      <h2 className="text-xl font-semibold mb-6">
+        {sourceAvailable ? "Clientes também viram" : "Alternativas disponíveis agora"}
+      </h2>
       <ScrollArea className="w-full">
         <div className="flex gap-4 pb-4">
           {products.map((p) => {
