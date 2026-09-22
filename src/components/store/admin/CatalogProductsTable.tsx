@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck, MessageSquareText, Store, EyeOff } from "lucide-react";
+import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck, MessageSquareText, Store, EyeOff, Sparkles } from "lucide-react";
 import type { ProductStoreData } from "./useStoreAdminProducts";
 
 interface CatalogProductsTableProps {
@@ -18,6 +18,7 @@ interface CatalogProductsTableProps {
   onEdit: (productId: string) => void;
   onBulkPublish?: (ids: string[], published: boolean) => void;
   bulkPending?: boolean;
+  onBulkEnrich?: (targets: { id: string; name: string; sku?: string | null }[]) => void;
 }
 
 function ProductIndicators({ product }: { product: ProductStoreData }) {
@@ -69,7 +70,7 @@ function ProductIndicators({ product }: { product: ProductStoreData }) {
   );
 }
 
-export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit, onBulkPublish, bulkPending }: CatalogProductsTableProps) {
+export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit, onBulkPublish, bulkPending, onBulkEnrich }: CatalogProductsTableProps) {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
@@ -105,6 +106,23 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
             <Button size="sm" variant="outline" className="gap-2" disabled={selectedIds.length === 0 || bulkPending} onClick={() => runBulk(false)}>
               <EyeOff className="h-3.5 w-3.5" /> Despublicar
             </Button>
+            {onBulkEnrich && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                disabled={selectedIds.length === 0 || bulkPending}
+                onClick={() =>
+                  onBulkEnrich(
+                    products
+                      .filter((p) => selected[p.id])
+                      .map((p) => ({ id: p.id, name: p.name || "Produto sem nome", sku: p.sku })),
+                  )
+                }
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Enriquecer com IA
+              </Button>
+            )}
             <Button size="sm" variant="ghost" disabled={products.length === 0 || bulkPending} onClick={toggleAll}>
               {allSelected ? "Limpar seleção" : "Selecionar todos os visíveis"}
             </Button>

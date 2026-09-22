@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Search, Wrench } from "lucide-react";
+import { Search, Sparkles, Wrench } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -17,8 +18,9 @@ import {
 } from "@/components/ui/table";
 import { useAICommerceProducts } from "@/hooks/useAICommerce";
 import { ProductAICommerceTab } from "./ProductAICommerceTab";
+import { BulkAICommerceDialog } from "./BulkAICommerceDialog";
 
-type Filter = "all" | "enabled" | "errors" | "ready" | "disabled";
+type Filter = "all" | "enabled" | "errors" | "ready" | "disabled" | "no-content";
 
 export function AICommerceReadinessList() {
   const { data, isLoading } = useAICommerceProducts();
@@ -26,6 +28,8 @@ export function AICommerceReadinessList() {
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [bulkOpen, setBulkOpen] = useState(false);
   const pageSize = 25;
 
   const rows = useMemo(() => {
@@ -40,12 +44,39 @@ export function AICommerceReadinessList() {
       if (filter === "disabled") return !enabled;
       if (filter === "ready") return enabled && row.readiness.isReady;
       if (filter === "errors") return enabled && !row.readiness.isReady;
+      if (filter === "no-content") {
+        return !row.ai?.ai_long_description || !row.ai?.ai_short_description || !row.ai?.ai_title;
+      }
       return true;
     });
   }, [data, search, filter]);
 
   const paged = rows.slice(page * pageSize, page * pageSize + pageSize);
   const selected = (data || []).find((r) => r.product.id === selectedId) || null;
+
+  const checkedRows = useMemo(() => rows.filter((r) => checked[r.product.id]), [rows, checked]);
+  const allPagedChecked = paged.length > 0 && paged.every((r) => checked[r.product.id]);
+
+  const togglePage = () => {
+    setChecked((prev) => {
+      const next = { ...prev };
+      paged.forEach((r) => {
+        if (allPagedChecked) delete next[r.product.id];
+        else next[r.product.id] = true;
+      });
+      return next;
+    });
+  };
+
+  const bulkTargets = useMemo(
+    () =>
+      (checkedRows.length > 0 ? checkedRows : rows).map((r) => ({
+        id: r.product.id,
+        name: r.product.name || "Produto sem nome",
+        sku: r.product.sku,
+      })),
+    [checkedRows, rows],
+  );
 
   if (isLoading) {
     return <Skeleton className="h-96 w-full" />;
@@ -74,6 +105,7 @@ export function AICommerceReadinessList() {
             ["ready", "AI-ready"],
             ["errors", "Com erros"],
             ["disabled", "Sem AI"],
+            ["no-content", "Sem conteúdo IA"],
           ] as const
         ).map(([value, label]) => (
           <Button
@@ -90,11 +122,38 @@ export function AICommerceReadinessList() {
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+        <span className="text-sm text-muted-foreground">
+          {checkedRows.length > 0
+            ? `${checkedRows.length} selecionado${checkedRows.length > 1 ? "s" : ""}`
+            : `Sem seleção — serão processados os ${rows.length} produtos filtrados`}
+        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <Button size="sm" variant="ghost" disabled={paged.length === 0} onClick={togglePage}>
+            {allPagedChecked ? "Limpar esta página" : "Selecionar esta página"}
+          </Button>
+          <Button size="sm" className="gap-2" disabled={bulkTargets.length === 0} onClick={() => setBulkOpen(true)}>
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            Enriquecer com IA ({bulkTargets.length})
+          </Button>
+        </div>
+      </div>
+
+      <BulkAICommerceDialog open={bulkOpen} onOpenChange={setBulkOpen} targets={bulkTargets} />
+
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allPagedChecked}
+                    onCheckedChange={togglePage}
+                    disabled={paged.length === 0}
+                    aria-label="Selecionar produtos desta página"
+                  />
+                </TableHead>
                 <TableHead>Produto</TableHead>
                 <TableHead>Marca</TableHead>
                 <TableHead>Estado</TableHead>
@@ -106,13 +165,22 @@ export function AICommerceReadinessList() {
             <TableBody>
               {paged.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                     Sem produtos para os filtros selecionados.
                   </TableCell>
                 </TableRow>
               )}
               {paged.map((row) => (
-                <TableRow key={row.product.id}>
+                <TableRow key={row.product.id} data-state={checked[row.product.id] ? "selected" : undefined}>
+                  <TableCell>
+                    <Checkbox
+                      checked={!!checked[row.product.id]}
+                      onCheckedChange={() =>
+                        setChecked((prev) => ({ ...prev, [row.product.id]: !prev[row.product.id] }))
+                      }
+                      aria-label={`Selecionar ${row.product.name ?? "produto"}`}
+                    />
+                  </TableCell>
                   <TableCell>
                     <div className="font-medium">{row.product.name}</div>
                     <div className="text-xs text-muted-foreground">{row.product.sku || "sem SKU"}</div>

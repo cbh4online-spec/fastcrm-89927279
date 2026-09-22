@@ -16,6 +16,7 @@ import { CatalogProductsTable } from "@/components/store/admin/CatalogProductsTa
 import { PricingSuggestionsPanel } from "@/components/store/admin/PricingSuggestionsPanel";
 import { PricingIntelligenceSection } from "@/components/store/admin/PricingIntelligenceSection";
 import { BatchWeightEstimateDialog } from "@/components/store/admin/BatchWeightEstimateDialog";
+import { BulkAICommerceDialog } from "@/components/ai-commerce/BulkAICommerceDialog";
 
 export default function StoreProductsAdminPage() {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ export default function StoreProductsAdminPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editProductId, setEditProductId] = useState<string | null>(null);
   const [batchWeightOpen, setBatchWeightOpen] = useState(false);
+  const [enrichOpen, setEnrichOpen] = useState(false);
+  const [enrichTargets, setEnrichTargets] = useState<{ id: string; name: string; sku?: string | null }[]>([]);
 
   const admin = useStoreAdminProducts(search);
 
@@ -90,6 +93,8 @@ export default function StoreProductsAdminPage() {
             missingWeightCount={admin.missingWeightCount}
           />
 
+          <BulkAICommerceDialog open={enrichOpen} onOpenChange={setEnrichOpen} targets={enrichTargets} />
+
           <Tabs defaultValue="catalog">
             <TabsList>
               <TabsTrigger value="catalog">Catálogo</TabsTrigger>
@@ -107,6 +112,7 @@ export default function StoreProductsAdminPage() {
                 onEdit={(id: string) => setEditProductId(id)}
                 onBulkPublish={(ids, published) => admin.bulkSetPublished.mutate({ ids, published })}
                 bulkPending={admin.bulkSetPublished.isPending}
+                onBulkEnrich={(targets) => { setEnrichTargets(targets); setEnrichOpen(true); }}
               />
             </TabsContent>
 
