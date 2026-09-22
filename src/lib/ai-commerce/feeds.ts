@@ -6,6 +6,7 @@
  * nunca no modelo central de produtos.
  */
 import { effectivePrice, priceRange } from "./readiness";
+import { resolveGoogleProductCategory } from "./googleTaxonomy";
 import { productPublicUrl, resolveAvailability, resolveSchemaType } from "./schemaOrg";
 import type { CommerceProduct, FeedChannel, FeedFormat, ProductAICommerce } from "./types";
 
