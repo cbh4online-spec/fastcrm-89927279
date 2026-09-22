@@ -122,6 +122,25 @@ export function AICommerceReadinessList() {
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+        <span className="text-sm text-muted-foreground">
+          {checkedRows.length > 0
+            ? `${checkedRows.length} selecionado${checkedRows.length > 1 ? "s" : ""}`
+            : `Sem seleção — serão processados os ${rows.length} produtos filtrados`}
+        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <Button size="sm" variant="ghost" disabled={paged.length === 0} onClick={togglePage}>
+            {allPagedChecked ? "Limpar esta página" : "Selecionar esta página"}
+          </Button>
+          <Button size="sm" className="gap-2" disabled={bulkTargets.length === 0} onClick={() => setBulkOpen(true)}>
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            Enriquecer com IA ({bulkTargets.length})
+          </Button>
+        </div>
+      </div>
+
+      <BulkAICommerceDialog open={bulkOpen} onOpenChange={setBulkOpen} targets={bulkTargets} />
+
       <Card>
         <CardContent className="p-0">
           <Table>
