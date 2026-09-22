@@ -13,6 +13,7 @@ import { StoreCartStockGuard } from "@/components/store/StoreCartStockGuard";
 import { useStoreCartOffers } from "@/hooks/useStoreCartOffers";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { formatMoney } from "@/lib/money";
+import { toast } from "sonner";
 
 interface StoreCartDrawerProps {
   workspaceSlug: string;
