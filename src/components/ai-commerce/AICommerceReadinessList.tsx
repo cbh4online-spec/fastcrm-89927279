@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Search, Wrench } from "lucide-react";
+import { Search, Sparkles, Wrench } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -17,8 +18,9 @@ import {
 } from "@/components/ui/table";
 import { useAICommerceProducts } from "@/hooks/useAICommerce";
 import { ProductAICommerceTab } from "./ProductAICommerceTab";
+import { BulkAICommerceDialog } from "./BulkAICommerceDialog";
 
-type Filter = "all" | "enabled" | "errors" | "ready" | "disabled";
+type Filter = "all" | "enabled" | "errors" | "ready" | "disabled" | "no-content";
 
 export function AICommerceReadinessList() {
   const { data, isLoading } = useAICommerceProducts();
@@ -26,6 +28,8 @@ export function AICommerceReadinessList() {
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [bulkOpen, setBulkOpen] = useState(false);
   const pageSize = 25;
 
   const rows = useMemo(() => {
@@ -40,12 +44,39 @@ export function AICommerceReadinessList() {
       if (filter === "disabled") return !enabled;
       if (filter === "ready") return enabled && row.readiness.isReady;
       if (filter === "errors") return enabled && !row.readiness.isReady;
+      if (filter === "no-content") {
+        return !row.ai?.ai_long_description || !row.ai?.ai_short_description || !row.ai?.ai_title;
+      }
       return true;
     });
   }, [data, search, filter]);
 
   const paged = rows.slice(page * pageSize, page * pageSize + pageSize);
   const selected = (data || []).find((r) => r.product.id === selectedId) || null;
+
+  const checkedRows = useMemo(() => rows.filter((r) => checked[r.product.id]), [rows, checked]);
+  const allPagedChecked = paged.length > 0 && paged.every((r) => checked[r.product.id]);
+
+  const togglePage = () => {
+    setChecked((prev) => {
+      const next = { ...prev };
+      paged.forEach((r) => {
+        if (allPagedChecked) delete next[r.product.id];
+        else next[r.product.id] = true;
+      });
+      return next;
+    });
+  };
+
+  const bulkTargets = useMemo(
+    () =>
+      (checkedRows.length > 0 ? checkedRows : rows).map((r) => ({
+        id: r.product.id,
+        name: r.product.name || "Produto sem nome",
+        sku: r.product.sku,
+      })),
+    [checkedRows, rows],
+  );
 
   if (isLoading) {
     return <Skeleton className="h-96 w-full" />;
