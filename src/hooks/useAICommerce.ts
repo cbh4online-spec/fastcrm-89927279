@@ -19,7 +19,7 @@ import type {
 } from "@/lib/ai-commerce/types";
 
 const PRODUCT_FIELDS =
-  "id, workspace_id, name, sku, brand, manufacturer, gtin, mpn, store_slug, category, subcategory, product_type, schema_type, short_description, commercial_description, base_price, compare_at_price, currency, tax_included, tax_class, activation_fee, setup_fee, recurring_fee, billing_type, billing_frequency, stock_status, status, store_published, images, primary_image_index, seo_title, seo_description, canonical_url, checkout_url, target_audience, problem_solved, use_cases, main_benefits, benefits, features, countries, languages, product_condition, origin_country";
+  "id, workspace_id, name, sku, brand, manufacturer, gtin, mpn, store_slug, category, subcategory, product_type, schema_type, short_description, commercial_description, base_price, compare_at_price, currency, tax_included, tax_class, activation_fee, setup_fee, recurring_fee, billing_type, billing_frequency, stock_status, status, store_published, images, primary_image_index, seo_title, seo_description, canonical_url, checkout_url, target_audience, problem_solved, use_cases, main_benefits, benefits, features, countries, languages, product_condition, origin_country, weight, weight_gross, weight_net, target_margin_pct";
 
 export interface AICommerceProductRow {
   product: CommerceProduct;

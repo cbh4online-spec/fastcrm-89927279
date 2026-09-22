@@ -68,6 +68,10 @@ const PRODUCT_COLUMNS = [
   "languages",
   "product_condition",
   "origin_country",
+  "weight",
+  "weight_gross",
+  "weight_net",
+  "target_margin_pct",
 ].join(", ");
 
 function json(body: unknown, status = 200) {

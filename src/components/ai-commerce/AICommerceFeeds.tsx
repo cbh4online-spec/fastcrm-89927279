@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Copy, Loader2, Play, Plus, Trash2 } from "lucide-react";
+import { Copy, Loader2, Play, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { FeedComplianceAuditDialog } from "./FeedComplianceAuditDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +32,7 @@ import {
   useUpdateCommerceFeed,
 } from "@/hooks/useAICommerce";
 import { useQueryClient } from "@tanstack/react-query";
-import type { FeedChannel, FeedFormat } from "@/lib/ai-commerce/types";
+import type { CommerceFeed, FeedChannel, FeedFormat } from "@/lib/ai-commerce/types";
 
 const CHANNELS: { value: FeedChannel; label: string; format: FeedFormat }[] = [
   { value: "openai", label: "OpenAI / ChatGPT", format: "json" },
@@ -51,6 +52,7 @@ export function AICommerceFeeds() {
 
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState<string | null>(null);
+  const [auditFeedTarget, setAuditFeedTarget] = useState<CommerceFeed | null>(null);
   const [form, setForm] = useState<{ name: string; channel: FeedChannel; language: string; country: string }>({
     name: "",
     channel: "openai",
@@ -232,6 +234,10 @@ export function AICommerceFeeds() {
                   )}
                   Gerar agora
                 </Button>
+                <Button size="sm" variant="outline" onClick={() => setAuditFeedTarget(feed)}>
+                  <ShieldCheck className="mr-1 h-3.5 w-3.5" aria-hidden />
+                  Auditar conformidade
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -259,6 +265,14 @@ export function AICommerceFeeds() {
           </Card>
         ))}
       </div>
+
+      <FeedComplianceAuditDialog
+        feed={auditFeedTarget}
+        open={Boolean(auditFeedTarget)}
+        onOpenChange={(o) => {
+          if (!o) setAuditFeedTarget(null);
+        }}
+      />
     </div>
   );
 }

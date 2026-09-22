@@ -83,6 +83,14 @@ export interface CommerceProduct {
   languages?: string[] | null;
   product_condition?: string | null;
   origin_country?: string | null;
+  /** Peso em kg — usado para `g:shipping_weight` (portes reais, nunca estimados). */
+  weight?: number | null;
+  weight_gross?: number | null;
+  weight_net?: number | null;
+  /** Margem-alvo (%) — usada apenas para etiquetas de campanha (custom_label). */
+  target_margin_pct?: number | null;
+  /** Categoria oficial Google, quando definida manualmente. */
+  google_product_category?: string | null;
   /** Variantes ativas (preço/subscrição). Nunca inventadas: vêm de `product_variants`. */
   variants?: CommerceVariant[] | null;
 }
