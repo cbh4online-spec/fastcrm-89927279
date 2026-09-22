@@ -9,6 +9,7 @@ import { AICommerceChannels } from "@/components/ai-commerce/AICommerceChannels"
 import { AICommerceAnalytics } from "@/components/ai-commerce/AICommerceAnalytics";
 import { AICommerceLogs } from "@/components/ai-commerce/AICommerceLogs";
 import { AICommerceReadinessSettings } from "@/components/ai-commerce/AICommerceReadinessSettings";
+import { AICommerceQualityGate } from "@/components/ai-commerce/AICommerceQualityGate";
 
 export default function AICommercePage() {
   return (
@@ -29,6 +30,7 @@ export default function AICommercePage() {
             <TabsTrigger value="overview">Visão geral</TabsTrigger>
             <TabsTrigger value="copilot">Copiloto</TabsTrigger>
             <TabsTrigger value="readiness">Produtos e readiness</TabsTrigger>
+            <TabsTrigger value="gate">Gate de qualidade</TabsTrigger>
             <TabsTrigger value="feeds">Feeds</TabsTrigger>
             <TabsTrigger value="channels">Canais e API</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -44,6 +46,9 @@ export default function AICommercePage() {
           </TabsContent>
           <TabsContent value="readiness" className="mt-4">
             <AICommerceReadinessList />
+          </TabsContent>
+          <TabsContent value="gate" className="mt-4">
+            <AICommerceQualityGate />
           </TabsContent>
           <TabsContent value="feeds" className="mt-4">
             <AICommerceFeeds />

@@ -7111,6 +7111,68 @@ export type Database = {
           },
         ]
       }
+      ai_commerce_gate_config: {
+        Row: {
+          block_feeds: boolean
+          block_store: boolean
+          enabled: boolean
+          min_score: number
+          required_codes: string[]
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          block_feeds?: boolean
+          block_store?: boolean
+          enabled?: boolean
+          min_score?: number
+          required_codes?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          block_feeds?: boolean
+          block_store?: boolean
+          enabled?: boolean
+          min_score?: number
+          required_codes?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_commerce_gate_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_gate_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_gate_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_commerce_gate_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_commerce_readiness_config: {
         Row: {
           code: string
@@ -70725,6 +70787,10 @@ export type Database = {
           ai_title: string | null
           ai_use_cases: string[] | null
           created_at: string
+          gate_blockers: Json
+          gate_checked_at: string | null
+          gate_score: number | null
+          gate_status: string
           id: string
           product_id: string
           updated_at: string
@@ -70748,6 +70814,10 @@ export type Database = {
           ai_title?: string | null
           ai_use_cases?: string[] | null
           created_at?: string
+          gate_blockers?: Json
+          gate_checked_at?: string | null
+          gate_score?: number | null
+          gate_status?: string
           id?: string
           product_id: string
           updated_at?: string
@@ -70771,6 +70841,10 @@ export type Database = {
           ai_title?: string | null
           ai_use_cases?: string[] | null
           created_at?: string
+          gate_blockers?: Json
+          gate_checked_at?: string | null
+          gate_score?: number | null
+          gate_status?: string
           id?: string
           product_id?: string
           updated_at?: string
@@ -75306,6 +75380,7 @@ export type Database = {
       products: {
         Row: {
           activation_fee: number | null
+          ai_commerce_gate_blocked: boolean
           allow_backorder: boolean | null
           auto_price_excluded: boolean
           avg_cost: number | null
@@ -75471,6 +75546,7 @@ export type Database = {
         }
         Insert: {
           activation_fee?: number | null
+          ai_commerce_gate_blocked?: boolean
           allow_backorder?: boolean | null
           auto_price_excluded?: boolean
           avg_cost?: number | null
@@ -75636,6 +75712,7 @@ export type Database = {
         }
         Update: {
           activation_fee?: number | null
+          ai_commerce_gate_blocked?: boolean
           allow_backorder?: boolean | null
           auto_price_excluded?: boolean
           avg_cost?: number | null

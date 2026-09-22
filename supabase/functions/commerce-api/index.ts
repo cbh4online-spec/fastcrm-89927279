@@ -158,6 +158,7 @@ async function loadPublishedProducts(
     .eq("workspace_id", workspaceId)
     .eq("store_published", true)
     .eq("status", "active")
+    .eq("ai_commerce_gate_blocked", false)
     .in("id", aiRows.map((r) => r.product_id));
 
   if (opts.slug) query = query.eq("store_slug", opts.slug);
