@@ -45,6 +45,8 @@ import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtToge
 import { StoreAIAccessories } from "@/components/store/sections/StoreAIAccessories";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
+import { StoreProductRelationGroups } from "@/components/store/sections/StoreProductRelationGroups";
+import { useStoreProductRelations } from "@/hooks/store/useStoreProductRelations";
 import { StoreProductDocuments } from "@/components/store/sections/StoreProductDocuments";
 import { StoreTrustStrip } from "@/components/store/StoreTrustStrip";
 import { StoreDecisionNudge } from "@/components/store/StoreDecisionNudge";
