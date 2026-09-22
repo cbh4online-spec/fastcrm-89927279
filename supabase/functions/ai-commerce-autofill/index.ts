@@ -94,6 +94,34 @@ serve(async (req) => {
       };
     }
 
+    // Publicação externa: URLs derivadas da loja real (nunca inventadas).
+    let workspaceSlug: string | null = null;
+    if (product.workspace_id) {
+      const { data: storeSettings } = await supabase
+        .from("store_settings")
+        .select("store_slug")
+        .eq("workspace_id", product.workspace_id as string)
+        .maybeSingle();
+      workspaceSlug = (storeSettings?.store_slug as string | null) ?? null;
+
+      if (!workspaceSlug) {
+        const { data: ws } = await supabase
+          .from("workspaces")
+          .select("slug")
+          .eq("id", product.workspace_id as string)
+          .maybeSingle();
+        workspaceSlug = (ws?.slug as string | null) ?? null;
+      }
+    }
+
+    const storeSlug = (product.store_slug as string | null) ?? null;
+    const canonicalUrl =
+      safeBaseUrl && workspaceSlug && storeSlug
+        ? `${safeBaseUrl}/store/${workspaceSlug}/product/${storeSlug}`
+        : "";
+    const checkoutUrl =
+      safeBaseUrl && workspaceSlug ? `${safeBaseUrl}/store/${workspaceSlug}/checkout` : "";
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "ai_not_configured" }, 500);
 
