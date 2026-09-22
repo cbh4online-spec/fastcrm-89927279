@@ -146,6 +146,14 @@ export function AICommerceReadinessList() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allPagedChecked}
+                    onCheckedChange={togglePage}
+                    disabled={paged.length === 0}
+                    aria-label="Selecionar produtos desta página"
+                  />
+                </TableHead>
                 <TableHead>Produto</TableHead>
                 <TableHead>Marca</TableHead>
                 <TableHead>Estado</TableHead>
@@ -157,13 +165,22 @@ export function AICommerceReadinessList() {
             <TableBody>
               {paged.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                     Sem produtos para os filtros selecionados.
                   </TableCell>
                 </TableRow>
               )}
               {paged.map((row) => (
-                <TableRow key={row.product.id}>
+                <TableRow key={row.product.id} data-state={checked[row.product.id] ? "selected" : undefined}>
+                  <TableCell>
+                    <Checkbox
+                      checked={!!checked[row.product.id]}
+                      onCheckedChange={() =>
+                        setChecked((prev) => ({ ...prev, [row.product.id]: !prev[row.product.id] }))
+                      }
+                      aria-label={`Selecionar ${row.product.name ?? "produto"}`}
+                    />
+                  </TableCell>
                   <TableCell>
                     <div className="font-medium">{row.product.name}</div>
                     <div className="text-xs text-muted-foreground">{row.product.sku || "sem SKU"}</div>
