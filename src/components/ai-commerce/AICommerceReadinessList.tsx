@@ -105,6 +105,7 @@ export function AICommerceReadinessList() {
             ["ready", "AI-ready"],
             ["errors", "Com erros"],
             ["disabled", "Sem AI"],
+            ["no-content", "Sem conteúdo IA"],
           ] as const
         ).map(([value, label]) => (
           <Button
