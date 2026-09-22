@@ -42,6 +42,7 @@ import { StorePurchasePanel } from "@/components/store/purchase/StorePurchasePan
 import { StorePriceRequestDialog } from "@/components/store/StorePriceRequestDialog";
 import { StoreProductAlertWidget } from "@/components/store/StoreProductAlertWidget";
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
+import { StoreAIAccessories } from "@/components/store/sections/StoreAIAccessories";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
 import { StoreProductDocuments } from "@/components/store/sections/StoreProductDocuments";
@@ -1005,6 +1006,18 @@ export default function StoreProductPage() {
             currentPrice={pricing?.price ?? product.base_price}
             currency={product.currency}
           />
+
+          {/* Acessórios recomendados (contexto AI Commerce) */}
+          <StoreAIAccessories
+            productId={product.id}
+            workspaceId={(product as any).workspace_id}
+            workspaceSlug={wsSlug}
+            name={product.name}
+            category={product.category}
+            subcategory={(product as any).subcategory}
+            price={pricing?.price ?? product.base_price}
+          />
+
 
           {/* Packs e alternativas agora vivem no painel de decisão da buy box */}
 
