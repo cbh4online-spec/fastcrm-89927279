@@ -109,6 +109,7 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
         .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
+        .eq("ai_commerce_gate_blocked", false)
         .eq("status", "active");
 
       if (categoryId) {
@@ -164,6 +165,7 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
         .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
+        .eq("ai_commerce_gate_blocked", false)
         .eq("status", "active");
 
       if (categoryId) {
@@ -227,6 +229,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
         .from("products")
         .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, metadata, seo_title, seo_description, schema_type, canonical_url")
         .eq("store_published", true)
+        .eq("ai_commerce_gate_blocked", false)
         .eq("status", "active");
 
       query = UUID_RE.test(productIdOrSlug)
@@ -247,6 +250,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
           .from("products")
           .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, metadata, seo_title, seo_description, schema_type, canonical_url")
           .eq("store_published", true)
+        .eq("ai_commerce_gate_blocked", false)
           .eq("status", "active")
           .like("store_slug", `${productIdOrSlug}%`)
           .limit(2);
@@ -289,6 +293,7 @@ export function useStoreCategories(workspaceId: string) {
         .select("store_category_id, category")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
+        .eq("ai_commerce_gate_blocked", false)
         .eq("status", "active");
 
       if (pErr) throw pErr;
