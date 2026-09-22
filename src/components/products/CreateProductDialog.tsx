@@ -563,10 +563,25 @@ export function CreateProductDialog({
     // Physical attributes (frascos líquidos, peso, dimensões, embalagem)
     Object.assign(data, physicalToPayload(physical));
 
+    // Conteúdo estruturado do motor AI Commerce (sem preços nem stock)
+    if (aiCommerceContent) {
+      const ai = aiCommerceContent;
+      if (ai.ai_long_description) data.commercial_description = ai.ai_long_description;
+      if (ai.main_benefits.length) data.main_benefits = ai.main_benefits;
+      if (ai.ai_key_features.length) data.features = ai.ai_key_features;
+      if (ai.ai_use_cases.length) data.use_cases = ai.ai_use_cases;
+      if (ai.ai_target_audience) data.target_audience = ai.ai_target_audience;
+      if (ai.ai_problem_solved) data.problem_solved = ai.ai_problem_solved;
+      if (ai.seo_title) data.seo_title = ai.seo_title;
+      if (ai.seo_description) data.seo_description = ai.seo_description;
+      if (ai.schema_type) data.schema_type = ai.schema_type;
+    }
+
     let savedProductId: string | null = null;
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product!.id, ...data });
       savedProductId = product!.id;
+      await persistAICommerce(product!.id, (product as any)?.workspace_id ?? null);
     } else {
       const created = await createProduct.mutateAsync(data);
       savedProductId = created?.id ?? null;
@@ -574,6 +589,7 @@ export function CreateProductDialog({
       if (created?.id && created?.workspace_id) {
         // Apply selected digital catalogs (create mode)
         await applyPendingCatalogs(created.id);
+        await persistAICommerce(created.id, created.workspace_id);
         setCreatedProduct({ id: created.id, name: created.name, workspace_id: created.workspace_id });
         // Clear draft after successful save
         localStorage.removeItem(DRAFT_STORAGE_KEY);
