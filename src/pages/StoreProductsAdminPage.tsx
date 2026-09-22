@@ -16,6 +16,7 @@ import { CatalogProductsTable } from "@/components/store/admin/CatalogProductsTa
 import { PricingSuggestionsPanel } from "@/components/store/admin/PricingSuggestionsPanel";
 import { PricingIntelligenceSection } from "@/components/store/admin/PricingIntelligenceSection";
 import { BatchWeightEstimateDialog } from "@/components/store/admin/BatchWeightEstimateDialog";
+import { BulkAICommerceDialog } from "@/components/ai-commerce/BulkAICommerceDialog";
 
 export default function StoreProductsAdminPage() {
   const navigate = useNavigate();
