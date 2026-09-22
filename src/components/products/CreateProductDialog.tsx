@@ -50,6 +50,7 @@ import { toast } from "sonner";
 import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFrequency } from "@/types/product";
 import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/product";
 import { AIProductAssistant } from "./AIProductAssistant";
+import { AICommerceAssistantPanel, type AICommerceSuggestion } from "./AICommerceAssistantPanel";
 import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
 import { CostInput, type CostMode, type CostBase, resolveCostAmount } from "./CostInput";
