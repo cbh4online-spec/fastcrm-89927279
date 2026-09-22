@@ -22,6 +22,9 @@ import { useCheckoutForm } from "@/components/store/checkout/useCheckoutForm";
 import { useCheckoutPricing } from "@/components/store/checkout/useCheckoutPricing";
 import { CheckoutBankTransferInfo } from "@/components/store/checkout/CheckoutBankTransferInfo";
 import { formatMoney } from "@/lib/money";
+import { useStoreCartOffers } from "@/hooks/useStoreCartOffers";
+import { StoreCartComplements } from "@/components/store/StoreCartComplements";
+import { StoreCartStockGuard } from "@/components/store/StoreCartStockGuard";
 import type { PaymentMethodType } from "@/components/store/checkout/CheckoutPaymentMethodPicker";
 
 export default function StoreCheckoutPage() {
@@ -41,6 +44,7 @@ export default function StoreCheckoutPage() {
 
 
   const form = useCheckoutForm({ wsId, wsSlug, items, subtotal });
+  const offers = useStoreCartOffers(wsId, items, { limit: 3 });
   const pricing = useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmail: form.formData.email });
 
   const paymentMethods = (storeSettings as any)?.payment_methods || { stripe_card: true };
@@ -54,6 +58,13 @@ export default function StoreCheckoutPage() {
     }
     setTermsError(null);
     if (!form.validateStep2()) return;
+
+    // Nunca perder a venda: revalidar disponibilidade real antes de pagar.
+    const fresh = await offers.refetch();
+    if ((fresh.data?.unavailable.length ?? 0) > 0) {
+      toast.error("Há artigos indisponíveis. Escolha uma alternativa no resumo para continuar.");
+      return;
+    }
 
 
     trackEvent("checkout_submit", { workspaceSlug: wsSlug, subtotal, total: pricing.finalTotal, itemCount: items.length, currency: items[0]?.currency });
@@ -277,7 +288,11 @@ export default function StoreCheckoutPage() {
             </div>
 
             {/* Summary sidebar */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-4">
+              <StoreCartStockGuard
+                unavailable={offers.unavailable}
+                onResolved={() => void offers.refetch()}
+              />
               <CheckoutSummaryCard
                 items={items}
                 subtotal={subtotal}
@@ -298,6 +313,15 @@ export default function StoreCheckoutPage() {
                 selectedCttOptionName={pricing.selectedCttOption?.name}
                 finalTotal={pricing.finalTotal}
               />
+              {offers.complements.length > 0 && (
+                <div className="rounded-xl border bg-card p-4">
+                  <StoreCartComplements
+                    complements={offers.complements}
+                    title="Adicione antes de pagar"
+                    compact
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

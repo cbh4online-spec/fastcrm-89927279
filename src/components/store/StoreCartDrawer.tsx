@@ -8,7 +8,12 @@ import { useStoreVat } from "@/contexts/StoreVatContext";
 import { useNavigate } from "react-router-dom";
 import { StoreFreeShippingBar } from "@/components/store/StoreFreeShippingBar";
 import { StoreCartUpsell } from "@/components/store/StoreCartUpsell";
+import { StoreCartComplements } from "@/components/store/StoreCartComplements";
+import { StoreCartStockGuard } from "@/components/store/StoreCartStockGuard";
+import { useStoreCartOffers } from "@/hooks/useStoreCartOffers";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { formatMoney } from "@/lib/money";
+import { toast } from "sonner";
 
 interface StoreCartDrawerProps {
   workspaceSlug: string;
@@ -18,8 +23,18 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, subtotal, totalItems } = useStoreCart();
   const { isB2B, vatRate } = useStoreVat();
   const navigate = useNavigate();
+  const { workspaceId } = useResolveStoreWorkspace(workspaceSlug);
+  const { complements, unavailable, hasBlockingIssue, isLoading, refetch } = useStoreCartOffers(
+    workspaceId,
+    items,
+    { enabled: isOpen },
+  );
 
   const handleCheckout = () => {
+    if (hasBlockingIssue) {
+      toast.error("Há artigos indisponíveis no carrinho. Escolha uma alternativa para continuar.");
+      return;
+    }
     setIsOpen(false);
     navigate(`/store/${workspaceSlug}/checkout`);
   };
@@ -116,7 +131,12 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
 
             <div className="border-t pt-4 space-y-4">
               <StoreFreeShippingBar subtotal={subtotal} />
-              <StoreCartUpsell workspaceSlug={workspaceSlug} />
+              <StoreCartStockGuard unavailable={unavailable} onResolved={() => void refetch()} />
+              {complements.length > 0 || isLoading ? (
+                <StoreCartComplements complements={complements} isLoading={isLoading} />
+              ) : (
+                <StoreCartUpsell workspaceSlug={workspaceSlug} />
+              )}
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">
