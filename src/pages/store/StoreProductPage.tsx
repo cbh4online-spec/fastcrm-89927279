@@ -1039,6 +1039,8 @@ export default function StoreProductPage() {
             categoryId={product.store_category_id}
             workspaceId={(product as any).workspace_id}
             workspaceSlug={wsSlug}
+            sourcePrice={pricing?.price ?? product.base_price}
+            sourceAvailable={!isOutOfStock}
           />
 
           {/* Recently Viewed */}

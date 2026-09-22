@@ -4,22 +4,32 @@ import { Link } from "react-router-dom";
 import { Package } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
+import {
+  classifyRelationIntent,
+  rankRelationOffers,
+  type RelationIntent,
+  type RelationOffer,
+} from "@/lib/ai-commerce/relationIntent";
 
 interface StoreRelatedProductsProps {
   productId: string;
   categoryId: string | null;
   workspaceId: string;
   workspaceSlug: string;
+  /** Preço do produto principal — usado para ordenar up-sell vs down-sell. */
+  sourcePrice?: number | null;
+  /** Produto principal disponível? Se não, prioriza alternativas (nunca perder a venda). */
+  sourceAvailable?: boolean;
 }
 
-export function StoreRelatedProducts({ productId, categoryId, workspaceId, workspaceSlug }: StoreRelatedProductsProps) {
+export function StoreRelatedProducts({ productId, categoryId, workspaceId, workspaceSlug, sourcePrice = null, sourceAvailable = true }: StoreRelatedProductsProps) {
   const { data: products } = useQuery({
-    queryKey: ["store-related", productId, categoryId],
+    queryKey: ["store-related", productId, categoryId, sourceAvailable],
     queryFn: async () => {
       // First try: get "related" relations from product_relations
       const { data: relations } = await supabase
         .from("product_relations")
-        .select("target_product_id")
+        .select("target_product_id, relation_type, commercial_intent")
         .eq("source_product_id", productId)
         .in("relation_type", ["related", "alternative", "upgrade"])
         .eq("is_active", true)
@@ -30,16 +40,52 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
         const targetIds = relations.map((r: any) => r.target_product_id);
         const { data: prods } = await supabase
           .from("products")
-          .select("id, store_slug, name, base_price, images, primary_image_index, category")
+          .select("id, store_slug, name, base_price, images, primary_image_index, category, stock_status")
           .in("id", targetIds)
           .eq("store_published", true)
           .eq("status", "active");
 
         if (prods && prods.length > 0) {
-          // Maintain sort order from relations
-          return targetIds
-            .map((tid: string) => prods.find((p) => p.id === tid))
-            .filter(Boolean) as typeof prods;
+          type StoreProduct = (typeof prods)[number];
+          const byId = new Map(prods.map((p) => [p.id, p]));
+          const offers = relations
+            .map((r: any) => {
+              const product = byId.get(r.target_product_id);
+              if (!product) return null;
+              return {
+                relationType: r.relation_type,
+                intent: (r.commercial_intent ||
+                  classifyRelationIntent(
+                    r.relation_type,
+                    sourcePrice,
+                    product.base_price ?? null,
+                  )) as RelationIntent,
+                target: {
+                  id: product.id,
+                  name: product.name,
+                  price: product.base_price ?? null,
+                  status: "active",
+                  stockStatus: product.stock_status ?? null,
+                  storePublished: true,
+                },
+                payload: product,
+              };
+            })
+            .filter(Boolean) as RelationOffer<StoreProduct>[];
+
+          const ranked = rankRelationOffers<StoreProduct>(offers, {
+            sourcePrice,
+            sourceAvailable,
+            limit: 8,
+          });
+          const ordered = sourceAvailable
+            ? [...ranked.upsell, ...ranked.downsell]
+            : [...ranked.downsell, ...ranked.upsell];
+          const unique: StoreProduct[] = [];
+          for (const offer of ordered) {
+            if (!unique.some((p) => p.id === offer.payload.id)) unique.push(offer.payload);
+          }
+          if (unique.length > 0) return unique.slice(0, 8);
         }
       }
 
@@ -64,7 +110,9 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
 
   return (
     <div className="mt-12">
-      <h2 className="text-xl font-semibold mb-6">Clientes também viram</h2>
+      <h2 className="text-xl font-semibold mb-6">
+        {sourceAvailable ? "Clientes também viram" : "Alternativas disponíveis agora"}
+      </h2>
       <ScrollArea className="w-full">
         <div className="flex gap-4 pb-4">
           {products.map((p) => {
