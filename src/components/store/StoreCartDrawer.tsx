@@ -131,7 +131,12 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
 
             <div className="border-t pt-4 space-y-4">
               <StoreFreeShippingBar subtotal={subtotal} />
-              <StoreCartUpsell workspaceSlug={workspaceSlug} />
+              <StoreCartStockGuard unavailable={unavailable} onResolved={() => void refetch()} />
+              {complements.length > 0 || isLoading ? (
+                <StoreCartComplements complements={complements} isLoading={isLoading} />
+              ) : (
+                <StoreCartUpsell workspaceSlug={workspaceSlug} />
+              )}
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">
