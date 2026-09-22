@@ -240,17 +240,32 @@ const metaAdapter: ChannelAdapter = {
   contentType: "text/csv; charset=utf-8",
   map(product, ai, ctx) {
     const b = baseRecord(product, ai, ctx);
+    const labels = campaignLabels(product, ai);
+    const weight = shippingWeight(product);
     return {
       id: b.id,
-      title: b.title,
-      description: b.description,
+      title: b.title.slice(0, 200),
+      description: (b.description || text(ai?.ai_long_description)).slice(0, 5000),
       availability: b.availability,
       condition: b.condition,
       price: b.price,
       link: b.link,
       image_link: b.image_link,
+      additional_image_link: extraImages(product).slice(0, 10).join(","),
       brand: b.brand,
-      google_product_category: text(product.category),
+      google_product_category: resolveGoogleProductCategory(product),
+      fb_product_category: text(product.category) || text(ai?.ai_category),
+      // Meta trata variantes do mesmo modelo como um grupo.
+      item_group_id: itemGroupId(product),
+      ...(product.gtin ? { gtin: product.gtin } : {}),
+      ...(product.mpn ? { mpn: product.mpn } : {}),
+      ...(weight ? { shipping_weight: weight } : {}),
+      sale_price: salePrice(product),
+      custom_label_0: labels.priceBand,
+      custom_label_1: labels.readinessBand,
+      custom_label_2: labels.availability,
+      custom_label_3: labels.marginBand,
+      custom_label_4: labels.brandLabel,
     };
   },
   validate(record) {
@@ -259,7 +274,9 @@ const metaAdapter: ChannelAdapter = {
     for (const field of ["id", "title", "description", "availability", "condition", "price", "link", "image_link"]) {
       if (!record[field]) errors.push(`Meta exige o campo: ${field}`);
     }
+    if (!isSecureImage(record.image_link)) errors.push("Imagem principal tem de ser um URL https acessível");
     if (!record.brand) warnings.push("Meta recomenda marca");
+    if (!record.google_product_category) warnings.push("Sem categoria Google (pior segmentação nos anúncios)");
     return { errors, warnings };
   },
   serialize(records) {
