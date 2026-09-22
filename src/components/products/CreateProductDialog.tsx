@@ -613,6 +613,39 @@ export function CreateProductDialog({
     onOpenChange(false);
   };
 
+  /** Guarda o conteúdo gerado na camada AI Commerce do produto. */
+  const persistAICommerce = async (productId: string, workspaceId: string | null) => {
+    if (!aiCommerceContent || !workspaceId) return;
+    const ai = aiCommerceContent;
+    try {
+      const { error } = await supabase.from("product_ai_commerce").upsert(
+        {
+          workspace_id: workspaceId,
+          product_id: productId,
+          ai_title: ai.ai_title || null,
+          ai_category: ai.ai_category || null,
+          ai_short_description: ai.ai_short_description || null,
+          ai_long_description: ai.ai_long_description || null,
+          ai_target_audience: ai.ai_target_audience || null,
+          ai_problem_solved: ai.ai_problem_solved || null,
+          ai_use_cases: ai.ai_use_cases,
+          ai_key_features: ai.ai_key_features,
+          ai_keywords: ai.ai_keywords,
+          ai_recommendation_context: ai.ai_recommendation_context || null,
+          ai_exclusions: ai.ai_exclusions || null,
+          ai_faq: ai.ai_faq,
+        } as any,
+        { onConflict: "product_id" },
+      );
+      if (error) {
+        console.error("[AI Commerce] upsert failed:", error);
+        toast.error("Produto guardado, mas o conteúdo AI Commerce não foi gravado");
+      }
+    } catch (e) {
+      console.error("[AI Commerce] persist error:", e);
+    }
+  };
+
   const applyPendingCatalogs = async (productId: string) => {
     if (!pendingCatalogIds.length) return;
     try {
