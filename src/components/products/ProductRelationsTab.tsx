@@ -383,8 +383,25 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
       queryClient.invalidateQueries({
         queryKey: ["product-relations", product.id],
       });
+      const added = data?.added || 0;
+      const pending = data?.pending || 0;
+      const rejected = data?.rejected_count || 0;
+      if (added === 0 && pending === 0) {
+        toast.info(
+          rejected > 0
+            ? `Nenhuma sugestão passou o critério de rigor (${rejected} descartadas por falta de evidência nas fichas).`
+            : "Sem evidência suficiente nas fichas para sugerir relações."
+        );
+        return;
+      }
       toast.success(
-        `${data.added || 0} relações sugeridas pela IA foram adicionadas`
+        [
+          added > 0 ? `${added} relações ativas` : null,
+          pending > 0 ? `${pending} por revisão manual` : null,
+          rejected > 0 ? `${rejected} descartadas sem evidência` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
       );
     },
     onError: () => {
