@@ -289,6 +289,13 @@ export default function StoreProductPage() {
   const { data: salesCounts } = useProductSalesCount((product as any)?.workspace_id);
   const { data: recentViewers = 0 } = useRecentViewers(product?.id);
 
+  // Relações comerciais aprovadas no back-office — fonte principal da ficha pública.
+  const relations = useStoreProductRelations({
+    productId: product?.id,
+    workspaceId: (product as any)?.workspace_id,
+    sourcePrice: product ? (pricing?.price ?? product.base_price) : null,
+  });
+
   const addToCartRef = useRef<HTMLButtonElement>(null);
 
   // Track recently viewed + product_view analytics
