@@ -1364,6 +1364,21 @@ export function CreateProductDialog({
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-4 pt-2">
+                  <AICommerceAssistantPanel
+                    productId={product?.id}
+                    draft={{
+                      name,
+                      sku,
+                      category,
+                      productType,
+                      shortDescription,
+                    }}
+                    onApplyName={handleApplyName}
+                    onApplyCategory={handleApplyCategory}
+                    onApplyShortDescription={handleApplyDescription}
+                    onApplyStructured={setAiCommerceContent}
+                  />
+
                   <AIProductAssistant
                     productName={name}
                     currentCategory={category}
