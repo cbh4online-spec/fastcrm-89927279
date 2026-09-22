@@ -442,6 +442,7 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
       targetId: selectedProduct.id,
       type: selectedType,
       reasonText: reason,
+      targetPrice: selectedProduct.base_price ?? null,
     });
   };
 
