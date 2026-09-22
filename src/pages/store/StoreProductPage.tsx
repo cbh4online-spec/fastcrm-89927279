@@ -1000,14 +1000,16 @@ export default function StoreProductPage() {
           {/* Reviews */}
           <StoreReviewsSection productId={product.id} workspaceId={(product as any).workspace_id} />
 
-          {/* Compatible Products */}
-          <StoreCompatibleProducts
-            productId={product.id}
-            workspaceId={(product as any).workspace_id}
+          {/* Relações comerciais aprovadas (acessórios, upgrades e alternativas) */}
+          <StoreProductRelationGroups
             workspaceSlug={wsSlug}
+            essentials={relations.essentials}
+            upgrades={relations.upgrades}
+            alternatives={relations.alternatives}
+            sourceAvailable={!isOutOfStock}
           />
 
-          {/* Cross-sell */}
+          {/* Cross-sell por histórico de vendas */}
           <StoreBoughtTogether
             productId={product.id}
             categoryId={product.store_category_id}
@@ -1016,16 +1018,25 @@ export default function StoreProductPage() {
             currency={product.currency}
           />
 
-          {/* Acessórios recomendados (contexto AI Commerce) */}
-          <StoreAIAccessories
-            productId={product.id}
-            workspaceId={(product as any).workspace_id}
-            workspaceSlug={wsSlug}
-            name={product.name}
-            category={product.category}
-            subcategory={(product as any).subcategory}
-            price={pricing?.price ?? product.base_price}
-          />
+          {/* Sugestões automáticas — apenas quando a ficha ainda não tem relações validadas */}
+          {!relations.hasRelations && (
+            <>
+              <StoreCompatibleProducts
+                productId={product.id}
+                workspaceId={(product as any).workspace_id}
+                workspaceSlug={wsSlug}
+              />
+              <StoreAIAccessories
+                productId={product.id}
+                workspaceId={(product as any).workspace_id}
+                workspaceSlug={wsSlug}
+                name={product.name}
+                category={product.category}
+                subcategory={(product as any).subcategory}
+                price={pricing?.price ?? product.base_price}
+              />
+            </>
+          )}
 
 
           {/* Packs e alternativas agora vivem no painel de decisão da buy box */}
