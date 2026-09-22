@@ -632,6 +632,54 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
                                     Descontinuado
                                   </Badge>
                                 )}
+                                {(() => {
+                                  const intent = (rel.commercial_intent ||
+                                    classifyRelationIntent(
+                                      rel.relation_type,
+                                      sourcePrice,
+                                      target?.base_price ?? null
+                                    )) as RelationIntent;
+                                  if (intent === "neutral") return null;
+                                  const IntentIcon =
+                                    intent === "upsell"
+                                      ? TrendingUp
+                                      : intent === "downsell"
+                                        ? TrendingDown
+                                        : ArrowLeftRight;
+                                  return (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] px-1.5 py-0 gap-1"
+                                    >
+                                      <IntentIcon className="h-2.5 w-2.5" />
+                                      {RELATION_INTENT_LABEL[intent]}
+                                    </Badge>
+                                  );
+                                })()}
+                                {rel.validation_status === "pending" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-500/40"
+                                  >
+                                    Por revisão
+                                  </Badge>
+                                )}
+                                {rel.confidence === "high" &&
+                                  rel.source === "ai_commerce" && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span>
+                                          <ShieldCheck className="h-3 w-3 text-green-600" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-xs">
+                                        {Array.isArray(rel.evidence) &&
+                                        rel.evidence.length > 0
+                                          ? `Evidência: ${rel.evidence.join(" · ")}`
+                                          : "Validada com dados reais do catálogo"}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
                               </div>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                                 {target?.sku && (
