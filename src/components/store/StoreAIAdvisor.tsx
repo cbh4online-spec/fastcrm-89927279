@@ -12,10 +12,14 @@ import {
   Bot,
   User,
   Package,
+  ShoppingBag,
+  Check,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useStoreCartSafe } from "@/contexts/StoreCartContext";
+import { toast } from "sonner";
 
 interface StoreAIAdvisorProps {
   workspaceId: string;
@@ -23,10 +27,21 @@ interface StoreAIAdvisorProps {
   productContext?: { name: string; category?: string };
 }
 
+interface AdvisorProduct {
+  id: string;
+  name: string;
+  slug?: string;
+  sku?: string | null;
+  price: number;
+  currency?: string;
+  image?: string | null;
+  available?: boolean;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
-  products?: { id: string; name: string; price: number; image?: string }[];
+  products?: AdvisorProduct[];
 }
 
 export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: StoreAIAdvisorProps) {
@@ -35,8 +50,28 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
+  const [addedIds, setAddedIds] = useState<string[]>([]);
+  const cart = useStoreCartSafe();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddToCart = (product: AdvisorProduct) => {
+    if (!cart || product.available === false) return;
+    cart.addItem(
+      {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        currency: product.currency || "EUR",
+        image: product.image || undefined,
+        sku: product.sku || undefined,
+      },
+      1,
+    );
+    setAddedIds((prev) => (prev.includes(product.id) ? prev : [...prev, product.id]));
+    toast.success(`${product.name} adicionado ao carrinho`);
+  };
+
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -131,7 +166,7 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
+            className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-50"
           >
             <Button
               size="lg"
@@ -152,7 +187,7 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 w-[380px] max-h-[520px] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-24 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 sm:w-[380px] max-h-[520px] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5">
@@ -175,7 +210,17 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
                       Olá! Sou o consultor IA desta loja. Posso ajudá-lo a escolher o produto certo.
                     </p>
                     <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                      {["Qual o melhor produto para mim?", "O que preciso para começar?"].map((q) => (
+                      {(productContext
+                        ? [
+                            "Este produto serve para o meu caso?",
+                            "O que mais preciso para o instalar?",
+                            "Há alternativa mais económica?",
+                          ]
+                        : [
+                            "Qual o melhor produto para mim?",
+                            "O que preciso para começar?",
+                          ]
+                      ).map((q) => (
                         <Button
                           key={q}
                           variant="outline"
@@ -208,30 +253,64 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
                       >
                         <p className="whitespace-pre-wrap">{msg.content}</p>
                       </div>
-                      {/* Product cards */}
+                      {/* Produtos recomendados — preços e disponibilidade vindos da loja */}
                       {msg.products && msg.products.length > 0 && (
                         <div className="space-y-1.5">
                           {msg.products.map((p) => (
-                            <Link
+                            <div
                               key={p.id}
-                              to={`/store/${workspaceSlug}/product/${(p as any).store_slug || p.id}`}
-                              className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                              className="rounded-lg border bg-card overflow-hidden"
                             >
-                              {p.image ? (
-                                <img src={p.image} alt="" className="h-10 w-10 rounded object-cover" />
-                              ) : (
-                                <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                                  <Package className="h-4 w-4 text-muted-foreground/30" />
+                              <Link
+                                to={`/store/${workspaceSlug}/product/${p.slug || p.id}`}
+                                className="flex items-center gap-2 p-2 hover:bg-muted/50 transition-colors"
+                              >
+                                {p.image ? (
+                                  <img src={p.image} alt="" className="h-10 w-10 rounded object-cover" />
+                                ) : (
+                                  <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                                    <Package className="h-4 w-4 text-muted-foreground/30" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium truncate">{p.name}</p>
+                                  <p className="text-xs font-bold text-primary">
+                                    {p.price.toLocaleString("pt-PT", {
+                                      style: "currency",
+                                      currency: p.currency || "EUR",
+                                    })}
+                                  </p>
+                                </div>
+                              </Link>
+                              {cart && (
+                                <div className="px-2 pb-2">
+                                  {p.available === false ? (
+                                    <p className="text-[11px] text-muted-foreground">Sem stock de momento</p>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant={addedIds.includes(p.id) ? "outline" : "default"}
+                                      className="w-full h-7 text-xs gap-1.5"
+                                      onClick={() => handleAddToCart(p)}
+                                    >
+                                      {addedIds.includes(p.id) ? (
+                                        <>
+                                          <Check className="h-3.5 w-3.5" /> No carrinho
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ShoppingBag className="h-3.5 w-3.5" /> Adicionar ao carrinho
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
                                 </div>
                               )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate">{p.name}</p>
-                                <p className="text-xs font-bold text-primary">€{p.price.toFixed(2)}</p>
-                              </div>
-                            </Link>
+                            </div>
                           ))}
                         </div>
                       )}
+
                     </div>
                     {msg.role === "user" && (
                       <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
