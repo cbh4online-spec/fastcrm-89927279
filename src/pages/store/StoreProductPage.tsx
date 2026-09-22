@@ -1007,6 +1007,18 @@ export default function StoreProductPage() {
             currency={product.currency}
           />
 
+          {/* Acessórios recomendados (contexto AI Commerce) */}
+          <StoreAIAccessories
+            productId={product.id}
+            workspaceId={(product as any).workspace_id}
+            workspaceSlug={wsSlug}
+            name={product.name}
+            category={product.category}
+            subcategory={(product as any).subcategory}
+            price={pricing?.price ?? product.base_price}
+          />
+
+
           {/* Packs e alternativas agora vivem no painel de decisão da buy box */}
 
 
