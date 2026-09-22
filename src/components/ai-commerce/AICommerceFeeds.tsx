@@ -234,6 +234,10 @@ export function AICommerceFeeds() {
                   )}
                   Gerar agora
                 </Button>
+                <Button size="sm" variant="outline" onClick={() => setAuditFeedTarget(feed)}>
+                  <ShieldCheck className="mr-1 h-3.5 w-3.5" aria-hidden />
+                  Auditar conformidade
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
