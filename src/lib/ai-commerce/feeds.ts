@@ -202,20 +202,34 @@ const googleAdapter: ChannelAdapter = {
   contentType: "application/xml; charset=utf-8",
   map(product, ai, ctx) {
     const b = baseRecord(product, ai, ctx);
+    const labels = campaignLabels(product, ai);
+    const weight = shippingWeight(product);
+    const group = itemGroupId(product);
     return {
       id: b.id,
       title: b.title.slice(0, 150),
       description: (b.description || text(ai?.ai_long_description)).slice(0, 5000),
       link: b.link,
       image_link: b.image_link,
+      additional_image_link: extraImages(product).slice(0, 10),
       availability: b.availability,
       price: b.price,
+      sale_price: salePrice(product),
       brand: b.brand,
       condition: b.condition,
       ...(product.gtin ? { gtin: product.gtin } : {}),
       ...(product.mpn ? { mpn: product.mpn } : {}),
       product_type: text(product.category),
+      google_product_category: resolveGoogleProductCategory(product),
+      ...(group ? { item_group_id: group } : {}),
+      ...(weight ? { shipping_weight: weight } : {}),
       identifier_exists: product.gtin || product.mpn ? "yes" : "no",
+      // Etiquetas de segmentação para campanhas Performance Max.
+      custom_label_0: labels.priceBand,
+      custom_label_1: labels.readinessBand,
+      custom_label_2: labels.availability,
+      custom_label_3: labels.marginBand,
+      custom_label_4: labels.brandLabel,
     };
   },
   validate(record) {
@@ -224,8 +238,17 @@ const googleAdapter: ChannelAdapter = {
     for (const field of ["id", "title", "description", "link", "image_link", "availability", "price"]) {
       if (!record[field]) errors.push(`Google exige o campo: ${field}`);
     }
+    if (!isSecureImage(record.image_link)) errors.push("Imagem principal tem de ser um URL https acessível");
+    if (!isSecureImage(record.link)) errors.push("Link do produto tem de ser um URL https público");
+    if (text(record.title).length > 150) errors.push("Título acima de 150 caracteres");
+    if (!record.brand && record.identifier_exists === "no") {
+      errors.push("Sem marca nem GTIN/MPN: a Google rejeita o produto");
+    }
     if (!record.brand) warnings.push("Google recomenda marca");
     if (!record.gtin && !record.mpn) warnings.push("Sem GTIN nem MPN");
+    if (!record.google_product_category) warnings.push("Sem categoria Google (pior segmentação em Performance Max)");
+    if (!record.shipping_weight) warnings.push("Sem peso: portes não podem ser calculados automaticamente");
+    if (text(record.description).length < 120) warnings.push("Descrição curta (<120 caracteres)");
     return { errors, warnings };
   },
   serialize(records) {
