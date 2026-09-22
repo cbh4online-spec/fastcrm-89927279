@@ -45,6 +45,8 @@ import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtToge
 import { StoreAIAccessories } from "@/components/store/sections/StoreAIAccessories";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
+import { StoreProductRelationGroups } from "@/components/store/sections/StoreProductRelationGroups";
+import { useStoreProductRelations } from "@/hooks/store/useStoreProductRelations";
 import { StoreProductDocuments } from "@/components/store/sections/StoreProductDocuments";
 import { StoreTrustStrip } from "@/components/store/StoreTrustStrip";
 import { StoreDecisionNudge } from "@/components/store/StoreDecisionNudge";
@@ -286,6 +288,13 @@ export default function StoreProductPage() {
   const { items: recentlyViewed, addItem: addRecentlyViewed } = useRecentlyViewed((product as any)?.workspace_id || "");
   const { data: salesCounts } = useProductSalesCount((product as any)?.workspace_id);
   const { data: recentViewers = 0 } = useRecentViewers(product?.id);
+
+  // Relações comerciais aprovadas no back-office — fonte principal da ficha pública.
+  const relations = useStoreProductRelations({
+    productId: product?.id,
+    workspaceId: (product as any)?.workspace_id,
+    sourcePrice: product ? (pricing?.price ?? product.base_price) : null,
+  });
 
   const addToCartRef = useRef<HTMLButtonElement>(null);
 
@@ -991,14 +1000,16 @@ export default function StoreProductPage() {
           {/* Reviews */}
           <StoreReviewsSection productId={product.id} workspaceId={(product as any).workspace_id} />
 
-          {/* Compatible Products */}
-          <StoreCompatibleProducts
-            productId={product.id}
-            workspaceId={(product as any).workspace_id}
+          {/* Relações comerciais aprovadas (acessórios, upgrades e alternativas) */}
+          <StoreProductRelationGroups
             workspaceSlug={wsSlug}
+            essentials={relations.essentials}
+            upgrades={relations.upgrades}
+            alternatives={relations.alternatives}
+            sourceAvailable={!isOutOfStock}
           />
 
-          {/* Cross-sell */}
+          {/* Cross-sell por histórico de vendas */}
           <StoreBoughtTogether
             productId={product.id}
             categoryId={product.store_category_id}
@@ -1007,16 +1018,25 @@ export default function StoreProductPage() {
             currency={product.currency}
           />
 
-          {/* Acessórios recomendados (contexto AI Commerce) */}
-          <StoreAIAccessories
-            productId={product.id}
-            workspaceId={(product as any).workspace_id}
-            workspaceSlug={wsSlug}
-            name={product.name}
-            category={product.category}
-            subcategory={(product as any).subcategory}
-            price={pricing?.price ?? product.base_price}
-          />
+          {/* Sugestões automáticas — apenas quando a ficha ainda não tem relações validadas */}
+          {!relations.hasRelations && (
+            <>
+              <StoreCompatibleProducts
+                productId={product.id}
+                workspaceId={(product as any).workspace_id}
+                workspaceSlug={wsSlug}
+              />
+              <StoreAIAccessories
+                productId={product.id}
+                workspaceId={(product as any).workspace_id}
+                workspaceSlug={wsSlug}
+                name={product.name}
+                category={product.category}
+                subcategory={(product as any).subcategory}
+                price={pricing?.price ?? product.base_price}
+              />
+            </>
+          )}
 
 
           {/* Packs e alternativas agora vivem no painel de decisão da buy box */}
@@ -1033,15 +1053,17 @@ export default function StoreProductPage() {
 
 
 
-          {/* Related */}
-          <StoreRelatedProducts
-            productId={product.id}
-            categoryId={product.store_category_id}
-            workspaceId={(product as any).workspace_id}
-            workspaceSlug={wsSlug}
-            sourcePrice={pricing?.price ?? product.base_price}
-            sourceAvailable={!isOutOfStock}
-          />
+          {/* Relacionados por categoria — só se a ficha não tiver relações validadas */}
+          {!relations.hasRelations && (
+            <StoreRelatedProducts
+              productId={product.id}
+              categoryId={product.store_category_id}
+              workspaceId={(product as any).workspace_id}
+              workspaceSlug={wsSlug}
+              sourcePrice={pricing?.price ?? product.base_price}
+              sourceAvailable={!isOutOfStock}
+            />
+          )}
 
           {/* Recently Viewed */}
           <StoreRecentlyViewed
