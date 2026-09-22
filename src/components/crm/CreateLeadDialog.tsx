@@ -226,6 +226,9 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       return;
     }
     if (duplicateItems.length > 0 && !dismissedDuplicates) {
+      toast.warning(
+        "Encontrámos registos semelhantes. Confirme em \"Criar mesmo assim\" para continuar.",
+      );
       return;
     }
 

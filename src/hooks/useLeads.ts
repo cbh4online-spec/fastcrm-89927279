@@ -240,6 +240,8 @@ export function useCreateLead() {
           phone: input.phone || null,
           source: input.source || null,
           status: input.status || "new",
+          tags: input.tags && input.tags.length > 0 ? input.tags : [],
+          notes: input.notes || null,
           linkedin_url: input.linkedin_url || null,
           facebook_url: input.facebook_url || null,
           instagram_url: input.instagram_url || null,

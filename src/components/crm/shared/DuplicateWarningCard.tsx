@@ -77,6 +77,7 @@ export function DuplicateWarningCard({
                   </Badge>
                 </div>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   className="h-7 text-xs shrink-0"
@@ -90,6 +91,7 @@ export function DuplicateWarningCard({
           </div>
           {!hasBlocking && onContinue && (
             <Button
+              type="button"
               variant="link"
               size="sm"
               className="h-auto p-0 mt-2 text-xs text-amber-700 dark:text-amber-300"
