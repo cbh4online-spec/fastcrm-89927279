@@ -204,6 +204,20 @@ ${productContext ? `CONTEXTO: o cliente está a ver o produto "${productContext.
 
     // Extrai os IDs recomendados e devolve dados reais da base (preço, stock,
     // slug) — o texto do modelo nunca é fonte de verdade comercial.
+    const toCard = (p: any) => {
+      const imgIdx = p.primary_image_index ?? 0;
+      return {
+        id: p.id,
+        name: p.name,
+        slug: p.store_slug || p.id,
+        sku: p.sku || null,
+        price: p.base_price,
+        currency: p.currency || 'EUR',
+        image: p.images?.[imgIdx] || p.images?.[0] || null,
+        available: p.stock_status !== 'out_of_stock',
+      };
+    };
+
     const productIdsMatch = content.match(/\[PRODUTOS?:\s*([^\]]*)\]/i);
     let recommendedProducts: any[] = [];
 
@@ -212,24 +226,28 @@ ${productContext ? `CONTEXTO: o cliente está a ver o produto "${productContext.
       recommendedProducts = ids
         .map((id: string) => {
           const p = products.find((pr) => pr.id === id);
-          if (!p) return null;
-          const imgIdx = p.primary_image_index ?? 0;
-          return {
-            id: p.id,
-            name: p.name,
-            slug: p.store_slug || p.id,
-            sku: p.sku || null,
-            price: p.base_price,
-            currency: p.currency || 'EUR',
-            image: p.images?.[imgIdx] || p.images?.[0] || null,
-            available: p.stock_status !== 'out_of_stock',
-          };
+          return p ? toCard(p) : null;
         })
-        .filter(Boolean)
-        .slice(0, 4);
+        .filter(Boolean);
 
       content = content.replace(/\[PRODUTOS?:\s*[^\]]*\]/i, '').trim();
     }
+
+    // Recurso: se o modelo não devolveu a etiqueta de IDs, identificamos os
+    // produtos pelo nome mencionado na resposta (só nomes do catálogo enviado).
+    if (recommendedProducts.length === 0) {
+      const normalized = norm(content);
+      const mentioned = ranked
+        .map(({ p }) => p)
+        .filter((p) => {
+          const name = norm(p.name);
+          return name.length >= 8 && normalized.includes(name);
+        });
+      recommendedProducts = mentioned.map(toCard);
+    }
+
+    recommendedProducts = recommendedProducts.slice(0, 4);
+
 
 
     return new Response(JSON.stringify({
