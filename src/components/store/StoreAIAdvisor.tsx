@@ -210,7 +210,17 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
                       Olá! Sou o consultor IA desta loja. Posso ajudá-lo a escolher o produto certo.
                     </p>
                     <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                      {["Qual o melhor produto para mim?", "O que preciso para começar?"].map((q) => (
+                      {(productContext
+                        ? [
+                            "Este produto serve para o meu caso?",
+                            "O que mais preciso para o instalar?",
+                            "Há alternativa mais económica?",
+                          ]
+                        : [
+                            "Qual o melhor produto para mim?",
+                            "O que preciso para começar?",
+                          ]
+                      ).map((q) => (
                         <Button
                           key={q}
                           variant="outline"
