@@ -243,30 +243,64 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
                       >
                         <p className="whitespace-pre-wrap">{msg.content}</p>
                       </div>
-                      {/* Product cards */}
+                      {/* Produtos recomendados — preços e disponibilidade vindos da loja */}
                       {msg.products && msg.products.length > 0 && (
                         <div className="space-y-1.5">
                           {msg.products.map((p) => (
-                            <Link
+                            <div
                               key={p.id}
-                              to={`/store/${workspaceSlug}/product/${(p as any).store_slug || p.id}`}
-                              className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                              className="rounded-lg border bg-card overflow-hidden"
                             >
-                              {p.image ? (
-                                <img src={p.image} alt="" className="h-10 w-10 rounded object-cover" />
-                              ) : (
-                                <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                                  <Package className="h-4 w-4 text-muted-foreground/30" />
+                              <Link
+                                to={`/store/${workspaceSlug}/product/${p.slug || p.id}`}
+                                className="flex items-center gap-2 p-2 hover:bg-muted/50 transition-colors"
+                              >
+                                {p.image ? (
+                                  <img src={p.image} alt="" className="h-10 w-10 rounded object-cover" />
+                                ) : (
+                                  <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                                    <Package className="h-4 w-4 text-muted-foreground/30" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium truncate">{p.name}</p>
+                                  <p className="text-xs font-bold text-primary">
+                                    {p.price.toLocaleString("pt-PT", {
+                                      style: "currency",
+                                      currency: p.currency || "EUR",
+                                    })}
+                                  </p>
+                                </div>
+                              </Link>
+                              {cart && (
+                                <div className="px-2 pb-2">
+                                  {p.available === false ? (
+                                    <p className="text-[11px] text-muted-foreground">Sem stock de momento</p>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant={addedIds.includes(p.id) ? "outline" : "default"}
+                                      className="w-full h-7 text-xs gap-1.5"
+                                      onClick={() => handleAddToCart(p)}
+                                    >
+                                      {addedIds.includes(p.id) ? (
+                                        <>
+                                          <Check className="h-3.5 w-3.5" /> No carrinho
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ShoppingBag className="h-3.5 w-3.5" /> Adicionar ao carrinho
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
                                 </div>
                               )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate">{p.name}</p>
-                                <p className="text-xs font-bold text-primary">€{p.price.toFixed(2)}</p>
-                              </div>
-                            </Link>
+                            </div>
                           ))}
                         </div>
                       )}
+
                     </div>
                     {msg.role === "user" && (
                       <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
