@@ -69,11 +69,14 @@ export function useConversionCopilot(days = 30, targetMonthlyRevenue = 50000) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_relations")
-        .select("product_id")
+        .select("source_product_id")
         .eq("workspace_id", workspaceId!)
+        .eq("is_active", true)
         .limit(10000);
       if (error) throw error;
-      return new Set(((data || []) as { product_id: string }[]).map((r) => r.product_id));
+      return new Set(
+        ((data || []) as { source_product_id: string }[]).map((r) => r.source_product_id),
+      );
     },
   });
 
