@@ -501,3 +501,84 @@ export function buildFeed(
     summary: summarizeIssues(errors),
   };
 }
+
+// ------------------------------------------------- Auditoria de conformidade
+
+export interface FeedAuditProduct {
+  product_id: string;
+  name: string;
+  sku: string | null;
+  errors: string[];
+  warnings: string[];
+  eligible: boolean;
+}
+
+export interface FeedAuditIssueGroup {
+  message: string;
+  count: number;
+  severity: "error" | "warning";
+}
+
+export interface FeedAuditResult {
+  channel: FeedChannel;
+  channelLabel: string;
+  total: number;
+  eligible: number;
+  blocked: number;
+  withWarnings: number;
+  errorGroups: FeedAuditIssueGroup[];
+  warningGroups: FeedAuditIssueGroup[];
+  products: FeedAuditProduct[];
+}
+
+function groupIssues(
+  products: FeedAuditProduct[],
+  key: "errors" | "warnings",
+  severity: "error" | "warning",
+): FeedAuditIssueGroup[] {
+  const counts = new Map<string, number>();
+  for (const p of products) {
+    for (const message of p[key]) counts.set(message, (counts.get(message) || 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([message, count]) => ({ message, count, severity }));
+}
+
+/**
+ * Auditoria prévia: corre as regras do canal sem gerar nem publicar o feed.
+ * Permite ver o que o Google/Meta iria rejeitar antes de submeter o URL.
+ */
+export function auditFeed(
+  channel: FeedChannel,
+  rows: { product: CommerceProduct; ai: Partial<ProductAICommerce> | null }[],
+  ctx: FeedContext,
+): FeedAuditResult {
+  const adapter = getAdapter(channel);
+  const products: FeedAuditProduct[] = rows.map((row) => {
+    const record = adapter.map(row.product, row.ai, ctx);
+    const check = adapter.validate(record);
+    return {
+      product_id: row.product.id,
+      name: row.product.name || "(sem nome)",
+      sku: row.product.sku,
+      errors: check.errors,
+      warnings: check.warnings,
+      eligible: check.errors.length === 0,
+    };
+  });
+
+  products.sort((a, b) => b.errors.length - a.errors.length || b.warnings.length - a.warnings.length);
+
+  return {
+    channel,
+    channelLabel: adapter.label,
+    total: products.length,
+    eligible: products.filter((p) => p.eligible).length,
+    blocked: products.filter((p) => !p.eligible).length,
+    withWarnings: products.filter((p) => p.eligible && p.warnings.length > 0).length,
+    errorGroups: groupIssues(products, "errors", "error"),
+    warningGroups: groupIssues(products, "warnings", "warning"),
+    products,
+  };
+}
