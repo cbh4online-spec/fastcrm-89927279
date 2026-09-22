@@ -265,6 +265,14 @@ export function AICommerceFeeds() {
           </Card>
         ))}
       </div>
+
+      <FeedComplianceAuditDialog
+        feed={auditFeedTarget}
+        open={Boolean(auditFeedTarget)}
+        onOpenChange={(o) => {
+          if (!o) setAuditFeedTarget(null);
+        }}
+      />
     </div>
   );
 }
