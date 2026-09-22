@@ -70,7 +70,7 @@ function ProductIndicators({ product }: { product: ProductStoreData }) {
   );
 }
 
-export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit, onBulkPublish, bulkPending }: CatalogProductsTableProps) {
+export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit, onBulkPublish, bulkPending, onBulkEnrich }: CatalogProductsTableProps) {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
