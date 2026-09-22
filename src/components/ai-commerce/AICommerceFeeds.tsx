@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Copy, Loader2, Play, Plus, Trash2 } from "lucide-react";
+import { Copy, Loader2, Play, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { FeedComplianceAuditDialog } from "./FeedComplianceAuditDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
