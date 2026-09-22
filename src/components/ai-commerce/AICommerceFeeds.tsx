@@ -52,6 +52,7 @@ export function AICommerceFeeds() {
 
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState<string | null>(null);
+  const [auditFeedTarget, setAuditFeedTarget] = useState<CommerceFeed | null>(null);
   const [form, setForm] = useState<{ name: string; channel: FeedChannel; language: string; country: string }>({
     name: "",
     channel: "openai",
