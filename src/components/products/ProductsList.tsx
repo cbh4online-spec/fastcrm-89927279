@@ -207,6 +207,7 @@ export function ProductsList() {
         id: "smart", label: "Filtros Inteligentes", icon: <Calendar className="h-4 w-4" />,
         defaultOpen: false,
         items: [
+          { id: "smart_pending_update", label: "⏳ Pendentes de atualização" },
           { id: "smart_recent", label: "Atualizados recentemente" },
           { id: "smart_high_price", label: "Preço alto (>100€)" },
           { id: "smart_low_price", label: "Preço baixo (<50€)" },
