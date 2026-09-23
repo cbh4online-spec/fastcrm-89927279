@@ -56,6 +56,7 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
   const [extractDialogOpen, setExtractDialogOpen] = useState(false);
   const [extractText, setExtractText] = useState("");
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [importedFromSheet, setImportedFromSheet] = useState(0);
 
   // Fetch specs
   const { data: savedSpecs, isLoading } = useQuery({
