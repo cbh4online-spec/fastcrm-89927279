@@ -570,6 +570,16 @@ export function ProductsList() {
         getBillingTypeLabel={state.getBillingTypeLabel}
       />
 
+      <BulkMarketPricingDialog
+        open={bulkMarketOpen}
+        onOpenChange={setBulkMarketOpen}
+        workspaceId={state.currentWorkspace?.id}
+        products={(state.filteredProducts || []).filter((p) => state.selectedIds.includes(p.id))}
+        onComplete={() => state.setSelectedIds([])}
+      />
+
+
+
       <AlertDialog
         open={!!state.deleteConfirmProduct}
         onOpenChange={(open) => !open && state.setDeleteConfirmProduct(null)}
