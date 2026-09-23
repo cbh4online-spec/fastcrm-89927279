@@ -237,9 +237,25 @@ function extractStructuredPrice(html: string): { price: number; currency: string
   return euro[0];
 }
 
+function normalizeRef(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** Mantém apenas páginas onde a referência exata aparece no URL, título ou conteúdo. */
+function filterRelevantPages(pages: PageHit[], sku: string | null): PageHit[] {
+  if (!sku) return pages;
+  const ref = normalizeRef(sku);
+  if (ref.length < 5) return pages;
+  const relevant = pages.filter((p) => {
+    const haystack = normalizeRef(`${p.url} ${p.title ?? ""} ${p.excerpts.join(" ")}`);
+    return haystack.includes(ref);
+  });
+  return relevant.length ? relevant : pages;
+}
+
 /** Enriquece as páginas com o preço declarado em Schema.org quando o excerto não o traz. */
 async function enrichWithStructuredPrices(pages: PageHit[]): Promise<PageHit[]> {
-  const targets = pages.slice(0, 8);
+  const targets = pages.slice(0, 12);
   const enriched = await Promise.all(
     targets.map(async (page) => {
       const hasPrice = page.excerpts.some((e) => /(\d+[.,]\d{2}\s*€|€\s*\d+[.,]\d{2}|EUR\s*\d)/.test(e));
