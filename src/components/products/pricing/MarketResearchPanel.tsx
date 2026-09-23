@@ -35,9 +35,12 @@ interface MarketResearchPanelProps {
   barcode?: string;
   currentPrice?: number;
   costPrice?: number;
-  /** Quando fornecido, permite adotar o preço sugerido com 1 clique. */
-  onApplyPrice?: (price: number) => void;
+  /** Taxa de IVA do produto (%), usada para converter PVP de lojas em preço sem IVA. */
+  vatRate?: number;
+  /** Recebe o preço sem IVA e o PVP com IVA do valor sugerido. */
+  onApplyPrice?: (netPrice: number, grossPrice: number) => void;
 }
+
 
 function hostOf(url?: string) {
   if (!url) return "";
