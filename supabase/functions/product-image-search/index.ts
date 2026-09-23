@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
     if (pageUrl) {
       const found: ImageCandidate[] = []
       const pageSeen = new Set<string>()
-      let pageTitle: string | undefined
+      let pageTitle: string | undefined = autoPageTitle
       let onlyThumbs = false
       let readFailed = false
 
