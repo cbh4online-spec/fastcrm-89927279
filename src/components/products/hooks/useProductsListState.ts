@@ -310,6 +310,44 @@ export function useProductsListState() {
     enabled: !!activeTagName && !!currentWorkspace?.id,
   });
 
+  // --- Produtos com pesquisa de mercado recente (últimos 30 dias) ---
+  const { data: recentResearchIds } = useQuery({
+    queryKey: ["product-recent-research", currentWorkspace?.id],
+    queryFn: async () => {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await (supabase as any)
+        .from("product_market_research")
+        .select("product_id")
+        .eq("workspace_id", currentWorkspace!.id)
+        .gte("research_date", since);
+      return new Set<string>((data || []).map((d: any) => d.product_id as string));
+    },
+    enabled: !!currentWorkspace?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // --- Regra única: produto pendente de atualização ---
+  const isPendingUpdate = useCallback((p: Product) => {
+    const anyP = p as any;
+    const net = getNetPrice(p);
+    const hasImage = (p.images && p.images.length > 0) || (Array.isArray(anyP.product_images) && anyP.product_images.length > 0);
+    // Preço
+    if (!p.base_price || p.base_price <= 0) return true;
+    // Ficha técnica / imagens / gate
+    if (!hasImage) return true;
+    if (!p.sku || p.sku.trim() === "") return true;
+    if (anyP.ai_commerce_gate_blocked === true) return true;
+    // Custos e margem (apenas para quem tem permissão de ver custos)
+    if (canViewCostMargin) {
+      if (!p.direct_cost || p.direct_cost <= 0) return true;
+      if (p.direct_cost && net > 0 && p.direct_cost > net) return true;
+    }
+    // Mercado: com SKU mas sem pesquisa de concorrência nos últimos 30 dias
+    if (recentResearchIds && p.sku && p.sku.trim() !== "" && !recentResearchIds.has(p.id)) return true;
+    return false;
+  }, [canViewCostMargin, recentResearchIds]);
+
+
   // --- Label helpers ---
   const getProductTypeLabel = useCallback((typeCode: string) => {
     const dynamicType = productTypesConfig?.find(t => t.code === typeCode);
