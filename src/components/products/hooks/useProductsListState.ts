@@ -453,7 +453,7 @@ export function useProductsListState() {
     }
 
     return result;
-  }, [products, searchValue, debouncedSearch, activeFilterId, tagProductIds]);
+  }, [products, searchValue, debouncedSearch, activeFilterId, tagProductIds, isPendingUpdate]);
 
   // --- Pagination ---
   const totalProducts = filteredProducts.length;
