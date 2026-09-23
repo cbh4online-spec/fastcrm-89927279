@@ -71,13 +71,14 @@ WITH ranked AS (
            PARTITION BY campaign_id, public.sdr_identity_key(prospect_email, prospect_phone, contact_id, lead_id, prospect_id)
            ORDER BY created_at, id) AS keeper
   FROM public.sdr_enrollments
-  WHERE identity_key IS NULL
+  WHERE identity_key IS NULL AND NOT (coalesce(metadata, '{}'::jsonb) ? 'sdr_duplicate_of')
 )
 UPDATE public.sdr_enrollments e
-SET identity_key = CASE WHEN r.rn = 1 THEN r.k ELSE NULL END,
-    metadata = CASE WHEN r.rn = 1 THEN e.metadata
-                    ELSE coalesce(e.metadata, '{}'::jsonb) || jsonb_build_object('sdr_duplicate_of', r.keeper) END
+SET identity_key = CASE WHEN r.rn = 1 AND x.id IS NULL THEN r.k ELSE NULL END,
+    metadata = CASE WHEN r.rn = 1 AND x.id IS NULL THEN e.metadata
+                    ELSE coalesce(e.metadata, '{}'::jsonb) || jsonb_build_object('sdr_duplicate_of', coalesce(x.id, r.keeper)) END
 FROM ranked r
+LEFT JOIN public.sdr_enrollments x ON x.campaign_id = r.campaign_id AND x.identity_key = r.k
 WHERE e.id = r.id AND r.k IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_sdr_enrollments_campaign_identity
@@ -113,6 +114,7 @@ CREATE TABLE IF NOT EXISTS public.sdr_step_attempts (
 GRANT SELECT ON public.sdr_step_attempts TO authenticated;
 GRANT ALL ON public.sdr_step_attempts TO service_role;
 ALTER TABLE public.sdr_step_attempts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Membros leem tentativas SDR do workspace" ON public.sdr_step_attempts;
 CREATE POLICY "Membros leem tentativas SDR do workspace" ON public.sdr_step_attempts
   FOR SELECT TO authenticated
   USING (public.is_workspace_member(auth.uid(), workspace_id) OR public.is_super_admin(auth.uid()));
@@ -132,6 +134,7 @@ CREATE TABLE IF NOT EXISTS public.sdr_send_reservations (
 GRANT SELECT ON public.sdr_send_reservations TO authenticated;
 GRANT ALL ON public.sdr_send_reservations TO service_role;
 ALTER TABLE public.sdr_send_reservations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Membros leem reservas SDR do workspace" ON public.sdr_send_reservations;
 CREATE POLICY "Membros leem reservas SDR do workspace" ON public.sdr_send_reservations
   FOR SELECT TO authenticated
   USING (public.is_workspace_member(auth.uid(), workspace_id) OR public.is_super_admin(auth.uid()));
