@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkStopConditions, hasUnresolvedVariables } from "./guards.ts";
 import { signWorkerRequest, workerModeConfigured } from "../_shared/sdr-engine/workerAuth.ts";
+import { authorizeDispatchCall } from "./dispatchAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,21 @@ export const PHASE1_WA_SEQUENCE_AUTONOMOUS_BLOCKED: boolean = true;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Autenticação interna ANTES de criar o cliente service_role e de qualquer mutação.
+  const rawBody = await req.text().catch(() => "");
+  const authz = await authorizeDispatchCall((h) => req.headers.get(h), rawBody, {
+    serviceRoleKey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+    workerEnabled: Deno.env.get("SDR_AUTONOMOUS_SEND_ENABLED"),
+    workerSecret: Deno.env.get("SDR_WORKER_SECRET"),
+  });
+  if (!authz.ok) {
+    const f = authz as { status: number; reason: string };
+    console.warn("[wa-sequence-dispatch] chamada recusada", { status: f.status, reason: f.reason });
+    return new Response(JSON.stringify({ error: f.status === 401 ? "Unauthorized" : "Forbidden", reason: f.reason }), {
+      status: f.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,

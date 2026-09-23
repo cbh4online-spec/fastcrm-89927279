@@ -107,3 +107,9 @@ bunx tsgo --noEmit -p tsconfig.app.json → sem erros
 5. Testar `single_step` numa inscrição interna (endereço próprio) com `SDR_AUTONOMOUS_SEND_ENABLED=true` e `autonomous_send_enabled=true` só nessa campanha.
 6. Só depois: activar o job `sequence-step-processor` (Trigger.dev) e, opcionalmente, `SDR_AUTO_ENROLL_ENABLED`.
 7. Desligar em emergência: remover `SDR_AUTONOMOUS_SEND_ENABLED` (efeito imediato em todos os envios autónomos).
+
+## Complemento — autenticação do `whatsapp-pro-sequence-dispatch` (B05/B10)
+- O handler autentica o chamador **antes** de criar o cliente service_role, antes do bloqueio da Fase 1 e antes de qualquer leitura/mutação (`dispatchAuth.ts`).
+- Aceite apenas `Authorization: Bearer <service role>` (comparação em tempo constante) — o caminho do cron interno. Se vier assinatura worker, tem de ser válida.
+- Recusas: sem cabeçalho/mal formado/servidor sem chave → 401; JWT de utilizador ou anon key → 403; assinatura inválida, expirada ou com modo worker desligado → 401.
+- Testes: `src/test/sdr/sdr-wa-dispatch-auth.test.ts` (11), incluindo verificação da ordem no handler. A via autónoma continua bloqueada (`PHASE1_WA_SEQUENCE_AUTONOMOUS_BLOCKED`). Nenhum deploy, flag, cron ou envio foi feito.
