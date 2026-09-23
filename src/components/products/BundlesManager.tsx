@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Package, Plus, Trash2, Percent, DollarSign, ToggleLeft, ToggleRight } from "lucide-react";
+import { Package, Plus, Trash2, Percent, DollarSign, ToggleLeft, ToggleRight, Sparkles } from "lucide-react";
+import { AICommerceBundleSuggestions } from "@/components/products/AICommerceBundleSuggestions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ export function BundlesManager() {
   const deleteBundle = useDeleteBundle();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<string | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", discount_type: "percentage", discount_value: 0 });
 
   const handleCreate = () => {
@@ -34,7 +36,12 @@ export function BundlesManager() {
           <h3 className="text-lg font-semibold">Bundles & Kits</h3>
           <p className="text-sm text-muted-foreground">Agrupe produtos em pacotes com desconto</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} size="sm"><Plus className="h-4 w-4 mr-1" />Novo Bundle</Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setShowSuggestions(true)} size="sm" variant="outline">
+            <Sparkles className="h-4 w-4 mr-1" />Sugerir com AI Commerce
+          </Button>
+          <Button onClick={() => setShowCreate(true)} size="sm"><Plus className="h-4 w-4 mr-1" />Novo Bundle</Button>
+        </div>
       </div>
 
       {(!bundles || bundles.length === 0) ? (
@@ -94,6 +101,9 @@ export function BundlesManager() {
 
       {/* Bundle Items Dialog */}
       {selectedBundle && <BundleItemsDialog bundleId={selectedBundle} onClose={() => setSelectedBundle(null)} />}
+
+      <AICommerceBundleSuggestions open={showSuggestions} onOpenChange={setShowSuggestions} />
+      
     </div>
   );
 }
