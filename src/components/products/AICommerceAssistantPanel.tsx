@@ -17,7 +17,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
-export interface AICommerceSuggestion {
+export interface AICommerceTechnical {
+  brand: string;
+  manufacturer: string;
+  model: string;
+  warranty_months: number | null;
+  warranty_type: string;
+  specifications: Record<string, string>;
+}
+
+export interface AICommerceSuggestion extends AICommerceTechnical {
   ai_title: string;
   ai_category: string;
   ai_short_description: string;
@@ -58,6 +67,8 @@ interface Props {
   onApplyShortDescription: (value: string) => void;
   /** Recebe o conteúdo estruturado que será guardado no produto + AI Commerce. */
   onApplyStructured: (suggestion: AICommerceSuggestion) => void;
+  /** Aplica dados técnicos (marca, modelo, garantia, especificações) na ficha. */
+  onApplyTechnical?: (technical: AICommerceTechnical) => void;
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -110,6 +121,7 @@ export function AICommerceAssistantPanel({
   onApplyCategory,
   onApplyShortDescription,
   onApplyStructured,
+  onApplyTechnical,
 }: Props) {
   const { currentWorkspace } = useWorkspace();
   const [loading, setLoading] = useState(false);
@@ -160,6 +172,7 @@ export function AICommerceAssistantPanel({
     if (suggestion.ai_title) onApplyName(suggestion.ai_title);
     if (suggestion.ai_category) onApplyCategory(suggestion.ai_category);
     if (suggestion.ai_short_description) onApplyShortDescription(suggestion.ai_short_description);
+    onApplyTechnical?.(suggestion);
     onApplyStructured(suggestion);
     setApplied(new Set(["name", "category", "short", "structured"]));
     toast.success("Conteúdo AI Commerce aplicado");
@@ -365,6 +378,43 @@ export function AICommerceAssistantPanel({
               </div>
             </Block>
           )}
+
+          {onApplyTechnical &&
+            (suggestion.brand ||
+              suggestion.manufacturer ||
+              suggestion.model ||
+              suggestion.warranty_months ||
+              Object.keys(suggestion.specifications || {}).length > 0) && (
+              <Block label="Dados técnicos sugeridos">
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  {suggestion.brand && <p>Marca: {suggestion.brand}</p>}
+                  {suggestion.manufacturer && <p>Fabricante: {suggestion.manufacturer}</p>}
+                  {suggestion.model && <p>Modelo: {suggestion.model}</p>}
+                  {!!suggestion.warranty_months && <p>Garantia: {suggestion.warranty_months} meses</p>}
+                  {Object.keys(suggestion.specifications || {}).length > 0 && (
+                    <p>{Object.keys(suggestion.specifications).length} especificações técnicas</p>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant={applied.has("technical") ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    onApplyTechnical(suggestion);
+                    markApplied("technical");
+                  }}
+                >
+                  {applied.has("technical") ? (
+                    <>
+                      <Check className="h-3 w-3 mr-1" /> Aplicados
+                    </>
+                  ) : (
+                    "Aplicar dados técnicos"
+                  )}
+                </Button>
+              </Block>
+            )}
 
           {(suggestion.seo_title || suggestion.seo_description) && (
             <Block label="SEO">
