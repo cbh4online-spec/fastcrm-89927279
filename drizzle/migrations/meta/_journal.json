@@ -253,6 +253,13 @@
       "when": 1790167698653,
       "tag": "0035_products_model_and_warranty",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790173817991,
+      "tag": "0036_credit_rule_product_image_search",
+      "breakpoints": true
     }
   ]
 }
