@@ -194,8 +194,12 @@ export function MarketResearchPanel({
                     )}
                     {onApplyPrice && (
                       <Button
+                        type="button"
                         size="sm"
-                        onClick={() => onApplyPrice(latestResearch.suggested_price!)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onApplyPrice(latestResearch.suggested_price!);
+                        }}
                       >
                         <Check className="h-3.5 w-3.5 mr-1" />
                         Adotar
