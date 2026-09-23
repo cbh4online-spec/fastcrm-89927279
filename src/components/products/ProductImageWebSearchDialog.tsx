@@ -23,6 +23,41 @@ interface Candidate {
   source_title?: string;
 }
 
+const MIN_IMAGE_PX = 200;
+
+/** Chave canónica: a mesma foto em várias resoluções colapsa numa só entrada. */
+function canonicalImageKey(url: string): string {
+  let base = url;
+  try {
+    const parsed = new URL(url);
+    base = parsed.origin + parsed.pathname;
+  } catch {
+    /* usa a string crua */
+  }
+  return base
+    .toLowerCase()
+    .replace(/[._-]\d{2,4}x\d{2,4}(?=\.[a-z0-9]+$)/i, "")
+    .replace(
+      /[._-](thumb|thumbnail|small|mini|medium|large|xl|xxl|cart|home|zoom)\d*(?=\.[a-z0-9]+$)/i,
+      "",
+    )
+    .replace(/[._-]\d{2,4}(?=\.[a-z0-9]+$)/i, "")
+    .replace(/\/(?:thumbs?|thumbnails?|small|medium|cache|resized)\//i, "/");
+}
+
+function dedupeCandidates(list: Candidate[]): Candidate[] {
+  const seen = new Set<string>();
+  const out: Candidate[] = [];
+  for (const c of list) {
+    const key = canonicalImageKey(c.url);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(c);
+  }
+  return out;
+}
+
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -84,7 +119,8 @@ export function ProductImageWebSearchDialog({
       if (error) throw new Error(error.message);
       if (!data?.success && data?.error) setWarning(data.error);
       const list: Candidate[] = Array.isArray(data?.candidates) ? data.candidates : [];
-      setCandidates(list);
+      setCandidates(dedupeCandidates(list));
+
       if (list.length === 0 && !data?.error) {
         setWarning("Não foi possível encontrar imagens para esta pesquisa.");
       }
@@ -110,7 +146,7 @@ export function ProductImageWebSearchDialog({
       if (error) throw new Error(error.message);
       if (!data?.success && data?.error) setWarning(data.error);
       const list: Candidate[] = Array.isArray(data?.candidates) ? data.candidates : [];
-      setCandidates(list);
+      setCandidates(dedupeCandidates(list));
       if (list.length === 0 && !data?.error) {
         setWarning(data?.warning || "Não foram encontradas imagens nesta página.");
       }
@@ -288,9 +324,11 @@ export function ProductImageWebSearchDialog({
           {!searching && candidates.length > 0 && (
             <>
               <p className="text-xs text-muted-foreground mb-2">
-                {candidates.length} imagens encontradas. Selecciona até{" "}
+                {candidates.filter((c) => !failedThumbs.has(c.url)).length} imagens encontradas
+                (sem repetidas nem miniaturas). Selecciona até{" "}
                 <strong>{remainingSlots}</strong>.
               </p>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {candidates
                   .filter((c) => !failedThumbs.has(c.url))
@@ -312,10 +350,26 @@ export function ProductImageWebSearchDialog({
                           alt={c.source_title || "Candidata"}
                           loading="lazy"
                           className="h-full w-full object-cover bg-muted"
+                          onLoad={(e) => {
+                            const img = e.currentTarget;
+                            if (
+                              img.naturalWidth > 0 &&
+                              (img.naturalWidth < MIN_IMAGE_PX || img.naturalHeight < MIN_IMAGE_PX)
+                            ) {
+                              setFailedThumbs((prev) => new Set(prev).add(c.url));
+                              setPicked((prev) => {
+                                if (!prev.has(c.url)) return prev;
+                                const next = new Set(prev);
+                                next.delete(c.url);
+                                return next;
+                              });
+                            }
+                          }}
                           onError={() =>
                             setFailedThumbs((prev) => new Set(prev).add(c.url))
                           }
                         />
+
                         <div
                           className={cn(
                             "absolute top-1 right-1 h-6 w-6 rounded-full flex items-center justify-center transition-all",

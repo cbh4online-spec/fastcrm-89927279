@@ -38,12 +38,6 @@ function looksLikeImage(url: string): boolean {
   return IMAGE_EXT_RE.test(url)
 }
 
-const THUMB_RE = /(_|-)(\d{1,3})x(\d{1,3})\.|thumb|thumbnail|mini|small|swatch/i
-
-function isThumbLike(url: string): boolean {
-  return THUMB_RE.test(url)
-}
-
 function absolutize(raw: string, base: string): string | null {
   try {
     const u = new URL(raw.trim(), base)
@@ -54,10 +48,72 @@ function absolutize(raw: string, base: string): string | null {
   }
 }
 
+const THUMB_RE = /(_|-)(\d{1,3})x(\d{1,3})\.|thumb|thumbnail|mini|small|swatch/i
+
+
+function isThumbLike(url: string): boolean {
+  return THUMB_RE.test(url)
+}
+
+/** Dimensões declaradas no nome do ficheiro ou na query (?w=, ?width=, -200x200). */
+function declaredSize(url: string): number | null {
+  const sizes: number[] = []
+  const nameMatch = url.match(/[._-](\d{2,4})x(\d{2,4})(?=\.[a-z0-9]+(\?|$))/i)
+  if (nameMatch) sizes.push(Number(nameMatch[1]), Number(nameMatch[2]))
+  const qMatch = url.match(/[?&](?:w|width|h|height|sw|size)=(\d{2,4})/i)
+  if (qMatch) sizes.push(Number(qMatch[1]))
+  if (sizes.length === 0) return null
+  return Math.max(...sizes)
+}
+
+const MIN_DECLARED_PX = 250
+
+/**
+ * Chave canónica da imagem: mesmo ficheiro em várias resoluções colapsa numa só.
+ * Remove sufixos de dimensão/miniatura, parâmetros de corte e a query.
+ */
+function canonicalImageKey(url: string): string {
+  let u = url
+  try {
+    const parsed = new URL(url)
+    u = parsed.origin + parsed.pathname
+  } catch { /* usa a string crua */ }
+  return u
+    .toLowerCase()
+    .replace(/[._-]\d{2,4}x\d{2,4}(?=\.[a-z0-9]+$)/i, '')
+    .replace(/[._-](thumb|thumbnail|small|mini|medium|large|xl|xxl|cart|home|zoom)\d*(?=\.[a-z0-9]+$)/i, '')
+    .replace(/[._-]\d{2,4}(?=\.[a-z0-9]+$)/i, '')
+    .replace(/\/(?:thumbs?|thumbnails?|small|medium|cache|resized)\//i, '/')
+}
+
+/** Pontuação de qualidade: maior é melhor. */
+function qualityScore(url: string): number {
+  const size = declaredSize(url)
+  let score = size ?? 1200 // sem dimensão declarada = provavelmente a original
+  if (isThumbLike(url)) score -= 2000
+  if (/original|full|large|zoom|1200|1500|2000/i.test(url)) score += 300
+  return score
+}
+
+/** Guarda apenas a melhor variante de cada imagem canónica. */
+function dedupeByQuality<T extends { url: string }>(list: T[]): T[] {
+  const best = new Map<string, T>()
+  for (const item of list) {
+    if (declaredSize(item.url) !== null && declaredSize(item.url)! < MIN_DECLARED_PX) continue
+    const key = canonicalImageKey(item.url)
+    const current = best.get(key)
+    if (!current || qualityScore(item.url) > qualityScore(current.url)) {
+      best.set(key, item)
+    }
+  }
+  return Array.from(best.values())
+}
+
 /** Remove sufixos de miniatura (_thumb, _thumb2, -small…) para obter a original. */
 function upgradeThumb(url: string): string {
   return url.replace(/([._-])(thumb|thumbnail|small|mini)\d*(?=\.[a-z0-9]+(\?|$))/i, '')
 }
+
 
 /** Extrai URLs de imagem do HTML (src, data-src, data-original, srcset, href). */
 function extractImageUrlsFromHtml(html: string, base: string): string[] {
@@ -184,20 +240,19 @@ Deno.serve(async (req) => {
       const collect = (urls: string[]) => {
         for (const url of urls) {
           if (!looksLikeImage(url) || /\/templates\//i.test(url)) continue
-          // Muitas lojas só publicam miniaturas no HTML: junta a versão original
+          // Se houver versão original, a miniatura é descartada (nunca as duas)
           const fullSize = upgradeThumb(url)
-          const variants = fullSize !== url ? [fullSize, url] : [url]
-          for (const variant of variants) {
-            if (variant === url && fullSize === url && isThumbLike(url)) {
-              onlyThumbs = true
-              continue
-            }
-            if (pageSeen.has(variant)) continue
-            pageSeen.add(variant)
-            found.push({ url: variant, source_url: pageUrl!, source_title: pageTitle })
+          const chosen = fullSize !== url ? fullSize : url
+          if (chosen === url && isThumbLike(url)) {
+            onlyThumbs = true
+            continue
           }
+          if (pageSeen.has(chosen)) continue
+          pageSeen.add(chosen)
+          found.push({ url: chosen, source_url: pageUrl!, source_title: pageTitle })
         }
       }
+
 
       // 1) Leitura via Firecrawl (HTML tratado + original + ligações)
       try {
@@ -290,6 +345,9 @@ Deno.serve(async (req) => {
         )
       }
 
+      // Remove variantes da mesma imagem, mantendo só a de melhor resolução
+      const unique = dedupeByQuality(found)
+
       // Coloca primeiro as imagens cujo endereço contém a referência do produto
       const tokens = relevanceTokens(pageUrl, query)
       if (tokens.length > 0) {
@@ -297,17 +355,18 @@ Deno.serve(async (req) => {
           const lower = url.toLowerCase()
           return tokens.some((t) => lower.includes(t)) ? 0 : 1
         }
-        found.sort((a, b) => score(a.url) - score(b.url))
+        unique.sort((a, b) => score(a.url) - score(b.url))
       }
 
       return new Response(
         JSON.stringify({
           success: true,
-          candidates: found.slice(0, 24),
+          candidates: unique.slice(0, 24),
           page_url: pageUrl,
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
+
     }
 
 
@@ -399,15 +458,19 @@ Deno.serve(async (req) => {
       }
     }
 
+    const uniqueCandidates = dedupeByQuality(candidates)
+
     return new Response(
       JSON.stringify({
         success: true,
-        candidates: candidates.slice(0, 24),
+        candidates: uniqueCandidates.slice(0, 24),
         query: searchQuery,
-        warning: candidates.length === 0 ? 'Sem imagens encontradas para esta pesquisa' : undefined,
+        warning:
+          uniqueCandidates.length === 0 ? 'Sem imagens encontradas para esta pesquisa' : undefined,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
+
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('[product-image-search] error:', msg)
