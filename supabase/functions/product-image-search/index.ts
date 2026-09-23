@@ -617,7 +617,7 @@ Deno.serve(async (req) => {
 
     // Fallback: se não vieram imagens, tenta scrape do top resultado web
     if (candidates.length === 0) {
-      const searchResult = await firecrawl.search(`${query} produto`, {
+      const searchResult = await firecrawl.search(`${searchQuery} produto`, {
         limit: 6,
         lang: 'pt',
         country: 'pt',
@@ -626,6 +626,7 @@ Deno.serve(async (req) => {
       if (searchResult.success && searchResult.data?.length) {
         await Promise.all(
           searchResult.data.slice(0, 6).map(async (r) => {
+            if (isNoise(r.url, r.title)) return
             try {
               const scrape = await firecrawl.scrape(r.url, {
                 formats: ['links'],
@@ -637,15 +638,15 @@ Deno.serve(async (req) => {
               const ogImage = (scrape.data.metadata?.ogImage as string) || null
               if (ogImage && ogImage.startsWith('http') && !seen.has(ogImage)) {
                 seen.add(ogImage)
-                candidates.push({ url: ogImage, source_url: r.url, source_title: r.title })
+                candidates.push({ url: ogImage, source_url: r.url, source_title: r.title, origin: 'Pesquisa web' })
               }
 
               const links = (scrape.data as any).links as string[] | undefined
               if (Array.isArray(links)) {
                 for (const link of links) {
-                  if (looksLikeImage(link) && !seen.has(link)) {
+                  if (looksLikeImage(link) && !seen.has(link) && !isNoise(link, r.title)) {
                     seen.add(link)
-                    candidates.push({ url: link, source_url: r.url, source_title: r.title })
+                    candidates.push({ url: link, source_url: r.url, source_title: r.title, origin: 'Pesquisa web' })
                     if (candidates.length >= 24) break
                   }
                 }
@@ -665,6 +666,8 @@ Deno.serve(async (req) => {
         success: true,
         candidates: uniqueCandidates.slice(0, 24),
         query: searchQuery,
+        credits_consumed: creditsConsumed,
+        credits_balance: creditsBalance,
         warning:
           uniqueCandidates.length === 0 ? 'Sem imagens encontradas para esta pesquisa' : undefined,
       }),
