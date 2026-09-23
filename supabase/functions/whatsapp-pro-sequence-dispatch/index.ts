@@ -48,8 +48,7 @@ Deno.serve(async (req) => {
 
       // Window check
       const nowD = new Date();
-      // Janela em Europe/Lisbon (antes era UTC, desfasado 1h no horário de verão).
-      const hh = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Lisbon", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(nowD);
+      const hh = nowD.getUTCHours().toString().padStart(2, "0") + ":" + nowD.getUTCMinutes().toString().padStart(2, "0");
       if (seq.send_window_start && seq.send_window_end) {
         if (hh < seq.send_window_start.slice(0, 5) || hh > seq.send_window_end.slice(0, 5)) {
           // postpone 30min
