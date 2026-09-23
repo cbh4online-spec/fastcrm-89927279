@@ -61,6 +61,7 @@ export function MarketResearchPanel({
   barcode,
   currentPrice,
   costPrice,
+  vatRate = 23,
   onApplyPrice,
 }: MarketResearchPanelProps) {
   const [liveResult, setLiveResult] = useState<MarketResearchResult | null>(null);
@@ -69,6 +70,8 @@ export function MarketResearchPanel({
   const runResearch = useRunMarketResearch();
 
   const minMarginPct = getMarginStatus(currentPrice, costPrice, rules, category).minMargin || 15;
+  const toNet = (gross: number) => Math.round((gross / (1 + vatRate / 100)) * 100) / 100;
+
 
   const handleAnalyze = async () => {
     const result = await runResearch.mutateAsync({
