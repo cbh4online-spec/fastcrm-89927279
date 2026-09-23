@@ -87,24 +87,39 @@ function hostOf(url: string): string {
   }
 }
 
+type PageHit = { url: string; title?: string; excerpts: string[] };
+
+/** Termos de setor para evitar decomposição semântica do código (ex. "Side"/"Cover"). */
+const SECTOR_HINT = "loja online preço euros distribuidor";
+
+/** Constrói queries com correspondência exata obrigatória do código do artigo. */
+function buildQueries(
+  sku: string | null,
+  barcode: string | null,
+  productName: string,
+  brand: string | null
+): string[] {
+  const q: string[] = [];
+  if (sku) {
+    q.push(`"${sku}"`);
+    q.push(`"${sku}" ${SECTOR_HINT}`);
+    if (brand) q.push(`"${sku}" ${brand} comprar preço`);
+  }
+  if (barcode) q.push(`"${barcode}" preço`);
+  if (!q.length) q.push(`"${productName}" ${brand ?? ""} preço Portugal`.trim());
+  return q.slice(0, 4);
+}
+
 /** Descoberta de páginas de venda reais com o código do artigo (Parallel, modo rápido). */
 async function searchCompetitorPages(
   sku: string | null,
   barcode: string | null,
   productName: string,
   brand: string | null
-): Promise<Array<{ url: string; title?: string; excerpts: string[] }>> {
+): Promise<PageHit[]> {
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   const connectionKey = Deno.env.get("PARALLEL_API_KEY");
   if (!lovableKey || !connectionKey) return [];
-
-  const queries: string[] = [];
-  if (sku) {
-    queries.push(`${sku} preço`);
-    queries.push(brand ? `${sku} ${brand} comprar` : `${sku} comprar`);
-  }
-  if (barcode) queries.push(`${barcode} preço`);
-  if (!queries.length) queries.push(`${productName} preço Portugal`);
 
   try {
     const resp = await fetch(`${PARALLEL_GATEWAY}/v1/search`, {
@@ -117,10 +132,10 @@ async function searchCompetitorPages(
       body: JSON.stringify({
         objective:
           `Localizar páginas de lojas e distribuidores (Portugal, Espanha, UE) que vendam o artigo` +
-          (sku ? ` com a referência exata ${sku}` : ` "${productName}"`) +
+          (sku ? ` com a referência exata "${sku}"` : ` "${productName}"`) +
           (barcode ? ` ou o código de barras ${barcode}` : "") +
-          `, indicando o preço de venda em euros.`,
-        search_queries: queries.slice(0, 4),
+          `, indicando o preço de venda em euros. Ignora páginas de artigos diferentes da referência.`,
+        search_queries: buildQueries(sku, barcode, productName, brand),
         mode: "fast",
         advanced_settings: { max_results: 10 },
       }),
@@ -147,6 +162,110 @@ async function searchCompetitorPages(
     console.warn("[MARKET-RESEARCH] parallel search error", (err as Error).message);
     return [];
   }
+}
+
+/** Pesquisa complementar de retalho (Firecrawl) — cobre lojas que o motor rápido não devolve. */
+async function searchRetailPages(
+  sku: string | null,
+  barcode: string | null,
+  productName: string
+): Promise<PageHit[]> {
+  const key = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!key) return [];
+  const query = sku ? `"${sku}" preço` : barcode ? `"${barcode}" preço` : `${productName} preço`;
+
+  try {
+    const resp = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query, limit: 8 }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!resp.ok) {
+      console.warn("[MARKET-RESEARCH] firecrawl search failed", resp.status);
+      return [];
+    }
+    const data = await resp.json().catch(() => null) as any;
+    const results: any[] = data?.data ?? [];
+    return results
+      .map((r) => ({
+        url: String(r?.url ?? ""),
+        title: typeof r?.title === "string" ? r.title : undefined,
+        excerpts: [String(r?.description ?? r?.markdown ?? "").slice(0, 1200)].filter(Boolean),
+      }))
+      .filter((r) => r.url.startsWith("http") && !r.url.toLowerCase().endsWith(".pdf"));
+  } catch (err) {
+    console.warn("[MARKET-RESEARCH] firecrawl search error", (err as Error).message);
+    return [];
+  }
+}
+
+/** Lê os blocos Schema.org/JSON-LD da página e devolve o preço estruturado declarado. */
+function extractStructuredPrice(html: string): { price: number; currency: string | null } | null {
+  const blocks = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  const found: Array<{ price: number; currency: string | null }> = [];
+
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const obj = node as Record<string, unknown>;
+    const rawPrice = obj.price ?? obj.lowPrice;
+    if (rawPrice !== undefined && rawPrice !== null) {
+      const num = Number(String(rawPrice).replace(",", "."));
+      if (Number.isFinite(num) && num > 0 && num < 1_000_000) {
+        const cur = typeof obj.priceCurrency === "string" ? obj.priceCurrency : null;
+        found.push({ price: Math.round(num * 100) / 100, currency: cur });
+      }
+    }
+    for (const value of Object.values(obj)) visit(value);
+  };
+
+  for (const block of blocks) {
+    try {
+      visit(JSON.parse(block[1].trim()));
+    } catch {
+      // bloco inválido: ignorar
+    }
+  }
+
+  const euro = found.filter((f) => !f.currency || f.currency.toUpperCase() === "EUR");
+  if (!euro.length) return null;
+  euro.sort((a, b) => a.price - b.price);
+  return euro[0];
+}
+
+/** Enriquece as páginas com o preço declarado em Schema.org quando o excerto não o traz. */
+async function enrichWithStructuredPrices(pages: PageHit[]): Promise<PageHit[]> {
+  const targets = pages.slice(0, 8);
+  const enriched = await Promise.all(
+    targets.map(async (page) => {
+      const hasPrice = page.excerpts.some((e) => /(\d+[.,]\d{2}\s*€|€\s*\d+[.,]\d{2}|EUR\s*\d)/.test(e));
+      if (hasPrice) return page;
+      try {
+        const resp = await fetch(page.url, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; FastCRM/1.0)" },
+          signal: AbortSignal.timeout(12000),
+        });
+        if (!resp.ok) return page;
+        const html = (await resp.text()).slice(0, 900_000);
+        const structured = extractStructuredPrice(html);
+        if (!structured) return page;
+        return {
+          ...page,
+          excerpts: [
+            ...page.excerpts,
+            `Preço declarado nos dados estruturados desta página (Schema.org): ${structured.price.toFixed(2)} ${structured.currency ?? "EUR"}`,
+          ],
+        };
+      } catch {
+        return page;
+      }
+    })
+  );
+  return [...enriched, ...pages.slice(8)];
 }
 
 /** Débito autoritário de créditos no workspace do cliente. */
