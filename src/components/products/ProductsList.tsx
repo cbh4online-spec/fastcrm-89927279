@@ -494,6 +494,8 @@ export function ProductsList() {
               onBulkDuplicate={state.handleBulkDuplicate}
               onCompare={() => setCompareOpen(true)}
               onBulkMarketResearch={() => setBulkMarketOpen(true)}
+              filteredCount={state.totalProducts}
+              onSelectAllFiltered={state.handleSelectAllFiltered}
             />
 
 
