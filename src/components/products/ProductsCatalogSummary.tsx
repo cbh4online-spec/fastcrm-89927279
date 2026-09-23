@@ -180,7 +180,7 @@ export function ProductsCatalogSummary({
 
       {(issueChips.length > 0 || true) && (
         <div className="flex items-center gap-2 flex-wrap">
-          {productIndicators.pendingUpdate > 0 && (
+          {(productIndicators.pendingUpdate ?? 0) > 0 && (
             <button
               onClick={() => onFilterSelect("smart_pending_update")}
               aria-pressed={activeFilterId === "smart_pending_update"}
