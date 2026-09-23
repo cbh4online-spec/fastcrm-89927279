@@ -240,20 +240,19 @@ Deno.serve(async (req) => {
       const collect = (urls: string[]) => {
         for (const url of urls) {
           if (!looksLikeImage(url) || /\/templates\//i.test(url)) continue
-          // Muitas lojas só publicam miniaturas no HTML: junta a versão original
+          // Se houver versão original, a miniatura é descartada (nunca as duas)
           const fullSize = upgradeThumb(url)
-          const variants = fullSize !== url ? [fullSize, url] : [url]
-          for (const variant of variants) {
-            if (variant === url && fullSize === url && isThumbLike(url)) {
-              onlyThumbs = true
-              continue
-            }
-            if (pageSeen.has(variant)) continue
-            pageSeen.add(variant)
-            found.push({ url: variant, source_url: pageUrl!, source_title: pageTitle })
+          const chosen = fullSize !== url ? fullSize : url
+          if (chosen === url && isThumbLike(url)) {
+            onlyThumbs = true
+            continue
           }
+          if (pageSeen.has(chosen)) continue
+          pageSeen.add(chosen)
+          found.push({ url: chosen, source_url: pageUrl!, source_title: pageTitle })
         }
       }
+
 
       // 1) Leitura via Firecrawl (HTML tratado + original + ligações)
       try {
