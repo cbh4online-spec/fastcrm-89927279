@@ -66,8 +66,14 @@ export interface MarketResearchResult {
   market_avg_price?: number;
   market_min_price?: number;
   market_max_price?: number;
+  /** PVP sugerido, com IVA incluído (os preços das lojas são c/IVA) */
   suggested_price?: number;
+  /** Equivalente sem IVA, para preencher o preço base do produto */
+  suggested_price_net?: number;
+  /** Taxa de IVA usada na conversão */
+  vat_rate?: number;
   suggested_margin_pct?: number;
+
   /** true quando acompanhar o concorrente mais barato violaria a margem mínima */
   margin_blocked?: boolean;
   min_margin_pct?: number;
