@@ -49,8 +49,8 @@ import { SectionAIAssistButton } from "@/components/proposals/SectionAIAssistBut
 import { toast } from "sonner";
 import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFrequency } from "@/types/product";
 import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/product";
-import { AIProductAssistant } from "./AIProductAssistant";
-import { AICommerceAssistantPanel, type AICommerceSuggestion } from "./AICommerceAssistantPanel";
+import { AICommerceAssistantPanel, type AICommerceSuggestion, type AICommerceTechnical } from "./AICommerceAssistantPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
 import { CostInput, type CostMode, type CostBase, resolveCostAmount } from "./CostInput";
@@ -177,6 +177,15 @@ export function CreateProductDialog({
   // Location
   const [location, setLocation] = useState("");
   const [physical, setPhysical] = useState<PhysicalAttributesValue>(EMPTY_PHYSICAL);
+  // Identificação comercial e garantia (feeds, portes e ficha técnica)
+  const [brand, setBrand] = useState("");
+  const [manufacturer, setManufacturer] = useState("");
+  const [model, setModel] = useState("");
+  const [gtin, setGtin] = useState("");
+  const [mpn, setMpn] = useState("");
+  const [warrantyMonths, setWarrantyMonths] = useState("");
+  const [warrantyType, setWarrantyType] = useState("");
+  const [activeTab, setActiveTab] = useState("geral");
   // Post-creation suggestions
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string; workspace_id: string } | null>(null);
 
@@ -363,6 +372,15 @@ export function CreateProductDialog({
       setLocation((product as any).location || "");
       // Physical attributes
       setPhysical(physicalFromProduct(product as any));
+      const p = product as any;
+      setBrand(p.brand || "");
+      setManufacturer(p.manufacturer || "");
+      setModel(p.model || "");
+      setGtin(p.gtin || "");
+      setMpn(p.mpn || "");
+      setWarrantyMonths(p.warranty_months != null ? String(p.warranty_months) : "");
+      setWarrantyType(p.warranty_type || "");
+      setActiveTab("geral");
       setHasDraft(false);
     } else {
       // Try to load draft from localStorage
@@ -507,6 +525,14 @@ export function CreateProductDialog({
     // Reset post-creation suggestions
     setCreatedProduct(null);
     setAiCommerceContent(null);
+    setBrand("");
+    setManufacturer("");
+    setModel("");
+    setGtin("");
+    setMpn("");
+    setWarrantyMonths("");
+    setWarrantyType("");
+    setActiveTab("geral");
   };
 
   const handleActualSubmit = async () => {
@@ -563,6 +589,14 @@ export function CreateProductDialog({
     data.location = location || undefined;
     // Physical attributes (frascos líquidos, peso, dimensões, embalagem)
     Object.assign(data, physicalToPayload(physical));
+    // Identificação comercial e garantia
+    data.brand = brand.trim() || undefined;
+    data.manufacturer = manufacturer.trim() || undefined;
+    data.model = model.trim() || undefined;
+    data.gtin = gtin.trim() || undefined;
+    data.mpn = mpn.trim() || undefined;
+    data.warranty_months = warrantyMonths ? parseInt(warrantyMonths, 10) : undefined;
+    data.warranty_type = warrantyType || undefined;
 
     // Conteúdo estruturado do motor AI Commerce (sem preços nem stock)
     if (aiCommerceContent) {
@@ -770,6 +804,27 @@ export function CreateProductDialog({
       // Apply specs and also set as suggestions for the editor
       handleApplySpecifications(data.specifications);
     }
+  };
+
+  /** Aplica dados técnicos sugeridos pelo AI Commerce, sem sobrepor o que já está preenchido. */
+  const handleApplyTechnical = (t: AICommerceTechnical) => {
+    if (t.brand && !brand.trim()) setBrand(t.brand);
+    if (t.manufacturer && !manufacturer.trim()) setManufacturer(t.manufacturer);
+    if (t.model && !model.trim()) setModel(t.model);
+    if (t.warranty_months && !warrantyMonths) setWarrantyMonths(String(t.warranty_months));
+    if (t.warranty_type && !warrantyType) setWarrantyType(t.warranty_type);
+    const specs = t.specifications || {};
+    if (Object.keys(specs).length > 0) {
+      setSpecifications((prev) => {
+        const next = { ...prev };
+        Object.entries(specs).forEach(([k, v]) => {
+          if (!next[k]) next[k] = v;
+        });
+        return next;
+      });
+      setIsSpecsAutoFilled(true);
+    }
+    toast.success("Dados técnicos aplicados na ficha");
   };
 
   const handleApplyImages = (images: string[]) => {
