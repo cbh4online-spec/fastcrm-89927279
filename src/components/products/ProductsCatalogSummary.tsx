@@ -7,7 +7,7 @@ import {
 import {
   ChevronDown, ChevronUp, ShieldCheck, ShieldAlert,
   DollarSign, TrendingUp, Package, AlertTriangle,
-  TrendingDown, ImageOff, BarChart3,
+  TrendingDown, ImageOff, BarChart3, Clock,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
