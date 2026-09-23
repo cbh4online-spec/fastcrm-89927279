@@ -371,6 +371,13 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
 
   return (
     <div className="space-y-4">
+      {importedFromSheet > 0 && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+          {importedFromSheet} especificações vindas da ficha do produto. Confirme e
+          guarde para ficarem sincronizadas nas duas vistas.
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <Button size="sm" variant="outline" onClick={() => addSpec()}>
