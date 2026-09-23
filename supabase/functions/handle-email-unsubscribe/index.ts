@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     .maybeSingle()
 
   if (updateError) {
-    console.error('Failed to mark token as used', { error: updateError, token })
+    console.error('Failed to mark token as used', { error: updateError })
     return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
@@ -117,14 +117,40 @@ Deno.serve(async (req) => {
     )
 
   if (suppressError) {
-    console.error('Failed to suppress email', {
-      error: suppressError,
-      email: tokenRecord.email,
-    })
+    console.error('Failed to suppress email', { error: suppressError })
     return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
-  console.log('Email unsubscribed', { email: tokenRecord.email })
+  // Propagar para o SDR: parar inscrições activas com este email e registar
+  // exclusão por workspace. Só em POST (confirmado); GET nunca é destrutivo.
+  const email = tokenRecord.email.toLowerCase()
+  const { data: stopped, error: sdrErr } = await supabase
+    .from('sdr_enrollments')
+    .update({ status: 'opted_out', opted_out_at: new Date().toISOString(), next_send_at: null })
+    .ilike('prospect_email', email)
+    .in('status', ['enrolled', 'sequenced', 'paused'])
+    .select('id, workspace_id')
+  if (sdrErr) {
+    // Exclusão global já registada (suppressed_emails), que o executor verifica antes de cada envio.
+    console.error('Failed to propagate SDR opt-out', { code: sdrErr.code })
+  }
+  const byWorkspace = new Map<string, string>()
+  for (const r of stopped ?? []) if (!byWorkspace.has(r.workspace_id)) byWorkspace.set(r.workspace_id, r.id)
+  for (const [workspace_id, enrollmentId] of byWorkspace) {
+    const { error } = await supabase.from('sdr_suppressions').insert({
+      workspace_id, email, reason: 'unsubscribe_link', source_enrollment_id: enrollmentId,
+    })
+    if (error && error.code !== '23505') console.error('Failed to insert SDR suppression', { code: error.code })
+  }
+  if (stopped?.length) {
+    // Tabela da Fase 1 pode ainda não existir: erro ignorado de forma explícita.
+    await supabase.from('sdr_step_attempts')
+      .update({ status: 'cancelled', last_error: 'opted_out' })
+      .in('enrollment_id', stopped.map((r) => r.id))
+      .in('status', ['reserved', 'failed_retryable'])
+  }
+
+  console.log('Email unsubscribed', { sdr_enrollments_stopped: stopped?.length ?? 0 })
 
   return jsonResponse({ success: true })
 })
