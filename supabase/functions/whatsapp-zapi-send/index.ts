@@ -4,6 +4,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { zapiCall, safeJson, type ZapiCredentials } from '../_shared/zapi.ts';
+import { verifyWorkerRequest } from '../_shared/sdr-engine/workerAuth.ts';
 
 interface ButtonOption {
   id?: string;
@@ -59,18 +60,27 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    const supabase = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
+    const rawBody = await req.text();
+    const worker = await verifyWorkerRequest((h) => req.headers.get(h), rawBody, {
+      enabled: Deno.env.get('SDR_AUTONOMOUS_SEND_ENABLED'),
+      secret: Deno.env.get('SDR_WORKER_SECRET'),
     });
+    if (!worker.ok && worker.present) return jsonRes({ error: 'worker_unauthorized', reason: worker.reason }, 401);
 
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData?.user) {
-      console.error('[zapi-send] auth failed', userErr?.message);
-      return jsonRes({ error: 'Unauthorized', details: userErr?.message }, 401);
+    let userId: string | null = null;
+    if (!worker.ok) {
+      const supabase = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData?.user) {
+        console.error('[zapi-send] auth failed', userErr?.message);
+        return jsonRes({ error: 'Unauthorized', details: userErr?.message }, 401);
+      }
+      userId = userData.user.id;
     }
-    const userId = userData.user.id;
 
-    const body = (await req.json()) as SendBody;
+    const body = JSON.parse(rawBody) as SendBody;
     const { workspaceId, phone, groupId, conversationId, message, media, buttons, buttonHeader, buttonFooter } = body;
 
     if (!workspaceId) return jsonRes({ error: 'workspaceId required' }, 400);
@@ -81,28 +91,39 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-    // Verify workspace membership (with super_admin bypass)
-    const { data: membership } = await admin
-      .from('workspace_members')
-      .select('id')
-      .eq('workspace_id', workspaceId)
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (!membership) {
-      const { data: profile } = await admin
-        .from('profiles')
+    if (worker.ok) {
+      if (worker.workspaceId !== workspaceId || groupId) return jsonRes({ error: 'worker_payload_not_allowed' }, 403);
+    } else {
+      // Verify workspace membership (with super_admin bypass)
+      const { data: membership } = await admin
+        .from('workspace_members')
         .select('id')
+        .eq('workspace_id', workspaceId)
         .eq('user_id', userId)
         .maybeSingle();
-      let isSuperAdmin = false;
-      if (profile?.id) {
-        const { data: roles } = await admin
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', profile.id);
-        isSuperAdmin = (roles ?? []).some((r: { role: string }) => r.role === 'super_admin');
+      if (!membership) {
+        const { data: profile } = await admin
+          .from('profiles')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+        let isSuperAdmin = false;
+        if (profile?.id) {
+          const { data: roles } = await admin
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', profile.id);
+          isSuperAdmin = (roles ?? []).some((r: { role: string }) => r.role === 'super_admin');
+        }
+        if (!isSuperAdmin) return jsonRes({ error: 'Not a member of this workspace' }, 403);
       }
-      if (!isSuperAdmin) return jsonRes({ error: 'Not a member of this workspace' }, 403);
+    }
+
+    // Conversa indicada tem de pertencer ao workspace (evita escrita cruzada na Inbox).
+    if (conversationId) {
+      const { data: ownConv } = await admin.from('conversations').select('id')
+        .eq('id', conversationId).eq('workspace_id', workspaceId).maybeSingle();
+      if (!ownConv) return jsonRes({ error: 'conversation_not_in_workspace' }, 403);
     }
 
 
@@ -307,6 +328,7 @@ Deno.serve(async (req) => {
         content: messagePreview,
         attachments,
         sender_id: userId,
+        metadata: worker.ok ? { source: 'sdr_worker' } : undefined,
         sent_at: now,
         external_message_id: externalMessageId,
       });
