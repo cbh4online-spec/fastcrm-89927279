@@ -324,9 +324,11 @@ export function ProductImageWebSearchDialog({
           {!searching && candidates.length > 0 && (
             <>
               <p className="text-xs text-muted-foreground mb-2">
-                {candidates.length} imagens encontradas. Selecciona até{" "}
+                {candidates.filter((c) => !failedThumbs.has(c.url)).length} imagens encontradas
+                (sem repetidas nem miniaturas). Selecciona até{" "}
                 <strong>{remainingSlots}</strong>.
               </p>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {candidates
                   .filter((c) => !failedThumbs.has(c.url))
