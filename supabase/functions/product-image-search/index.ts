@@ -458,15 +458,19 @@ Deno.serve(async (req) => {
       }
     }
 
+    const uniqueCandidates = dedupeByQuality(candidates)
+
     return new Response(
       JSON.stringify({
         success: true,
-        candidates: candidates.slice(0, 24),
+        candidates: uniqueCandidates.slice(0, 24),
         query: searchQuery,
-        warning: candidates.length === 0 ? 'Sem imagens encontradas para esta pesquisa' : undefined,
+        warning:
+          uniqueCandidates.length === 0 ? 'Sem imagens encontradas para esta pesquisa' : undefined,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
+
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('[product-image-search] error:', msg)
