@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Package, Plus, Trash2, Percent, DollarSign, ToggleLeft, ToggleRight } from "lucide-react";
+import { Package, Plus, Trash2, Percent, DollarSign, ToggleLeft, ToggleRight, Sparkles } from "lucide-react";
+import { AICommerceBundleSuggestions } from "@/components/products/AICommerceBundleSuggestions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
