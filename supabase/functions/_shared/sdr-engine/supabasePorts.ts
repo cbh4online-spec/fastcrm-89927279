@@ -106,7 +106,8 @@ export function createSupabasePorts(admin: any, env: PortsEnv): SdrPorts {
         if (error) return deny("eligibility_check_error", false);
         if (!l) return deny("lead_not_in_workspace");
         if (l.is_blocked || l.archived_at) return deny("contact_blocked");
-        if (l.automation_active === false) return deny("automation_paused");
+        // Automação desligada é uma pausa temporária: adia sem bloquear a inscrição.
+        if (l.automation_active === false) return deny("automation_paused", false);
       }
       if (e.contact_id) {
         const { data: k, error } = await admin.from("contacts").select("id, is_blocked, archived_at, deleted_at, automation_active")
@@ -114,7 +115,7 @@ export function createSupabasePorts(admin: any, env: PortsEnv): SdrPorts {
         if (error) return deny("eligibility_check_error", false);
         if (!k) return deny("contact_not_in_workspace");
         if (k.is_blocked || k.archived_at || k.deleted_at) return deny("contact_blocked");
-        if (k.automation_active === false) return deny("automation_paused");
+        if (k.automation_active === false) return deny("automation_paused", false);
       }
       if (channel === "whatsapp") {
         const phone = normalizePhone(e.prospect_phone);
@@ -235,6 +236,14 @@ export function createSupabasePorts(admin: any, env: PortsEnv): SdrPorts {
         .eq("id", attemptId).eq("status", "reserved").select("id");
       if (error) throw error;
       if (!data?.length) throw new Error("sdr_release_attempt_not_applied");
+    },
+
+    async suspendAttempt(attemptId, reason, nextRetryAt) {
+      const { data, error } = await admin.rpc("sdr_suspend_attempt", {
+        p_attempt_id: attemptId, p_reason: reason, p_next_retry_at: nextRetryAt,
+      });
+      if (error) throw error;
+      if (data !== true) throw new Error("sdr_suspend_attempt_not_applied");
     },
 
     async finishAttempt(attemptId, from, patch) {
