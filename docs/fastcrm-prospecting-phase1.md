@@ -113,3 +113,11 @@ bunx tsgo --noEmit -p tsconfig.app.json → sem erros
 - Aceite apenas `Authorization: Bearer <service role>` (comparação em tempo constante) — o caminho do cron interno. Se vier assinatura worker, tem de ser válida.
 - Recusas: sem cabeçalho/mal formado/servidor sem chave → 401; JWT de utilizador ou anon key → 403; assinatura inválida, expirada ou com modo worker desligado → 401.
 - Testes: `src/test/sdr/sdr-wa-dispatch-auth.test.ts` (11), incluindo verificação da ordem no handler. A via autónoma continua bloqueada (`PHASE1_WA_SEQUENCE_AUTONOMOUS_BLOCKED`). Nenhum deploy, flag, cron ou envio foi feito.
+
+## Interrupções temporárias e retoma (revisão de 5a1b96b)
+
+- Pausa da campanha, da inscrição ou da sequência, flag global desligada, autonomia desligada, automação do contacto desligada, snooze/reunião e pausa em `whatsapp_throttle_settings` são **temporárias**: a tentativa fica `reserved` sem lease (`sdr_suspend_attempt`), a reserva de quota não consumida é libertada e o motivo fica em `last_error` (`suspended:…`). Ao retomar, a mesma etapa é reclamada e enviada uma única vez.
+- Resposta, exclusão/opt-out, bloqueio do contacto, falta de consentimento e mudança de etapa continuam a **cancelar** a tentativa; tentativas `accepted`, `ambiguous` ou `cancelled` nunca são reabertas.
+- Recusas temporárias de `sdr_begin_dispatch`: `campaign_inactive`, `campaign_autonomous_disabled`, `sequence_inactive`, `step_inactive`, `enrollment_paused`, `automation_paused`, `whatsapp_throttle_paused`, `quota_reservation_missing`.
+- WhatsApp: o preflight volta a resolver a rota (pausa/conta do throttle) e `sdr_begin_dispatch` consulta `whatsapp_throttle_settings` na transação final.
+- Testes: `src/test/sdr/sdr-pause-resume.test.ts` (pausa → 0 envios → retoma → 1 envio, 8 execuções concorrentes → 1 envio) e `assertions_review.sql` (throttle em pausa, suspensão, retoma). Nada aplicado em produção.
