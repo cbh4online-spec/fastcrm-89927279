@@ -563,7 +563,7 @@ export function ProductsDataTable({
                                   key={colId}
                                   data-col-id={colId}
                                   className="flex items-center px-4 text-sm flex-shrink-0 min-w-0"
-                                  style={{ width: w, maxWidth: w }}
+                                  style={{ width: w, minWidth: w, maxWidth: w }}
                                   title={tooltipText || undefined}
                                 >
                                   <div className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap [&>*]:max-w-full [&>*]:truncate">
