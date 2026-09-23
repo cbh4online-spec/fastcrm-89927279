@@ -60,36 +60,43 @@ O envio manual (Inbox) continua com `getUser` + pertença ao workspace. Sem cabe
 | B02 | Corrigido | inscrição única; 1.ª data calculada; dedupe `uq_sdr_enrollments_campaign_identity` |
 | B03 | Corrigido | contrato `workspaceId/connectionId/conversationId/body/isHtml`; remetente explícito da campanha; conversa do mesmo workspace |
 | B04 | Parcial | WhatsApp usa `whatsapp_template` como texto via WhatsApp Pro (instância explícita, Inbox via `whatsapp-zapi-send`). **Envio SDR via GHL continua pendente** (bloqueado de forma explícita) |
-| B05 | Corrigido | `whatsapp-pro-sequence-dispatch` → `workspaceId/messageType`, worker assinado até `whatsapp-zapi-send`; resposta 200+erro deixa de contar como enviado |
-| B06 | Corrigido (código) | `reply_detected_at`; trigger `trg_sdr_stop_on_inbound` (na migração pendente) + verificação pré-envio. `stop_wa_sequences_on_reply` **não** foi ligado |
-| B07 | Corrigido | link `/unsubscribe?token=` (sem email/IDs no URL); POST propaga a `sdr_enrollments`, `sdr_suppressions`, tentativas |
-| B08 | Corrigido | revalidação antes da tentativa; falhas não avançam; placeholders removidos |
-| B09 | Corrigido | claim atómico + lease; backfill não apaga duplicados (marca `metadata.sdr_duplicate_of`) |
-| B10 | Corrigido | todos os acessos por ID filtram `workspace_id`; RPCs validam pertença; conversas verificadas em `email-send`/`whatsapp-zapi-send` |
+| B05 | Corrigido / via autónoma bloqueada | contrato `workspaceId/messageType` corrigido, mas `whatsapp-pro-sequence-dispatch` fica **bloqueado explicitamente** na Fase 1 (`PHASE1_WA_SEQUENCE_AUTONOMOUS_BLOCKED`): não reserva a quota partilhada nem tem opt-in por espaço/sequência; a flag SDR não o activa |
+| B06 | Corrigido (código) | `reply_detected_at`; trigger `trg_sdr_stop_on_inbound` (migração pendente) + verificação antes da reserva, depois da reserva e em `sdr_begin_dispatch`. `stop_wa_sequences_on_reply` **não** foi ligado |
+| B07 | Corrigido | link `/unsubscribe?token=`; `email_process_unsubscribe` atómico (supressão antes de consumir o token; falha parcial mantém o token válido — testado em SQL) |
+| B08 | Corrigido (comprovado) | revalidação em três pontos: (1) antes do claim; (2) `preflight` depois da reserva — flag global relida, inscrição/etapa, campanha activa+autónoma, sequência activa e etapa igual, resposta, exclusão, elegibilidade; (3) `sdr_begin_dispatch` na mesma transacção que bloqueia a inscrição e consome a reserva. Sequência pausada não executa nem termina a inscrição. Regressões: `sdr-review-regressions.test.ts` §1–2 e `assertions_review.sql` |
+| B09 | Corrigido (comprovado) | claim atómico + lease (8 → 1 em Postgres real); recibo único por (tentativa, despacho, transporte) — 8 consumos paralelos do mesmo pedido → 1 ok / 7 `replay` |
+| B10 | Corrigido | acessos por ID filtram `workspace_id`; RPCs e recibos validam workspace, canal, campanha, destinatário; lead/contacto/conversa verificados contra o workspace |
+
+## Controlos revistos (revisão independente de 4f7e6b6)
+
+- **Janela de envio**: `parseWindow` valida `HH:mm` (00–23/00–59), dias 0–6 não vazios, fuso IANA e início < fim. Configuração ausente → janela por defeito explícita; configuração presente inválida → `config_invalid` sem envio e sem alterar a inscrição. `nextAllowedAt` devolve `null` em vez de um instante fora da janela. Testado: `25:00`, `09:99`, `9:00`, fuso inválido, mudanças de hora de 29/03 e 25/10/2026.
+- **Logs**: nunca se insere `sequence_step_id = null` (bloqueios sem etapa ficam só em `failure_reason`). Erros de insert lançam; o executor reporta-os em `warnings` em vez de os ignorar. `finishAttempt` usa `sdr_finish_attempt` com transição verificada e lança se não aplicar; `releaseAttempt` idem. A aceitação tem de ser persistida **antes** de avançar; se falhar, a tentativa fica `dispatching` → ambígua → nunca reenviada.
+- **Quota**: reserva por (tentativa, número de despacho). Reserva de outro dia não consumida é libertada e revalidada contra a quota de hoje; despacho consumido nunca é reutilizado; `sdr_begin_dispatch` exige reserva de hoje. Envios rejeitados continuam a contar (nunca aumenta limites). Relógio real após o lock (`clock_timestamp`) — corrigido um defeito real encontrado pelo teste de concorrência (com `now()` o intervalo mínimo recusava reservas legítimas). WhatsApp: limite efectivo = mín(`max_per_day`, aquecimento); pausa respeitada; limites nulos → `quota_not_configured`.
+- **Fronteira de envio**: a assinatura HMAC só prova origem (120 s, replayable por si só). `email-send`, `whatsapp-pro-send` e `whatsapp-zapi-send` em modo worker exigem `sdr {attemptId, dispatchNo}` e chamam `sdr_consume_transport_token`, que verifica workspace, canal, destinatário, estado `dispatching`, número do despacho e elegibilidade, e grava recibo único por transporte. Modo worker só texto 1:1 (sem media/botões/grupos). Envio manual inalterado.
+- **WhatsApp SDR**: consentimento `granted`, não revogado, categoria `marketing`/`all` (`whatsapp_consents`); lead/contacto `is_blocked`, `archived_at`, `deleted_at`, `automation_active=false`; guardas antigas reutilizadas (`_shared/whatsapp-stop-guards.ts`: opt-out, resposta, `stop_contact`, snooze, reunião, lead perdida) — no adaptador e de novo em SQL no ponto transaccional.
+- **Esquema**: colunas de `leads`, `contacts`, `professional_prospecting_profiles`, `multichannel_sequences`, `whatsapp_consents`, `whatsapp_throttle_settings` confirmadas por SELECT a `information_schema` e fixadas num teste de contrato.
 
 ## Limitações conhecidas
 
-- Quota partilhada cobre envios SDR (email e WA). As sequências **WhatsApp Pro** (`whatsapp_sequence_enrollments`) e campanhas WA ainda não reservam na mesma tabela; a janela dessas sequências continua em UTC para não alterar outros clientes.
-- Retentativas reutilizam a reserva da primeira tentativa (não consomem quota nova); o backoff ≥15 min é maior que o intervalo mínimo.
-- Assinatura worker válida 120 s (sem registo de nonces); a idempotência por tentativa protege contra duplicados.
-- `sdr-message-generator` (personalização IA) não é chamado na Fase 1 — o conteúdo configurado é enviado tal como está, com variáveis `{{name}}`, `{{first_name}}`, `{{email}}`, `{{phone}}`; variáveis por resolver bloqueiam.
-- Estado `delivered` não é alimentado (sem callbacks de entrega ligados ao SDR).
-- A auto-inscrição é disparada pelo utilizador (`auto_enroll_scan`); não existe cron novo.
-- O teste `credit-rpc-isolation` já falhava antes desta fase (ficheiro não relacionado).
+- Janela residual inevitável entre o commit de `sdr_begin_dispatch`/recibo e a chamada ao fornecedor (milissegundos); uma pausa nesse intervalo já não impede esse envio.
+- Quota WA do SDR não conta envios manuais nem campanhas WA fora do SDR; as sequências WhatsApp Pro autónomas estão bloqueadas até partilharem a mesma reserva.
+- `error_pause_threshold` do throttle WA não é avaliado pelo SDR (só `paused`).
+- Email: não é exigido consentimento explícito (base legal B2B segue `outreach-guards`); exclusões e bloqueios são respeitados.
+- `sdr-message-generator` não é chamado; `delivered` não é alimentado; envio via GHL bloqueado.
+- `credit-rpc-isolation` já falhava antes desta fase.
 
 ## Validação executada
 
 ```text
-bunx vitest run src/test/sdr                       → 2 ficheiros, 36 testes OK (transportes simulados, sem rede)
-bash supabase/pending-migrations/tests/run_local_pg_test.sh (Postgres local descartável, utilizador sem privilégios)
-                                                   → assertions OK; reaplicação idempotente;
-                                                     10 reservas concorrentes → 3 aceites (máx 3);
-                                                     8 claims concorrentes → 1 aceite
-deno check <7 funções alteradas>                   → sem erros
-bunx tsgo --noEmit -p tsconfig.app.json            → sem erros
+bunx vitest run src/test/sdr     → 3 ficheiros, 84 testes OK (executor, schedule e supabasePorts reais; sem rede)
+setpriv --reuid=65534 bash supabase/pending-migrations/tests/run_local_pg_test.sh (Postgres local descartável)
+                                 → assertions OK + review assertions OK; reaplicação idempotente;
+                                   10 reservas concorrentes → 3 (máx 3); 8 claims → 1;
+                                   8 consumos do mesmo pedido assinado → 1 ok / 7 replay
+deno check (sdr-sequence-executor, sdr-orchestrator, email-send, whatsapp-pro-send,
+            whatsapp-zapi-send, whatsapp-pro-sequence-dispatch) → sem erros
+bunx tsgo --noEmit -p tsconfig.app.json → sem erros
 ```
-
-Cobertura: caminho feliz email/WA, 1.ª data (verão/inverno, fim-de-semana), filtros/elegibilidade, duplicação e concorrência, pausa (inscrição e campanha), falha+retry limitado, timeout ambíguo, excepção, canal não suportado, GHL, resposta, exclusão/token, quota partilhada entre campanhas, isolamento de workspace, envios desligados por defeito, contrato worker (assinatura, corpo alterado, expiração, modo desligado). Os testes do executor usam portas em memória; a semântica atómica foi validada à parte em Postgres real.
 
 ## Passos futuros de activação (NÃO executados)
 
