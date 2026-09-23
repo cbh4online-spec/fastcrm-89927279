@@ -83,6 +83,12 @@ export interface SdrPorts {
   beginDispatch(attemptId: string, accountKey: string, expectedStep: number): Promise<string>;
   /** Lança erro se não persistir. */
   releaseAttempt(attemptId: string, patch: { next_retry_at?: string | null }): Promise<void>;
+  /**
+   * Interrupção temporária (pausa, flag desligada, snooze…): a tentativa continua 'reserved'
+   * sem lease, a reserva de quota NÃO consumida é libertada e o motivo fica em last_error.
+   * Permite retomar a mesma etapa. Lança erro se não persistir.
+   */
+  suspendAttempt(attemptId: string, reason: string, nextRetryAt: string | null): Promise<void>;
   /** Transição verificada a partir de `from`; lança erro se não persistir. */
   finishAttempt(attemptId: string, from: string[], patch: { status: string; provider_message_id?: string | null; last_error?: string | null; next_retry_at?: string | null }): Promise<void>;
   unsubscribeUrl(e: EnrollmentRow): Promise<string | null>;
@@ -231,8 +237,15 @@ export async function runEnrollmentStep(p: SdrPorts, workspaceId: string, enroll
   }
 
   // Revalidação completa imediatamente antes do transporte (a reserva pode ter demorado).
-  const pre = await preflight(p, workspaceId, e.id, c.id, c.sequence_id, idx, step.id, content.channel);
+  const pre = await preflight(p, workspaceId, e.id, c.id, c.sequence_id, idx, step.id, content.channel, route.accountKey);
   if (pre) {
+    if (pre.temporary) {
+      // Pausa/flag/snooze: liberta a quota não consumida e mantém a etapa retomável.
+      const retryAt = pre.retryAt ? nextAllowedAt(new Date(pre.retryAt), window) : null;
+      await p.suspendAttempt(claim.attemptId, `preflight:${pre.reason}`, retryAt?.toISOString() ?? null);
+      if (retryAt) await p.updateEnrollment(workspaceId, e.id, { next_send_at: retryAt.toISOString() }, ACTIVE);
+      return r(pre.outcome, pre.reason);
+    }
     await p.finishAttempt(claim.attemptId, ["reserved"], { status: "cancelled", last_error: `preflight:${pre.reason}` });
     if (pre.outcome === "replied") {
       await p.updateEnrollment(workspaceId, e.id, { status: "replied", reply_detected_at: now.toISOString(), next_send_at: null }, ACTIVE);
@@ -258,8 +271,14 @@ export async function runEnrollmentStep(p: SdrPorts, workspaceId: string, enroll
   const begin = await p.beginDispatch(claim.attemptId, route.accountKey, idx);
   if (begin !== "ok") {
     if (begin === "lease_lost") return r("busy", "lease_lost");
+    if (TEMPORARY_BEGIN_REFUSALS.has(begin)) {
+      const delayed = DELAYED_BEGIN_REFUSALS.has(begin) ? nextAllowedAt(new Date(now.getTime() + 3600_000), window) : null;
+      await p.suspendAttempt(claim.attemptId, `begin_dispatch:${begin}`, delayed?.toISOString() ?? null);
+      if (delayed) await p.updateEnrollment(workspaceId, e.id, { next_send_at: delayed.toISOString() }, ACTIVE);
+      return r(beginOutcome(begin), begin);
+    }
     await p.finishAttempt(claim.attemptId, ["reserved"], { status: "cancelled", last_error: `begin_dispatch:${begin}` });
-    return r(begin === "campaign_inactive" ? "campaign_inactive" : begin === "sequence_inactive" ? "sequence_inactive" : "not_active", begin);
+    return r(beginOutcome(begin), begin);
   }
 
   let res: TransportResult;
