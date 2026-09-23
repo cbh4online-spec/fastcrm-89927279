@@ -16,11 +16,14 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 
 interface Candidate {
   url: string;
   source_url: string;
   source_title?: string;
+  origin?: string;
 }
 
 const MIN_IMAGE_PX = 200;
