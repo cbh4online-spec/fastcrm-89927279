@@ -546,7 +546,7 @@ export function ProductsDataTable({
                               left: 0,
                               width: totalWidth,
                               minWidth: "100%",
-                              transform: `translateY(${virtualRow.start}px)`,
+                              transform: `translateY(${virtualRow.start - HEADER_HEIGHT}px)`,
                               height: ROW_HEIGHT,
                               isolation: "isolate",
                             }}
@@ -617,9 +617,9 @@ export function ProductsDataTable({
                     </div>
                   </div>
                 </>
-              );
-            })()}
-          </div>
+              </div>
+            );
+          })()}
 
           {/* Row count footer */}
           <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground">
