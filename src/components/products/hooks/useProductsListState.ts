@@ -528,8 +528,14 @@ export function useProductsListState() {
     setSearchValue("");
   }, []);
 
+  // Seleciona os artigos visíveis na página atual
   const handleSelectAll = useCallback((checked: boolean) => {
-    setSelectedIds(checked ? filteredProducts.map((p) => p.id) : []);
+    setSelectedIds(checked ? paginatedProducts.map((p) => p.id) : []);
+  }, [paginatedProducts]);
+
+  // Seleciona todos os artigos que correspondem aos filtros ativos
+  const handleSelectAllFiltered = useCallback(() => {
+    setSelectedIds(filteredProducts.map((p) => p.id));
   }, [filteredProducts]);
 
 

@@ -498,7 +498,7 @@ export function ProductsList() {
 
 
             <ProductsDataTable
-              products={state.filteredProducts}
+              products={state.paginatedProducts}
               isLoading={state.isLoading}
               selectedIds={state.selectedIds}
               onSelectAll={state.handleSelectAll}
@@ -521,6 +521,15 @@ export function ProductsList() {
               onClearFilters={state.handleClearFilters}
               pricingRules={pricingRules}
               productTypesConfig={state.productTypesConfig}
+            />
+
+            <ProductsPagination
+              currentPage={state.currentPage}
+              totalPages={state.totalPages}
+              pageSize={state.pageSize}
+              totalItems={state.totalProducts}
+              onPageChange={state.setCurrentPage}
+              onPageSizeChange={state.setPageSize}
             />
           </>
         )}
