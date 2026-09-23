@@ -79,6 +79,7 @@ export function ProductImageWebSearchDialog({
   onPicked,
 }: Props) {
   const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState(defaultQuery);
   const [searching, setSearching] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
