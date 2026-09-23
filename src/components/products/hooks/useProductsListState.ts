@@ -465,7 +465,7 @@ export function useProductsListState() {
 
   // --- Product health indicators ---
   const productIndicators = useMemo(() => {
-    if (!products) return { total: 0, noPrice: 0, noCost: 0, negativeMargin: 0, lowMargin: 0, noImage: 0 };
+    if (!products) return { total: 0, noPrice: 0, noCost: 0, negativeMargin: 0, lowMargin: 0, noImage: 0, pendingUpdate: 0 };
     const noPrice = products.filter(p => !p.base_price || p.base_price === 0).length;
     const noCost = products.filter(p => !p.direct_cost || p.direct_cost === 0).length;
     const negativeMargin = products.filter(p => p.direct_cost && p.direct_cost > p.base_price).length;
@@ -480,8 +480,10 @@ export function useProductsListState() {
       return Array.isArray(rel) && rel.length > 0;
     };
     const noImage = products.filter(p => !hasAnyImage(p)).length;
-    return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage };
-  }, [products]);
+    const pendingUpdate = products.filter(isPendingUpdate).length;
+    return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage, pendingUpdate };
+  }, [products, isPendingUpdate]);
+
 
   const filtersActive = statusFilter !== "active" || typeFilter !== "all" || categoryFilter !== "all" || billingFilter !== "all" || storePublishedFilter !== undefined || !!activeFilterId;
 
