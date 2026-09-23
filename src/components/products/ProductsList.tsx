@@ -53,7 +53,9 @@ import { StockAlertsManager } from "./StockAlertsManager";
 import { ProductReportsTab } from "./ProductReportsTab";
 import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
 import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
+import { BulkMarketPricingDialog } from "./pricing/BulkMarketPricingDialog";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
+
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useCanViewCostMargin, COST_MARGIN_FIELDS } from "@/hooks/useCanViewCostMargin";
 import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
@@ -69,6 +71,8 @@ export function ProductsList() {
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
+  const [bulkMarketOpen, setBulkMarketOpen] = useState(false);
+
   const isMobile = useIsMobile();
   const canViewCostMargin = useCanViewCostMargin();
 
@@ -488,7 +492,9 @@ export function ProductsList() {
               onBulkPublish={state.handleBulkPublish}
               onBulkDuplicate={state.handleBulkDuplicate}
               onCompare={() => setCompareOpen(true)}
+              onBulkMarketResearch={() => setBulkMarketOpen(true)}
             />
+
 
             <ProductsDataTable
               products={state.filteredProducts}
@@ -563,6 +569,16 @@ export function ProductsList() {
         getProductTypeLabel={state.getProductTypeLabel}
         getBillingTypeLabel={state.getBillingTypeLabel}
       />
+
+      <BulkMarketPricingDialog
+        open={bulkMarketOpen}
+        onOpenChange={setBulkMarketOpen}
+        workspaceId={state.currentWorkspace?.id}
+        products={(state.filteredProducts || []).filter((p) => state.selectedIds.includes(p.id))}
+        onComplete={() => state.setSelectedIds([])}
+      />
+
+
 
       <AlertDialog
         open={!!state.deleteConfirmProduct}

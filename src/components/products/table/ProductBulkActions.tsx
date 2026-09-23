@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown, ArrowUpDown } from "lucide-react";
+import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown, ArrowUpDown, Search } from "lucide-react";
 import { BulkCostDialog } from "../BulkCostDialog";
 
 interface ProductBulkActionsProps {
@@ -31,7 +31,9 @@ interface ProductBulkActionsProps {
   onBulkPublish?: (published: boolean) => void;
   onBulkDuplicate?: () => void;
   onCompare?: () => void;
+  onBulkMarketResearch?: () => void;
 }
+
 
 export function ProductBulkActions({
   selectedIds,
@@ -46,8 +48,10 @@ export function ProductBulkActions({
   onBulkPublish,
   onBulkDuplicate,
   onCompare,
+  onBulkMarketResearch,
 }: ProductBulkActionsProps) {
   if (selectedIds.length === 0) return null;
+
 
   return (
     <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
@@ -65,6 +69,14 @@ export function ProductBulkActions({
       <Button variant="outline" size="sm" onClick={onBulkExport} className="gap-2">
         <Download className="h-4 w-4" /> Exportar
       </Button>
+
+      {onBulkMarketResearch && (
+        <Button variant="outline" size="sm" onClick={onBulkMarketResearch} className="gap-2">
+          <Search className="h-4 w-4" /> Analisar mercado
+        </Button>
+      )}
+
+
 
       <Button variant="outline" size="sm" onClick={() => setBulkCostOpen(true)} className="gap-2">
         <DollarSign className="h-4 w-4" /> Definir Custo
