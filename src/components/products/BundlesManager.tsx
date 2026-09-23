@@ -20,6 +20,7 @@ export function BundlesManager() {
   const deleteBundle = useDeleteBundle();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<string | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", discount_type: "percentage", discount_value: 0 });
 
   const handleCreate = () => {
