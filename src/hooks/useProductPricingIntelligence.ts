@@ -49,18 +49,35 @@ export interface MarketResearch {
   model_used: string | null;
 }
 
+export interface MarketCompetitor {
+  name: string;
+  price: number;
+  url?: string;
+  vat_included?: boolean | null;
+  collected_at?: string;
+}
+
 export interface MarketResearchResult {
   success: boolean;
+  /** true apenas quando existem preços reais extraídos de fontes verificáveis */
+  grounded?: boolean;
   market_avg_price?: number;
   market_min_price?: number;
   market_max_price?: number;
   suggested_price?: number;
   suggested_margin_pct?: number;
-  competitors?: Array<{ name: string; price: number; url?: string }>;
+  /** true quando acompanhar o concorrente mais barato violaria a margem mínima */
+  margin_blocked?: boolean;
+  min_margin_pct?: number;
+  competitors?: MarketCompetitor[];
+  sources?: string[];
   market_summary?: string;
   price_position?: "below_market" | "at_market" | "above_market";
+  credits_consumed?: number;
+  credits_balance?: number;
   error?: string;
 }
+
 
 // ---- Pricing Rules ----
 
