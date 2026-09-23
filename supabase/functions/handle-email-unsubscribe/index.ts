@@ -89,32 +89,26 @@ Deno.serve(async (req) => {
     return jsonResponse({ valid: true })
   }
 
-  // POST: Process the unsubscribe
-  // Atomic check-and-update to avoid TOCTOU race
-  const { data: updated, error: updateError } = await supabase
-    .from('email_unsubscribe_tokens')
-    .update({ used_at: new Date().toISOString() })
-    .eq('token', token)
-    .is('used_at', null)
-    .select()
-    .maybeSingle()
-
-  if (updateError) {
-    console.error('Failed to mark token as used', { error: updateError })
-    return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
+  // POST: processar a exclusão.
+  // Caminho preferido (Fase 1): RPC atómica — supressão gravada antes do consumo
+  // do token, tudo na mesma transação. Uma falha parcial faz rollback e o token
+  // continua válido, logo nunca se consome o token sem excluir o endereço.
+  const rpc = await supabase.rpc('email_process_unsubscribe', { p_token: token })
+  if (!rpc.error) {
+    const res = (rpc.data ?? {}) as { found?: boolean; already?: boolean; enrollments_stopped?: number }
+    if (!res.found) return jsonResponse({ error: 'Invalid or expired token' }, 404)
+    console.log('Email unsubscribed', { sdr_enrollments_stopped: res.enrollments_stopped ?? 0 })
+    if (res.already) return jsonResponse({ success: false, reason: 'already_unsubscribed' })
+    return jsonResponse({ success: true })
   }
 
-  if (!updated) {
-    return jsonResponse({ success: false, reason: 'already_unsubscribed' })
-  }
+  // Fallback enquanto a migração da Fase 1 não estiver aplicada (função inexistente).
+  // Ordem obrigatória: suprimir primeiro (idempotente), só depois consumir o token.
+  const email = String(tokenRecord.email).toLowerCase()
 
-  // Add email to suppressed list (upsert to handle duplicates)
   const { error: suppressError } = await supabase
     .from('suppressed_emails')
-    .upsert(
-      { email: tokenRecord.email.toLowerCase(), reason: 'unsubscribe' },
-      { onConflict: 'email' },
-    )
+    .upsert({ email, reason: 'unsubscribe' }, { onConflict: 'email' })
 
   if (suppressError) {
     console.error('Failed to suppress email', { error: suppressError })
@@ -123,7 +117,6 @@ Deno.serve(async (req) => {
 
   // Propagar para o SDR: parar inscrições activas com este email e registar
   // exclusão por workspace. Só em POST (confirmado); GET nunca é destrutivo.
-  const email = tokenRecord.email.toLowerCase()
   const { data: stopped, error: sdrErr } = await supabase
     .from('sdr_enrollments')
     .update({ status: 'opted_out', opted_out_at: new Date().toISOString(), next_send_at: null })
@@ -150,7 +143,23 @@ Deno.serve(async (req) => {
       .in('status', ['reserved', 'failed_retryable'])
   }
 
-  console.log('Email unsubscribed', { sdr_enrollments_stopped: stopped?.length ?? 0 })
+  // Token consumido em último lugar: se algo acima falhar, continua válido.
+  const { data: updated, error: updateError } = await supabase
+    .from('email_unsubscribe_tokens')
+    .update({ used_at: new Date().toISOString() })
+    .eq('token', token)
+    .is('used_at', null)
+    .select('id')
+    .maybeSingle()
 
+  if (updateError) {
+    console.error('Failed to mark token as used', { error: updateError })
+    return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
+  }
+
+  console.log('Email unsubscribed', { sdr_enrollments_stopped: stopped?.length ?? 0, token_consumed: !!updated })
+
+  if (!updated) return jsonResponse({ success: false, reason: 'already_unsubscribed' })
   return jsonResponse({ success: true })
 })
+

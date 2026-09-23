@@ -43,6 +43,15 @@ O envio manual (Inbox) continua com `getUser` + pertença ao workspace. Sem cabe
 - Timeout, sem resposta ou 5xx → `ambiguous`: inscrição `blocked` para revisão; nunca reenviado automaticamente, mesmo que reactivada.
 - Canal não suportado (tudo excepto email/WhatsApp Pro) ou WhatsApp via GHL → `blocked` explícito.
 
+## Compatibilização confirmada no esquema real (Fase 1, ainda não aplicada)
+
+- **`sdr_enrollments_status_check`**: em produção admite apenas `enrolled, enriching, sequenced, replied, positive_reply, meeting_set, converted, opted_out, failed`. `paused`, `completed` e `blocked` — usados pelo motor — **são hoje inválidos**. A migração pendente substitui o CHECK por um superconjunto estrito (bloco `DO` que só actua se faltarem estados e aborta se existir algum estado fora do superconjunto). Até ser aplicada, `detectPhase1Schema` devolve `schema_not_ready` e o executor não escreve nenhum destes estados.
+- **`sdr_sequence_step_logs.sequence_step_id` é NOT NULL**: nunca são inseridos registos sem etapa válida. Bloqueios e supressões anteriores à resolução da etapa ficam apenas no estado/`failure_reason` da inscrição e num aviso de log estruturado (`supabasePorts.log` ignora `stepId` nulo). A coluna **não** é tornada anulável.
+- **`email_unsubscribe_tokens` só tem `id, token, email, created_at, used_at`** — sem `workspace_id`. O workspace é derivado das inscrições SDR com esse email. Como a tabela não tem unicidade por email, a geração do link usa sempre o token mais recente ainda não usado.
+- **Atomicidade da exclusão**: nova RPC `email_process_unsubscribe(p_token)` (service_role) faz tudo numa transação e **grava a supressão antes de consumir o token**; qualquer falha parcial faz rollback e o token continua válido. `handle-email-unsubscribe` chama a RPC; enquanto a migração não estiver aplicada usa o caminho alternativo com a mesma ordem (suprimir → propagar → marcar token usado), pelo que nunca se consome o token sem excluir o endereço.
+
+
+
 ## Resultado por ponto
 
 | # | Estado | Nota |

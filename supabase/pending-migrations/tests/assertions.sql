@@ -78,8 +78,58 @@ BEGIN
   ASSERT (SELECT status FROM public.sdr_enrollments WHERE id = e3) = 'opted_out';
   ASSERT EXISTS (SELECT 1 FROM public.sdr_suppressions WHERE workspace_id = wb AND email = 'ana@x.pt');
 
+  -- Estados: superconjunto aplicado, nenhum estado antigo perdido
+  ASSERT (SELECT bool_and(s = ANY (ARRAY['enrolled','enriching','sequenced','paused','replied','positive_reply',
+            'meeting_set','converted','opted_out','failed','completed','blocked']))
+          FROM (VALUES ('completed'),('blocked'),('paused'),('enriching')) v(s));
+  UPDATE public.sdr_enrollments SET status = 'completed' WHERE id = '00000000-0000-0000-0000-0000000000e2';
+  UPDATE public.sdr_enrollments SET status = 'blocked' WHERE id = '00000000-0000-0000-0000-0000000000e2';
+  BEGIN
+    UPDATE public.sdr_enrollments SET status = 'estado_invalido' WHERE id = '00000000-0000-0000-0000-0000000000e2';
+    RAISE EXCEPTION 'devia falhar';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+
+  -- Registos de etapa: sequence_step_id continua NOT NULL (nunca logs sem etapa)
+  BEGIN
+    INSERT INTO public.sdr_sequence_step_logs (sdr_enrollment_id, sequence_step_id, workspace_id, status)
+    VALUES (e1, NULL, wa, 'blocked');
+    RAISE EXCEPTION 'devia falhar';
+  EXCEPTION WHEN not_null_violation THEN NULL; END;
+
+  -- Exclusão atómica por token (sem workspace_id na tabela de tokens)
+  INSERT INTO public.sdr_enrollments (id, campaign_id, workspace_id, prospect_email, status)
+    VALUES ('00000000-0000-0000-0000-0000000000e9', c1, wa, 'zeca@x.pt', 'sequenced');
+  INSERT INTO public.email_unsubscribe_tokens (token, email) VALUES ('tok_zeca_0123456789abcdef', 'Zeca@X.pt');
+
+  -- Falha parcial: a supressão rebenta → rollback total, token NÃO consumido
+  CREATE FUNCTION public.t_boom() RETURNS trigger LANGUAGE plpgsql AS $t$ BEGIN RAISE EXCEPTION 'boom'; END $t$;
+  CREATE TRIGGER t_boom BEFORE INSERT ON public.sdr_suppressions FOR EACH ROW EXECUTE FUNCTION public.t_boom();
+  BEGIN
+    PERFORM public.email_process_unsubscribe('tok_zeca_0123456789abcdef');
+    RAISE EXCEPTION 'devia falhar';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'boom' THEN RAISE; END IF;
+  END;
+  DROP TRIGGER t_boom ON public.sdr_suppressions; DROP FUNCTION public.t_boom();
+  ASSERT (SELECT used_at IS NULL FROM public.email_unsubscribe_tokens WHERE token = 'tok_zeca_0123456789abcdef'),
+         'token continua válido após falha parcial';
+  ASSERT NOT EXISTS (SELECT 1 FROM public.suppressed_emails WHERE email = 'zeca@x.pt');
+  ASSERT (SELECT status FROM public.sdr_enrollments WHERE id = '00000000-0000-0000-0000-0000000000e9') = 'sequenced';
+
+  -- Caminho normal: supressão + paragem + consumo do token
+  ASSERT (public.email_process_unsubscribe('tok_zeca_0123456789abcdef') ->> 'already') = 'false';
+  ASSERT EXISTS (SELECT 1 FROM public.suppressed_emails WHERE email = 'zeca@x.pt');
+  ASSERT (SELECT status FROM public.sdr_enrollments WHERE id = '00000000-0000-0000-0000-0000000000e9') = 'opted_out';
+  ASSERT EXISTS (SELECT 1 FROM public.sdr_suppressions WHERE workspace_id = wa AND email = 'zeca@x.pt');
+  ASSERT (SELECT used_at IS NOT NULL FROM public.email_unsubscribe_tokens WHERE token = 'tok_zeca_0123456789abcdef');
+  -- Reutilização e token inexistente
+  ASSERT (public.email_process_unsubscribe('tok_zeca_0123456789abcdef') ->> 'already') = 'true';
+  ASSERT (public.email_process_unsubscribe('tok_inexistente_0123456789') ->> 'found') = 'false';
+
   -- Permissões: authenticated não executa RPCs internas
   ASSERT NOT has_function_privilege('authenticated', 'public.sdr_claim_step_attempt(uuid,uuid,uuid,uuid,integer,text,integer)', 'EXECUTE');
+  ASSERT NOT has_function_privilege('authenticated', 'public.email_process_unsubscribe(text)', 'EXECUTE');
   ASSERT has_function_privilege('service_role', 'public.sdr_reserve_send_slot(uuid,text,text,uuid,integer,integer,text)', 'EXECUTE');
   RAISE NOTICE 'assertions OK';
 END $$;
+

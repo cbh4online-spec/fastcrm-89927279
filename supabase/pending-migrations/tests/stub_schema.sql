@@ -29,3 +29,14 @@ INSERT INTO public.sdr_enrollments (id, campaign_id, workspace_id, prospect_emai
  ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000000a','ana@x.pt','sequenced', now() - interval '2 days'),
  ('00000000-0000-0000-0000-0000000000e2','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000000a','ANA@x.pt ','enrolled', now() - interval '1 day'),
  ('00000000-0000-0000-0000-0000000000e3','00000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-00000000000b','ana@x.pt','sequenced', now() - interval '1 day');
+
+-- Tabelas reais envolvidas na exclusão por token (apenas colunas usadas).
+CREATE TABLE public.suppressed_emails (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE, reason text, created_at timestamptz DEFAULT now());
+CREATE TABLE public.email_unsubscribe_tokens (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), token text, email text, created_at timestamptz DEFAULT now(), used_at timestamptz);
+-- sequence_step_id é NOT NULL, tal como em produção.
+CREATE TABLE public.sdr_sequence_step_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  sdr_enrollment_id uuid NOT NULL REFERENCES public.sdr_enrollments(id) ON DELETE CASCADE,
+  sequence_step_id uuid NOT NULL, channel text NOT NULL DEFAULT 'email', status text NOT NULL DEFAULT 'pending',
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  sent_at timestamptz, error_message text, metadata jsonb DEFAULT '{}', created_at timestamptz DEFAULT now());
