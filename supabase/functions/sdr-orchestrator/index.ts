@@ -13,6 +13,7 @@ import { corsHeaders } from "@supabase/supabase-js/cors";
 import { identityKey, normalizeEmail, normalizePhone } from "../_shared/sdr-engine/identity.ts";
 import { candidateFromLead, candidateFromProfile, evaluateCandidate, parseTargetFilters, type Candidate } from "../_shared/sdr-engine/eligibility.ts";
 import { firstSendAt } from "../_shared/sdr-engine/executor.ts";
+import { parseWindow } from "../_shared/sdr-engine/schedule.ts";
 import { detectPhase1Schema } from "../_shared/sdr-engine/supabasePorts.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -174,7 +175,8 @@ async function scheduleEnrollment(ctx: Ctx, campaign: any, enrollmentId: string)
   const steps = await activeSteps(ctx, campaign.sequence_id);
   const at = firstSendAt(steps, new Date(), campaign.settings?.send_window);
   if (!at) {
-    await ctx.supabase.from("sdr_enrollments").update({ failure_reason: "sequence_without_active_steps" })
+    const reason = steps.length && !parseWindow(campaign.settings?.send_window) ? "invalid_send_window" : "sequence_without_active_steps";
+    await ctx.supabase.from("sdr_enrollments").update({ failure_reason: reason })
       .eq("id", enrollmentId).eq("workspace_id", ctx.ws);
     return { sequenced: false, enrollment_id: enrollmentId, next_send_at: null };
   }
