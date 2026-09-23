@@ -146,6 +146,16 @@ export function ProductTagsEditor({ productId, product }: ProductTagsEditorProps
           ))}
         </div>
       )}
+
+      {/* Sugestões AI Commerce — só aplicadas após aprovação */}
+      {product && (
+        <ProductAITagSuggestions
+          product={product}
+          existingTags={existingTagNames}
+          isApplying={addTag.isPending}
+          onApply={(selected) => selected.forEach((t) => handleAdd(t))}
+        />
+      )}
     </div>
   );
 }
