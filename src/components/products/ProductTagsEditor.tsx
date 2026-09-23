@@ -8,6 +8,8 @@ import { Separator } from "@/components/ui/separator";
 
 interface ProductTagsEditorProps {
   productId: string;
+  /** Produto completo — usado para sugerir etiquetas com base em dados reais */
+  product?: any;
 }
 
 const TAG_COLORS: Record<string, string> = {
