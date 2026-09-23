@@ -392,6 +392,8 @@ function getCellTooltipText(
 }
 
 const ROW_HEIGHT = 48;
+/** Altura do cabeçalho fixo (TableHead h-12) dentro do mesmo contentor de scroll. */
+const HEADER_HEIGHT = 48;
 
 export function ProductsDataTable({
   products,
@@ -428,6 +430,9 @@ export function ProductsDataTable({
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 8,
+    // O cabeçalho fixo vive dentro do mesmo contentor de scroll,
+    // por isso as linhas começam deslocadas pela sua altura.
+    scrollMargin: HEADER_HEIGHT,
   });
 
   return (
@@ -462,20 +467,23 @@ export function ProductsDataTable({
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* Compute total width once for header + rows */}
-          {(() => null)()}
-          {/* Shared horizontal scroll wrapper for header + body */}
-          <div className="flex-1 min-h-0 overflow-x-auto flex flex-col">
-            {(() => {
-              const dataColsWidth = visibleCols.reduce((sum, cid) => sum + colWidths.getWidth(cid), 0);
-              const totalWidth = 50 + dataColsWidth + 56; // checkbox + cols + actions
-              return (
+          {(() => {
+            const dataColsWidth = visibleCols.reduce((sum, cid) => sum + colWidths.getWidth(cid), 0);
+            const totalWidth = 50 + dataColsWidth + 56; // checkbox + cols + actions
+            return (
+              /* Contentor único de scroll: horizontal + vertical, com a barra sempre visível */
+              <div
+                ref={parentRef}
+                className="flex-1 min-h-0 overflow-auto max-h-[calc(100vh-320px)]"
+                style={{ minHeight: 200 }}
+              >
                 <>
-                  {/* Sticky header */}
+                  {/* Cabeçalho fixo no topo, dentro do mesmo scroll */}
+                  <div className="sticky top-0 z-40 bg-background" style={{ width: totalWidth, minWidth: "100%" }}>
                   <table
                     ref={tableRef}
                     style={{ tableLayout: "fixed", width: totalWidth, minWidth: "100%" }}
-                    className="caption-bottom text-sm border-b border-border flex-shrink-0"
+                    className="caption-bottom text-sm border-b border-border"
                   >
                     <TableHeader className="bg-background">
                       <TableRow className="hover:bg-transparent">
@@ -521,14 +529,11 @@ export function ProductsDataTable({
                       </TableRow>
                     </TableHeader>
                   </table>
+                  </div>
 
-                  {/* Virtualized body — vertical scroll only, horizontal handled by parent wrapper */}
-                  <div
-                    ref={parentRef}
-                    className="flex-1 min-h-0 overflow-y-auto"
-                    style={{ minHeight: 200, width: totalWidth, minWidth: "100%", overflowX: "hidden" }}
-                  >
-                    <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
+                  {/* Linhas virtualizadas — partilham o scroll do contentor acima */}
+                  <div>
+                    <div style={{ height: `${virtualizer.getTotalSize()}px`, width: totalWidth, minWidth: "100%", position: "relative" }}>
                       {virtualizer.getVirtualItems().map((virtualRow) => {
                         const product = products[virtualRow.index];
                         return (
@@ -543,7 +548,7 @@ export function ProductsDataTable({
                               left: 0,
                               width: totalWidth,
                               minWidth: "100%",
-                              transform: `translateY(${virtualRow.start}px)`,
+                              transform: `translateY(${virtualRow.start - HEADER_HEIGHT}px)`,
                               height: ROW_HEIGHT,
                               isolation: "isolate",
                             }}
@@ -614,9 +619,9 @@ export function ProductsDataTable({
                     </div>
                   </div>
                 </>
-              );
-            })()}
-          </div>
+              </div>
+            );
+          })()}
 
           {/* Row count footer */}
           <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground">
