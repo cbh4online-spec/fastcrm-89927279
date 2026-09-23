@@ -4,6 +4,7 @@
 // Estrutura preparada para futuros adapters server-side (Meta Cloud, Twilio).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { signWorkerRequest, verifyWorkerRequest } from "../_shared/sdr-engine/workerAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,8 @@ interface SendPayload {
   buttonFooter?: string;
   delayMessage?: number;
   metadata?: Record<string, unknown>;
+  /** Modo worker: instância explícita da campanha; recusa se diferente da activa. */
+  expectedInstanceId?: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -55,40 +58,58 @@ Deno.serve(async (req) => {
     });
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData?.user) return json({ error: "Unauthorized" }, 401);
-    const userId = userData.user.id;
+    const rawBody = await req.text();
+    const workerEnv = { enabled: Deno.env.get("SDR_AUTONOMOUS_SEND_ENABLED"), secret: Deno.env.get("SDR_WORKER_SECRET") };
+    const worker = await verifyWorkerRequest((h) => req.headers.get(h), rawBody, workerEnv);
+    if (!worker.ok && worker.present) return json({ error: "worker_unauthorized", reason: worker.reason }, 401);
 
-    const body = (await req.json()) as SendPayload;
+    const body = JSON.parse(rawBody) as SendPayload;
 
     if (!body.workspaceId || !body.messageType || (!body.phone && !body.groupId && !body.conversationId)) {
       return json({ error: "workspace_id, messageType e (phone | groupId | conversationId) são obrigatórios" }, 400);
     }
 
-    // Verificar membership (com bypass de super_admin)
-    const { data: member } = await adminClient
-      .from("workspace_members")
-      .select("role")
-      .eq("workspace_id", body.workspaceId)
-      .eq("user_id", userId)
-      .maybeSingle();
+    if (worker.ok) {
+      // Worker SDR: sem utilizador; workspace assinado tem de coincidir e só texto 1:1.
+      if (worker.workspaceId !== body.workspaceId) return json({ error: "worker_workspace_mismatch" }, 403);
+      if (body.groupId || body.messageType !== "text" || !body.expectedInstanceId) {
+        return json({ error: "worker_payload_not_allowed" }, 400);
+      }
+      if (body.conversationId) {
+        const { data: conv } = await adminClient.from("conversations").select("id")
+          .eq("id", body.conversationId).eq("workspace_id", body.workspaceId).maybeSingle();
+        if (!conv) return json({ error: "conversation_not_in_workspace" }, 403);
+      }
+    } else {
+      const { data: userData, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !userData?.user) return json({ error: "Unauthorized" }, 401);
+      const userId = userData.user.id;
 
-    let isSuperAdmin = false;
-    if (!member) {
-      const { data: profile } = await adminClient
-        .from("profiles")
-        .select("id")
+      // Verificar membership (com bypass de super_admin)
+      const { data: member } = await adminClient
+        .from("workspace_members")
+        .select("role")
+        .eq("workspace_id", body.workspaceId)
         .eq("user_id", userId)
         .maybeSingle();
-      if (profile?.id) {
-        const { data: roles } = await adminClient
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", profile.id);
-        isSuperAdmin = (roles ?? []).some((r: { role: string }) => r.role === "super_admin");
-      }
-      if (!isSuperAdmin) {
-        return json({ error: "Sem permissão neste workspace" }, 403);
+
+      let isSuperAdmin = false;
+      if (!member) {
+        const { data: profile } = await adminClient
+          .from("profiles")
+          .select("id")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (profile?.id) {
+          const { data: roles } = await adminClient
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", profile.id);
+          isSuperAdmin = (roles ?? []).some((r: { role: string }) => r.role === "super_admin");
+        }
+        if (!isSuperAdmin) {
+          return json({ error: "Sem permissão neste workspace" }, 403);
+        }
       }
     }
 
@@ -110,6 +131,15 @@ Deno.serve(async (req) => {
     if (!instance || !instance.active) {
       return json({ error: "WhatsApp Pro não está configurado neste workspace.", fallback: true }, 200);
     }
+    if (worker.ok && instance.id !== body.expectedInstanceId) {
+      return json({ error: "worker_instance_mismatch" }, 403);
+    }
+
+    // Encaminhamento para whatsapp-zapi-send: utilizador reencaminha o JWT; worker reassina.
+    const forwardHeaders = async (payload: Record<string, unknown>): Promise<Record<string, string>> => {
+      if (!worker.ok) return { Authorization: authHeader };
+      return { Authorization: `Bearer ${serviceKey}`, ...(await signWorkerRequest(workerEnv.secret!, body.workspaceId, JSON.stringify(payload))) };
+    };
 
     // Encaminha conforme adapter
     const provider = (instance.provider_name as string) ?? "zapi";
@@ -160,11 +190,12 @@ Deno.serve(async (req) => {
         delete invokePayload.message;
       }
 
+      const zapiBody = { workspaceId: body.workspaceId, ...invokePayload };
       const { data: sendData, error: sendErr } = await adminClient.functions.invoke(
         "whatsapp-zapi-send",
         {
-          body: { workspaceId: body.workspaceId, ...invokePayload },
-          headers: { Authorization: authHeader },
+          body: zapiBody,
+          headers: await forwardHeaders(zapiBody),
         },
       );
 
@@ -177,15 +208,16 @@ Deno.serve(async (req) => {
           const ctaPrompt =
             (body.ctaPrompt && body.ctaPrompt.trim().slice(0, 120)) ||
             "👇 Toque no botão para abrir a página segura do produto.";
+          const ctaBody = {
+            workspaceId: body.workspaceId,
+            phone: body.phone,
+            conversationId: body.conversationId ?? undefined,
+            message: ctaPrompt,
+            buttons: [{ id: "buy_now", type: "URL", label: body.ctaLabel || "Comprar Agora", url: validCtaUrl }],
+          };
           await adminClient.functions.invoke("whatsapp-zapi-send", {
-            body: {
-              workspaceId: body.workspaceId,
-              phone: body.phone,
-              conversationId: body.conversationId ?? undefined,
-              message: ctaPrompt,
-              buttons: [{ id: "buy_now", type: "URL", label: body.ctaLabel || "Comprar Agora", url: validCtaUrl }],
-            },
-            headers: { Authorization: authHeader },
+            body: ctaBody,
+            headers: await forwardHeaders(ctaBody),
           });
         }
         result = {
