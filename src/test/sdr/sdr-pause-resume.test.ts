@@ -62,7 +62,7 @@ describe("pausa durante a reserva → retoma da mesma etapa", () => {
     expect((await runEnrollmentStep(w.ports(), WS, "e1")).outcome).toBe("replied");
     expect(attempt().status).toBe("cancelled");
     w.inboundFor.clear(); w.hooks.afterReserve = undefined;
-    w.enrollments.get("e1")!.status = "sequenced"; // mesmo reposto à força
+    Object.assign(w.enrollments.get("e1")!, { status: "sequenced", next_send_at: new Date(w.now.getTime() - 1).toISOString() }); // mesmo reposto à força
     const r = await runEnrollmentStep(w.ports(), WS, "e1");
     expect(w.sent).toHaveLength(0);
     expect(r.outcome).toBe("blocked");
