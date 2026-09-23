@@ -189,9 +189,13 @@ export function MarketResearchPanel({
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Preço sugerido</p>
+                    <p className="text-xs text-muted-foreground">PVP sugerido (c/ IVA)</p>
                     <p className="text-lg font-bold text-primary">
                       {latestResearch.suggested_price.toFixed(2)} €
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {(latestResearch.suggested_price_net ?? toNet(latestResearch.suggested_price)).toFixed(2)} € sem
+                      IVA (taxa {latestResearch.vat_rate ?? vatRate}%)
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -206,7 +210,9 @@ export function MarketResearchPanel({
                         size="sm"
                         onClick={(e) => {
                           e.preventDefault();
-                          onApplyPrice(latestResearch.suggested_price!);
+                          const gross = latestResearch.suggested_price!;
+                          const net = latestResearch.suggested_price_net ?? toNet(gross);
+                          onApplyPrice(net, gross);
                         }}
                       >
                         <Check className="h-3.5 w-3.5 mr-1" />
@@ -215,6 +221,7 @@ export function MarketResearchPanel({
                     )}
                   </div>
                 </div>
+
                 {latestResearch.margin_blocked && (
                   <p className="text-[11px] text-amber-600 flex items-start gap-1.5">
                     <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-[1px]" />
