@@ -60,9 +60,14 @@ export function ProductAITagSuggestions({
           subcategory: product?.subcategory,
           specifications: product?.specifications || null,
           specAttributes: specAttributes || [],
-          idealFor: aiContent?.ideal_for || null,
-          useCases: aiContent?.use_cases || null,
-          searchTerms: aiContent?.search_terms || null,
+          idealFor: aiContent?.ai_target_audience
+            ? [aiContent.ai_target_audience]
+            : null,
+          useCases: aiContent?.ai_use_cases || null,
+          searchTerms: [
+            ...(aiContent?.ai_keywords || []),
+            ...(aiContent?.ai_key_features || []),
+          ],
         },
         existingTags
       ),
