@@ -229,8 +229,36 @@ Dados técnicos (sugestões para o utilizador revisar antes de gravar):
           .slice(0, 5)
       : [];
 
+    // Especificações técnicas: objeto simples chave→valor, sem preços/stock.
+    const FORBIDDEN_SPEC = /(pre[çc]o|price|stock|iva|vat|custo|prazo|entrega|garantia\s*$)/i;
+    const specifications: Record<string, string> = {};
+    if (parsed.specifications && typeof parsed.specifications === "object" && !Array.isArray(parsed.specifications)) {
+      for (const [k, v] of Object.entries(parsed.specifications as Record<string, unknown>)) {
+        const key = str(k, 60);
+        const value = str(typeof v === "number" ? String(v) : v, 200);
+        if (!key || !value || FORBIDDEN_SPEC.test(key)) continue;
+        specifications[key] = value;
+        if (Object.keys(specifications).length >= 15) break;
+      }
+    }
+
+    const warrantyMonthsRaw = Number(parsed.warranty_months);
+    const warrantyMonths =
+      Number.isFinite(warrantyMonthsRaw) && warrantyMonthsRaw > 0 && warrantyMonthsRaw <= 240
+        ? Math.round(warrantyMonthsRaw)
+        : null;
+    const warrantyType = ["manufacturer", "store", "legal"].includes(str(parsed.warranty_type, 20))
+      ? str(parsed.warranty_type, 20)
+      : "";
+
     return json({
       suggestion: {
+        brand: str(parsed.brand, 120),
+        manufacturer: str(parsed.manufacturer, 120),
+        model: str(parsed.model, 120),
+        warranty_months: warrantyMonths,
+        warranty_type: warrantyType,
+        specifications,
         ai_title: str(parsed.ai_title, 150),
         ai_category: str(parsed.ai_category, 120),
         ai_short_description: str(parsed.ai_short_description, 400),
