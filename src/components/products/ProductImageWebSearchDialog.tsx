@@ -119,7 +119,8 @@ export function ProductImageWebSearchDialog({
       if (error) throw new Error(error.message);
       if (!data?.success && data?.error) setWarning(data.error);
       const list: Candidate[] = Array.isArray(data?.candidates) ? data.candidates : [];
-      setCandidates(list);
+      setCandidates(dedupeCandidates(list));
+
       if (list.length === 0 && !data?.error) {
         setWarning("Não foi possível encontrar imagens para esta pesquisa.");
       }
