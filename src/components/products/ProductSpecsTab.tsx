@@ -86,22 +86,50 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
     enabled: !!workspaceId,
   });
 
+  // Especificações da ficha do produto (fonte canónica: products.specifications)
+  const sheetSpecs = useMemo<Record<string, string>>(
+    () => (product?.specifications && typeof product.specifications === "object"
+      ? product.specifications
+      : {}),
+    [product?.specifications]
+  );
+
   useEffect(() => {
-    if (savedSpecs) {
-      setSpecs(savedSpecs.map((s: any) => ({
-        id: s.id,
-        spec_key: s.spec_key,
-        spec_value: s.spec_value,
-        unit: s.unit || "",
-        spec_group: s.spec_group || "Geral",
-        display_order: s.display_order || 0,
-      })));
-      // Open all groups by default
-      const groups = new Set(savedSpecs.map((s: any) => s.spec_group || "Geral"));
-      setOpenGroups(Object.fromEntries([...groups].map(g => [g, true])));
-      setHasChanges(false);
+    if (!savedSpecs) return;
+
+    if (savedSpecs.length === 0 && Object.keys(sheetSpecs).length > 0) {
+      // Sincroniza a partir da ficha do produto — sem duplicar dados
+      const imported: Spec[] = Object.entries(sheetSpecs)
+        .filter(([key, value]) => !!key && !!value)
+        .map(([key, value], i) => ({
+          spec_key: key,
+          spec_value: String(value),
+          unit: "",
+          spec_group: "Técnico",
+          display_order: i,
+          isNew: true,
+        }));
+      setSpecs(imported);
+      setOpenGroups({ "Técnico": true });
+      setImportedFromSheet(imported.length);
+      setHasChanges(true);
+      return;
     }
-  }, [savedSpecs]);
+
+    setSpecs(savedSpecs.map((s: any) => ({
+      id: s.id,
+      spec_key: s.spec_key,
+      spec_value: s.spec_value,
+      unit: s.unit || "",
+      spec_group: s.spec_group || "Geral",
+      display_order: s.display_order || 0,
+    })));
+    // Open all groups by default
+    const groups = new Set(savedSpecs.map((s: any) => s.spec_group || "Geral"));
+    setOpenGroups(Object.fromEntries([...groups].map(g => [g, true])));
+    setImportedFromSheet(0);
+    setHasChanges(false);
+  }, [savedSpecs, sheetSpecs]);
 
   // Save mutation
   const saveMutation = useMutation({
