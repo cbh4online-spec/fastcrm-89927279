@@ -519,8 +519,9 @@ export function useProductsListState() {
   }, []);
 
   const handleSelectAll = useCallback((checked: boolean) => {
-    setSelectedIds(checked ? paginatedProducts.map((p) => p.id) : []);
-  }, [paginatedProducts]);
+    setSelectedIds(checked ? filteredProducts.map((p) => p.id) : []);
+  }, [filteredProducts]);
+
 
   const handleSelectOne = useCallback((id: string, checked: boolean) => {
     setSelectedIds((prev) =>
