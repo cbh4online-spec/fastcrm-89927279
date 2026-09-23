@@ -467,22 +467,24 @@ export function ProductsDataTable({
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* Compute total width once for header + rows */}
-          {(() => null)()}
-          {/* Shared horizontal scroll wrapper for header + body */}
-          <div className="flex-1 min-h-0 overflow-x-auto flex flex-col">
-            {(() => {
-              const dataColsWidth = visibleCols.reduce((sum, cid) => sum + colWidths.getWidth(cid), 0);
-              const totalWidth = 50 + dataColsWidth + 56; // checkbox + cols + actions
-              return (
+          {(() => {
+            const dataColsWidth = visibleCols.reduce((sum, cid) => sum + colWidths.getWidth(cid), 0);
+            const totalWidth = 50 + dataColsWidth + 56; // checkbox + cols + actions
+            return (
+              /* Contentor único de scroll: horizontal + vertical, com a barra sempre visível */
+              <div
+                ref={parentRef}
+                className="flex-1 min-h-0 overflow-auto max-h-[calc(100vh-320px)]"
+                style={{ minHeight: 200 }}
+              >
                 <>
-                  {/* Sticky header */}
+                  {/* Cabeçalho fixo no topo, dentro do mesmo scroll */}
                   <table
                     ref={tableRef}
                     style={{ tableLayout: "fixed", width: totalWidth, minWidth: "100%" }}
-                    className="caption-bottom text-sm border-b border-border flex-shrink-0"
+                    className="caption-bottom text-sm border-b border-border"
                   >
-                    <TableHeader className="bg-background">
+                    <TableHeader className="sticky top-0 z-40 bg-background">
                       <TableRow className="hover:bg-transparent">
                         <TableHead
                           className="bg-background"
