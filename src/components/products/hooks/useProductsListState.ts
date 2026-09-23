@@ -155,8 +155,12 @@ export function useProductsListState() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkCostOpen, setBulkCostOpen] = useState(false);
 
+  // --- Permissões ---
+  const canViewCostMargin = useCanViewCostMargin();
+
   // --- Debounce search (proper cleanup via hook) ---
   const debouncedSearch = useDebounce(searchValue, 300);
+
 
   // --- Parse sort into server params ---
   const { sortBy, sortDirection } = parseSortValue(sortValue);
