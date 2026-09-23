@@ -390,16 +390,17 @@ Deno.serve(async (req) => {
       .map((p, i) => `[Fonte ${i + 1}] URL: ${p.url}\nTítulo: ${p.title ?? "N/A"}\nConteúdo: ${p.excerpts.join(" \u2022 ").slice(0, 1500)}`)
       .join("\n\n---\n\n");
 
-    // 2) Extração estritamente ancorada nas fontes
+    // 3) Extração estritamente ancorada nas fontes
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "AI not configured" }, 500);
 
     const systemPrompt = `És um extrator de preços. Regras absolutas:
-1. Só podes devolver preços que estejam LITERALMENTE escritos no conteúdo das fontes fornecidas.
+1. Só podes devolver preços que estejam LITERALMENTE escritos no conteúdo das fontes fornecidas, incluindo os preços indicados como "Preço declarado nos dados estruturados desta página (Schema.org)" — esses são preços reais da loja e devem ser usados.
 2. É PROIBIDO estimar, arredondar por categoria, inferir ou inventar qualquer valor.
 3. Cada preço tem de vir acompanhado do URL exato da fonte onde aparece (copiado da lista).
 4. Ignora páginas que vendam apenas acessórios, packs de várias unidades, produtos usados ou artigos diferentes da referência pedida.
-5. Se nenhuma fonte contiver um preço verificável para este artigo, devolve a lista de concorrentes vazia.
+5. Ignora páginas institucionais, comparadores genéricos, listas de lojas físicas, redes sociais e páginas sem a referência pedida.
+6. Se nenhuma fonte contiver um preço verificável para este artigo, devolve a lista de concorrentes vazia.
 Responde em português de Portugal.`;
 
     const userPrompt = `Artigo: ${productName}
