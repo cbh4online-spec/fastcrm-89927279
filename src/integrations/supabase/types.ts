@@ -75459,6 +75459,7 @@ export type Database = {
           manufacturer: string | null
           metadata: Json | null
           min_order_quantity: number | null
+          model: string | null
           moq: number | null
           mpn: string | null
           name: string
@@ -75538,6 +75539,8 @@ export type Database = {
           volume_text: string | null
           volume_unit: string | null
           volume_value: number | null
+          warranty_months: number | null
+          warranty_type: string | null
           weight: number | null
           weight_gross: number | null
           weight_net: number | null
@@ -75625,6 +75628,7 @@ export type Database = {
           manufacturer?: string | null
           metadata?: Json | null
           min_order_quantity?: number | null
+          model?: string | null
           moq?: number | null
           mpn?: string | null
           name: string
@@ -75704,6 +75708,8 @@ export type Database = {
           volume_text?: string | null
           volume_unit?: string | null
           volume_value?: number | null
+          warranty_months?: number | null
+          warranty_type?: string | null
           weight?: number | null
           weight_gross?: number | null
           weight_net?: number | null
@@ -75791,6 +75797,7 @@ export type Database = {
           manufacturer?: string | null
           metadata?: Json | null
           min_order_quantity?: number | null
+          model?: string | null
           moq?: number | null
           mpn?: string | null
           name?: string
@@ -75870,6 +75877,8 @@ export type Database = {
           volume_text?: string | null
           volume_unit?: string | null
           volume_value?: number | null
+          warranty_months?: number | null
+          warranty_type?: string | null
           weight?: number | null
           weight_gross?: number | null
           weight_net?: number | null
