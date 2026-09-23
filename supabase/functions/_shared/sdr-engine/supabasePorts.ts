@@ -197,7 +197,10 @@ export function createSupabasePorts(admin: any, env: PortsEnv): SdrPorts {
     async unsubscribeUrl(e) {
       const email = normalizeEmail(e.prospect_email);
       if (!email || !env.publicAppUrl || !/^https:\/\//.test(env.publicAppUrl)) return null;
-      const { data: existing } = await admin.from("email_unsubscribe_tokens").select("token, used_at").eq("email", email).maybeSingle();
+      // email_unsubscribe_tokens não tem unicidade por email: usar sempre o mais recente.
+      const { data: existing } = await admin.from("email_unsubscribe_tokens")
+        .select("token, used_at").eq("email", email)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
       let token = existing?.token as string | undefined;
       if (existing?.used_at) return null; // já cancelou → isSuppressed deveria ter parado; fail-closed
       if (!token) {
@@ -205,12 +208,15 @@ export function createSupabasePorts(admin: any, env: PortsEnv): SdrPorts {
         token = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
         const { error } = await admin.from("email_unsubscribe_tokens").insert({ token, email });
         if (error) {
-          const { data: again } = await admin.from("email_unsubscribe_tokens").select("token").eq("email", email).maybeSingle();
+          const { data: again } = await admin.from("email_unsubscribe_tokens")
+            .select("token").eq("email", email).is("used_at", null)
+            .order("created_at", { ascending: false }).limit(1).maybeSingle();
           token = again?.token;
         }
       }
       return token ? `${env.publicAppUrl.replace(/\/$/, "")}/unsubscribe?token=${encodeURIComponent(token)}` : null;
     },
+
 
     sendEmail(i) {
       return callTransport(env, "email-send", i.workspaceId, {
