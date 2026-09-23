@@ -154,6 +154,144 @@ interface ImageCandidate {
   url: string
   source_url: string
   source_title?: string
+  /** "Página oficial" quando vem da ficha do fabricante/distribuidor. */
+  origin?: string
+}
+
+// ─────────────────────────────────────────────────────────────
+// Descoberta "Page-First" através do conector Parallel
+// ─────────────────────────────────────────────────────────────
+
+const PARALLEL_GATEWAY = 'https://connector-gateway.lovable.dev/parallel'
+
+/** Domínios de fabricantes/distribuidores fiáveis (ordem de preferência). */
+const TRUSTED_DOMAINS = [
+  'visiotechsecurity.com',
+  'ajax.systems',
+  'hikvision.com',
+  'dahuasecurity.com',
+  'ajaxsystems.pt',
+]
+
+/** Extrai a referência/SKU da pesquisa (ex.: AJ-SOLOCOVER-GRA). */
+function extractSku(query: string): string | null {
+  const match = query.match(/\b[A-Z0-9]{2,}(?:-[A-Z0-9]{1,}){1,}\b/i)
+  if (!match) return null
+  const sku = match[0].toUpperCase()
+  if (sku.length < 6) return null
+  return sku
+}
+
+/** Primeira palavra significativa da pesquisa = marca provável. */
+function extractBrand(query: string): string | null {
+  const first = query.trim().split(/\s+/)[0]
+  if (!first || first.length < 3) return null
+  if (extractSku(first)) return null
+  return first
+}
+
+/**
+ * Procura a página oficial do produto (sub-segundo) usando o Parallel.
+ * Nunca inventa endereços: devolve apenas URLs retornados pelo motor.
+ */
+async function findOfficialProductPage(
+  sku: string,
+  brand: string | null,
+): Promise<{ url: string; title?: string } | null> {
+  const lovableKey = Deno.env.get('LOVABLE_API_KEY')
+  const connectionKey = Deno.env.get('PARALLEL_API_KEY')
+  if (!lovableKey || !connectionKey) return null
+
+  try {
+    const resp = await fetch(`${PARALLEL_GATEWAY}/v1/search`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        'X-Connection-Api-Key': connectionKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        objective:
+          `Localizar a página oficial do produto com a referência ${sku}` +
+          (brand ? ` da marca ${brand}` : '') +
+          ', num site de fabricante ou distribuidor profissional, com fotografias de catálogo.',
+        search_queries: [sku, brand ? `${sku} ${brand}` : `${sku} produto`],
+        mode: 'fast',
+        advanced_settings: { max_results: 8 },
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+
+    if (!resp.ok) {
+      const txt = await resp.text()
+      console.warn('[product-image-search] parallel search failed', resp.status, txt.slice(0, 300))
+      return null
+    }
+
+    const data = await resp.json().catch(() => null) as any
+    const results: any[] = data?.results ?? data?.data ?? []
+    if (Array.isArray(data?.warnings) && data.warnings.length) {
+      console.log('[product-image-search] parallel warnings', JSON.stringify(data.warnings).slice(0, 300))
+    }
+
+    const skuSlug = sku.toLowerCase()
+    const scored = results
+      .map((r) => ({ url: String(r?.url ?? ''), title: r?.title as string | undefined }))
+      .filter((r) => r.url.startsWith('http'))
+      .map((r) => {
+        const lower = r.url.toLowerCase()
+        let score = 0
+        if (TRUSTED_DOMAINS.some((d) => lower.includes(d))) score += 100
+        if (lower.includes(skuSlug)) score += 50
+        if (/\/(produto|product|products|p)\//.test(lower)) score += 10
+        return { ...r, score }
+      })
+      .filter((r) => r.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    return scored[0] ?? null
+  } catch (err) {
+    console.warn('[product-image-search] parallel search error', (err as Error).message)
+    return null
+  }
+}
+
+/** Termos fora do setor que contaminam a pesquisa aberta de imagens. */
+const NOISE_RE =
+  /(jersey|camisola|futebol|football|amsterdam|soccer|shirt|maillot|kit-\d|fanshop|talhadeira|chisel)/i
+
+/** Pesquisa sintética: só referência + marca, sem a frase longa em português. */
+function synthesizeQuery(query: string, sku: string | null, brand: string | null): string {
+  if (sku) return [sku, brand].filter(Boolean).join(' ')
+  return query
+}
+
+/** Débito de créditos no workspace do cliente (autoritário, server-side). */
+async function debitCredits(
+  admin: any,
+  workspaceId: string,
+  userId: string,
+  reference: string,
+): Promise<{ ok: boolean; message?: string; consumed?: number; balance?: number }> {
+  const bucket = Math.floor(Date.now() / 60000)
+  const { data, error } = await admin.rpc('consume_funnel_credits', {
+    p_workspace_id: workspaceId,
+    p_user_id: userId,
+    p_action_key: 'product_image_search',
+    p_idempotency_key: `product-image-search:${workspaceId}:${reference}:${bucket}`,
+    p_reference_type: 'product_image_search',
+    p_reference_id: null,
+    p_metadata: { reference, source: 'product-image-search' },
+  })
+  if (error) {
+    console.error('[product-image-search] consume_funnel_credits error:', error.message)
+    return { ok: false, message: 'Não foi possível validar os créditos.' }
+  }
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row?.success) {
+    return { ok: false, message: row?.message || 'Créditos insuficientes.' }
+  }
+  return { ok: true, consumed: row.credits_consumed, balance: row.balance_remaining }
 }
 
 Deno.serve(async (req) => {
