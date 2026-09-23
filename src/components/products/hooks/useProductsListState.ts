@@ -428,7 +428,11 @@ export function useProductsListState() {
             return m != null && m > 0 && m < 15;
           });
           break;
+        case "smart_pending_update":
+          result = result.filter(isPendingUpdate);
+          break;
         case "smart_no_image":
+
           result = result.filter((p) => !p.images || p.images.length === 0);
           break;
         case "smart_no_sku":
