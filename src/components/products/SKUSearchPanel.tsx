@@ -7,24 +7,21 @@ import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { PriceValidationIndicator } from "./PriceValidationIndicator";
 import { CompareSourcesDialog } from "./CompareSourcesDialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface SKUSearchPanelProps {
   sku: string;
-  currentPrice?: number;
   searchTrigger?: number; // External trigger to start search
   onApplyName: (name: string) => void;
-  onApplyPrice: (price: number) => void;
   onApplyDescription: (description: string) => void;
   onApplyCategory: (category: string) => void;
   onApplyImages?: (images: string[]) => void;
   onImagesFound?: (images: string[]) => void;
   onApplySpecifications?: (specs: Record<string, string>) => void;
+  /** Nunca inclui preços: o preço é sempre definido manualmente. */
   onApplyAll: (data: {
     name?: string;
-    price?: number;
     description?: string;
     category?: string;
     images?: string[];
@@ -34,10 +31,8 @@ interface SKUSearchPanelProps {
 
 export function SKUSearchPanel({
   sku,
-  currentPrice,
   searchTrigger,
   onApplyName,
-  onApplyPrice,
   onApplyDescription,
   onApplyCategory,
   onApplyImages,
@@ -122,12 +117,6 @@ export function SKUSearchPanel({
     }
   };
 
-  const handleApplyPrice = () => {
-    if (searchBySKU.data?.suggestedPrice) {
-      onApplyPrice(searchBySKU.data.suggestedPrice);
-      setAppliedItems((prev) => new Set(prev).add("price"));
-    }
-  };
 
   const handleApplyDescription = () => {
     const description = getCurrentDescription();
@@ -180,13 +169,12 @@ export function SKUSearchPanel({
       
       onApplyAll({
         name,
-        price: searchBySKU.data.suggestedPrice,
         description,
         category: searchBySKU.data.category,
         images: searchBySKU.data.images,
         specifications: specs,
       });
-      setAppliedItems(new Set(["name", "price", "description", "category", "images", "specifications"]));
+      setAppliedItems(new Set(["name", "description", "category", "images", "specifications"]));
     }
   };
 
@@ -271,22 +259,6 @@ export function SKUSearchPanel({
                   </p>
                 )}
               </div>
-              {searchBySKU.data.priceRange && (searchBySKU.data.priceRange.min > 0 || searchBySKU.data.priceRange.max > 0) && (
-                <div className="text-right space-y-1">
-                  <p className="text-xs text-muted-foreground">Preço mercado</p>
-                  <p className="font-semibold text-sm text-primary">
-                    €{searchBySKU.data.priceRange.min} - €{searchBySKU.data.priceRange.max}
-                  </p>
-                  {currentPrice && currentPrice > 0 && (
-                    <PriceValidationIndicator
-                      currentPrice={currentPrice}
-                      marketMin={searchBySKU.data.priceRange.min}
-                      marketMax={searchBySKU.data.priceRange.max}
-                      suggestedPrice={searchBySKU.data.suggestedPrice}
-                    />
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Images Gallery */}

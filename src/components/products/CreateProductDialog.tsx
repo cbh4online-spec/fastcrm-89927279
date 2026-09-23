@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle, Save, MapPin, ScanLine } from "lucide-react";
+import { Loader2, Package, ChevronDown, ChevronUp, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle, Save, MapPin, ScanLine } from "lucide-react";
 import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import {
@@ -44,8 +44,6 @@ import { LaborConfigEditor } from "./LaborConfigEditor";
 import { PriceWithVatInput } from "./PriceWithVatInput";
 import { netFromGross } from "@/utils/productPricing";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
-import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
-import { SectionAIAssistButton } from "@/components/proposals/SectionAIAssistButton";
 import { toast } from "sonner";
 import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFrequency } from "@/types/product";
 import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/product";
@@ -168,6 +166,8 @@ export function CreateProductDialog({
   const [showMarginWarning, setShowMarginWarning] = useState(false);
   const [skuSearchTrigger, setSkuSearchTrigger] = useState(0);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [showWebSearch, setShowWebSearch] = useState(false);
+  const [showLocation, setShowLocation] = useState(false);
   // B2B Portal visibility
   const [b2bPublished, setB2bPublished] = useState(true);
   const [storePublished, setStorePublished] = useState(false);
@@ -190,7 +190,6 @@ export function CreateProductDialog({
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
-  const { generateDescription } = useProductAIAssistant();
   const { data: existingCategories } = useProductCategoriesList();
   const { data: pricingRules = [] } = usePricingRules();
   const { data: productTypesConfig } = useProductTypes();
@@ -753,7 +752,6 @@ export function CreateProductDialog({
 
   // AI Assistant handlers
   const handleApplyCategory = (cat: string) => setCategory(cat);
-  const handleApplyPrice = (price: number) => setBasePrice(price.toString());
   const handleApplyDescription = (desc: string) => setShortDescription(desc);
   const handleApplyProductType = (type: ProductType) => setProductType(type);
   const handleApplyName = (newName: string) => setName(newName);
@@ -787,9 +785,8 @@ export function CreateProductDialog({
     
     setIsSpecsAutoFilled(true);
   };
-  const handleApplyAll = (data: { name?: string; price?: number; description?: string; category?: string; images?: string[]; specifications?: Record<string, string> }) => {
+  const handleApplyAll = (data: { name?: string; description?: string; category?: string; images?: string[]; specifications?: Record<string, string> }) => {
     if (data.name) setName(data.name);
-    if (data.price) setBasePrice(data.price.toString());
     if (data.description) setShortDescription(data.description);
     if (data.category) setCategory(data.category);
     if (data.images && data.images.length > 0) {
@@ -901,11 +898,10 @@ export function CreateProductDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
-              <TabsTrigger value="geral">Geral</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+              <TabsTrigger value="geral">Geral &amp; IA</TabsTrigger>
               <TabsTrigger value="preco">Preço &amp; IVA</TabsTrigger>
               <TabsTrigger value="tecnico">Especificações</TabsTrigger>
-              <TabsTrigger value="ai">AI Commerce</TabsTrigger>
               <TabsTrigger value="media">Fotos &amp; Vídeo</TabsTrigger>
             </TabsList>
 
@@ -937,7 +933,7 @@ export function CreateProductDialog({
                     size="icon"
                     disabled={!sku.trim()}
                     onClick={() => {
-                      setActiveTab("ai");
+                      setShowWebSearch(true);
                       setSkuSearchTrigger((prev) => prev + 1);
                     }}
                     title="Pesquisar dados do produto"
@@ -957,10 +953,11 @@ export function CreateProductDialog({
                 onScan={(code) => {
                   setSku(code);
                   setScannerOpen(false);
-                  setActiveTab("ai");
+                  setShowWebSearch(true);
                   setTimeout(() => setSkuSearchTrigger((prev) => prev + 1), 50);
                 }}
               />
+
 
               <div className="space-y-2">
                 <Label htmlFor="name">Nome *</Label>
@@ -972,6 +969,50 @@ export function CreateProductDialog({
                   required
                 />
               </div>
+
+              {/* AI Commerce — motor central, aqui no Geral */}
+              <AICommerceAssistantPanel
+                productId={product?.id}
+                draft={{
+                  name,
+                  sku,
+                  brand,
+                  category,
+                  productType,
+                  shortDescription,
+                }}
+                onApplyName={handleApplyName}
+                onApplyCategory={handleApplyCategory}
+                onApplyShortDescription={handleApplyDescription}
+                onApplyStructured={setAiCommerceContent}
+                onApplyTechnical={handleApplyTechnical}
+              />
+
+              <Collapsible open={showWebSearch} onOpenChange={setShowWebSearch}>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="w-full justify-between h-8 text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <Search className="h-3.5 w-3.5" />
+                      Pesquisar ficha e fotos na internet pelo código
+                    </span>
+                    {showWebSearch ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <SKUSearchPanel
+                    sku={sku}
+                    searchTrigger={skuSearchTrigger}
+                    onApplyName={handleApplyName}
+                    onApplyDescription={handleApplyDescription}
+                    onApplyCategory={handleApplyCategory}
+                    onApplyImages={handleApplyImages}
+                    onImagesFound={handleSkuImagesFound}
+                    onApplySpecifications={handleApplySpecifications}
+                    onApplyAll={handleApplyAll}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
@@ -1074,36 +1115,11 @@ export function CreateProductDialog({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="description">Descrição curta</Label>
-                  <SectionAIAssistButton
-                    onClick={async () => {
-                      if (!name.trim()) {
-                        toast.error("Preencha o nome do produto primeiro");
-                        return;
-                      }
-                      if (shortDescription.trim()) {
-                        toast("Já existe uma descrição. Substituir?", {
-                          action: {
-                            label: "Substituir",
-                            onClick: () => {
-                              generateDescription.mutate(
-                                { productName: name, category, productType },
-                                { onSuccess: (data) => { setShortDescription(data.shortDescription); toast.success("Descrição gerada!"); } }
-                              );
-                            },
-                          },
-                        });
-                        return;
-                      }
-                      generateDescription.mutate(
-                        { productName: name, category, productType },
-                        { onSuccess: (data) => { setShortDescription(data.shortDescription); toast.success("Descrição gerada!"); } }
-                      );
-                    }}
-                    isLoading={generateDescription.isPending}
-                    disabled={!name.trim()}
-                    tooltip="Gerar descrição com IA baseada no nome do produto"
-                  />
+                  <span className="text-xs text-muted-foreground">
+                    Use o AI Commerce no topo para gerar
+                  </span>
                 </div>
+
                 <Textarea
                   id="description"
                   value={shortDescription}
@@ -1113,21 +1129,29 @@ export function CreateProductDialog({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="location" className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" />
-                  Localização
-                </Label>
-                <Input
-                  id="location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="ex: Albergaria-a-Velha, Portugal"
-                />
-                {location && (
-                  <LocationMapEmbed location={location} height={180} showHeader={false} />
-                )}
-              </div>
+              <Collapsible open={showLocation} onOpenChange={setShowLocation}>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="w-full justify-between h-8 text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Localização {location ? `· ${location}` : "(opcional)"}
+                    </span>
+                    {showLocation ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-2 pt-2">
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="ex: Albergaria-a-Velha, Portugal"
+                  />
+                  {location && (
+                    <LocationMapEmbed location={location} height={180} showHeader={false} />
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+
 
               <Card className="p-4">
                 <ProductPublishingPanel
@@ -1504,39 +1528,6 @@ export function CreateProductDialog({
               />
             </TabsContent>
 
-            {/* ---------------- AI COMMERCE & SEO ---------------- */}
-            <TabsContent value="ai" className="space-y-4 pt-4">
-              <AICommerceAssistantPanel
-                productId={product?.id}
-                draft={{
-                  name,
-                  sku,
-                  brand,
-                  category,
-                  productType,
-                  shortDescription,
-                }}
-                onApplyName={handleApplyName}
-                onApplyCategory={handleApplyCategory}
-                onApplyShortDescription={handleApplyDescription}
-                onApplyStructured={setAiCommerceContent}
-                onApplyTechnical={handleApplyTechnical}
-              />
-
-              <SKUSearchPanel
-                sku={sku}
-                currentPrice={parseFloat(basePrice) || undefined}
-                searchTrigger={skuSearchTrigger}
-                onApplyName={handleApplyName}
-                onApplyPrice={handleApplyPrice}
-                onApplyDescription={handleApplyDescription}
-                onApplyCategory={handleApplyCategory}
-                onApplyImages={handleApplyImages}
-                onImagesFound={handleSkuImagesFound}
-                onApplySpecifications={handleApplySpecifications}
-                onApplyAll={handleApplyAll}
-              />
-            </TabsContent>
 
             {/* ---------------- FOTOS & VÍDEO ---------------- */}
             <TabsContent value="media" className="space-y-4 pt-4">
