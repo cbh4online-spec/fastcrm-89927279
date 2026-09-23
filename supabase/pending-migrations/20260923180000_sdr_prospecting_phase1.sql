@@ -426,6 +426,24 @@ BEGIN
   RETURN true;
 END $$;
 
+-- Interrupção temporária (pausa campanha/inscrição/sequência, flag, snooze, throttle):
+-- a tentativa continua 'reserved' sem lease (retomável pela mesma etapa), a reserva de
+-- quota NÃO consumida é libertada e o motivo fica registado. Nunca toca em tentativas
+-- accepted/ambiguous/dispatching/cancelled — só a partir de 'reserved'.
+CREATE OR REPLACE FUNCTION public.sdr_suspend_attempt(
+  p_attempt_id uuid, p_reason text, p_next_retry_at timestamptz DEFAULT NULL
+) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  UPDATE public.sdr_step_attempts
+     SET lease_expires_at = NULL, next_retry_at = p_next_retry_at,
+         last_error = 'suspended:' || left(coalesce(p_reason, 'unknown'), 200), updated_at = now()
+   WHERE id = p_attempt_id AND status = 'reserved';
+  IF NOT FOUND THEN RETURN false; END IF;
+  UPDATE public.sdr_send_reservations SET released = true
+   WHERE attempt_id = p_attempt_id AND consumed_at IS NULL AND NOT released;
+  RETURN true;
+END $$;
+
 -- ─── 7c. Fronteira de envio: consumo atómico e único por despacho/etapa do transporte
 -- A assinatura HMAC só prova origem; ESTE registo impede o replay do mesmo pedido
 -- assinado (cada transporte aceita um despacho uma única vez) e vincula o pedido
@@ -639,6 +657,8 @@ REVOKE ALL ON FUNCTION public.sdr_apply_email_optout(text) FROM PUBLIC, anon, au
 REVOKE ALL ON FUNCTION public.sdr_on_inbound_message() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.sdr_claim_step_attempt(uuid,uuid,uuid,uuid,integer,text,integer) TO service_role;
 GRANT EXECUTE ON FUNCTION public.sdr_begin_dispatch(uuid,text,integer,integer,text) TO service_role;
+REVOKE ALL ON FUNCTION public.sdr_suspend_attempt(uuid,text,timestamptz) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sdr_suspend_attempt(uuid,text,timestamptz) TO service_role;
 GRANT EXECUTE ON FUNCTION public.sdr_reserve_send_slot(uuid,text,text,uuid,integer,integer,integer,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.sdr_finish_attempt(uuid,text[],text,text,text,timestamptz) TO service_role;
 GRANT EXECUTE ON FUNCTION public.sdr_consume_transport_token(uuid,uuid,integer,text,text,text) TO service_role;
