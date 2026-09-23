@@ -640,11 +640,13 @@ export function ProductDetailDialog({
                         workspaceId={currentWorkspace?.id || ""}
                         productName={product.name}
                         sku={product.sku || undefined}
+                        brand={(product as any).brand || undefined}
                         category={product.category || undefined}
                         barcode={(product as any).barcode || undefined}
                         currentPrice={product.base_price}
                         costPrice={product.direct_cost || undefined}
                       />
+
                     </div>
                     )}
 
