@@ -44,20 +44,65 @@ function isThumbLike(url: string): boolean {
   return THUMB_RE.test(url)
 }
 
-function absolutize(raw: string, base: string): string | null {
+/** Dimensões declaradas no nome do ficheiro ou na query (?w=, ?width=, -200x200). */
+function declaredSize(url: string): number | null {
+  const sizes: number[] = []
+  const nameMatch = url.match(/[._-](\d{2,4})x(\d{2,4})(?=\.[a-z0-9]+(\?|$))/i)
+  if (nameMatch) sizes.push(Number(nameMatch[1]), Number(nameMatch[2]))
+  const qMatch = url.match(/[?&](?:w|width|h|height|sw|size)=(\d{2,4})/i)
+  if (qMatch) sizes.push(Number(qMatch[1]))
+  if (sizes.length === 0) return null
+  return Math.max(...sizes)
+}
+
+const MIN_DECLARED_PX = 250
+
+/**
+ * Chave canónica da imagem: mesmo ficheiro em várias resoluções colapsa numa só.
+ * Remove sufixos de dimensão/miniatura, parâmetros de corte e a query.
+ */
+function canonicalImageKey(url: string): string {
+  let u = url
   try {
-    const u = new URL(raw.trim(), base)
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
-    return u.toString()
-  } catch {
-    return null
+    const parsed = new URL(url)
+    u = parsed.origin + parsed.pathname
+  } catch { /* usa a string crua */ }
+  return u
+    .toLowerCase()
+    .replace(/[._-]\d{2,4}x\d{2,4}(?=\.[a-z0-9]+$)/i, '')
+    .replace(/[._-](thumb|thumbnail|small|mini|medium|large|xl|xxl|cart|home|zoom)\d*(?=\.[a-z0-9]+$)/i, '')
+    .replace(/[._-]\d{2,4}(?=\.[a-z0-9]+$)/i, '')
+    .replace(/\/(?:thumbs?|thumbnails?|small|medium|cache|resized)\//i, '/')
+}
+
+/** Pontuação de qualidade: maior é melhor. */
+function qualityScore(url: string): number {
+  const size = declaredSize(url)
+  let score = size ?? 1200 // sem dimensão declarada = provavelmente a original
+  if (isThumbLike(url)) score -= 2000
+  if (/original|full|large|zoom|1200|1500|2000/i.test(url)) score += 300
+  return score
+}
+
+/** Guarda apenas a melhor variante de cada imagem canónica. */
+function dedupeByQuality<T extends { url: string }>(list: T[]): T[] {
+  const best = new Map<string, T>()
+  for (const item of list) {
+    if (declaredSize(item.url) !== null && declaredSize(item.url)! < MIN_DECLARED_PX) continue
+    const key = canonicalImageKey(item.url)
+    const current = best.get(key)
+    if (!current || qualityScore(item.url) > qualityScore(current.url)) {
+      best.set(key, item)
+    }
   }
+  return Array.from(best.values())
 }
 
 /** Remove sufixos de miniatura (_thumb, _thumb2, -small…) para obter a original. */
 function upgradeThumb(url: string): string {
   return url.replace(/([._-])(thumb|thumbnail|small|mini)\d*(?=\.[a-z0-9]+(\?|$))/i, '')
 }
+
 
 /** Extrai URLs de imagem do HTML (src, data-src, data-original, srcset, href). */
 function extractImageUrlsFromHtml(html: string, base: string): string[] {
