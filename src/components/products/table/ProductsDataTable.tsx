@@ -498,7 +498,7 @@ export function ProductsDataTable({
                               key={col.id}
                               data-col-id={col.id}
                               className="relative select-none bg-background"
-                              style={{ width: w, minWidth: 60, maxWidth: 600 }}
+                              style={{ width: w, minWidth: w, maxWidth: w }}
                             >
                               <span className="truncate block pr-2">{col.label}</span>
                               <div
