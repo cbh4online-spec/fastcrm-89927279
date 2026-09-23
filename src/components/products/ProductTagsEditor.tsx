@@ -24,7 +24,7 @@ function getTagColor(tag: string): string {
   return TAG_COLORS[tag] || "bg-muted text-muted-foreground";
 }
 
-export function ProductTagsEditor({ productId }: ProductTagsEditorProps) {
+export function ProductTagsEditor({ productId, product }: ProductTagsEditorProps) {
   const { tags, isLoading, addTag, removeTag } = useProductTags(productId);
   const { data: workspaceTags } = useWorkspaceTags();
   const [inputValue, setInputValue] = useState("");
