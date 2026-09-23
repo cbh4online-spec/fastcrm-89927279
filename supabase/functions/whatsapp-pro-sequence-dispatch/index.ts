@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkStopConditions, hasUnresolvedVariables } from "./guards.ts";
+import { signWorkerRequest, workerModeConfigured } from "../_shared/sdr-engine/workerAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,15 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+
+  // Fail-closed: sem modo worker configurado não há envios autónomos (antes a
+  // chamada falhava sempre por falta de utilizador/messageType).
+  const workerEnv = { enabled: Deno.env.get("SDR_AUTONOMOUS_SEND_ENABLED"), secret: Deno.env.get("SDR_WORKER_SECRET") };
+  if (!workerModeConfigured(workerEnv)) {
+    return new Response(JSON.stringify({ disabled: true, processed: 0 }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const now = new Date().toISOString();
@@ -132,18 +142,31 @@ Deno.serve(async (req) => {
 
       // Send via whatsapp-pro-send
       try {
-        const { data: sendRes, error: sendErr } = await supabase.functions.invoke("whatsapp-pro-send", {
-          body: {
-            workspace_id: enr.workspace_id,
-            phone: enr.phone,
-            text: body,
-            media_url: step.media_url || undefined,
-            cta_url: step.cta_url || undefined,
-            cta_label: step.cta_label || undefined,
+        const { data: inst } = await supabase.rpc("ensure_whatsapp_provider_instance", { p_workspace_id: enr.workspace_id });
+        const payload = {
+          workspaceId: enr.workspace_id,
+          phone: enr.phone,
+          contactId: enr.contact_id ?? null,
+          messageType: "text",
+          text: body,
+          expectedInstanceId: inst ?? null,
+          metadata: { whatsapp_sequence_enrollment_id: enr.id, step_order: nextOrder },
+        };
+        const raw = JSON.stringify(payload);
+        const resp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-pro-send`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            ...(await signWorkerRequest(workerEnv.secret!, enr.workspace_id, raw)),
           },
+          body: raw,
         });
-
-        if (sendErr) throw sendErr;
+        const sendRes = await resp.json().catch(() => null);
+        // whatsapp-pro-send responde 200 + {error,fallback} em falhas: não é envio.
+        if (!resp.ok || sendRes?.success !== true) {
+          throw new Error(sendRes?.error ?? `whatsapp-pro-send_${resp.status}`);
+        }
 
         await supabase.from("whatsapp_sequence_logs").insert({
           enrollment_id: enr.id,
