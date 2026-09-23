@@ -101,6 +101,9 @@ export function BundlesManager() {
 
       {/* Bundle Items Dialog */}
       {selectedBundle && <BundleItemsDialog bundleId={selectedBundle} onClose={() => setSelectedBundle(null)} />}
+
+      <AICommerceBundleSuggestions open={showSuggestions} onOpenChange={setShowSuggestions} />
+      
     </div>
   );
 }
