@@ -154,6 +154,144 @@ interface ImageCandidate {
   url: string
   source_url: string
   source_title?: string
+  /** "Página oficial" quando vem da ficha do fabricante/distribuidor. */
+  origin?: string
+}
+
+// ─────────────────────────────────────────────────────────────
+// Descoberta "Page-First" através do conector Parallel
+// ─────────────────────────────────────────────────────────────
+
+const PARALLEL_GATEWAY = 'https://connector-gateway.lovable.dev/parallel'
+
+/** Domínios de fabricantes/distribuidores fiáveis (ordem de preferência). */
+const TRUSTED_DOMAINS = [
+  'visiotechsecurity.com',
+  'ajax.systems',
+  'hikvision.com',
+  'dahuasecurity.com',
+  'ajaxsystems.pt',
+]
+
+/** Extrai a referência/SKU da pesquisa (ex.: AJ-SOLOCOVER-GRA). */
+function extractSku(query: string): string | null {
+  const match = query.match(/\b[A-Z0-9]{2,}(?:-[A-Z0-9]{1,}){1,}\b/i)
+  if (!match) return null
+  const sku = match[0].toUpperCase()
+  if (sku.length < 6) return null
+  return sku
+}
+
+/** Primeira palavra significativa da pesquisa = marca provável. */
+function extractBrand(query: string): string | null {
+  const first = query.trim().split(/\s+/)[0]
+  if (!first || first.length < 3) return null
+  if (extractSku(first)) return null
+  return first
+}
+
+/**
+ * Procura a página oficial do produto (sub-segundo) usando o Parallel.
+ * Nunca inventa endereços: devolve apenas URLs retornados pelo motor.
+ */
+async function findOfficialProductPage(
+  sku: string,
+  brand: string | null,
+): Promise<{ url: string; title?: string } | null> {
+  const lovableKey = Deno.env.get('LOVABLE_API_KEY')
+  const connectionKey = Deno.env.get('PARALLEL_API_KEY')
+  if (!lovableKey || !connectionKey) return null
+
+  try {
+    const resp = await fetch(`${PARALLEL_GATEWAY}/v1/search`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        'X-Connection-Api-Key': connectionKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        objective:
+          `Localizar a página oficial do produto com a referência ${sku}` +
+          (brand ? ` da marca ${brand}` : '') +
+          ', num site de fabricante ou distribuidor profissional, com fotografias de catálogo.',
+        search_queries: [sku, brand ? `${sku} ${brand}` : `${sku} produto`],
+        mode: 'fast',
+        advanced_settings: { max_results: 8 },
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+
+    if (!resp.ok) {
+      const txt = await resp.text()
+      console.warn('[product-image-search] parallel search failed', resp.status, txt.slice(0, 300))
+      return null
+    }
+
+    const data = await resp.json().catch(() => null) as any
+    const results: any[] = data?.results ?? data?.data ?? []
+    if (Array.isArray(data?.warnings) && data.warnings.length) {
+      console.log('[product-image-search] parallel warnings', JSON.stringify(data.warnings).slice(0, 300))
+    }
+
+    const skuSlug = sku.toLowerCase()
+    const scored = results
+      .map((r) => ({ url: String(r?.url ?? ''), title: r?.title as string | undefined }))
+      .filter((r) => r.url.startsWith('http'))
+      .map((r) => {
+        const lower = r.url.toLowerCase()
+        let score = 0
+        if (TRUSTED_DOMAINS.some((d) => lower.includes(d))) score += 100
+        if (lower.includes(skuSlug)) score += 50
+        if (/\/(produto|product|products|p)\//.test(lower)) score += 10
+        return { ...r, score }
+      })
+      .filter((r) => r.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    return scored[0] ?? null
+  } catch (err) {
+    console.warn('[product-image-search] parallel search error', (err as Error).message)
+    return null
+  }
+}
+
+/** Termos fora do setor que contaminam a pesquisa aberta de imagens. */
+const NOISE_RE =
+  /(jersey|camisola|futebol|football|amsterdam|soccer|shirt|maillot|kit-\d|fanshop|talhadeira|chisel)/i
+
+/** Pesquisa sintética: só referência + marca, sem a frase longa em português. */
+function synthesizeQuery(query: string, sku: string | null, brand: string | null): string {
+  if (sku) return [sku, brand].filter(Boolean).join(' ')
+  return query
+}
+
+/** Débito de créditos no workspace do cliente (autoritário, server-side). */
+async function debitCredits(
+  admin: any,
+  workspaceId: string,
+  userId: string,
+  reference: string,
+): Promise<{ ok: boolean; message?: string; consumed?: number; balance?: number }> {
+  const bucket = Math.floor(Date.now() / 60000)
+  const { data, error } = await admin.rpc('consume_funnel_credits', {
+    p_workspace_id: workspaceId,
+    p_user_id: userId,
+    p_action_key: 'product_image_search',
+    p_idempotency_key: `product-image-search:${workspaceId}:${reference}:${bucket}`,
+    p_reference_type: 'product_image_search',
+    p_reference_id: null,
+    p_metadata: { reference, source: 'product-image-search' },
+  })
+  if (error) {
+    console.error('[product-image-search] consume_funnel_credits error:', error.message)
+    return { ok: false, message: 'Não foi possível validar os créditos.' }
+  }
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row?.success) {
+    return { ok: false, message: row?.message || 'Créditos insuficientes.' }
+  }
+  return { ok: true, consumed: row.credits_consumed, balance: row.balance_remaining }
 }
 
 Deno.serve(async (req) => {
@@ -218,13 +356,58 @@ Deno.serve(async (req) => {
       )
     }
 
+    // ── DÉBITO DE CRÉDITOS (server-side, antes de qualquer chamada paga) ──
+    const workspaceId: string | null = (body.workspace_id ?? '').toString().trim() || null
+    const userId = (claims.claims as Record<string, unknown>).sub as string | undefined
+    let creditsConsumed = 0
+    let creditsBalance: number | null = null
+
+    if (workspaceId && userId) {
+      const admin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      )
+      const debit = await debitCredits(admin, workspaceId, userId, (pageUrl ?? query).slice(0, 180))
+      if (!debit.ok) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: debit.message,
+            code: 'insufficient_credits',
+            candidates: [],
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+      creditsConsumed = debit.consumed ?? 0
+      creditsBalance = debit.balance ?? null
+    }
+
+    // ── Page-First: procurar a ficha oficial do produto pela referência ──
+    const sku = query ? extractSku(query) : null
+    const brand = query ? extractBrand(query) : null
+    let autoPage = false
+    let autoPageTitle: string | undefined
+
+    if (!pageUrl && sku) {
+      const official = await findOfficialProductPage(sku, brand)
+      if (official) {
+        pageUrl = official.url
+        autoPage = true
+        autoPageTitle = official.title
+        console.log('[product-image-search] page-first:', pageUrl)
+      }
+    }
+
     if (!Deno.env.get('FIRECRAWL_API_KEY') && !pageUrl) {
       return new Response(
         JSON.stringify({
           success: false,
           fallback: true,
-          error: 'Firecrawl não está configurado. Liga o conector em Connectors.',
+          error: 'A pesquisa de imagens não está configurada. Liga o conector em Connectors.',
           candidates: [],
+          credits_consumed: creditsConsumed,
+          credits_balance: creditsBalance,
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
@@ -233,7 +416,7 @@ Deno.serve(async (req) => {
     if (pageUrl) {
       const found: ImageCandidate[] = []
       const pageSeen = new Set<string>()
-      let pageTitle: string | undefined
+      let pageTitle: string | undefined = autoPageTitle
       let onlyThumbs = false
       let readFailed = false
 
@@ -328,13 +511,15 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (found.length === 0) {
+      if (found.length === 0 && !autoPage) {
         return new Response(
           JSON.stringify({
             success: false,
             fallback: true,
             candidates: [],
             page_url: pageUrl,
+            credits_consumed: creditsConsumed,
+            credits_balance: creditsBalance,
             error: readFailed
               ? 'Não foi possível ler esta página (pode estar protegida). Tenta a pesquisa por nome.'
               : onlyThumbs
@@ -345,39 +530,52 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Remove variantes da mesma imagem, mantendo só a de melhor resolução
-      const unique = dedupeByQuality(found)
+      if (found.length > 0) {
+        // Remove variantes da mesma imagem, mantendo só a de melhor resolução
+        const unique = dedupeByQuality(found)
 
-      // Coloca primeiro as imagens cujo endereço contém a referência do produto
-      const tokens = relevanceTokens(pageUrl, query)
-      if (tokens.length > 0) {
-        const score = (url: string) => {
-          const lower = url.toLowerCase()
-          return tokens.some((t) => lower.includes(t)) ? 0 : 1
+        // Coloca primeiro as imagens cujo endereço contém a referência do produto
+        const tokens = relevanceTokens(pageUrl, query)
+        if (tokens.length > 0) {
+          const score = (url: string) => {
+            const lower = url.toLowerCase()
+            return tokens.some((t) => lower.includes(t)) ? 0 : 1
+          }
+          unique.sort((a, b) => score(a.url) - score(b.url))
         }
-        unique.sort((a, b) => score(a.url) - score(b.url))
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            candidates: unique.slice(0, 24).map((c) => ({
+              ...c,
+              origin: c.origin ?? 'Página oficial',
+            })),
+            page_url: pageUrl,
+            credits_consumed: creditsConsumed,
+            credits_balance: creditsBalance,
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
       }
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          candidates: unique.slice(0, 24),
-          page_url: pageUrl,
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-
+      // A ficha automática não deu imagens: segue para a pesquisa aberta
+      console.log('[product-image-search] page-first sem imagens, fallback à pesquisa')
+      pageUrl = null
     }
 
 
-    // Estratégia primária: Firecrawl v2 /search com sources=["images"]
-    // — devolve imagens reais indexadas pelo Google sem precisar de scraping.
-    const searchQuery = query
-    console.log('[product-image-search] query:', searchQuery, 'limit:', limit)
+    // Estratégia secundária: pesquisa aberta de imagens, com consulta
+    // sintetizada (referência + marca) e descarte de resultados fora do setor.
+    const searchQuery = synthesizeQuery(query, sku, brand)
+    console.log('[product-image-search] query:', searchQuery, 'limit:', limit, 'sku:', sku)
 
     const apiKey = Deno.env.get('FIRECRAWL_API_KEY')!
     const candidates: ImageCandidate[] = []
     const seen = new Set<string>()
+
+    const isNoise = (url: string, title?: string) =>
+      NOISE_RE.test(url) || (title ? NOISE_RE.test(title) : false)
 
     try {
       const v2Resp = await fetch('https://api.firecrawl.dev/v2/search', {
@@ -399,11 +597,13 @@ Deno.serve(async (req) => {
         for (const img of images) {
           const url: string = img?.imageUrl || img?.url
           if (!url || !url.startsWith('http') || seen.has(url)) continue
+          if (isNoise(img?.url ?? url, img?.title)) continue
           seen.add(url)
           candidates.push({
             url,
             source_url: img?.url || url,
             source_title: img?.title,
+            origin: 'Pesquisa web',
           })
         }
         console.log('[product-image-search] v2 images:', candidates.length)
@@ -417,7 +617,7 @@ Deno.serve(async (req) => {
 
     // Fallback: se não vieram imagens, tenta scrape do top resultado web
     if (candidates.length === 0) {
-      const searchResult = await firecrawl.search(`${query} produto`, {
+      const searchResult = await firecrawl.search(`${searchQuery} produto`, {
         limit: 6,
         lang: 'pt',
         country: 'pt',
@@ -426,6 +626,7 @@ Deno.serve(async (req) => {
       if (searchResult.success && searchResult.data?.length) {
         await Promise.all(
           searchResult.data.slice(0, 6).map(async (r) => {
+            if (isNoise(r.url, r.title)) return
             try {
               const scrape = await firecrawl.scrape(r.url, {
                 formats: ['links'],
@@ -437,15 +638,15 @@ Deno.serve(async (req) => {
               const ogImage = (scrape.data.metadata?.ogImage as string) || null
               if (ogImage && ogImage.startsWith('http') && !seen.has(ogImage)) {
                 seen.add(ogImage)
-                candidates.push({ url: ogImage, source_url: r.url, source_title: r.title })
+                candidates.push({ url: ogImage, source_url: r.url, source_title: r.title, origin: 'Pesquisa web' })
               }
 
               const links = (scrape.data as any).links as string[] | undefined
               if (Array.isArray(links)) {
                 for (const link of links) {
-                  if (looksLikeImage(link) && !seen.has(link)) {
+                  if (looksLikeImage(link) && !seen.has(link) && !isNoise(link, r.title)) {
                     seen.add(link)
-                    candidates.push({ url: link, source_url: r.url, source_title: r.title })
+                    candidates.push({ url: link, source_url: r.url, source_title: r.title, origin: 'Pesquisa web' })
                     if (candidates.length >= 24) break
                   }
                 }
@@ -465,6 +666,8 @@ Deno.serve(async (req) => {
         success: true,
         candidates: uniqueCandidates.slice(0, 24),
         query: searchQuery,
+        credits_consumed: creditsConsumed,
+        credits_balance: creditsBalance,
         warning:
           uniqueCandidates.length === 0 ? 'Sem imagens encontradas para esta pesquisa' : undefined,
       }),
