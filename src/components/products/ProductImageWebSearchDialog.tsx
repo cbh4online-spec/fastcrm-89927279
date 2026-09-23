@@ -407,6 +407,14 @@ export function ProductImageWebSearchDialog({
                         >
                           {isPicked ? <Check className="h-3 w-3" /> : "+"}
                         </div>
+                        {c.origin && (
+                          <Badge
+                            variant={c.origin === "Página oficial" ? "default" : "secondary"}
+                            className="absolute top-1 left-1 text-[10px] px-1.5 py-0"
+                          >
+                            {c.origin}
+                          </Badge>
+                        )}
                         <a
                           href={c.source_url}
                           target="_blank"
