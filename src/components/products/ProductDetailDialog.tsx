@@ -714,7 +714,7 @@ export function ProductDetailDialog({
                     <ProductOCRContentSection productId={product.id} />
 
                     {/* Tags */}
-                    <ProductTagsEditor productId={product.id} />
+                    <ProductTagsEditor productId={product.id} product={product} />
 
                     {/* Location Map */}
                     {(product as any).location && (

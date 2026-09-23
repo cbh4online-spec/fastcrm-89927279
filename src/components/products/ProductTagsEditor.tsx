@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { X, Plus, Tag } from "lucide-react";
 import { useProductTags, useWorkspaceTags } from "@/hooks/useProductTags";
 import { Separator } from "@/components/ui/separator";
+import { ProductAITagSuggestions } from "./ProductAITagSuggestions";
 
 interface ProductTagsEditorProps {
   productId: string;
+  /** Produto completo — usado para sugerir etiquetas com base em dados reais */
+  product?: any;
 }
 
 const TAG_COLORS: Record<string, string> = {
@@ -22,7 +25,7 @@ function getTagColor(tag: string): string {
   return TAG_COLORS[tag] || "bg-muted text-muted-foreground";
 }
 
-export function ProductTagsEditor({ productId }: ProductTagsEditorProps) {
+export function ProductTagsEditor({ productId, product }: ProductTagsEditorProps) {
   const { tags, isLoading, addTag, removeTag } = useProductTags(productId);
   const { data: workspaceTags } = useWorkspaceTags();
   const [inputValue, setInputValue] = useState("");
@@ -143,6 +146,16 @@ export function ProductTagsEditor({ productId }: ProductTagsEditorProps) {
             </Button>
           ))}
         </div>
+      )}
+
+      {/* Sugestões AI Commerce — só aplicadas após aprovação */}
+      {product && (
+        <ProductAITagSuggestions
+          product={product}
+          existingTags={existingTagNames}
+          isApplying={addTag.isPending}
+          onApply={(selected) => selected.forEach((t) => handleAdd(t))}
+        />
       )}
     </div>
   );

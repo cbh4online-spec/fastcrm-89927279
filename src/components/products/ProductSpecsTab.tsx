@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -56,6 +56,7 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
   const [extractDialogOpen, setExtractDialogOpen] = useState(false);
   const [extractText, setExtractText] = useState("");
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [importedFromSheet, setImportedFromSheet] = useState(0);
 
   // Fetch specs
   const { data: savedSpecs, isLoading } = useQuery({
@@ -86,22 +87,50 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
     enabled: !!workspaceId,
   });
 
+  // Especificações da ficha do produto (fonte canónica: products.specifications)
+  const sheetSpecs = useMemo<Record<string, string>>(
+    () => (product?.specifications && typeof product.specifications === "object"
+      ? product.specifications
+      : {}),
+    [product?.specifications]
+  );
+
   useEffect(() => {
-    if (savedSpecs) {
-      setSpecs(savedSpecs.map((s: any) => ({
-        id: s.id,
-        spec_key: s.spec_key,
-        spec_value: s.spec_value,
-        unit: s.unit || "",
-        spec_group: s.spec_group || "Geral",
-        display_order: s.display_order || 0,
-      })));
-      // Open all groups by default
-      const groups = new Set(savedSpecs.map((s: any) => s.spec_group || "Geral"));
-      setOpenGroups(Object.fromEntries([...groups].map(g => [g, true])));
-      setHasChanges(false);
+    if (!savedSpecs) return;
+
+    if (savedSpecs.length === 0 && Object.keys(sheetSpecs).length > 0) {
+      // Sincroniza a partir da ficha do produto — sem duplicar dados
+      const imported: Spec[] = Object.entries(sheetSpecs)
+        .filter(([key, value]) => !!key && !!value)
+        .map(([key, value], i) => ({
+          spec_key: key,
+          spec_value: String(value),
+          unit: "",
+          spec_group: "Técnico",
+          display_order: i,
+          isNew: true,
+        }));
+      setSpecs(imported);
+      setOpenGroups({ "Técnico": true });
+      setImportedFromSheet(imported.length);
+      setHasChanges(true);
+      return;
     }
-  }, [savedSpecs]);
+
+    setSpecs(savedSpecs.map((s: any) => ({
+      id: s.id,
+      spec_key: s.spec_key,
+      spec_value: s.spec_value,
+      unit: s.unit || "",
+      spec_group: s.spec_group || "Geral",
+      display_order: s.display_order || 0,
+    })));
+    // Open all groups by default
+    const groups = new Set(savedSpecs.map((s: any) => s.spec_group || "Geral"));
+    setOpenGroups(Object.fromEntries([...groups].map(g => [g, true])));
+    setImportedFromSheet(0);
+    setHasChanges(false);
+  }, [savedSpecs, sheetSpecs]);
 
   // Save mutation
   const saveMutation = useMutation({
@@ -131,11 +160,28 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
           .insert(rows);
         if (error) throw error;
       }
+
+      // Mantém a ficha do produto em sincronia (fonte única de leitura)
+      const sheetMap: Record<string, string> = {};
+      specs.forEach((s) => {
+        if (!s.spec_key?.trim() || !s.spec_value?.trim()) return;
+        sheetMap[s.spec_key.trim()] = s.unit
+          ? `${s.spec_value.trim()} ${s.unit.trim()}`.trim()
+          : s.spec_value.trim();
+      });
+      const { error: syncError } = await supabase
+        .from("products")
+        .update({ specifications: sheetMap } as any)
+        .eq("id", product.id)
+        .eq("workspace_id", workspaceId);
+      if (syncError) throw syncError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["product-specs", product.id] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      setImportedFromSheet(0);
       setHasChanges(false);
-      toast.success("Especificações guardadas");
+      toast.success("Especificações guardadas e sincronizadas com a ficha");
     },
     onError: () => toast.error("Erro ao guardar"),
   });
@@ -325,6 +371,13 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
 
   return (
     <div className="space-y-4">
+      {importedFromSheet > 0 && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+          {importedFromSheet} especificações vindas da ficha do produto. Confirme e
+          guarde para ficarem sincronizadas nas duas vistas.
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <Button size="sm" variant="outline" onClick={() => addSpec()}>
