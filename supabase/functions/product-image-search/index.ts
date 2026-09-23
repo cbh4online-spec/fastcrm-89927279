@@ -38,7 +38,18 @@ function looksLikeImage(url: string): boolean {
   return IMAGE_EXT_RE.test(url)
 }
 
+function absolutize(raw: string, base: string): string | null {
+  try {
+    const u = new URL(raw.trim(), base)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
 const THUMB_RE = /(_|-)(\d{1,3})x(\d{1,3})\.|thumb|thumbnail|mini|small|swatch/i
+
 
 function isThumbLike(url: string): boolean {
   return THUMB_RE.test(url)
