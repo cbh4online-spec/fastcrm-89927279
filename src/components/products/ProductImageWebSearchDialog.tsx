@@ -108,6 +108,22 @@ export function ProductImageWebSearchDialog({
     setWarning(null);
   };
 
+  /** Atualiza o saldo depois de um débito e sinaliza saldo esgotado. */
+  const handleCredits = useCallback(
+    (data: { code?: string; error?: string; credits_consumed?: number } | null) => {
+      if (data?.credits_consumed) {
+        queryClient.invalidateQueries({ queryKey: ["credit-wallet", currentWorkspace?.id] });
+        queryClient.invalidateQueries({ queryKey: ["credit-ledger", currentWorkspace?.id] });
+      }
+      if (data?.code === "insufficient_credits") {
+        triggerNoCreditsDialog({ actionLabel: "Pesquisa de imagens", creditsNeeded: 1 });
+        return true;
+      }
+      return false;
+    },
+    [queryClient, currentWorkspace?.id],
+  );
+
   const runSearch = useCallback(async () => {
     if (!query.trim()) {
       toast.error("Indica o nome do produto a pesquisar");
@@ -117,9 +133,10 @@ export function ProductImageWebSearchDialog({
     resetResults();
     try {
       const { data, error } = await supabase.functions.invoke("product-image-search", {
-        body: { query: query.trim(), limit: 5 },
+        body: { query: query.trim(), limit: 5, workspace_id: currentWorkspace?.id },
       });
       if (error) throw new Error(error.message);
+      if (handleCredits(data)) return;
       if (!data?.success && data?.error) setWarning(data.error);
       const list: Candidate[] = Array.isArray(data?.candidates) ? data.candidates : [];
       setCandidates(dedupeCandidates(list));
@@ -132,7 +149,7 @@ export function ProductImageWebSearchDialog({
     } finally {
       setSearching(false);
     }
-  }, [query]);
+  }, [query, currentWorkspace?.id, handleCredits]);
 
   const runPageImport = useCallback(async () => {
     const url = pageUrl.trim();
@@ -144,9 +161,14 @@ export function ProductImageWebSearchDialog({
     resetResults();
     try {
       const { data, error } = await supabase.functions.invoke("product-image-search", {
-        body: { pageUrl: url, query: query.trim() || undefined },
+        body: {
+          pageUrl: url,
+          query: query.trim() || undefined,
+          workspace_id: currentWorkspace?.id,
+        },
       });
       if (error) throw new Error(error.message);
+      if (handleCredits(data)) return;
       if (!data?.success && data?.error) setWarning(data.error);
       const list: Candidate[] = Array.isArray(data?.candidates) ? data.candidates : [];
       setCandidates(dedupeCandidates(list));
@@ -158,7 +180,7 @@ export function ProductImageWebSearchDialog({
     } finally {
       setSearching(false);
     }
-  }, [pageUrl, query]);
+  }, [pageUrl, query, currentWorkspace?.id, handleCredits]);
 
   const togglePick = (url: string) => {
     setPicked((prev) => {
