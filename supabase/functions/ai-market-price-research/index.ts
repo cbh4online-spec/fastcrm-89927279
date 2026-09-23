@@ -281,7 +281,7 @@ async function enrichWithStructuredPrices(pages: PageHit[]): Promise<PageHit[]> 
       }
     })
   );
-  return [...enriched, ...pages.slice(8)];
+  return [...enriched, ...pages.slice(12)];
 }
 
 /** Débito autoritário de créditos no workspace do cliente. */
