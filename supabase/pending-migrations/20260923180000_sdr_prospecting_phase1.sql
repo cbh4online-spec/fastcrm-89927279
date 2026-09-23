@@ -52,13 +52,47 @@ ALTER TABLE public.sdr_enrollments
   ADD COLUMN IF NOT EXISTS conversation_id uuid REFERENCES public.conversations(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS last_attempt_at timestamptz;
 
--- O CHECK original não incluía 'paused' nem 'completed', que o código já usava.
--- Substituído por um superconjunto (nenhuma linha existente passa a ser inválida).
-ALTER TABLE public.sdr_enrollments DROP CONSTRAINT IF EXISTS sdr_enrollments_status_check;
-ALTER TABLE public.sdr_enrollments ADD CONSTRAINT sdr_enrollments_status_check CHECK (status = ANY (ARRAY[
-  'enrolled','enriching','sequenced','paused','replied','positive_reply','meeting_set',
-  'converted','opted_out','failed','completed','blocked'
-]::text[]));
+-- Compatibilização de estados (confirmada por SELECT no esquema real):
+-- o CHECK em produção admite apenas
+--   enrolled, enriching, sequenced, replied, positive_reply, meeting_set,
+--   converted, opted_out, failed
+-- mas o código do motor usa também 'paused', 'completed' e 'blocked'.
+-- Substituição por um SUPERCONJUNTO estrito: nenhuma linha existente passa a
+-- ser inválida e nenhum estado antigo é removido. Enquanto esta migração não
+-- for aplicada, o executor devolve schema_not_ready e nunca escreve estes
+-- estados (fail-closed) — ver detectPhase1Schema em _shared/sdr-engine.
+DO $do$
+DECLARE v_def text;
+BEGIN
+  SELECT pg_get_constraintdef(c.oid) INTO v_def
+    FROM pg_constraint c
+    JOIN pg_class t ON t.oid = c.conrelid
+    JOIN pg_namespace n ON n.oid = t.relnamespace
+   WHERE n.nspname = 'public' AND t.relname = 'sdr_enrollments'
+     AND c.conname = 'sdr_enrollments_status_check';
+
+  IF v_def IS NULL
+     OR v_def NOT LIKE '%paused%'
+     OR v_def NOT LIKE '%completed%'
+     OR v_def NOT LIKE '%blocked%' THEN
+    -- Sanidade: nunca aplicar se existir algum estado fora do superconjunto.
+    IF EXISTS (
+      SELECT 1 FROM public.sdr_enrollments
+       WHERE status IS NOT NULL AND status <> ALL (ARRAY[
+         'enrolled','enriching','sequenced','paused','replied','positive_reply',
+         'meeting_set','converted','opted_out','failed','completed','blocked']::text[])
+    ) THEN
+      RAISE EXCEPTION 'sdr_enrollments contém estados fora do superconjunto previsto; revisão manual necessária';
+    END IF;
+
+    ALTER TABLE public.sdr_enrollments DROP CONSTRAINT IF EXISTS sdr_enrollments_status_check;
+    ALTER TABLE public.sdr_enrollments ADD CONSTRAINT sdr_enrollments_status_check CHECK (status = ANY (ARRAY[
+      'enrolled','enriching','sequenced','paused','replied','positive_reply','meeting_set',
+      'converted','opted_out','failed','completed','blocked'
+    ]::text[]));
+  END IF;
+END $do$;
+
 
 -- Backfill: só a inscrição mais antiga por (campanha, identidade) recebe a chave.
 WITH ranked AS (
