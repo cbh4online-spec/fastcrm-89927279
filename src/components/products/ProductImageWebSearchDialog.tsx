@@ -23,6 +23,41 @@ interface Candidate {
   source_title?: string;
 }
 
+const MIN_IMAGE_PX = 200;
+
+/** Chave canónica: a mesma foto em várias resoluções colapsa numa só entrada. */
+function canonicalImageKey(url: string): string {
+  let base = url;
+  try {
+    const parsed = new URL(url);
+    base = parsed.origin + parsed.pathname;
+  } catch {
+    /* usa a string crua */
+  }
+  return base
+    .toLowerCase()
+    .replace(/[._-]\d{2,4}x\d{2,4}(?=\.[a-z0-9]+$)/i, "")
+    .replace(
+      /[._-](thumb|thumbnail|small|mini|medium|large|xl|xxl|cart|home|zoom)\d*(?=\.[a-z0-9]+$)/i,
+      "",
+    )
+    .replace(/[._-]\d{2,4}(?=\.[a-z0-9]+$)/i, "")
+    .replace(/\/(?:thumbs?|thumbnails?|small|medium|cache|resized)\//i, "/");
+}
+
+function dedupeCandidates(list: Candidate[]): Candidate[] {
+  const seen = new Set<string>();
+  const out: Candidate[] = [];
+  for (const c of list) {
+    const key = canonicalImageKey(c.url);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(c);
+  }
+  return out;
+}
+
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
