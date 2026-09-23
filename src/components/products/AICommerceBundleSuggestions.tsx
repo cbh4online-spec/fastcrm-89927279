@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Sparkles, Package, Loader2, ShieldCheck, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,26 +31,9 @@ function euro(value: number) {
 export function AICommerceBundleSuggestions({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
-  const [brand, setBrand] = useState<string>("all");
   const [creatingKey, setCreatingKey] = useState<string | null>(null);
 
-  const { data: suggestions, isLoading } = useBundleSuggestions({
-    brand: brand === "all" ? null : brand,
-    enabled: open,
-  });
-
-  const { data: allSuggestions } = useBundleSuggestions({ enabled: open });
-  const brands = useMemo(() => {
-    const set = new Set<string>();
-    (allSuggestions || []).forEach((s) => {
-      const anchor = s.items.find((i) => i.role === "anchor");
-      if (anchor?.name) {
-        const parts = s.name.split(" ");
-        if (parts.length) set.add(parts[parts.length - 1]);
-      }
-    });
-    return Array.from(set);
-  }, [allSuggestions]);
+  const { data: suggestions, isLoading } = useBundleSuggestions({ enabled: open });
 
   const createBundle = async (suggestion: BundleSuggestion) => {
     if (!currentWorkspace?.id) return;
