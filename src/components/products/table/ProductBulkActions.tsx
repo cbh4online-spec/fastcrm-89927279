@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown, ArrowUpDown } from "lucide-react";
+import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown, ArrowUpDown, Search } from "lucide-react";
 import { BulkCostDialog } from "../BulkCostDialog";
 
 interface ProductBulkActionsProps {
@@ -31,7 +31,9 @@ interface ProductBulkActionsProps {
   onBulkPublish?: (published: boolean) => void;
   onBulkDuplicate?: () => void;
   onCompare?: () => void;
+  onBulkMarketResearch?: () => void;
 }
+
 
 export function ProductBulkActions({
   selectedIds,
