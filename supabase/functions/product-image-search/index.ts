@@ -345,6 +345,9 @@ Deno.serve(async (req) => {
         )
       }
 
+      // Remove variantes da mesma imagem, mantendo só a de melhor resolução
+      const unique = dedupeByQuality(found)
+
       // Coloca primeiro as imagens cujo endereço contém a referência do produto
       const tokens = relevanceTokens(pageUrl, query)
       if (tokens.length > 0) {
@@ -352,17 +355,18 @@ Deno.serve(async (req) => {
           const lower = url.toLowerCase()
           return tokens.some((t) => lower.includes(t)) ? 0 : 1
         }
-        found.sort((a, b) => score(a.url) - score(b.url))
+        unique.sort((a, b) => score(a.url) - score(b.url))
       }
 
       return new Response(
         JSON.stringify({
           success: true,
-          candidates: found.slice(0, 24),
+          candidates: unique.slice(0, 24),
           page_url: pageUrl,
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
+
     }
 
 
