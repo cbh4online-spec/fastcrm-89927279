@@ -181,6 +181,8 @@ export function useRunMarketResearch() {
       barcode?: string;
       cost_price?: number;
       min_margin_pct?: number;
+      vat_rate?: number;
+
     }) => {
       const { data, error } = await supabase.functions.invoke("ai-market-price-research", {
         body: params,
