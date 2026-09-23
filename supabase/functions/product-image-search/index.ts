@@ -511,13 +511,15 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (found.length === 0) {
+      if (found.length === 0 && !autoPage) {
         return new Response(
           JSON.stringify({
             success: false,
             fallback: true,
             candidates: [],
             page_url: pageUrl,
+            credits_consumed: creditsConsumed,
+            credits_balance: creditsBalance,
             error: readFailed
               ? 'Não foi possível ler esta página (pode estar protegida). Tenta a pesquisa por nome.'
               : onlyThumbs
@@ -528,28 +530,38 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Remove variantes da mesma imagem, mantendo só a de melhor resolução
-      const unique = dedupeByQuality(found)
+      if (found.length > 0) {
+        // Remove variantes da mesma imagem, mantendo só a de melhor resolução
+        const unique = dedupeByQuality(found)
 
-      // Coloca primeiro as imagens cujo endereço contém a referência do produto
-      const tokens = relevanceTokens(pageUrl, query)
-      if (tokens.length > 0) {
-        const score = (url: string) => {
-          const lower = url.toLowerCase()
-          return tokens.some((t) => lower.includes(t)) ? 0 : 1
+        // Coloca primeiro as imagens cujo endereço contém a referência do produto
+        const tokens = relevanceTokens(pageUrl, query)
+        if (tokens.length > 0) {
+          const score = (url: string) => {
+            const lower = url.toLowerCase()
+            return tokens.some((t) => lower.includes(t)) ? 0 : 1
+          }
+          unique.sort((a, b) => score(a.url) - score(b.url))
         }
-        unique.sort((a, b) => score(a.url) - score(b.url))
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            candidates: unique.slice(0, 24).map((c) => ({
+              ...c,
+              origin: c.origin ?? 'Página oficial',
+            })),
+            page_url: pageUrl,
+            credits_consumed: creditsConsumed,
+            credits_balance: creditsBalance,
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
       }
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          candidates: unique.slice(0, 24),
-          page_url: pageUrl,
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-
+      // A ficha automática não deu imagens: segue para a pesquisa aberta
+      console.log('[product-image-search] page-first sem imagens, fallback à pesquisa')
+      pageUrl = null
     }
 
 
