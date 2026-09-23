@@ -179,7 +179,25 @@ export function ProductsCatalogSummary({
 
       {(issueChips.length > 0 || true) && (
         <div className="flex items-center gap-2 flex-wrap">
+          {productIndicators.pendingUpdate > 0 && (
+            <button
+              onClick={() => onFilterSelect("smart_pending_update")}
+              aria-pressed={activeFilterId === "smart_pending_update"}
+              title="Produtos que precisam de preço, custo, imagem, SKU ou nova pesquisa de mercado"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 h-8 text-xs font-semibold transition-colors",
+                activeFilterId === "smart_pending_update"
+                  ? "border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                  : "border-amber-500/40 bg-amber-500/5 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+              )}
+            >
+              <Clock className="h-3 w-3" />
+              <span>Pendentes de atualização</span>
+              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] rounded-full ml-0.5">{productIndicators.pendingUpdate}</Badge>
+            </button>
+          )}
           {issueChips.map(chip => {
+
             const active = activeFilterId === chip.id;
             return (
               <button
