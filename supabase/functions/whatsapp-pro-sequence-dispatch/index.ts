@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+export const PHASE1_WA_SEQUENCE_AUTONOMOUS_BLOCKED: boolean = true;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -18,6 +20,15 @@ Deno.serve(async (req) => {
   // Fail-closed: sem modo worker configurado não há envios autónomos (antes a
   // chamada falhava sempre por falta de utilizador/messageType).
   const workerEnv = { enabled: Deno.env.get("SDR_AUTONOMOUS_SEND_ENABLED"), secret: Deno.env.get("SDR_WORKER_SECRET") };
+  // Fase 1: via autónoma BLOQUEADA explicitamente, mesmo com a flag global SDR.
+  // Motivo: ainda não reserva a quota partilhada por conta com o SDR, não respeita
+  // aquecimento/consentimento de forma comprovada e não tem opt-in por espaço/sequência.
+  // A flag SDR_AUTONOMOUS_SEND_ENABLED não pode, por si só, activar sequências de outros espaços.
+  if (PHASE1_WA_SEQUENCE_AUTONOMOUS_BLOCKED) {
+    return new Response(JSON.stringify({ disabled: true, reason: "blocked_phase1_shared_quota_not_enforced", processed: 0 }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   if (!workerModeConfigured(workerEnv)) {
     return new Response(JSON.stringify({ disabled: true, processed: 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { zapiCall, safeJson, type ZapiCredentials } from '../_shared/zapi.ts';
 import { verifyWorkerRequest } from '../_shared/sdr-engine/workerAuth.ts';
+import { consumeWorkerDispatch, parseSdrBinding } from '../_shared/sdr-engine/transportGuard.ts';
 
 interface ButtonOption {
   id?: string;
@@ -92,7 +93,14 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     if (worker.ok) {
-      if (worker.workspaceId !== workspaceId || groupId) return jsonRes({ error: 'worker_payload_not_allowed' }, 403);
+      if (worker.workspaceId !== workspaceId || groupId || !phone || media || buttons?.length) {
+        return jsonRes({ error: 'worker_payload_not_allowed' }, 403);
+      }
+      // Recibo único por despacho neste transporte: um pedido assinado repetido é recusado.
+      const consumed = await consumeWorkerDispatch(admin, {
+        workspaceId, binding: parseSdrBinding((body as any).sdr), stage: 'whatsapp-zapi-send', channel: 'whatsapp', recipient: phone,
+      });
+      if (!consumed.ok) return jsonRes({ error: 'worker_dispatch_rejected', reason: (consumed as { reason: string }).reason }, 409);
     } else {
       // Verify workspace membership (with super_admin bypass)
       const { data: membership } = await admin
