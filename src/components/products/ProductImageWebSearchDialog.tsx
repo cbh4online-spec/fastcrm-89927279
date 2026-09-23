@@ -271,7 +271,8 @@ export function ProductImageWebSearchDialog({
             Pesquisar imagens online
           </DialogTitle>
           <DialogDescription>
-            Imagens reais extraídas de páginas web públicas. Não são geradas por IA.
+            Imagens reais extraídas de páginas web públicas. Não são geradas por IA. Cada pesquisa
+            consome 1 crédito.
           </DialogDescription>
         </DialogHeader>
 
