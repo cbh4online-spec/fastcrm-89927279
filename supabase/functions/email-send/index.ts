@@ -1,5 +1,6 @@
 
 import { createClient } from "@supabase/supabase-js";
+import { verifyWorkerRequest } from "../_shared/sdr-engine/workerAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -355,19 +356,34 @@ Deno.serve(async (req) => {
     }
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Verify user
-    const { data: { user }, error: authError } = await createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    ).auth.getUser();
-    
-    if (authError || !user) {
-      throw new Error("Unauthorized");
+    const rawBody = await req.text();
+
+    // Modo worker (SDR Fase 1): só com assinatura HMAC válida e flag activa.
+    // Sem cabeçalho de worker, o fluxo manual mantém-se: getUser + membership.
+    const worker = await verifyWorkerRequest((h) => req.headers.get(h), rawBody, {
+      enabled: Deno.env.get("SDR_AUTONOMOUS_SEND_ENABLED"),
+      secret: Deno.env.get("SDR_WORKER_SECRET"),
+    });
+    if (!worker.ok && worker.present) {
+      return new Response(JSON.stringify({ error: "worker_unauthorized", reason: worker.reason }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const reqBody: SendEmailRequest = await req.json();
+    let user: { id: string } | null = null;
+    if (!worker.ok) {
+      const { data: { user: u }, error: authError } = await createClient(
+        supabaseUrl,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      ).auth.getUser();
+      if (authError || !u) {
+        throw new Error("Unauthorized");
+      }
+      user = u;
+    }
+
+    const reqBody: SendEmailRequest = JSON.parse(rawBody);
     const { 
       connectionId, 
       workspaceId, 
@@ -380,16 +396,37 @@ Deno.serve(async (req) => {
       references 
     } = reqBody;
 
-    // Verify workspace membership
-    const { data: member } = await supabaseClient
-      .from("workspace_members")
-      .select("role")
+    if (worker.ok) {
+      if (worker.workspaceId !== workspaceId) {
+        return new Response(JSON.stringify({ error: "worker_workspace_mismatch" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      // Verify workspace membership
+      const { data: member } = await supabaseClient
+        .from("workspace_members")
+        .select("role")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", user!.id)
+        .single();
+      
+      if (!member) {
+        throw new Error("Permission denied");
+      }
+    }
+
+    // A conversa tem de pertencer ao mesmo workspace (manual e worker).
+    const { data: convCheck } = await supabaseClient
+      .from("conversations")
+      .select("id")
+      .eq("id", conversationId)
       .eq("workspace_id", workspaceId)
-      .eq("user_id", user.id)
-      .single();
-    
-    if (!member) {
-      throw new Error("Permission denied");
+      .maybeSingle();
+    if (!convCheck) {
+      return new Response(JSON.stringify({ error: "conversation_not_in_workspace" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Get email connection
@@ -506,7 +543,7 @@ Deno.serve(async (req) => {
         workspace_id: workspaceId,
         direction: "outbound",
         content: isHtml ? htmlBody : emailBodyRaw, // Store the formatted content
-        sender_id: user.id,
+        sender_id: user?.id ?? null,
         sent_at: new Date().toISOString(),
         delivered_at: new Date().toISOString(),
         email_message_id: messageId,
@@ -530,7 +567,8 @@ Deno.serve(async (req) => {
         unread_count: 0,
         last_message_preview: textBody.substring(0, 100),
       })
-      .eq("id", conversationId);
+      .eq("id", conversationId)
+      .eq("workspace_id", workspaceId);
 
     // Log activity with full details
     await supabaseClient
@@ -553,7 +591,7 @@ Deno.serve(async (req) => {
           is_html: isHtml,
           html_body: htmlBody.substring(0, 5000), // Store for debugging/audit
         },
-        performed_by: user.id,
+        performed_by: user?.id ?? null,
       });
 
     return new Response(
