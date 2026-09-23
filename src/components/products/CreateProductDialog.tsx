@@ -26,6 +26,8 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Package, ChevronDown, ChevronUp, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle, Save, MapPin, ScanLine } from "lucide-react";
 import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
+import { MarketResearchPanel } from "./pricing/MarketResearchPanel";
+
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import {
   AlertDialog,
@@ -1208,6 +1210,24 @@ export function CreateProductDialog({
                 disabled={isBundle && bundlePriceMode === "auto"}
                 placeholder={isBundle && bundlePriceMode === "auto" ? "Calculado automaticamente" : "0.00"}
               />
+
+              {isEditing && product && (
+                <MarketResearchPanel
+                  productId={product.id}
+                  workspaceId={product.workspace_id || ""}
+                  productName={name}
+                  sku={sku || undefined}
+                  brand={brand || undefined}
+                  category={category || undefined}
+                  currentPrice={parseFloat(basePrice) || undefined}
+                  costPrice={parseFloat(directCost) || undefined}
+                  onApplyPrice={(price) => {
+                    setBasePrice(price.toFixed(2));
+                    setTaxIncluded(false);
+                  }}
+                />
+              )}
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

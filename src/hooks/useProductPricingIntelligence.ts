@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
+
 
 const sb = supabase as any;
 
@@ -49,18 +51,35 @@ export interface MarketResearch {
   model_used: string | null;
 }
 
+export interface MarketCompetitor {
+  name: string;
+  price: number;
+  url?: string;
+  vat_included?: boolean | null;
+  collected_at?: string;
+}
+
 export interface MarketResearchResult {
   success: boolean;
+  /** true apenas quando existem preços reais extraídos de fontes verificáveis */
+  grounded?: boolean;
   market_avg_price?: number;
   market_min_price?: number;
   market_max_price?: number;
   suggested_price?: number;
   suggested_margin_pct?: number;
-  competitors?: Array<{ name: string; price: number; url?: string }>;
+  /** true quando acompanhar o concorrente mais barato violaria a margem mínima */
+  margin_blocked?: boolean;
+  min_margin_pct?: number;
+  competitors?: MarketCompetitor[];
+  sources?: string[];
   market_summary?: string;
   price_position?: "below_market" | "at_market" | "above_market";
+  credits_consumed?: number;
+  credits_balance?: number;
   error?: string;
 }
+
 
 // ---- Pricing Rules ----
 
@@ -151,26 +170,56 @@ export function useRunMarketResearch() {
       workspace_id: string;
       product_name: string;
       sku?: string;
+      brand?: string;
       category?: string;
       barcode?: string;
       cost_price?: number;
+      min_margin_pct?: number;
     }) => {
       const { data, error } = await supabase.functions.invoke("ai-market-price-research", {
         body: params,
       });
-      if (error) throw error;
+      if (error) {
+        // Créditos insuficientes chegam como erro HTTP 402 com corpo próprio
+        const ctx = (error as any)?.context;
+        const body = typeof ctx?.body === "string" ? safeParse(ctx.body) : ctx?.body;
+        if (body?.code === "insufficient_credits") {
+          triggerNoCreditsDialog({ actionLabel: "Pesquisa de preços de mercado", creditsNeeded: 1 });
+          throw new Error(body.error || "Créditos insuficientes.");
+        }
+        throw error;
+      }
+      if (data?.code === "insufficient_credits") {
+        triggerNoCreditsDialog({ actionLabel: "Pesquisa de preços de mercado", creditsNeeded: 1 });
+        throw new Error(data.error || "Créditos insuficientes.");
+      }
       if (data?.error) throw new Error(data.error);
       return data as MarketResearchResult;
     },
-    onSuccess: (_, vars) => {
+    onSuccess: (result, vars) => {
       qc.invalidateQueries({ queryKey: ["market-research", vars.product_id] });
-      toast.success("Análise de mercado concluída");
+      qc.invalidateQueries({ queryKey: ["credit-wallet"] });
+      qc.invalidateQueries({ queryKey: ["credit-ledger"] });
+      if (result?.grounded === false) {
+        toast.info("Nenhum concorrente encontrado com esta referência. Nada foi estimado.");
+      } else {
+        toast.success("Preços de concorrentes reais recolhidos");
+      }
     },
     onError: (e: Error) => {
-      toast.error(e.message || "Erro na análise de mercado");
+      toast.error(e.message || "Erro na pesquisa de preços");
     },
   });
 }
+
+function safeParse(text: string): any {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 
 // ---- Helpers ----
 
