@@ -39,7 +39,7 @@ export function ProductAITagSuggestions({
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("product_ai_commerce")
-        .select("ideal_for, use_cases, search_terms")
+        .select("ai_target_audience, ai_use_cases, ai_keywords, ai_key_features")
         .eq("product_id", product.id)
         .maybeSingle();
       if (error) return null;
