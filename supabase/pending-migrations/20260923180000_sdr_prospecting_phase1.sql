@@ -162,8 +162,13 @@ CREATE TABLE IF NOT EXISTS public.sdr_send_reservations (
   account_key text NOT NULL,
   local_day date NOT NULL,
   reserved_at timestamptz NOT NULL DEFAULT now(),
-  attempt_id uuid NOT NULL UNIQUE REFERENCES public.sdr_step_attempts(id) ON DELETE CASCADE,
-  released boolean NOT NULL DEFAULT false
+  attempt_id uuid NOT NULL REFERENCES public.sdr_step_attempts(id) ON DELETE CASCADE,
+  -- Uma reserva por DESPACHO (attempt_count + 1), não por tentativa lógica:
+  -- um retry noutro dia exige nova reserva validada contra a quota desse dia.
+  dispatch_no integer NOT NULL DEFAULT 1 CHECK (dispatch_no BETWEEN 1 AND 5),
+  consumed_at timestamptz,
+  released boolean NOT NULL DEFAULT false,
+  CONSTRAINT uq_sdr_send_reservations_dispatch UNIQUE (attempt_id, dispatch_no)
 );
 GRANT SELECT ON public.sdr_send_reservations TO authenticated;
 GRANT ALL ON public.sdr_send_reservations TO service_role;
@@ -218,59 +223,247 @@ BEGIN
   RETURN QUERY SELECT r.id, r.status, r.attempt_count, false;
 END $$;
 
--- Passa de reserved → dispatching (imediatamente antes da chamada ao transporte).
-CREATE OR REPLACE FUNCTION public.sdr_begin_dispatch(p_attempt_id uuid, p_account_key text, p_lease_seconds integer DEFAULT 120)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  UPDATE public.sdr_step_attempts
-     SET status = 'dispatching', attempt_count = attempt_count + 1, account_key = p_account_key,
-         lease_expires_at = now() + make_interval(secs => p_lease_seconds), updated_at = now()
-   WHERE id = p_attempt_id AND status = 'reserved' AND lease_expires_at > now();
-  RETURN FOUND;
-END $$;
-
 -- ─── 7. Reserva atómica de quota diária + intervalo mínimo (Europe/Lisbon)
+-- Chave: (tentativa, número de despacho). Regras:
+--  * mesma tentativa + mesmo despacho + mesmo dia local + ainda não consumida → already_reserved;
+--  * reserva de outro dia ainda não consumida → libertada e revalidada contra a quota de HOJE;
+--  * despacho já consumido → nunca reutilizado (retry exige despacho seguinte);
+--  * quota e intervalo contam todas as reservas não libertadas (consumidas ou não),
+--    pelo que envios rejeitados pelo fornecedor continuam a contar (nunca aumenta limites).
 CREATE OR REPLACE FUNCTION public.sdr_reserve_send_slot(
-  p_workspace_id uuid, p_channel text, p_account_key text, p_attempt_id uuid,
+  p_workspace_id uuid, p_channel text, p_account_key text, p_attempt_id uuid, p_dispatch_no integer,
   p_max_per_day integer, p_min_interval_seconds integer, p_timezone text DEFAULT 'Europe/Lisbon'
 ) RETURNS TABLE (allowed boolean, reason text, retry_at timestamptz)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
-  v_day date := (now() AT TIME ZONE p_timezone)::date;
+  v_day date;
+  v_now timestamptz;
   v_count integer;
   v_last timestamptz;
+  a public.sdr_step_attempts%ROWTYPE;
+  res public.sdr_send_reservations%ROWTYPE;
 BEGIN
-  IF p_max_per_day IS NULL OR p_max_per_day < 1 OR p_min_interval_seconds IS NULL THEN
+  IF p_max_per_day IS NULL OR p_max_per_day < 1 OR p_min_interval_seconds IS NULL OR p_min_interval_seconds < 0 THEN
     RETURN QUERY SELECT false, 'quota_not_configured'::text, NULL::timestamptz; RETURN;
   END IF;
-  PERFORM 1 FROM public.sdr_step_attempts WHERE id = p_attempt_id AND workspace_id = p_workspace_id;
+  IF NOT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name = p_timezone) THEN
+    RETURN QUERY SELECT false, 'invalid_timezone'::text, NULL::timestamptz; RETURN;
+  END IF;
+  v_day := (now() AT TIME ZONE p_timezone)::date;
+
+  SELECT * INTO a FROM public.sdr_step_attempts WHERE id = p_attempt_id AND workspace_id = p_workspace_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'sdr_attempt_workspace_mismatch'; END IF;
-
-  PERFORM pg_advisory_xact_lock(hashtextextended(p_workspace_id::text || '|' || p_channel || '|' || p_account_key, 0));
-
-  IF EXISTS (SELECT 1 FROM public.sdr_send_reservations WHERE attempt_id = p_attempt_id AND NOT released) THEN
-    RETURN QUERY SELECT true, 'already_reserved'::text, NULL::timestamptz; RETURN;
+  IF a.channel <> p_channel THEN RAISE EXCEPTION 'sdr_attempt_channel_mismatch'; END IF;
+  IF a.status <> 'reserved' OR p_dispatch_no <> a.attempt_count + 1 THEN
+    RETURN QUERY SELECT false, 'attempt_not_reservable'::text, NULL::timestamptz; RETURN;
   END IF;
 
-  SELECT count(*), max(reserved_at) INTO v_count, v_last
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_workspace_id::text || '|' || p_channel || '|' || p_account_key, 0));
+  -- Relógio real APÓS obter o lock (now() é o início da transacção e ficaria no passado).
+  v_now := clock_timestamp();
+  v_day := (v_now AT TIME ZONE p_timezone)::date;
+
+  SELECT * INTO res FROM public.sdr_send_reservations
+   WHERE attempt_id = p_attempt_id AND dispatch_no = p_dispatch_no AND NOT released;
+  IF FOUND THEN
+    IF res.consumed_at IS NOT NULL THEN
+      RETURN QUERY SELECT false, 'dispatch_already_consumed'::text, NULL::timestamptz; RETURN;
+    END IF;
+    IF res.local_day = v_day AND res.account_key = p_account_key THEN
+      RETURN QUERY SELECT true, 'already_reserved'::text, NULL::timestamptz; RETURN;
+    END IF;
+    -- Reserva de outro dia (ou outra conta) nunca usada: liberta e revalida hoje.
+    UPDATE public.sdr_send_reservations SET released = true WHERE id = res.id;
+  END IF;
+
+  SELECT count(*) INTO v_count
     FROM public.sdr_send_reservations
    WHERE workspace_id = p_workspace_id AND channel = p_channel AND account_key = p_account_key
      AND local_day = v_day AND NOT released;
-
   IF v_count >= p_max_per_day THEN
     RETURN QUERY SELECT false, 'daily_limit'::text, ((v_day + 1)::timestamp AT TIME ZONE p_timezone); RETURN;
   END IF;
 
-  -- Intervalo verificado sobre todas as reservas (incluindo as do dia anterior).
   SELECT max(reserved_at) INTO v_last FROM public.sdr_send_reservations
    WHERE workspace_id = p_workspace_id AND channel = p_channel AND account_key = p_account_key AND NOT released;
-  IF v_last IS NOT NULL AND v_last > now() - make_interval(secs => p_min_interval_seconds) THEN
+  IF v_last IS NOT NULL AND v_last > v_now - make_interval(secs => p_min_interval_seconds) THEN
     RETURN QUERY SELECT false, 'min_interval'::text, v_last + make_interval(secs => p_min_interval_seconds); RETURN;
   END IF;
 
-  INSERT INTO public.sdr_send_reservations (workspace_id, channel, account_key, local_day, attempt_id)
-  VALUES (p_workspace_id, p_channel, p_account_key, v_day, p_attempt_id);
+  INSERT INTO public.sdr_send_reservations (workspace_id, channel, account_key, local_day, attempt_id, dispatch_no, reserved_at)
+  VALUES (p_workspace_id, p_channel, p_account_key, v_day, p_attempt_id, p_dispatch_no, v_now)
+  ON CONFLICT (attempt_id, dispatch_no) DO UPDATE
+     SET workspace_id = EXCLUDED.workspace_id, channel = EXCLUDED.channel, account_key = EXCLUDED.account_key,
+         local_day = EXCLUDED.local_day, reserved_at = v_now, released = false, consumed_at = NULL;
   RETURN QUERY SELECT true, 'reserved'::text, NULL::timestamptz;
+END $$;
+
+-- ─── 7b. Elegibilidade no ponto transaccional (usada por begin_dispatch e pelos transportes)
+CREATE OR REPLACE FUNCTION public.sdr_dispatch_ineligibility(p_enrollment_id uuid, p_channel text)
+RETURNS text LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE e record; c record; v_seq_status text; v_phone text; l record; k record;
+BEGIN
+  SELECT * INTO e FROM public.sdr_enrollments WHERE id = p_enrollment_id;
+  IF NOT FOUND THEN RETURN 'enrollment_missing'; END IF;
+  IF e.status <> 'sequenced' THEN RETURN 'enrollment_' || e.status; END IF;
+  SELECT id, workspace_id, status, sequence_id, autonomous_send_enabled INTO c
+    FROM public.sdr_campaigns WHERE id = e.campaign_id AND workspace_id = e.workspace_id;
+  IF NOT FOUND THEN RETURN 'campaign_missing'; END IF;
+  IF c.status IS DISTINCT FROM 'active' THEN RETURN 'campaign_inactive'; END IF;
+  IF c.autonomous_send_enabled IS NOT TRUE THEN RETURN 'campaign_autonomous_disabled'; END IF;
+  IF c.sequence_id IS NULL THEN RETURN 'campaign_without_sequence'; END IF;
+  SELECT status INTO v_seq_status FROM public.multichannel_sequences WHERE id = c.sequence_id AND workspace_id = e.workspace_id;
+  IF v_seq_status IS DISTINCT FROM 'active' THEN RETURN 'sequence_inactive'; END IF;
+
+  IF e.prospect_email IS NOT NULL AND (
+       EXISTS (SELECT 1 FROM public.sdr_suppressions s WHERE s.workspace_id = e.workspace_id AND lower(s.email) = lower(btrim(e.prospect_email)))
+    OR EXISTS (SELECT 1 FROM public.suppressed_emails s WHERE lower(s.email) = lower(btrim(e.prospect_email)))) THEN
+    RETURN 'suppressed';
+  END IF;
+
+  IF e.lead_id IS NOT NULL THEN
+    SELECT is_blocked, archived_at, automation_active INTO l FROM public.leads WHERE id = e.lead_id AND workspace_id = e.workspace_id;
+    IF NOT FOUND THEN RETURN 'lead_not_in_workspace'; END IF;
+    IF l.is_blocked OR l.archived_at IS NOT NULL THEN RETURN 'contact_blocked'; END IF;
+    IF l.automation_active IS FALSE THEN RETURN 'automation_paused'; END IF;
+  END IF;
+  IF e.contact_id IS NOT NULL THEN
+    SELECT is_blocked, archived_at, deleted_at, automation_active INTO k FROM public.contacts WHERE id = e.contact_id AND workspace_id = e.workspace_id;
+    IF NOT FOUND THEN RETURN 'contact_not_in_workspace'; END IF;
+    IF k.is_blocked OR k.archived_at IS NOT NULL OR k.deleted_at IS NOT NULL THEN RETURN 'contact_blocked'; END IF;
+    IF k.automation_active IS FALSE THEN RETURN 'automation_paused'; END IF;
+  END IF;
+
+  IF p_channel = 'whatsapp' THEN
+    v_phone := public.sdr_normalize_phone(e.prospect_phone);
+    IF v_phone IS NULL OR length(v_phone) < 9 THEN RETURN 'no_phone'; END IF;
+    IF EXISTS (SELECT 1 FROM public.whatsapp_optouts o WHERE o.workspace_id = e.workspace_id
+                AND public.sdr_normalize_phone(o.phone) = v_phone) THEN
+      RETURN 'suppressed';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.whatsapp_consents w WHERE w.workspace_id = e.workspace_id
+                    AND public.sdr_normalize_phone(w.phone) = v_phone
+                    AND w.status = 'granted' AND w.revoked_at IS NULL
+                    AND w.consent_category IN ('marketing', 'all')) THEN
+      RETURN 'whatsapp_consent_missing';
+    END IF;
+  END IF;
+  RETURN NULL;
+END $$;
+
+-- Passa de reserved → dispatching IMEDIATAMENTE antes do transporte, na mesma
+-- transacção que revalida inscrição/etapa/campanha/sequência/exclusão/consentimento
+-- e consome a reserva de quota do dia. Devolve 'ok' ou o motivo de recusa.
+CREATE OR REPLACE FUNCTION public.sdr_begin_dispatch(
+  p_attempt_id uuid, p_account_key text, p_expected_step integer,
+  p_lease_seconds integer DEFAULT 120, p_timezone text DEFAULT 'Europe/Lisbon'
+) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE a public.sdr_step_attempts%ROWTYPE; e record; v_reason text; v_res uuid;
+BEGIN
+  SELECT * INTO a FROM public.sdr_step_attempts WHERE id = p_attempt_id FOR UPDATE;
+  IF NOT FOUND OR a.status <> 'reserved' OR a.lease_expires_at IS NULL OR a.lease_expires_at <= now() THEN
+    RETURN 'lease_lost';
+  END IF;
+  -- Bloqueia a inscrição: pausas/respostas concorrentes esperam ou são vistas aqui.
+  SELECT * INTO e FROM public.sdr_enrollments WHERE id = a.enrollment_id AND workspace_id = a.workspace_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN 'enrollment_missing'; END IF;
+  IF coalesce(e.current_step, 0) <> p_expected_step THEN RETURN 'step_changed'; END IF;
+  PERFORM 1 FROM public.sdr_campaigns WHERE id = a.campaign_id FOR SHARE;
+  IF a.step_id IS NOT NULL AND NOT EXISTS (
+       SELECT 1 FROM public.multichannel_sequence_steps s
+         JOIN public.sdr_campaigns c ON c.id = a.campaign_id AND c.sequence_id = s.sequence_id
+        WHERE s.id = a.step_id AND s.is_active) THEN
+    RETURN 'step_inactive';
+  END IF;
+  v_reason := public.sdr_dispatch_ineligibility(a.enrollment_id, a.channel);
+  IF v_reason IS NOT NULL THEN RETURN v_reason; END IF;
+
+  UPDATE public.sdr_send_reservations
+     SET consumed_at = now()
+   WHERE attempt_id = a.id AND dispatch_no = a.attempt_count + 1 AND account_key = p_account_key
+     AND NOT released AND consumed_at IS NULL AND local_day = (now() AT TIME ZONE p_timezone)::date
+  RETURNING id INTO v_res;
+  IF v_res IS NULL THEN RETURN 'quota_reservation_missing'; END IF;
+
+  UPDATE public.sdr_step_attempts
+     SET status = 'dispatching', attempt_count = attempt_count + 1, account_key = p_account_key,
+         lease_expires_at = now() + make_interval(secs => p_lease_seconds), updated_at = now()
+   WHERE id = a.id;
+  RETURN 'ok';
+END $$;
+
+-- Fecho de tentativa com transição verificada. Falha (false) se o estado actual
+-- não for o esperado — o chamador nunca avança a sequência sem persistir.
+-- Reservas não consumidas são libertadas quando a tentativa é cancelada/bloqueada.
+CREATE OR REPLACE FUNCTION public.sdr_finish_attempt(
+  p_attempt_id uuid, p_from text[], p_status text,
+  p_provider_message_id text DEFAULT NULL, p_last_error text DEFAULT NULL, p_next_retry_at timestamptz DEFAULT NULL
+) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  UPDATE public.sdr_step_attempts
+     SET status = p_status, lease_expires_at = NULL, updated_at = now(),
+         provider_message_id = coalesce(p_provider_message_id, provider_message_id),
+         last_error = p_last_error, next_retry_at = p_next_retry_at,
+         accepted_at = CASE WHEN p_status = 'accepted' THEN now() ELSE accepted_at END
+   WHERE id = p_attempt_id AND status = ANY (p_from);
+  IF NOT FOUND THEN RETURN false; END IF;
+  IF p_status IN ('cancelled', 'blocked') THEN
+    UPDATE public.sdr_send_reservations SET released = true
+     WHERE attempt_id = p_attempt_id AND consumed_at IS NULL AND NOT released;
+  END IF;
+  RETURN true;
+END $$;
+
+-- ─── 7c. Fronteira de envio: consumo atómico e único por despacho/etapa do transporte
+-- A assinatura HMAC só prova origem; ESTE registo impede o replay do mesmo pedido
+-- assinado (cada transporte aceita um despacho uma única vez) e vincula o pedido
+-- a tentativa/etapa/campanha/workspace/destinatário/canal em estado 'dispatching'.
+CREATE TABLE IF NOT EXISTS public.sdr_transport_receipts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  attempt_id uuid NOT NULL REFERENCES public.sdr_step_attempts(id) ON DELETE CASCADE,
+  dispatch_no integer NOT NULL,
+  stage text NOT NULL CHECK (stage IN ('email-send', 'whatsapp-pro-send', 'whatsapp-zapi-send')),
+  recipient text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_sdr_transport_receipts UNIQUE (attempt_id, dispatch_no, stage)
+);
+GRANT SELECT ON public.sdr_transport_receipts TO authenticated;
+GRANT ALL ON public.sdr_transport_receipts TO service_role;
+ALTER TABLE public.sdr_transport_receipts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Membros leem recibos SDR do workspace" ON public.sdr_transport_receipts;
+CREATE POLICY "Membros leem recibos SDR do workspace" ON public.sdr_transport_receipts
+  FOR SELECT TO authenticated
+  USING (public.is_workspace_member(auth.uid(), workspace_id) OR public.is_super_admin(auth.uid()));
+
+CREATE OR REPLACE FUNCTION public.sdr_consume_transport_token(
+  p_workspace_id uuid, p_attempt_id uuid, p_dispatch_no integer, p_stage text, p_channel text, p_recipient text
+) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE a public.sdr_step_attempts%ROWTYPE; e record; v_reason text; v_rcpt text;
+BEGIN
+  SELECT * INTO a FROM public.sdr_step_attempts WHERE id = p_attempt_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN 'attempt_missing'; END IF;
+  IF a.workspace_id <> p_workspace_id THEN RETURN 'workspace_mismatch'; END IF;
+  IF a.channel <> p_channel THEN RETURN 'channel_mismatch'; END IF;
+  IF a.status <> 'dispatching' OR a.lease_expires_at IS NULL OR a.lease_expires_at <= now() THEN RETURN 'attempt_not_dispatching'; END IF;
+  IF a.attempt_count <> p_dispatch_no THEN RETURN 'dispatch_mismatch'; END IF;
+  SELECT prospect_email, prospect_phone INTO e FROM public.sdr_enrollments
+   WHERE id = a.enrollment_id AND workspace_id = a.workspace_id AND campaign_id = a.campaign_id;
+  IF NOT FOUND THEN RETURN 'enrollment_mismatch'; END IF;
+  IF p_channel = 'email' THEN
+    v_rcpt := lower(btrim(coalesce(p_recipient, '')));
+    IF v_rcpt = '' OR v_rcpt <> lower(btrim(coalesce(e.prospect_email, ''))) THEN RETURN 'recipient_mismatch'; END IF;
+  ELSE
+    v_rcpt := public.sdr_normalize_phone(p_recipient);
+    IF v_rcpt IS NULL OR v_rcpt IS DISTINCT FROM public.sdr_normalize_phone(e.prospect_phone) THEN RETURN 'recipient_mismatch'; END IF;
+  END IF;
+  v_reason := public.sdr_dispatch_ineligibility(a.enrollment_id, a.channel);
+  IF v_reason IS NOT NULL THEN RETURN v_reason; END IF;
+  INSERT INTO public.sdr_transport_receipts (workspace_id, attempt_id, dispatch_no, stage, recipient)
+  VALUES (p_workspace_id, p_attempt_id, p_dispatch_no, p_stage, v_rcpt)
+  ON CONFLICT (attempt_id, dispatch_no, stage) DO NOTHING;
+  IF NOT FOUND THEN RETURN 'replay'; END IF;
+  RETURN 'ok';
 END $$;
 
 -- ─── 8. Paragem por resposta (correlação dentro do mesmo workspace)
@@ -424,13 +617,19 @@ CREATE INDEX IF NOT EXISTS idx_sdr_enrollments_email_lower
 REVOKE ALL ON FUNCTION public.email_process_unsubscribe(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.email_process_unsubscribe(text) TO service_role;
 REVOKE ALL ON FUNCTION public.sdr_claim_step_attempt(uuid,uuid,uuid,uuid,integer,text,integer) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.sdr_begin_dispatch(uuid,text,integer) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.sdr_reserve_send_slot(uuid,text,text,uuid,integer,integer,text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sdr_begin_dispatch(uuid,text,integer,integer,text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sdr_reserve_send_slot(uuid,text,text,uuid,integer,integer,integer,text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sdr_finish_attempt(uuid,text[],text,text,text,timestamptz) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sdr_consume_transport_token(uuid,uuid,integer,text,text,text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sdr_dispatch_ineligibility(uuid,text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sdr_stop_enrollments_on_inbound(uuid,uuid,text,text,uuid,uuid,timestamptz) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sdr_apply_email_optout(text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sdr_on_inbound_message() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.sdr_claim_step_attempt(uuid,uuid,uuid,uuid,integer,text,integer) TO service_role;
-GRANT EXECUTE ON FUNCTION public.sdr_begin_dispatch(uuid,text,integer) TO service_role;
-GRANT EXECUTE ON FUNCTION public.sdr_reserve_send_slot(uuid,text,text,uuid,integer,integer,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.sdr_begin_dispatch(uuid,text,integer,integer,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.sdr_reserve_send_slot(uuid,text,text,uuid,integer,integer,integer,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.sdr_finish_attempt(uuid,text[],text,text,text,timestamptz) TO service_role;
+GRANT EXECUTE ON FUNCTION public.sdr_consume_transport_token(uuid,uuid,integer,text,text,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.sdr_dispatch_ineligibility(uuid,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.sdr_stop_enrollments_on_inbound(uuid,uuid,text,text,uuid,uuid,timestamptz) TO service_role;
 GRANT EXECUTE ON FUNCTION public.sdr_apply_email_optout(text) TO service_role;

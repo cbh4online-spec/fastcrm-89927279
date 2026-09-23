@@ -5,6 +5,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { signWorkerRequest, verifyWorkerRequest } from "../_shared/sdr-engine/workerAuth.ts";
+import { consumeWorkerDispatch, parseSdrBinding } from "../_shared/sdr-engine/transportGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,8 @@ interface SendPayload {
   metadata?: Record<string, unknown>;
   /** Modo worker: instância explícita da campanha; recusa se diferente da activa. */
   expectedInstanceId?: string | null;
+  /** Modo worker: vínculo ao despacho SDR (obrigatório). */
+  sdr?: { attemptId?: string; dispatchNo?: number };
 }
 
 Deno.serve(async (req) => {
@@ -72,7 +75,8 @@ Deno.serve(async (req) => {
     if (worker.ok) {
       // Worker SDR: sem utilizador; workspace assinado tem de coincidir e só texto 1:1.
       if (worker.workspaceId !== body.workspaceId) return json({ error: "worker_workspace_mismatch" }, 403);
-      if (body.groupId || body.messageType !== "text" || !body.expectedInstanceId) {
+      if (body.groupId || body.messageType !== "text" || !body.expectedInstanceId || !body.phone ||
+          body.mediaUrl || body.ctaUrl || body.buttons?.length || body.productId || body.templateId) {
         return json({ error: "worker_payload_not_allowed" }, 400);
       }
       if (body.conversationId) {
@@ -80,6 +84,10 @@ Deno.serve(async (req) => {
           .eq("id", body.conversationId).eq("workspace_id", body.workspaceId).maybeSingle();
         if (!conv) return json({ error: "conversation_not_in_workspace" }, 403);
       }
+      const consumed = await consumeWorkerDispatch(adminClient, {
+        workspaceId: body.workspaceId, binding: parseSdrBinding(body.sdr), stage: "whatsapp-pro-send", channel: "whatsapp", recipient: body.phone,
+      });
+      if (!consumed.ok) return json({ error: "worker_dispatch_rejected", reason: (consumed as { reason: string }).reason }, 409);
     } else {
       const { data: userData, error: userErr } = await userClient.auth.getUser();
       if (userErr || !userData?.user) return json({ error: "Unauthorized" }, 401);
@@ -190,7 +198,7 @@ Deno.serve(async (req) => {
         delete invokePayload.message;
       }
 
-      const zapiBody = { workspaceId: body.workspaceId, ...invokePayload };
+      const zapiBody = { workspaceId: body.workspaceId, ...invokePayload, ...(worker.ok ? { sdr: body.sdr } : {}) };
       const { data: sendData, error: sendErr } = await adminClient.functions.invoke(
         "whatsapp-zapi-send",
         {

@@ -33,7 +33,8 @@ BEGIN
   ASSERT r.claimed;
   SELECT * INTO r FROM public.sdr_claim_step_attempt(wa, e1, c1, NULL, 1, 'email');
   ASSERT NOT r.claimed, 'segundo claim com lease activo recusado';
-  ASSERT public.sdr_begin_dispatch(r.attempt_id, 'email:x');
+  -- (begin_dispatch completo testado em assertions_review.sql) simula dispatch em curso
+  UPDATE public.sdr_step_attempts SET status = 'dispatching', attempt_count = 1, lease_expires_at = now() + interval '2 minutes' WHERE id = r.attempt_id;
   -- lease expira durante dispatch → ambíguo, nunca novo claim
   UPDATE public.sdr_step_attempts SET lease_expires_at = now() - interval '1 second' WHERE id = r.attempt_id;
   SELECT * INTO r FROM public.sdr_claim_step_attempt(wa, e1, c1, NULL, 1, 'email');
@@ -49,12 +50,12 @@ BEGIN
 
   -- Quota: sem configuração → recusado
   SELECT * INTO r FROM public.sdr_claim_step_attempt(wa, e1, c1, NULL, 3, 'whatsapp');
-  ASSERT NOT (SELECT allowed FROM public.sdr_reserve_send_slot(wa, 'whatsapp', 'wa:y', r.attempt_id, NULL, 45));
+  ASSERT NOT (SELECT allowed FROM public.sdr_reserve_send_slot(wa, 'whatsapp', 'wa:y', r.attempt_id, 1, NULL, 45));
   -- Intervalo mínimo
-  ASSERT (SELECT allowed FROM public.sdr_reserve_send_slot(wa, 'whatsapp', 'wa:y', r.attempt_id, 20, 45));
-  ASSERT (SELECT allowed FROM public.sdr_reserve_send_slot(wa, 'whatsapp', 'wa:y', r.attempt_id, 20, 45)), 'mesma tentativa é idempotente';
+  ASSERT (SELECT allowed FROM public.sdr_reserve_send_slot(wa, 'whatsapp', 'wa:y', r.attempt_id, 1, 20, 45));
+  ASSERT (SELECT allowed FROM public.sdr_reserve_send_slot(wa, 'whatsapp', 'wa:y', r.attempt_id, 1, 20, 45)), 'mesma tentativa é idempotente';
   SELECT * INTO r FROM public.sdr_claim_step_attempt(wa, e1, c1, NULL, 4, 'whatsapp');
-  ASSERT (SELECT reason FROM public.sdr_reserve_send_slot(wa, 'whatsapp', 'wa:y', r.attempt_id, 20, 45)) = 'min_interval';
+  ASSERT (SELECT reason FROM public.sdr_reserve_send_slot(wa, 'whatsapp', 'wa:y', r.attempt_id, 1, 20, 45)) = 'min_interval';
 
   -- Tentativas para o teste de concorrência (steps 101..110)
   FOR n IN 101..110 LOOP PERFORM public.sdr_claim_step_attempt(wa, e1, c1, NULL, n, 'whatsapp'); END LOOP;
@@ -129,7 +130,7 @@ BEGIN
   -- Permissões: authenticated não executa RPCs internas
   ASSERT NOT has_function_privilege('authenticated', 'public.sdr_claim_step_attempt(uuid,uuid,uuid,uuid,integer,text,integer)', 'EXECUTE');
   ASSERT NOT has_function_privilege('authenticated', 'public.email_process_unsubscribe(text)', 'EXECUTE');
-  ASSERT has_function_privilege('service_role', 'public.sdr_reserve_send_slot(uuid,text,text,uuid,integer,integer,text)', 'EXECUTE');
+  ASSERT has_function_privilege('service_role', 'public.sdr_reserve_send_slot(uuid,text,text,uuid,integer,integer,integer,text)', 'EXECUTE');
   RAISE NOTICE 'assertions OK';
 END $$;
 

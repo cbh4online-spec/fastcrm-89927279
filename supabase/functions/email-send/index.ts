@@ -1,6 +1,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { verifyWorkerRequest } from "../_shared/sdr-engine/workerAuth.ts";
+import { consumeWorkerDispatch, parseSdrBinding } from "../_shared/sdr-engine/transportGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -400,6 +401,15 @@ Deno.serve(async (req) => {
       if (worker.workspaceId !== workspaceId) {
         return new Response(JSON.stringify({ error: "worker_workspace_mismatch" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Anti-replay + vínculo a tentativa/etapa/destinatário (a assinatura sozinha não chega).
+      const consumed = await consumeWorkerDispatch(supabaseClient, {
+        workspaceId, binding: parseSdrBinding((reqBody as any).sdr), stage: "email-send", channel: "email", recipient: to,
+      });
+      if (!consumed.ok) {
+        return new Response(JSON.stringify({ error: "worker_dispatch_rejected", reason: (consumed as { reason: string }).reason }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     } else {

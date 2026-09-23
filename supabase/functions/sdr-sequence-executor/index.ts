@@ -41,7 +41,9 @@ Deno.serve(async (req: Request) => {
     if (!schemaReady) return json({ success: true, disabled: true, reason: "schema_not_ready", processed: 0 });
 
     const ports = createSupabasePorts(admin, {
-      supabaseUrl, serviceRoleKey, workerSecret: workerEnv.secret, globalSendEnabled, schemaReady,
+      supabaseUrl, serviceRoleKey, workerSecret: workerEnv.secret, schemaReady,
+      // Relida em cada revalidação: remover a flag pára envios a meio de um lote.
+      globalSendEnabled: () => workerModeConfigured({ enabled: Deno.env.get("SDR_AUTONOMOUS_SEND_ENABLED"), secret: Deno.env.get("SDR_WORKER_SECRET") }),
       publicAppUrl: Deno.env.get("SDR_PUBLIC_APP_URL"),
     });
 

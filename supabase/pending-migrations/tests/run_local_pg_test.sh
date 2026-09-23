@@ -14,15 +14,6 @@ $PSQL -f "$DIR/../20260923180000_sdr_prospecting_phase1.sql"
 $PSQL -f "$DIR/../20260923180000_sdr_prospecting_phase1.sql"   # idempotência da reaplicação
 $PSQL -f "$DIR/assertions.sql"
 
-# Concorrência real: 10 sessões a reservar quota (máx 3/dia, intervalo 0) em paralelo.
-for i in $(seq 1 10); do
-  $PSQL -At -c "select allowed from public.sdr_reserve_send_slot('00000000-0000-0000-0000-00000000000a','whatsapp','wa:x',(select id from public.sdr_step_attempts where step_order=100+$i),3,0)" >> "$TMP/out" &
-done
-wait
-ALLOWED=$(grep -c '^t$' "$TMP/out" || true)
-echo "reservas concorrentes aceites: $ALLOWED (esperado 3)"
-[ "$ALLOWED" = "3" ]
-
 # Concorrência real no claim: 8 sessões sobre a mesma etapa → 1 claim.
 : > "$TMP/claim"
 for i in $(seq 1 8); do
@@ -32,4 +23,26 @@ wait
 CLAIMS=$(grep -c '^t$' "$TMP/claim" || true)
 echo "claims concorrentes aceites: $CLAIMS (esperado 1)"
 [ "$CLAIMS" = "1" ]
+$PSQL -f "$DIR/assertions_review.sql"
+
+# Concorrência real (tentativas activas criadas em assertions_review.sql): 10 sessões a reservar quota (máx 3/dia, intervalo 0) em paralelo.
+for i in $(seq 1 10); do
+  $PSQL -At -c "select allowed from public.sdr_reserve_send_slot('00000000-0000-0000-0000-00000000000a','whatsapp','wa:x',(select id from public.sdr_step_attempts where step_order=200+$i),1,3,0)" >> "$TMP/out" &
+done
+wait
+ALLOWED=$(grep -c '^t$' "$TMP/out" || true)
+echo "reservas concorrentes aceites: $ALLOWED (esperado 3)"
+[ "$ALLOWED" = "3" ]
+
+
+# Replay real: 8 sessões com o MESMO pedido de transporte em paralelo → 1 aceite.
+ATT=$($PSQL -At -c "select id from public.sdr_step_attempts where idempotency_key like '%:900:%'")
+: > "$TMP/replay"
+for i in $(seq 1 8); do
+  $PSQL -At -c "select public.sdr_consume_transport_token('00000000-0000-0000-0000-00000000000a','$ATT',1,'email-send','email','rep@x.pt')" >> "$TMP/replay" &
+done
+wait
+OKS=$(grep -c '^ok$' "$TMP/replay" || true); REPLAYS=$(grep -c '^replay$' "$TMP/replay" || true)
+echo "consumos concorrentes do mesmo pedido: ok=$OKS replay=$REPLAYS (esperado 1/7)"
+[ "$OKS" = "1" ] && [ "$REPLAYS" = "7" ]
 echo "OK: todos os testes SQL locais passaram"
