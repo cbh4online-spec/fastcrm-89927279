@@ -539,18 +539,24 @@ ${context}`;
     const marketMax = prices[prices.length - 1];
     const marketAvg = Math.round((prices.reduce((a, b) => a + b, 0) / prices.length) * 100) / 100;
 
-    // 4) Proteção de margem
-    const undercut = Math.round(marketMin * UNDERCUT_FACTOR * 100) / 100;
-    const floorPrice = costPrice ? Math.ceil((costPrice / (1 - minMarginPct / 100)) * 100) / 100 : null;
-    const marginBlocked = !!(floorPrice && undercut < floorPrice);
-    const suggestedPrice = marginBlocked ? floorPrice! : undercut;
+    // 4) Proteção de margem — os preços de mercado são PVP c/IVA, o custo é líquido
+    const toNet = (gross: number) => Math.round((gross / (1 + vatRate / 100)) * 100) / 100;
+    const toGross = (net: number) => Math.round(net * (1 + vatRate / 100) * 100) / 100;
+
+    const undercutGross = Math.round(marketMin * UNDERCUT_FACTOR * 100) / 100;
+    const undercutNet = toNet(undercutGross);
+    const floorNet = costPrice ? Math.ceil((costPrice / (1 - minMarginPct / 100)) * 100) / 100 : null;
+    const marginBlocked = !!(floorNet && undercutNet < floorNet);
+    const suggestedNet = marginBlocked ? floorNet! : undercutNet;
+    const suggestedPrice = marginBlocked ? toGross(floorNet!) : undercutGross;
     const suggestedMarginPct = costPrice
-      ? Math.round(((suggestedPrice - costPrice) / suggestedPrice) * 1000) / 10
+      ? Math.round(((suggestedNet - costPrice) / suggestedNet) * 1000) / 10
       : null;
 
     const marginNote = marginBlocked
-      ? ` Atenção: acompanhar o concorrente mais barato (${marketMin.toFixed(2)} €) violaria a margem mínima de ${minMarginPct}%. O preço sugerido foi travado em ${suggestedPrice.toFixed(2)} €.`
+      ? ` Atenção: acompanhar o concorrente mais barato (${marketMin.toFixed(2)} € c/IVA) violaria a margem mínima de ${minMarginPct}%. O preço sugerido foi travado em ${suggestedPrice.toFixed(2)} € c/IVA (${suggestedNet.toFixed(2)} € s/IVA).`
       : "";
+
 
     await admin.from("product_market_research").insert({
       workspace_id: workspaceId,
