@@ -689,7 +689,7 @@ export function useProductsListState() {
     setStatusFilter, setTypeFilter, setCategoryFilter, setStoreFilter,
     searchValue, setSearchValue, sortValue, setSortValue,
     currentPage, setCurrentPage, pageSize, setPageSize,
-    selectedIds, setSelectedIds, handleSelectAll, handleSelectOne,
+    selectedIds, setSelectedIds, handleSelectAll, handleSelectAllFiltered, handleSelectOne,
     activeTab, setActiveTab,
     showFilterSidebar, setShowFilterSidebar,
     createOpen, setCreateOpen,
