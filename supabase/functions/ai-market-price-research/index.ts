@@ -352,10 +352,24 @@ Deno.serve(async (req) => {
       return json({ error: debit.message, code: "insufficient_credits" }, 402);
     }
 
-    // 1) Descoberta de páginas reais
-    const pages = await searchCompetitorPages(sku, barcode, productName, brand);
+    // 1) Descoberta híbrida de páginas reais (motor rápido + pesquisa de retalho)
+    const [fastPages, retailPages] = await Promise.all([
+      searchCompetitorPages(sku, barcode, productName, brand),
+      searchRetailPages(sku, barcode, productName),
+    ]);
 
-    if (!pages.length) {
+    const byUrl = new Map<string, PageHit>();
+    for (const page of [...fastPages, ...retailPages]) {
+      const existing = byUrl.get(page.url);
+      if (existing) {
+        existing.excerpts = [...new Set([...existing.excerpts, ...page.excerpts])];
+      } else {
+        byUrl.set(page.url, { ...page });
+      }
+    }
+    const discovered = [...byUrl.values()];
+
+    if (!discovered.length) {
       return json({
         success: true,
         grounded: false,
@@ -367,6 +381,9 @@ Deno.serve(async (req) => {
         credits_balance: debit.balance,
       });
     }
+
+    // 2) Leitura dos dados estruturados (Schema.org) quando o excerto não traz preço
+    const pages = await enrichWithStructuredPrices(discovered);
 
     const allowedUrls = new Set(pages.map((p) => p.url));
     const context = pages
