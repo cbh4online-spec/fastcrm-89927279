@@ -126,7 +126,7 @@ export function MarketResearchPanel({
             </CardTitle>
             <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
               <Coins className="h-3 w-3" />
-              Procura pelo código do artigo. 1 crédito por pesquisa. Nunca estima preços.
+              Preços de lojas com IVA incluído. 1 crédito por pesquisa. Nunca estima preços.
             </p>
           </div>
           <Button
@@ -238,7 +238,7 @@ export function MarketResearchPanel({
 
             <div>
               <p className="text-xs font-medium mb-2">
-                Lojas encontradas ({latestResearch.competitors!.length})
+                Lojas encontradas ({latestResearch.competitors!.length}) — PVP c/ IVA
               </p>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {latestResearch.competitors!.map((c, i) => (
