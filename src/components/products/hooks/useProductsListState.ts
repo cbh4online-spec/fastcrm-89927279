@@ -9,6 +9,8 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useColumnPreferences, ColumnConfig } from "@/components/common/ColumnSelector";
 import { useColumnWidths } from "@/hooks/useColumnWidths";
 import { useWorkspaceTags } from "@/hooks/useProductTags";
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
+
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   productTypeLabels,
