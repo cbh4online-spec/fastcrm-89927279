@@ -358,7 +358,7 @@ CREATE OR REPLACE FUNCTION public.sdr_begin_dispatch(
   p_attempt_id uuid, p_account_key text, p_expected_step integer,
   p_lease_seconds integer DEFAULT 120, p_timezone text DEFAULT 'Europe/Lisbon'
 ) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE a public.sdr_step_attempts%ROWTYPE; e record; v_reason text; v_res uuid;
+DECLARE a public.sdr_step_attempts%ROWTYPE; e record; v_reason text; v_res uuid; v_paused boolean;
 BEGIN
   SELECT * INTO a FROM public.sdr_step_attempts WHERE id = p_attempt_id FOR UPDATE;
   IF NOT FOUND OR a.status <> 'reserved' OR a.lease_expires_at IS NULL OR a.lease_expires_at <= now() THEN
@@ -377,6 +377,18 @@ BEGIN
   END IF;
   v_reason := public.sdr_dispatch_ineligibility(a.enrollment_id, a.channel);
   IF v_reason IS NOT NULL THEN RETURN v_reason; END IF;
+
+  -- WhatsApp: pausa/configuração do throttle existente revalidada no ponto transaccional
+  -- (uma pausa surgida depois da reserva impede o transporte).
+  IF a.channel = 'whatsapp' THEN
+    IF p_account_key NOT LIKE 'wa:%' THEN RETURN 'whatsapp_account_mismatch'; END IF;
+    SELECT t.paused INTO v_paused FROM public.whatsapp_throttle_settings t
+     WHERE t.workspace_id = a.workspace_id
+       AND (t.instance_id::text = substr(p_account_key, 4) OR t.instance_id IS NULL)
+     ORDER BY (t.instance_id IS NULL) LIMIT 1;
+    IF NOT FOUND THEN RETURN 'whatsapp_throttle_not_configured'; END IF;
+    IF v_paused IS TRUE THEN RETURN 'whatsapp_throttle_paused'; END IF;
+  END IF;
 
   UPDATE public.sdr_send_reservations
      SET consumed_at = now()
