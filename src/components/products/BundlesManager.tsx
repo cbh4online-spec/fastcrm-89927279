@@ -36,7 +36,12 @@ export function BundlesManager() {
           <h3 className="text-lg font-semibold">Bundles & Kits</h3>
           <p className="text-sm text-muted-foreground">Agrupe produtos em pacotes com desconto</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} size="sm"><Plus className="h-4 w-4 mr-1" />Novo Bundle</Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setShowSuggestions(true)} size="sm" variant="outline">
+            <Sparkles className="h-4 w-4 mr-1" />Sugerir com AI Commerce
+          </Button>
+          <Button onClick={() => setShowCreate(true)} size="sm"><Plus className="h-4 w-4 mr-1" />Novo Bundle</Button>
+        </div>
       </div>
 
       {(!bundles || bundles.length === 0) ? (
