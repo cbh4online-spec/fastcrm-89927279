@@ -52,7 +52,8 @@ async function callTransport(env: PortsEnv, fn: string, workspaceId: string, pay
   const text = await resp.text();
   let body: any = null;
   try { body = JSON.parse(text); } catch { /* texto */ }
-  if (resp.status >= 500 && resp.status !== 500) return { kind: "ambiguous", error: `${fn}_${resp.status}` };
+  // 5xx: o transporte pode ter falhado depois de entregar ao fornecedor → ambíguo.
+  if (resp.status >= 500) return { kind: "ambiguous", error: `${fn}_${resp.status}` };
   if (resp.status === 401 || resp.status === 403 || resp.status === 400) {
     return { kind: "rejected", retryable: false, error: `${fn}_${resp.status}:${body?.error ?? text.slice(0, 200)}` };
   }
@@ -151,10 +152,8 @@ export function createSupabasePorts(admin: any, env: PortsEnv): SdrPorts {
         .eq("workspace_id", c.workspace_id).or(`instance_id.eq.${inst.id},instance_id.is.null`);
       const t = (thr ?? []).find((x: any) => x.instance_id === inst.id) ?? (thr ?? []).find((x: any) => x.instance_id == null);
       if (!t) return { ok: false, reason: "whatsapp_throttle_not_configured" };
-      const phone = normalizePhone(e.prospect_phone)!;
       const conversationId = e.conversation_id ?? null; // Inbox: whatsapp-zapi-send cria/associa a conversa pelo telefone
       return { ok: true, route: { instanceId: inst.id, conversationId, accountKey: `wa:${inst.id}`, maxPerDay: t.max_per_day, minIntervalSeconds: t.min_interval_seconds, maxIntervalSeconds: t.max_interval_seconds, paused: !!t.paused } };
-      void phone;
     },
 
     async claim(e, step) {
