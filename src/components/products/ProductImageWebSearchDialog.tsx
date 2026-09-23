@@ -348,10 +348,26 @@ export function ProductImageWebSearchDialog({
                           alt={c.source_title || "Candidata"}
                           loading="lazy"
                           className="h-full w-full object-cover bg-muted"
+                          onLoad={(e) => {
+                            const img = e.currentTarget;
+                            if (
+                              img.naturalWidth > 0 &&
+                              (img.naturalWidth < MIN_IMAGE_PX || img.naturalHeight < MIN_IMAGE_PX)
+                            ) {
+                              setFailedThumbs((prev) => new Set(prev).add(c.url));
+                              setPicked((prev) => {
+                                if (!prev.has(c.url)) return prev;
+                                const next = new Set(prev);
+                                next.delete(c.url);
+                                return next;
+                              });
+                            }
+                          }}
                           onError={() =>
                             setFailedThumbs((prev) => new Set(prev).add(c.url))
                           }
                         />
+
                         <div
                           className={cn(
                             "absolute top-1 right-1 h-6 w-6 rounded-full flex items-center justify-center transition-all",
