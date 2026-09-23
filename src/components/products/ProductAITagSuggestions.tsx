@@ -140,5 +140,3 @@ export function ProductAITagSuggestions({
     </div>
   );
 }
-
-export { Badge as _Badge };
