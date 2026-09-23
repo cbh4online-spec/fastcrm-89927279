@@ -529,6 +529,7 @@ export function ProductsDataTable({
                       </TableRow>
                     </TableHeader>
                   </table>
+                  </div>
 
                   {/* Linhas virtualizadas — partilham o scroll do contentor acima */}
                   <div>
