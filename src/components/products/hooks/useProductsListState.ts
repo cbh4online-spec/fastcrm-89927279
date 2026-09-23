@@ -9,6 +9,8 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useColumnPreferences, ColumnConfig } from "@/components/common/ColumnSelector";
 import { useColumnWidths } from "@/hooks/useColumnWidths";
 import { useWorkspaceTags } from "@/hooks/useProductTags";
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
+
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   productTypeLabels,
@@ -153,8 +155,12 @@ export function useProductsListState() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkCostOpen, setBulkCostOpen] = useState(false);
 
+  // --- Permissões ---
+  const canViewCostMargin = useCanViewCostMargin();
+
   // --- Debounce search (proper cleanup via hook) ---
   const debouncedSearch = useDebounce(searchValue, 300);
+
 
   // --- Parse sort into server params ---
   const { sortBy, sortDirection } = parseSortValue(sortValue);
@@ -310,6 +316,44 @@ export function useProductsListState() {
     enabled: !!activeTagName && !!currentWorkspace?.id,
   });
 
+  // --- Produtos com pesquisa de mercado recente (últimos 30 dias) ---
+  const { data: recentResearchIds } = useQuery({
+    queryKey: ["product-recent-research", currentWorkspace?.id],
+    queryFn: async () => {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await (supabase as any)
+        .from("product_market_research")
+        .select("product_id")
+        .eq("workspace_id", currentWorkspace!.id)
+        .gte("research_date", since);
+      return new Set<string>((data || []).map((d: any) => d.product_id as string));
+    },
+    enabled: !!currentWorkspace?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // --- Regra única: produto pendente de atualização ---
+  const isPendingUpdate = useCallback((p: Product) => {
+    const anyP = p as any;
+    const net = getNetPrice(p);
+    const hasImage = (p.images && p.images.length > 0) || (Array.isArray(anyP.product_images) && anyP.product_images.length > 0);
+    // Preço
+    if (!p.base_price || p.base_price <= 0) return true;
+    // Ficha técnica / imagens / gate
+    if (!hasImage) return true;
+    if (!p.sku || p.sku.trim() === "") return true;
+    if (anyP.ai_commerce_gate_blocked === true) return true;
+    // Custos e margem (apenas para quem tem permissão de ver custos)
+    if (canViewCostMargin) {
+      if (!p.direct_cost || p.direct_cost <= 0) return true;
+      if (p.direct_cost && net > 0 && p.direct_cost > net) return true;
+    }
+    // Mercado: com SKU mas sem pesquisa de concorrência nos últimos 30 dias
+    if (recentResearchIds && p.sku && p.sku.trim() !== "" && !recentResearchIds.has(p.id)) return true;
+    return false;
+  }, [canViewCostMargin, recentResearchIds]);
+
+
   // --- Label helpers ---
   const getProductTypeLabel = useCallback((typeCode: string) => {
     const dynamicType = productTypesConfig?.find(t => t.code === typeCode);
@@ -384,7 +428,11 @@ export function useProductsListState() {
             return m != null && m > 0 && m < 15;
           });
           break;
+        case "smart_pending_update":
+          result = result.filter(isPendingUpdate);
+          break;
         case "smart_no_image":
+
           result = result.filter((p) => !p.images || p.images.length === 0);
           break;
         case "smart_no_sku":
@@ -405,7 +453,7 @@ export function useProductsListState() {
     }
 
     return result;
-  }, [products, searchValue, debouncedSearch, activeFilterId, tagProductIds]);
+  }, [products, searchValue, debouncedSearch, activeFilterId, tagProductIds, isPendingUpdate]);
 
   // --- Pagination ---
   const totalProducts = filteredProducts.length;
@@ -417,7 +465,7 @@ export function useProductsListState() {
 
   // --- Product health indicators ---
   const productIndicators = useMemo(() => {
-    if (!products) return { total: 0, noPrice: 0, noCost: 0, negativeMargin: 0, lowMargin: 0, noImage: 0 };
+    if (!products) return { total: 0, noPrice: 0, noCost: 0, negativeMargin: 0, lowMargin: 0, noImage: 0, pendingUpdate: 0 };
     const noPrice = products.filter(p => !p.base_price || p.base_price === 0).length;
     const noCost = products.filter(p => !p.direct_cost || p.direct_cost === 0).length;
     const negativeMargin = products.filter(p => p.direct_cost && p.direct_cost > p.base_price).length;
@@ -432,8 +480,10 @@ export function useProductsListState() {
       return Array.isArray(rel) && rel.length > 0;
     };
     const noImage = products.filter(p => !hasAnyImage(p)).length;
-    return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage };
-  }, [products]);
+    const pendingUpdate = products.filter(isPendingUpdate).length;
+    return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage, pendingUpdate };
+  }, [products, isPendingUpdate]);
+
 
   const filtersActive = statusFilter !== "active" || typeFilter !== "all" || categoryFilter !== "all" || billingFilter !== "all" || storePublishedFilter !== undefined || !!activeFilterId;
 
@@ -469,8 +519,9 @@ export function useProductsListState() {
   }, []);
 
   const handleSelectAll = useCallback((checked: boolean) => {
-    setSelectedIds(checked ? paginatedProducts.map((p) => p.id) : []);
-  }, [paginatedProducts]);
+    setSelectedIds(checked ? filteredProducts.map((p) => p.id) : []);
+  }, [filteredProducts]);
+
 
   const handleSelectOne = useCallback((id: string, checked: boolean) => {
     setSelectedIds((prev) =>
