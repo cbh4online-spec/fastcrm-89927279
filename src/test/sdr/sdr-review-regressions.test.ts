@@ -17,25 +17,25 @@ beforeEach(() => { w = new FakeWorld(); });
 
 // ─── 1) Revalidação imediatamente antes do transporte ────────────────────────
 describe("1) mudanças concorrentes depois da reserva de quota", () => {
-  const cases: [string, (w: FakeWorld) => void, string][] = [
-    ["campanha pausada", (w) => { w.campaigns.get("c1")!.status = "paused"; }, "campaign_inactive"],
-    ["autónomo desligado na campanha", (w) => { w.campaigns.get("c1")!.autonomous_send_enabled = false; }, "campaign_autonomous_disabled"],
-    ["flag global removida", (w) => { w.globalSendEnabled = false; }, "disabled"],
-    ["sequência pausada", (w) => { w.sequences.get("seq-c1")!.status = "paused"; }, "sequence_inactive"],
-    ["resposta recebida", (w) => { w.inboundFor.add("e1"); }, "replied"],
-    ["exclusão registada", (w) => { w.suppressedEmails.add("e1@exemplo.pt"); }, "opted_out"],
-    ["inscrição pausada", (w) => { w.enrollments.get("e1")!.status = "paused"; }, "not_active"],
-    ["contacto bloqueado", (w) => { w.ineligible.set("e1", { reason: "contact_blocked", terminal: true }); }, "blocked"],
+  const cases: [string, (w: FakeWorld) => void, string, string][] = [
+    ["campanha pausada", (w) => { w.campaigns.get("c1")!.status = "paused"; }, "campaign_inactive", "reserved"],
+    ["autónomo desligado na campanha", (w) => { w.campaigns.get("c1")!.autonomous_send_enabled = false; }, "campaign_autonomous_disabled", "reserved"],
+    ["flag global removida", (w) => { w.globalSendEnabled = false; }, "disabled", "reserved"],
+    ["sequência pausada", (w) => { w.sequences.get("seq-c1")!.status = "paused"; }, "sequence_inactive", "reserved"],
+    ["resposta recebida", (w) => { w.inboundFor.add("e1"); }, "replied", "cancelled"],
+    ["exclusão registada", (w) => { w.suppressedEmails.add("e1@exemplo.pt"); }, "opted_out", "cancelled"],
+    ["inscrição pausada", (w) => { w.enrollments.get("e1")!.status = "paused"; }, "not_active", "reserved"],
+    ["contacto bloqueado", (w) => { w.ineligible.set("e1", { reason: "contact_blocked", terminal: true }); }, "blocked", "cancelled"],
   ];
-  for (const [name, mutate, outcome] of cases) {
-    it(`${name} → 0 envios, tentativa cancelada, reserva libertada`, async () => {
+  for (const [name, mutate, outcome, attemptStatus] of cases) {
+    it(`${name} → 0 envios, tentativa ${attemptStatus}, reserva libertada`, async () => {
       w.addCampaign("c1", WS); w.addEnrollment("e1", WS, "c1");
       w.hooks.afterReserve = () => mutate(w);
       const r = await runEnrollmentStep(w.ports(), WS, "e1");
       expect(w.sent).toHaveLength(0);
       expect(r.outcome).toBe(outcome);
       const a = [...w.attempts.values()][0];
-      expect(a.status).toBe("cancelled");
+      expect(a.status).toBe(attemptStatus);
       expect(a.attempt_count).toBe(0);
       expect(w.reservations.every((x) => x.released && !x.consumed)).toBe(true);
     });
@@ -46,7 +46,8 @@ describe("1) mudanças concorrentes depois da reserva de quota", () => {
     const r = await runEnrollmentStep(w.ports(), WS, "e1");
     expect(w.sent).toHaveLength(0);
     expect(r.outcome).toBe("campaign_inactive");
-    expect([...w.attempts.values()][0].status).toBe("cancelled");
+    expect([...w.attempts.values()][0].status).toBe("reserved");
+    expect(w.reservations.every((x) => x.released && !x.consumed)).toBe(true);
   });
 });
 
