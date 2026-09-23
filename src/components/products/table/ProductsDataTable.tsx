@@ -392,6 +392,8 @@ function getCellTooltipText(
 }
 
 const ROW_HEIGHT = 48;
+/** Altura do cabeçalho fixo (TableHead h-12) dentro do mesmo contentor de scroll. */
+const HEADER_HEIGHT = 48;
 
 export function ProductsDataTable({
   products,
@@ -428,6 +430,9 @@ export function ProductsDataTable({
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 8,
+    // O cabeçalho fixo vive dentro do mesmo contentor de scroll,
+    // por isso as linhas começam deslocadas pela sua altura.
+    scrollMargin: HEADER_HEIGHT,
   });
 
   return (
