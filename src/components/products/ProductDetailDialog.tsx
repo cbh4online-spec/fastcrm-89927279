@@ -645,6 +645,8 @@ export function ProductDetailDialog({
                         barcode={(product as any).barcode || undefined}
                         currentPrice={product.base_price}
                         costPrice={product.direct_cost || undefined}
+                        vatRate={(product as any).tax_rate_estimate_pct ?? 23}
+
                       />
 
                     </div>
