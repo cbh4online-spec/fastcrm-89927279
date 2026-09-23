@@ -32,6 +32,9 @@ interface ProductBulkActionsProps {
   onBulkDuplicate?: () => void;
   onCompare?: () => void;
   onBulkMarketResearch?: () => void;
+  /** Total de artigos que correspondem aos filtros ativos (todas as páginas) */
+  filteredCount?: number;
+  onSelectAllFiltered?: () => void;
 }
 
 
