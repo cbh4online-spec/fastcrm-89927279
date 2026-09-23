@@ -60,7 +60,7 @@ serve(async (req) => {
       const { data, error: productError } = await supabase
         .from("products")
         .select(
-          "id, workspace_id, name, sku, brand, category, subcategory, product_type, short_description, commercial_description, base_price, currency, stock_status, main_benefits, benefits, features, target_audience, problem_solved, use_cases, seo_title, seo_description, store_slug, schema_type, canonical_url, checkout_url, languages, countries",
+          "id, workspace_id, name, sku, brand, manufacturer, model, specifications, warranty_months, warranty_type, category, subcategory, product_type, short_description, commercial_description, base_price, currency, stock_status, main_benefits, benefits, features, target_audience, problem_solved, use_cases, seo_title, seo_description, store_slug, schema_type, canonical_url, checkout_url, languages, countries",
         )
         .eq("id", productId)
         .maybeSingle();
@@ -129,6 +129,10 @@ serve(async (req) => {
       nome: product.name,
       sku: product.sku,
       marca: product.brand,
+      fabricante: product.manufacturer,
+      modelo: product.model,
+      especificacoes: product.specifications ?? null,
+      garantia_meses: product.warranty_months ?? null,
       categoria: product.category,
       subcategoria: product.subcategory,
       tipo: product.product_type,
