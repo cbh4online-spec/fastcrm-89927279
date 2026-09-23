@@ -344,6 +344,11 @@ Deno.serve(async (req) => {
     const minMarginPct = typeof payload.min_margin_pct === "number" && payload.min_margin_pct >= 0
       ? payload.min_margin_pct
       : DEFAULT_MIN_MARGIN_PCT;
+    // Os preços das lojas online são PVP com IVA incluído; o custo é sempre líquido.
+    const vatRate = typeof payload.vat_rate === "number" && payload.vat_rate >= 0 && payload.vat_rate < 100
+      ? payload.vat_rate
+      : 23;
+
 
     if (!productName || !workspaceId || !productId) {
       return json({ error: "product_name, workspace_id e product_id são obrigatórios" }, 400);
