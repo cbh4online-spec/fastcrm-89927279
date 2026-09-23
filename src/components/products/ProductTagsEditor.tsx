@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { X, Plus, Tag } from "lucide-react";
 import { useProductTags, useWorkspaceTags } from "@/hooks/useProductTags";
 import { Separator } from "@/components/ui/separator";
+import { ProductAITagSuggestions } from "./ProductAITagSuggestions";
 
 interface ProductTagsEditorProps {
   productId: string;
