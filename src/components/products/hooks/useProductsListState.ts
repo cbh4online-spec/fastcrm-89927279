@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 import { calcMarginPct, getNetPrice } from "@/utils/productPricing";
 
-export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+export const PAGE_SIZE_OPTIONS = [25, 50, 100, 250];
 
 export const PRODUCT_COLUMNS: ColumnConfig[] = [
   { id: "name", label: "Nome", category: "basic", defaultVisible: true },
@@ -457,11 +457,21 @@ export function useProductsListState() {
 
   // --- Pagination ---
   const totalProducts = filteredProducts.length;
-  const totalPages = Math.ceil(totalProducts / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
   const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredProducts.slice(start, start + pageSize);
   }, [filteredProducts, currentPage, pageSize]);
+
+  // Repor a página quando a pesquisa ou filtros reduzem os resultados
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter, typeFilter, categoryFilter, billingFilter, storePublishedFilter, pageSize]);
+
+  // Nunca ficar numa página inexistente
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   // --- Product health indicators ---
   const productIndicators = useMemo(() => {
