@@ -126,7 +126,7 @@ describe("falhas (B08)", () => {
     w.addCampaign("c1", WS); w.addEnrollment("e1", WS, "c1");
     expect((await runEnrollmentStep(w.ports(), WS, "e1")).outcome).toBe("ambiguous");
     expect(w.enrollments.get("e1")!.status).toBe("blocked");
-    w.enrollments.get("e1")!.status = "sequenced"; // mesmo reactivado manualmente…
+    Object.assign(w.enrollments.get("e1")!, { status: "sequenced", next_send_at: w.now.toISOString() }); // mesmo reactivado manualmente…
     w.transport = async () => ({ kind: "accepted", providerMessageId: "x" });
     const again = await runEnrollmentStep(w.ports(), WS, "e1");
     expect(again.outcome).toBe("blocked"); // …a tentativa ambígua não é repetida
