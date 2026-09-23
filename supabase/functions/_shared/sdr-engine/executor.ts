@@ -322,26 +322,62 @@ export async function runEnrollmentStep(p: SdrPorts, workspaceId: string, enroll
   return r("failed_final", res.error);
 }
 
-type Preflight = { outcome: StepOutcome; reason: string } | null;
+/**
+ * temporary=true → interrupção reversível (pausa de campanha/inscrição/sequência, flag global,
+ * autonomia desligada, pausa do throttle WhatsApp, snooze/reunião/automação): a tentativa é
+ * suspensa e a etapa pode ser retomada. temporary=false → cancelamento definitivo
+ * (resposta, exclusão, bloqueio, mudança de etapa).
+ */
+type Preflight = { outcome: StepOutcome; reason: string; temporary: boolean; retryAt?: string | null } | null;
 
-/** Revalida flag, inscrição, campanha, sequência/etapa, resposta, exclusão e elegibilidade. */
-async function preflight(p: SdrPorts, ws: string, enrollmentId: string, campaignId: string, sequenceId: string, idx: number, stepId: string, channel: "email" | "whatsapp"): Promise<Preflight> {
-  if (!p.isGlobalSendEnabled()) return { outcome: "disabled", reason: "global_flag_off" };
+/** Recusas de sdr_begin_dispatch que são pausas reversíveis (não cancelam a tentativa). */
+export const TEMPORARY_BEGIN_REFUSALS = new Set([
+  "campaign_inactive", "campaign_autonomous_disabled", "sequence_inactive", "step_inactive",
+  "enrollment_paused", "automation_paused", "whatsapp_throttle_paused", "quota_reservation_missing",
+]);
+/** Destas, as que dependem de terceiros e são reavaliadas mais tarde (não imediatamente). */
+const DELAYED_BEGIN_REFUSALS = new Set(["automation_paused", "whatsapp_throttle_paused"]);
+
+function beginOutcome(reason: string): StepOutcome {
+  if (reason === "campaign_inactive") return "campaign_inactive";
+  if (reason === "campaign_autonomous_disabled") return "campaign_autonomous_disabled";
+  if (reason === "sequence_inactive" || reason === "step_inactive") return "sequence_inactive";
+  if (reason === "whatsapp_throttle_paused" || reason === "quota_reservation_missing") return "deferred_quota";
+  if (reason === "automation_paused") return "deferred_eligibility";
+  return "not_active";
+}
+
+/** Revalida flag, inscrição, campanha, sequência/etapa, resposta, exclusão, elegibilidade e rota/throttle. */
+async function preflight(p: SdrPorts, ws: string, enrollmentId: string, campaignId: string, sequenceId: string, idx: number, stepId: string, channel: "email" | "whatsapp", accountKey: string): Promise<Preflight> {
+  const now = p.now().getTime();
+  if (!p.isGlobalSendEnabled()) return { outcome: "disabled", reason: "global_flag_off", temporary: true };
   const fe = await p.getEnrollment(ws, enrollmentId);
-  if (!fe || fe.status !== "sequenced" || (fe.current_step ?? 0) !== idx) return { outcome: "not_active", reason: `state_changed:${fe?.status ?? "missing"}` };
+  if (!fe) return { outcome: "not_active", reason: "state_changed:missing", temporary: false };
+  if (fe.status === "paused") return { outcome: "not_active", reason: "state_changed:paused", temporary: true };
+  if (fe.status !== "sequenced" || (fe.current_step ?? 0) !== idx) return { outcome: "not_active", reason: `state_changed:${fe.status}`, temporary: false };
   const fc = await p.getCampaign(ws, campaignId);
-  if (!fc || fc.status !== "active") return { outcome: "campaign_inactive", reason: fc?.status ?? "missing" };
-  if (fc.autonomous_send_enabled !== true) return { outcome: "campaign_autonomous_disabled", reason: "autonomous_disabled" };
-  if (fc.sequence_id !== sequenceId) return { outcome: "not_active", reason: "sequence_changed" };
+  if (!fc) return { outcome: "campaign_inactive", reason: "missing", temporary: false };
+  if (fc.status !== "active") return { outcome: "campaign_inactive", reason: fc.status, temporary: true };
+  if (fc.autonomous_send_enabled !== true) return { outcome: "campaign_autonomous_disabled", reason: "autonomous_disabled", temporary: true };
+  if (fc.sequence_id !== sequenceId) return { outcome: "not_active", reason: "sequence_changed", temporary: false };
   const fs = await p.getSequence(ws, sequenceId);
-  if (!fs || fs.status !== "active") return { outcome: "sequence_inactive", reason: fs?.status ?? "missing" };
-  if (fs.steps[idx]?.id !== stepId) return { outcome: "not_active", reason: "step_changed" };
-  if (await p.hasInboundReply(fe)) return { outcome: "replied", reason: "reply" };
-  if (await p.isSuppressed(fe, channel)) return { outcome: "opted_out", reason: "suppressed" };
+  if (!fs) return { outcome: "sequence_inactive", reason: "missing", temporary: false };
+  if (fs.status !== "active") return { outcome: "sequence_inactive", reason: fs.status, temporary: true };
+  if (fs.steps[idx]?.id !== stepId) return { outcome: "not_active", reason: "step_changed", temporary: false };
+  if (await p.hasInboundReply(fe)) return { outcome: "replied", reason: "reply", temporary: false };
+  if (await p.isSuppressed(fe, channel)) return { outcome: "opted_out", reason: "suppressed", temporary: false };
   const el = await p.checkEligibility(fe, channel);
   if (!el.ok) {
-    const f = el as { reason: string; terminal: boolean };
-    return { outcome: f.terminal ? "blocked" : "deferred_eligibility", reason: f.reason };
+    const f = el as { reason: string; terminal: boolean; retryAt?: string | null };
+    if (f.terminal) return { outcome: "blocked", reason: f.reason, temporary: false };
+    return { outcome: "deferred_eligibility", reason: f.reason, temporary: true, retryAt: f.retryAt ?? new Date(now + 3600_000).toISOString() };
+  }
+  if (channel === "whatsapp") {
+    // Resolve de novo a rota: uma pausa em whatsapp_throttle_settings surgida depois da reserva trava o envio.
+    const rr = await p.resolveWhatsAppRoute(fc, fe);
+    if (!rr.ok) return { outcome: "deferred_quota", reason: (rr as { reason: string }).reason, temporary: true, retryAt: new Date(now + 3600_000).toISOString() };
+    if (rr.route.paused) return { outcome: "deferred_quota", reason: "whatsapp_throttle_paused", temporary: true, retryAt: new Date(now + 3600_000).toISOString() };
+    if (rr.route.accountKey !== accountKey) return { outcome: "deferred_quota", reason: "whatsapp_route_changed", temporary: true };
   }
   return null;
 }
