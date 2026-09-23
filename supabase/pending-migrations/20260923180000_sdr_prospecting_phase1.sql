@@ -237,6 +237,7 @@ CREATE OR REPLACE FUNCTION public.sdr_reserve_send_slot(
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_day date;
+  v_now timestamptz;
   v_count integer;
   v_last timestamptz;
   a public.sdr_step_attempts%ROWTYPE;
@@ -258,6 +259,9 @@ BEGIN
   END IF;
 
   PERFORM pg_advisory_xact_lock(hashtextextended(p_workspace_id::text || '|' || p_channel || '|' || p_account_key, 0));
+  -- Relógio real APÓS obter o lock (now() é o início da transacção e ficaria no passado).
+  v_now := clock_timestamp();
+  v_day := (v_now AT TIME ZONE p_timezone)::date;
 
   SELECT * INTO res FROM public.sdr_send_reservations
    WHERE attempt_id = p_attempt_id AND dispatch_no = p_dispatch_no AND NOT released;
@@ -282,15 +286,15 @@ BEGIN
 
   SELECT max(reserved_at) INTO v_last FROM public.sdr_send_reservations
    WHERE workspace_id = p_workspace_id AND channel = p_channel AND account_key = p_account_key AND NOT released;
-  IF v_last IS NOT NULL AND v_last > now() - make_interval(secs => p_min_interval_seconds) THEN
+  IF v_last IS NOT NULL AND v_last > v_now - make_interval(secs => p_min_interval_seconds) THEN
     RETURN QUERY SELECT false, 'min_interval'::text, v_last + make_interval(secs => p_min_interval_seconds); RETURN;
   END IF;
 
-  INSERT INTO public.sdr_send_reservations (workspace_id, channel, account_key, local_day, attempt_id, dispatch_no)
-  VALUES (p_workspace_id, p_channel, p_account_key, v_day, p_attempt_id, p_dispatch_no)
+  INSERT INTO public.sdr_send_reservations (workspace_id, channel, account_key, local_day, attempt_id, dispatch_no, reserved_at)
+  VALUES (p_workspace_id, p_channel, p_account_key, v_day, p_attempt_id, p_dispatch_no, v_now)
   ON CONFLICT (attempt_id, dispatch_no) DO UPDATE
      SET workspace_id = EXCLUDED.workspace_id, channel = EXCLUDED.channel, account_key = EXCLUDED.account_key,
-         local_day = EXCLUDED.local_day, reserved_at = now(), released = false, consumed_at = NULL;
+         local_day = EXCLUDED.local_day, reserved_at = v_now, released = false, consumed_at = NULL;
   RETURN QUERY SELECT true, 'reserved'::text, NULL::timestamptz;
 END $$;
 
