@@ -121,7 +121,16 @@ export function MarketResearchPanel({
               Procura pelo código do artigo. 1 crédito por pesquisa. Nunca estima preços.
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={handleAnalyze} disabled={runResearch.isPending}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.preventDefault();
+              void handleAnalyze();
+            }}
+            disabled={runResearch.isPending}
+          >
             <Search className="h-3.5 w-3.5 mr-1" />
             {runResearch.isPending ? "A pesquisar..." : "Pesquisar preços"}
           </Button>
