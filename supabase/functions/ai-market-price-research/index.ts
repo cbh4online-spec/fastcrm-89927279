@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { logAIUsage } from "../_shared/ai-instrumentation.ts";
 
-// ── AI usage logging helper (auto-injected) ───────────────────────────────────
+// ── AI usage logging helper ───────────────────────────────────────────────────
 async function __loggedAIFetch(
   workspaceId: string | null,
   feature: string,
@@ -35,14 +35,12 @@ async function __loggedAIFetch(
 
   const clone = response.clone();
   clone.json().then((data: any) => {
-    const tokens_input = data?.usage?.prompt_tokens ?? 0;
-    const tokens_output = data?.usage?.completion_tokens ?? 0;
     logAIUsage({
       workspace_id: workspaceId,
       feature,
       model,
-      tokens_input,
-      tokens_output,
+      tokens_input: data?.usage?.prompt_tokens ?? 0,
+      tokens_output: data?.usage?.completion_tokens ?? 0,
       latency_ms: Date.now() - start,
       was_error: !response.ok,
       error_type: response.ok ? undefined : `http_${response.status}`,
@@ -58,6 +56,131 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const PARALLEL_GATEWAY = "https://connector-gateway.lovable.dev/parallel";
+
+/** Margem mínima de segurança quando não existe regra configurada. */
+const DEFAULT_MIN_MARGIN_PCT = 15;
+
+/** Desconto aplicado ao concorrente mais barato (1% abaixo). */
+const UNDERCUT_FACTOR = 0.99;
+
+type Competitor = {
+  name: string;
+  price: number;
+  url: string;
+  vat_included?: boolean | null;
+  collected_at: string;
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+/** Descoberta de páginas de venda reais com o código do artigo (Parallel, modo rápido). */
+async function searchCompetitorPages(
+  sku: string | null,
+  barcode: string | null,
+  productName: string,
+  brand: string | null
+): Promise<Array<{ url: string; title?: string; excerpts: string[] }>> {
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  const connectionKey = Deno.env.get("PARALLEL_API_KEY");
+  if (!lovableKey || !connectionKey) return [];
+
+  const queries: string[] = [];
+  if (sku) {
+    queries.push(`${sku} preço`);
+    queries.push(brand ? `${sku} ${brand} comprar` : `${sku} comprar`);
+  }
+  if (barcode) queries.push(`${barcode} preço`);
+  if (!queries.length) queries.push(`${productName} preço Portugal`);
+
+  try {
+    const resp = await fetch(`${PARALLEL_GATEWAY}/v1/search`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": connectionKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        objective:
+          `Localizar páginas de lojas e distribuidores (Portugal, Espanha, UE) que vendam o artigo` +
+          (sku ? ` com a referência exata ${sku}` : ` "${productName}"`) +
+          (barcode ? ` ou o código de barras ${barcode}` : "") +
+          `, indicando o preço de venda em euros.`,
+        search_queries: queries.slice(0, 4),
+        mode: "fast",
+        advanced_settings: { max_results: 10 },
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+
+    if (!resp.ok) {
+      console.warn("[MARKET-RESEARCH] parallel search failed", resp.status, (await resp.text()).slice(0, 300));
+      return [];
+    }
+
+    const data = await resp.json().catch(() => null) as any;
+    const results: any[] = data?.results ?? data?.data ?? [];
+    return results
+      .map((r) => ({
+        url: String(r?.url ?? ""),
+        title: typeof r?.title === "string" ? r.title : undefined,
+        excerpts: Array.isArray(r?.excerpts)
+          ? r.excerpts.map((e: unknown) => String(e).slice(0, 1200))
+          : [String(r?.content ?? r?.excerpt ?? "").slice(0, 1200)].filter(Boolean),
+      }))
+      .filter((r) => r.url.startsWith("http"));
+  } catch (err) {
+    console.warn("[MARKET-RESEARCH] parallel search error", (err as Error).message);
+    return [];
+  }
+}
+
+/** Débito autoritário de créditos no workspace do cliente. */
+async function debitCredits(
+  admin: any,
+  workspaceId: string,
+  userId: string,
+  productId: string
+): Promise<{ ok: boolean; message?: string; consumed?: number; balance?: number }> {
+  const bucket = Math.floor(Date.now() / 60000);
+  const { data, error } = await admin.rpc("consume_funnel_credits", {
+    p_workspace_id: workspaceId,
+    p_user_id: userId,
+    p_action_key: "product_market_research",
+    p_idempotency_key: `product-market-research:${workspaceId}:${productId}:${bucket}`,
+    p_reference_type: "product_market_research",
+    p_reference_id: productId,
+    p_metadata: { source: "ai-market-price-research" },
+  });
+  if (error) {
+    console.error("[MARKET-RESEARCH] consume_funnel_credits error:", error.message);
+    return { ok: false, message: "Não foi possível validar os créditos." };
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.success) return { ok: false, message: row?.message || "Créditos insuficientes." };
+  return { ok: true, consumed: row.credits_consumed, balance: row.balance_remaining };
+}
+
+function median(values: number[]): number {
+  const s = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -72,103 +195,87 @@ Deno.serve(async (req) => {
     );
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (authError || !user) return json({ error: "Unauthorized" }, 401);
+
+    const payload = await req.json().catch(() => ({}));
+    const productName = typeof payload.product_name === "string" ? payload.product_name.trim().slice(0, 300) : "";
+    const workspaceId = typeof payload.workspace_id === "string" ? payload.workspace_id : "";
+    const productId = typeof payload.product_id === "string" ? payload.product_id : "";
+    const sku = typeof payload.sku === "string" && payload.sku.trim() ? payload.sku.trim().slice(0, 80) : null;
+    const barcode = typeof payload.barcode === "string" && payload.barcode.trim() ? payload.barcode.trim().slice(0, 40) : null;
+    const category = typeof payload.category === "string" ? payload.category.slice(0, 120) : null;
+    const brand = typeof payload.brand === "string" && payload.brand.trim() ? payload.brand.trim().slice(0, 80) : null;
+    const costPrice = typeof payload.cost_price === "number" && payload.cost_price > 0 ? payload.cost_price : null;
+    const minMarginPct = typeof payload.min_margin_pct === "number" && payload.min_margin_pct >= 0
+      ? payload.min_margin_pct
+      : DEFAULT_MIN_MARGIN_PCT;
+
+    if (!productName || !workspaceId || !productId) {
+      return json({ error: "product_name, workspace_id e product_id são obrigatórios" }, 400);
     }
 
-    const { product_name, sku, category, barcode, product_id, workspace_id, cost_price } = await req.json();
-
-    if (!product_name || !workspace_id || !product_id) {
-      return new Response(JSON.stringify({ error: "product_name, workspace_id, and product_id are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Verify workspace membership
     const { data: membership } = await supabase
       .from("workspace_members")
       .select("id")
-      .eq("workspace_id", workspace_id)
+      .eq("workspace_id", workspaceId)
       .eq("user_id", user.id)
       .maybeSingle();
+    if (!membership) return json({ error: "Not a workspace member" }, 403);
 
-    if (!membership) {
-      return new Response(JSON.stringify({ error: "Not a workspace member" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Créditos antes de qualquer chamada paga
+    const debit = await debitCredits(admin, workspaceId, user.id, productId);
+    if (!debit.ok) {
+      return json({ error: debit.message, code: "insufficient_credits" }, 402);
+    }
+
+    // 1) Descoberta de páginas reais
+    const pages = await searchCompetitorPages(sku, barcode, productName, brand);
+
+    if (!pages.length) {
+      return json({
+        success: true,
+        grounded: false,
+        competitors: [],
+        market_summary: sku
+          ? `Nenhuma loja encontrada com a referência ${sku}. Não foi estimado nenhum preço.`
+          : "Nenhuma loja encontrada para este artigo. Não foi estimado nenhum preço.",
+        credits_consumed: debit.consumed,
+        credits_balance: debit.balance,
       });
     }
 
-    // Step 1: Search for competitors via Firecrawl
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    let searchResults: any[] = [];
-
-    if (FIRECRAWL_API_KEY) {
-      const searchQuery = `"${product_name}" preço comprar Portugal`;
-      console.log("[MARKET-RESEARCH] Searching:", searchQuery);
-
-      try {
-        const searchResp = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: searchQuery,
-            limit: 8,
-            lang: "pt",
-            country: "pt",
-            scrapeOptions: { formats: ["markdown"] },
-          }),
-        });
-
-        if (searchResp.ok) {
-          const searchData = await searchResp.json();
-          searchResults = searchData.data || [];
-          console.log("[MARKET-RESEARCH] Found", searchResults.length, "results");
-        }
-      } catch (e) {
-        console.warn("[MARKET-RESEARCH] Firecrawl search failed:", e);
-      }
-    }
-
-    // Step 2: Use AI to extract pricing data from search results
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const searchContext = searchResults
-      .map((r: any, i: number) => {
-        const content = (r.markdown || r.description || "").slice(0, 1500);
-        return `[Resultado ${i + 1}] URL: ${r.url || "N/A"}\nTítulo: ${r.title || "N/A"}\nConteúdo: ${content}`;
-      })
+    const allowedUrls = new Set(pages.map((p) => p.url));
+    const context = pages
+      .map((p, i) => `[Fonte ${i + 1}] URL: ${p.url}\nTítulo: ${p.title ?? "N/A"}\nConteúdo: ${p.excerpts.join(" \u2022 ").slice(0, 1500)}`)
       .join("\n\n---\n\n");
 
-    const systemPrompt = `És um analista de preços de mercado especializado em Portugal. 
-Analisa os resultados de pesquisa e extrai informação de preços para o produto especificado.
-Foco: preços de venda ao público em Portugal (€), identificar concorrentes e calcular margens sugeridas.
-Se o custo do produto for fornecido, calcula a margem sugerida garantindo SEMPRE que o preço de venda > custo.
-A margem mínima segura para este tipo de produto deve ser pelo menos 15%.`;
+    // 2) Extração estritamente ancorada nas fontes
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) return json({ error: "AI not configured" }, 500);
 
-    const userPrompt = `Produto: ${product_name}
-${sku ? `SKU: ${sku}` : ""}
-${barcode ? `Barcode/EAN: ${barcode}` : ""}
+    const systemPrompt = `És um extrator de preços. Regras absolutas:
+1. Só podes devolver preços que estejam LITERALMENTE escritos no conteúdo das fontes fornecidas.
+2. É PROIBIDO estimar, arredondar por categoria, inferir ou inventar qualquer valor.
+3. Cada preço tem de vir acompanhado do URL exato da fonte onde aparece (copiado da lista).
+4. Ignora páginas que vendam apenas acessórios, packs de várias unidades, produtos usados ou artigos diferentes da referência pedida.
+5. Se nenhuma fonte contiver um preço verificável para este artigo, devolve a lista de concorrentes vazia.
+Responde em português de Portugal.`;
+
+    const userPrompt = `Artigo: ${productName}
+${sku ? `Referência (SKU): ${sku}` : ""}
+${barcode ? `Código de barras (EAN): ${barcode}` : ""}
+${brand ? `Marca: ${brand}` : ""}
 ${category ? `Categoria: ${category}` : ""}
-${cost_price ? `Preço de Custo: ${cost_price}€` : ""}
 
-Resultados de pesquisa de mercado:
-${searchContext || "Sem resultados de pesquisa disponíveis. Faz uma estimativa baseada no tipo de produto e categoria."}`;
+Fontes recolhidas:
+${context}`;
 
-    const aiResp = await __loggedAIFetch(workspace_id ?? null, "ai-market-price-research", {
+    const aiResp = await __loggedAIFetch(workspaceId, "ai-market-price-research", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -184,104 +291,139 @@ ${searchContext || "Sem resultados de pesquisa disponíveis. Faz uma estimativa 
           {
             type: "function",
             function: {
-              name: "market_price_analysis",
-              description: "Return structured market price analysis for a product",
+              name: "extract_real_prices",
+              description: "Devolve apenas preços literalmente presentes nas fontes fornecidas",
               parameters: {
                 type: "object",
                 properties: {
-                  market_avg_price: { type: "number", description: "Average market selling price in EUR" },
-                  market_min_price: { type: "number", description: "Lowest price found in EUR" },
-                  market_max_price: { type: "number", description: "Highest price found in EUR" },
-                  suggested_price: { type: "number", description: "Suggested selling price in EUR (must be above cost)" },
-                  suggested_margin_pct: { type: "number", description: "Suggested margin percentage" },
                   competitors: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        name: { type: "string", description: "Competitor/store name" },
-                        price: { type: "number", description: "Price in EUR" },
-                        url: { type: "string", description: "Product URL" },
+                        name: { type: "string", description: "Nome da loja/distribuidor" },
+                        price: { type: "number", description: "Preço em euros tal como aparece na fonte" },
+                        url: { type: "string", description: "URL exato copiado da lista de fontes" },
+                        vat_included: { type: "boolean", description: "Verdadeiro se o preço inclui IVA" },
                       },
-                      required: ["name", "price"],
+                      required: ["name", "price", "url"],
                     },
                   },
-                  market_summary: { type: "string", description: "Brief summary of market analysis in Portuguese" },
-                  price_position: { type: "string", enum: ["below_market", "at_market", "above_market"], description: "Current product position vs market" },
+                  market_summary: { type: "string", description: "Resumo factual em português, sem estimativas" },
                 },
-                required: ["market_avg_price", "suggested_price", "suggested_margin_pct", "competitors", "market_summary"],
+                required: ["competitors", "market_summary"],
               },
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "market_price_analysis" } },
+        tool_choice: { type: "function", function: { name: "extract_real_prices" } },
       }),
     });
 
     if (!aiResp.ok) {
-      const status = aiResp.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`AI gateway error: ${status}`);
+      if (aiResp.status === 429) return json({ error: "Demasiados pedidos. Tente novamente em instantes." }, 429);
+      if (aiResp.status === 402) return json({ error: "Créditos de IA esgotados." }, 402);
+      throw new Error(`AI gateway error: ${aiResp.status}`);
     }
 
     const aiData = await aiResp.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    const args = aiData.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    const extracted = args ? JSON.parse(args) : { competitors: [], market_summary: "" };
 
-    if (!toolCall?.function?.arguments) {
-      throw new Error("AI did not return structured data");
+    const now = new Date().toISOString();
+    let competitors: Competitor[] = (Array.isArray(extracted.competitors) ? extracted.competitors : [])
+      .filter((c: any) => typeof c?.url === "string" && allowedUrls.has(c.url))
+      .filter((c: any) => typeof c?.price === "number" && c.price > 0 && c.price < 1_000_000)
+      .map((c: any) => ({
+        name: String(c.name || hostOf(c.url) || "Loja").slice(0, 120),
+        price: Math.round(c.price * 100) / 100,
+        url: c.url,
+        vat_included: typeof c.vat_included === "boolean" ? c.vat_included : null,
+        collected_at: now,
+      }));
+
+    // Um preço por domínio (o mais barato)
+    const byHost = new Map<string, Competitor>();
+    for (const c of competitors) {
+      const h = hostOf(c.url) || c.url;
+      const prev = byHost.get(h);
+      if (!prev || c.price < prev.price) byHost.set(h, c);
     }
+    competitors = [...byHost.values()];
 
-    const analysis = JSON.parse(toolCall.function.arguments);
-    console.log("[MARKET-RESEARCH] Analysis complete:", JSON.stringify(analysis).slice(0, 200));
-
-    // Step 3: Persist results
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { error: insertError } = await serviceClient
-      .from("product_market_research")
-      .insert({
-        workspace_id,
-        product_id,
-        market_avg_price: analysis.market_avg_price,
-        market_min_price: analysis.market_min_price || null,
-        market_max_price: analysis.market_max_price || null,
-        competitors_json: analysis.competitors || [],
-        suggested_price: analysis.suggested_price,
-        suggested_margin_pct: analysis.suggested_margin_pct,
-        research_source: "ai_firecrawl",
-        model_used: "gemini-3-flash-preview",
-      });
-
-    if (insertError) {
-      console.error("[MARKET-RESEARCH] Insert error:", insertError);
+    // 3) Filtro anti-outliers
+    if (competitors.length >= 3) {
+      const med = median(competitors.map((c) => c.price));
+      competitors = competitors.filter((c) => c.price >= med * 0.3 && c.price <= med * 3);
     }
+    if (costPrice) {
+      competitors = competitors.filter((c) => c.price >= costPrice * 0.5);
+    }
+    competitors.sort((a, b) => a.price - b.price);
 
-    return new Response(
-      JSON.stringify({
+    if (!competitors.length) {
+      return json({
         success: true,
-        ...analysis,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+        grounded: false,
+        competitors: [],
+        market_summary: sku
+          ? `Nenhum preço verificável encontrado para a referência ${sku}. Nada foi estimado.`
+          : "Nenhum preço verificável encontrado. Nada foi estimado.",
+        sources: pages.map((p) => p.url),
+        credits_consumed: debit.consumed,
+        credits_balance: debit.balance,
+      });
+    }
+
+    const prices = competitors.map((c) => c.price);
+    const marketMin = prices[0];
+    const marketMax = prices[prices.length - 1];
+    const marketAvg = Math.round((prices.reduce((a, b) => a + b, 0) / prices.length) * 100) / 100;
+
+    // 4) Proteção de margem
+    const undercut = Math.round(marketMin * UNDERCUT_FACTOR * 100) / 100;
+    const floorPrice = costPrice ? Math.ceil((costPrice / (1 - minMarginPct / 100)) * 100) / 100 : null;
+    const marginBlocked = !!(floorPrice && undercut < floorPrice);
+    const suggestedPrice = marginBlocked ? floorPrice! : undercut;
+    const suggestedMarginPct = costPrice
+      ? Math.round(((suggestedPrice - costPrice) / suggestedPrice) * 1000) / 10
+      : null;
+
+    const marginNote = marginBlocked
+      ? ` Atenção: acompanhar o concorrente mais barato (${marketMin.toFixed(2)} €) violaria a margem mínima de ${minMarginPct}%. O preço sugerido foi travado em ${suggestedPrice.toFixed(2)} €.`
+      : "";
+
+    await admin.from("product_market_research").insert({
+      workspace_id: workspaceId,
+      product_id: productId,
+      market_avg_price: marketAvg,
+      market_min_price: marketMin,
+      market_max_price: marketMax,
+      competitors_json: competitors,
+      suggested_price: suggestedPrice,
+      suggested_margin_pct: suggestedMarginPct,
+      research_source: "parallel_grounded",
+      model_used: "gemini-3-flash-preview",
+    });
+
+    return json({
+      success: true,
+      grounded: true,
+      market_avg_price: marketAvg,
+      market_min_price: marketMin,
+      market_max_price: marketMax,
+      suggested_price: suggestedPrice,
+      suggested_margin_pct: suggestedMarginPct,
+      margin_blocked: marginBlocked,
+      min_margin_pct: minMarginPct,
+      competitors,
+      sources: pages.map((p) => p.url),
+      market_summary: String(extracted.market_summary || "").slice(0, 1000) + marginNote,
+      credits_consumed: debit.consumed,
+      credits_balance: debit.balance,
+    });
   } catch (e) {
     console.error("[MARKET-RESEARCH] Error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
