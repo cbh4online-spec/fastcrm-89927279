@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
+
 
 const sb = supabase as any;
 
