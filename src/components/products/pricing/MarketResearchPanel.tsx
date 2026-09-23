@@ -84,6 +84,8 @@ export function MarketResearchPanel({
       barcode,
       cost_price: costPrice,
       min_margin_pct: minMarginPct,
+      vat_rate: vatRate,
+
     });
     setLiveResult(result);
   };
