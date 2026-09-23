@@ -529,13 +529,9 @@ export function ProductsDataTable({
                     </TableHeader>
                   </table>
 
-                  {/* Virtualized body — vertical scroll only, horizontal handled by parent wrapper */}
-                  <div
-                    ref={parentRef}
-                    className="flex-1 min-h-0 overflow-y-auto"
-                    style={{ minHeight: 200, width: totalWidth, minWidth: "100%", overflowX: "hidden" }}
-                  >
-                    <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
+                  {/* Linhas virtualizadas — partilham o scroll do contentor acima */}
+                  <div>
+                    <div style={{ height: `${virtualizer.getTotalSize()}px`, width: totalWidth, minWidth: "100%", position: "relative" }}>
                       {virtualizer.getVirtualItems().map((virtualRow) => {
                         const product = products[virtualRow.index];
                         return (
