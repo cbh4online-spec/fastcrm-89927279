@@ -15,6 +15,7 @@ export class FakeWorld {
   sequences = new Map<string, { workspace_id: string; status: string; steps: StepLike[] }>();
   ineligible = new Map<string, { reason: string; terminal: boolean }>(); // enrollment → motivo
   hooks: { afterReserve?: () => void; beforeBegin?: () => void } = {};
+  suspensions: { attempt: string; reason: string }[] = [];
   failLog = false;
   failFinishAccepted = false;
   suppressedEmails = new Set<string>();
@@ -95,7 +96,13 @@ export class FakeWorld {
         const c = w.campaigns.get(e.campaign_id)!;
         if (c.status !== "active") return "campaign_inactive";
         if (w.sequences.get(c.sequence_id!)?.status !== "active") return "sequence_inactive";
+        if (c.autonomous_send_enabled !== true) return "campaign_autonomous_disabled";
         if (w.ineligible.has(e.id)) return w.ineligible.get(e.id)!.reason;
+        if (account.startsWith("wa:")) {
+          const t = w.waThrottle[e.workspace_id];
+          if (!t) return "whatsapp_throttle_not_configured";
+          if (t.paused) return "whatsapp_throttle_paused";
+        }
         const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon" }).format(w.now);
         const res = w.reservations.find((r) => r.attempt === id && r.dispatchNo === a.attempt_count + 1 && !r.released && !r.consumed && r.day === day && r.account === account);
         if (!res) return "quota_reservation_missing";
@@ -103,6 +110,11 @@ export class FakeWorld {
         a.status = "dispatching"; a.attempt_count++; a.lease = w.now.getTime() + 120_000; return "ok";
       },
       async releaseAttempt(id, p) { const a = w.attempts.get(id)!; if (a.status !== "reserved") throw new Error("not_applied"); a.lease = null; a.next_retry_at = p.next_retry_at ? Date.parse(p.next_retry_at) : null; },
+      async suspendAttempt(id, reason, retry) {
+        const a = w.attempts.get(id)!; if (a.status !== "reserved") throw new Error("sdr_suspend_attempt_not_applied");
+        a.lease = null; a.next_retry_at = retry ? Date.parse(retry) : null; w.suspensions.push({ attempt: id, reason });
+        w.reservations.filter((r) => r.attempt === id && !r.consumed).forEach((r) => (r.released = true));
+      },
       async finishAttempt(id, from, p) {
         const a = w.attempts.get(id)!;
         if (!from.includes(a.status)) throw new Error(`sdr_finish_attempt_not_applied:${p.status}`);

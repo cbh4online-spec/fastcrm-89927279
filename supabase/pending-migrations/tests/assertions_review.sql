@@ -80,7 +80,21 @@ BEGIN
   INSERT INTO public.whatsapp_optouts (workspace_id, phone) VALUES (wa, '912000003');
   ASSERT public.sdr_begin_dispatch(r.attempt_id, 'wa:z', 0) = 'suppressed';
   DELETE FROM public.whatsapp_optouts WHERE workspace_id = wa;
+  -- Throttle WhatsApp: sem configuração ou em pausa depois da reserva → recusa no ponto transaccional.
+  ASSERT public.sdr_begin_dispatch(r.attempt_id, 'wa:z', 0) = 'whatsapp_throttle_not_configured';
+  INSERT INTO public.whatsapp_throttle_settings (workspace_id, instance_id, paused) VALUES (wa, NULL, true);
+  ASSERT public.sdr_begin_dispatch(r.attempt_id, 'wa:z', 0) = 'whatsapp_throttle_paused';
+  -- Suspensão temporária: liberta a quota não consumida, mantém 'reserved' e é retomável.
+  ASSERT public.sdr_suspend_attempt(r.attempt_id, 'begin_dispatch:whatsapp_throttle_paused', NULL);
+  ASSERT (SELECT status FROM public.sdr_step_attempts WHERE id = r.attempt_id) = 'reserved';
+  ASSERT (SELECT bool_and(released) FROM public.sdr_send_reservations WHERE attempt_id = r.attempt_id);
+  UPDATE public.whatsapp_throttle_settings SET paused = false WHERE workspace_id = wa;
+  SELECT * INTO r FROM public.sdr_claim_step_attempt(wa, e6, c9, st, 2, 'whatsapp');
+  ASSERT r.claimed AND r.attempt_status = 'reserved', 'retoma após suspensão tem de reclamar a mesma etapa';
+  ASSERT (SELECT allowed FROM public.sdr_reserve_send_slot(wa, 'whatsapp', 'wa:z', r.attempt_id, 1, 5, 0));
   ASSERT public.sdr_begin_dispatch(r.attempt_id, 'wa:z', 0) = 'ok';
+  -- Suspensão nunca reabre/toca tentativas fora de 'reserved' (dispatching/accepted/cancelled).
+  ASSERT NOT public.sdr_suspend_attempt(r.attempt_id, 'x', NULL);
 
   -- Tentativas activas para o teste de concorrência de quota (shell).
   FOR i IN 201..210 LOOP PERFORM public.sdr_claim_step_attempt(wa, e7, c9, NULL, i, 'whatsapp'); END LOOP;
@@ -88,6 +102,7 @@ BEGIN
   -- Permissões
   ASSERT NOT has_function_privilege('authenticated', 'public.sdr_consume_transport_token(uuid,uuid,integer,text,text,text)', 'EXECUTE');
   ASSERT NOT has_function_privilege('authenticated', 'public.sdr_begin_dispatch(uuid,text,integer,integer,text)', 'EXECUTE');
+  ASSERT NOT has_function_privilege('authenticated', 'public.sdr_suspend_attempt(uuid,text,timestamptz)', 'EXECUTE');
   ASSERT has_function_privilege('service_role', 'public.sdr_finish_attempt(uuid,text[],text,text,text,timestamptz)', 'EXECUTE');
   RAISE NOTICE 'review assertions OK';
 END $$;

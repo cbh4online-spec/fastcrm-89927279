@@ -45,3 +45,5 @@ CREATE TABLE public.sdr_sequence_step_logs (
   sequence_step_id uuid NOT NULL, channel text NOT NULL DEFAULT 'email', status text NOT NULL DEFAULT 'pending',
   workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
   sent_at timestamptz, error_message text, metadata jsonb DEFAULT '{}', created_at timestamptz DEFAULT now());
+
+CREATE TABLE public.whatsapp_throttle_settings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), workspace_id uuid NOT NULL, instance_id uuid, paused boolean NOT NULL DEFAULT false);
