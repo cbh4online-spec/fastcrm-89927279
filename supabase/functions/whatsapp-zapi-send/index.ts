@@ -119,6 +119,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Conversa indicada tem de pertencer ao workspace (evita escrita cruzada na Inbox).
+    if (conversationId) {
+      const { data: ownConv } = await admin.from('conversations').select('id')
+        .eq('id', conversationId).eq('workspace_id', workspaceId).maybeSingle();
+      if (!ownConv) return jsonRes({ error: 'conversation_not_in_workspace' }, 403);
+    }
+
 
     // Fetch active connection
     const { data: conn } = await admin
@@ -321,6 +328,7 @@ Deno.serve(async (req) => {
         content: messagePreview,
         attachments,
         sender_id: userId,
+        metadata: worker.ok ? { source: 'sdr_worker' } : undefined,
         sent_at: now,
         external_message_id: externalMessageId,
       });
