@@ -424,6 +424,7 @@ export function ProductsDataTable({
   const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate, pricingRules, productTypesConfig };
 
   const parentRef = useRef<HTMLDivElement>(null);
+  const horizontalScrollRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: products.length,
@@ -471,13 +472,27 @@ export function ProductsDataTable({
             const dataColsWidth = visibleCols.reduce((sum, cid) => sum + colWidths.getWidth(cid), 0);
             const totalWidth = 50 + dataColsWidth + 56; // checkbox + cols + actions
             return (
-              /* Contentor único de scroll: horizontal + vertical, com a barra sempre visível */
+              /* O eixo horizontal envolve toda a grelha; o eixo vertical fica no interior.
+                 Assim, a barra lateral permanece acessível e move cabeçalho e linhas em conjunto. */
               <div
-                ref={parentRef}
-                className="flex-1 min-h-0 overflow-auto max-h-[calc(100vh-320px)]"
-                style={{ minHeight: 200 }}
+                ref={horizontalScrollRef}
+                className="w-full max-w-full overflow-x-scroll overflow-y-hidden overscroll-x-contain"
+                data-products-horizontal-scroll
+                onWheel={(event) => {
+                  const horizontalDelta = event.shiftKey ? event.deltaY : event.deltaX;
+                  if (!horizontalDelta || !horizontalScrollRef.current) return;
+                  horizontalScrollRef.current.scrollLeft += horizontalDelta;
+                  event.preventDefault();
+                }}
               >
-                <>
+                <div
+                  style={{ width: totalWidth, minWidth: "100%" }}
+                >
+                  <div
+                    ref={parentRef}
+                    className="h-[clamp(320px,calc(100vh-360px),720px)] overflow-y-auto overflow-x-hidden"
+                    data-products-vertical-scroll
+                  >
                   {/* Cabeçalho fixo no topo, dentro do mesmo scroll */}
                   <div className="sticky top-0 z-40 bg-background" style={{ width: totalWidth, minWidth: "100%" }}>
                   <table
@@ -618,7 +633,8 @@ export function ProductsDataTable({
                       })}
                     </div>
                   </div>
-                </>
+                  </div>
+                </div>
               </div>
             );
           })()}
