@@ -242,11 +242,21 @@ export function createSupabasePorts(admin: any, env: PortsEnv): SdrPorts {
     },
 
     async log(e, stepId, channel, status, extra) {
+      // sdr_sequence_step_logs.sequence_step_id é NOT NULL no esquema real:
+      // nunca inserir registos sem etapa válida (supressões/bloqueios anteriores
+      // à resolução da etapa ficam apenas no estado/failure_reason da inscrição).
+      if (!stepId) {
+        console.warn("[sdr] step log ignorado sem sequence_step_id", {
+          enrollment: e.id, workspace: e.workspace_id, channel, status, reason: extra?.error ?? null,
+        });
+        return;
+      }
       await admin.from("sdr_sequence_step_logs").insert({
         sdr_enrollment_id: e.id, sequence_step_id: stepId, channel, status, workspace_id: e.workspace_id,
         sent_at: extra?.sentAt ?? null, error_message: extra?.error ?? null, metadata: extra?.metadata ?? {},
       });
     },
+
   };
 }
 
