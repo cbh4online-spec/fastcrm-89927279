@@ -1209,6 +1209,24 @@ export function CreateProductDialog({
                 placeholder={isBundle && bundlePriceMode === "auto" ? "Calculado automaticamente" : "0.00"}
               />
 
+              {isEditing && product && (
+                <MarketResearchPanel
+                  productId={product.id}
+                  workspaceId={product.workspace_id || ""}
+                  productName={name}
+                  sku={sku || undefined}
+                  brand={brand || undefined}
+                  category={category || undefined}
+                  currentPrice={parseFloat(basePrice) || undefined}
+                  costPrice={parseFloat(directCost) || undefined}
+                  onApplyPrice={(price) => {
+                    setBasePrice(price.toFixed(2));
+                    setTaxIncluded(false);
+                  }}
+                />
+              )}
+
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Moeda</Label>
