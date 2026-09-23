@@ -472,10 +472,10 @@ export function ProductsDataTable({
               return (
                 <>
                   {/* Sticky header */}
-                  <Table
+                  <table
                     ref={tableRef}
                     style={{ tableLayout: "fixed", width: totalWidth, minWidth: "100%" }}
-                    className="border-b border-border flex-shrink-0"
+                    className="caption-bottom text-sm border-b border-border flex-shrink-0"
                   >
                     <TableHeader className="bg-background">
                       <TableRow className="hover:bg-transparent">
@@ -498,7 +498,7 @@ export function ProductsDataTable({
                               key={col.id}
                               data-col-id={col.id}
                               className="relative select-none bg-background"
-                              style={{ width: w, minWidth: 60, maxWidth: 600 }}
+                              style={{ width: w, minWidth: w, maxWidth: w }}
                             >
                               <span className="truncate block pr-2">{col.label}</span>
                               <div
@@ -520,13 +520,13 @@ export function ProductsDataTable({
                         </TableHead>
                       </TableRow>
                     </TableHeader>
-                  </Table>
+                  </table>
 
                   {/* Virtualized body — vertical scroll only, horizontal handled by parent wrapper */}
                   <div
                     ref={parentRef}
-                    className="flex-1 min-h-0 overflow-y-auto overflow-x-visible"
-                    style={{ minHeight: 200, width: totalWidth, minWidth: "100%" }}
+                    className="flex-1 min-h-0 overflow-y-auto"
+                    style={{ minHeight: 200, width: totalWidth, minWidth: "100%", overflowX: "hidden" }}
                   >
                     <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
                       {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -563,7 +563,7 @@ export function ProductsDataTable({
                                   key={colId}
                                   data-col-id={colId}
                                   className="flex items-center px-4 text-sm flex-shrink-0 min-w-0"
-                                  style={{ width: w, maxWidth: w }}
+                                  style={{ width: w, minWidth: w, maxWidth: w }}
                                   title={tooltipText || undefined}
                                 >
                                   <div className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap [&>*]:max-w-full [&>*]:truncate">
