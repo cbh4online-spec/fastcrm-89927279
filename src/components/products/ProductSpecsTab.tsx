@@ -160,11 +160,28 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
           .insert(rows);
         if (error) throw error;
       }
+
+      // Mantém a ficha do produto em sincronia (fonte única de leitura)
+      const sheetMap: Record<string, string> = {};
+      specs.forEach((s) => {
+        if (!s.spec_key?.trim() || !s.spec_value?.trim()) return;
+        sheetMap[s.spec_key.trim()] = s.unit
+          ? `${s.spec_value.trim()} ${s.unit.trim()}`.trim()
+          : s.spec_value.trim();
+      });
+      const { error: syncError } = await supabase
+        .from("products")
+        .update({ specifications: sheetMap } as any)
+        .eq("id", product.id)
+        .eq("workspace_id", workspaceId);
+      if (syncError) throw syncError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["product-specs", product.id] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      setImportedFromSheet(0);
       setHasChanges(false);
-      toast.success("Especificações guardadas");
+      toast.success("Especificações guardadas e sincronizadas com a ficha");
     },
     onError: () => toast.error("Erro ao guardar"),
   });
