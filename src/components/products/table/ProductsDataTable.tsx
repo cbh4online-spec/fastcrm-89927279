@@ -472,10 +472,10 @@ export function ProductsDataTable({
               return (
                 <>
                   {/* Sticky header */}
-                  <Table
+                  <table
                     ref={tableRef}
                     style={{ tableLayout: "fixed", width: totalWidth, minWidth: "100%" }}
-                    className="border-b border-border flex-shrink-0"
+                    className="caption-bottom text-sm border-b border-border flex-shrink-0"
                   >
                     <TableHeader className="bg-background">
                       <TableRow className="hover:bg-transparent">
