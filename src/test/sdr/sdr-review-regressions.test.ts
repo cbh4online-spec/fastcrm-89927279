@@ -119,7 +119,7 @@ describe("4) persistência e erros de log", () => {
     const r = await runEnrollmentStep(w.ports(), WS, "e1"); // fake lança se log(null)
     expect(r).toMatchObject({ outcome: "blocked", reason: "campaign_without_sequence" });
     expect(r.warnings).toBeUndefined();
-    expect(w.enrollments.get("e1")!.failure_reason ?? (w.enrollments.get("e1") as any).failure_reason).toBe("campaign_without_sequence");
+    expect((w.enrollments.get("e1") as unknown as { failure_reason: string }).failure_reason).toBe("campaign_without_sequence");
   });
   it("adaptador real: log sem etapa não insere; erro de insert lança", async () => {
     const db = fakeAdmin({}, { insertError: { sdr_sequence_step_logs: { code: "23502" } } });
