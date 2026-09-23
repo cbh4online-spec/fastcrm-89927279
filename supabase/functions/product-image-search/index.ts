@@ -356,13 +356,58 @@ Deno.serve(async (req) => {
       )
     }
 
+    // ── DÉBITO DE CRÉDITOS (server-side, antes de qualquer chamada paga) ──
+    const workspaceId: string | null = (body.workspace_id ?? '').toString().trim() || null
+    const userId = (claims.claims as Record<string, unknown>).sub as string | undefined
+    let creditsConsumed = 0
+    let creditsBalance: number | null = null
+
+    if (workspaceId && userId) {
+      const admin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      )
+      const debit = await debitCredits(admin, workspaceId, userId, (pageUrl ?? query).slice(0, 180))
+      if (!debit.ok) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: debit.message,
+            code: 'insufficient_credits',
+            candidates: [],
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+      creditsConsumed = debit.consumed ?? 0
+      creditsBalance = debit.balance ?? null
+    }
+
+    // ── Page-First: procurar a ficha oficial do produto pela referência ──
+    const sku = query ? extractSku(query) : null
+    const brand = query ? extractBrand(query) : null
+    let autoPage = false
+    let autoPageTitle: string | undefined
+
+    if (!pageUrl && sku) {
+      const official = await findOfficialProductPage(sku, brand)
+      if (official) {
+        pageUrl = official.url
+        autoPage = true
+        autoPageTitle = official.title
+        console.log('[product-image-search] page-first:', pageUrl)
+      }
+    }
+
     if (!Deno.env.get('FIRECRAWL_API_KEY') && !pageUrl) {
       return new Response(
         JSON.stringify({
           success: false,
           fallback: true,
-          error: 'Firecrawl não está configurado. Liga o conector em Connectors.',
+          error: 'A pesquisa de imagens não está configurada. Liga o conector em Connectors.',
           candidates: [],
+          credits_consumed: creditsConsumed,
+          credits_balance: creditsBalance,
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
