@@ -901,10 +901,17 @@ export function CreateProductDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Form - Left Side */}
-            <div className="lg:col-span-2 space-y-4">
-              {/* SKU / Reference field - FIRST with inline search */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
+              <TabsTrigger value="geral">Geral</TabsTrigger>
+              <TabsTrigger value="preco">Preço &amp; IVA</TabsTrigger>
+              <TabsTrigger value="tecnico">Especificações</TabsTrigger>
+              <TabsTrigger value="ai">AI Commerce</TabsTrigger>
+              <TabsTrigger value="media">Fotos &amp; Vídeo</TabsTrigger>
+            </TabsList>
+
+            {/* ---------------- GERAL & IDENTIFICAÇÃO ---------------- */}
+            <TabsContent value="geral" className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="sku">Código / SKU / Referência</Label>
                 <div className="flex gap-2">
@@ -930,8 +937,12 @@ export function CreateProductDialog({
                     variant="outline"
                     size="icon"
                     disabled={!sku.trim()}
-                    onClick={() => setSkuSearchTrigger(prev => prev + 1)}
+                    onClick={() => {
+                      setActiveTab("ai");
+                      setSkuSearchTrigger((prev) => prev + 1);
+                    }}
                     title="Pesquisar dados do produto"
+                    aria-label="Pesquisar dados do produto"
                   >
                     <Search className="h-4 w-4" />
                   </Button>
@@ -947,6 +958,7 @@ export function CreateProductDialog({
                 onScan={(code) => {
                   setSku(code);
                   setScannerOpen(false);
+                  setActiveTab("ai");
                   setTimeout(() => setSkuSearchTrigger((prev) => prev + 1), 50);
                 }}
               />
@@ -961,6 +973,60 @@ export function CreateProductDialog({
                   required
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="brand">Marca</Label>
+                  <Input
+                    id="brand"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    placeholder="ex: Ajax Systems"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="manufacturer">Fabricante</Label>
+                  <Input
+                    id="manufacturer"
+                    value={manufacturer}
+                    onChange={(e) => setManufacturer(e.target.value)}
+                    placeholder="ex: Ajax Systems LLC"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="model">Modelo</Label>
+                  <Input
+                    id="model"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    placeholder="ex: BulletCam 5 HLVF"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="gtin">EAN / GTIN</Label>
+                  <Input
+                    id="gtin"
+                    value={gtin}
+                    onChange={(e) => setGtin(e.target.value)}
+                    placeholder="Código de barras do fabricante"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mpn">MPN (referência do fabricante)</Label>
+                  <Input
+                    id="mpn"
+                    value={mpn}
+                    onChange={(e) => setMpn(e.target.value)}
+                    placeholder="ex: AJ-BULLETCAM-5-HLVF-W"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                EAN/GTIN e MPN são obrigatórios nos feeds de compras e nunca são inventados pela IA.
+              </p>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -987,23 +1053,16 @@ export function CreateProductDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Cobrança</Label>
-                  <Select value={billingType} onValueChange={(v) => setBillingType(v as BillingType)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {billingTypesConfig?.filter(t => t.is_active).map(type => (
-                        <SelectItem key={type.id} value={type.code}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="category">Categoria</Label>
+                  <Input
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="ex: Formação, Consultoria, Software"
+                  />
                 </div>
               </div>
 
-              {/* Bundle specific options */}
               {isBundle && (
                 <Alert>
                   <Info className="h-4 w-4" />
@@ -1012,69 +1071,6 @@ export function CreateProductDialog({
                   </AlertDescription>
                 </Alert>
               )}
-
-              {isBundle && (
-                <div className="space-y-2">
-                  <Label>Modo de Preço</Label>
-                  <Select value={bundlePriceMode} onValueChange={(v) => setBundlePriceMode(v as "auto" | "manual")}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="auto">Automático (soma dos componentes)</SelectItem>
-                      <SelectItem value="manual">Manual (preço fixo)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {bundlePriceMode === "auto" && (
-                    <p className="text-xs text-muted-foreground">
-                      O preço será calculado automaticamente com base nos componentes.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <PriceWithVatInput
-                  label={isBundle ? "Preço do Bundle" : "Preço Base"}
-                  basePrice={basePrice}
-                  onBasePriceChange={setBasePrice}
-                  taxIncluded={taxIncluded}
-                  onTaxIncludedChange={setTaxIncluded}
-                  vatRate={taxRateEstimate || "23"}
-                  onVatRateChange={setTaxRateEstimate}
-                  currency={currency}
-                  required={!isBundle || bundlePriceMode === "manual"}
-                  disabled={isBundle && bundlePriceMode === "auto"}
-                  placeholder={isBundle && bundlePriceMode === "auto" ? "Calculado automaticamente" : "0.00"}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Moeda</Label>
-                    <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="EUR">EUR (€)</SelectItem>
-                        <SelectItem value="USD">USD ($)</SelectItem>
-                        <SelectItem value="BRL">BRL (R$)</SelectItem>
-                        <SelectItem value="GBP">GBP (£)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Input
-                  id="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="ex: Formação, Consultoria, Software"
-                />
-              </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -1114,11 +1110,10 @@ export function CreateProductDialog({
                   value={shortDescription}
                   onChange={(e) => setShortDescription(e.target.value)}
                   placeholder="Breve descrição do produto"
-                  rows={2}
+                  rows={3}
                 />
               </div>
 
-              {/* Location */}
               <div className="space-y-2">
                 <Label htmlFor="location" className="flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5" />
@@ -1135,84 +1130,97 @@ export function CreateProductDialog({
                 )}
               </div>
 
-              {/* Product Images Gallery */}
-              <ProductImageGalleryManager
-                images={productImages}
-                onImagesChange={setProductImages}
-                skuImages={skuFoundImages}
-                maxImages={10}
-                productName={name}
-              />
-
-              {/* Technical Specifications Editor */}
-              <ProductSpecificationsEditor
-                specifications={specifications}
-                onChange={(specs) => {
-                  setSpecifications(specs);
-                  // Remove from suggested when added to specifications
-                  const newSuggested = { ...suggestedSpecs };
-                  Object.keys(specs).forEach(key => {
-                    delete newSuggested[key];
-                  });
-                  setSuggestedSpecs(newSuggested);
-                }}
-                suggestedCategory={category}
-                isAutoFilled={isSpecsAutoFilled}
-                suggestedSpecs={suggestedSpecs}
-              />
-
-              {/* AI Image Generator */}
-              <ProductImageGenerator
-                productName={name}
-                category={category}
-                description={shortDescription}
-                images={productImages}
-                onImagesChange={setProductImages}
-                maxImages={10}
-              />
-
-              {/* 360° Viewer - Only show if we have enough images */}
-              {productImages.length >= 3 && (
-                <ProductImage360Viewer
-                  images={productImages}
-                  productName={name}
+              <Card className="p-4">
+                <ProductPublishingPanel
+                  productId={isEditing && product ? product.id : null}
+                  initial={{
+                    b2b_published: b2bPublished,
+                    store_published: storePublished,
+                    sheet_published: sheetPublished,
+                  }}
+                  onLocalChange={(next) => {
+                    setB2bPublished(next.b2b_published);
+                    setStorePublished(next.store_published);
+                    setSheetPublished(next.sheet_published);
+                    setPendingCatalogIds(next.catalogIds);
+                  }}
                 />
+              </Card>
+
+              {isEditing && product && <ProductVariantsManager productId={product.id} />}
+            </TabsContent>
+
+            {/* ---------------- PREÇO & FISCALIDADE ---------------- */}
+            <TabsContent value="preco" className="space-y-4 pt-4">
+              {isBundle && (
+                <div className="space-y-2">
+                  <Label>Modo de Preço</Label>
+                  <Select value={bundlePriceMode} onValueChange={(v) => setBundlePriceMode(v as "auto" | "manual")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Automático (soma dos componentes)</SelectItem>
+                      <SelectItem value="manual">Manual (preço fixo)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {bundlePriceMode === "auto" && (
+                    <p className="text-xs text-muted-foreground">
+                      O preço será calculado automaticamente com base nos componentes.
+                    </p>
+                  )}
+                </div>
               )}
 
-              {/* Video Search */}
-              <ProductVideoSearch
-                productName={name}
-                sku={sku}
-                videoUrl={demoVideoUrl}
-                onVideoChange={setDemoVideoUrl}
+              <PriceWithVatInput
+                label={isBundle ? "Preço do Bundle" : "Preço Base"}
+                basePrice={basePrice}
+                onBasePriceChange={setBasePrice}
+                taxIncluded={taxIncluded}
+                onTaxIncludedChange={setTaxIncluded}
+                vatRate={taxRateEstimate || "23"}
+                onVatRateChange={setTaxRateEstimate}
+                currency={currency}
+                required={!isBundle || bundlePriceMode === "manual"}
+                disabled={isBundle && bundlePriceMode === "auto"}
+                placeholder={isBundle && bundlePriceMode === "auto" ? "Calculado automaticamente" : "0.00"}
               />
 
-              {/* Labor Configuration */}
-              <LaborConfigEditor
-                laborHours={laborHours}
-                laborHourlyRate={laborHourlyRate}
-                laborIncludedInPrice={laborIncludedInPrice}
-                laborNotes={laborNotes}
-                onChange={(config) => {
-                  setLaborHours(config.laborHours);
-                  setLaborHourlyRate(config.laborHourlyRate);
-                  setLaborIncludedInPrice(config.laborIncludedInPrice);
-                  setLaborNotes(config.laborNotes);
-                }}
-                productName={name}
-                productCategory={category}
-                productType={productType}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Moeda</Label>
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="BRL">BRL (R$)</SelectItem>
+                      <SelectItem value="GBP">GBP (£)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Atributos físicos: peso, volume/capacidade, dimensões e tipo de embalagem */}
-              <ProductPhysicalAttributesSection
-                value={physical}
-                onChange={setPhysical}
-              />
+                <div className="space-y-2">
+                  <Label>Cobrança</Label>
+                  <Select value={billingType} onValueChange={(v) => setBillingType(v as BillingType)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {billingTypesConfig?.filter(t => t.is_active).map(type => (
+                        <SelectItem key={type.id} value={type.code}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
               {canViewCostMargin && (
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-
                 <CollapsibleTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="w-full justify-between">
                     <span className="text-muted-foreground flex items-center gap-2">
@@ -1286,7 +1294,6 @@ export function CreateProductDialog({
                     />
                   </div>
 
-                  {/* Real-time margin preview */}
                   {price > 0 && (cost > 0 || opCost > 0) && (
                     <Card className="p-4 bg-muted/50">
                       <div className="flex items-center gap-2 mb-2">
@@ -1323,8 +1330,6 @@ export function CreateProductDialog({
               </Collapsible>
               )}
 
-
-              {/* Consumption Model Section */}
               <Collapsible open={showConsumption} onOpenChange={setShowConsumption}>
                 <CollapsibleTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="w-full justify-between">
@@ -1362,8 +1367,8 @@ export function CreateProductDialog({
 
                     <div className="space-y-2">
                       <Label htmlFor="includedQuantity">
-                        {consumptionModel === "sessions" ? "Sessões Incluídas" : 
-                         consumptionModel === "units" ? "Unidades Incluídas" : 
+                        {consumptionModel === "sessions" ? "Sessões Incluídas" :
+                         consumptionModel === "units" ? "Unidades Incluídas" :
                          "Quantidade Incluída"}
                       </Label>
                       <Input
@@ -1381,8 +1386,8 @@ export function CreateProductDialog({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Frequência Recomendada</Label>
-                      <Select 
-                        value={recommendedFrequency} 
+                      <Select
+                        value={recommendedFrequency}
                         onValueChange={(v) => setRecommendedFrequency(v as RecommendedFrequency)}
                       >
                         <SelectTrigger>
@@ -1428,103 +1433,146 @@ export function CreateProductDialog({
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* Publishing Channels Section */}
-              <Card className="p-4">
-                <ProductPublishingPanel
-                  productId={isEditing && product ? product.id : null}
-                  initial={
-                    isEditing
-                      ? {
-                          b2b_published: b2bPublished,
-                          store_published: storePublished,
-                          sheet_published: sheetPublished,
-                        }
-                      : {
-                          b2b_published: b2bPublished,
-                          store_published: storePublished,
-                          sheet_published: sheetPublished,
-                        }
-                  }
-                  onLocalChange={(next) => {
-                    setB2bPublished(next.b2b_published);
-                    setStorePublished(next.store_published);
-                    setSheetPublished(next.sheet_published);
-                    setPendingCatalogIds(next.catalogIds);
-                  }}
-                />
-              </Card>
-            </div>
+              <LaborConfigEditor
+                laborHours={laborHours}
+                laborHourlyRate={laborHourlyRate}
+                laborIncludedInPrice={laborIncludedInPrice}
+                laborNotes={laborNotes}
+                onChange={(config) => {
+                  setLaborHours(config.laborHours);
+                  setLaborHourlyRate(config.laborHourlyRate);
+                  setLaborIncludedInPrice(config.laborIncludedInPrice);
+                  setLaborNotes(config.laborNotes);
+                }}
+                productName={name}
+                productCategory={category}
+                productType={productType}
+              />
+            </TabsContent>
 
-            {/* AI Assistant Panel - Right Side */}
-            <div className="space-y-4">
-              <Collapsible open={showAIPanel} onOpenChange={setShowAIPanel}>
-                <CollapsibleTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="w-full justify-between">
-                    <span className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      Assistente IA
-                    </span>
-                    {showAIPanel ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 pt-2">
-                  <AICommerceAssistantPanel
-                    productId={product?.id}
-                    draft={{
-                      name,
-                      sku,
-                      category,
-                      productType,
-                      shortDescription,
-                    }}
-                    onApplyName={handleApplyName}
-                    onApplyCategory={handleApplyCategory}
-                    onApplyShortDescription={handleApplyDescription}
-                    onApplyStructured={setAiCommerceContent}
+            {/* ---------------- ESPECIFICAÇÕES, PESO & GARANTIA ---------------- */}
+            <TabsContent value="tecnico" className="space-y-4 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="warrantyMonths">Garantia (meses)</Label>
+                  <Input
+                    id="warrantyMonths"
+                    type="number"
+                    min="0"
+                    max="240"
+                    value={warrantyMonths}
+                    onChange={(e) => setWarrantyMonths(e.target.value)}
+                    placeholder="ex: 36"
                   />
-
-                  <AIProductAssistant
-                    productName={name}
-                    currentCategory={category}
-                    currentProductType={productType}
-                    currentBillingType={billingType}
-                    existingCategories={existingCategories}
-                    onApplyCategory={handleApplyCategory}
-                    onApplyExistingCategory={(cat) => setCategory(cat.name)}
-                    onApplyPrice={handleApplyPrice}
-                    onApplyDescription={handleApplyDescription}
-                    onApplyProductType={handleApplyProductType}
-                    onApplyBillingType={(type) => setBillingType(type as BillingType)}
-                  />
-                  
-                  <SKUSearchPanel
-                    sku={sku}
-                    currentPrice={parseFloat(basePrice) || undefined}
-                    searchTrigger={skuSearchTrigger}
-                    onApplyName={handleApplyName}
-                    onApplyPrice={handleApplyPrice}
-                    onApplyDescription={handleApplyDescription}
-                    onApplyCategory={handleApplyCategory}
-                    onApplyImages={handleApplyImages}
-                    onImagesFound={handleSkuImagesFound}
-                    onApplySpecifications={handleApplySpecifications}
-                    onApplyAll={handleApplyAll}
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-            </div>
-
-            {/* Variants Manager - only in edit mode */}
-            {isEditing && product && (
-              <div className="mt-4">
-                <ProductVariantsManager productId={product.id} />
+                  <p className="text-xs text-muted-foreground">
+                    Na União Europeia, a garantia legal para consumidor final é de 36 meses.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo de garantia</Label>
+                  <Select value={warrantyType || undefined} onValueChange={setWarrantyType}>
+                    <SelectTrigger aria-label="Tipo de garantia">
+                      <SelectValue placeholder="Selecionar..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="legal">Garantia legal</SelectItem>
+                      <SelectItem value="manufacturer">Garantia do fabricante</SelectItem>
+                      <SelectItem value="store">Garantia da loja</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            )}
-          </div>
+
+              <ProductPhysicalAttributesSection
+                value={physical}
+                onChange={setPhysical}
+                defaultOpen
+              />
+
+              <ProductSpecificationsEditor
+                specifications={specifications}
+                onChange={(specs) => {
+                  setSpecifications(specs);
+                  const newSuggested = { ...suggestedSpecs };
+                  Object.keys(specs).forEach(key => {
+                    delete newSuggested[key];
+                  });
+                  setSuggestedSpecs(newSuggested);
+                }}
+                suggestedCategory={category}
+                isAutoFilled={isSpecsAutoFilled}
+                suggestedSpecs={suggestedSpecs}
+              />
+            </TabsContent>
+
+            {/* ---------------- AI COMMERCE & SEO ---------------- */}
+            <TabsContent value="ai" className="space-y-4 pt-4">
+              <AICommerceAssistantPanel
+                productId={product?.id}
+                draft={{
+                  name,
+                  sku,
+                  brand,
+                  category,
+                  productType,
+                  shortDescription,
+                }}
+                onApplyName={handleApplyName}
+                onApplyCategory={handleApplyCategory}
+                onApplyShortDescription={handleApplyDescription}
+                onApplyStructured={setAiCommerceContent}
+                onApplyTechnical={handleApplyTechnical}
+              />
+
+              <SKUSearchPanel
+                sku={sku}
+                currentPrice={parseFloat(basePrice) || undefined}
+                searchTrigger={skuSearchTrigger}
+                onApplyName={handleApplyName}
+                onApplyPrice={handleApplyPrice}
+                onApplyDescription={handleApplyDescription}
+                onApplyCategory={handleApplyCategory}
+                onApplyImages={handleApplyImages}
+                onImagesFound={handleSkuImagesFound}
+                onApplySpecifications={handleApplySpecifications}
+                onApplyAll={handleApplyAll}
+              />
+            </TabsContent>
+
+            {/* ---------------- FOTOS & VÍDEO ---------------- */}
+            <TabsContent value="media" className="space-y-4 pt-4">
+              <ProductImageGalleryManager
+                images={productImages}
+                onImagesChange={setProductImages}
+                skuImages={skuFoundImages}
+                maxImages={10}
+                productName={name}
+              />
+
+              <ProductImageGenerator
+                productName={name}
+                category={category}
+                description={shortDescription}
+                images={productImages}
+                onImagesChange={setProductImages}
+                maxImages={10}
+              />
+
+              {productImages.length >= 3 && (
+                <ProductImage360Viewer
+                  images={productImages}
+                  productName={name}
+                />
+              )}
+
+              <ProductVideoSearch
+                productName={name}
+                sku={sku}
+                videoUrl={demoVideoUrl}
+                onVideoChange={setDemoVideoUrl}
+              />
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
             <Button
