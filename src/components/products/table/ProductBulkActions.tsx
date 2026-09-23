@@ -32,6 +32,9 @@ interface ProductBulkActionsProps {
   onBulkDuplicate?: () => void;
   onCompare?: () => void;
   onBulkMarketResearch?: () => void;
+  /** Total de artigos que correspondem aos filtros ativos (todas as páginas) */
+  filteredCount?: number;
+  onSelectAllFiltered?: () => void;
 }
 
 
@@ -49,16 +52,31 @@ export function ProductBulkActions({
   onBulkDuplicate,
   onCompare,
   onBulkMarketResearch,
+  filteredCount = 0,
+  onSelectAllFiltered,
 }: ProductBulkActionsProps) {
   if (selectedIds.length === 0) return null;
 
+  const canSelectAllFiltered = !!onSelectAllFiltered && filteredCount > selectedIds.length;
 
   return (
-    <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
+    <div className="flex flex-wrap items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
       <span className="text-sm text-muted-foreground">
         {selectedIds.length} {selectedIds.length === 1 ? "selecionado" : "selecionados"}
       </span>
+      {canSelectAllFiltered && (
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-sm"
+          onClick={onSelectAllFiltered}
+        >
+          Selecionar todos os {filteredCount.toLocaleString("pt-PT")} resultados
+        </Button>
+      )}
       <div className="flex-1" />
+
 
       {onCompare && selectedIds.length >= 2 && selectedIds.length <= 3 && (
         <Button variant="outline" size="sm" onClick={onCompare} className="gap-2">
