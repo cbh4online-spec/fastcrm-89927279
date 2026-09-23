@@ -126,7 +126,7 @@ export async function runEnrollmentStep(p: SdrPorts, workspaceId: string, enroll
   const content = resolveStepContent(step, {
     name: e.prospect_name, first_name: e.prospect_name?.split(/\s+/)[0] ?? null, email: e.prospect_email, phone: e.prospect_phone,
   });
-  if (!content.ok) return block(p, e, step, step.channel, content.reason);
+  if (!content.ok) return block(p, e, step, step.channel, (content as { reason: string }).reason);
 
   if (await p.isSuppressed(e, content.channel)) {
     await p.updateEnrollment(workspaceId, e.id, { status: "opted_out", opted_out_at: now.toISOString(), next_send_at: null, failure_reason: "suppressed" }, ACTIVE);
@@ -147,7 +147,7 @@ export async function runEnrollmentStep(p: SdrPorts, workspaceId: string, enroll
   if (content.channel === "email") {
     if (!e.prospect_email) return block(p, e, step, "email", "no_email");
     const rr = await p.resolveEmailRoute(c, e);
-    if (!rr.ok) return block(p, e, step, "email", rr.reason);
+    if (!rr.ok) return block(p, e, step, "email", (rr as { reason: string }).reason);
     emailRoute = rr.route;
   } else {
     if (!e.prospect_phone) return block(p, e, step, "whatsapp", "no_phone");
@@ -155,7 +155,7 @@ export async function runEnrollmentStep(p: SdrPorts, workspaceId: string, enroll
       return block(p, e, step, "whatsapp", "ghl_worker_transport_not_supported_phase1");
     }
     const rr = await p.resolveWhatsAppRoute(c, e);
-    if (!rr.ok) return block(p, e, step, "whatsapp", rr.reason);
+    if (!rr.ok) return block(p, e, step, "whatsapp", (rr as { reason: string }).reason);
     waRoute = rr.route;
     if (waRoute.paused) {
       await p.updateEnrollment(workspaceId, e.id, { next_send_at: new Date(now.getTime() + 3600_000).toISOString() }, ACTIVE);
