@@ -398,8 +398,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2) Leitura dos dados estruturados (Schema.org) quando o excerto não traz preço
-    const pages = await enrichWithStructuredPrices(discovered);
+    // 2) Filtro de relevância + leitura dos dados estruturados (Schema.org)
+    const relevant = filterRelevantPages(discovered, sku);
+    const pages = await enrichWithStructuredPrices(relevant);
 
     const allowedUrls = new Set(pages.map((p) => p.url));
     const context = pages
