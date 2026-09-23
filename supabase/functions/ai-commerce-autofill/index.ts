@@ -60,7 +60,7 @@ serve(async (req) => {
       const { data, error: productError } = await supabase
         .from("products")
         .select(
-          "id, workspace_id, name, sku, brand, category, subcategory, product_type, short_description, commercial_description, base_price, currency, stock_status, main_benefits, benefits, features, target_audience, problem_solved, use_cases, seo_title, seo_description, store_slug, schema_type, canonical_url, checkout_url, languages, countries",
+          "id, workspace_id, name, sku, brand, manufacturer, model, specifications, warranty_months, warranty_type, category, subcategory, product_type, short_description, commercial_description, base_price, currency, stock_status, main_benefits, benefits, features, target_audience, problem_solved, use_cases, seo_title, seo_description, store_slug, schema_type, canonical_url, checkout_url, languages, countries",
         )
         .eq("id", productId)
         .maybeSingle();
@@ -129,6 +129,10 @@ serve(async (req) => {
       nome: product.name,
       sku: product.sku,
       marca: product.brand,
+      fabricante: product.manufacturer,
+      modelo: product.model,
+      especificacoes: product.specifications ?? null,
+      garantia_meses: product.warranty_months ?? null,
       categoria: product.category,
       subcategoria: product.subcategory,
       tipo: product.product_type,
@@ -146,13 +150,17 @@ serve(async (req) => {
     const systemPrompt = `És especialista em conteúdo de e-commerce para motores de IA e agentes de compra, em português de Portugal.
 Regras rígidas:
 - Usa APENAS os factos fornecidos e conhecimento genérico e seguro sobre a categoria do produto.
-- NUNCA inventes preços, stock, prazos de entrega, garantias, certificações, GTIN, MPN, marcas ou números concretos.
-- Se não houver informação suficiente para um campo, devolve string vazia ou lista vazia.
+- NUNCA inventes preços, stock, prazos de entrega, certificações, GTIN nem MPN.
+- Se não houver informação suficiente para um campo, devolve string vazia, lista vazia, objeto vazio ou null.
 - Tom claro, factual, sem exageros de marketing.
 Responde APENAS com JSON válido:
-{"ai_title":"","ai_category":"","ai_short_description":"","ai_long_description":"","ai_target_audience":"","ai_problem_solved":"","ai_use_cases":[],"ai_key_features":[],"ai_keywords":[],"ai_recommendation_context":"","ai_exclusions":"","ai_faq":[{"question":"","answer":""}],"seo_title":"","seo_description":"","main_benefits":[],"schema_type":""}
+{"ai_title":"","ai_category":"","ai_short_description":"","ai_long_description":"","ai_target_audience":"","ai_problem_solved":"","ai_use_cases":[],"ai_key_features":[],"ai_keywords":[],"ai_recommendation_context":"","ai_exclusions":"","ai_faq":[{"question":"","answer":""}],"seo_title":"","seo_description":"","main_benefits":[],"schema_type":"","brand":"","manufacturer":"","model":"","warranty_months":null,"warranty_type":"","specifications":{}}
 Limites: ai_title <=150 car., ai_short_description <=300 car., ai_long_description entre 250 e 1200 car., seo_title <=60 car., seo_description <=155 car., 3 a 6 casos de uso, 3 a 8 funcionalidades, 5 a 12 palavras-chave, 3 a 5 perguntas de FAQ, 3 a 6 benefícios (frases curtas, orientadas a resultado, sem números inventados).
-schema_type: escolhe exatamente um de "Product", "SoftwareApplication", "Service", "Course" conforme a natureza do produto; se houver dúvida usa "Product".`;
+schema_type: escolhe exatamente um de "Product", "SoftwareApplication", "Service", "Course" conforme a natureza do produto; se houver dúvida usa "Product".
+Dados técnicos (sugestões para o utilizador revisar antes de gravar):
+- brand / manufacturer / model: deduz apenas do nome, SKU ou marca já indicados. Se não for inequívoco, devolve string vazia.
+- warranty_months: usa 36 e warranty_type "legal" quando o produto é bem de consumo vendido na UE; usa outro valor apenas se constar nos factos. Caso contrário null e "".
+- specifications: objeto simples chave→valor (máx. 15 entradas) com características técnicas típicas e verificáveis da gama (ex.: "Resolução": "5 MP"). Nunca inclui preço, stock, prazos ou certificações.`;
 
     const start = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -225,8 +233,36 @@ schema_type: escolhe exatamente um de "Product", "SoftwareApplication", "Service
           .slice(0, 5)
       : [];
 
+    // Especificações técnicas: objeto simples chave→valor, sem preços/stock.
+    const FORBIDDEN_SPEC = /(pre[çc]o|price|stock|iva|vat|custo|prazo|entrega|garantia\s*$)/i;
+    const specifications: Record<string, string> = {};
+    if (parsed.specifications && typeof parsed.specifications === "object" && !Array.isArray(parsed.specifications)) {
+      for (const [k, v] of Object.entries(parsed.specifications as Record<string, unknown>)) {
+        const key = str(k, 60);
+        const value = str(typeof v === "number" ? String(v) : v, 200);
+        if (!key || !value || FORBIDDEN_SPEC.test(key)) continue;
+        specifications[key] = value;
+        if (Object.keys(specifications).length >= 15) break;
+      }
+    }
+
+    const warrantyMonthsRaw = Number(parsed.warranty_months);
+    const warrantyMonths =
+      Number.isFinite(warrantyMonthsRaw) && warrantyMonthsRaw > 0 && warrantyMonthsRaw <= 240
+        ? Math.round(warrantyMonthsRaw)
+        : null;
+    const warrantyType = ["manufacturer", "store", "legal"].includes(str(parsed.warranty_type, 20))
+      ? str(parsed.warranty_type, 20)
+      : "";
+
     return json({
       suggestion: {
+        brand: str(parsed.brand, 120),
+        manufacturer: str(parsed.manufacturer, 120),
+        model: str(parsed.model, 120),
+        warranty_months: warrantyMonths,
+        warranty_type: warrantyType,
+        specifications,
         ai_title: str(parsed.ai_title, 150),
         ai_category: str(parsed.ai_category, 120),
         ai_short_description: str(parsed.ai_short_description, 400),

@@ -246,6 +246,13 @@
       "when": 1790098148198,
       "tag": "0034_ai_commerce_quality_gate",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790167698653,
+      "tag": "0035_products_model_and_warranty",
+      "breakpoints": true
     }
   ]
 }
