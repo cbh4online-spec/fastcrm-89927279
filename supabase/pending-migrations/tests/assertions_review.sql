@@ -1,7 +1,7 @@
 -- Regressões da revisão independente (begin_dispatch transaccional, quota por
 -- despacho em mudança de dia, recibos anti-replay, consentimento WhatsApp).
 DO $$
-DECLARE r record; v text; a1 uuid; a2 uuid;
+DECLARE r record; v text; a1 uuid; a2 uuid; i int;
   wa uuid := '00000000-0000-0000-0000-00000000000a';
   c9 uuid := '00000000-0000-0000-0000-0000000000c9';
   s9 uuid := '00000000-0000-0000-0000-0000000000d9';
@@ -81,6 +81,9 @@ BEGIN
   ASSERT public.sdr_begin_dispatch(r.attempt_id, 'wa:z', 0) = 'suppressed';
   DELETE FROM public.whatsapp_optouts WHERE workspace_id = wa;
   ASSERT public.sdr_begin_dispatch(r.attempt_id, 'wa:z', 0) = 'ok';
+
+  -- Tentativas activas para o teste de concorrência de quota (shell).
+  FOR i IN 201..210 LOOP PERFORM public.sdr_claim_step_attempt(wa, e7, c9, NULL, i, 'whatsapp'); END LOOP;
 
   -- Permissões
   ASSERT NOT has_function_privilege('authenticated', 'public.sdr_consume_transport_token(uuid,uuid,integer,text,text,text)', 'EXECUTE');
