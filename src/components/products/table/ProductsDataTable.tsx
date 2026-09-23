@@ -479,12 +479,13 @@ export function ProductsDataTable({
               >
                 <>
                   {/* Cabeçalho fixo no topo, dentro do mesmo scroll */}
+                  <div className="sticky top-0 z-40 bg-background" style={{ width: totalWidth, minWidth: "100%" }}>
                   <table
                     ref={tableRef}
                     style={{ tableLayout: "fixed", width: totalWidth, minWidth: "100%" }}
                     className="caption-bottom text-sm border-b border-border"
                   >
-                    <TableHeader className="sticky top-0 z-40 bg-background">
+                    <TableHeader className="bg-background">
                       <TableRow className="hover:bg-transparent">
                         <TableHead
                           className="bg-background"
