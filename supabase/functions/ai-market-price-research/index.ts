@@ -578,9 +578,12 @@ ${context}`;
       market_min_price: marketMin,
       market_max_price: marketMax,
       suggested_price: suggestedPrice,
+      suggested_price_net: suggestedNet,
+      vat_rate: vatRate,
       suggested_margin_pct: suggestedMarginPct,
       margin_blocked: marginBlocked,
       min_margin_pct: minMarginPct,
+
       competitors,
       sources: pages.map((p) => p.url),
       market_summary: String(extracted.market_summary || "").slice(0, 1000) + marginNote,
