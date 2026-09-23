@@ -87,24 +87,39 @@ function hostOf(url: string): string {
   }
 }
 
+type PageHit = { url: string; title?: string; excerpts: string[] };
+
+/** Termos de setor para evitar decomposição semântica do código (ex. "Side"/"Cover"). */
+const SECTOR_HINT = "loja online preço euros distribuidor";
+
+/** Constrói queries com correspondência exata obrigatória do código do artigo. */
+function buildQueries(
+  sku: string | null,
+  barcode: string | null,
+  productName: string,
+  brand: string | null
+): string[] {
+  const q: string[] = [];
+  if (sku) {
+    q.push(`"${sku}"`);
+    q.push(`"${sku}" ${SECTOR_HINT}`);
+    if (brand) q.push(`"${sku}" ${brand} comprar preço`);
+  }
+  if (barcode) q.push(`"${barcode}" preço`);
+  if (!q.length) q.push(`"${productName}" ${brand ?? ""} preço Portugal`.trim());
+  return q.slice(0, 4);
+}
+
 /** Descoberta de páginas de venda reais com o código do artigo (Parallel, modo rápido). */
 async function searchCompetitorPages(
   sku: string | null,
   barcode: string | null,
   productName: string,
   brand: string | null
-): Promise<Array<{ url: string; title?: string; excerpts: string[] }>> {
+): Promise<PageHit[]> {
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   const connectionKey = Deno.env.get("PARALLEL_API_KEY");
   if (!lovableKey || !connectionKey) return [];
-
-  const queries: string[] = [];
-  if (sku) {
-    queries.push(`${sku} preço`);
-    queries.push(brand ? `${sku} ${brand} comprar` : `${sku} comprar`);
-  }
-  if (barcode) queries.push(`${barcode} preço`);
-  if (!queries.length) queries.push(`${productName} preço Portugal`);
 
   try {
     const resp = await fetch(`${PARALLEL_GATEWAY}/v1/search`, {
@@ -117,10 +132,10 @@ async function searchCompetitorPages(
       body: JSON.stringify({
         objective:
           `Localizar páginas de lojas e distribuidores (Portugal, Espanha, UE) que vendam o artigo` +
-          (sku ? ` com a referência exata ${sku}` : ` "${productName}"`) +
+          (sku ? ` com a referência exata "${sku}"` : ` "${productName}"`) +
           (barcode ? ` ou o código de barras ${barcode}` : "") +
-          `, indicando o preço de venda em euros.`,
-        search_queries: queries.slice(0, 4),
+          `, indicando o preço de venda em euros. Ignora páginas de artigos diferentes da referência.`,
+        search_queries: buildQueries(sku, barcode, productName, brand),
         mode: "fast",
         advanced_settings: { max_results: 10 },
       }),
@@ -147,6 +162,126 @@ async function searchCompetitorPages(
     console.warn("[MARKET-RESEARCH] parallel search error", (err as Error).message);
     return [];
   }
+}
+
+/** Pesquisa complementar de retalho (Firecrawl) — cobre lojas que o motor rápido não devolve. */
+async function searchRetailPages(
+  sku: string | null,
+  barcode: string | null,
+  productName: string
+): Promise<PageHit[]> {
+  const key = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!key) return [];
+  const query = sku ? `"${sku}" preço` : barcode ? `"${barcode}" preço` : `${productName} preço`;
+
+  try {
+    const resp = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query, limit: 8 }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!resp.ok) {
+      console.warn("[MARKET-RESEARCH] firecrawl search failed", resp.status);
+      return [];
+    }
+    const data = await resp.json().catch(() => null) as any;
+    const results: any[] = data?.data ?? [];
+    return results
+      .map((r) => ({
+        url: String(r?.url ?? ""),
+        title: typeof r?.title === "string" ? r.title : undefined,
+        excerpts: [String(r?.description ?? r?.markdown ?? "").slice(0, 1200)].filter(Boolean),
+      }))
+      .filter((r) => r.url.startsWith("http") && !r.url.toLowerCase().endsWith(".pdf"));
+  } catch (err) {
+    console.warn("[MARKET-RESEARCH] firecrawl search error", (err as Error).message);
+    return [];
+  }
+}
+
+/** Lê os blocos Schema.org/JSON-LD da página e devolve o preço estruturado declarado. */
+function extractStructuredPrice(html: string): { price: number; currency: string | null } | null {
+  const blocks = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  const found: Array<{ price: number; currency: string | null }> = [];
+
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const obj = node as Record<string, unknown>;
+    const rawPrice = obj.price ?? obj.lowPrice;
+    if (rawPrice !== undefined && rawPrice !== null) {
+      const num = Number(String(rawPrice).replace(",", "."));
+      if (Number.isFinite(num) && num > 0 && num < 1_000_000) {
+        const cur = typeof obj.priceCurrency === "string" ? obj.priceCurrency : null;
+        found.push({ price: Math.round(num * 100) / 100, currency: cur });
+      }
+    }
+    for (const value of Object.values(obj)) visit(value);
+  };
+
+  for (const block of blocks) {
+    try {
+      visit(JSON.parse(block[1].trim()));
+    } catch {
+      // bloco inválido: ignorar
+    }
+  }
+
+  const euro = found.filter((f) => !f.currency || f.currency.toUpperCase() === "EUR");
+  if (!euro.length) return null;
+  euro.sort((a, b) => a.price - b.price);
+  return euro[0];
+}
+
+function normalizeRef(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** Mantém apenas páginas onde a referência exata aparece no URL, título ou conteúdo. */
+function filterRelevantPages(pages: PageHit[], sku: string | null): PageHit[] {
+  if (!sku) return pages;
+  const ref = normalizeRef(sku);
+  if (ref.length < 5) return pages;
+  const relevant = pages.filter((p) => {
+    const haystack = normalizeRef(`${p.url} ${p.title ?? ""} ${p.excerpts.join(" ")}`);
+    return haystack.includes(ref);
+  });
+  return relevant.length ? relevant : pages;
+}
+
+/** Enriquece as páginas com o preço declarado em Schema.org quando o excerto não o traz. */
+async function enrichWithStructuredPrices(pages: PageHit[]): Promise<PageHit[]> {
+  const targets = pages.slice(0, 12);
+  const enriched = await Promise.all(
+    targets.map(async (page) => {
+      const hasPrice = page.excerpts.some((e) => /(\d+[.,]\d{2}\s*€|€\s*\d+[.,]\d{2}|EUR\s*\d)/.test(e));
+      if (hasPrice) return page;
+      try {
+        const resp = await fetch(page.url, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; FastCRM/1.0)" },
+          signal: AbortSignal.timeout(12000),
+        });
+        if (!resp.ok) return page;
+        const html = (await resp.text()).slice(0, 900_000);
+        const structured = extractStructuredPrice(html);
+        if (!structured) return page;
+        return {
+          ...page,
+          excerpts: [
+            ...page.excerpts,
+            `Preço declarado nos dados estruturados desta página (Schema.org): ${structured.price.toFixed(2)} ${structured.currency ?? "EUR"}`,
+          ],
+        };
+      } catch {
+        return page;
+      }
+    })
+  );
+  return [...enriched, ...pages.slice(12)];
 }
 
 /** Débito autoritário de créditos no workspace do cliente. */
@@ -233,10 +368,24 @@ Deno.serve(async (req) => {
       return json({ error: debit.message, code: "insufficient_credits" }, 402);
     }
 
-    // 1) Descoberta de páginas reais
-    const pages = await searchCompetitorPages(sku, barcode, productName, brand);
+    // 1) Descoberta híbrida de páginas reais (motor rápido + pesquisa de retalho)
+    const [fastPages, retailPages] = await Promise.all([
+      searchCompetitorPages(sku, barcode, productName, brand),
+      searchRetailPages(sku, barcode, productName),
+    ]);
 
-    if (!pages.length) {
+    const byUrl = new Map<string, PageHit>();
+    for (const page of [...fastPages, ...retailPages]) {
+      const existing = byUrl.get(page.url);
+      if (existing) {
+        existing.excerpts = [...new Set([...existing.excerpts, ...page.excerpts])];
+      } else {
+        byUrl.set(page.url, { ...page });
+      }
+    }
+    const discovered = [...byUrl.values()];
+
+    if (!discovered.length) {
       return json({
         success: true,
         grounded: false,
@@ -249,21 +398,26 @@ Deno.serve(async (req) => {
       });
     }
 
+    // 2) Filtro de relevância + leitura dos dados estruturados (Schema.org)
+    const relevant = filterRelevantPages(discovered, sku);
+    const pages = await enrichWithStructuredPrices(relevant);
+
     const allowedUrls = new Set(pages.map((p) => p.url));
     const context = pages
       .map((p, i) => `[Fonte ${i + 1}] URL: ${p.url}\nTítulo: ${p.title ?? "N/A"}\nConteúdo: ${p.excerpts.join(" \u2022 ").slice(0, 1500)}`)
       .join("\n\n---\n\n");
 
-    // 2) Extração estritamente ancorada nas fontes
+    // 3) Extração estritamente ancorada nas fontes
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "AI not configured" }, 500);
 
     const systemPrompt = `És um extrator de preços. Regras absolutas:
-1. Só podes devolver preços que estejam LITERALMENTE escritos no conteúdo das fontes fornecidas.
+1. Só podes devolver preços que estejam LITERALMENTE escritos no conteúdo das fontes fornecidas, incluindo os preços indicados como "Preço declarado nos dados estruturados desta página (Schema.org)" — esses são preços reais da loja e devem ser usados.
 2. É PROIBIDO estimar, arredondar por categoria, inferir ou inventar qualquer valor.
 3. Cada preço tem de vir acompanhado do URL exato da fonte onde aparece (copiado da lista).
 4. Ignora páginas que vendam apenas acessórios, packs de várias unidades, produtos usados ou artigos diferentes da referência pedida.
-5. Se nenhuma fonte contiver um preço verificável para este artigo, devolve a lista de concorrentes vazia.
+5. Ignora páginas institucionais, comparadores genéricos, listas de lojas físicas, redes sociais e páginas sem a referência pedida.
+6. Se nenhuma fonte contiver um preço verificável para este artigo, devolve a lista de concorrentes vazia.
 Responde em português de Portugal.`;
 
     const userPrompt = `Artigo: ${productName}
