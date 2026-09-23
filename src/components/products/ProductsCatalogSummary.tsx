@@ -27,6 +27,7 @@ interface Props {
     negativeMargin: number;
     lowMargin: number;
     noImage: number;
+    pendingUpdate?: number;
   };
   activeFilterId?: string;
   onFilterSelect: (filterId: string) => void;
