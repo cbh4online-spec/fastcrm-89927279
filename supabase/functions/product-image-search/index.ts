@@ -565,14 +565,17 @@ Deno.serve(async (req) => {
     }
 
 
-    // Estratégia primária: Firecrawl v2 /search com sources=["images"]
-    // — devolve imagens reais indexadas pelo Google sem precisar de scraping.
-    const searchQuery = query
-    console.log('[product-image-search] query:', searchQuery, 'limit:', limit)
+    // Estratégia secundária: pesquisa aberta de imagens, com consulta
+    // sintetizada (referência + marca) e descarte de resultados fora do setor.
+    const searchQuery = synthesizeQuery(query, sku, brand)
+    console.log('[product-image-search] query:', searchQuery, 'limit:', limit, 'sku:', sku)
 
     const apiKey = Deno.env.get('FIRECRAWL_API_KEY')!
     const candidates: ImageCandidate[] = []
     const seen = new Set<string>()
+
+    const isNoise = (url: string, title?: string) =>
+      NOISE_RE.test(url) || (title ? NOISE_RE.test(title) : false)
 
     try {
       const v2Resp = await fetch('https://api.firecrawl.dev/v2/search', {
@@ -594,11 +597,13 @@ Deno.serve(async (req) => {
         for (const img of images) {
           const url: string = img?.imageUrl || img?.url
           if (!url || !url.startsWith('http') || seen.has(url)) continue
+          if (isNoise(img?.url ?? url, img?.title)) continue
           seen.add(url)
           candidates.push({
             url,
             source_url: img?.url || url,
             source_title: img?.title,
+            origin: 'Pesquisa web',
           })
         }
         console.log('[product-image-search] v2 images:', candidates.length)
