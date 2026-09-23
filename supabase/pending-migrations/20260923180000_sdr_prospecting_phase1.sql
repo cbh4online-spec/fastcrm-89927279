@@ -360,7 +360,69 @@ BEGIN
   RETURN array_length(v_ids, 1);
 END $$;
 
+-- ─── 9b. Exclusão atómica por token (email_unsubscribe_tokens)
+-- Esquema real confirmado: email_unsubscribe_tokens(id, token, email, created_at, used_at).
+-- NÃO existe workspace_id — o workspace é derivado das inscrições SDR do email.
+-- Atomicidade: tudo numa só transação e a supressão é gravada ANTES de marcar o
+-- token como usado; uma falha parcial faz rollback e o token continua válido,
+-- pelo que nunca se consome o token sem excluir o endereço.
+CREATE OR REPLACE FUNCTION public.email_process_unsubscribe(p_token text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_email text; v_used timestamptz; v_ids uuid[]; v_stopped integer := 0;
+BEGIN
+  IF p_token IS NULL OR length(btrim(p_token)) < 16 THEN
+    RETURN jsonb_build_object('found', false, 'reason', 'invalid_token');
+  END IF;
+
+  SELECT lower(btrim(email)), used_at INTO v_email, v_used
+    FROM public.email_unsubscribe_tokens
+   WHERE token = p_token
+   ORDER BY created_at DESC
+   LIMIT 1
+     FOR UPDATE;
+
+  IF v_email IS NULL THEN RETURN jsonb_build_object('found', false, 'reason', 'not_found'); END IF;
+
+  -- 1) Supressão global (idempotente).
+  INSERT INTO public.suppressed_emails (email, reason)
+  VALUES (v_email, 'unsubscribe')
+  ON CONFLICT (email) DO NOTHING;
+
+  -- 2) Paragem das inscrições SDR + supressão por workspace.
+  WITH o AS (
+    UPDATE public.sdr_enrollments
+       SET status = 'opted_out', opted_out_at = now(), next_send_at = NULL, updated_at = now()
+     WHERE lower(prospect_email) = v_email
+       AND status IN ('enrolled','sequenced','paused')
+    RETURNING id, workspace_id
+  ), s AS (
+    INSERT INTO public.sdr_suppressions (workspace_id, email, reason, source_enrollment_id)
+    SELECT DISTINCT ON (workspace_id) workspace_id, v_email, 'unsubscribe_link', id FROM o
+    ON CONFLICT DO NOTHING RETURNING 1
+  ) SELECT array_agg(id) INTO v_ids FROM o;
+
+  IF v_ids IS NOT NULL THEN
+    UPDATE public.sdr_step_attempts
+       SET status = 'cancelled', last_error = 'opted_out', updated_at = now()
+     WHERE enrollment_id = ANY (v_ids) AND status IN ('reserved','failed_retryable');
+    v_stopped := coalesce(array_length(v_ids, 1), 0);
+  END IF;
+
+  -- 3) Só no fim: consumo do token (na mesma transação).
+  IF v_used IS NOT NULL THEN
+    RETURN jsonb_build_object('found', true, 'already', true, 'email', v_email, 'enrollments_stopped', v_stopped);
+  END IF;
+  UPDATE public.email_unsubscribe_tokens SET used_at = now() WHERE token = p_token AND used_at IS NULL;
+  RETURN jsonb_build_object('found', true, 'already', false, 'email', v_email, 'enrollments_stopped', v_stopped);
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_sdr_enrollments_email_lower
+  ON public.sdr_enrollments (lower(prospect_email)) WHERE prospect_email IS NOT NULL;
+
 -- ─── 10. Execução restrita ao service_role
+REVOKE ALL ON FUNCTION public.email_process_unsubscribe(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.email_process_unsubscribe(text) TO service_role;
 REVOKE ALL ON FUNCTION public.sdr_claim_step_attempt(uuid,uuid,uuid,uuid,integer,text,integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sdr_begin_dispatch(uuid,text,integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sdr_reserve_send_slot(uuid,text,text,uuid,integer,integer,text) FROM PUBLIC, anon, authenticated;
