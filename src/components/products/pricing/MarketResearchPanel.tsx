@@ -35,9 +35,12 @@ interface MarketResearchPanelProps {
   barcode?: string;
   currentPrice?: number;
   costPrice?: number;
-  /** Quando fornecido, permite adotar o preço sugerido com 1 clique. */
-  onApplyPrice?: (price: number) => void;
+  /** Taxa de IVA do produto (%), usada para converter PVP de lojas em preço sem IVA. */
+  vatRate?: number;
+  /** Recebe o preço sem IVA e o PVP com IVA do valor sugerido. */
+  onApplyPrice?: (netPrice: number, grossPrice: number) => void;
 }
+
 
 function hostOf(url?: string) {
   if (!url) return "";
@@ -58,6 +61,7 @@ export function MarketResearchPanel({
   barcode,
   currentPrice,
   costPrice,
+  vatRate = 23,
   onApplyPrice,
 }: MarketResearchPanelProps) {
   const [liveResult, setLiveResult] = useState<MarketResearchResult | null>(null);
@@ -66,6 +70,8 @@ export function MarketResearchPanel({
   const runResearch = useRunMarketResearch();
 
   const minMarginPct = getMarginStatus(currentPrice, costPrice, rules, category).minMargin || 15;
+  const toNet = (gross: number) => Math.round((gross / (1 + vatRate / 100)) * 100) / 100;
+
 
   const handleAnalyze = async () => {
     const result = await runResearch.mutateAsync({
@@ -78,6 +84,8 @@ export function MarketResearchPanel({
       barcode,
       cost_price: costPrice,
       min_margin_pct: minMarginPct,
+      vat_rate: vatRate,
+
     });
     setLiveResult(result);
   };
@@ -118,7 +126,7 @@ export function MarketResearchPanel({
             </CardTitle>
             <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
               <Coins className="h-3 w-3" />
-              Procura pelo código do artigo. 1 crédito por pesquisa. Nunca estima preços.
+              Preços de lojas com IVA incluído. 1 crédito por pesquisa. Nunca estima preços.
             </p>
           </div>
           <Button
@@ -181,9 +189,13 @@ export function MarketResearchPanel({
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Preço sugerido</p>
+                    <p className="text-xs text-muted-foreground">PVP sugerido (c/ IVA)</p>
                     <p className="text-lg font-bold text-primary">
                       {latestResearch.suggested_price.toFixed(2)} €
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {(latestResearch.suggested_price_net ?? toNet(latestResearch.suggested_price)).toFixed(2)} € sem
+                      IVA (taxa {latestResearch.vat_rate ?? vatRate}%)
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -198,7 +210,9 @@ export function MarketResearchPanel({
                         size="sm"
                         onClick={(e) => {
                           e.preventDefault();
-                          onApplyPrice(latestResearch.suggested_price!);
+                          const gross = latestResearch.suggested_price!;
+                          const net = latestResearch.suggested_price_net ?? toNet(gross);
+                          onApplyPrice(net, gross);
                         }}
                       >
                         <Check className="h-3.5 w-3.5 mr-1" />
@@ -207,6 +221,7 @@ export function MarketResearchPanel({
                     )}
                   </div>
                 </div>
+
                 {latestResearch.margin_blocked && (
                   <p className="text-[11px] text-amber-600 flex items-start gap-1.5">
                     <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-[1px]" />
@@ -223,7 +238,7 @@ export function MarketResearchPanel({
 
             <div>
               <p className="text-xs font-medium mb-2">
-                Lojas encontradas ({latestResearch.competitors!.length})
+                Lojas encontradas ({latestResearch.competitors!.length}) — PVP c/ IVA
               </p>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {latestResearch.competitors!.map((c, i) => (

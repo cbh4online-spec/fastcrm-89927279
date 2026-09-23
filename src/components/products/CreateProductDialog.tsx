@@ -1221,10 +1221,12 @@ export function CreateProductDialog({
                   category={category || undefined}
                   currentPrice={parseFloat(basePrice) || undefined}
                   costPrice={parseFloat(directCost) || undefined}
-                  onApplyPrice={(price) => {
-                    setBasePrice(price.toFixed(2));
-                    setTaxIncluded(false);
+                  vatRate={parseFloat(taxRateEstimate) || 23}
+                  onApplyPrice={(netPrice, grossPrice) => {
+                    // Os preços das lojas são PVP c/IVA: guarda conforme o modo do produto.
+                    setBasePrice((taxIncluded ? grossPrice : netPrice).toFixed(2));
                   }}
+
                 />
               )}
 
