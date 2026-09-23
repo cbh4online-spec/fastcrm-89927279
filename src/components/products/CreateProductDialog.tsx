@@ -149,7 +149,6 @@ export function CreateProductDialog({
   const [typicalDurationDays, setTypicalDurationDays] = useState("");
   const [isTrackable, setIsTrackable] = useState(true);
   const [showConsumption, setShowConsumption] = useState(false);
-  const [showAIPanel, setShowAIPanel] = useState(true);
   // Conteúdo estruturado gerado pelo motor AI Commerce (aplicado ao gravar).
   const [aiCommerceContent, setAiCommerceContent] = useState<AICommerceSuggestion | null>(null);
   const [productImages, setProductImages] = useState<string[]>([]);
