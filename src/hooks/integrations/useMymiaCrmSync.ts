@@ -169,6 +169,7 @@ export function useMymiaCrmSync() {
     logsLoading: logsQuery.isLoading,
     linkedCount: linkedCountQuery.data ?? 0,
     saveSettings,
+    runPull,
     endpointUrl,
   };
 }
