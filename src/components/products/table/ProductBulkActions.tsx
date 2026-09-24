@@ -59,6 +59,7 @@ export function ProductBulkActions({
   onBulkPublishReady,
   onBulkEnrich,
   onBulkImages,
+  onBulkTags,
   onBulkDuplicate,
   onCompare,
   onBulkMarketResearch,
