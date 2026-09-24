@@ -15,6 +15,30 @@ export interface MymiaCrmSyncSettings {
   pull_conversations: boolean;
   last_pull_at: string | null;
   last_pull_summary: Record<string, number> | null;
+  auto_sync_enabled: boolean;
+  auto_sync_interval_minutes: number;
+  last_auto_run_at: string | null;
+  last_auto_run_status: string | null;
+  last_auto_run_detail: Record<string, unknown> | null;
+}
+
+export interface MymiaCrmSyncRun {
+  id: string;
+  trigger: string;
+  status: string;
+  reason: string | null;
+  started_at: string;
+  finished_at: string | null;
+  summary: Record<string, number> | null;
+  error: string | null;
+}
+
+export interface MymiaSyncStateCounts {
+  sincronizado: number;
+  desatualizado: number;
+  com_erro: number;
+  por_confirmar: number;
+  total: number;
 }
 
 export interface MymiaPullResult {
@@ -113,12 +137,58 @@ export function useMymiaCrmSync() {
     },
   });
 
+  /** Estado de cada contacto ligado: sincronizado, desatualizado, com erro ou por confirmar. */
+  const stateCountsQuery = useQuery({
+    queryKey: ["mymia-crm-state-counts", workspaceId],
+    enabled: !!workspaceId,
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<MymiaSyncStateCounts> => {
+      const { data, error } = await supabase
+        .from("mymia_crm_lead_sync_status")
+        .select("sync_state")
+        .eq("workspace_id", workspaceId!)
+        .limit(5000);
+      if (error) throw error;
+      const counts: MymiaSyncStateCounts = {
+        sincronizado: 0,
+        desatualizado: 0,
+        com_erro: 0,
+        por_confirmar: 0,
+        total: (data ?? []).length,
+      };
+      for (const row of data ?? []) {
+        const key = (row as { sync_state: string }).sync_state as keyof MymiaSyncStateCounts;
+        if (key in counts && key !== "total") counts[key] += 1;
+      }
+      return counts;
+    },
+  });
+
+  const runsQuery = useQuery({
+    queryKey: ["mymia-crm-sync-runs", workspaceId],
+    enabled: !!workspaceId,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mymia_crm_sync_runs")
+        .select("id, trigger, status, reason, started_at, finished_at, summary, error")
+        .eq("workspace_id", workspaceId!)
+        .order("started_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return (data ?? []) as unknown as MymiaCrmSyncRun[];
+    },
+  });
+
+
+
   const saveSettings = useMutation({
     mutationFn: async (patch: Partial<MymiaCrmSyncSettings>) => {
       if (!workspaceId) throw new Error("Nenhum espaço de trabalho ativo");
+      const row = { workspace_id: workspaceId, ...patch } as never;
       const { error } = await supabase
         .from("mymia_crm_sync_settings")
-        .upsert({ workspace_id: workspaceId, ...patch }, { onConflict: "workspace_id" });
+        .upsert(row, { onConflict: "workspace_id" });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -157,6 +227,8 @@ export function useMymiaCrmSync() {
       qc.invalidateQueries({ queryKey: ["mymia-crm-sync-settings", workspaceId] });
       qc.invalidateQueries({ queryKey: ["mymia-crm-sync-logs", workspaceId] });
       qc.invalidateQueries({ queryKey: ["mymia-crm-linked-count", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["mymia-crm-state-counts", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["mymia-crm-sync-runs", workspaceId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -172,6 +244,9 @@ export function useMymiaCrmSync() {
     logs: logsQuery.data ?? [],
     logsLoading: logsQuery.isLoading,
     linkedCount: linkedCountQuery.data ?? 0,
+    stateCounts: stateCountsQuery.data ?? null,
+    runs: runsQuery.data ?? [],
+    runsLoading: runsQuery.isLoading,
     saveSettings,
     runPull,
     endpointUrl,

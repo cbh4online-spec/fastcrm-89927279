@@ -61643,11 +61643,15 @@ export type Database = {
       }
       mymia_crm_lead_links: {
         Row: {
+          attempt_count: number
           created_at: string
           external_lead_id: string
           external_status: string | null
           external_updated_at: string | null
           id: string
+          last_checked_at: string | null
+          last_error: string | null
+          last_error_at: string | null
           last_inbound_at: string | null
           last_outbound_at: string | null
           lead_id: string
@@ -61655,11 +61659,15 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          attempt_count?: number
           created_at?: string
           external_lead_id: string
           external_status?: string | null
           external_updated_at?: string | null
           id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_error_at?: string | null
           last_inbound_at?: string | null
           last_outbound_at?: string | null
           lead_id: string
@@ -61667,11 +61675,15 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          attempt_count?: number
           created_at?: string
           external_lead_id?: string
           external_status?: string | null
           external_updated_at?: string | null
           id?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_error_at?: string | null
           last_inbound_at?: string | null
           last_outbound_at?: string | null
           lead_id?: string
@@ -61847,12 +61859,82 @@ export type Database = {
           },
         ]
       }
+      mymia_crm_sync_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          reason: string | null
+          started_at: string
+          status: string
+          summary: Json
+          trigger: string
+          workspace_id: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          reason?: string | null
+          started_at?: string
+          status?: string
+          summary?: Json
+          trigger?: string
+          workspace_id: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          reason?: string | null
+          started_at?: string
+          status?: string
+          summary?: Json
+          trigger?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mymia_crm_sync_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_sync_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_sync_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_sync_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mymia_crm_sync_settings: {
         Row: {
+          auto_sync_enabled: boolean
+          auto_sync_interval_minutes: number
           created_at: string
           default_source: string
           default_tags: string[]
           inbound_enabled: boolean
+          last_auto_run_at: string | null
+          last_auto_run_detail: Json | null
+          last_auto_run_status: string | null
           last_pull_at: string | null
           last_pull_summary: Json | null
           outbound_enabled: boolean
@@ -61864,10 +61946,15 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          auto_sync_enabled?: boolean
+          auto_sync_interval_minutes?: number
           created_at?: string
           default_source?: string
           default_tags?: string[]
           inbound_enabled?: boolean
+          last_auto_run_at?: string | null
+          last_auto_run_detail?: Json | null
+          last_auto_run_status?: string | null
           last_pull_at?: string | null
           last_pull_summary?: Json | null
           outbound_enabled?: boolean
@@ -61879,10 +61966,15 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          auto_sync_enabled?: boolean
+          auto_sync_interval_minutes?: number
           created_at?: string
           default_source?: string
           default_tags?: string[]
           inbound_enabled?: boolean
+          last_auto_run_at?: string | null
+          last_auto_run_detail?: Json | null
+          last_auto_run_status?: string | null
           last_pull_at?: string | null
           last_pull_summary?: Json | null
           outbound_enabled?: boolean
@@ -106692,6 +106784,87 @@ export type Database = {
           },
         ]
       }
+      mymia_crm_lead_sync_status: {
+        Row: {
+          attempt_count: number | null
+          external_lead_id: string | null
+          external_status: string | null
+          external_updated_at: string | null
+          id: string | null
+          last_checked_at: string | null
+          last_error: string | null
+          last_error_at: string | null
+          last_inbound_at: string | null
+          lead_id: string | null
+          sync_state: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          external_lead_id?: string | null
+          external_status?: string | null
+          external_updated_at?: string | null
+          id?: string | null
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_error_at?: string | null
+          last_inbound_at?: string | null
+          lead_id?: string | null
+          sync_state?: never
+          workspace_id?: string | null
+        }
+        Update: {
+          attempt_count?: number | null
+          external_lead_id?: string | null
+          external_status?: string | null
+          external_updated_at?: string | null
+          id?: string | null
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_error_at?: string | null
+          last_inbound_at?: string | null
+          lead_id?: string | null
+          sync_state?: never
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mymia_crm_lead_links_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_lead_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_lead_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_lead_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_lead_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_b2b_catalog_grouped: {
         Row: {
           allow_backorder: boolean | null
@@ -107101,13 +107274,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_a"]
-            isOneToOne: false
-            referencedRelation: "partner_b2b_catalog_grouped"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "partner_b2b_catalog_grouped"
@@ -107117,8 +107283,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_b2b_content"
-            referencedColumns: ["product_id"]
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -107131,8 +107297,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_catalog"
-            referencedColumns: ["id"]
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -107145,8 +107311,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -107158,13 +107324,20 @@ export type Database = {
           {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_b"]
+            columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]

@@ -20,8 +20,19 @@ export default function MymiaCrmSyncPage() {
   const canManage =
     isSuperAdmin || currentWorkspace?.role === "owner" || currentWorkspace?.role === "admin";
 
-  const { settings, isLoading, logs, logsLoading, linkedCount, saveSettings, runPull, endpointUrl } =
-    useMymiaCrmSync();
+  const {
+    settings,
+    isLoading,
+    logs,
+    logsLoading,
+    linkedCount,
+    stateCounts,
+    runs,
+    runsLoading,
+    saveSettings,
+    runPull,
+    endpointUrl,
+  } = useMymiaCrmSync();
 
   const [outboundUrl, setOutboundUrl] = useState<string | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
@@ -32,8 +43,16 @@ export default function MymiaCrmSyncPage() {
   const sourceValue = sourceUrl ?? settings?.source_url ?? "";
   const pullEnabled = settings?.pull_enabled ?? false;
   const pullConversations = settings?.pull_conversations ?? true;
+  const autoSync = settings?.auto_sync_enabled ?? false;
   const lastSummary = settings?.last_pull_summary ?? null;
   const busy = runPull.isPending;
+
+  const RUN_STATUS_LABEL: Record<string, string> = {
+    concluido: "Concluída",
+    running: "A correr",
+    aguarda_origem: "O mymia.world não respondeu",
+    aguarda_configuracao: "Falta configuração",
+  };
 
   function copy(value: string) {
     navigator.clipboard.writeText(value);
@@ -64,6 +83,107 @@ export default function MymiaCrmSyncPage() {
             </AlertDescription>
           </Alert>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Estado da sincronização</CardTitle>
+            <CardDescription>
+              O que já está sincronizado e o que ainda precisa de atenção.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: "Sincronizados", value: stateCounts?.sincronizado ?? 0 },
+                { label: "Com atualizações por trazer", value: stateCounts?.desatualizado ?? 0 },
+                { label: "Com erro", value: stateCounts?.com_erro ?? 0 },
+                { label: "Por confirmar", value: stateCounts?.por_confirmar ?? 0 },
+              ].map((kpi) => (
+                <div key={kpi.label} className="rounded-2xl border bg-card p-4">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {kpi.label}
+                  </p>
+                  <p className="mt-1 text-2xl font-bold">{kpi.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label>Manter atualizado automaticamente</Label>
+                <p className="text-sm text-muted-foreground">
+                  De hora em hora, o sistema traz o que falta e verifica se há novidades. Não é
+                  preciso carregar em nada.
+                </p>
+              </div>
+              <Switch
+                checked={autoSync}
+                disabled={!canManage || isLoading || saveSettings.isPending || !sourceValue}
+                onCheckedChange={(v) => saveSettings.mutate({ auto_sync_enabled: v })}
+              />
+            </div>
+
+            {settings?.last_auto_run_at && (
+              <p className="text-sm text-muted-foreground">
+                Última verificação automática:{" "}
+                {new Date(settings.last_auto_run_at).toLocaleString("pt-PT")} —{" "}
+                {RUN_STATUS_LABEL[settings.last_auto_run_status ?? ""] ??
+                  settings.last_auto_run_status}
+              </p>
+            )}
+
+            <div>
+              <h3 className="mb-2 text-sm font-semibold">Últimas verificações</h3>
+              {runsLoading ? (
+                <p className="text-sm text-muted-foreground">A carregar…</p>
+              ) : runs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Ainda não houve verificações automáticas.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Início</TableHead>
+                      <TableHead>Resultado</TableHead>
+                      <TableHead>Novos</TableHead>
+                      <TableHead>Atualizados</TableHead>
+                      <TableHead>Detalhe</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {runs.map((run) => (
+                      <TableRow key={run.id}>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          {new Date(run.started_at).toLocaleString("pt-PT")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              run.status === "concluido"
+                                ? "secondary"
+                                : run.status === "running"
+                                  ? "outline"
+                                  : "destructive"
+                            }
+                          >
+                            {RUN_STATUS_LABEL[run.status] ?? run.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{run.summary?.created ?? 0}</TableCell>
+                        <TableCell>{run.summary?.updated ?? 0}</TableCell>
+                        <TableCell className="max-w-[280px] truncate text-xs text-muted-foreground">
+                          {run.error ?? run.reason ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
 
         <Card>
           <CardHeader>

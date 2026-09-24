@@ -90,18 +90,26 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   // 1) Autenticação do chamador antes de qualquer acesso privilegiado.
+  //    Duas vias: JWT de utilizador (owner/admin) ou chamada interna com service role
+  //    (tarefa automática / cron). Fail-closed em qualquer outro caso.
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
     return json({ error: "unauthorized", reason: "missing_authorization" }, 401);
   }
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !userData?.user) {
-    return json({ error: "unauthorized", reason: "invalid_token" }, 401);
+  const bearer = authHeader.slice(7).trim();
+  const isInternal = Boolean(serviceKey) && bearer === serviceKey;
+
+  let userId: string | null = null;
+  if (!isInternal) {
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return json({ error: "unauthorized", reason: "invalid_token" }, 401);
+    }
+    userId = userData.user.id;
   }
-  const userId = userData.user.id;
 
   let bodyJson: unknown;
   try {
@@ -115,19 +123,21 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-  // 2) Autorização: owner/admin do workspace, ou super admin.
-  const { data: membership } = await admin
-    .from("workspace_members")
-    .select("role")
-    .eq("workspace_id", workspace_id)
-    .eq("user_id", userId)
-    .maybeSingle();
-  let allowed = membership?.role === "owner" || membership?.role === "admin";
-  if (!allowed) {
-    const { data: isSuper } = await admin.rpc("is_super_admin", { _user_id: userId });
-    allowed = isSuper === true;
+  // 2) Autorização: owner/admin do workspace, super admin, ou chamada interna.
+  if (!isInternal) {
+    const { data: membership } = await admin
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspace_id)
+      .eq("user_id", userId!)
+      .maybeSingle();
+    let allowed = membership?.role === "owner" || membership?.role === "admin";
+    if (!allowed) {
+      const { data: isSuper } = await admin.rpc("is_super_admin", { _user_id: userId });
+      allowed = isSuper === true;
+    }
+    if (!allowed) return json({ error: "forbidden", reason: "not_workspace_admin" }, 403);
   }
-  if (!allowed) return json({ error: "forbidden", reason: "not_workspace_admin" }, 403);
 
   try {
     // 3) Configuração da ponte.
@@ -218,7 +228,7 @@ Deno.serve(async (req) => {
 
       const { data: link } = await admin
         .from("mymia_crm_lead_links")
-        .select("id, lead_id")
+        .select("id, lead_id, attempt_count")
         .eq("workspace_id", workspace_id)
         .eq("external_lead_id", externalId)
         .maybeSingle();
@@ -253,6 +263,22 @@ Deno.serve(async (req) => {
       };
       for (const k of Object.keys(common)) if (common[k] === null) delete common[k];
 
+      /** Guarda a falha na ligação para ficar visível e ser repetida depois. */
+      const markLinkError = async (message: string) => {
+        if (!link?.id) return;
+        await admin
+          .from("mymia_crm_lead_links")
+          .update({
+            last_error: message.slice(0, 500),
+            last_error_at: new Date().toISOString(),
+            last_checked_at: new Date().toISOString(),
+            attempt_count: (link as { attempt_count?: number }).attempt_count
+              ? ((link as { attempt_count?: number }).attempt_count ?? 0) + 1
+              : 1,
+          })
+          .eq("id", link.id);
+      };
+
       if (leadId) {
         const { error: upErr } = await admin.from("leads").update(common).eq("id", leadId);
         if (upErr) {
@@ -266,6 +292,7 @@ Deno.serve(async (req) => {
             error: upErr.message,
             details: {},
           });
+          await markLinkError(upErr.message);
           summary.skipped++;
           continue;
         }
@@ -294,6 +321,7 @@ Deno.serve(async (req) => {
             error: insErr?.message ?? "insert_failed",
             details: {},
           });
+          await markLinkError(insErr?.message ?? "insert_failed");
           summary.skipped++;
           continue;
         }
@@ -309,6 +337,10 @@ Deno.serve(async (req) => {
           external_status: (raw.estado as string) ?? null,
           external_updated_at: (raw.updated_at as string) ?? null,
           last_inbound_at: new Date().toISOString(),
+          last_checked_at: new Date().toISOString(),
+          last_error: null,
+          last_error_at: null,
+          attempt_count: 0,
         },
         { onConflict: "workspace_id,external_lead_id" },
       );

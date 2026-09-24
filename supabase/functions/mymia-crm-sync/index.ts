@@ -308,6 +308,10 @@ Deno.serve(async (req) => {
           external_status: raw.estado ?? null,
           external_updated_at: raw.updated_at ?? null,
           last_inbound_at: new Date().toISOString(),
+          last_checked_at: new Date().toISOString(),
+          last_error: null,
+          last_error_at: null,
+          attempt_count: 0,
         },
         { onConflict: "workspace_id,external_lead_id" },
       );
