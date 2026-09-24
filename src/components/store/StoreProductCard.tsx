@@ -332,6 +332,14 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                </p>
              )}
 
+            <StoreStockLevel
+              stockStatus={product.stock_status}
+              stockQuantity={product.stock_quantity}
+              trackStock={product.track_stock}
+              className="mt-0.5"
+            />
+
+
             {/* Stars + review count */}
             {reviewCount > 0 && (
               <div className="flex items-center gap-1">
