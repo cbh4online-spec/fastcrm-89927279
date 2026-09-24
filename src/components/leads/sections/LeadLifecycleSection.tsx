@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Lead, LeadStatus } from "@/hooks/useLeads";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 interface LeadLifecycleSectionProps {
   lead: Lead;
@@ -16,60 +16,45 @@ const STATUS_LABELS: Record<LeadStatus, string> = {
   completed: 'Concluído',
 };
 
-const STATUS_COLORS: Record<LeadStatus, string> = {
-  new: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
-  in_progress: 'bg-amber-500/20 text-amber-600 border-amber-500/30',
-  completed: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30',
-};
-
 export function LeadLifecycleSection({ lead, onStatusChange }: LeadLifecycleSectionProps) {
-  const currentStatus = lead.status || 'new';
+  const currentStatus = (lead.status as LeadStatus) || 'new';
   const currentIndex = LIFECYCLE_STEPS.indexOf(currentStatus);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Ciclo de Vida</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-1 mb-4">
-          {LIFECYCLE_STEPS.map((step, i) => {
-            const isActive = step === currentStatus;
-            const isPast = i <= currentIndex;
-            return (
-              <button
-                key={step}
-                onClick={() => onStatusChange(step)}
-                className={cn(
-                  "flex-1 h-8 rounded-md text-xs font-medium transition-all",
-                  "border flex items-center justify-center",
-                  isActive && STATUS_COLORS[step],
-                  isPast && !isActive && "bg-muted text-muted-foreground border-border",
-                  !isPast && "bg-background text-muted-foreground/50 border-border/50 hover:border-border"
-                )}
-              >
-                {STATUS_LABELS[step]}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          {LIFECYCLE_STEPS.map((status) => (
-            <Badge
-              key={status}
-              variant="outline"
+    <IXCard title="Ciclo de Vida">
+      <div
+        className="flex items-center gap-2"
+        role="group"
+        aria-label="Estado do lead"
+      >
+        {LIFECYCLE_STEPS.map((step, i) => {
+          const isActive = step === currentStatus;
+          const isPast = i < currentIndex;
+          return (
+            <button
+              key={step}
+              type="button"
+              onClick={() => onStatusChange(step)}
+              aria-current={isActive ? "step" : undefined}
+              aria-label={`Marcar como ${STATUS_LABELS[step]}`}
               className={cn(
-                "cursor-pointer text-xs transition-all",
-                status === currentStatus ? STATUS_COLORS[status] : "opacity-50 hover:opacity-75"
+                "flex-1 h-9 rounded-full border text-xs font-medium transition-colors",
+                "inline-flex items-center justify-center gap-1.5",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                isActive && "border-primary bg-primary/10 text-primary",
+                isPast && !isActive && "border-border bg-muted text-foreground",
+                !isPast && !isActive && "border-border bg-background text-muted-foreground hover:text-foreground"
               )}
-              onClick={() => onStatusChange(status)}
             >
-              {STATUS_LABELS[status]}
-            </Badge>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+              {isPast && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
+              {STATUS_LABELS[step]}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Estado atual: <span className="text-foreground">{STATUS_LABELS[currentStatus]}</span>
+      </p>
+    </IXCard>
   );
 }

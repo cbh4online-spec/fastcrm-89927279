@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -17,14 +17,12 @@ function ScoreItem({
   label,
   icon: Icon,
   value,
-  color,
   editable,
   onChange,
 }: {
   label: string;
   icon: React.ElementType;
   value: number;
-  color: string;
   editable?: boolean;
   onChange?: (v: number) => void;
 }) {
@@ -34,7 +32,7 @@ function ScoreItem({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Icon className={cn("h-4 w-4", color)} />
+          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
         </div>
         {editable && editing ? (
@@ -42,6 +40,7 @@ function ScoreItem({
             type="number"
             min={0}
             max={100}
+            aria-label={`${label} (0 a 100)`}
             className="h-6 w-16 text-xs text-right"
             defaultValue={value}
             autoFocus
@@ -52,15 +51,20 @@ function ScoreItem({
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              if (e.key === "Escape") setEditing(false);
             }}
           />
-        ) : (
-          <span
-            className={cn("text-sm font-semibold", editable && "cursor-pointer hover:underline")}
-            onClick={() => editable && setEditing(true)}
+        ) : editable ? (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label={`Editar ${label}`}
+            className="text-sm font-semibold text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
           >
             {value}%
-          </span>
+          </button>
+        ) : (
+          <span className="text-sm font-semibold text-foreground">{value}%</span>
         )}
       </div>
       <Progress value={value} className="h-2" />
@@ -72,16 +76,12 @@ export function LeadScoresCard({ lead, editable = true }: LeadScoresCardProps) {
   const updateScores = useUpdateLeadScores();
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Scores</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <IXCard title="Scores">
+      <div className={cn("space-y-4")}>
         <ScoreItem
           label="ICP Fit"
           icon={Target}
           value={lead.icp_fit_score ?? 0}
-          color="text-blue-500"
           editable={editable}
           onChange={(v) => updateScores.mutate({ leadId: lead.id, scores: { icp_fit_score: v } })}
         />
@@ -89,7 +89,6 @@ export function LeadScoresCard({ lead, editable = true }: LeadScoresCardProps) {
           label="Engagement"
           icon={TrendingUp}
           value={lead.engagement_score ?? 0}
-          color="text-emerald-500"
           editable={editable}
           onChange={(v) => updateScores.mutate({ leadId: lead.id, scores: { engagement_score: v } })}
         />
@@ -97,11 +96,10 @@ export function LeadScoresCard({ lead, editable = true }: LeadScoresCardProps) {
           label="PARE"
           icon={Shield}
           value={lead.pare_score ?? 0}
-          color="text-amber-500"
           editable={editable}
           onChange={(v) => updateScores.mutate({ leadId: lead.id, scores: { pare_score: v } })}
         />
-      </CardContent>
-    </Card>
+      </div>
+    </IXCard>
   );
 }
