@@ -233,7 +233,6 @@ Deno.serve(async (req) => {
         phone,
         status,
         company_name: (raw.empresa as string)?.trim() || null,
-        nif: (raw.nif as string)?.trim() || null,
         city: (raw.cidade as string)?.trim() || null,
         postal_code: (raw.codigo_postal as string)?.trim() || null,
         address: (raw.morada as string)?.trim() || null,
