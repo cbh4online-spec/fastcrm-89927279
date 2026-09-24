@@ -419,6 +419,7 @@ export function LeadDetailWithSidebar() {
             workspaceId={currentWorkspace?.id ?? ''}
             folder="leads"
             size="md"
+            compact
           />
         }
         title={lead.name}
