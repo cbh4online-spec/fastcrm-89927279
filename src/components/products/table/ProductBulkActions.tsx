@@ -34,6 +34,8 @@ interface ProductBulkActionsProps {
   /** Completa fichas em massa com o AI Commerce (texto, SEO, benefícios) */
   onBulkEnrich?: () => void;
   onBulkImages?: () => void;
+  /** Gera etiquetas inteligentes em massa a partir dos dados reais das fichas */
+  onBulkTags?: () => void;
   onBulkDuplicate?: () => void;
   onCompare?: () => void;
   onBulkMarketResearch?: () => void;
