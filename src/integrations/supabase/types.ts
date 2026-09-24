@@ -91495,9 +91495,15 @@ export type Database = {
           previous_unit_price: number | null
           price_source: string | null
           product_id: string
+          product_url: string | null
           quality_score: number | null
           reliability_score: number | null
+          reported_stock_level: string | null
+          reported_stock_qty: number | null
           rrp_price: number | null
+          stock_checked_at: string | null
+          stock_sync_enabled: boolean
+          stock_sync_error: string | null
           supplier_id: string
           supplier_product_name_normalized: string | null
           supplier_product_name_raw: string | null
@@ -91533,9 +91539,15 @@ export type Database = {
           previous_unit_price?: number | null
           price_source?: string | null
           product_id: string
+          product_url?: string | null
           quality_score?: number | null
           reliability_score?: number | null
+          reported_stock_level?: string | null
+          reported_stock_qty?: number | null
           rrp_price?: number | null
+          stock_checked_at?: string | null
+          stock_sync_enabled?: boolean
+          stock_sync_error?: string | null
           supplier_id: string
           supplier_product_name_normalized?: string | null
           supplier_product_name_raw?: string | null
@@ -91571,9 +91583,15 @@ export type Database = {
           previous_unit_price?: number | null
           price_source?: string | null
           product_id?: string
+          product_url?: string | null
           quality_score?: number | null
           reliability_score?: number | null
+          reported_stock_level?: string | null
+          reported_stock_qty?: number | null
           rrp_price?: number | null
+          stock_checked_at?: string | null
+          stock_sync_enabled?: boolean
+          stock_sync_error?: string | null
           supplier_id?: string
           supplier_product_name_normalized?: string | null
           supplier_product_name_raw?: string | null

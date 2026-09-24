@@ -281,6 +281,13 @@
       "when": 1790212042474,
       "tag": "0039_mymia_crm_pull_connector",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790277900204,
+      "tag": "0040_supplier_stock_sync_fields",
+      "breakpoints": true
     }
   ]
 }
