@@ -267,6 +267,13 @@
       "when": 1790208078672,
       "tag": "0037_sdr_prospecting_phase1",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790210530949,
+      "tag": "0038_mymia_crm_bridge",
+      "breakpoints": true
     }
   ]
 }
