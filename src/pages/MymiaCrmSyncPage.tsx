@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Copy, ShieldCheck, AlertTriangle, Link2 } from "lucide-react";
+import { Copy, ShieldCheck, AlertTriangle, Link2, RefreshCw, Download } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
