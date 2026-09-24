@@ -61574,6 +61574,73 @@ export type Database = {
           },
         ]
       }
+      mymia_crm_conversation_links: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          external_conversation_id: string
+          id: string
+          workspace_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          external_conversation_id: string
+          id?: string
+          workspace_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          external_conversation_id?: string
+          id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mymia_crm_conversation_links_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_conversation_links_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_conversation_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_conversation_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_conversation_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_conversation_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mymia_crm_lead_links: {
         Row: {
           created_at: string
@@ -61642,6 +61709,69 @@ export type Database = {
           },
           {
             foreignKeyName: "mymia_crm_lead_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mymia_crm_message_links: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          external_message_id: string
+          id: string
+          message_id: string
+          workspace_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          external_message_id: string
+          id?: string
+          message_id: string
+          workspace_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          external_message_id?: string
+          id?: string
+          message_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mymia_crm_message_links_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_message_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_message_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_message_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_message_links_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces_public"
@@ -61723,8 +61853,13 @@ export type Database = {
           default_source: string
           default_tags: string[]
           inbound_enabled: boolean
+          last_pull_at: string | null
+          last_pull_summary: Json | null
           outbound_enabled: boolean
           outbound_endpoint_url: string | null
+          pull_conversations: boolean
+          pull_enabled: boolean
+          source_url: string | null
           updated_at: string
           workspace_id: string
         }
@@ -61733,8 +61868,13 @@ export type Database = {
           default_source?: string
           default_tags?: string[]
           inbound_enabled?: boolean
+          last_pull_at?: string | null
+          last_pull_summary?: Json | null
           outbound_enabled?: boolean
           outbound_endpoint_url?: string | null
+          pull_conversations?: boolean
+          pull_enabled?: boolean
+          source_url?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -61743,8 +61883,13 @@ export type Database = {
           default_source?: string
           default_tags?: string[]
           inbound_enabled?: boolean
+          last_pull_at?: string | null
+          last_pull_summary?: Json | null
           outbound_enabled?: boolean
           outbound_endpoint_url?: string | null
+          pull_conversations?: boolean
+          pull_enabled?: boolean
+          source_url?: string | null
           updated_at?: string
           workspace_id?: string
         }
