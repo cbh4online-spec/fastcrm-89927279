@@ -20,8 +20,19 @@ export default function MymiaCrmSyncPage() {
   const canManage =
     isSuperAdmin || currentWorkspace?.role === "owner" || currentWorkspace?.role === "admin";
 
-  const { settings, isLoading, logs, logsLoading, linkedCount, saveSettings, runPull, endpointUrl } =
-    useMymiaCrmSync();
+  const {
+    settings,
+    isLoading,
+    logs,
+    logsLoading,
+    linkedCount,
+    stateCounts,
+    runs,
+    runsLoading,
+    saveSettings,
+    runPull,
+    endpointUrl,
+  } = useMymiaCrmSync();
 
   const [outboundUrl, setOutboundUrl] = useState<string | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
@@ -32,8 +43,16 @@ export default function MymiaCrmSyncPage() {
   const sourceValue = sourceUrl ?? settings?.source_url ?? "";
   const pullEnabled = settings?.pull_enabled ?? false;
   const pullConversations = settings?.pull_conversations ?? true;
+  const autoSync = settings?.auto_sync_enabled ?? false;
   const lastSummary = settings?.last_pull_summary ?? null;
   const busy = runPull.isPending;
+
+  const RUN_STATUS_LABEL: Record<string, string> = {
+    concluido: "Concluída",
+    running: "A correr",
+    aguarda_origem: "O mymia.world não respondeu",
+    aguarda_configuracao: "Falta configuração",
+  };
 
   function copy(value: string) {
     navigator.clipboard.writeText(value);
