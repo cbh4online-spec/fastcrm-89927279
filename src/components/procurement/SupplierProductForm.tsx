@@ -37,6 +37,7 @@ export function SupplierProductForm({ open, onOpenChange, workspaceId, editItem,
     unit_price: 0, min_order_qty: 1, pack_size: 1,
     lead_time_days: "", is_preferred: false,
     quality_score: "", reliability_score: "",
+    product_url: "", stock_sync_enabled: false,
   });
   const [saving, setSaving] = useState(false);
 
@@ -53,9 +54,11 @@ export function SupplierProductForm({ open, onOpenChange, workspaceId, editItem,
         is_preferred: editItem.is_preferred || false,
         quality_score: editItem.quality_score?.toString() || "",
         reliability_score: editItem.reliability_score?.toString() || "",
+        product_url: editItem.product_url || "",
+        stock_sync_enabled: editItem.stock_sync_enabled || false,
       });
     } else {
-      setForm({ supplier_id: "", product_id: "", supplier_sku: "", unit_price: 0, min_order_qty: 1, pack_size: 1, lead_time_days: "", is_preferred: false, quality_score: "", reliability_score: "" });
+      setForm({ supplier_id: "", product_id: "", supplier_sku: "", unit_price: 0, min_order_qty: 1, pack_size: 1, lead_time_days: "", is_preferred: false, quality_score: "", reliability_score: "", product_url: "", stock_sync_enabled: false });
     }
   }, [editItem, open]);
 
@@ -74,6 +77,8 @@ export function SupplierProductForm({ open, onOpenChange, workspaceId, editItem,
       quality_score: form.quality_score ? Number(form.quality_score) : undefined,
       reliability_score: form.reliability_score ? Number(form.reliability_score) : undefined,
       last_price_date: new Date().toISOString().split("T")[0],
+      product_url: form.product_url.trim() || null,
+      stock_sync_enabled: !!form.product_url.trim() && form.stock_sync_enabled,
     });
     setSaving(false);
   };
@@ -119,6 +124,28 @@ export function SupplierProductForm({ open, onOpenChange, workspaceId, editItem,
           <div className="flex items-center gap-2">
             <Switch checked={form.is_preferred} onCheckedChange={v => setForm({ ...form, is_preferred: v })} />
             <Label>{t("preferred")}</Label>
+          </div>
+
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div>
+              <Label>Página do produto no fornecedor</Label>
+              <Input
+                placeholder="https://fornecedor.com/produto/AJ-HUB2"
+                value={form.product_url}
+                onChange={e => setForm({ ...form, product_url: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                O sistema lê esta página periodicamente para atualizar a disponibilidade na loja.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={form.stock_sync_enabled}
+                onCheckedChange={v => setForm({ ...form, stock_sync_enabled: v })}
+                disabled={!form.product_url}
+              />
+              <Label>Atualizar stock automaticamente</Label>
+            </div>
           </div>
 
           <Button className="w-full" onClick={handleSubmit} disabled={saving || !form.supplier_id || !form.product_id}>

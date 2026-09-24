@@ -4,7 +4,10 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSupplierProducts } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Star, Edit2, Trash2, Loader2, Package, Upload } from "lucide-react";
+import { Plus, Star, Edit2, Trash2, Loader2, Package, Upload, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useState } from "react";
 import { SupplierProductForm } from "@/components/procurement/SupplierProductForm";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -18,6 +21,31 @@ export default function SupplierProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleStockSync = async () => {
+    if (!currentWorkspace?.id) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("supplier-stock-sync", {
+        body: { workspace_id: currentWorkspace.id, limit: 50 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.reason || data.error);
+      if (!data?.checked) {
+        toast.info("Nenhum artigo com página de fornecedor e leitura automática ativa.");
+      } else {
+        toast.success(`Stock verificado em ${data.checked} artigo(s): ${data.updated} atualizado(s), ${data.failed} sem leitura.`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["supplier-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível verificar o stock agora.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -26,6 +54,12 @@ export default function SupplierProductsPage() {
           title={t("supplierProducts")}
           count={(catalog as any[]).length}
           actions={[
+            {
+              label: syncing ? "A verificar stock..." : "Verificar stock nos fornecedores",
+              icon: <RefreshCw className={syncing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />,
+              onClick: handleStockSync,
+              variant: "outline" as const,
+            },
             {
               label: t("importCatalogPrices"),
               icon: <Upload className="h-4 w-4" />,

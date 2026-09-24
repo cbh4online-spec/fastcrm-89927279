@@ -20,6 +20,7 @@ import { useStoreCompare } from "@/contexts/StoreCompareContext";
 import { StoreQuickBuyButton } from "@/components/store/StoreQuickBuyButton";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 import { getStorefrontItemPath } from "@/utils/getStorefrontItemPath";
+import { StoreStockLevel } from "@/components/store/StoreStockLevel";
 
 interface StoreProductCardProps {
   product: StoreProduct;
@@ -330,6 +331,14 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                  Ref. {product.matched_reference || product.sku}
                </p>
              )}
+
+            <StoreStockLevel
+              stockStatus={product.stock_status}
+              stockQuantity={product.stock_quantity}
+              trackStock={product.track_stock}
+              className="mt-0.5"
+            />
+
 
             {/* Stars + review count */}
             {reviewCount > 0 && (

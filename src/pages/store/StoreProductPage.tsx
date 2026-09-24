@@ -35,6 +35,7 @@ import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
+import { StoreStockLevel } from "@/components/store/StoreStockLevel";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreOfferDialog } from "@/components/store/StoreOfferDialog";
 import { StorePurchasePanel } from "@/components/store/purchase/StorePurchasePanel";
@@ -664,6 +665,12 @@ export default function StoreProductPage() {
                   ))}
                 </ul>
               )}
+
+              <StoreStockLevel
+                stockStatus={product.stock_status}
+                stockQuantity={product.stock_quantity}
+                trackStock={product.track_stock}
+              />
 
               <StoreProductBadges
                 createdAt={product.created_at}
