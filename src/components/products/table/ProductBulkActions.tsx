@@ -29,6 +29,10 @@ interface ProductBulkActionsProps {
   onBulkDelete: () => Promise<unknown>;
   onClearSelection: () => void;
   onBulkPublish?: (published: boolean) => void;
+  /** Publica só os selecionados com preço, imagem, referência e sem bloqueio de qualidade */
+  onBulkPublishReady?: () => void;
+  /** Completa fichas em massa com o AI Commerce (texto, SEO, benefícios) */
+  onBulkEnrich?: () => void;
   onBulkDuplicate?: () => void;
   onCompare?: () => void;
   onBulkMarketResearch?: () => void;
