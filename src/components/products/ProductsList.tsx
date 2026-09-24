@@ -55,6 +55,7 @@ import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
 import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { BulkMarketPricingDialog } from "./pricing/BulkMarketPricingDialog";
 import { BulkAICommerceDialog } from "@/components/ai-commerce/BulkAICommerceDialog";
+import { BulkImageFillDialog } from "@/components/products/BulkImageFillDialog";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
@@ -74,6 +75,7 @@ export function ProductsList() {
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [bulkMarketOpen, setBulkMarketOpen] = useState(false);
   const [bulkEnrichOpen, setBulkEnrichOpen] = useState(false);
+  const [bulkImagesOpen, setBulkImagesOpen] = useState(false);
 
   const isMobile = useIsMobile();
   const canViewCostMargin = useCanViewCostMargin();
@@ -495,6 +497,7 @@ export function ProductsList() {
               onBulkPublish={state.handleBulkPublish}
               onBulkPublishReady={state.handleBulkPublishReady}
               onBulkEnrich={() => setBulkEnrichOpen(true)}
+              onBulkImages={() => setBulkImagesOpen(true)}
               onBulkDuplicate={state.handleBulkDuplicate}
               onCompare={() => setCompareOpen(true)}
               onBulkMarketResearch={() => setBulkMarketOpen(true)}
@@ -592,6 +595,26 @@ export function ProductsList() {
         workspaceId={state.currentWorkspace?.id}
         products={(state.filteredProducts || []).filter((p) => state.selectedIds.includes(p.id))}
         onComplete={() => state.setSelectedIds([])}
+      />
+
+      <BulkImageFillDialog
+        open={bulkImagesOpen}
+        onOpenChange={setBulkImagesOpen}
+        targets={(state.filteredProducts || [])
+          .filter((p) => state.selectedIds.includes(p.id))
+          .map((p) => {
+            const anyP = p as any;
+            return {
+              id: p.id,
+              name: p.name,
+              sku: p.sku,
+              brand: anyP.brand ?? null,
+              category: p.category,
+              hasImage:
+                (Array.isArray(p.images) && p.images.length > 0) ||
+                (Array.isArray(anyP.product_images) && anyP.product_images.length > 0),
+            };
+          })}
       />
 
       <BulkAICommerceDialog
