@@ -77,6 +77,8 @@ export function SupplierProductForm({ open, onOpenChange, workspaceId, editItem,
       quality_score: form.quality_score ? Number(form.quality_score) : undefined,
       reliability_score: form.reliability_score ? Number(form.reliability_score) : undefined,
       last_price_date: new Date().toISOString().split("T")[0],
+      product_url: form.product_url.trim() || null,
+      stock_sync_enabled: !!form.product_url.trim() && form.stock_sync_enabled,
     });
     setSaving(false);
   };
