@@ -260,6 +260,13 @@
       "when": 1790173817991,
       "tag": "0036_credit_rule_product_image_search",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790208078672,
+      "tag": "0037_sdr_prospecting_phase1",
+      "breakpoints": true
     }
   ]
 }

@@ -82016,9 +82016,13 @@ export type Database = {
           ai_employee_id: string | null
           auto_enroll_enabled: boolean
           auto_enroll_min_score: number | null
+          autonomous_send_enabled: boolean
           created_at: string
           created_by: string | null
           description: string | null
+          email_connection_id: string | null
+          email_daily_limit: number | null
+          email_min_interval_seconds: number | null
           id: string
           name: string
           sequence_id: string | null
@@ -82030,6 +82034,7 @@ export type Database = {
           total_meetings: number
           total_replied: number
           updated_at: string
+          whatsapp_instance_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -82037,9 +82042,13 @@ export type Database = {
           ai_employee_id?: string | null
           auto_enroll_enabled?: boolean
           auto_enroll_min_score?: number | null
+          autonomous_send_enabled?: boolean
           created_at?: string
           created_by?: string | null
           description?: string | null
+          email_connection_id?: string | null
+          email_daily_limit?: number | null
+          email_min_interval_seconds?: number | null
           id?: string
           name: string
           sequence_id?: string | null
@@ -82051,6 +82060,7 @@ export type Database = {
           total_meetings?: number
           total_replied?: number
           updated_at?: string
+          whatsapp_instance_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -82058,9 +82068,13 @@ export type Database = {
           ai_employee_id?: string | null
           auto_enroll_enabled?: boolean
           auto_enroll_min_score?: number | null
+          autonomous_send_enabled?: boolean
           created_at?: string
           created_by?: string | null
           description?: string | null
+          email_connection_id?: string | null
+          email_daily_limit?: number | null
+          email_min_interval_seconds?: number | null
           id?: string
           name?: string
           sequence_id?: string | null
@@ -82072,9 +82086,17 @@ export type Database = {
           total_meetings?: number
           total_replied?: number
           updated_at?: string
+          whatsapp_instance_id?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sdr_campaigns_email_connection_id_fkey"
+            columns: ["email_connection_id"]
+            isOneToOne: false
+            referencedRelation: "email_connections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sdr_campaigns_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -82194,12 +82216,15 @@ export type Database = {
           campaign_id: string
           channel: string | null
           contact_id: string | null
+          conversation_id: string | null
           converted_at: string | null
           created_at: string
           current_step: number | null
           enrichment_data: Json | null
           failure_reason: string | null
           id: string
+          identity_key: string | null
+          last_attempt_at: string | null
           lead_id: string | null
           meeting_set_at: string | null
           message_variant: string | null
@@ -82220,12 +82245,15 @@ export type Database = {
           campaign_id: string
           channel?: string | null
           contact_id?: string | null
+          conversation_id?: string | null
           converted_at?: string | null
           created_at?: string
           current_step?: number | null
           enrichment_data?: Json | null
           failure_reason?: string | null
           id?: string
+          identity_key?: string | null
+          last_attempt_at?: string | null
           lead_id?: string | null
           meeting_set_at?: string | null
           message_variant?: string | null
@@ -82246,12 +82274,15 @@ export type Database = {
           campaign_id?: string
           channel?: string | null
           contact_id?: string | null
+          conversation_id?: string | null
           converted_at?: string | null
           created_at?: string
           current_step?: number | null
           enrichment_data?: Json | null
           failure_reason?: string | null
           id?: string
+          identity_key?: string | null
+          last_attempt_at?: string | null
           lead_id?: string | null
           meeting_set_at?: string | null
           message_variant?: string | null
@@ -82274,6 +82305,20 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "sdr_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_enrollments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "communication_conversations_unified"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_enrollments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
           {
@@ -82387,6 +82432,81 @@ export type Database = {
           },
         ]
       }
+      sdr_send_reservations: {
+        Row: {
+          account_key: string
+          attempt_id: string
+          channel: string
+          consumed_at: string | null
+          dispatch_no: number
+          id: string
+          local_day: string
+          released: boolean
+          reserved_at: string
+          workspace_id: string
+        }
+        Insert: {
+          account_key: string
+          attempt_id: string
+          channel: string
+          consumed_at?: string | null
+          dispatch_no?: number
+          id?: string
+          local_day: string
+          released?: boolean
+          reserved_at?: string
+          workspace_id: string
+        }
+        Update: {
+          account_key?: string
+          attempt_id?: string
+          channel?: string
+          consumed_at?: string | null
+          dispatch_no?: number
+          id?: string
+          local_day?: string
+          released?: boolean
+          reserved_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdr_send_reservations_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "sdr_step_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_send_reservations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_send_reservations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "sdr_send_reservations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_send_reservations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sdr_sequence_step_logs: {
         Row: {
           channel: string
@@ -82474,6 +82594,118 @@ export type Database = {
           },
         ]
       }
+      sdr_step_attempts: {
+        Row: {
+          accepted_at: string | null
+          account_key: string | null
+          attempt_count: number
+          campaign_id: string
+          channel: string
+          created_at: string
+          delivered_at: string | null
+          enrollment_id: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          lease_expires_at: string | null
+          max_attempts: number
+          next_retry_at: string | null
+          provider_message_id: string | null
+          status: string
+          step_id: string | null
+          step_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          account_key?: string | null
+          attempt_count?: number
+          campaign_id: string
+          channel: string
+          created_at?: string
+          delivered_at?: string | null
+          enrollment_id: string
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
+          provider_message_id?: string | null
+          status?: string
+          step_id?: string | null
+          step_order: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          account_key?: string | null
+          attempt_count?: number
+          campaign_id?: string
+          channel?: string
+          created_at?: string
+          delivered_at?: string | null
+          enrollment_id?: string
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
+          provider_message_id?: string | null
+          status?: string
+          step_id?: string | null
+          step_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdr_step_attempts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "sdr_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_step_attempts_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sdr_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_step_attempts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_step_attempts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "sdr_step_attempts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_step_attempts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sdr_suppressions: {
         Row: {
           created_at: string
@@ -82536,6 +82768,72 @@ export type Database = {
           },
           {
             foreignKeyName: "sdr_suppressions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sdr_transport_receipts: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          dispatch_no: number
+          id: string
+          recipient: string
+          stage: string
+          workspace_id: string
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          dispatch_no: number
+          id?: string
+          recipient: string
+          stage: string
+          workspace_id: string
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          dispatch_no?: number
+          id?: string
+          recipient?: string
+          stage?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdr_transport_receipts_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "sdr_step_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_transport_receipts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_transport_receipts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "sdr_transport_receipts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_transport_receipts_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces_public"
@@ -107843,6 +108141,7 @@ export type Database = {
       dm_mark_read: { Args: { _conv_id: string }; Returns: undefined }
       dm_start: { Args: { _other_user: string }; Returns: string }
       dm_unread_count: { Args: never; Returns: number }
+      email_process_unsubscribe: { Args: { p_token: string }; Returns: Json }
       emit_executive_workflow_event: {
         Args: { p_event_name: string; p_payload: Json; p_workspace_id: string }
         Returns: undefined
@@ -108989,6 +109288,108 @@ export type Database = {
         Returns: undefined
       }
       saft_imports_watchdog: { Args: never; Returns: undefined }
+      sdr_apply_email_optout: { Args: { p_email: string }; Returns: number }
+      sdr_begin_dispatch: {
+        Args: {
+          p_account_key: string
+          p_attempt_id: string
+          p_expected_step: number
+          p_lease_seconds?: number
+          p_timezone?: string
+        }
+        Returns: string
+      }
+      sdr_claim_step_attempt: {
+        Args: {
+          p_campaign_id: string
+          p_channel: string
+          p_enrollment_id: string
+          p_lease_seconds?: number
+          p_step_id: string
+          p_step_order: number
+          p_workspace_id: string
+        }
+        Returns: {
+          attempt_count: number
+          attempt_id: string
+          attempt_status: string
+          claimed: boolean
+        }[]
+      }
+      sdr_consume_transport_token: {
+        Args: {
+          p_attempt_id: string
+          p_channel: string
+          p_dispatch_no: number
+          p_recipient: string
+          p_stage: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
+      sdr_dispatch_ineligibility: {
+        Args: { p_channel: string; p_enrollment_id: string }
+        Returns: string
+      }
+      sdr_finish_attempt: {
+        Args: {
+          p_attempt_id: string
+          p_from: string[]
+          p_last_error?: string
+          p_next_retry_at?: string
+          p_provider_message_id?: string
+          p_status: string
+        }
+        Returns: boolean
+      }
+      sdr_identity_key: {
+        Args: {
+          p_contact_id: string
+          p_email: string
+          p_lead_id: string
+          p_phone: string
+          p_prospect_id: string
+        }
+        Returns: string
+      }
+      sdr_normalize_phone: { Args: { p: string }; Returns: string }
+      sdr_reserve_send_slot: {
+        Args: {
+          p_account_key: string
+          p_attempt_id: string
+          p_channel: string
+          p_dispatch_no: number
+          p_max_per_day: number
+          p_min_interval_seconds: number
+          p_timezone?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          allowed: boolean
+          reason: string
+          retry_at: string
+        }[]
+      }
+      sdr_stop_enrollments_on_inbound: {
+        Args: {
+          p_at?: string
+          p_contact_id: string
+          p_conversation_id: string
+          p_email: string
+          p_lead_id: string
+          p_phone: string
+          p_workspace_id: string
+        }
+        Returns: number
+      }
+      sdr_suspend_attempt: {
+        Args: {
+          p_attempt_id: string
+          p_next_retry_at?: string
+          p_reason: string
+        }
+        Returns: boolean
+      }
       search_b2b_catalog: {
         Args: {
           p_category?: string

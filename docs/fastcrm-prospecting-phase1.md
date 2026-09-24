@@ -1,6 +1,6 @@
 # FastCRM Prospecção — Fase 1 (motor SDR)
 
-Estado: **código pronto a rever. Nada foi activado.** A migração não foi aplicada em produção, não houve deploy manual de funções, não se enviaram mensagens, não se criaram destinatários/inscrições e nenhum cron foi ligado.
+Estado: **Etapa 1 e 2 da activação concluídas.** A migração aditiva foi aplicada (`drizzle/migrations/0037_sdr_prospecting_phase1.sql`) e os segredos `SDR_WORKER_SECRET` e `SDR_PUBLIC_APP_URL` estão definidos. Continua tudo DESLIGADO: `SDR_AUTONOMOUS_SEND_ENABLED` não está definido, nenhuma campanha tem `autonomous_send_enabled = true`, não existem sequências nem inscrições, não se enviaram mensagens e nenhum cron foi ligado.
 
 Base analisada: `8ebc365a…` · head confirmado `375709376c2e574bf4cd423e6d7ad355463c47e6`.
 
