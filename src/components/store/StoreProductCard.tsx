@@ -20,6 +20,7 @@ import { useStoreCompare } from "@/contexts/StoreCompareContext";
 import { StoreQuickBuyButton } from "@/components/store/StoreQuickBuyButton";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 import { getStorefrontItemPath } from "@/utils/getStorefrontItemPath";
+import { StoreStockLevel } from "@/components/store/StoreStockLevel";
 
 interface StoreProductCardProps {
   product: StoreProduct;
