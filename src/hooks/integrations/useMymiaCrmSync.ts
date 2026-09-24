@@ -53,6 +53,10 @@ function reasonToMessage(reason?: string): string {
       return "Ligue primeiro a opção de trazer dados do mymia.world.";
     case "chave_origem_ausente":
       return "Falta a chave de acesso do mymia.world. Peça para a guardar em segurança.";
+    case "chave_origem_invalida":
+      return "O mymia.world recusou a chave de acesso guardada. Use o envio por token (FASTCRM_CRM_URL + FASTCRM_CRM_TOKEN) a partir do mymia.world.";
+    case "origem_inacessivel":
+      return "Não foi possível contactar o mymia.world. Tente novamente mais tarde.";
     case "not_workspace_admin":
       return "Só um responsável do espaço de trabalho pode sincronizar.";
     default:
