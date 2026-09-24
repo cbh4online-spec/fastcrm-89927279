@@ -76,6 +76,7 @@ export function ProductsList() {
   const [bulkMarketOpen, setBulkMarketOpen] = useState(false);
   const [bulkEnrichOpen, setBulkEnrichOpen] = useState(false);
   const [bulkImagesOpen, setBulkImagesOpen] = useState(false);
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false);
 
   const isMobile = useIsMobile();
   const canViewCostMargin = useCanViewCostMargin();
