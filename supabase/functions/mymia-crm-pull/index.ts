@@ -284,6 +284,7 @@ Deno.serve(async (req) => {
             status: "error",
             external_lead_id: externalId,
             error: insErr?.message ?? "insert_failed",
+            details: {},
           });
           summary.skipped++;
           continue;
