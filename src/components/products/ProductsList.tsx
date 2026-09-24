@@ -493,6 +493,8 @@ export function ProductsList() {
               onBulkDelete={() => state.deleteProductsBatch.mutateAsync(state.selectedIds)}
               onClearSelection={() => state.setSelectedIds([])}
               onBulkPublish={state.handleBulkPublish}
+              onBulkPublishReady={state.handleBulkPublishReady}
+              onBulkEnrich={() => setBulkEnrichOpen(true)}
               onBulkDuplicate={state.handleBulkDuplicate}
               onCompare={() => setCompareOpen(true)}
               onBulkMarketResearch={() => setBulkMarketOpen(true)}
