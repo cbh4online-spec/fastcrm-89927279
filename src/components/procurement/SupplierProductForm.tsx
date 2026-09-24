@@ -121,6 +121,28 @@ export function SupplierProductForm({ open, onOpenChange, workspaceId, editItem,
             <Label>{t("preferred")}</Label>
           </div>
 
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div>
+              <Label>Página do produto no fornecedor</Label>
+              <Input
+                placeholder="https://fornecedor.com/produto/AJ-HUB2"
+                value={form.product_url}
+                onChange={e => setForm({ ...form, product_url: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                O sistema lê esta página periodicamente para atualizar a disponibilidade na loja.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={form.stock_sync_enabled}
+                onCheckedChange={v => setForm({ ...form, stock_sync_enabled: v })}
+                disabled={!form.product_url}
+              />
+              <Label>Atualizar stock automaticamente</Label>
+            </div>
+          </div>
+
           <Button className="w-full" onClick={handleSubmit} disabled={saving || !form.supplier_id || !form.product_id}>
             {saving ? "A guardar..." : (editItem ? t("save") : t("addCatalogEntry"))}
           </Button>
