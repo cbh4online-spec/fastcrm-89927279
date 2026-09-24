@@ -256,6 +256,7 @@ Deno.serve(async (req) => {
             external_lead_id: externalId,
             lead_id: leadId,
             error: upErr.message,
+            details: {},
           });
           summary.skipped++;
           continue;
