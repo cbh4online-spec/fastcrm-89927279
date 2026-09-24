@@ -219,13 +219,19 @@ export function useStoreCartOffers(
 
       // 4. Artigos indisponíveis + alternativas equivalentes reais.
       const unavailable: CartUnavailableItem[] = [];
+      // Mesma regra da ficha de produto: só bloqueia se estiver despublicado,
+      // inativo ou com stock_status "out_of_stock". Quantidades nulas/reservas
+      // não bloqueiam (produtos sob encomenda ou stock não contabilizado).
       for (const item of items) {
         const product = cartById.get(item.productId);
-        const available = product ? availableQuantity(product) : 0;
+        const available = null as number | null;
         const sellable = product
-          ? isRelationAvailable(toFacts(product), { requireStorePublished: true })
+          ? isRelationAvailable(
+              { ...toFacts(product), trackStock: false, stockQuantity: null },
+              { requireStorePublished: true },
+            )
           : false;
-        const enoughStock = available === null || available >= item.quantity;
+        const enoughStock = true;
 
         if (sellable && enoughStock) continue;
 
