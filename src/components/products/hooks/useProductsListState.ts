@@ -353,6 +353,24 @@ export function useProductsListState() {
     return false;
   }, [canViewCostMargin, recentResearchIds]);
 
+  /**
+   * Requisitos mínimos obrigatórios para um produto poder ir para a loja pública:
+   * preço válido, imagem, SKU e sem bloqueio do gate AI Commerce.
+   * A pesquisa de mercado e a margem são inteligência comercial — não bloqueiam a publicação.
+   */
+  const isStoreReady = useCallback((p: Product) => {
+    const anyP = p as any;
+    const hasImage =
+      (p.images && p.images.length > 0) ||
+      (Array.isArray(anyP.product_images) && anyP.product_images.length > 0);
+    if (!p.base_price || p.base_price <= 0) return false;
+    if (!hasImage) return false;
+    if (!p.sku || p.sku.trim() === "") return false;
+    if (anyP.ai_commerce_gate_blocked === true) return false;
+    if (p.status === "archived") return false;
+    return true;
+  }, []);
+
 
   // --- Label helpers ---
   const getProductTypeLabel = useCallback((typeCode: string) => {
