@@ -263,6 +263,22 @@ Deno.serve(async (req) => {
       };
       for (const k of Object.keys(common)) if (common[k] === null) delete common[k];
 
+      /** Guarda a falha na ligação para ficar visível e ser repetida depois. */
+      const markLinkError = async (message: string) => {
+        if (!link?.id) return;
+        await admin
+          .from("mymia_crm_lead_links")
+          .update({
+            last_error: message.slice(0, 500),
+            last_error_at: new Date().toISOString(),
+            last_checked_at: new Date().toISOString(),
+            attempt_count: (link as { attempt_count?: number }).attempt_count
+              ? ((link as { attempt_count?: number }).attempt_count ?? 0) + 1
+              : 1,
+          })
+          .eq("id", link.id);
+      };
+
       if (leadId) {
         const { error: upErr } = await admin.from("leads").update(common).eq("id", leadId);
         if (upErr) {
@@ -276,6 +292,7 @@ Deno.serve(async (req) => {
             error: upErr.message,
             details: {},
           });
+          await markLinkError(upErr.message);
           summary.skipped++;
           continue;
         }
@@ -304,6 +321,7 @@ Deno.serve(async (req) => {
             error: insErr?.message ?? "insert_failed",
             details: {},
           });
+          await markLinkError(insErr?.message ?? "insert_failed");
           summary.skipped++;
           continue;
         }
@@ -319,6 +337,10 @@ Deno.serve(async (req) => {
           external_status: (raw.estado as string) ?? null,
           external_updated_at: (raw.updated_at as string) ?? null,
           last_inbound_at: new Date().toISOString(),
+          last_checked_at: new Date().toISOString(),
+          last_error: null,
+          last_error_at: null,
+          attempt_count: 0,
         },
         { onConflict: "workspace_id,external_lead_id" },
       );
