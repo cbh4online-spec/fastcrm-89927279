@@ -45,6 +45,23 @@ export interface MymiaCrmSyncLog {
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
 
+function reasonToMessage(reason?: string): string {
+  switch (reason) {
+    case "source_url_invalido":
+      return "Indique o endereço do mymia.world antes de sincronizar.";
+    case "pull_desligado":
+      return "Ligue primeiro a opção de trazer dados do mymia.world.";
+    case "chave_origem_ausente":
+      return "Falta a chave de acesso do mymia.world. Peça para a guardar em segurança.";
+    case "not_workspace_admin":
+      return "Só um responsável do espaço de trabalho pode sincronizar.";
+    default:
+      return reason
+        ? `Não foi possível sincronizar (${reason}).`
+        : "Não foi possível sincronizar.";
+  }
+}
+
 export function useMymiaCrmSync() {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id ?? null;
