@@ -629,6 +629,38 @@ export function useProductsListState() {
     toast.success(`${selected.length} produtos ${published ? "publicados" : "removidos"} da loja`);
   }, [products, selectedIds, queryClient]);
 
+  /**
+   * Publica apenas os produtos selecionados que cumprem os requisitos mínimos da loja.
+   * Os restantes ficam intactos e o utilizador é informado de quantos aguardam correção.
+   */
+  const handleBulkPublishReady = useCallback(async () => {
+    const selected = products?.filter((p) => selectedIds.includes(p.id)) || [];
+    if (selected.length === 0) return;
+    const ready = selected.filter(isStoreReady);
+    const skipped = selected.length - ready.length;
+    if (ready.length === 0) {
+      toast.error(
+        `Nenhum dos ${selected.length} produtos selecionados está apto. Falta preço, imagem ou referência.`,
+      );
+      return;
+    }
+    const { error } = await supabase
+      .from("products")
+      .update({ store_published: true } as any)
+      .in("id", ready.map((p) => p.id));
+    if (error) {
+      toast.error("Erro ao publicar os produtos aptos");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    setSelectedIds([]);
+    toast.success(
+      skipped > 0
+        ? `${ready.length} produtos publicados. ${skipped} aguardam preço, imagem ou referência.`
+        : `${ready.length} produtos publicados na loja`,
+    );
+  }, [products, selectedIds, isStoreReady, queryClient]);
+
   // --- Bulk duplicate ---
   const handleBulkDuplicate = useCallback(async () => {
     const selected = products?.filter((p) => selectedIds.includes(p.id)) || [];
