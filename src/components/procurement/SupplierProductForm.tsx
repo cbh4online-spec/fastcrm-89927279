@@ -37,6 +37,7 @@ export function SupplierProductForm({ open, onOpenChange, workspaceId, editItem,
     unit_price: 0, min_order_qty: 1, pack_size: 1,
     lead_time_days: "", is_preferred: false,
     quality_score: "", reliability_score: "",
+    product_url: "", stock_sync_enabled: false,
   });
   const [saving, setSaving] = useState(false);
 
