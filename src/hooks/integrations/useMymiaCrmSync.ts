@@ -15,6 +15,30 @@ export interface MymiaCrmSyncSettings {
   pull_conversations: boolean;
   last_pull_at: string | null;
   last_pull_summary: Record<string, number> | null;
+  auto_sync_enabled: boolean;
+  auto_sync_interval_minutes: number;
+  last_auto_run_at: string | null;
+  last_auto_run_status: string | null;
+  last_auto_run_detail: Record<string, unknown> | null;
+}
+
+export interface MymiaCrmSyncRun {
+  id: string;
+  trigger: string;
+  status: string;
+  reason: string | null;
+  started_at: string;
+  finished_at: string | null;
+  summary: Record<string, number> | null;
+  error: string | null;
+}
+
+export interface MymiaSyncStateCounts {
+  sincronizado: number;
+  desatualizado: number;
+  com_erro: number;
+  por_confirmar: number;
+  total: number;
 }
 
 export interface MymiaPullResult {
