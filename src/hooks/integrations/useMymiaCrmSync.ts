@@ -226,6 +226,8 @@ export function useMymiaCrmSync() {
       qc.invalidateQueries({ queryKey: ["mymia-crm-sync-settings", workspaceId] });
       qc.invalidateQueries({ queryKey: ["mymia-crm-sync-logs", workspaceId] });
       qc.invalidateQueries({ queryKey: ["mymia-crm-linked-count", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["mymia-crm-state-counts", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["mymia-crm-sync-runs", workspaceId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -241,6 +243,9 @@ export function useMymiaCrmSync() {
     logs: logsQuery.data ?? [],
     logsLoading: logsQuery.isLoading,
     linkedCount: linkedCountQuery.data ?? 0,
+    stateCounts: stateCountsQuery.data ?? null,
+    runs: runsQuery.data ?? [],
+    runsLoading: runsQuery.isLoading,
     saveSettings,
     runPull,
     endpointUrl,
