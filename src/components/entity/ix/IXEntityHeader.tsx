@@ -61,8 +61,8 @@ export function IXEntityHeader({
 
   return (
     <div className="px-4 sm:px-8 pt-6 pb-5 bg-background">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1 basis-[280px]">
           <Button
             variant="ghost"
             size="icon"
@@ -109,7 +109,7 @@ export function IXEntityHeader({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-2 ml-auto shrink-0">
           {rightExtras}
           {primaryAction && (
             <Button
