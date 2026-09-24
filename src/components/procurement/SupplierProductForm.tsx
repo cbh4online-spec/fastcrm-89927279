@@ -54,9 +54,11 @@ export function SupplierProductForm({ open, onOpenChange, workspaceId, editItem,
         is_preferred: editItem.is_preferred || false,
         quality_score: editItem.quality_score?.toString() || "",
         reliability_score: editItem.reliability_score?.toString() || "",
+        product_url: editItem.product_url || "",
+        stock_sync_enabled: editItem.stock_sync_enabled || false,
       });
     } else {
-      setForm({ supplier_id: "", product_id: "", supplier_sku: "", unit_price: 0, min_order_qty: 1, pack_size: 1, lead_time_days: "", is_preferred: false, quality_score: "", reliability_score: "" });
+      setForm({ supplier_id: "", product_id: "", supplier_sku: "", unit_price: 0, min_order_qty: 1, pack_size: 1, lead_time_days: "", is_preferred: false, quality_score: "", reliability_score: "", product_url: "", stock_sync_enabled: false });
     }
   }, [editItem, open]);
 
