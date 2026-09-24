@@ -76,8 +76,7 @@ export function LeadAddressSection({ lead, onFieldChange }: LeadAddressSectionPr
             icon={<Flag className="w-4 h-4" />}
             placeholder="Portugal"
           />
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </IXCard>
   );
 }
