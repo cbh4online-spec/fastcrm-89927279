@@ -107,6 +107,39 @@ export function useMymiaCrmSync() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const runPull = useMutation({
+    mutationFn: async (opts: { mode: "preview" | "apply"; limit?: number }) => {
+      if (!workspaceId) throw new Error("Nenhum espaço de trabalho ativo");
+      const { data, error } = await supabase.functions.invoke("mymia-crm-pull", {
+        body: {
+          workspace_id: workspaceId,
+          mode: opts.mode,
+          limit: opts.limit ?? 200,
+          include_conversations: true,
+        },
+      });
+      if (error) throw error;
+      const result = data as MymiaPullResult;
+      if (result?.ok === false || result?.reason) {
+        throw new Error(reasonToMessage(result.reason));
+      }
+      return result;
+    },
+    onSuccess: (result, variables) => {
+      if (variables.mode === "preview") {
+        toast.success(`Encontrei ${result.received ?? 0} contactos no mymia.world`);
+      } else {
+        toast.success(
+          `${result.created ?? 0} novos, ${result.updated ?? 0} atualizados, ${result.conversations ?? 0} conversas, ${result.messages ?? 0} mensagens`,
+        );
+      }
+      qc.invalidateQueries({ queryKey: ["mymia-crm-sync-settings", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["mymia-crm-sync-logs", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["mymia-crm-linked-count", workspaceId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const endpointUrl = PROJECT_ID
     ? `https://${PROJECT_ID}.supabase.co/functions/v1/mymia-crm-sync`
     : "";
