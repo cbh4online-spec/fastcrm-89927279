@@ -1,10 +1,16 @@
+// FastCRM — Leitura da disponibilidade nas páginas dos fornecedores.
+//
+// Segurança (fail-closed):
+// - Chamada interna: service role OU segredo do agendador (_cron_config).
+// - Chamada de utilizador: JWT válido + membro owner/admin do workspace.
+// - Sem evidência clara de stock na página, não inventa nada: registra o motivo.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { firecrawl } from '../_shared/firecrawl-client.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+    'authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
 type Level = 'high' | 'low' | 'none'
@@ -56,41 +62,47 @@ export function parseStock(text: string): Parsed {
   throw new Error('sem_evidencia_de_stock')
 }
 
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
-  const admin = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  )
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey)
 
   try {
     const body = await req.json().catch(() => ({}))
-    const workspaceId: string | undefined = body.workspace_id
+    let workspaceId: string | undefined = body.workspace_id
     const supplierProductIds: string[] | undefined = body.supplier_product_ids
     const limit: number = Math.min(Number(body.limit) || 25, 100)
     const dryRun: boolean = body.dry_run === true
 
-    if (!workspaceId) throw new Error('workspace_id é obrigatório')
-
-    // Autorização: service role interno OU membro owner/admin do workspace
+    // Autorização
     const authHeader = req.headers.get('Authorization') ?? ''
-    const token = authHeader.replace(/^Bearer\s+/i, '')
-    const isInternal = token && token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+    const cronSecret = req.headers.get('x-cron-secret')
+
+    let isInternal = Boolean(token) && token === serviceKey
+    if (!isInternal && cronSecret) {
+      const { data: cfg } = await admin
+        .from('_cron_config')
+        .select('value')
+        .eq('key', 'supplier_stock_sync_cron_secret')
+        .maybeSingle()
+      isInternal = Boolean(cfg?.value) && cfg!.value === cronSecret
+    }
 
     if (!isInternal) {
-      if (!token) {
-        return new Response(JSON.stringify({ error: 'nao_autenticado' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+      if (!token) return json({ error: 'nao_autenticado' }, 401)
       const { data: userData } = await admin.auth.getUser(token)
       const userId = userData?.user?.id
-      if (!userId) {
-        return new Response(JSON.stringify({ error: 'nao_autenticado' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+      if (!userId) return json({ error: 'nao_autenticado' }, 401)
+      if (!workspaceId) return json({ error: 'workspace_id é obrigatório' }, 400)
       const { data: member } = await admin
         .from('workspace_members')
         .select('role')
@@ -98,85 +110,95 @@ Deno.serve(async (req) => {
         .eq('user_id', userId)
         .maybeSingle()
       if (!member || !['owner', 'admin'].includes(member.role)) {
-        return new Response(JSON.stringify({ error: 'sem_permissao' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+        return json({ error: 'sem_permissao' }, 403)
       }
     }
 
-    let query = admin
-      .from('supplier_products')
-      .select('id, product_id, product_url, supplier_sku')
-      .eq('workspace_id', workspaceId)
-      .eq('stock_sync_enabled', true)
-      .not('product_url', 'is', null)
-      .order('stock_checked_at', { ascending: true, nullsFirst: true })
-      .limit(limit)
-
-    if (supplierProductIds?.length) query = query.in('id', supplierProductIds)
-
-    const { data: rows, error } = await query
-    if (error) throw error
+    // Chamada interna sem workspace: percorre todos os workspaces com leitura ligada.
+    let workspaceIds: string[]
+    if (workspaceId) {
+      workspaceIds = [workspaceId]
+    } else {
+      const { data: wsRows, error: wsErr } = await admin
+        .from('supplier_products')
+        .select('workspace_id')
+        .eq('stock_sync_enabled', true)
+        .not('product_url', 'is', null)
+      if (wsErr) throw wsErr
+      workspaceIds = Array.from(new Set((wsRows ?? []).map((r) => r.workspace_id as string)))
+    }
 
     const results: Array<Record<string, unknown>> = []
+    let checked = 0
     let updated = 0
     let failed = 0
 
-    for (const row of rows ?? []) {
-      try {
-        const scrape = await firecrawl.scrape(row.product_url as string, {
-          formats: ['markdown'],
-          onlyMainContent: true,
-        })
-        if (!scrape.success || !scrape.data?.markdown) throw new Error('pagina_nao_lida')
+    for (const wsId of workspaceIds) {
+      let query = admin
+        .from('supplier_products')
+        .select('id, product_id, product_url, supplier_sku')
+        .eq('workspace_id', wsId)
+        .eq('stock_sync_enabled', true)
+        .not('product_url', 'is', null)
+        .order('stock_checked_at', { ascending: true, nullsFirst: true })
+        .limit(limit)
 
-        const parsed = parseStock(scrape.data.markdown)
+      if (supplierProductIds?.length) query = query.in('id', supplierProductIds)
 
-        if (!dryRun) {
-          await admin
-            .from('supplier_products')
-            .update({
-              reported_stock_level: parsed.level,
-              reported_stock_qty: parsed.qty,
-              stock_checked_at: new Date().toISOString(),
-              stock_sync_error: null,
-            })
-            .eq('id', row.id)
+      const { data: rows, error } = await query
+      if (error) throw error
+      checked += rows?.length ?? 0
 
-          // Reflete no catálogo: sem stock no fornecedor → sob encomenda na loja
-          const stockStatus =
-            parsed.level === 'none' ? 'out_of_stock' : parsed.level === 'low' ? 'low_stock' : 'in_stock'
-          await admin
-            .from('products')
-            .update({ stock_status: stockStatus })
-            .eq('id', row.product_id)
-            .eq('workspace_id', workspaceId)
+      for (const row of rows ?? []) {
+        try {
+          const scrape = await firecrawl.scrape(row.product_url as string, {
+            formats: ['markdown'],
+            onlyMainContent: true,
+          })
+          if (!scrape.success || !scrape.data?.markdown) throw new Error('pagina_nao_lida')
+
+          const parsed = parseStock(scrape.data.markdown)
+
+          if (!dryRun) {
+            await admin
+              .from('supplier_products')
+              .update({
+                reported_stock_level: parsed.level,
+                reported_stock_qty: parsed.qty,
+                stock_checked_at: new Date().toISOString(),
+                stock_sync_error: null,
+              })
+              .eq('id', row.id)
+
+            // Reflete no catálogo: sem stock no fornecedor → sob encomenda na loja
+            const stockStatus =
+              parsed.level === 'none' ? 'out_of_stock' : parsed.level === 'low' ? 'low_stock' : 'in_stock'
+            await admin
+              .from('products')
+              .update({ stock_status: stockStatus })
+              .eq('id', row.product_id)
+              .eq('workspace_id', wsId)
+          }
+
+          updated++
+          results.push({ id: row.id, level: parsed.level, qty: parsed.qty, evidence: parsed.evidence })
+        } catch (e) {
+          failed++
+          const reason = e instanceof Error ? e.message : String(e)
+          if (!dryRun) {
+            await admin
+              .from('supplier_products')
+              .update({ stock_sync_error: reason, stock_checked_at: new Date().toISOString() })
+              .eq('id', row.id)
+          }
+          results.push({ id: row.id, error: reason })
         }
-
-        updated++
-        results.push({ id: row.id, level: parsed.level, qty: parsed.qty, evidence: parsed.evidence })
-      } catch (e) {
-        failed++
-        const reason = e instanceof Error ? e.message : String(e)
-        if (!dryRun) {
-          await admin
-            .from('supplier_products')
-            .update({ stock_sync_error: reason, stock_checked_at: new Date().toISOString() })
-            .eq('id', row.id)
-        }
-        results.push({ id: row.id, error: reason })
+        await new Promise((r) => setTimeout(r, 800))
       }
-      await new Promise((r) => setTimeout(r, 800))
     }
 
-    return new Response(
-      JSON.stringify({ checked: rows?.length ?? 0, updated, failed, dry_run: dryRun, results }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+    return json({ checked, updated, failed, dry_run: dryRun, workspaces: workspaceIds.length, results })
   } catch (e) {
-    return new Response(
-      JSON.stringify({ error: 'internal_error', reason: e instanceof Error ? e.message : String(e) }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+    return json({ error: 'internal_error', reason: e instanceof Error ? e.message : String(e) })
   }
 })
