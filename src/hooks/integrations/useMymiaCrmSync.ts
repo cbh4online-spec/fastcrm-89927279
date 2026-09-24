@@ -10,6 +10,25 @@ export interface MymiaCrmSyncSettings {
   outbound_endpoint_url: string | null;
   default_source: string;
   default_tags: string[];
+  source_url: string | null;
+  pull_enabled: boolean;
+  pull_conversations: boolean;
+  last_pull_at: string | null;
+  last_pull_summary: Record<string, number> | null;
+}
+
+export interface MymiaPullResult {
+  ok: boolean;
+  mode?: string;
+  received?: number;
+  created?: number;
+  updated?: number;
+  skipped?: number;
+  activities?: number;
+  conversations?: number;
+  messages?: number;
+  error?: unknown;
+  reason?: string;
 }
 
 export interface MymiaCrmSyncLog {
