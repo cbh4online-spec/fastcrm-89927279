@@ -500,6 +500,7 @@ export function ProductsList() {
               onBulkPublishReady={state.handleBulkPublishReady}
               onBulkEnrich={() => setBulkEnrichOpen(true)}
               onBulkImages={() => setBulkImagesOpen(true)}
+              onBulkTags={() => setBulkTagsOpen(true)}
               onBulkDuplicate={state.handleBulkDuplicate}
               onCompare={() => setCompareOpen(true)}
               onBulkMarketResearch={() => setBulkMarketOpen(true)}
