@@ -628,6 +628,27 @@ export function ProductsList() {
           .map((p) => ({ id: p.id, name: p.name, sku: p.sku ?? undefined }))}
       />
 
+      <BulkTagsDialog
+        open={bulkTagsOpen}
+        onOpenChange={setBulkTagsOpen}
+        targets={(state.filteredProducts || [])
+          .filter((p) => state.selectedIds.includes(p.id))
+          .map((p) => {
+            const anyP = p as any;
+            return {
+              id: p.id,
+              name: p.name,
+              sku: p.sku,
+              brand: anyP.brand ?? null,
+              manufacturer: anyP.manufacturer ?? null,
+              model: anyP.model ?? null,
+              category: p.category,
+              subcategory: anyP.subcategory ?? null,
+              specifications: anyP.specifications ?? null,
+            };
+          })}
+      />
+
 
 
 
