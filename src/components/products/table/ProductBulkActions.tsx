@@ -117,6 +117,12 @@ export function ProductBulkActions({
         </Button>
       )}
 
+      {onBulkTags && (
+        <Button variant="outline" size="sm" onClick={onBulkTags} className="gap-2">
+          <Tags className="h-4 w-4" /> Gerar etiquetas
+        </Button>
+      )}
+
 
 
       <Button variant="outline" size="sm" onClick={() => setBulkCostOpen(true)} className="gap-2">
