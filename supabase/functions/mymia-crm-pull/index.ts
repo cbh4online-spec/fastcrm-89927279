@@ -90,18 +90,26 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   // 1) Autenticação do chamador antes de qualquer acesso privilegiado.
+  //    Duas vias: JWT de utilizador (owner/admin) ou chamada interna com service role
+  //    (tarefa automática / cron). Fail-closed em qualquer outro caso.
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
     return json({ error: "unauthorized", reason: "missing_authorization" }, 401);
   }
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !userData?.user) {
-    return json({ error: "unauthorized", reason: "invalid_token" }, 401);
+  const bearer = authHeader.slice(7).trim();
+  const isInternal = Boolean(serviceKey) && bearer === serviceKey;
+
+  let userId: string | null = null;
+  if (!isInternal) {
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return json({ error: "unauthorized", reason: "invalid_token" }, 401);
+    }
+    userId = userData.user.id;
   }
-  const userId = userData.user.id;
 
   let bodyJson: unknown;
   try {
@@ -115,19 +123,21 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-  // 2) Autorização: owner/admin do workspace, ou super admin.
-  const { data: membership } = await admin
-    .from("workspace_members")
-    .select("role")
-    .eq("workspace_id", workspace_id)
-    .eq("user_id", userId)
-    .maybeSingle();
-  let allowed = membership?.role === "owner" || membership?.role === "admin";
-  if (!allowed) {
-    const { data: isSuper } = await admin.rpc("is_super_admin", { _user_id: userId });
-    allowed = isSuper === true;
+  // 2) Autorização: owner/admin do workspace, super admin, ou chamada interna.
+  if (!isInternal) {
+    const { data: membership } = await admin
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspace_id)
+      .eq("user_id", userId!)
+      .maybeSingle();
+    let allowed = membership?.role === "owner" || membership?.role === "admin";
+    if (!allowed) {
+      const { data: isSuper } = await admin.rpc("is_super_admin", { _user_id: userId });
+      allowed = isSuper === true;
+    }
+    if (!allowed) return json({ error: "forbidden", reason: "not_workspace_admin" }, 403);
   }
-  if (!allowed) return json({ error: "forbidden", reason: "not_workspace_admin" }, 403);
 
   try {
     // 3) Configuração da ponte.
