@@ -665,6 +665,12 @@ export default function StoreProductPage() {
                 </ul>
               )}
 
+              <StoreStockLevel
+                stockStatus={product.stock_status}
+                stockQuantity={product.stock_quantity}
+                trackStock={product.track_stock}
+              />
+
               <StoreProductBadges
                 createdAt={product.created_at}
                 trackStock={product.track_stock}
