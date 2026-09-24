@@ -2,7 +2,6 @@
 // Recebe leads do mymia.world (crm_leads) e cria/atualiza leads do workspace no FastCRM.
 // Segurança: assinatura HMAC-SHA256 obrigatória (MYMIA_CRM_SYNC_SECRET), fail-closed.
 // Nunca confia no corpo: valida com Zod, normaliza telefone/email e verifica o workspace.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { validateWebhook, logSecurityEvent, getRemoteIp, makeAdmin } from "../_shared/hmac.ts";
