@@ -61574,6 +61574,211 @@ export type Database = {
           },
         ]
       }
+      mymia_crm_lead_links: {
+        Row: {
+          created_at: string
+          external_lead_id: string
+          external_status: string | null
+          external_updated_at: string | null
+          id: string
+          last_inbound_at: string | null
+          last_outbound_at: string | null
+          lead_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          external_lead_id: string
+          external_status?: string | null
+          external_updated_at?: string | null
+          id?: string
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          lead_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          external_lead_id?: string
+          external_status?: string | null
+          external_updated_at?: string | null
+          id?: string
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          lead_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mymia_crm_lead_links_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_lead_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_lead_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_lead_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_lead_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mymia_crm_sync_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json
+          direction: string
+          error: string | null
+          external_lead_id: string | null
+          id: string
+          lead_id: string | null
+          status: string
+          workspace_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json
+          direction: string
+          error?: string | null
+          external_lead_id?: string | null
+          id?: string
+          lead_id?: string | null
+          status: string
+          workspace_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json
+          direction?: string
+          error?: string | null
+          external_lead_id?: string | null
+          id?: string
+          lead_id?: string | null
+          status?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mymia_crm_sync_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_sync_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_sync_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_sync_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mymia_crm_sync_settings: {
+        Row: {
+          created_at: string
+          default_source: string
+          default_tags: string[]
+          inbound_enabled: boolean
+          outbound_enabled: boolean
+          outbound_endpoint_url: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_source?: string
+          default_tags?: string[]
+          inbound_enabled?: boolean
+          outbound_enabled?: boolean
+          outbound_endpoint_url?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          default_source?: string
+          default_tags?: string[]
+          inbound_enabled?: boolean
+          outbound_enabled?: boolean
+          outbound_endpoint_url?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mymia_crm_sync_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_sync_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_sync_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mymia_crm_sync_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       next_best_action_logs: {
         Row: {
           action_id: string
