@@ -353,6 +353,24 @@ export function useProductsListState() {
     return false;
   }, [canViewCostMargin, recentResearchIds]);
 
+  /**
+   * Requisitos mínimos obrigatórios para um produto poder ir para a loja pública:
+   * preço válido, imagem, SKU e sem bloqueio do gate AI Commerce.
+   * A pesquisa de mercado e a margem são inteligência comercial — não bloqueiam a publicação.
+   */
+  const isStoreReady = useCallback((p: Product) => {
+    const anyP = p as any;
+    const hasImage =
+      (p.images && p.images.length > 0) ||
+      (Array.isArray(anyP.product_images) && anyP.product_images.length > 0);
+    if (!p.base_price || p.base_price <= 0) return false;
+    if (!hasImage) return false;
+    if (!p.sku || p.sku.trim() === "") return false;
+    if (anyP.ai_commerce_gate_blocked === true) return false;
+    if (p.status === "archived") return false;
+    return true;
+  }, []);
+
 
   // --- Label helpers ---
   const getProductTypeLabel = useCallback((typeCode: string) => {
@@ -611,6 +629,38 @@ export function useProductsListState() {
     toast.success(`${selected.length} produtos ${published ? "publicados" : "removidos"} da loja`);
   }, [products, selectedIds, queryClient]);
 
+  /**
+   * Publica apenas os produtos selecionados que cumprem os requisitos mínimos da loja.
+   * Os restantes ficam intactos e o utilizador é informado de quantos aguardam correção.
+   */
+  const handleBulkPublishReady = useCallback(async () => {
+    const selected = products?.filter((p) => selectedIds.includes(p.id)) || [];
+    if (selected.length === 0) return;
+    const ready = selected.filter(isStoreReady);
+    const skipped = selected.length - ready.length;
+    if (ready.length === 0) {
+      toast.error(
+        `Nenhum dos ${selected.length} produtos selecionados está apto. Falta preço, imagem ou referência.`,
+      );
+      return;
+    }
+    const { error } = await supabase
+      .from("products")
+      .update({ store_published: true } as any)
+      .in("id", ready.map((p) => p.id));
+    if (error) {
+      toast.error("Erro ao publicar os produtos aptos");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    setSelectedIds([]);
+    toast.success(
+      skipped > 0
+        ? `${ready.length} produtos publicados. ${skipped} aguardam preço, imagem ou referência.`
+        : `${ready.length} produtos publicados na loja`,
+    );
+  }, [products, selectedIds, isStoreReady, queryClient]);
+
   // --- Bulk duplicate ---
   const handleBulkDuplicate = useCallback(async () => {
     const selected = products?.filter((p) => selectedIds.includes(p.id)) || [];
@@ -703,7 +753,8 @@ export function useProductsListState() {
     bulkDeleteOpen, setBulkDeleteOpen,
     bulkCostOpen, setBulkCostOpen,
     handleArchive, handleDeleteConfirm,
-    handleBulkExport, handleBulkArchive, handleBulkPublish, handleBulkDuplicate,
+    handleBulkExport, handleBulkArchive, handleBulkPublish, handleBulkPublishReady, handleBulkDuplicate,
+    isPendingUpdate, isStoreReady,
     visibleColumns, setVisibleColumns, columnOrder, setColumnOrder,
     colWidths, tableRef,
     searchInputRef,

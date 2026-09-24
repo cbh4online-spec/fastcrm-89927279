@@ -54,6 +54,7 @@ import { ProductReportsTab } from "./ProductReportsTab";
 import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
 import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { BulkMarketPricingDialog } from "./pricing/BulkMarketPricingDialog";
+import { BulkAICommerceDialog } from "@/components/ai-commerce/BulkAICommerceDialog";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
@@ -72,6 +73,7 @@ export function ProductsList() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [bulkMarketOpen, setBulkMarketOpen] = useState(false);
+  const [bulkEnrichOpen, setBulkEnrichOpen] = useState(false);
 
   const isMobile = useIsMobile();
   const canViewCostMargin = useCanViewCostMargin();
@@ -491,6 +493,8 @@ export function ProductsList() {
               onBulkDelete={() => state.deleteProductsBatch.mutateAsync(state.selectedIds)}
               onClearSelection={() => state.setSelectedIds([])}
               onBulkPublish={state.handleBulkPublish}
+              onBulkPublishReady={state.handleBulkPublishReady}
+              onBulkEnrich={() => setBulkEnrichOpen(true)}
               onBulkDuplicate={state.handleBulkDuplicate}
               onCompare={() => setCompareOpen(true)}
               onBulkMarketResearch={() => setBulkMarketOpen(true)}
@@ -589,6 +593,15 @@ export function ProductsList() {
         products={(state.filteredProducts || []).filter((p) => state.selectedIds.includes(p.id))}
         onComplete={() => state.setSelectedIds([])}
       />
+
+      <BulkAICommerceDialog
+        open={bulkEnrichOpen}
+        onOpenChange={setBulkEnrichOpen}
+        targets={(state.filteredProducts || [])
+          .filter((p) => state.selectedIds.includes(p.id))
+          .map((p) => ({ id: p.id, name: p.name, sku: p.sku ?? undefined }))}
+      />
+
 
 
 

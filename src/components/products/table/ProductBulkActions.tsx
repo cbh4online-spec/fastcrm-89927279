@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown, ArrowUpDown, Search } from "lucide-react";
+import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown, ArrowUpDown, Search, Sparkles } from "lucide-react";
 import { BulkCostDialog } from "../BulkCostDialog";
 
 interface ProductBulkActionsProps {
@@ -29,6 +29,10 @@ interface ProductBulkActionsProps {
   onBulkDelete: () => Promise<unknown>;
   onClearSelection: () => void;
   onBulkPublish?: (published: boolean) => void;
+  /** Publica só os selecionados com preço, imagem, referência e sem bloqueio de qualidade */
+  onBulkPublishReady?: () => void;
+  /** Completa fichas em massa com o AI Commerce (texto, SEO, benefícios) */
+  onBulkEnrich?: () => void;
   onBulkDuplicate?: () => void;
   onCompare?: () => void;
   onBulkMarketResearch?: () => void;
@@ -49,6 +53,8 @@ export function ProductBulkActions({
   onBulkDelete,
   onClearSelection,
   onBulkPublish,
+  onBulkPublishReady,
+  onBulkEnrich,
   onBulkDuplicate,
   onCompare,
   onBulkMarketResearch,
@@ -94,6 +100,12 @@ export function ProductBulkActions({
         </Button>
       )}
 
+      {onBulkEnrich && (
+        <Button variant="outline" size="sm" onClick={onBulkEnrich} className="gap-2">
+          <Sparkles className="h-4 w-4" /> Completar fichas
+        </Button>
+      )}
+
 
 
       <Button variant="outline" size="sm" onClick={() => setBulkCostOpen(true)} className="gap-2">
@@ -109,6 +121,11 @@ export function ProductBulkActions({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {onBulkPublishReady && (
+              <DropdownMenuItem onClick={onBulkPublishReady}>
+                Publicar apenas os aptos
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => onBulkPublish(true)}>
               Publicar na loja
             </DropdownMenuItem>
