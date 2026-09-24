@@ -17,3 +17,6 @@
 - [x] Corrigir recuperação de chunks desatualizados e evitar ciclos de reload da PWA.
 - [x] Reduzir o carregamento inicial com rotas principais e ferramentas de desenvolvimento lazy.
 - [x] Validar landing, autenticação e loja em desktop; landing também validada em mobile.
+
+## Integração mymia.world (pedido 2026-09-24)
+- [ ] Obter chave de serviço do mymia.world e guardar em MYMIA_SOURCE_SERVICE_KEY; testar "Ver o que existe" e sincronizar.
