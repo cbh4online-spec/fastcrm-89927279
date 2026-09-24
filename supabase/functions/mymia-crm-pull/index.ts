@@ -166,7 +166,15 @@ Deno.serve(async (req) => {
         limit: String(limit),
       }).toString(),
     );
-    if (!leadsRes.ok) return json({ error: "origem_falhou", reason: leadsRes.error }, 502);
+    if (!leadsRes.ok) {
+      const invalidKey = /origem_40[13]/.test(leadsRes.error ?? "");
+      return json({
+        ok: false,
+        error: "origem_falhou",
+        reason: invalidKey ? "chave_origem_invalida" : "origem_inacessivel",
+        detail: (leadsRes.error ?? "").slice(0, 200),
+      });
+    }
 
     const sourceLeads = leadsRes.rows;
     const summary = {
