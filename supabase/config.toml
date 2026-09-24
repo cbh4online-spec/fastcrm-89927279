@@ -171,3 +171,6 @@ verify_jwt = false
 
 [functions.pharliss-catalogo]
 verify_jwt = false
+
+[functions.supplier-stock-sync]
+verify_jwt = false
