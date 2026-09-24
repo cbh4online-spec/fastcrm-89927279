@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
 
       const { data: link } = await admin
         .from("mymia_crm_lead_links")
-        .select("id, lead_id")
+        .select("id, lead_id, attempt_count")
         .eq("workspace_id", workspace_id)
         .eq("external_lead_id", externalId)
         .maybeSingle();
