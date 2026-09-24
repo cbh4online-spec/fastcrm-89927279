@@ -31,6 +31,7 @@ const StoreAnalyticsPage = lazy(() => import("@/pages/StoreAnalyticsPage"));
 const StoreReturnsPage = lazy(() => import("@/pages/StoreReturnsPage"));
 const ProductCatalogListPage = lazy(() => import("@/pages/ProductCatalogListPage"));
 const ProductCatalogEditorPage = lazy(() => import("@/pages/ProductCatalogEditorPage"));
+const MymiaCrmSyncPage = lazy(() => import("@/pages/MymiaCrmSyncPage"));
 
 // Client portal pages
 const ClientLoginPage = lazy(() => import("@/pages/client/ClientLoginPage"));
@@ -173,6 +174,7 @@ export function B2BAdminRoutes() {
       <Route path="/dashboard/b2b/funnel" element={<B2BFunnelPage />} />
       <Route path="/dashboard/b2b-funnel" element={<B2BFunnelPage />} />
       <Route path="/dashboard/integrations/ifthenpay" element={<IfthenpaySettingsPage />} />
+      <Route path="/dashboard/integrations/mymia-crm" element={<MymiaCrmSyncPage />} />
       <Route path="/settings/payment-gateways" element={<PaymentGatewaysPage />} />
     </>
   );
