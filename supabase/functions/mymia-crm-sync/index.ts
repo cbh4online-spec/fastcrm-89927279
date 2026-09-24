@@ -32,10 +32,30 @@ const LeadSchema = z.object({
   updated_at: z.string().datetime().optional().nullable(),
 });
 
+const MensagemSchema = z.object({
+  external_message_id: z.string().min(1).max(64),
+  direcao: z.enum(["inbound", "outbound"]).default("inbound"),
+  texto: z.string().max(8000).optional().nullable(),
+  tipo: z.string().max(32).optional().nullable(),
+  media_url: z.string().url().max(2000).optional().nullable(),
+  criado_em: z.string().datetime().optional().nullable(),
+});
+
+const ConversaSchema = z.object({
+  external_conversation_id: z.string().min(1).max(64),
+  canal: z.string().max(32).optional().nullable(),
+  telefone: z.string().max(32).optional().nullable(),
+  contacto_nome: z.string().max(255).optional().nullable(),
+  ultima_mensagem_em: z.string().datetime().optional().nullable(),
+  mensagens: z.array(MensagemSchema).max(200).default([]),
+});
+
+const ConversasPorLead = z.array(ConversaSchema).max(20);
+
 const BodySchema = z.object({
   workspace_id: z.string().uuid(),
   mode: z.enum(["apply", "preview"]).default("apply"),
-  leads: z.array(LeadSchema).min(1).max(MAX_LEADS),
+  leads: z.array(LeadSchema.extend({ conversas: ConversasPorLead.optional() })).min(1).max(MAX_LEADS),
 });
 
 function json(body: unknown, status = 200) {
@@ -78,20 +98,45 @@ Deno.serve(async (req) => {
     req.headers.get("x-mymia-signature") ?? req.headers.get("x-signature") ?? null;
 
   // 1) Autenticação antes de qualquer leitura ou escrita.
-  const check = await validateWebhook({
-    mode: "hmac",
-    rawBody,
-    secret: Deno.env.get("MYMIA_CRM_SYNC_SECRET"),
-    signatureHeader,
-    provider: "mymia_crm",
-    functionName: "mymia-crm-sync",
-    remoteIp,
-    signaturePrefix: "sha256=",
+  //    Duas vias aceites, sempre fail-closed:
+  //    a) Authorization: Bearer <FASTCRM_CRM_TOKEN>  (modelo simples, igual ao catálogo)
+  //    b) x-mymia-signature: sha256=<HMAC do corpo com MYMIA_CRM_SYNC_SECRET>
+  const authHeader = req.headers.get("authorization") ?? "";
+  const bearer = authHeader.toLowerCase().startsWith("bearer ")
+    ? authHeader.slice(7).trim()
+    : null;
+  const bearerSecret = Deno.env.get("FASTCRM_CRM_TOKEN") ?? null;
+  const useToken = Boolean(bearer) && Boolean(bearerSecret);
+  console.log("[mymia-crm-sync] auth", {
+    has_bearer: Boolean(bearer),
+    has_token_secret: Boolean(bearerSecret),
+    mode: useToken ? "token" : "hmac",
   });
+
+  const check = useToken
+    ? await validateWebhook({
+        mode: "token",
+        rawBody,
+        secret: bearerSecret,
+        signatureHeader: bearer,
+        provider: "mymia_crm",
+        functionName: "mymia-crm-sync",
+        remoteIp,
+      })
+    : await validateWebhook({
+        mode: "hmac",
+        rawBody,
+        secret: Deno.env.get("MYMIA_CRM_SYNC_SECRET"),
+        signatureHeader,
+        provider: "mymia_crm",
+        functionName: "mymia-crm-sync",
+        remoteIp,
+        signaturePrefix: "sha256=",
+      });
   await logSecurityEvent(admin, {
     provider: "mymia_crm",
     function_name: "mymia-crm-sync",
-    validation_mode: "hmac",
+    validation_mode: useToken ? "token" : "hmac",
     outcome: check.outcome,
     reason: check.reason ?? null,
     remote_ip: remoteIp,
@@ -149,6 +194,9 @@ Deno.serve(async (req) => {
       lead_id?: string;
       reason?: string;
     }> = [];
+    let conversationsCreated = 0;
+    let messagesCreated = 0;
+
 
     for (const raw of leads) {
       const email = normalizeEmail(raw.email);
@@ -263,6 +311,83 @@ Deno.serve(async (req) => {
         },
         { onConflict: "workspace_id,external_lead_id" },
       );
+
+      // 3d) Conversas e mensagens associadas (idempotentes por id externo).
+      for (const conversa of raw.conversas ?? []) {
+        const extConvId = conversa.external_conversation_id;
+
+        const { data: convLink } = await admin
+          .from("mymia_crm_conversation_links")
+          .select("conversation_id")
+          .eq("workspace_id", workspace_id)
+          .eq("external_conversation_id", extConvId)
+          .maybeSingle();
+
+        let conversationId: string | null = convLink?.conversation_id ?? null;
+
+        if (!conversationId) {
+          const { data: newConv, error: convErr } = await admin
+            .from("conversations")
+            .insert({
+              workspace_id,
+              channel: conversa.canal?.trim() || "whatsapp",
+              lead_id: leadId,
+              status: "open",
+              external_thread_id: extConvId,
+              last_message_at: conversa.ultima_mensagem_em ?? null,
+              channel_metadata: {
+                origem: "mymia_crm",
+                phone_e164: normalizePhone(conversa.telefone),
+                contact_name: conversa.contacto_nome ?? null,
+              },
+            })
+            .select("id")
+            .maybeSingle();
+          if (convErr || !newConv) continue;
+          conversationId = newConv.id;
+          await admin.from("mymia_crm_conversation_links").insert({
+            workspace_id,
+            external_conversation_id: extConvId,
+            conversation_id: conversationId,
+          });
+          conversationsCreated++;
+        }
+
+        for (const msg of conversa.mensagens) {
+          const { data: msgLink } = await admin
+            .from("mymia_crm_message_links")
+            .select("id")
+            .eq("workspace_id", workspace_id)
+            .eq("external_message_id", msg.external_message_id)
+            .maybeSingle();
+          if (msgLink) continue;
+
+          const { data: newMsg, error: msgErr } = await admin
+            .from("messages")
+            .insert({
+              workspace_id,
+              conversation_id: conversationId,
+              direction: msg.direcao,
+              content: (msg.texto ?? "").trim() || "(sem texto)",
+              message_type: msg.tipo?.trim() || "text",
+              media_url: msg.media_url ?? null,
+              external_message_id: msg.external_message_id,
+              sent_at: msg.criado_em ?? new Date().toISOString(),
+              metadata: { origem: "mymia_crm" },
+            })
+            .select("id")
+            .maybeSingle();
+          if (msgErr || !newMsg) continue;
+
+          await admin.from("mymia_crm_message_links").insert({
+            workspace_id,
+            external_message_id: msg.external_message_id,
+            message_id: newMsg.id,
+            conversation_id: conversationId,
+          });
+          messagesCreated++;
+        }
+      }
     }
 
     const created = results.filter((r) => r.action === "created").length;
@@ -274,10 +399,27 @@ Deno.serve(async (req) => {
       direction: "inbound",
       action: mode === "preview" ? "batch_preview" : "batch",
       status: "ok",
-      details: { received: leads.length, created, updated, skipped },
+      details: {
+        received: leads.length,
+        created,
+        updated,
+        skipped,
+        conversations: conversationsCreated,
+        messages: messagesCreated,
+      },
     });
 
-    return json({ ok: true, mode, received: leads.length, created, updated, skipped, results });
+    return json({
+      ok: true,
+      mode,
+      received: leads.length,
+      created,
+      updated,
+      skipped,
+      conversations: conversationsCreated,
+      messages: messagesCreated,
+      results,
+    });
   } catch (e) {
     console.error("[mymia-crm-sync] fatal", (e as Error).message);
     return json({ ok: false, internal_error: true, error: "internal_error" });
