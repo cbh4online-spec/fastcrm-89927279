@@ -185,9 +185,10 @@ export function useMymiaCrmSync() {
   const saveSettings = useMutation({
     mutationFn: async (patch: Partial<MymiaCrmSyncSettings>) => {
       if (!workspaceId) throw new Error("Nenhum espaço de trabalho ativo");
+      const row = { workspace_id: workspaceId, ...patch } as never;
       const { error } = await supabase
         .from("mymia_crm_sync_settings")
-        .upsert({ workspace_id: workspaceId, ...patch }, { onConflict: "workspace_id" });
+        .upsert(row, { onConflict: "workspace_id" });
       if (error) throw error;
     },
     onSuccess: () => {
