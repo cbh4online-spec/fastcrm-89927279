@@ -56,6 +56,7 @@ import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { BulkMarketPricingDialog } from "./pricing/BulkMarketPricingDialog";
 import { BulkAICommerceDialog } from "@/components/ai-commerce/BulkAICommerceDialog";
 import { BulkImageFillDialog } from "@/components/products/BulkImageFillDialog";
+import { BulkTagsDialog } from "@/components/products/BulkTagsDialog";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
