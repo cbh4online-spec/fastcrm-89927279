@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Copy, ShieldCheck, AlertTriangle, Link2 } from "lucide-react";
+import { Copy, ShieldCheck, AlertTriangle, Link2, RefreshCw, Download } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -20,14 +20,20 @@ export default function MymiaCrmSyncPage() {
   const canManage =
     isSuperAdmin || currentWorkspace?.role === "owner" || currentWorkspace?.role === "admin";
 
-  const { settings, isLoading, logs, logsLoading, linkedCount, saveSettings, endpointUrl } =
+  const { settings, isLoading, logs, logsLoading, linkedCount, saveSettings, runPull, endpointUrl } =
     useMymiaCrmSync();
 
   const [outboundUrl, setOutboundUrl] = useState<string | null>(null);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
 
   const inbound = settings?.inbound_enabled ?? true;
   const outbound = settings?.outbound_enabled ?? false;
   const urlValue = outboundUrl ?? settings?.outbound_endpoint_url ?? "";
+  const sourceValue = sourceUrl ?? settings?.source_url ?? "";
+  const pullEnabled = settings?.pull_enabled ?? false;
+  const pullConversations = settings?.pull_conversations ?? true;
+  const lastSummary = settings?.last_pull_summary ?? null;
+  const busy = runPull.isPending;
 
   function copy(value: string) {
     navigator.clipboard.writeText(value);
@@ -58,6 +64,105 @@ export default function MymiaCrmSyncPage() {
             </AlertDescription>
           </Alert>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Trazer contactos e conversas do mymia.world</CardTitle>
+            <CardDescription>
+              Indique o endereço do mymia.world, ligue a opção e carregue no botão. Traz os
+              contactos, o histórico de notas e as conversas de WhatsApp de cada um.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="source-url">Endereço do mymia.world</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="source-url"
+                  placeholder="https://..."
+                  value={sourceValue}
+                  disabled={!canManage}
+                  onChange={(e) => setSourceUrl(e.target.value)}
+                />
+                <Button
+                  variant="outline"
+                  disabled={!canManage || saveSettings.isPending || sourceUrl === null}
+                  onClick={() =>
+                    saveSettings.mutate(
+                      { source_url: (sourceUrl ?? "").trim() || null },
+                      { onSuccess: () => setSourceUrl(null) },
+                    )
+                  }
+                >
+                  Guardar
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label>Trazer dados do mymia.world</Label>
+                <p className="text-sm text-muted-foreground">
+                  Enquanto estiver desligado, nada é importado.
+                </p>
+              </div>
+              <Switch
+                checked={pullEnabled}
+                disabled={!canManage || isLoading || saveSettings.isPending || !sourceValue}
+                onCheckedChange={(v) => saveSettings.mutate({ pull_enabled: v })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label>Incluir conversas de WhatsApp</Label>
+                <p className="text-sm text-muted-foreground">
+                  Copia o histórico de mensagens de cada contacto para a caixa de entrada.
+                </p>
+              </div>
+              <Switch
+                checked={pullConversations}
+                disabled={!canManage || isLoading || saveSettings.isPending}
+                onCheckedChange={(v) => saveSettings.mutate({ pull_conversations: v })}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                disabled={!canManage || busy || !sourceValue}
+                onClick={() => runPull.mutate({ mode: "preview" })}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${busy ? "animate-spin" : ""}`} />
+                Ver o que existe
+              </Button>
+              <Button
+                disabled={!canManage || busy || !pullEnabled}
+                onClick={() => runPull.mutate({ mode: "apply", limit: 200 })}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Sincronizar contactos e conversas agora
+              </Button>
+            </div>
+
+            {settings?.last_pull_at && (
+              <p className="text-sm text-muted-foreground">
+                Última sincronização: {new Date(settings.last_pull_at).toLocaleString("pt-PT")}
+                {lastSummary
+                  ? ` — ${lastSummary.created ?? 0} novos, ${lastSummary.updated ?? 0} atualizados, ${lastSummary.conversations ?? 0} conversas, ${lastSummary.messages ?? 0} mensagens`
+                  : ""}
+              </p>
+            )}
+
+            <Alert>
+              <ShieldCheck className="h-4 w-4" />
+              <AlertDescription>
+                A chave de acesso do mymia.world fica guardada em segurança e nunca aparece nesta
+                página. Se faltar, avisamos ao sincronizar.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

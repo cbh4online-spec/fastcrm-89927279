@@ -10,6 +10,25 @@ export interface MymiaCrmSyncSettings {
   outbound_endpoint_url: string | null;
   default_source: string;
   default_tags: string[];
+  source_url: string | null;
+  pull_enabled: boolean;
+  pull_conversations: boolean;
+  last_pull_at: string | null;
+  last_pull_summary: Record<string, number> | null;
+}
+
+export interface MymiaPullResult {
+  ok: boolean;
+  mode?: string;
+  received?: number;
+  created?: number;
+  updated?: number;
+  skipped?: number;
+  activities?: number;
+  conversations?: number;
+  messages?: number;
+  error?: unknown;
+  reason?: string;
 }
 
 export interface MymiaCrmSyncLog {
@@ -25,6 +44,23 @@ export interface MymiaCrmSyncLog {
 }
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
+
+function reasonToMessage(reason?: string): string {
+  switch (reason) {
+    case "source_url_invalido":
+      return "Indique o endereço do mymia.world antes de sincronizar.";
+    case "pull_desligado":
+      return "Ligue primeiro a opção de trazer dados do mymia.world.";
+    case "chave_origem_ausente":
+      return "Falta a chave de acesso do mymia.world. Peça para a guardar em segurança.";
+    case "not_workspace_admin":
+      return "Só um responsável do espaço de trabalho pode sincronizar.";
+    default:
+      return reason
+        ? `Não foi possível sincronizar (${reason}).`
+        : "Não foi possível sincronizar.";
+  }
+}
 
 export function useMymiaCrmSync() {
   const { currentWorkspace } = useWorkspace();
@@ -88,6 +124,39 @@ export function useMymiaCrmSync() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const runPull = useMutation({
+    mutationFn: async (opts: { mode: "preview" | "apply"; limit?: number }) => {
+      if (!workspaceId) throw new Error("Nenhum espaço de trabalho ativo");
+      const { data, error } = await supabase.functions.invoke("mymia-crm-pull", {
+        body: {
+          workspace_id: workspaceId,
+          mode: opts.mode,
+          limit: opts.limit ?? 200,
+          include_conversations: true,
+        },
+      });
+      if (error) throw error;
+      const result = data as MymiaPullResult;
+      if (result?.ok === false || result?.reason) {
+        throw new Error(reasonToMessage(result.reason));
+      }
+      return result;
+    },
+    onSuccess: (result, variables) => {
+      if (variables.mode === "preview") {
+        toast.success(`Encontrei ${result.received ?? 0} contactos no mymia.world`);
+      } else {
+        toast.success(
+          `${result.created ?? 0} novos, ${result.updated ?? 0} atualizados, ${result.conversations ?? 0} conversas, ${result.messages ?? 0} mensagens`,
+        );
+      }
+      qc.invalidateQueries({ queryKey: ["mymia-crm-sync-settings", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["mymia-crm-sync-logs", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["mymia-crm-linked-count", workspaceId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const endpointUrl = PROJECT_ID
     ? `https://${PROJECT_ID}.supabase.co/functions/v1/mymia-crm-sync`
     : "";
@@ -100,6 +169,7 @@ export function useMymiaCrmSync() {
     logsLoading: logsQuery.isLoading,
     linkedCount: linkedCountQuery.data ?? 0,
     saveSettings,
+    runPull,
     endpointUrl,
   };
 }
