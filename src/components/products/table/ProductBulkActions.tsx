@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown, ArrowUpDown, Search, Sparkles, ImageIcon } from "lucide-react";
+import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown, ArrowUpDown, Search, Sparkles, ImageIcon, Tags } from "lucide-react";
 import { BulkCostDialog } from "../BulkCostDialog";
 
 interface ProductBulkActionsProps {
@@ -34,6 +34,8 @@ interface ProductBulkActionsProps {
   /** Completa fichas em massa com o AI Commerce (texto, SEO, benefícios) */
   onBulkEnrich?: () => void;
   onBulkImages?: () => void;
+  /** Gera etiquetas inteligentes em massa a partir dos dados reais das fichas */
+  onBulkTags?: () => void;
   onBulkDuplicate?: () => void;
   onCompare?: () => void;
   onBulkMarketResearch?: () => void;
@@ -57,6 +59,7 @@ export function ProductBulkActions({
   onBulkPublishReady,
   onBulkEnrich,
   onBulkImages,
+  onBulkTags,
   onBulkDuplicate,
   onCompare,
   onBulkMarketResearch,
@@ -111,6 +114,12 @@ export function ProductBulkActions({
       {onBulkImages && (
         <Button variant="outline" size="sm" onClick={onBulkImages} className="gap-2">
           <ImageIcon className="h-4 w-4" /> Procurar fotografias
+        </Button>
+      )}
+
+      {onBulkTags && (
+        <Button variant="outline" size="sm" onClick={onBulkTags} className="gap-2">
+          <Tags className="h-4 w-4" /> Gerar etiquetas
         </Button>
       )}
 

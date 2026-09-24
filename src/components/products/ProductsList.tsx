@@ -56,6 +56,7 @@ import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { BulkMarketPricingDialog } from "./pricing/BulkMarketPricingDialog";
 import { BulkAICommerceDialog } from "@/components/ai-commerce/BulkAICommerceDialog";
 import { BulkImageFillDialog } from "@/components/products/BulkImageFillDialog";
+import { BulkTagsDialog } from "@/components/products/BulkTagsDialog";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
@@ -76,6 +77,7 @@ export function ProductsList() {
   const [bulkMarketOpen, setBulkMarketOpen] = useState(false);
   const [bulkEnrichOpen, setBulkEnrichOpen] = useState(false);
   const [bulkImagesOpen, setBulkImagesOpen] = useState(false);
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false);
 
   const isMobile = useIsMobile();
   const canViewCostMargin = useCanViewCostMargin();
@@ -498,6 +500,7 @@ export function ProductsList() {
               onBulkPublishReady={state.handleBulkPublishReady}
               onBulkEnrich={() => setBulkEnrichOpen(true)}
               onBulkImages={() => setBulkImagesOpen(true)}
+              onBulkTags={() => setBulkTagsOpen(true)}
               onBulkDuplicate={state.handleBulkDuplicate}
               onCompare={() => setCompareOpen(true)}
               onBulkMarketResearch={() => setBulkMarketOpen(true)}
@@ -623,6 +626,27 @@ export function ProductsList() {
         targets={(state.filteredProducts || [])
           .filter((p) => state.selectedIds.includes(p.id))
           .map((p) => ({ id: p.id, name: p.name, sku: p.sku ?? undefined }))}
+      />
+
+      <BulkTagsDialog
+        open={bulkTagsOpen}
+        onOpenChange={setBulkTagsOpen}
+        targets={(state.filteredProducts || [])
+          .filter((p) => state.selectedIds.includes(p.id))
+          .map((p) => {
+            const anyP = p as any;
+            return {
+              id: p.id,
+              name: p.name,
+              sku: p.sku,
+              brand: anyP.brand ?? null,
+              manufacturer: anyP.manufacturer ?? null,
+              model: anyP.model ?? null,
+              category: p.category,
+              subcategory: anyP.subcategory ?? null,
+              specifications: anyP.specifications ?? null,
+            };
+          })}
       />
 
 
