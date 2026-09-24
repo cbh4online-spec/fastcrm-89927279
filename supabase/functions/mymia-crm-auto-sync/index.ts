@@ -37,15 +37,28 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   // 1) Guarda de chamada interna — antes de qualquer leitura ou escrita.
+  //    Aceita service role (chamada interna direta) ou o segredo do agendador interno.
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
   const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader.toLowerCase().startsWith("bearer ")) {
-    return json({ error: "unauthorized", reason: "missing_authorization" }, 401);
+  const bearer = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : null;
+  const cronSecret = req.headers.get("x-cron-secret");
+
+  let internal = Boolean(bearer) && bearer === serviceKey;
+  if (!internal && cronSecret) {
+    const { data: cfg } = await admin
+      .from("_cron_config")
+      .select("value")
+      .eq("key", "mymia_auto_sync_cron_secret")
+      .maybeSingle();
+    internal = Boolean(cfg?.value) && cfg!.value === cronSecret;
   }
-  if (authHeader.slice(7).trim() !== serviceKey) {
+  if (!internal) {
+    if (!bearer && !cronSecret) {
+      return json({ error: "unauthorized", reason: "missing_authorization" }, 401);
+    }
     return json({ error: "forbidden", reason: "not_internal_caller" }, 403);
   }
-
-  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
   try {
     // 2) Workspaces com sincronização automática ligada.
