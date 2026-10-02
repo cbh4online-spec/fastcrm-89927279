@@ -26,6 +26,7 @@ import {
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useCampaignRecipients, useCampaignEvents, useUpdateCampaign, useSendCampaign } from '@/hooks/useMarketingCampaigns';
+import { CampaignCostEstimate } from '@/components/marketing/CampaignCostEstimate';
 import { 
   calculateCampaignStats, 
   CAMPAIGN_STATUS_LABELS, 
@@ -159,6 +160,7 @@ export function CampaignDetailDialog({
                 {/* Validation + send (ready_to_send only) */}
                 {campaign.status === 'ready_to_send' && (
                   <>
+                    <CampaignCostEstimate recipientCount={campaign.totalRecipients} />
                     <CampaignValidationPanel
                       campaignId={campaign.id}
                       recipientCount={campaign.totalRecipients}
