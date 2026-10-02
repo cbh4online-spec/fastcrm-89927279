@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "../_shared/resendGateway.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

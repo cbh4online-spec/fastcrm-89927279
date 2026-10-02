@@ -1,3 +1,4 @@
+import { resendFetch } from "../_shared/resendGateway.ts";
 import { recordTransactionalEmail } from "../_shared/emailBilling.ts";
 import { createClient } from "@supabase/supabase-js";
 
@@ -237,7 +238,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         const emailHtml = buildConfirmationEmail(invite.name, workspaceName, loginUrl);
 
-        const emailRes = await fetch("https://api.resend.com/emails", {
+        const emailRes = await resendFetch("/emails", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import { Resend } from "../_shared/resendGateway.ts";
 
 // Process digital deliverables after payment
 async function processDeliverables(

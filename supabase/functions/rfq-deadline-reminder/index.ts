@@ -1,3 +1,4 @@
+import { resendFetch } from "../_shared/resendGateway.ts";
 import { recordTransactionalEmail } from "../_shared/emailBilling.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
@@ -114,7 +115,7 @@ serve(async (req) => {
         });
 
         // Send email via Resend
-        const emailRes = await fetch("https://api.resend.com/emails", {
+        const emailRes = await resendFetch("/emails", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

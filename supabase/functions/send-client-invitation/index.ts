@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+import { Resend } from "../_shared/resendGateway.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -269,4 +269,4 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-serve(handler);
+Deno.serve(handler);
