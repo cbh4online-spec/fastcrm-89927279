@@ -6,6 +6,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { zapiCall, safeJson, type ZapiCredentials } from "../_shared/zapi.ts";
+import { recordTransactionalEmail } from "../_shared/emailBilling.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -224,6 +225,12 @@ Deno.serve(async (req) => {
         delivery = res.ok
           ? { status: "sent", provider: "resend", provider_id: out?.id ?? null }
           : { status: "failed", provider: "resend", error: out?.message ?? `HTTP ${res.status}` };
+        if (res.ok) {
+          await recordTransactionalEmail(admin, {
+            workspaceId, entityType: "collection_case", entityId: (caseRow.id as string) ?? null,
+            sourceFunction: "collections-dispatch-action",
+          });
+        }
       }
     } else {
       const phone = (caseRow.debtor_phone as string | null)?.replace(/\D/g, "");

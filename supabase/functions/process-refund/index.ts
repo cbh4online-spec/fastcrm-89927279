@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { recordTransactionalEmail } from "../_shared/emailBilling.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -236,6 +237,9 @@ Deno.serve(async (req) => {
           `,
         });
         logStep("Refund notification email sent");
+        await recordTransactionalEmail(supabaseClient, {
+          workspaceId, entityType: "refund", entityId: null, sourceFunction: "process-refund",
+        });
       }
     } catch (emailErr) {
       logStep("Email error (non-blocking)", { message: (emailErr as Error).message });
