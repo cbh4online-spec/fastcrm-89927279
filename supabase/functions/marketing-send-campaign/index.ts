@@ -237,6 +237,25 @@ Deno.serve(async (req) => {
       );
     }
 
+    // MÓDULO: o envio de emails exige o módulo "Emails (Resend)" ativo (fail-closed)
+    const { data: emailModule } = await supabase
+      .from("workspace_modules")
+      .select("id, marketplace_modules!inner(slug)")
+      .eq("workspace_id", workspaceId)
+      .eq("marketplace_modules.slug", "email-resend")
+      .in("status", ["active", "trial", "trialing"])
+      .limit(1)
+      .maybeSingle();
+    if (!emailModule) {
+      return new Response(
+        JSON.stringify({
+          error: "email_module_inactive",
+          message: "Ative o módulo \"Emails (Resend)\" no Marketplace para enviar campanhas por email.",
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // COST GUARD: verificar limite de emails pagos antes de enviar (fail-closed)
     const { data: guard, error: guardError } = await supabase.rpc("cost_guard_check_limit", {
       p_workspace_id: workspaceId,
