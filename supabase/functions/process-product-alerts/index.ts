@@ -1,3 +1,4 @@
+import { recordTransactionalEmail } from "../_shared/emailBilling.ts";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
@@ -132,6 +133,8 @@ Deno.serve(async (req) => {
           subject,
           html: htmlContent,
         });
+
+        await recordTransactionalEmail(supabase, { workspaceId: product.workspace_id, entityType: "product", entityId: product.id, sourceFunction: "process-product-alerts" });
 
         // Mark alert as notified and deactivated
         await supabase

@@ -1,3 +1,4 @@
+import { recordTransactionalEmail } from "../_shared/emailBilling.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -255,6 +256,7 @@ const handler = async (req: Request): Promise<Response> => {
           console.error("Failed to send confirmation email:", errBody);
         } else {
           console.log("Confirmation email sent to:", invite.email);
+          await recordTransactionalEmail(supabaseAdmin, { workspaceId: invite.workspace_id, entityType: "c2c_seller_invite", sourceFunction: "activate-c2c-seller-invite" });
         }
       } else {
         console.warn("RESEND_API_KEY not configured, skipping confirmation email");
