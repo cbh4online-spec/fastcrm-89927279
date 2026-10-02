@@ -10,6 +10,7 @@ import { Settings, Save, Mail, Shield } from 'lucide-react';
 import { useMarketingSettings, useUpdateMarketingSettings } from '@/hooks/useMarketingSettings';
 import { toast } from 'sonner';
 import { SenderDomainSettings, DEFAULT_SENDER_DOMAIN, SENDER_DOMAIN_RE, SENDER_PREFIX_RE } from './SenderDomainSettings';
+import { FooterAIAssistant, FooterAudit } from './FooterAIAssistant';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -261,16 +262,22 @@ export function MarketingSettingsPanel() {
 
           <div className="grid gap-2">
             <Label htmlFor="footer">Rodapé Personalizado (adicional)</Label>
+            <FooterAIAssistant
+              current={formData.customFooter}
+              onApply={(customFooter) => setFormData((f) => ({ ...f, customFooter }))}
+            />
             <Textarea
               id="footer"
               placeholder="Texto adicional para o rodapé dos emails..."
               value={formData.customFooter}
               onChange={(e) => setFormData({ ...formData, customFooter: e.target.value })}
               rows={4}
+              maxLength={1500}
             />
             <p className="text-xs text-muted-foreground">
               Este texto será adicionado antes do footer obrigatório (morada + link unsubscribe)
             </p>
+            <FooterAudit footer={formData.customFooter} />
           </div>
         </CardContent>
       </Card>
