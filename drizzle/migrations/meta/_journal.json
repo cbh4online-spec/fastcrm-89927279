@@ -295,6 +295,13 @@
       "when": 1790931976405,
       "tag": "0041_realtime_catalog_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790939469313,
+      "tag": "0042_marketing_sender_domain",
+      "breakpoints": true
     }
   ]
 }

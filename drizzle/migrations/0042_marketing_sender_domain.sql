@@ -1,0 +1,3 @@
+ALTER TABLE public.marketing_settings ADD COLUMN IF NOT EXISTS sender_domain text, ADD COLUMN IF NOT EXISTS sender_prefix text DEFAULT 'news', ADD COLUMN IF NOT EXISTS custom_domains text[] DEFAULT '{}'::text[];
+ALTER TABLE public.marketing_settings ADD CONSTRAINT marketing_settings_sender_domain_chk CHECK (sender_domain IS NULL OR sender_domain ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$');
+ALTER TABLE public.marketing_settings ADD CONSTRAINT marketing_settings_sender_prefix_chk CHECK (sender_prefix IS NULL OR sender_prefix ~ '^[a-z0-9._-]{1,40}$');

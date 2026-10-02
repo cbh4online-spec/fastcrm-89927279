@@ -56884,6 +56884,7 @@ export type Database = {
           bounce_rate: number | null
           complaint_rate: number | null
           created_at: string
+          custom_domains: string[] | null
           custom_footer: string | null
           daily_campaigns_limit: number | null
           daily_email_limit: number | null
@@ -56896,6 +56897,8 @@ export type Database = {
           kill_switch_reason: string | null
           last_health_check: string | null
           monthly_email_limit: number | null
+          sender_domain: string | null
+          sender_prefix: string | null
           unsubscribe_page_url: string | null
           updated_at: string
           warmup_days_completed: number | null
@@ -56909,6 +56912,7 @@ export type Database = {
           bounce_rate?: number | null
           complaint_rate?: number | null
           created_at?: string
+          custom_domains?: string[] | null
           custom_footer?: string | null
           daily_campaigns_limit?: number | null
           daily_email_limit?: number | null
@@ -56921,6 +56925,8 @@ export type Database = {
           kill_switch_reason?: string | null
           last_health_check?: string | null
           monthly_email_limit?: number | null
+          sender_domain?: string | null
+          sender_prefix?: string | null
           unsubscribe_page_url?: string | null
           updated_at?: string
           warmup_days_completed?: number | null
@@ -56934,6 +56940,7 @@ export type Database = {
           bounce_rate?: number | null
           complaint_rate?: number | null
           created_at?: string
+          custom_domains?: string[] | null
           custom_footer?: string | null
           daily_campaigns_limit?: number | null
           daily_email_limit?: number | null
@@ -56946,6 +56953,8 @@ export type Database = {
           kill_switch_reason?: string | null
           last_health_check?: string | null
           monthly_email_limit?: number | null
+          sender_domain?: string | null
+          sender_prefix?: string | null
           unsubscribe_page_url?: string | null
           updated_at?: string
           warmup_days_completed?: number | null
