@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     let failed = 0;
-    const senderCache = new Map<string, string>();
+    const senderCache = new Map<string, { email: string; fromName: string | null; replyTo: string | null }>();
 
     for (const item of queueItems) {
       try {
