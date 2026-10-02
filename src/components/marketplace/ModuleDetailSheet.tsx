@@ -273,11 +273,18 @@ export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }
                   Credenciais de API
                 </h4>
                 <div className="space-y-3">
-                  <ApiKeyField 
-                    label="SerpAPI Key" 
-                    description="Chave de API para aceder aos dados do Google Local Services"
-                    isConfigured={isInstalled}
-                  />
+                  {module.slug === "email-resend" ? (
+                    <div className="p-3 rounded-lg bg-muted/50 border">
+                      <span className="text-sm font-medium">Resend</span>
+                      <p className="text-xs text-muted-foreground">Ligação gerida pela plataforma — não é necessário introduzir nenhuma chave.</p>
+                    </div>
+                  ) : (
+                    <ApiKeyField 
+                      label="SerpAPI Key" 
+                      description="Chave de API para aceder aos dados do Google Local Services"
+                      isConfigured={isInstalled}
+                    />
+                  )}
                 </div>
               </div>
             )}
