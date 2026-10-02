@@ -318,7 +318,14 @@ export function useSendCampaign() {
         body: { campaignId },
       });
 
-      if (error) throw error;
+      if (error) {
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          const body = await ctx.json().catch(() => null);
+          if (body?.message) throw new Error(body.message);
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: (_, campaignId) => {
