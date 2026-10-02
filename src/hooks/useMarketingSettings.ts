@@ -17,6 +17,9 @@ function mapSettings(row: any): MarketingSettings {
     defaultReplyTo: row.default_reply_to,
     unsubscribePageUrl: row.unsubscribe_page_url,
     customFooter: row.custom_footer,
+    senderDomain: row.sender_domain ?? null,
+    senderPrefix: row.sender_prefix ?? 'news',
+    customDomains: row.custom_domains ?? [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -76,6 +79,9 @@ export function useUpdateMarketingSettings() {
       defaultReplyTo: string;
       unsubscribePageUrl: string;
       customFooter: string;
+      senderDomain: string | null;
+      senderPrefix: string;
+      customDomains: string[];
     }>) => {
       if (!currentWorkspace?.id) throw new Error('Workspace não encontrado');
 
@@ -89,6 +95,9 @@ export function useUpdateMarketingSettings() {
       if (data.defaultReplyTo !== undefined) updateData.default_reply_to = data.defaultReplyTo;
       if (data.unsubscribePageUrl !== undefined) updateData.unsubscribe_page_url = data.unsubscribePageUrl;
       if (data.customFooter !== undefined) updateData.custom_footer = data.customFooter;
+      if (data.senderDomain !== undefined) updateData.sender_domain = data.senderDomain;
+      if (data.senderPrefix !== undefined) updateData.sender_prefix = data.senderPrefix;
+      if (data.customDomains !== undefined) updateData.custom_domains = data.customDomains;
 
       const { data: result, error } = await supabase
         .from('marketing_settings')
