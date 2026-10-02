@@ -30,6 +30,7 @@ import { DirectMessagesProvider } from "@/contexts/DirectMessagesProvider";
 import { AppModeGuard } from "./AppModeGuard";
 import { useGlobalShortcutsHelp } from "@/hooks/useGlobalShortcutsHelp";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts/KeyboardShortcutsModal";
+import { useLiveDataSync } from "@/hooks/useLiveDataSync";
 
 
 interface DashboardLayoutProps {
@@ -42,6 +43,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useGlobalShortcutsHelp();
   const location = useLocation();
+  useLiveDataSync();
 
   // Feature flags mantidos por compatibilidade, mas já não forçam Watidy quando desligados.
   useFeatureFlag("ui.adaptive_sidebar_enabled");
