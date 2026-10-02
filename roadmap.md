@@ -20,3 +20,7 @@
 
 ## Integração mymia.world (pedido 2026-09-24)
 - [ ] Obter chave de serviço do mymia.world e guardar em MYMIA_SOURCE_SERVICE_KEY; testar "Ver o que existe" e sincronizar.
+
+## Resend como módulo do marketplace (pedido 2026-10-02)
+- [ ] Ligar o Resend ao projeto.
+- [ ] Criar módulo "Email (Resend)" no marketplace que ativa as comunicações por email por conta.
