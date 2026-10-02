@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Send, Plus, X, CheckCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 interface EmailTestSendDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ export function EmailTestSendDialog({ open, onOpenChange, html, subject }: Email
   const [emailSubject, setEmailSubject] = useState(subject || 'Teste - Email Builder');
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const { currentWorkspace } = useWorkspace();
 
   const addEmail = () => {
     if (emails.length < 5) setEmails([...emails, '']);
@@ -45,13 +47,16 @@ export function EmailTestSendDialog({ open, onOpenChange, html, subject }: Email
           recipients: validEmails,
           subject: emailSubject,
           html,
+          workspace_id: currentWorkspace?.id,
         },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      const failed = (data?.results || []).filter((r: any) => !r.success);
       setSent(true);
-      toast.success(`Teste enviado para ${validEmails.length} email(s)`);
+      toast.success(`Teste enviado de ${data?.from} para ${data?.sent} email(s)`);
+      if (failed.length) toast.error(`Falhou para ${failed.map((f: any) => f.email).join(', ')}: ${failed[0].error}`);
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao enviar teste');
       console.error(err);
