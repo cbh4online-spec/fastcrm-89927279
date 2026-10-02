@@ -288,6 +288,13 @@
       "when": 1790277900204,
       "tag": "0040_supplier_stock_sync_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790931976405,
+      "tag": "0041_realtime_catalog_crm",
+      "breakpoints": true
     }
   ]
 }
