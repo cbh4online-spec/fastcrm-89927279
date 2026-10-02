@@ -11,6 +11,19 @@ import { getIconByName } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useNavigate } from "react-router-dom";
+import { ROUTE_MANIFEST } from "@/config/routeManifest";
+
+/** Páginas de entrada para módulos sem rota própria no manifesto. */
+const MODULE_ENTRY_OVERRIDES: Record<string, string> = {
+  "email-resend": "/dashboard/email-campaigns",
+};
+
+function resolveModuleHref(slug: string): string | null {
+  if (MODULE_ENTRY_OVERRIDES[slug]) return MODULE_ENTRY_OVERRIDES[slug];
+  const entry = ROUTE_MANIFEST.find((r) => r.moduleSlug === slug && r.status === "active");
+  return entry?.href ?? null;
+}
 
 // API Key Field Component
 interface ApiKeyFieldProps {
@@ -86,6 +99,7 @@ interface ModuleDetailSheetProps {
 
 export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }: ModuleDetailSheetProps) {
   const { installModule, uninstallModule, refresh } = useWorkspaceModules();
+  const navigate = useNavigate();
   const [isInstalling, setIsInstalling] = useState(false);
   const [isUninstalling, setIsUninstalling] = useState(false);
 
@@ -113,6 +127,16 @@ export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }
     if (module.pricing.type === "free") return "Grátis";
     if (module.pricing.base_price === 0) return "Grátis";
     return `${module.pricing.base_price}€`;
+  };
+
+  const handleOpen = () => {
+    const target = resolveModuleHref(module.slug);
+    if (!target) {
+      toast.info("Este módulo funciona em segundo plano e não tem uma página própria.");
+      return;
+    }
+    onClose();
+    navigate(target);
   };
 
   const handleInstall = async () => {
@@ -172,7 +196,7 @@ export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }
           )}
           {isInstalled ? (
             <div className="flex gap-2">
-              <Button className="flex-1" variant="outline"><ExternalLink className="w-4 h-4 mr-2" />Abrir</Button>
+              <Button className="flex-1" variant="outline" onClick={handleOpen}><ExternalLink className="w-4 h-4 mr-2" />Abrir</Button>
               <Button variant="destructive" onClick={handleUninstall} disabled={isUninstalling}>
                 {isUninstalling ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
