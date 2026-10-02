@@ -1,4 +1,4 @@
-import { resolveSenderEmail } from "../_shared/senderAddress.ts";
+import { resolveSenderDefaults } from "../_shared/senderAddress.ts";
 import { resendFetch } from "../_shared/resendGateway.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -73,11 +73,11 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: `${campaign.from_name || "FastCRM"} <${fromEmail}>`,
+            from: `${campaign.from_name || sender.fromName || "FastCRM"} <${fromEmail}>`,
             to: [item.recipient_email],
             subject: campaign.subject,
             html,
-            reply_to: campaign.reply_to || undefined,
+            reply_to: campaign.reply_to || sender.replyTo || undefined,
           }),
         });
 
