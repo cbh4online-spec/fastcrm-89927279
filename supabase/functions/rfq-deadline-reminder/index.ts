@@ -1,3 +1,4 @@
+import { recordTransactionalEmail } from "../_shared/emailBilling.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 
@@ -135,6 +136,7 @@ serve(async (req) => {
             .eq("id", rs.id);
 
           totalSent++;
+          await recordTransactionalEmail(supabase, { workspaceId: rfq.workspace_id, entityType: "rfq", entityId: rfq.id, sourceFunction: "rfq-deadline-reminder" });
         } else {
           const errBody = await emailRes.text();
           console.error(`Failed to send reminder to ${supplier.email}:`, errBody);

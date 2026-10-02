@@ -1,3 +1,4 @@
+import { recordTransactionalEmail } from "../_shared/emailBilling.ts";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
@@ -186,6 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
       subject: `${statusConfig.subject} #${order.order_number}`,
       html: emailHtml,
     });
+    await recordTransactionalEmail(adminClient, { workspaceId: order.client_user?.workspace_id, entityType: "order_note", sourceFunction: "order-note-notify" });
 
     // Also send via lifecycle engine for custom template support
     const templateTypeMap: Record<string, string> = {
@@ -246,4 +248,4 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-serve(handler);
+Deno.serve(handler);

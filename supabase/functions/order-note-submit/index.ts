@@ -1,3 +1,4 @@
+import { recordTransactionalEmail } from "../_shared/emailBilling.ts";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
@@ -265,6 +266,7 @@ const handler = async (req: Request): Promise<Response> => {
             subject: `Nova Encomenda #${order.order_number} - ${order.client_user?.name}`,
             html: emailHtml,
           });
+          await recordTransactionalEmail(adminClient, { workspaceId: order.client_user?.workspace_id, quantity: Array.isArray(adminEmails) ? adminEmails.length : 1, entityType: "order_note", sourceFunction: "order-note-submit" });
         } catch (emailError) {
           console.error("[ORDERS] Failed to send email notification:", emailError);
           // Don't fail the order submission if email fails
@@ -330,4 +332,4 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-serve(handler);
+Deno.serve(handler);
