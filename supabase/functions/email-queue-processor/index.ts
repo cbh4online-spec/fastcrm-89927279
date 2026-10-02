@@ -1,3 +1,4 @@
+import { resolveSenderEmail } from "../_shared/senderAddress.ts";
 import { resendFetch } from "../_shared/resendGateway.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     let failed = 0;
-    const fromDomain = "m.fastcrm.metodopare.ai";
+    const senderCache = new Map<string, string>();
 
     for (const item of queueItems) {
       try {
@@ -61,7 +62,9 @@ Deno.serve(async (req) => {
           .replace(/\{\{nome\}\}/g, item.recipient_name || "")
           .replace(/\{\{email\}\}/g, item.recipient_email);
 
-        const fromEmail = `news@${fromDomain}`;
+        const wsKey = item.workspace_id || "";
+        if (!senderCache.has(wsKey)) senderCache.set(wsKey, await resolveSenderEmail(supabase, item.workspace_id));
+        const fromEmail = senderCache.get(wsKey)!;
 
         const response = await resendFetch("/emails", {
           method: "POST",

@@ -1,3 +1,4 @@
+import { resolveSenderEmail } from "../_shared/senderAddress.ts";
 import { resendFetch } from "../_shared/resendGateway.ts";
 
 import { createClient } from "@supabase/supabase-js";
@@ -81,8 +82,7 @@ Deno.serve(async (req) => {
 
     // TEST SEND MODE
     if (test_only === true && Array.isArray(test_recipients) && test_recipients.length > 0) {
-      const fromDomain = "m.fastcrm.metodopare.ai";
-      const fromEmail = `news@${fromDomain}`;
+      const fromEmail = await resolveSenderEmail(supabase, campaign.workspace_id);
       let testSent = 0;
       const testErrors: string[] = [];
 
@@ -340,8 +340,7 @@ Deno.serve(async (req) => {
 
     // Get verified domain for sending - use the official marketing subdomain
     // CRITICAL: Must match the domain scope of the RESEND_API_KEY
-    const fromDomain = "m.fastcrm.metodopare.ai";
-    const fromEmail = `news@${fromDomain}`;
+    const fromEmail = await resolveSenderEmail(supabase, workspaceId);
 
     let sentCount = 0;
     let failedCount = 0;
