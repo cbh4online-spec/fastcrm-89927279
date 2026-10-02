@@ -1,4 +1,4 @@
-import { resolveSenderEmail } from "../_shared/senderAddress.ts";
+import { resolveSenderDefaults } from "../_shared/senderAddress.ts";
 import { resendFetch } from "../_shared/resendGateway.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     let failed = 0;
-    const senderCache = new Map<string, string>();
+    const senderCache = new Map<string, { email: string; fromName: string | null; replyTo: string | null }>();
 
     for (const item of queueItems) {
       try {
@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
           .replace(/\{\{email\}\}/g, item.recipient_email);
 
         const wsKey = item.workspace_id || "";
-        if (!senderCache.has(wsKey)) senderCache.set(wsKey, await resolveSenderEmail(supabase, item.workspace_id));
-        const fromEmail = senderCache.get(wsKey)!;
+        if (!senderCache.has(wsKey)) senderCache.set(wsKey, await resolveSenderDefaults(supabase, item.workspace_id));
+        const sender = senderCache.get(wsKey)!; const fromEmail = sender.email;
 
         const response = await resendFetch("/emails", {
           method: "POST",
@@ -73,11 +73,11 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: `${campaign.from_name || "FastCRM"} <${fromEmail}>`,
+            from: `${campaign.from_name || sender.fromName || "FastCRM"} <${fromEmail}>`,
             to: [item.recipient_email],
             subject: campaign.subject,
             html,
-            reply_to: campaign.reply_to || undefined,
+            reply_to: campaign.reply_to || sender.replyTo || undefined,
           }),
         });
 

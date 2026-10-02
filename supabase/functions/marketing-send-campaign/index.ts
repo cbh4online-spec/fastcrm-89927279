@@ -1,4 +1,4 @@
-import { resolveSenderEmail } from "../_shared/senderAddress.ts";
+import { resolveSenderDefaults } from "../_shared/senderAddress.ts";
 import { resendFetch } from "../_shared/resendGateway.ts";
 
 import { createClient } from "@supabase/supabase-js";
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
     // TEST SEND MODE
     if (test_only === true && Array.isArray(test_recipients) && test_recipients.length > 0) {
-      const fromEmail = await resolveSenderEmail(supabase, campaign.workspace_id);
+      const sender = await resolveSenderDefaults(supabase, campaign.workspace_id); const fromEmail = sender.email;
       let testSent = 0;
       const testErrors: string[] = [];
 
@@ -102,11 +102,11 @@ Deno.serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: `${campaign.from_name || "FastCRM"} <${fromEmail}>`,
+              from: `${campaign.from_name || sender.fromName || "FastCRM"} <${fromEmail}>`,
               to: [recipientEmail],
               subject: `[TESTE] ${campaign.subject}`,
               html: htmlContent,
-              reply_to: campaign.reply_to || undefined,
+              reply_to: campaign.reply_to || sender.replyTo || undefined,
             }),
           });
           const result = await response.json();
@@ -340,7 +340,7 @@ Deno.serve(async (req) => {
 
     // Get verified domain for sending - use the official marketing subdomain
     // CRITICAL: Must match the domain scope of the RESEND_API_KEY
-    const fromEmail = await resolveSenderEmail(supabase, workspaceId);
+    const sender = await resolveSenderDefaults(supabase, workspaceId); const fromEmail = sender.email;
 
     let sentCount = 0;
     let failedCount = 0;
@@ -366,11 +366,11 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: `${campaign.from_name || "FastCRM"} <${fromEmail}>`,
+            from: `${campaign.from_name || sender.fromName || "FastCRM"} <${fromEmail}>`,
             to: [recipient.email],
             subject: campaign.subject,
             html: htmlContent,
-            reply_to: campaign.reply_to || undefined,
+            reply_to: campaign.reply_to || sender.replyTo || undefined,
           }),
         });
 

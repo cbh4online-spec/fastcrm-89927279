@@ -9,7 +9,9 @@ import { Separator } from '@/components/ui/separator';
 import { Settings, Save, Mail, Shield } from 'lucide-react';
 import { useMarketingSettings, useUpdateMarketingSettings } from '@/hooks/useMarketingSettings';
 import { toast } from 'sonner';
-import { SenderDomainSettings } from './SenderDomainSettings';
+import { SenderDomainSettings, DEFAULT_SENDER_DOMAIN, SENDER_DOMAIN_RE, SENDER_PREFIX_RE } from './SenderDomainSettings';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function MarketingSettingsPanel() {
   const { data: settings, isLoading } = useMarketingSettings();
@@ -24,6 +26,9 @@ export function MarketingSettingsPanel() {
     defaultReplyTo: '',
     unsubscribePageUrl: '',
     customFooter: '',
+    senderDomain: DEFAULT_SENDER_DOMAIN,
+    senderPrefix: 'news',
+    customDomains: [] as string[],
   });
 
   useEffect(() => {
@@ -37,15 +42,28 @@ export function MarketingSettingsPanel() {
         defaultReplyTo: settings.defaultReplyTo || '',
         unsubscribePageUrl: settings.unsubscribePageUrl || '',
         customFooter: settings.customFooter || '',
+        senderDomain: settings.senderDomain || DEFAULT_SENDER_DOMAIN,
+        senderPrefix: settings.senderPrefix || 'news',
+        customDomains: settings.customDomains || [],
       });
     }
   }, [settings]);
 
+  const replyInvalid = !!formData.defaultReplyTo && !EMAIL_RE.test(formData.defaultReplyTo);
+
   const handleSave = async () => {
+    if (!SENDER_DOMAIN_RE.test(formData.senderDomain)) return void toast.error('Domínio de envio inválido');
+    if (!SENDER_PREFIX_RE.test(formData.senderPrefix)) return void toast.error('Prefixo do remetente inválido');
+    if (replyInvalid) return void toast.error('Email de resposta inválido');
     try {
-      await updateSettings.mutateAsync(formData);
+      await updateSettings.mutateAsync({
+        ...formData,
+        senderDomain: formData.senderDomain === DEFAULT_SENDER_DOMAIN ? null : formData.senderDomain,
+        customDomains: formData.customDomains.filter((d) => SENDER_DOMAIN_RE.test(d)),
+      });
     } catch (error) {
       console.error('Error saving settings:', error);
+      toast.error('Não foi possível guardar as definições');
     }
   };
 
@@ -144,37 +162,49 @@ export function MarketingSettingsPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <SenderDomainSettings fromName={formData.defaultFromName} />
-
-          <Separator />
-
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="fromName">Nome do Remetente Padrão</Label>
+              <Label htmlFor="fromName">Nome do Remetente</Label>
               <Input
                 id="fromName"
-                placeholder="Ex: João da Empresa"
+                placeholder="Ex: myMIA Hub"
+                maxLength={80}
                 value={formData.defaultFromName}
                 onChange={(e) => setFormData({ ...formData, defaultFromName: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">
-                Exemplo: {formData.defaultFromName || 'Nome'} &lt;news@m.fastcrm.metodopare.ai&gt;
-              </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="replyTo">Email de Resposta Padrão</Label>
+              <Label htmlFor="replyTo">Email de Resposta (Reply-To)</Label>
               <Input
                 id="replyTo"
                 type="email"
-                placeholder="responder@empresa.com"
+                placeholder="contacto@empresa.com"
                 value={formData.defaultReplyTo}
-                onChange={(e) => setFormData({ ...formData, defaultReplyTo: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, defaultReplyTo: e.target.value.trim() })}
               />
-              <p className="text-xs text-muted-foreground">
-                As respostas dos destinatários serão enviadas para este endereço
-              </p>
+              {replyInvalid && <p className="text-xs text-destructive">Email inválido</p>}
             </div>
+          </div>
+
+          <Separator />
+
+          <SenderDomainSettings
+            domain={formData.senderDomain}
+            prefix={formData.senderPrefix}
+            customDomains={formData.customDomains}
+            onChange={(v) => setFormData((f) => ({
+              ...f,
+              ...(v.domain !== undefined && { senderDomain: v.domain }),
+              ...(v.prefix !== undefined && { senderPrefix: v.prefix }),
+              ...(v.customDomains !== undefined && { customDomains: v.customDomains }),
+            }))}
+          />
+
+          <div className="rounded-md border bg-muted/50 p-3 space-y-1 text-sm">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pré-visualização</p>
+            <p><span className="text-muted-foreground">De:</span> <code className="font-mono text-xs">{formData.defaultFromName || 'FastCRM'} &lt;{formData.senderPrefix || 'news'}@{formData.senderDomain || DEFAULT_SENDER_DOMAIN}&gt;</code></p>
+            <p><span className="text-muted-foreground">Responder a:</span> <code className="font-mono text-xs">{formData.defaultReplyTo || 'não definido'}</code></p>
           </div>
         </CardContent>
       </Card>
