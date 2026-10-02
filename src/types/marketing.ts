@@ -11,6 +11,9 @@ export interface MarketingSettings {
   defaultReplyTo?: string;
   unsubscribePageUrl?: string;
   customFooter?: string;
+  senderDomain?: string | null;
+  senderPrefix?: string;
+  customDomains?: string[];
   createdAt: string;
   updatedAt: string;
 }

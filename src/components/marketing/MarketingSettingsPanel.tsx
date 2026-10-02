@@ -143,16 +143,7 @@ export function MarketingSettingsPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Domain Info Banner */}
-          <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
-            <p className="text-sm font-medium">Domínio de Envio</p>
-            <p className="text-sm text-muted-foreground">
-              Todos os emails são enviados de: <code className="bg-background px-1.5 py-0.5 rounded text-xs font-mono">m.fastcrm.metodopare.ai</code>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              O cliente vê a sua marca, não o provedor técnico. DNS e autenticação são geridos automaticamente.
-            </p>
-          </div>
+          <SenderDomainSettings fromName={formData.defaultFromName} />
 
           <Separator />
 
