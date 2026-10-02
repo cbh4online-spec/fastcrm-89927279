@@ -97,6 +97,19 @@ Deno.serve(async (req) => {
           });
 
           sent++;
+
+          // COST GUARD: faturar email enviado (Resend, margem 50%)
+          const { error: recErr } = await supabase.rpc("cost_guard_record_event", {
+            p_workspace_id: item.workspace_id,
+            p_source_module: "marketing",
+            p_usage_type: "email_newsletter",
+            p_quantity: 1,
+            p_unit: "email",
+            p_provider_name: "resend",
+            p_entity_type: "marketing_campaign",
+            p_entity_id: item.campaign_id,
+          });
+          if (recErr) console.error("cost_guard_record_event failed:", recErr.message);
         } else {
           await supabase.from("campaign_send_queue").update({
             status: "failed",

@@ -236,6 +236,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    // COST GUARD: verificar limite de emails pagos antes de enviar (fail-closed)
+    const { data: guard, error: guardError } = await supabase.rpc("cost_guard_check_limit", {
+      p_workspace_id: workspaceId,
+      p_usage_type: "email_newsletter",
+      p_quantity: uniqueRecipients.length,
+    });
+    if (guardError || !guard || (guard as { allowed?: boolean }).allowed === false) {
+      return new Response(
+        JSON.stringify({
+          error: "email_limit_exceeded",
+          message: "Limite de envio de emails atingido. Aumente o limite ou carregue saldo para enviar esta campanha.",
+          guard,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // THROTTLED MODE: enqueue instead of sending immediately
     if (sendMode === "throttled") {
       await supabase
@@ -389,6 +406,22 @@ Deno.serve(async (req) => {
       });
     } catch {
       // Ignore if function doesn't exist
+    }
+
+    // COST GUARD: registar emails efetivamente enviados (faturação com margem de 50%)
+    if (sentCount > 0) {
+      const { error: recErr } = await supabase.rpc("cost_guard_record_event", {
+        p_workspace_id: workspaceId,
+        p_source_module: "marketing",
+        p_usage_type: "email_newsletter",
+        p_quantity: sentCount,
+        p_unit: "email",
+        p_provider_name: "resend",
+        p_entity_type: "marketing_campaign",
+        p_entity_id: campaignId,
+        p_metadata: { failed: failedCount },
+      });
+      if (recErr) console.error("cost_guard_record_event failed:", recErr.message);
     }
 
     return new Response(
