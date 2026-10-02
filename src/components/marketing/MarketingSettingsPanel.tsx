@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Settings, Save, Mail, Shield } from 'lucide-react';
 import { useMarketingSettings, useUpdateMarketingSettings } from '@/hooks/useMarketingSettings';
 import { toast } from 'sonner';
+import { SenderDomainSettings } from './SenderDomainSettings';
 
 export function MarketingSettingsPanel() {
   const { data: settings, isLoading } = useMarketingSettings();
