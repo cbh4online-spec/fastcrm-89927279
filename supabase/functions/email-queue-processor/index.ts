@@ -1,3 +1,4 @@
+import { resendFetch } from "../_shared/resendGateway.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
 
         const fromEmail = `news@${fromDomain}`;
 
-        const response = await fetch("https://api.resend.com/emails", {
+        const response = await resendFetch("/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${resendApiKey}`,

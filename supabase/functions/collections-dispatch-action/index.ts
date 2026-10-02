@@ -1,3 +1,4 @@
+import { resendFetch } from "../_shared/resendGateway.ts";
 // collections-dispatch-action
 // Envia efectivamente uma acção de cobrança (email / WhatsApp) e regista o resultado.
 // Pode ser chamada por um utilizador autenticado (membro da workspace ou super admin)
@@ -208,7 +209,7 @@ Deno.serve(async (req) => {
         const html = `<div style="font-family:system-ui,sans-serif;max-width:620px;margin:0 auto;color:#111">
   <p style="white-space:pre-line">${escapeHtml(body)}</p>
 </div>`;
-        const res = await fetch("https://api.resend.com/emails", {
+        const res = await resendFetch("/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${resendKey}`,

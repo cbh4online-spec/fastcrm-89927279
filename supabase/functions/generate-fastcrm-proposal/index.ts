@@ -1,6 +1,6 @@
 
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import { Resend, resendFetch } from "../_shared/resendGateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -489,7 +489,7 @@ Deno.serve(async (req) => {
       try {
         const emailHtml = buildEmailHtml(data, plan, pricing.monthlyTotal, proposalUrl);
         
-        const emailRes = await fetch("https://api.resend.com/emails", {
+        const emailRes = await resendFetch("/emails", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

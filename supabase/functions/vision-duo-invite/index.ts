@@ -1,3 +1,4 @@
+import { resendFetch } from "../_shared/resendGateway.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -131,7 +132,7 @@ async function handleSendInvite(supabase: any, user: any, payload: any) {
           </div>
         `;
 
-        const emailRes = await fetch("https://api.resend.com/emails", {
+        const emailRes = await resendFetch("/emails", {
           method: "POST",
           headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({

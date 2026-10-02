@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+import { Resend } from "../_shared/resendGateway.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {

@@ -1,3 +1,4 @@
+import { resendFetch } from "../_shared/resendGateway.ts";
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -94,7 +95,7 @@ Deno.serve(async (req) => {
             .replace(/\{\{email\}\}/g, recipientEmail)
             .replace(/\{\{subject\}\}/g, campaign.subject || "");
 
-          const response = await fetch("https://api.resend.com/emails", {
+          const response = await resendFetch("/emails", {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${resendApiKey}`,
@@ -340,7 +341,7 @@ Deno.serve(async (req) => {
           .replace(/\{\{email\}\}/g, recipient.email)
           .replace(/\{\{subject\}\}/g, campaign.subject || "");
 
-        const response = await fetch("https://api.resend.com/emails", {
+        const response = await resendFetch("/emails", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${resendApiKey}`,
