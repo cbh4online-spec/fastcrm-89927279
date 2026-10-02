@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
           .replace(/\{\{email\}\}/g, item.recipient_email);
 
         const wsKey = item.workspace_id || "";
-        if (!senderCache.has(wsKey)) senderCache.set(wsKey, await resolveSenderEmail(supabase, item.workspace_id));
-        const fromEmail = senderCache.get(wsKey)!;
+        if (!senderCache.has(wsKey)) senderCache.set(wsKey, await resolveSenderDefaults(supabase, item.workspace_id));
+        const sender = senderCache.get(wsKey)!; const fromEmail = sender.email;
 
         const response = await resendFetch("/emails", {
           method: "POST",
