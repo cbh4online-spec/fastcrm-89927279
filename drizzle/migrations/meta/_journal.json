@@ -302,6 +302,13 @@
       "when": 1790939469313,
       "tag": "0042_marketing_sender_domain",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1791123654417,
+      "tag": "0043_cancel_duplicate_manual_renewal_invoices",
+      "breakpoints": true
     }
   ]
 }
