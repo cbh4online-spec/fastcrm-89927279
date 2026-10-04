@@ -96,6 +96,7 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
         .from("invoices")
         .select("id, invoice_number, total, currency, status, issue_date, paid_at, pdf_url, external_url, external_id")
         .eq("renewal_contract_id", contractId)
+        .neq("status", "cancelled")
         .order("issue_date", { ascending: false });
       if (error) throw error;
       return data || [];

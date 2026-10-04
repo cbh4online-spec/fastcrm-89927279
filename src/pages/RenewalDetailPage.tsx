@@ -250,7 +250,7 @@ export default function RenewalDetailPage() {
             <Button variant="outline" size="sm" onClick={() => setShowPaymentDialog(true)}>
               <CreditCard className="mr-1 h-3.5 w-3.5" /> Link Pagamento
             </Button>
-            {contract.status === "active" && (
+            {contract.status === "active" && !(contract.billing_type === "stripe" && contract.stripe_subscription_id) && (
               <Button
                 size="sm"
                 variant="default"
