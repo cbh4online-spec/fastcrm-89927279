@@ -123,9 +123,12 @@ serve(async (req) => {
           metadata: { invoice_number: invoice.number, period_start: invoice.period_start, period_end: invoice.period_end },
         });
 
-        // Reset dunning + activate contract
+        // Reset dunning + activate contract + avançar a próxima data de renovação
+        const periodEnd = (invoice as any).lines?.data?.[0]?.period?.end || invoice.period_end;
+        const contractUpdate: Record<string, unknown> = { status: "active", risk_level: "low", dunning_attempts: 0, billing_type: "stripe" };
+        if (periodEnd) contractUpdate.next_renewal_date = new Date(periodEnd * 1000).toISOString().split("T")[0];
         await db.from("renewal_contracts")
-          .update({ status: "active", risk_level: "low", dunning_attempts: 0 })
+          .update(contractUpdate)
           .eq("id", contract.id);
 
         // --- Create invoice in billing module ---
@@ -412,6 +415,24 @@ serve(async (req) => {
           .eq("stripe_subscription_id", subscriptionId);
 
         console.log(`[RENEWAL-WEBHOOK] Subscription cancelled for contract ${contract.id}`);
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as any;
+        const { data: contract } = await db.from("renewal_contracts")
+          .select("id")
+          .eq("stripe_subscription_id", subscription.id)
+          .maybeSingle();
+        if (!contract) break;
+        const periodEnd = subscription.items?.data?.[0]?.current_period_end ?? subscription.current_period_end;
+        const update: Record<string, unknown> = { billing_type: "stripe" };
+        if (periodEnd) update.next_renewal_date = new Date(periodEnd * 1000).toISOString().split("T")[0];
+        if (subscription.status === "active" || subscription.status === "trialing") update.status = "active";
+        else if (subscription.status === "paused") update.status = "paused";
+        else if (subscription.status === "past_due" || subscription.status === "unpaid") update.risk_level = "high";
+        else if (subscription.status === "canceled") update.status = "churned";
+        await db.from("renewal_contracts").update(update).eq("id", contract.id);
         break;
       }
 
