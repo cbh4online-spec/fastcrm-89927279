@@ -2,6 +2,7 @@
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { z } from "npm:zod@3.23.8";
+import { resolveStripeCustomer } from "../_shared/stripeCustomerResolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,7 @@ Deno.serve(async (req) => {
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Não autorizado" }, 401);
     const token = authHeader.slice(7);
     const isService = token === serviceKey;
+    let actorId: string | null = null;
 
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
@@ -37,6 +39,7 @@ Deno.serve(async (req) => {
     if (!isService) {
       const { data: u, error } = await db.auth.getUser(token);
       if (error || !u?.user) return json({ error: "Não autorizado" }, 401);
+      actorId = u.user.id;
       const { data: m } = await db.from("workspace_members").select("id")
         .eq("workspace_id", workspace_id).eq("user_id", u.user.id).maybeSingle();
       const { data: sa } = await db.rpc("is_super_admin", { _user_id: u.user.id });
@@ -115,7 +118,7 @@ Deno.serve(async (req) => {
     }
 
     let q = db.from("renewal_contracts")
-      .select("id, status, next_renewal_date, stripe_subscription_id")
+      .select("id, status, next_renewal_date, stripe_subscription_id, contact_id, company_id")
       .eq("workspace_id", workspace_id).not("stripe_subscription_id", "is", null);
     if (contract_id) q = q.eq("id", contract_id);
     const { data: contracts, error: cErr } = await q;
@@ -134,6 +137,21 @@ Deno.serve(async (req) => {
         else if (sub.status === "canceled" || sub.status === "incomplete_expired") update.status = "churned";
         else if (sub.status === "past_due" || sub.status === "unpaid") update.risk_level = "high";
         await db.from("renewal_contracts").update(update).eq("id", c.id);
+
+        // Ligar às fichas do CRM sem duplicar e etiquetar com "stripe"
+        try {
+          const cu: any = await stripe.customers.retrieve(String(sub.customer));
+          if (cu && !cu.deleted) {
+            await resolveStripeCustomer(db, {
+              workspaceId: workspace_id,
+              contract: c as any,
+              createdBy: actorId,
+              customer: { name: cu.name, email: cu.email, phone: cu.phone, tax_id: cu.tax_ids?.data?.[0]?.value },
+            });
+          }
+        } catch (e: any) {
+          console.error("[SYNC-STRIPE-RENEWALS] resolve", c.id, e?.message);
+        }
 
         // Reconciliar pagamentos em falta (sem duplicar: chave stripe_invoice_id)
         const invoices = await stripe.invoices.list({ subscription: sub.id, limit: 24 });

@@ -149,7 +149,7 @@ function renderCell(col: string, c: Contact) {
       return (
         <div className="flex flex-wrap gap-1">
           {(c.tags || []).slice(0, 3).map((t) => (
-            <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">{t}</span>
+            <span key={t} className={t.toLowerCase() === "stripe" ? "rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary" : "rounded-full bg-muted px-2 py-0.5 text-xs text-foreground"}>{t}</span>
           ))}
           {(!c.tags || c.tags.length === 0) && <span className="text-xs text-muted-foreground">—</span>}
         </div>

@@ -182,7 +182,7 @@ function renderCell(col: string, lead: SmartLead) {
           {(lead.tags || []).slice(0, 3).map((t) => (
             <span
               key={t}
-              className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground"
+              className={t.toLowerCase() === "stripe" ? "rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary" : "rounded-full bg-muted px-2 py-0.5 text-xs text-foreground"}
             >
               {t}
             </span>
