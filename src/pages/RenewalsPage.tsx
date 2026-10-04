@@ -1,5 +1,14 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  RenewalBulkActionsBar,
+  syncStripeRenewals,
+  summarizeSync,
+} from "@/components/renewals/RenewalBulkActionsBar";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useRenewalContracts } from "@/hooks/useRenewals";
@@ -85,6 +94,10 @@ export default function RenewalsPage() {
   const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("renewal_date");
   const [pageSize, setPageSize] = useState(25);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [syncingAll, setSyncingAll] = useState(false);
+  const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
 
   const { data: contracts = [], isLoading } = useRenewalContracts(
     statusFilter !== "all" ? { status: statusFilter } : undefined,
@@ -212,6 +225,33 @@ export default function RenewalsPage() {
     statusFilter !== "all" || riskFilter !== "all" || companyFilter !== "all" || !!search;
 
   const visible = filtered.slice(0, pageSize);
+  const allVisibleSelected = visible.length > 0 && visible.every((c) => selectedIds.has(c.id));
+  const toggleAllVisible = (checked: boolean) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      visible.forEach((c) => (checked ? next.add(c.id) : next.delete(c.id)));
+      return next;
+    });
+  const toggleOne = (id: string, checked: boolean) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      checked ? next.add(id) : next.delete(id);
+      return next;
+    });
+
+  const handleSyncAll = async () => {
+    if (!currentWorkspace?.id) return;
+    setSyncingAll(true);
+    try {
+      const d = await syncStripeRenewals(currentWorkspace.id);
+      toast.success("Sincronização concluída", { description: summarizeSync(d) });
+      queryClient.invalidateQueries({ queryKey: ["renewal-contracts"] });
+    } catch (e: any) {
+      toast.error("Não foi possível sincronizar", { description: e?.message });
+    } finally {
+      setSyncingAll(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -222,9 +262,15 @@ export default function RenewalsPage() {
           onSearchChange={setSearch}
           searchPlaceholder="Pesquisar por empresa ou contacto..."
           primaryAction={
-            <Button onClick={() => setShowCreate(true)} className="rounded-full">
-              <Plus className="mr-2 h-4 w-4" /> Novo Contrato
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleSyncAll} disabled={syncingAll} className="rounded-full">
+                {syncingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Sincronizar Stripe
+              </Button>
+              <Button onClick={() => setShowCreate(true)} className="rounded-full">
+                <Plus className="mr-2 h-4 w-4" /> Novo Contrato
+              </Button>
+            </div>
           }
           chips={
             <>
@@ -318,6 +364,20 @@ export default function RenewalsPage() {
           }
         >
           <TabsContent value="list" className="m-0 flex flex-col gap-2">
+            {visible.length > 0 && (
+              <label className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
+                <Checkbox
+                  checked={allVisibleSelected ? true : selectedIds.size > 0 ? "indeterminate" : false}
+                  onCheckedChange={(c) => toggleAllVisible(c === true)}
+                  aria-label="Selecionar todos os contratos visíveis"
+                />
+                Selecionar todos ({visible.length})
+              </label>
+            )}
+            <RenewalBulkActionsBar
+              selectedIds={Array.from(selectedIds)}
+              onClear={() => setSelectedIds(new Set())}
+            />
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -349,6 +409,8 @@ export default function RenewalsPage() {
                 return (
                   <DocumentRow
                     key={contract.id}
+                    selected={selectedIds.has(contract.id)}
+                    onSelectedChange={(c) => toggleOne(contract.id, c)}
                     onClick={() => navigate(`/dashboard/renewals/${contract.id}`)}
                     statusBadge={
                       <DocumentStatusBadge
