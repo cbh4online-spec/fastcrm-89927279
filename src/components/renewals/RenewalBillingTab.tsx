@@ -87,7 +87,6 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
 
   const linkedInvoice = (evt: any): any =>
     evt.stripe_invoice_id ? (invoices as any[]).find((i) => i.external_id === evt.stripe_invoice_id) : null;
-  const missingCount = (paymentEvents as any[]).filter((e) => e.event_type === "payment_succeeded" && !linkedInvoice(e)).length;
 
   const { data: invoices = [] } = useQuery({
     queryKey: ["renewal-invoices", contractId],
@@ -102,7 +101,8 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
       return data || [];
     },
     enabled: !!workspaceClient && !!contractId,
-  });
+  });  const missingCount = (paymentEvents as any[]).filter((e) => e.event_type === "payment_succeeded" && !linkedInvoice(e)).length;
+
 
   const formatCurrency = (val: number, currency = "EUR") =>
     new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(val);
