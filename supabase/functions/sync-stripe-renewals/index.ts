@@ -14,6 +14,7 @@ const json = (body: unknown, status = 200) =>
 const Body = z.object({
   workspace_id: z.string().uuid(),
   contract_id: z.string().uuid().optional(),
+  contract_ids: z.array(z.string().uuid()).max(500).optional(),
   stripe_subscription_id: z.string().regex(/^sub_[A-Za-z0-9]+$/).max(100).optional(),
 });
 
@@ -69,6 +70,7 @@ Deno.serve(async (req) => {
         .select("id, company_id, contact_id, company:companies(name)")
         .eq("workspace_id", workspace_id).is("stripe_subscription_id", null);
       if (contract_id) uq = uq.eq("id", contract_id);
+      else if (contract_ids?.length) uq = uq.in("id", contract_ids);
       const { data: unlinked } = await uq.limit(200);
       const { data: used } = await db.from("renewal_contracts").select("stripe_subscription_id")
         .eq("workspace_id", workspace_id).not("stripe_subscription_id", "is", null);
@@ -121,6 +123,7 @@ Deno.serve(async (req) => {
       .select("id, status, next_renewal_date, stripe_subscription_id, contact_id, company_id")
       .eq("workspace_id", workspace_id).not("stripe_subscription_id", "is", null);
     if (contract_id) q = q.eq("id", contract_id);
+    else if (contract_ids?.length) q = q.in("id", contract_ids);
     const { data: contracts, error: cErr } = await q;
     if (cErr) return json({ success: false, error: cErr.message });
 
