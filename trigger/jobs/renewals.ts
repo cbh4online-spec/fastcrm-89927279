@@ -37,6 +37,10 @@ export const checkWorkspaceRenewals = task({
     logger.info('Checking renewals for workspace', { workspace_id: payload.workspace_id })
     const supabase = getSupabaseClient()
 
+    // Reconciliar com o Stripe primeiro, para que alertas usem datas reais
+    await invokeEdgeFunction('sync-stripe-renewals', { workspace_id: payload.workspace_id })
+      .catch((e: any) => logger.warn('Stripe reconciliation failed', { error: e?.message }))
+
     const [checkResult, healthResult] = await Promise.allSettled([
       invokeEdgeFunction('check-renewals', { workspace_id: payload.workspace_id }),
       invokeEdgeFunction('renewals-health-score', { workspace_id: payload.workspace_id }),
