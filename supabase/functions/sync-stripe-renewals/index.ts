@@ -164,13 +164,14 @@ Deno.serve(async (req) => {
           const amount = (inv.amount_paid || 0) / 100;
           const currency = inv.currency?.toUpperCase() || "EUR";
 
+          const evMeta = { source: "reconciliation", invoice_number: inv.number, hosted_invoice_url: inv.hosted_invoice_url, invoice_pdf: inv.invoice_pdf, paid_at: paidAt };
           const { data: exists } = await db.from("renewal_payment_events").select("id, created_at")
             .eq("contract_id", c.id).eq("stripe_invoice_id", inv.id).limit(1).maybeSingle();
           if (exists) {
             // Corrigir movimentos antigos gravados com a data da sincronização
-            if (exists.created_at !== paidAt) {
-              await db.from("renewal_payment_events").update({ created_at: paidAt }).eq("id", exists.id);
-            }
+            const { error: upErr } = await db.from("renewal_payment_events")
+              .update({ created_at: paidAt, metadata: evMeta }).eq("id", exists.id);
+            if (upErr) console.error("[SYNC-STRIPE-RENEWALS] event date", exists.id, upErr.message);
           } else {
             await db.from("renewal_payment_events").insert({
               workspace_id, contract_id: c.id,
@@ -180,16 +181,30 @@ Deno.serve(async (req) => {
               created_at: paidAt,
               stripe_invoice_id: inv.id,
               stripe_subscription_id: sub.id,
-              metadata: { source: "reconciliation", invoice_number: inv.number, hosted_invoice_url: inv.hosted_invoice_url, invoice_pdf: inv.invoice_pdf },
+              metadata: evMeta,
             });
             added++;
           }
 
           // Refletir nas Faturas do FastCRM
-          const { data: invExists } = await db.from("invoices").select("id")
+          let { data: invExists } = await db.from("invoices").select("id")
             .eq("workspace_id", workspace_id).eq("external_provider", "stripe").eq("external_id", inv.id)
             .limit(1).maybeSingle();
           const day = paidAt.split("T")[0];
+          // Associar fatura REN- já existente do mesmo contrato, mesmo valor e ±5 dias (evita duplicados)
+          if (!invExists) {
+            const d = new Date(paidAt);
+            const from = new Date(d.getTime() - 5 * 86400000).toISOString().split("T")[0];
+            const to = new Date(d.getTime() + 5 * 86400000).toISOString().split("T")[0];
+            const { data: local } = await db.from("invoices").select("id")
+              .eq("workspace_id", workspace_id).eq("renewal_contract_id", c.id).is("external_id", null)
+              .eq("total", amount).gte("issue_date", from).lte("issue_date", to)
+              .limit(1).maybeSingle();
+            if (local) {
+              await db.from("invoices").update({ external_provider: "stripe", external_id: inv.id }).eq("id", local.id);
+              invExists = local;
+            }
+          }
           const invPayload = {
             issue_date: day, due_date: day, paid_at: paidAt,
             total: amount, subtotal: amount, amount_paid: amount, currency,
@@ -197,7 +212,7 @@ Deno.serve(async (req) => {
             status: "paid",
           };
           if (invExists) {
-            await db.from("invoices").update(invPayload).eq("id", invExists.id);
+            await db.from("invoices").update({ paid_at: paidAt, amount_paid: amount, status: "paid", external_url: invPayload.external_url, pdf_url: invPayload.pdf_url }).eq("id", invExists.id);
           } else if (actorId) {
             const { error: insErr } = await db.from("invoices").insert({
               ...invPayload,

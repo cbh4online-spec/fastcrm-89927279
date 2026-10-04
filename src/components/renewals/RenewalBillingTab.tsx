@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CreditCard, Copy, ExternalLink, CheckCircle, XCircle, AlertTriangle, Clock, FileText, Ban, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface RenewalBillingTabProps {
   contractId: string;
@@ -27,6 +28,7 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
   const queryClient = useQueryClient();
   const [syncing, setSyncing] = useState(false);
   const [subInput, setSubInput] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -83,20 +85,24 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
     enabled: !!workspaceClient && !!contractId,
   });
 
+  const linkedInvoice = (evt: any): any =>
+    evt.stripe_invoice_id ? (invoices as any[]).find((i) => i.external_id === evt.stripe_invoice_id) : null;
+
   const { data: invoices = [] } = useQuery({
     queryKey: ["renewal-invoices", contractId],
     queryFn: async () => {
       if (!workspaceClient) return [];
       const { data, error } = await workspaceClient
         .from("invoices")
-        .select("id, invoice_number, total, currency, status, issue_date, paid_at, pdf_url, external_url")
+        .select("id, invoice_number, total, currency, status, issue_date, paid_at, pdf_url, external_url, external_id")
         .eq("renewal_contract_id", contractId)
         .order("issue_date", { ascending: false });
       if (error) throw error;
       return data || [];
     },
     enabled: !!workspaceClient && !!contractId,
-  });
+  });  const missingCount = (paymentEvents as any[]).filter((e) => e.event_type === "payment_succeeded" && !linkedInvoice(e)).length;
+
 
   const formatCurrency = (val: number, currency = "EUR") =>
     new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(val);
@@ -307,7 +313,28 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
       {/* Payment Events / Movements */}
       {paymentEvents.length > 0 && (
         <>
-          <h3 className="text-sm font-semibold">Movimentos</h3>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Movimentos</h3>
+            {missingCount > 0 && (
+              <Button size="sm" variant="outline" onClick={() => setConfirmOpen(true)} disabled={syncing}>
+                <FileText className="mr-1 h-3.5 w-3.5" /> Criar {missingCount} fatura(s) em falta
+              </Button>
+            )}
+          </div>
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar faturas em falta</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Vão ser ligadas ou criadas {missingCount} fatura(s) com a data e o valor reais do Stripe. As que já existem não são duplicadas.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => { setConfirmOpen(false); handleSync(); }}>Confirmar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Card>
             <CardContent className="p-0">
               <Table>
@@ -317,13 +344,14 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
                     <TableHead>Evento</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Fatura</TableHead>
+                    <TableHead>Estado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paymentEvents.map((evt: any) => (
                     <TableRow key={evt.id} className={evt.event_type === "payment_failed" ? "bg-destructive/5" : ""}>
                       <TableCell className="text-sm">
-                        {format(new Date(evt.created_at), "dd/MM/yyyy HH:mm")}
+                        {format(new Date(evt.metadata?.paid_at || evt.created_at), "dd/MM/yyyy HH:mm")}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -346,6 +374,17 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
                           </a>
                         ) : (
                           <span className="font-mono">{evt.metadata?.invoice_number || evt.stripe_invoice_id || "—"}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {evt.event_type !== "payment_succeeded" ? null : linkedInvoice(evt) ? (
+                          <button type="button" onClick={() => navigate(`/dashboard/invoices/${linkedInvoice(evt).id}`)} className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline">
+                            <CheckCircle className="h-3 w-3" /> {linkedInvoice(evt).invoice_number}
+                          </button>
+                        ) : (
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setConfirmOpen(true)} disabled={syncing}>
+                            Confirmar fatura
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
