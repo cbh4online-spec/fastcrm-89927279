@@ -16,15 +16,18 @@ async function tag(db: any, table: string, id: string) {
   if (next) await db.from(table).update({ tags: next }).eq("id", id);
 }
 
-async function findByContact(db: any, table: string, ws: string, email: string, phone: string) {
+async function findByContact(db: any, table: "contacts" | "leads", ws: string, email: string, phone: string) {
+  const base = () => {
+    let q = db.from(table).select(table === "contacts" ? "id, company_id" : "id").eq("workspace_id", ws);
+    if (table === "contacts") q = q.is("deleted_at", null);
+    return q;
+  };
   if (email) {
-    const { data } = await db.from(table).select("id, company_id").eq("workspace_id", ws)
-      .ilike("email", email).is("deleted_at", null).order("created_at", { ascending: true }).limit(1);
+    const { data } = await base().ilike("email", email).order("created_at", { ascending: true }).limit(1);
     if (data?.[0]) return data[0];
   }
   if (phone.length >= 9) {
-    const { data } = await db.from(table).select("id, company_id").eq("workspace_id", ws)
-      .ilike("phone", `%${phone.slice(-9)}`).is("deleted_at", null).order("created_at", { ascending: true }).limit(1);
+    const { data } = await base().ilike("phone", `%${phone.slice(-9)}`).order("created_at", { ascending: true }).limit(1);
     if (data?.[0]) return data[0];
   }
   return null;
@@ -32,11 +35,13 @@ async function findByContact(db: any, table: string, ws: string, email: string, 
 
 export interface ResolveInput {
   workspaceId: string;
-  contract: { id: string; contact_id: string | null; company_id: string | null; created_by?: string | null };
+  contract: { id: string; contact_id: string | null; company_id: string | null };
+  /** Utilizador a registar como autor quando é preciso criar um contacto novo. */
+  createdBy?: string | null;
   customer: { name?: string | null; email?: string | null; phone?: string | null; tax_id?: string | null };
 }
 
-export async function resolveStripeCustomer(db: any, { workspaceId, contract, customer }: ResolveInput) {
+export async function resolveStripeCustomer(db: any, { workspaceId, contract, customer, createdBy }: ResolveInput) {
   const email = norm(customer.email);
   const phone = digits(customer.phone);
   let contactId = contract.contact_id;
@@ -61,9 +66,9 @@ export async function resolveStripeCustomer(db: any, { workspaceId, contract, cu
     if (l) leadId = l.id;
   }
   // Só cria contacto quando não existe em lado nenhum (nem como lead) e há email
-  if (!contactId && !leadId && email && contract.created_by) {
+  if (!contactId && !leadId && email && createdBy) {
     const { data } = await db.from("contacts").insert({
-      workspace_id: workspaceId, created_by: contract.created_by,
+      workspace_id: workspaceId, created_by: createdBy,
       name: customer.name?.trim() || email, email, phone: customer.phone || null,
       company_id: companyId, tags: [STRIPE_TAG],
     }).select("id").maybeSingle();

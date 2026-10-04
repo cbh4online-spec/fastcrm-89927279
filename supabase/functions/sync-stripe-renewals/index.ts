@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Não autorizado" }, 401);
     const token = authHeader.slice(7);
     const isService = token === serviceKey;
+    let actorId: string | null = null;
 
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
@@ -38,6 +39,7 @@ Deno.serve(async (req) => {
     if (!isService) {
       const { data: u, error } = await db.auth.getUser(token);
       if (error || !u?.user) return json({ error: "Não autorizado" }, 401);
+      actorId = u.user.id;
       const { data: m } = await db.from("workspace_members").select("id")
         .eq("workspace_id", workspace_id).eq("user_id", u.user.id).maybeSingle();
       const { data: sa } = await db.rpc("is_super_admin", { _user_id: u.user.id });
@@ -116,7 +118,7 @@ Deno.serve(async (req) => {
     }
 
     let q = db.from("renewal_contracts")
-      .select("id, status, next_renewal_date, stripe_subscription_id, contact_id, company_id, created_by")
+      .select("id, status, next_renewal_date, stripe_subscription_id, contact_id, company_id")
       .eq("workspace_id", workspace_id).not("stripe_subscription_id", "is", null);
     if (contract_id) q = q.eq("id", contract_id);
     const { data: contracts, error: cErr } = await q;
@@ -143,6 +145,7 @@ Deno.serve(async (req) => {
             await resolveStripeCustomer(db, {
               workspaceId: workspace_id,
               contract: c as any,
+              createdBy: actorId,
               customer: { name: cu.name, email: cu.email, phone: cu.phone, tax_id: cu.tax_ids?.data?.[0]?.value },
             });
           }
