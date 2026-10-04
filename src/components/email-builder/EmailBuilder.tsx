@@ -34,6 +34,7 @@ import { BlockEditor } from './BlockEditor';
 import { EmailCanvas } from './EmailCanvas';
 import { VariablePicker } from './VariablePicker';
 import { ImageUploader } from './ImageUploader';
+import { MissingImagesHelper } from '@/components/marketing/MissingImagesHelper';
 import { EmailEditorProvider, useEmailEditorContext } from '@/contexts/EmailEditorContext';
 import { EmailTestSendDialog } from './EmailTestSendDialog';
 import type { EmailDesign, EmailLayout, EmailBlockType, ImageBlockContent } from '@/types/emailBuilder';
@@ -282,6 +283,19 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
         
         {/* Canvas - Center */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {design.blocks
+            .filter((b) => b.type === 'html')
+            .map((b) => {
+              const html = ((b.content as { html?: string })?.html) ?? '';
+              return (
+                <div key={`missing-${b.id}`} className="px-4 pt-3">
+                  <MissingImagesHelper
+                    html={html}
+                    onChange={(next) => updateBlock(b.id, { content: { ...(b.content as object), html: next } } as never)}
+                  />
+                </div>
+              );
+            })}
           <EmailCanvas
             blocks={design.blocks}
             globalStyles={{
