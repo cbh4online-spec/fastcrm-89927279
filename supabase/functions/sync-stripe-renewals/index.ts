@@ -59,6 +59,61 @@ Deno.serve(async (req) => {
       if (error) return json({ success: false, error: error.message });
     }
 
+    // Auto-descoberta: contratos sem subscrição → procurar no Stripe por email dos contactos / nome
+    const linked: string[] = [];
+    {
+      let uq = db.from("renewal_contracts")
+        .select("id, company_id, contact_id, company:companies(name)")
+        .eq("workspace_id", workspace_id).is("stripe_subscription_id", null);
+      if (contract_id) uq = uq.eq("id", contract_id);
+      const { data: unlinked } = await uq.limit(200);
+      const { data: used } = await db.from("renewal_contracts").select("stripe_subscription_id")
+        .eq("workspace_id", workspace_id).not("stripe_subscription_id", "is", null);
+      const usedSubs = new Set((used || []).map((r: any) => r.stripe_subscription_id));
+      for (const c of (unlinked || []) as any[]) {
+        try {
+          const emails = new Set<string>();
+          const ids = [c.contact_id].filter(Boolean);
+          if (ids.length) {
+            const { data } = await db.from("contacts").select("email").in("id", ids);
+            (data || []).forEach((r: any) => r.email && emails.add(r.email.trim().toLowerCase()));
+          }
+          if (c.company_id) {
+            const { data } = await db.from("contacts").select("email")
+              .eq("workspace_id", workspace_id).eq("company_id", c.company_id).is("deleted_at", null).limit(10);
+            (data || []).forEach((r: any) => r.email && emails.add(r.email.trim().toLowerCase()));
+          }
+          const candidates: any[] = [];
+          for (const e of emails) {
+            const cs = await stripe.customers.list({ email: e, limit: 5 });
+            candidates.push(...cs.data);
+          }
+          const name = c.company?.name?.trim();
+          if (!candidates.length && name && name.length >= 5) {
+            const cs = await stripe.customers.search({ query: `name:'${name.replace(/'/g, "")}'`, limit: 5 });
+            const exact = cs.data.filter((x) => (x.name || "").trim().toLowerCase() === name.toLowerCase());
+            candidates.push(...exact);
+          }
+          const subs: any[] = [];
+          for (const cu of candidates) {
+            const s = await stripe.subscriptions.list({ customer: cu.id, status: "all", limit: 10 });
+            subs.push(...s.data.filter((x) => ["active", "trialing", "past_due", "paused"].includes(x.status) && !usedSubs.has(x.id)));
+          }
+          // Só liga quando há correspondência inequívoca
+          if (subs.length === 1) {
+            const s = subs[0];
+            await db.from("renewal_contracts")
+              .update({ stripe_subscription_id: s.id, stripe_customer_id: String(s.customer), billing_type: "stripe" })
+              .eq("id", c.id).eq("workspace_id", workspace_id);
+            usedSubs.add(s.id);
+            linked.push(c.id);
+          }
+        } catch (e: any) {
+          console.error("[SYNC-STRIPE-RENEWALS] auto-link", c.id, e?.message);
+        }
+      }
+    }
+
     let q = db.from("renewal_contracts")
       .select("id, status, next_renewal_date, stripe_subscription_id")
       .eq("workspace_id", workspace_id).not("stripe_subscription_id", "is", null);
@@ -107,7 +162,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ success: true, synced: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, results });
+    for (const r of results) r.auto_linked = linked.includes(r.contract_id);
+    return json({ success: true, synced: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, auto_linked: linked.length, results });
   } catch (e: any) {
     console.error("[SYNC-STRIPE-RENEWALS] fatal", e?.message);
     return json({ success: false, error: "internal_error" });
