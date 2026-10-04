@@ -124,7 +124,6 @@ Deno.serve(async (req) => {
       .eq("workspace_id", workspace_id).not("stripe_subscription_id", "is", null);
     if (contract_id) q = q.eq("id", contract_id);
     else if (contract_ids?.length) q = q.in("id", contract_ids);
-    else if (contract_ids?.length) q = q.in("id", contract_ids);
     const { data: contracts, error: cErr } = await q;
     if (cErr) return json({ success: false, error: cErr.message });
 
