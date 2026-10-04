@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useRenewalContract, useRenewalItems, useUpdateRenewalContract, useConfirmRenewal } from "@/hooks/useRenewals";
 import { useRenewalDiscounts } from "@/hooks/useRenewalDiscounts";
@@ -54,6 +56,36 @@ export default function RenewalDetailPage() {
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [pendingPaymentUrl, setPendingPaymentUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [stripeSyncing, setStripeSyncing] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleStripeSync = async () => {
+    if (!contract || !currentWorkspace?.id) return;
+    if (!contract.stripe_subscription_id) {
+      setActiveTab("billing");
+      toast.info("Este contrato ainda não tem subscrição Stripe. Indique o ID (sub_...) no separador Faturação.");
+      return;
+    }
+    setStripeSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-stripe-renewals", {
+        body: { workspace_id: currentWorkspace.id, contract_id: contract.id },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Falha na sincronização");
+      const r = data.results?.[0];
+      if (r && !r.ok) throw new Error(r.error);
+      toast.success(r ? `Sincronizado: próxima renovação ${r.next_renewal_date ?? "—"}, ${r.payments_added} pagamento(s) recuperado(s)` : "Sincronizado com o Stripe");
+      ["renewal-contract", "renewal-contracts", "renewal-payment-events"].forEach((k) =>
+        queryClient.invalidateQueries({ queryKey: [k] }),
+      );
+    } catch (e) {
+      toast.error(`Não foi possível sincronizar: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setStripeSyncing(false);
+    }
+  };
 
   const formatCurrency = (val: number, cur?: string) =>
     new Intl.NumberFormat("pt-PT", { style: "currency", currency: cur || "EUR" }).format(val);
@@ -210,6 +242,10 @@ export default function RenewalDetailPage() {
             <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
               <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
             </Button>
+            <Button variant="outline" size="sm" onClick={handleStripeSync} disabled={stripeSyncing}>
+              <RefreshCw className={`mr-1 h-3.5 w-3.5 ${stripeSyncing ? "animate-spin" : ""}`} />
+              {stripeSyncing ? "A sincronizar..." : "Sincronizar Stripe"}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowPaymentDialog(true)}>
               <CreditCard className="mr-1 h-3.5 w-3.5" /> Link Pagamento
             </Button>
@@ -247,7 +283,7 @@ export default function RenewalDetailPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="overview">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="overview">Resumo</TabsTrigger>
             <TabsTrigger value="items">Itens ({items.length})</TabsTrigger>
