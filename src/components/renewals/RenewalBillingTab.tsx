@@ -44,7 +44,7 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
       if (r && !r.ok) throw new Error(r.error);
       toast.success(r ? `Sincronizado: próxima renovação ${r.next_renewal_date ?? "—"}, ${r.payments_added} pagamento(s) recuperado(s)` : "Sem subscrição Stripe para sincronizar");
       setSubInput("");
-      ["renewal-contract", "renewal-contracts", "renewal-payment-events"].forEach((k) =>
+      ["renewal-contract", "renewal-contracts", "renewal-payment-events", "renewal-invoices"].forEach((k) =>
         queryClient.invalidateQueries({ queryKey: [k] }));
     } catch (e: any) {
       toast.error(e.message || "Erro ao sincronizar com Stripe");
@@ -89,7 +89,7 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
       if (!workspaceClient) return [];
       const { data, error } = await workspaceClient
         .from("invoices")
-        .select("id, invoice_number, total, currency, status, issue_date, paid_at")
+        .select("id, invoice_number, total, currency, status, issue_date, paid_at, pdf_url, external_url")
         .eq("renewal_contract_id", contractId)
         .order("issue_date", { ascending: false });
       if (error) throw error;
@@ -233,10 +233,22 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
 
       {paymentLinks.length === 0 ? (
         <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>Nenhum link de pagamento gerado</p>
-            <p className="text-xs mt-1">Clique em "Gerar Link" para criar uma subscrição recorrente Stripe</p>
+          <CardContent className="py-6 text-center text-muted-foreground">
+            {stripeSubscriptionId ? (
+              <>
+                <p className="text-sm">Subscrição Stripe ativa e ligada — não é preciso link de pagamento.</p>
+                <p className="text-xs mt-1">
+                  Total recebido: {formatCurrency(paymentEvents.filter((e: any) => e.event_type === "payment_succeeded").reduce((s: number, e: any) => s + Number(e.amount || 0), 0), "EUR")}
+                  {" · "}{paymentEvents.filter((e: any) => e.event_type === "payment_succeeded").length} pagamento(s)
+                </p>
+              </>
+            ) : (
+              <>
+                <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Nenhum link de pagamento gerado</p>
+                <p className="text-xs mt-1">Clique em "Gerar Link" para criar uma subscrição recorrente Stripe</p>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -327,8 +339,14 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
                       <TableCell className="text-right font-medium">
                         {evt.amount > 0 ? formatCurrency(Number(evt.amount), evt.currency) : "—"}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground font-mono truncate max-w-[120px]">
-                        {evt.stripe_invoice_id || "—"}
+                      <TableCell className="text-xs text-muted-foreground">
+                        {evt.metadata?.hosted_invoice_url ? (
+                          <a href={evt.metadata.hosted_invoice_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                            {evt.metadata?.invoice_number || "Recibo"} <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <span className="font-mono">{evt.metadata?.invoice_number || evt.stripe_invoice_id || "—"}</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -367,7 +385,13 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
                       </TableCell>
                       <TableCell>{statusBadge(inv.status)}</TableCell>
                       <TableCell>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        {inv.pdf_url || inv.external_url ? (
+                          <a href={inv.pdf_url || inv.external_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} aria-label="Abrir documento Stripe">
+                            <FileText className="h-4 w-4 text-primary" />
+                          </a>
+                        ) : (
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
