@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
 
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
-    const { workspace_id, contract_id, stripe_subscription_id } = parsed.data;
+    const { workspace_id, contract_id, contract_ids, stripe_subscription_id } = parsed.data;
 
     if (!isService) {
       const { data: u, error } = await db.auth.getUser(token);
@@ -123,6 +123,7 @@ Deno.serve(async (req) => {
       .select("id, status, next_renewal_date, stripe_subscription_id, contact_id, company_id")
       .eq("workspace_id", workspace_id).not("stripe_subscription_id", "is", null);
     if (contract_id) q = q.eq("id", contract_id);
+    else if (contract_ids?.length) q = q.in("id", contract_ids);
     else if (contract_ids?.length) q = q.in("id", contract_ids);
     const { data: contracts, error: cErr } = await q;
     if (cErr) return json({ success: false, error: cErr.message });
