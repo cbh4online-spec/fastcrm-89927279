@@ -32,7 +32,27 @@ export function MissingImagesHelper({ html, onChange }: Props) {
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  if (missing.length === 0) return null;
+  const hasUnsubPlaceholder = /URL_CANCELAR_SUBSCRICAO/.test(html);
+
+  if (missing.length === 0 && !hasUnsubPlaceholder) return null;
+
+  if (missing.length === 0) {
+    return (
+      <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 flex items-center justify-between gap-3 text-sm">
+        <p className="text-foreground">O link de cancelamento ainda não está ligado.</p>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => {
+            onChange(html.replace(/URL_CANCELAR_SUBSCRICAO/g, '{{unsubscribe_url}}'));
+            toast.success('Link de cancelamento ligado');
+          }}
+        >
+          Corrigir
+        </Button>
+      </div>
+    );
+  }
 
   const handleFiles = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -61,7 +81,10 @@ export function MissingImagesHelper({ html, onChange }: Props) {
         });
         if (error) throw error;
         const { data } = supabase.storage.from('email-images').getPublicUrl(path);
-        next = replaceSrc(next, target, data.publicUrl);
+        next = replaceSrc(next, target, data.publicUrl).replace(
+          /URL_CANCELAR_SUBSCRICAO/g,
+          '{{unsubscribe_url}}',
+        );
         done++;
       }
       if (done) {
