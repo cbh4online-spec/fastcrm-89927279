@@ -62,11 +62,6 @@ export default function RenewalDetailPage() {
 
   const handleStripeSync = async () => {
     if (!contract || !currentWorkspace?.id) return;
-    if (!contract.stripe_subscription_id) {
-      setActiveTab("billing");
-      toast.info("Este contrato ainda não tem subscrição Stripe. Indique o ID (sub_...) no separador Faturação.");
-      return;
-    }
     setStripeSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke("sync-stripe-renewals", {
@@ -75,8 +70,14 @@ export default function RenewalDetailPage() {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Falha na sincronização");
       const r = data.results?.[0];
-      if (r && !r.ok) throw new Error(r.error);
-      toast.success(r ? `Sincronizado: próxima renovação ${r.next_renewal_date ?? "—"}, ${r.payments_added} pagamento(s) recuperado(s)` : "Sincronizado com o Stripe");
+      if (!r) {
+        setActiveTab("billing");
+        toast.info("Não encontrámos uma subscrição no Stripe com o email deste cliente. Indique o código (sub_...) no separador Faturação.");
+        return;
+      }
+      if (!r.ok) throw new Error(r.error);
+      const date = r.next_renewal_date ? r.next_renewal_date.split("-").reverse().join("/") : "—";
+      toast.success(`${r.auto_linked ? "Subscrição encontrada e ligada. " : ""}Próxima renovação ${date}, ${r.payments_added} pagamento(s) recuperado(s)`);
       ["renewal-contract", "renewal-contracts", "renewal-payment-events"].forEach((k) =>
         queryClient.invalidateQueries({ queryKey: [k] }),
       );
