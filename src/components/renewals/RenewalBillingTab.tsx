@@ -1,11 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Copy, ExternalLink, CheckCircle, XCircle, AlertTriangle, Clock, FileText, Ban } from "lucide-react";
+import { CreditCard, Copy, ExternalLink, CheckCircle, XCircle, AlertTriangle, Clock, FileText, Ban, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -21,6 +24,34 @@ interface RenewalBillingTabProps {
 export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLink, stripeSubscriptionId, dunningAttempts = 0, contractStatus }: RenewalBillingTabProps) {
   const { workspaceClient } = useWorkspaceInstance();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [syncing, setSyncing] = useState(false);
+  const [subInput, setSubInput] = useState("");
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-stripe-renewals", {
+        body: {
+          workspace_id: workspaceId,
+          contract_id: contractId,
+          ...(!stripeSubscriptionId && subInput ? { stripe_subscription_id: subInput } : {}),
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Falha na sincronização");
+      const r = data.results?.[0];
+      if (r && !r.ok) throw new Error(r.error);
+      toast.success(r ? `Sincronizado: próxima renovação ${r.next_renewal_date ?? "—"}, ${r.payments_added} pagamento(s) recuperado(s)` : "Sem subscrição Stripe para sincronizar");
+      setSubInput("");
+      ["renewal-contract", "renewal-contracts", "renewal-payment-events"].forEach((k) =>
+        queryClient.invalidateQueries({ queryKey: [k] }));
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao sincronizar com Stripe");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const { data: paymentLinks = [], isLoading } = useQuery({
     queryKey: ["renewal-payment-links", contractId],
@@ -170,6 +201,27 @@ export function RenewalBillingTab({ contractId, workspaceId, onGeneratePaymentLi
           </CardContent>
         </Card>
       )}
+
+      {/* Sincronização Stripe */}
+      <Card>
+        <CardContent className="py-4 flex flex-col sm:flex-row gap-2 sm:items-center">
+          {!stripeSubscriptionId && (
+            <Input
+              placeholder="ID da subscrição Stripe (sub_...)"
+              value={subInput}
+              onChange={(e) => setSubInput(e.target.value.trim())}
+              className="sm:max-w-xs"
+              maxLength={100}
+              aria-label="ID da subscrição Stripe"
+            />
+          )}
+          <Button size="sm" variant="outline" onClick={handleSync} disabled={syncing || (!stripeSubscriptionId && !/^sub_[A-Za-z0-9]+$/.test(subInput))}>
+            <RefreshCw className={`mr-1 h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "A sincronizar..." : stripeSubscriptionId ? "Sincronizar com Stripe" : "Ligar e sincronizar"}
+          </Button>
+          <p className="text-xs text-muted-foreground">Atualiza estado, próxima data de renovação e pagamentos a partir do Stripe.</p>
+        </CardContent>
+      </Card>
 
       {/* Payment Links */}
       <div className="flex justify-between items-center">
