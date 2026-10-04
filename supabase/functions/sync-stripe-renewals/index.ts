@@ -153,27 +153,71 @@ Deno.serve(async (req) => {
           console.error("[SYNC-STRIPE-RENEWALS] resolve", c.id, e?.message);
         }
 
-        // Reconciliar pagamentos em falta (sem duplicar: chave stripe_invoice_id)
-        const invoices = await stripe.invoices.list({ subscription: sub.id, limit: 24 });
+        // Reconciliar pagamentos e faturas (sem duplicar: chave stripe_invoice_id / external_id)
+        const invoices = await stripe.invoices.list({ subscription: sub.id, limit: 100 });
         let added = 0;
-        for (const inv of invoices.data) {
+        let invoicesAdded = 0;
+        for (const inv of invoices.data as any[]) {
           if (inv.status !== "paid") continue;
-          const { data: exists } = await db.from("renewal_payment_events").select("id")
+          const paidTs = inv.status_transitions?.paid_at || inv.created;
+          const paidAt = new Date(paidTs * 1000).toISOString();
+          const amount = (inv.amount_paid || 0) / 100;
+          const currency = inv.currency?.toUpperCase() || "EUR";
+
+          const { data: exists } = await db.from("renewal_payment_events").select("id, created_at")
             .eq("contract_id", c.id).eq("stripe_invoice_id", inv.id).limit(1).maybeSingle();
-          if (exists) continue;
-          await db.from("renewal_payment_events").insert({
-            workspace_id, contract_id: c.id,
-            stripe_event_id: `sync-${inv.id}`,
-            event_type: "payment_succeeded",
-            amount: (inv.amount_paid || 0) / 100,
-            currency: inv.currency?.toUpperCase() || "EUR",
-            stripe_invoice_id: inv.id,
-            stripe_subscription_id: sub.id,
-            metadata: { source: "reconciliation", invoice_number: inv.number },
-          });
-          added++;
+          if (exists) {
+            // Corrigir movimentos antigos gravados com a data da sincronização
+            if (exists.created_at !== paidAt) {
+              await db.from("renewal_payment_events").update({ created_at: paidAt }).eq("id", exists.id);
+            }
+          } else {
+            await db.from("renewal_payment_events").insert({
+              workspace_id, contract_id: c.id,
+              stripe_event_id: `sync-${inv.id}`,
+              event_type: "payment_succeeded",
+              amount, currency,
+              created_at: paidAt,
+              stripe_invoice_id: inv.id,
+              stripe_subscription_id: sub.id,
+              metadata: { source: "reconciliation", invoice_number: inv.number, hosted_invoice_url: inv.hosted_invoice_url, invoice_pdf: inv.invoice_pdf },
+            });
+            added++;
+          }
+
+          // Refletir nas Faturas do FastCRM
+          const { data: invExists } = await db.from("invoices").select("id")
+            .eq("workspace_id", workspace_id).eq("external_provider", "stripe").eq("external_id", inv.id)
+            .limit(1).maybeSingle();
+          const day = paidAt.split("T")[0];
+          const invPayload = {
+            issue_date: day, due_date: day, paid_at: paidAt,
+            total: amount, subtotal: amount, amount_paid: amount, currency,
+            external_url: inv.hosted_invoice_url || null, pdf_url: inv.invoice_pdf || null,
+            status: "paid",
+          };
+          if (invExists) {
+            await db.from("invoices").update(invPayload).eq("id", invExists.id);
+          } else if (actorId) {
+            const { error: insErr } = await db.from("invoices").insert({
+              ...invPayload,
+              workspace_id,
+              invoice_number: inv.number || `STRIPE-${inv.id.slice(-8)}`,
+              document_type: "invoice",
+              client_name: inv.customer_name || inv.customer_email || "Cliente Stripe",
+              client_email: inv.customer_email || null,
+              company_id: c.company_id, contact_id: c.contact_id,
+              renewal_contract_id: c.id,
+              created_by: actorId,
+              tax_amount: 0,
+              external_provider: "stripe", external_id: inv.id,
+              notes: `Pagamento Stripe sincronizado. Invoice: ${inv.id}`,
+            });
+            if (insErr) console.error("[SYNC-STRIPE-RENEWALS] invoice insert", inv.id, insErr.message);
+            else invoicesAdded++;
+          }
         }
-        results.push({ contract_id: c.id, ok: true, stripe_status: sub.status, next_renewal_date: next, payments_added: added });
+        results.push({ contract_id: c.id, ok: true, stripe_status: sub.status, next_renewal_date: next, payments_added: added, invoices_added: invoicesAdded });
       } catch (e: any) {
         console.error("[SYNC-STRIPE-RENEWALS]", c.id, e?.message);
         results.push({ contract_id: c.id, ok: false, error: e?.message || "Erro" });
