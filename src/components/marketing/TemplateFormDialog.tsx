@@ -28,6 +28,7 @@ import { renderEmailToHtml } from '@/utils/emailRenderer';
 import type { MarketingTemplate } from '@/types/marketing';
 import type { EmailDesign } from '@/types/emailBuilder';
 import { DEFAULT_GLOBAL_STYLES } from '@/types/emailBuilder';
+import { MissingImagesHelper } from './MissingImagesHelper';
 
 interface TemplateFormDialogProps {
   open: boolean;
@@ -321,6 +322,11 @@ export function TemplateFormDialog({
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 />
               </div>
+
+              <MissingImagesHelper
+                html={formData.bodyHtml}
+                onChange={(bodyHtml) => setFormData((prev) => ({ ...prev, bodyHtml }))}
+              />
 
               <div className="grid gap-2">
                 <Label htmlFor="bodyHtml">Conteúdo HTML *</Label>
