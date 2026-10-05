@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Check, Info, Loader2, Sparkles, X } from "lucide-react";
@@ -114,45 +114,57 @@ export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
         </Alert>
 
         {!started && (
-          <div className="space-y-3 rounded-lg border p-3">
-            <div className="flex flex-wrap gap-2 text-xs">
-              {checking ? (
-                <span className="text-muted-foreground">A verificar o que já foi feito…</span>
-              ) : (
-                <>
-                  <Badge variant="secondary">{enrichedCount} já enriquecidos</Badge>
-                  <Badge variant="default">{pendingCount} pendentes</Badge>
-                </>
-              )}
-            </div>
-            {enrichedCount > 0 && (
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="bulk-force" className="text-sm">
-                    Forçar re-enriquecimento dos já efetuados
-                  </Label>
+          <div className="space-y-3 rounded-lg border p-4">
+            {checking ? (
+              <p className="text-sm text-muted-foreground">A verificar o que já foi feito…</p>
+            ) : (
+              <>
+                <p className="text-sm font-medium">
+                  {pendingCount === 0
+                    ? `Tudo feito: os ${targets.length} produtos selecionados já têm ficha AI Commerce.`
+                    : enrichedCount === 0
+                      ? `Nenhum dos ${targets.length} produtos selecionados tem ficha AI Commerce.`
+                      : `${pendingCount} por fazer · ${enrichedCount} já feitos (de ${targets.length} selecionados)`}
+                </p>
+                {pendingCount === 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Desligado: os {enrichedCount} já feitos são ignorados e não gastam créditos de IA.
+                    Para tratar os que faltam, selecione outros produtos na lista. Ou escolha abaixo voltar a gerar estes.
                   </p>
-                </div>
-                <Switch id="bulk-force" checked={forceReenrich} onCheckedChange={setForceReenrich} />
-              </div>
+                )}
+              </>
             )}
           </div>
         )}
 
-        {!started && (
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="bulk-overwrite" className="text-sm">
-                Reescrever conteúdo existente
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Desligado: preenche apenas os campos vazios, mantendo o que escreveu à mão.
-              </p>
-            </div>
-            <Switch id="bulk-overwrite" checked={overwrite} onCheckedChange={setOverwrite} />
-          </div>
+        {!started && !checking && (
+          <RadioGroup
+            value={forceReenrich ? "regen" : "fill"}
+            onValueChange={(v) => {
+              const regen = v === "regen";
+              setForceReenrich(regen);
+              setOverwrite(regen);
+            }}
+            className="space-y-2"
+          >
+            <Label htmlFor="mode-fill" className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 font-normal">
+              <RadioGroupItem id="mode-fill" value="fill" className="mt-0.5" />
+              <span className="space-y-0.5">
+                <span className="block text-sm font-medium">Só os que faltam</span>
+                <span className="block text-xs text-muted-foreground">
+                  Trata apenas os {pendingCount} por fazer e preenche só campos vazios. Mantém o que escreveu à mão.
+                </span>
+              </span>
+            </Label>
+            <Label htmlFor="mode-regen" className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 font-normal">
+              <RadioGroupItem id="mode-regen" value="regen" className="mt-0.5" />
+              <span className="space-y-0.5">
+                <span className="block text-sm font-medium">Voltar a gerar tudo</span>
+                <span className="block text-xs text-muted-foreground">
+                  Refaz os {targets.length} selecionados e substitui textos existentes. Gasta mais créditos de IA.
+                </span>
+              </span>
+            </Label>
+          </RadioGroup>
         )}
 
         {started && (
@@ -217,8 +229,10 @@ export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
                 : checking
                   ? "A verificar…"
                   : toProcess === 0
-                    ? "Nada por enriquecer"
-                    : `Enriquecer ${toProcess} produto${toProcess === 1 ? "" : "s"}${forceReenrich ? "" : " pendente" + (toProcess === 1 ? "" : "s")}`}
+                    ? "Nada por fazer nesta seleção"
+                    : forceReenrich
+                      ? `Voltar a gerar ${toProcess} produto${toProcess === 1 ? "" : "s"}`
+                      : `Enriquecer ${toProcess} produto${toProcess === 1 ? "" : "s"} em falta`}
             </Button>
           )}
         </DialogFooter>
