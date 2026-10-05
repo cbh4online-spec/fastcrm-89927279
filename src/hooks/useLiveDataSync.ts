@@ -11,9 +11,9 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 const TABLES: { table: string; scoped: boolean; keys: string[] }[] = [
   { table: "products", scoped: true, keys: ["products", "product", "store-products"] },
   { table: "product_tags", scoped: true, keys: ["product-tags", "workspace-tags", "products"] },
-  { table: "product_ai_commerce", scoped: false, keys: ["product-ai-commerce", "products"] },
-  { table: "product_spec_attributes", scoped: false, keys: ["product", "products"] },
-  { table: "product_relations", scoped: false, keys: ["product-relations", "products"] },
+  { table: "product_ai_commerce", scoped: false, keys: ["product-ai-commerce"] },
+  { table: "product_spec_attributes", scoped: false, keys: ["product"] },
+  { table: "product_relations", scoped: false, keys: ["product-relations"] },
   { table: "product_bundles", scoped: false, keys: ["product-bundles"] },
   { table: "leads", scoped: true, keys: ["leads", "smart-leads", "lead"] },
   { table: "contacts", scoped: true, keys: ["contacts", "contact"] },
@@ -49,7 +49,7 @@ export function useLiveDataSync() {
         },
         () => {
           t.keys.forEach((k) => pending.add(k));
-          if (!timer) timer = setTimeout(flush, 800);
+          if (!timer) timer = setTimeout(flush, 2000);
         },
       );
     }

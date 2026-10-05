@@ -109,37 +109,11 @@ export function useProducts(filters?: {
         }
       }
 
-      // Fallback: explicit fetch ordered by position for products still missing
-      // images (e.g. when the embedded join was skipped or filtered by RLS).
-      const missingIds = products.filter((p) => !p.images || p.images.length === 0).map((p) => p.id);
-      if (missingIds.length > 0) {
-        const { data: imgData, error: imgErr } = await supabase
-          .from("product_images")
-          .select("product_id, url, position")
-          .in("product_id", missingIds)
-          .order("position", { ascending: true });
-
-        if (imgErr) {
-          console.warn("[useProducts] product_images fetch failed", imgErr);
-        } else if (imgData && imgData.length > 0) {
-          const byProduct = new Map<string, string[]>();
-          for (const img of imgData) {
-            const arr = byProduct.get(img.product_id) ?? [];
-            arr.push(img.url);
-            byProduct.set(img.product_id, arr);
-          }
-          for (const product of products) {
-            const urls = byProduct.get(product.id);
-            if (urls && urls.length > 0 && (!product.images || product.images.length === 0)) {
-              product.images = urls;
-            }
-          }
-        }
-      }
-
       return products;
     },
     enabled: !!currentWorkspace?.id,
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 }
 
