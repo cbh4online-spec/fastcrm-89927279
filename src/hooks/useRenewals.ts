@@ -18,7 +18,7 @@ export function useRenewalContracts(filters?: { status?: string; ownerUserId?: s
 
       let query = workspaceClient
         .from("renewal_contracts")
-        .select("*, company:companies(id, name), contact:contacts(id, name)")
+        .select("*, company:companies(id, name), contact:contacts(id, name, email)")
         .eq("workspace_id", currentWorkspace.id)
         .order("next_renewal_date", { ascending: true, nullsFirst: false });
 
@@ -52,7 +52,7 @@ export function useRenewalContract(id: string | undefined) {
 
       const { data, error } = await workspaceClient
         .from("renewal_contracts")
-        .select("*, company:companies(id, name), contact:contacts(id, name)")
+        .select("*, company:companies(id, name), contact:contacts(id, name, email)")
         .eq("id", id)
         .single();
 

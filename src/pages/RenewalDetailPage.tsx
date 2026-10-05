@@ -38,6 +38,7 @@ import { RenewalBillingTab } from "@/components/renewals/RenewalBillingTab";
 import { EditRenewalContractDialog } from "@/components/renewals/EditRenewalContractDialog";
 import { ComposeEmailDialog } from "@/components/email";
 import { RenewalDiscountsSection } from "@/components/renewals/RenewalDiscountsSection";
+import { RenewalContactLinks } from "@/components/renewals/RenewalContactLinks";
 
 export default function RenewalDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -431,8 +432,13 @@ export default function RenewalDetailPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Empresa</span><span className="font-medium">{companyName || "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Contacto</span><span>{contactName || "—"}</span></div>
+                    <RenewalContactLinks
+                      contractId={contract.id}
+                      companyId={contract.company_id}
+                      companyName={companyName}
+                      contactId={contract.contact_id}
+                      contactName={contactName}
+                    />
                     <div className="flex justify-between"><span className="text-muted-foreground">Billing</span><span>{RENEWAL_BILLING_LABELS[contract.billing_type]}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Periodicidade</span><span>{RENEWAL_INTERVAL_LABELS[contract.renewal_interval]}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Início</span><span>{format(new Date(contract.start_date), "dd/MM/yyyy")}</span></div>
