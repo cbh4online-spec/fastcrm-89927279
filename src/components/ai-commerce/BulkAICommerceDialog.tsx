@@ -28,6 +28,7 @@ import {
 } from "@/hooks/useBulkAICommerceEnrich";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface Props {
   open: boolean;
@@ -68,6 +69,41 @@ export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
         }
       }
       return map;
+    },
+  });
+
+  const { currentWorkspace } = useWorkspace();
+  const wsId = currentWorkspace?.id;
+  const { data: catalogPending = [], isLoading: checkingCatalog } = useQuery({
+    queryKey: ["ai-commerce-catalog-pending", wsId],
+    enabled: open && !!wsId,
+    staleTime: 30_000,
+    queryFn: async (): Promise<BulkEnrichTarget[]> => {
+      const all: BulkEnrichTarget[] = [];
+      for (let from = 0; from < 10000; from += 1000) {
+        const { data, error } = await supabase
+          .from("products")
+          .select("id, name, sku")
+          .eq("workspace_id", wsId!)
+          .is("deleted_at", null)
+          .range(from, from + 999);
+        if (error) throw error;
+        all.push(...((data ?? []) as BulkEnrichTarget[]));
+        if (!data || data.length < 1000) break;
+      }
+      const done = new Set<string>();
+      const allIds = all.map((p) => p.id);
+      for (let i = 0; i < allIds.length; i += 200) {
+        const { data, error } = await supabase
+          .from("product_ai_commerce")
+          .select("product_id")
+          .eq("workspace_id", wsId!)
+          .in("product_id", allIds.slice(i, i + 200))
+          .not("ai_last_validation", "is", null);
+        if (error) throw error;
+        for (const r of data ?? []) if (r.product_id) done.add(r.product_id);
+      }
+      return all.filter((p) => !done.has(p.id));
     },
   });
 
@@ -128,7 +164,11 @@ export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
                 </p>
                 {pendingCount === 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Para tratar os que faltam, selecione outros produtos na lista. Ou escolha abaixo voltar a gerar estes.
+                    {checkingCatalog
+                      ? "A procurar produtos em falta no resto do catálogo…"
+                      : catalogPending.length > 0
+                        ? `Há ${catalogPending.length} produto${catalogPending.length === 1 ? "" : "s"} em falta noutras páginas do catálogo. Pode tratá-los já com o botão abaixo.`
+                        : "Todo o catálogo já tem ficha AI Commerce. Se quiser, escolha abaixo voltar a gerar estes."}
                   </p>
                 )}
               </>
@@ -208,7 +248,18 @@ export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
               Fechar
             </Button>
           )}
-          {!finished && (
+          {!finished && !started && !checking && !forceReenrich && pendingCount === 0 && catalogPending.length > 0 && (
+            <Button
+              className="gap-2"
+              onClick={() =>
+                bulk.start(catalogPending, { overwrite: false, enableAICommerce: true, alreadyEnriched: {}, forceReenrich: false })
+              }
+            >
+              <Sparkles className="h-4 w-4" aria-hidden />
+              {`Enriquecer os ${catalogPending.length} em falta do catálogo`}
+            </Button>
+          )}
+          {!finished && !(!started && !checking && !forceReenrich && pendingCount === 0 && catalogPending.length > 0) && (
             <Button
               className="gap-2"
               disabled={bulk.running || checking || toProcess === 0}
