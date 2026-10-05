@@ -44,14 +44,45 @@ function StatusIcon({ status }: { status: BulkEnrichItem["status"] }) {
 export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
   const bulk = useBulkAICommerceEnrich();
   const [overwrite, setOverwrite] = useState(false);
+  const [forceReenrich, setForceReenrich] = useState(false);
   const started = bulk.total > 0;
 
+  const ids = targets.map((t) => t.id);
+  const { data: enrichedMap = {}, isLoading: checking } = useQuery({
+    queryKey: ["ai-commerce-enriched-status", ids],
+    enabled: open && ids.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const map: Record<string, string> = {};
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data, error } = await supabase
+          .from("product_ai_commerce")
+          .select("product_id, ai_last_validation")
+          .in("product_id", ids.slice(i, i + 200))
+          .not("ai_last_validation", "is", null);
+        if (error) throw error;
+        for (const row of data ?? []) {
+          if (row.product_id && row.ai_last_validation) map[row.product_id] = row.ai_last_validation;
+        }
+      }
+      return map;
+    },
+  });
+
+  const enrichedCount = targets.filter((t) => enrichedMap[t.id]).length;
+  const pendingCount = targets.length - enrichedCount;
+  const toProcess = forceReenrich ? targets.length : pendingCount;
+
   useEffect(() => {
-    if (!open && !bulk.running) bulk.reset();
+    if (!open && !bulk.running) {
+      bulk.reset();
+      setForceReenrich(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const finished = started && !bulk.running;
+  const skippedCount = bulk.items.filter((i) => i.status === "skipped").length;
 
   return (
     <Dialog
