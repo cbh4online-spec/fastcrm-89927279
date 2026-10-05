@@ -26,6 +26,8 @@ import {
   type BulkEnrichItem,
   type BulkEnrichTarget,
 } from "@/hooks/useBulkAICommerceEnrich";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -44,14 +46,45 @@ function StatusIcon({ status }: { status: BulkEnrichItem["status"] }) {
 export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
   const bulk = useBulkAICommerceEnrich();
   const [overwrite, setOverwrite] = useState(false);
+  const [forceReenrich, setForceReenrich] = useState(false);
   const started = bulk.total > 0;
 
+  const ids = targets.map((t) => t.id);
+  const { data: enrichedMap = {}, isLoading: checking } = useQuery({
+    queryKey: ["ai-commerce-enriched-status", ids],
+    enabled: open && ids.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const map: Record<string, string> = {};
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data, error } = await supabase
+          .from("product_ai_commerce")
+          .select("product_id, ai_last_validation")
+          .in("product_id", ids.slice(i, i + 200))
+          .not("ai_last_validation", "is", null);
+        if (error) throw error;
+        for (const row of data ?? []) {
+          if (row.product_id && row.ai_last_validation) map[row.product_id] = row.ai_last_validation;
+        }
+      }
+      return map;
+    },
+  });
+
+  const enrichedCount = targets.filter((t) => enrichedMap[t.id]).length;
+  const pendingCount = targets.length - enrichedCount;
+  const toProcess = forceReenrich ? targets.length : pendingCount;
+
   useEffect(() => {
-    if (!open && !bulk.running) bulk.reset();
+    if (!open && !bulk.running) {
+      bulk.reset();
+      setForceReenrich(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const finished = started && !bulk.running;
+  const skippedCount = bulk.items.filter((i) => i.status === "skipped").length;
 
   return (
     <Dialog
@@ -81,6 +114,34 @@ export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
         </Alert>
 
         {!started && (
+          <div className="space-y-3 rounded-lg border p-3">
+            <div className="flex flex-wrap gap-2 text-xs">
+              {checking ? (
+                <span className="text-muted-foreground">A verificar o que já foi feito…</span>
+              ) : (
+                <>
+                  <Badge variant="secondary">{enrichedCount} já enriquecidos</Badge>
+                  <Badge variant="default">{pendingCount} pendentes</Badge>
+                </>
+              )}
+            </div>
+            {enrichedCount > 0 && (
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="bulk-force" className="text-sm">
+                    Forçar re-enriquecimento dos já efetuados
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Desligado: os {enrichedCount} já feitos são ignorados e não gastam créditos de IA.
+                  </p>
+                </div>
+                <Switch id="bulk-force" checked={forceReenrich} onCheckedChange={setForceReenrich} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {!started && (
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="space-y-0.5">
               <Label htmlFor="bulk-overwrite" className="text-sm">
@@ -104,6 +165,7 @@ export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
               <Badge variant="default">{bulk.succeeded} concluídos</Badge>
+              {skippedCount > 0 && <Badge variant="secondary">{skippedCount} ignorados</Badge>}
               {bulk.failed > 0 && <Badge variant="destructive">{bulk.failed} com erro</Badge>}
             </div>
             <ScrollArea className="h-56 rounded-lg border">
@@ -137,15 +199,26 @@ export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
           {!finished && (
             <Button
               className="gap-2"
-              disabled={bulk.running || targets.length === 0}
-              onClick={() => bulk.start(targets, { overwrite, enableAICommerce: true })}
+              disabled={bulk.running || checking || toProcess === 0}
+              onClick={() =>
+                bulk.start(
+                  forceReenrich ? targets : targets.filter((t) => !enrichedMap[t.id]),
+                  { overwrite, enableAICommerce: true, alreadyEnriched: enrichedMap, forceReenrich },
+                )
+              }
             >
-              {bulk.running ? (
+              {bulk.running || checking ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               ) : (
                 <Sparkles className="h-4 w-4" aria-hidden />
               )}
-              {started ? "A processar…" : `Enriquecer ${targets.length} produto${targets.length === 1 ? "" : "s"}`}
+              {started
+                ? "A processar…"
+                : checking
+                  ? "A verificar…"
+                  : toProcess === 0
+                    ? "Nada por enriquecer"
+                    : `Enriquecer ${toProcess} produto${toProcess === 1 ? "" : "s"}${forceReenrich ? "" : " pendente" + (toProcess === 1 ? "" : "s")}`}
             </Button>
           )}
         </DialogFooter>
