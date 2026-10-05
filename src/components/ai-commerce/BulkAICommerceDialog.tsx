@@ -85,7 +85,6 @@ export function BulkAICommerceDialog({ open, onOpenChange, targets }: Props) {
           .from("products")
           .select("id, name, sku")
           .eq("workspace_id", wsId!)
-          .is("deleted_at", null)
           .range(from, from + 999);
         if (error) throw error;
         all.push(...((data ?? []) as BulkEnrichTarget[]));
