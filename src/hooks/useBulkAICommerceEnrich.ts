@@ -33,6 +33,10 @@ export interface BulkEnrichOptions {
   overwrite: boolean;
   /** Ativa a camada AI Commerce nos produtos processados. */
   enableAICommerce: boolean;
+  /** Mapa id → data da última validação AI Commerce. */
+  alreadyEnriched?: Record<string, string>;
+  /** true = reprocessa também os já enriquecidos. */
+  forceReenrich?: boolean;
 }
 
 const DELAY_MS = 1200;
@@ -110,6 +114,17 @@ export function useBulkAICommerceEnrich() {
         }
 
         const target = targets[index];
+
+        // Proteção: não voltar a gastar IA em produtos já enriquecidos, salvo reescrita forçada.
+        const doneAt = options.alreadyEnriched?.[target.id];
+        if (doneAt && !options.forceReenrich) {
+          patchItem(target.id, {
+            status: "skipped",
+            message: `Já efetuado em ${new Date(doneAt).toLocaleDateString("pt-PT")}`,
+          });
+          continue;
+        }
+
         patchItem(target.id, { status: "running" });
 
         try {
