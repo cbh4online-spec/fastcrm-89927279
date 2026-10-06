@@ -512,7 +512,7 @@ export function ENIContactDetailWithSidebar() {
 
   return (
     <div
-      className="h-full flex flex-col -m-3 sm:-m-4 md:-m-6 min-w-0 max-w-[100vw] md:max-w-none overflow-x-hidden"
+      className="flex flex-col lg:h-full -m-3 sm:-m-4 md:-m-6 min-w-0 max-w-[100vw] md:max-w-none overflow-x-clip"
       onTouchStart={(e) => { const el = e.currentTarget as any; el._sx = e.touches[0].clientX; el._sy = e.touches[0].clientY; }}
       onTouchEnd={(e) => {
         const el = e.currentTarget as any;
@@ -721,21 +721,21 @@ export function ENIContactDetailWithSidebar() {
         <FinancialKPIStrip entityType="contact" entityId={id!} variant="header" className="mt-4" />
       </div>
 
-      {/* Horizontal Tabs */}
-      <EntityHorizontalTabs
-        entityType="contact"
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-        counts={counts}
-        hasStudentJourneyProfile={!!sjProfile}
-      />
+      {/* Horizontal Tabs — fixas no topo ao fazer scroll no telemóvel */}
+      <div className="sticky top-0 z-20 bg-background lg:static">
+        <EntityHorizontalTabs
+          entityType="contact"
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          counts={counts}
+          hasStudentJourneyProfile={!!sjProfile}
+        />
+      </div>
 
-      {/* Main Content - Responsive Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
-        {/* Center Content */}
-        <main className="flex-1 lg:overflow-auto">
-          <ScrollArea className="h-full">
-            <div className="w-full p-6 pt-4 xl:max-w-none max-w-5xl mx-auto xl:mx-0">
+      {/* Main Content — no telemóvel usa o scroll nativo da página */}
+      <div className="flex flex-col lg:flex-1 lg:flex-row lg:min-h-0 lg:overflow-hidden">
+        <main className="min-w-0 lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
+            <div className="w-full p-3 pt-4 pb-28 sm:p-6 lg:pb-6 xl:max-w-none max-w-5xl mx-auto xl:mx-0">
               {activeSection === 'overview' && (
                 <div className="mb-4 space-y-4">
                   <EntityHighlightsGrid entityType="contact" entity={contact as any} />
@@ -745,7 +745,6 @@ export function ENIContactDetailWithSidebar() {
               )}
               {renderSectionContent()}
             </div>
-          </ScrollArea>
         </main>
 
         {/* Right Details Panel */}
