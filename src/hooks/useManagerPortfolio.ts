@@ -76,6 +76,8 @@ export interface UnassignedCounts {
   companies: number;
   opportunities: number;
   total: number;
+  /** Universo autorizado (RLS) por entidade, para calcular cobertura. */
+  totals?: { leads: number; contacts: number; companies: number; opportunities: number };
 }
 
 export interface ModuleHealth {
