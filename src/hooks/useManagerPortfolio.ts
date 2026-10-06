@@ -11,6 +11,7 @@
  * - Profile categories available in the workspace
  */
 
+import { computeCoverage } from "@/lib/crm/coverage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
@@ -111,14 +112,26 @@ export function useManagerPortfolio() {
     queryKey: ["manager-unassigned", currentWorkspace?.id],
     queryFn: async (): Promise<UnassignedCounts> => {
       if (!currentWorkspace) return { leads: 0, contacts: 0, companies: 0, opportunities: 0, total: 0 };
-      const [{ count: uLeads }, { count: uContacts }, { count: uCompanies }, { count: uOpps }] = await Promise.all([
-        workspaceClient.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("assigned_to.is.null,assigned_to.eq."),
-        workspaceClient.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("assigned_to.is.null,assigned_to.eq."),
-        workspaceClient.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("assigned_to.is.null,assigned_to.eq."),
-        workspaceClient.from("opportunities").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("owner_id.is.null,owner_id.eq."),
+      const ws = currentWorkspace.id;
+      // assigned_to é uuid: comparar com "" falhava e devolvia contagem nula (cobertura falsa de 100%).
+      const head = { count: "exact" as const, head: true };
+      const [uL, uC, uCo, uO, tL, tC, tCo, tO] = await Promise.all([
+        workspaceClient.from("leads").select("id", head).eq("workspace_id", ws).is("assigned_to", null),
+        workspaceClient.from("contacts").select("id", head).eq("workspace_id", ws).is("deleted_at", null).is("assigned_to", null),
+        workspaceClient.from("companies").select("id", head).eq("workspace_id", ws).is("deleted_at", null).is("assigned_to", null),
+        workspaceClient.from("opportunities").select("id", head).eq("workspace_id", ws).is("owner_id", null),
+        workspaceClient.from("leads").select("id", head).eq("workspace_id", ws),
+        workspaceClient.from("contacts").select("id", head).eq("workspace_id", ws).is("deleted_at", null),
+        workspaceClient.from("companies").select("id", head).eq("workspace_id", ws).is("deleted_at", null),
+        workspaceClient.from("opportunities").select("id", head).eq("workspace_id", ws),
       ]);
-      const l = uLeads || 0, c = uContacts || 0, co = uCompanies || 0, o = uOpps || 0;
-      return { leads: l, contacts: c, companies: co, opportunities: o, total: l + c + co + o };
+      const firstErr = [uL, uC, uCo, uO, tL, tC, tCo, tO].find((r: any) => r.error)?.error;
+      if (firstErr) throw firstErr;
+      const l = uL.count || 0, c = uC.count || 0, co = uCo.count || 0, o = uO.count || 0;
+      return {
+        leads: l, contacts: c, companies: co, opportunities: o, total: l + c + co + o,
+        totals: { leads: tL.count || 0, contacts: tC.count || 0, companies: tCo.count || 0, opportunities: tO.count || 0 },
+      };
     },
     enabled: !!currentWorkspace,
   });
@@ -271,15 +284,20 @@ export function useManagerPortfolio() {
 
   // ── Module health ──
   const health: ModuleHealth | null = statsQuery.data && unassignedQuery.data ? (() => {
-    const assigned = statsQuery.data.reduce((s, m) => s + m.totalLeads + m.totalContacts + m.totalCompanies, 0);
-    const unassigned = unassignedQuery.data.total;
-    const total = assigned + unassigned;
+    const assignedToMembers = statsQuery.data.reduce((s, m) => s + m.totalLeads + m.totalContacts + m.totalCompanies, 0);
+    const t = unassignedQuery.data.totals;
+    const u = unassignedQuery.data;
+    const cov = computeCoverage({
+      total: t ? t.leads + t.contacts + t.companies : assignedToMembers + u.leads + u.contacts + u.companies,
+      unassigned: u.leads + u.contacts + u.companies,
+      assignedToMembers,
+    });
     return {
-      totalEntities: total,
-      assignedEntities: assigned,
-      unassignedEntities: unassigned,
-      orphanEntities: 0,
-      coveragePct: total > 0 ? Math.round((assigned / total) * 100) : 0,
+      totalEntities: cov.total,
+      assignedEntities: cov.assignedToMembers,
+      unassignedEntities: cov.unassigned,
+      orphanEntities: cov.assignedToOthers,
+      coveragePct: cov.coveragePct,
       lastRefreshedAt: new Date().toISOString(),
     };
   })() : null;
