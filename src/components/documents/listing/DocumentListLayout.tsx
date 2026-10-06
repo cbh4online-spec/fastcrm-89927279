@@ -36,7 +36,7 @@ export function DocumentListLayout({
   className,
 }: DocumentListLayoutProps) {
   return (
-    <div className={cn("flex flex-col gap-3 p-4 sm:gap-4 sm:p-6", className)}>
+    <div className={cn("flex flex-col gap-3 p-4 max-md:pb-32 sm:gap-4 sm:p-6", className)}>
       {/* Header: título + pesquisa + CTAs */}
       <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{title}</h1>
