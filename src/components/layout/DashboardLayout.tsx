@@ -119,7 +119,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <TopBar onMenuClick={() => setSidebarOpen(true)} />
                 <AIUsageBanner />
                 <main
-                  className={`flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background mobile-scroll-momentum ${isMobile ? "with-mobile-nav-pb" : ""}`}
+                  className={`flex-1 min-w-0 animate-fade-in p-3 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden bg-background mobile-scroll-momentum ${isMobile ? "with-mobile-nav-pb" : ""}`}
                 >
                   <WhatsAppHealthBanner />
                   <MenuVisibilityGuard>{children}</MenuVisibilityGuard>
