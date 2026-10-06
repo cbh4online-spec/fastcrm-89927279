@@ -53,6 +53,42 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
   const cart = useStoreCartSafe();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const storageKey = `store-advisor-lead:${workspaceId}`;
+  const [visitor, setVisitor] = useState<{ leadId: string; conversationId: string | null; firstName: string } | null>(() => {
+    try { const raw = localStorage.getItem(storageKey); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  });
+  const [form, setForm] = useState({ name: "", phone: "+351 ", email: "" });
+  const [formError, setFormError] = useState<string | null>(null);
+  const [identifying, setIdentifying] = useState(false);
+
+  const persistVisitor = (v: typeof visitor) => {
+    setVisitor(v);
+    try { if (v) localStorage.setItem(storageKey, JSON.stringify(v)); } catch { /* ignore */ }
+  };
+
+  const submitIdentity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = form.name.trim();
+    const email = form.email.trim();
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    if (name.length < 2 || name.length > 100) return setFormError("Indique o seu nome.");
+    if (phoneDigits.length < 9 || phoneDigits.length > 15) return setFormError("Indique um telemóvel válido.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 255) return setFormError("Indique um email válido.");
+    setFormError(null);
+    setIdentifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("store-ai-advisor", {
+        body: { action: "identify", workspaceId, lead: { name, email, phone: form.phone } },
+      });
+      if (error || !data?.leadId) throw error || new Error("identify_failed");
+      persistVisitor({ leadId: data.leadId, conversationId: data.conversationId ?? null, firstName: data.firstName || name.split(/\s+/)[0] });
+      setMessages([{ role: "assistant", content: data.greeting }]);
+    } catch {
+      setFormError("Não foi possível iniciar a conversa. Tente novamente.");
+    } finally {
+      setIdentifying(false);
+    }
+  };
 
   const handleAddToCart = (product: AdvisorProduct) => {
     if (!cart || product.available === false) return;
@@ -101,6 +137,8 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
           workspaceId,
           productContext: productContext || undefined,
           history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
+          leadId: visitor?.leadId,
+          conversationId: visitor?.conversationId,
         },
       });
 
@@ -140,6 +178,9 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
         throw error;
       }
 
+      if (visitor && data.conversationId && data.conversationId !== visitor.conversationId) {
+        persistVisitor({ ...visitor, conversationId: data.conversationId });
+      }
       const assistantMsg: Message = {
         role: "assistant",
         content: data.response || "Desculpe, não consegui processar o pedido.",
@@ -205,11 +246,38 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
               className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3"
             >
               <div className="space-y-4">
-                {messages.length === 0 && (
+                {!visitor && (
+                  <form onSubmit={submitIdentity} className="py-4 space-y-3" noValidate>
+                    <div className="text-center">
+                      <Bot className="h-10 w-10 mx-auto text-primary/30 mb-3" />
+                      <p className="text-sm text-muted-foreground">
+                        Olá! Sou o consultor desta loja. Para o ajudar melhor e podermos dar seguimento, diga-nos como o podemos tratar.
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <label htmlFor="adv-name" className="text-xs font-medium">Nome</label>
+                      <Input id="adv-name" autoComplete="name" maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-9 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <label htmlFor="adv-phone" className="text-xs font-medium">Telemóvel</label>
+                      <Input id="adv-phone" type="tel" autoComplete="tel" maxLength={20} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-9 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <label htmlFor="adv-email" className="text-xs font-medium">Email</label>
+                      <Input id="adv-email" type="email" autoComplete="email" maxLength={255} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-9 text-sm" />
+                    </div>
+                    {formError && <p role="alert" className="text-xs text-destructive">{formError}</p>}
+                    <Button type="submit" className="w-full" disabled={identifying}>
+                      {identifying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Iniciar conversa"}
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground text-center">Os seus dados são usados apenas para responder ao seu pedido.</p>
+                  </form>
+                )}
+                {visitor && messages.length === 0 && (
                   <div className="text-center py-6">
                     <Bot className="h-10 w-10 mx-auto text-primary/30 mb-3" />
                     <p className="text-sm text-muted-foreground">
-                      Olá! Sou o consultor IA desta loja. Posso ajudá-lo a escolher o produto certo.
+                      Olá de novo, {visitor.firstName}! Em que posso ajudar hoje?
                     </p>
                     <div className="flex flex-wrap gap-2 mt-4 justify-center">
                       {(productContext
@@ -337,7 +405,7 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
 
             {/* Input */}
             <div className="border-t px-3 py-2.5">
-              {messageCount >= 10 ? (
+              {!visitor ? null : messageCount >= 10 ? (
                 <p className="text-xs text-muted-foreground text-center py-1">
                   Limite de mensagens atingido. Recarregue a página para reiniciar.
                 </p>
