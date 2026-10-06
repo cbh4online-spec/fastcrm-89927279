@@ -348,7 +348,7 @@ export default function AlertsPage() {
             </p>
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col gap-2 max-md:pr-12">
+          <div className="flex min-w-0 flex-col gap-2 pr-20">
             {pageItems.map((item) => (
               <AlertRow
                 key={`${item.source_table}-${item.id}`}
@@ -361,7 +361,7 @@ export default function AlertsPage() {
         )}
 
         {totalCount > pageSize && (
-          <div className="mt-4 flex flex-wrap items-center justify-end gap-2 text-sm max-md:pr-12">
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2 pr-20 text-sm">
             <Button
               variant="ghost"
               size="sm"
