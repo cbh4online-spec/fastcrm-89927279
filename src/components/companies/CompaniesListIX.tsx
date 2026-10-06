@@ -290,7 +290,9 @@ export function CompaniesListIX() {
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);
-  const [onlyOverdue, setOnlyOverdue] = useState(false);
+  const [quick, setQuick] = useState<string | null>(null);
+  const onlyOverdue = quick === "overdue";
+  const toggleQuick = (k: string) => { setQuick((q) => (q === k ? null : k)); setPage(0); };
   const [mergeOpen, setMergeOpen] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
@@ -359,8 +361,18 @@ export function CompaniesListIX() {
           .some((v) => String(v).toLowerCase().includes(q)),
       );
     }
-    if (onlyOverdue) {
-      arr = arr.filter((c) => (financialsById.get(c.id)?.overdue_total ?? 0) > 0.01);
+    if (quick) {
+      const yearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+      arr = arr.filter((c) => {
+        const f = financialsById.get(c.id);
+        if (!f) return false;
+        if (quick === "overdue") return f.overdue_total > 0.01;
+        if (quick === "pending") return f.pending_total > 0.01;
+        if (quick === "paid") return f.paid_total > 0.01;
+        if (quick === "revenue" || quick === "ticket") return f.invoice_count > 0;
+        if (quick === "active") return !!f.last_invoice_date && new Date(f.last_invoice_date).getTime() >= yearAgo;
+        return true;
+      });
     }
     arr = arr.filter(
       (c) =>
@@ -388,7 +400,7 @@ export function CompaniesListIX() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [all, search, sortBy, sortDir, financialsById, onlyOverdue, sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter]);
+  }, [all, search, sortBy, sortDir, financialsById, quick, sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter]);
 
 
   const totalCount = filtered.length;
@@ -431,13 +443,11 @@ export function CompaniesListIX() {
         icon: AlertTriangle,
         tone: overdue > 0.01 ? "danger" : "neutral",
         hint: onlyOverdue ? "A filtrar" : "Clique para filtrar",
-        active: onlyOverdue,
-        onClick: () => { setOnlyOverdue((v) => !v); setPage(0); },
       },
       { key: "ticket", label: "Ticket médio", value: formatCurrency(ticket), icon: Receipt, tone: "neutral" },
       { key: "active", label: "Clientes ativos", value: String(active), icon: Users, tone: "neutral", hint: "com faturação a 12 meses" },
-    ];
-  }, [filtered, financialsById, onlyOverdue]);
+    ].map((k) => ({ ...k, active: quick === k.key, onClick: () => toggleQuick(k.key) })) as ListKPI[];
+  }, [filtered, financialsById, onlyOverdue, quick]);
 
   return (
     <DocumentListLayout
