@@ -22,6 +22,9 @@ import {
   VatChart,
 } from "@/components/dashboard/ix/IXDashboardCharts";
 import { formatEUR } from "@/lib/currency";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { aggregateClientsWithRental, type RentalInfo } from "@/lib/finance/rentalAttribution";
 
 
 type SectionId = "faturacao" | "cobrancas" | "clientes" | "itens" | "impostos";
@@ -147,18 +150,41 @@ export default function IXDashboard() {
     return { count: open.length, totalDue, buckets };
   }, [cases]);
 
-  // Clientes — top por faturado
-  const topClients = useMemo(() => {
-    const map = new Map<string, { name: string; total: number; count: number }>();
-    invoices.forEach((i) => {
-      const key = i.client_name || "—";
-      const cur = map.get(key) ?? { name: key, total: 0, count: 0 };
-      cur.total += Number(i.total || 0);
-      cur.count += 1;
-      map.set(key, cur);
-    });
-    return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 8);
-  }, [invoices]);
+  // Contratos de renting: fatura à financeira, mas cliente comercial = cliente final
+  const rentalIds = useMemo(
+    () => Array.from(new Set(invoices.map((i: any) => i.rental_contract_id).filter(Boolean))) as string[],
+    [invoices],
+  );
+  const { data: rentals = {} } = useQuery({
+    queryKey: ["dashboard-rental-attribution", currentWorkspace?.id, rentalIds],
+    enabled: !!currentWorkspace && rentalIds.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rental_contracts")
+        .select(
+          "id, end_client_company_id, financier_company_id, end_client:companies!rental_contracts_end_client_company_id_fkey(name), financier:companies!rental_contracts_financier_company_id_fkey(name)",
+        )
+        .in("id", rentalIds);
+      if (error) throw error;
+      const out: Record<string, RentalInfo> = {};
+      (data ?? []).forEach((r: any) => {
+        out[r.id] = {
+          end_client_id: r.end_client_company_id,
+          end_client_name: r.end_client?.name ?? null,
+          financier_id: r.financier_company_id,
+          financier_name: r.financier?.name ?? null,
+        };
+      });
+      return out;
+    },
+  });
+
+  // Clientes — top por faturado (sem proformas/rascunhos; renting atribuído ao cliente final)
+  const topClients = useMemo(
+    () => aggregateClientsWithRental(invoices as any, rentals).slice(0, 8),
+    [invoices, rentals],
+  );
 
   // Impostos — por taxa
   const vatByRate = useMemo(() => {
