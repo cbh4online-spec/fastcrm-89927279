@@ -318,8 +318,8 @@ export default function Invoices() {
           ) : undefined
         }
       >
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0 max-w-full overflow-x-auto">
-          <TabsList className="mb-2 w-max justify-start bg-transparent p-0 gap-1">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0 max-w-full">
+          <div className="w-full max-w-full overflow-x-auto"><TabsList className="mb-2 w-max justify-start bg-transparent p-0 gap-1">
             {[
               { id: "invoices", label: t("tabInvoices") },
               { id: "recurring", label: t("tabRecurring") },
@@ -335,7 +335,7 @@ export default function Invoices() {
                 {tab.label}
               </TabsTrigger>
             ))}
-          </TabsList>
+          </TabsList></div>
         </Tabs>
 
         {activeTab === "settings" ? (
