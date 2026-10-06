@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { toast } from "sonner";
@@ -7,6 +7,11 @@ import { CopilotActionContent } from "@/components/copilot/CopilotActionContent"
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const message = "Olá, podemos falar sobre a proposta?";
+const originalClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+
+beforeEach(() => {
+  Object.defineProperty(navigator, "clipboard", { configurable: true, get: () => undefined });
+});
 
 function renderAction() {
   render(<MemoryRouter><CopilotActionContent content={`[[acao|contact:945bc9e1-9923-49eb-a964-8232770948e7|Contacto|912345678|${message}]]`} /></MemoryRouter>);
@@ -16,6 +21,8 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.clearAllMocks();
+  if (originalClipboard) Object.defineProperty(navigator, "clipboard", originalClipboard);
+  else Reflect.deleteProperty(navigator, "clipboard");
 });
 
 describe("WhatsApp do Copilot", () => {
