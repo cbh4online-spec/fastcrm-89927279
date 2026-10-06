@@ -60,7 +60,7 @@ export function OpportunityRecordNav({ opportunityId, stageId, stageName }: Oppo
         <ChevronLeft className="h-3.5 w-3.5" />
       </Button>
       <span className="whitespace-nowrap">
-        {currentIndex + 1} {t("oppDetail_ofRecords")} {total} {t("oppDetail_inStage")} {stageName}
+        {currentIndex + 1} {t("oppDetail_ofRecords")} {total} · {stageName}
       </span>
       <Button
         variant="ghost"

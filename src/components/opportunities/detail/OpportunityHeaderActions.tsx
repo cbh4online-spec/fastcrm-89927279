@@ -96,7 +96,7 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
         onClick={() => setShowQuickProposal(true)}
       >
         <FileText className="w-3.5 h-3.5" />
-        <span className="hidden sm:inline">Proposta rápida</span>
+        <span>Proposta rápida</span>
       </Button>
 
       {/* Adjudicar e faturar */}
