@@ -372,11 +372,9 @@ export default function NewContactPage() {
         isSubmitting={isSubmitting}
         canSubmit={canSubmit}
       >
-        {/* Informação Fiscal */}
-        <IXFormSection
-          title="Informação Fiscal"
-          description="Estes dados serão incluídos em todos os documentos emitidos e comunicações com o Estado."
-        >
+
+        {/* Identificação e contacto */}
+        <IXFormSection title="Identificação e contacto" description="Comece pelo essencial: nome, email, telefone e empresa.">
           <div className="mb-6">
             <EntityAvatarUpload
               name={form.name || "Contacto"}
@@ -387,52 +385,7 @@ export default function NewContactPage() {
               size="lg"
             />
           </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            <IXField label="NIF" htmlFor="tax_id">
-              <div className="flex gap-2">
-                <Select value={form.nif_country} onValueChange={(v) => update("nif_country", v)}>
-                  <SelectTrigger className="w-28 rounded-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PT">🇵🇹 PT</SelectItem>
-                    <SelectItem value="ES">🇪🇸 ES</SelectItem>
-                    <SelectItem value="FR">🇫🇷 FR</SelectItem>
-                    <SelectItem value="GB">🇬🇧 GB</SelectItem>
-                    <SelectItem value="BR">🇧🇷 BR</SelectItem>
-                    <SelectItem value="OTHER">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  id="tax_id"
-                  className="rounded-full"
-                  value={form.tax_id}
-                  onChange={(e) => update("tax_id", e.target.value)}
-                  placeholder="123456789"
-                />
-              </div>
-            </IXField>
-            <IXField label="Código" htmlFor="external_code">
-              <Input
-                id="external_code"
-                className="rounded-full"
-                value={form.external_code}
-                onChange={(e) => update("external_code", e.target.value)}
-                placeholder="Código interno (opcional)"
-              />
-            </IXField>
-          </div>
-          <div className="mt-6 flex items-center gap-3">
-            <Switch
-              id="final-consumer"
-              checked={form.is_final_consumer}
-              onCheckedChange={(v) => update("is_final_consumer", v)}
-            />
-            <label htmlFor="final-consumer" className="text-sm font-medium">
-              Consumidor final
-            </label>
-          </div>
-          <div className="mt-6">
+          <div>
             <IXField
               label="Nome"
               htmlFor="name"
@@ -448,7 +401,20 @@ export default function NewContactPage() {
               />
             </IXField>
           </div>
-          <p className="mt-4 text-right text-xs italic text-primary">*Campo obrigatório</p>
+          <div className="mt-6 grid gap-6 md:grid-cols-2">
+            <IXField label="E-mail" htmlFor="email">
+              <Input id="email" type="email" className="rounded-full" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="nome@empresa.pt" />
+            </IXField>
+            <IXField label="Telefone">
+              <PhoneInput value={form.phone} onChange={(v) => update("phone", v)} placeholder="+351 912 345 678" />
+            </IXField>
+            <IXField label="Telemóvel">
+              <PhoneInput value={form.phone_mobile} onChange={(v) => update("phone_mobile", v)} placeholder="+351 912 345 678" />
+            </IXField>
+            <IXField label="Empresa" htmlFor="company">
+              <Input id="company" className="rounded-full" value={form.company} onChange={(e) => update("company", e.target.value)} />
+            </IXField>
+          </div>
         </IXFormSection>
 
         {/* Enrich + duplicados (acima da próxima secção) */}
@@ -509,21 +475,12 @@ export default function NewContactPage() {
 
         {/* Detalhes */}
         <IXFormSection
-          title="Detalhes"
+          title="Morada e outros dados"
           description="Estes serão os detalhes incluídos em todos os documentos."
         >
           <div className="grid gap-6 md:grid-cols-2">
-            <IXField label="E-mail" htmlFor="email">
-              <Input id="email" type="email" className="rounded-full" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="nome@empresa.pt" />
-            </IXField>
-            <IXField label="Telefone">
-              <PhoneInput value={form.phone} onChange={(v) => update("phone", v)} placeholder="+351 912 345 678" />
-            </IXField>
             <IXField label="Morada" htmlFor="address" counter={{ value: form.address.length, max: 200 }} className="md:col-span-1">
               <Textarea id="address" className="min-h-[120px] rounded-2xl" value={form.address} onChange={(e) => update("address", e.target.value.slice(0, 200))} />
-            </IXField>
-            <IXField label="Telemóvel">
-              <PhoneInput value={form.phone_mobile} onChange={(v) => update("phone_mobile", v)} placeholder="+351 912 345 678" />
             </IXField>
             <IXField label="Cidade" htmlFor="city">
               <Input id="city" className="rounded-full" value={form.city} onChange={(e) => update("city", e.target.value)} />
@@ -535,6 +492,59 @@ export default function NewContactPage() {
               <Input id="website" className="rounded-full" value={form.website} onChange={(e) => update("website", e.target.value)} placeholder="https://" />
             </IXField>
           </div>
+        </IXFormSection>
+
+        {/* Informação Fiscal */}
+        <IXFormSection
+          title="Dados fiscais (opcional)"
+          description="Necessários apenas para faturar. São incluídos nos documentos emitidos e comunicações com o Estado."
+        >
+          <div className="grid gap-6 md:grid-cols-2">
+            <IXField label="NIF" htmlFor="tax_id">
+              <div className="flex gap-2">
+                <Select value={form.nif_country} onValueChange={(v) => update("nif_country", v)}>
+                  <SelectTrigger className="w-28 rounded-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PT">🇵🇹 PT</SelectItem>
+                    <SelectItem value="ES">🇪🇸 ES</SelectItem>
+                    <SelectItem value="FR">🇫🇷 FR</SelectItem>
+                    <SelectItem value="GB">🇬🇧 GB</SelectItem>
+                    <SelectItem value="BR">🇧🇷 BR</SelectItem>
+                    <SelectItem value="OTHER">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  id="tax_id"
+                  className="rounded-full"
+                  value={form.tax_id}
+                  onChange={(e) => update("tax_id", e.target.value)}
+                  placeholder="123456789"
+                />
+              </div>
+            </IXField>
+            <IXField label="Código" htmlFor="external_code">
+              <Input
+                id="external_code"
+                className="rounded-full"
+                value={form.external_code}
+                onChange={(e) => update("external_code", e.target.value)}
+                placeholder="Código interno (opcional)"
+              />
+            </IXField>
+          </div>
+          <div className="mt-6 flex items-center gap-3">
+            <Switch
+              id="final-consumer"
+              checked={form.is_final_consumer}
+              onCheckedChange={(v) => update("is_final_consumer", v)}
+            />
+            <label htmlFor="final-consumer" className="text-sm font-medium">
+              Consumidor final
+            </label>
+          </div>
+          <p className="mt-4 text-right text-xs italic text-primary">*Campo obrigatório</p>
         </IXFormSection>
 
         {/* Contacto Preferencial */}
@@ -637,9 +647,6 @@ export default function NewContactPage() {
         {/* Extras CRM (mantém funcionalidades existentes) */}
         <IXFormSection title="CRM" description="Informação interna para gestão comercial.">
           <div className="grid gap-6 md:grid-cols-2">
-            <IXField label="Empresa" htmlFor="company">
-              <Input id="company" className="rounded-full" value={form.company} onChange={(e) => update("company", e.target.value)} />
-            </IXField>
             <IXField label="Cargo" htmlFor="job_title">
               <Input id="job_title" className="rounded-full" value={form.job_title} onChange={(e) => update("job_title", e.target.value)} />
             </IXField>
