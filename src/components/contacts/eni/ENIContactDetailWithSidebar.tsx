@@ -3,7 +3,7 @@ import { useWhatsAppStopSignals } from "@/hooks/useWhatsAppStopSignals";
 import { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { socialMessageUrl } from '@/lib/social/socialProfiles';
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useContacts } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
@@ -570,8 +570,15 @@ export function ENIContactDetailWithSidebar() {
       {/* Header */}
       <div className="border-b bg-background px-3 py-3 md:px-6 md:py-4">
         <div className="flex flex-wrap items-start gap-3 md:flex-nowrap md:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/contacts")} className="shrink-0" aria-label="Voltar aos contactos">
-            <ArrowLeft className="w-5 h-5" />
+          <Button asChild variant="ghost" size="icon" className="shrink-0">
+            <Link
+              to="/dashboard/contacts"
+              aria-label="Voltar aos contactos"
+              onClick={(e) => { e.stopPropagation(); }}
+              onTouchEnd={(e) => e.stopPropagation()}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
           </Button>
           <EntityAvatarUpload
             name={contact.name}

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, Mail, Phone, MessageCircle, ShieldCheck, ShieldAlert } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { Badge } from "@/components/ui/badge";
 import type { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
 
@@ -16,21 +16,24 @@ interface Props {
 
 /** Destaque: contacto, próxima ação e estado de consentimento (nunca escondido). */
 export function ContactEssentialsCard({ contactId, workspaceId, email, phone, whatsapp, marketingOptIn, preferences }: Props) {
-  const { data: next, isLoading, isError } = useQuery({
+  const { workspaceClient } = useWorkspaceInstance();
+  const { data: next, isLoading, isError, error } = useQuery({
     queryKey: ["tasks", "next-action", workspaceId, contactId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Mesmo cliente e campos que useTasks (tasks: related_type/related_id, estados pending/done).
+      const { data, error } = await workspaceClient
         .from("tasks")
-        .select("id,title,due_at,status")
+        .select("*")
         .eq("workspace_id", workspaceId!)
         .eq("related_type", "contact")
         .eq("related_id", contactId)
-        .neq("status", "completed")
+        .not("status", "in", "(done,completed,cancelled)")
         .order("due_at", { ascending: true, nullsFirst: false })
         .limit(1);
       if (error) throw error;
-      return (data ?? [])[0] as { id: string; title: string; due_at: string | null } | undefined;
+      // React Query não aceita undefined: null = sem tarefas pendentes (diferente de erro).
+      return ((data ?? [])[0] ?? null) as { id: string; title: string; due_at: string | null } | null;
     },
   });
   const prefsOff = Object.entries(preferences ?? {}).filter(([, v]) => v === false).map(([k]) => k);
@@ -46,7 +49,7 @@ export function ContactEssentialsCard({ contactId, workspaceId, email, phone, wh
       <div className="min-w-0 space-y-1">
         <p className="text-xs font-medium text-muted-foreground">Próxima ação</p>
         {isLoading ? <p className="text-sm text-muted-foreground">A carregar…</p>
-          : isError ? <p className="text-sm text-destructive">Não foi possível carregar tarefas</p>
+          : isError ? <p className="text-sm text-destructive" role="alert">Não foi possível carregar tarefas. Tente novamente mais tarde.</p>
           : next ? (
             <p className="flex min-w-0 items-start gap-1.5 text-sm">
               <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />

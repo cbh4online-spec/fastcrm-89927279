@@ -355,7 +355,7 @@ export default function RenewalDetailPage() {
                 <CardContent className="py-4">
                   <div className="flex items-center gap-2 mb-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground font-medium">Health Score</p>
+                    <p className="text-xs text-muted-foreground font-medium">Saúde do contrato</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={`text-2xl font-bold ${getHealthScoreColor(contract.health_score)}`}>
