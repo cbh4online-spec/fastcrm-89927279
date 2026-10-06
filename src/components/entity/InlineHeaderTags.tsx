@@ -31,37 +31,35 @@ export function InlineHeaderTags({ tags, onTagsChange }: InlineHeaderTagsProps) 
     return wt?.color ? TAG_COLORS[wt.color] || DEFAULT_TAG : DEFAULT_TAG;
   };
 
-  const MAX_VISIBLE = 3;
-  const visibleTags = tags.slice(0, MAX_VISIBLE);
-  const hiddenCount = tags.length - MAX_VISIBLE;
-
   return (
-    <>
-      {visibleTags.map((tag, i) => (
-        <Badge key={i} variant="outline" className={cn("text-xs gap-1 pr-1", getColor(tag))}>
-          {tag}
+    <div className="flex min-w-0 max-w-full items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {tags.map((tag, i) => (
+        <Badge
+          key={`${tag}-${i}`}
+          variant="outline"
+          title={tag}
+          className={cn("h-6 shrink-0 gap-1 pr-1 text-xs", getColor(tag))}
+        >
+          <span className="max-w-[140px] truncate md:max-w-[220px]">{tag}</span>
           <button
             type="button"
             onClick={() => onTagsChange(tags.filter((_, j) => j !== i))}
             className="ml-0.5 hover:opacity-70"
+            aria-label={`Remover etiqueta ${tag}`}
           >
             <X className="h-3 w-3" />
           </button>
         </Badge>
       ))}
-      {hiddenCount > 0 && (
-        <Badge variant="outline" className="text-xs text-muted-foreground">
-          +{hiddenCount}
-        </Badge>
-      )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-dashed border-muted-foreground/30 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            aria-label="Adicionar etiqueta"
+            className="flex h-6 shrink-0 items-center gap-1 rounded-full border border-dashed border-muted-foreground/30 px-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
             <Plus className="h-3 w-3" />
-            Tag
+            <span className="hidden sm:inline">Tag</span>
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-72 p-2" align="start">
@@ -72,6 +70,6 @@ export function InlineHeaderTags({ tags, onTagsChange }: InlineHeaderTagsProps) 
           />
         </PopoverContent>
       </Popover>
-    </>
+    </div>
   );
 }

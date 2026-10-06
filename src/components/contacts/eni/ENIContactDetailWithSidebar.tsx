@@ -591,7 +591,7 @@ export function ENIContactDetailWithSidebar() {
                 </>
               )}
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-2">
               <ActivityProfileBadge
                 entityType="contact"
                 entityId={id!}

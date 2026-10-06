@@ -128,7 +128,7 @@ export function EditableEntityTitle({
   return (
     <div className="group/title flex min-w-0 items-center gap-1.5">
       <h1
-        className={cn("truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl", className)}
+        className={cn("line-clamp-2 break-words text-xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl md:line-clamp-none md:truncate", className)}
         {...(canEdit ? { onDoubleClick: () => setIsEditing(true), title: value } : { title: value })}
       >
         {value}
