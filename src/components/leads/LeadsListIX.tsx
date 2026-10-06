@@ -1,4 +1,4 @@
-import { mobileCellClass } from "@/components/documents/listing/mobileCardCell";
+import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
 import { useMemo, useState } from "react";
 import { saveEntityListNavigation } from "@/hooks/useEntityListNavigation";
@@ -470,6 +470,7 @@ export function LeadsListIX() {
               {orderedColumns.map((col, colIdx) => (
                 <div
                   key={col}
+                  data-label={mobileCellLabel(col, LEAD_COLUMNS.find((d) => d.key === col)?.label)}
                   className={cn(
                     "flex min-w-0 items-center overflow-hidden",
                     COLUMN_WIDTH[col] ?? "min-w-[120px]",

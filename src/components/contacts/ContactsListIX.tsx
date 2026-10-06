@@ -1,4 +1,4 @@
-import { mobileCellClass } from "@/components/documents/listing/mobileCardCell";
+import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -428,7 +428,7 @@ export function ContactsListIX() {
                 />
               </div>
               {orderedColumns.map((col, colIdx) => (
-                <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]", mobileCellClass(col, colIdx, c as any))}>
+                <div key={col} data-label={mobileCellLabel(col, COLUMNS.find((d) => d.key === col)?.label)} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]", mobileCellClass(col, colIdx, c as any))}>
                   {renderCell(col, c)}
                 </div>
               ))}

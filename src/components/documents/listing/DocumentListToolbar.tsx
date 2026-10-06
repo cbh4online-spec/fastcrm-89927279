@@ -64,7 +64,7 @@ export function DocumentListToolbar({
         </label>
       )}
 
-      <div className="flex w-full md:w-auto md:ml-auto items-center gap-x-2 md:gap-x-6 gap-y-2 max-md:flex-nowrap max-md:overflow-x-auto max-md:-mx-1 max-md:px-1 scrollbar-none md:flex-wrap">
+      <div className="flex w-full flex-wrap md:w-auto md:ml-auto items-center gap-x-2 md:gap-x-6 gap-y-2">
         {sortOptions && onSortChange && (
           <div className="flex shrink-0 items-center gap-1 md:gap-2">
             <span className="max-md:sr-only">Ordenar por</span>
