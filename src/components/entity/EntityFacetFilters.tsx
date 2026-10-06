@@ -159,11 +159,11 @@ export function EntityFacetFilters({ facets, className }: EntityFacetFiltersProp
         <Button
           variant="outline"
           size="sm"
-          className={cn("h-9 gap-2", activeCount > 0 && "border-primary/50 text-primary", className)}
+          className={cn("h-9 gap-2 max-md:h-8 max-md:gap-1 max-md:rounded-full max-md:px-2.5", activeCount > 0 && "border-primary/50 text-primary", className)}
           aria-label="Filtros avançados"
         >
           <Filter className="h-4 w-4" />
-          Filtros
+          <span className="max-md:sr-only">Filtros</span>
           {activeCount > 0 && (
             <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs tabular-nums">
               {activeCount}

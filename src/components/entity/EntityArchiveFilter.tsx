@@ -12,7 +12,7 @@ interface EntityArchiveFilterProps {
 export function EntityArchiveFilter({ value, onChange, className }: EntityArchiveFilterProps) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as EntityArchiveState)}>
-      <SelectTrigger className={className ?? "h-9 w-[150px]"} aria-label="Estado de arquivo">
+      <SelectTrigger className={className ?? "h-9 w-[150px] max-md:h-8 max-md:w-auto max-md:gap-1 max-md:rounded-full max-md:px-3 max-md:text-xs"} aria-label="Estado de arquivo">
         <SelectValue placeholder="Estado" />
       </SelectTrigger>
       <SelectContent>
