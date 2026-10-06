@@ -68,22 +68,19 @@ export function CopilotDrawer() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("ai-copilot", {
+      if (!currentWorkspace?.id) throw new Error("no-ws");
+      const { data, error } = await supabase.functions.invoke("fastcrm-copilot-chat", {
         body: {
           question: text.trim(),
-          conversation_context: {
-            history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
-          },
+          workspace_id: currentWorkspace.id,
+          history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content.slice(0, 4000) })),
         },
-        headers: currentWorkspace?.id
-          ? { "X-Workspace-Id": currentWorkspace.id }
-          : undefined,
       });
 
       const assistantContent =
         error
           ? "Desculpe, não consegui processar o pedido. Tente novamente."
-          : data?.answer || data?.response || data?.content || "Sem resposta disponível.";
+          : data?.error || data?.answer || "Sem resposta disponível.";
 
       const assistantMsg: Message = {
         id: crypto.randomUUID(),
