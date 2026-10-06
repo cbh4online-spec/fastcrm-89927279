@@ -1,7 +1,6 @@
-import { Check, Circle } from "lucide-react";
+import { ArrowRight, Check, Circle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { IXCard } from "@/components/entity/ix/IXCard";
 import { cn } from "@/lib/utils";
 import { PipelineStage } from "@/types/opportunity";
 
@@ -19,60 +18,65 @@ export function OpportunityStagesStepper({
   isLoading = false,
 }: OpportunityStagesStepperProps) {
   const currentIndex = stages.findIndex((s) => s.id === currentStageId);
+  const nextStage = currentIndex >= 0 ? stages[currentIndex + 1] : undefined;
 
   return (
-    <Card className="p-3 md:p-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h3 className="text-sm md:text-base font-semibold">Estágios</h3>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={onMoveToNext}
-          disabled={isLoading || currentIndex >= stages.length - 1}
-          className="w-full sm:w-auto"
-        >
-          Avançar Estágio
-        </Button>
-      </div>
-
-      <ScrollArea className="w-full">
-        <div className="flex items-center gap-1 md:gap-2 pb-2 min-w-max">
+    <IXCard title="Etapas" contentClassName="px-4 pb-4 sm:px-6 sm:pb-6">
+      {currentIndex < 0 && (
+        <p className="mb-4 text-sm text-muted-foreground" role="status">
+          {stages.length === 0 ? "Sem etapas disponíveis." : "A etapa atual não está disponível neste percurso."}
+        </p>
+      )}
+      <ol aria-label="Percurso da oportunidade" className="min-w-0">
           {stages.map((stage, index) => {
-            const isCompleted = index < currentIndex;
+            const isPrevious = currentIndex >= 0 && index < currentIndex;
             const isCurrent = index === currentIndex;
-            const isPending = index > currentIndex;
 
             return (
-              <div key={stage.id} className="flex items-center">
-                {/* Stage indicator */}
-                <div
-                  className={cn(
-                    "flex items-center justify-center py-1.5 md:py-2 px-2 md:px-3 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap",
-                    isCompleted && "bg-primary/10 text-primary",
-                    isCurrent && "bg-primary text-primary-foreground",
-                    isPending && "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {isCompleted && <Check className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-1.5" />}
-                  {isCurrent && <Circle className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1 md:mr-1.5 fill-current" />}
-                  <span className="truncate max-w-[80px] md:max-w-none">{stage.name}</span>
-                </div>
-
-                {/* Connector line */}
-                {index < stages.length - 1 && (
+              <li key={stage.id} aria-current={isCurrent ? "step" : undefined} className="relative flex min-w-0 gap-3">
+                <div className="flex w-7 shrink-0 flex-col items-center" aria-hidden="true">
                   <div
                     className={cn(
-                      "h-0.5 w-2 md:w-4 mx-0.5 md:mx-1 flex-shrink-0",
-                      index < currentIndex ? "bg-primary" : "bg-muted"
+                      "relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border",
+                      isPrevious && "border-primary/30 bg-primary/10 text-primary",
+                      isCurrent && "border-primary bg-card text-primary ring-4 ring-primary/10",
+                      !isPrevious && !isCurrent && "border-border bg-muted text-muted-foreground"
                     )}
-                  />
-                )}
-              </div>
+                  >
+                    {isPrevious ? <Check className="h-3.5 w-3.5" /> : isCurrent ? <Circle className="h-2.5 w-2.5 fill-current" /> : <span className="text-xs font-medium">{index + 1}</span>}
+                  </div>
+                  {index < stages.length - 1 && <div className={cn("min-h-4 w-px flex-1", isPrevious ? "bg-primary/30" : "bg-border")} />}
+                </div>
+                <div className={cn("min-w-0 flex-1 pb-5", index === stages.length - 1 && "pb-0")}>
+                  <div className={cn("min-w-0", isCurrent && "border-l-2 border-primary pl-3")}>
+                    <p className={cn("break-words text-sm leading-6 [overflow-wrap:anywhere]", isCurrent ? "font-bold text-foreground" : "font-medium text-muted-foreground")}>
+                      {stage.name}
+                    </p>
+                    <p className={cn("text-xs", isCurrent ? "font-medium text-primary" : "text-muted-foreground")}>
+                      {isCurrent ? "Etapa atual" : isPrevious ? "Etapa anterior" : currentIndex >= 0 ? "Por alcançar" : "Etapa do percurso"}
+                    </p>
+                    {isCurrent && (
+                      <div className="mt-3 space-y-2">
+                        {nextStage ? <p className="break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">Seguinte: <span className="font-medium text-foreground">{nextStage.name}</span></p> : <p className="text-xs text-muted-foreground">Última etapa do percurso</p>}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={onMoveToNext}
+                          disabled={isLoading || !nextStage}
+                          className="h-10 w-full gap-2 sm:w-auto"
+                          aria-label={nextStage ? `Avançar para ${nextStage.name}` : "Última etapa do percurso"}
+                        >
+                          {isLoading ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                          {isLoading ? "A avançar…" : "Avançar etapa"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </li>
             );
           })}
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
-    </Card>
+      </ol>
+    </IXCard>
   );
 }
