@@ -1,3 +1,4 @@
+import { resolveWhatsAppAvailability, type WhatsAppAvailability } from "@/lib/whatsapp/availability";
 import { useState } from "react";
 import { Phone, MessageCircle, Mail, StickyNote, CalendarPlus, Copy, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
+  whatsapp?: ReturnType<typeof resolveWhatsAppAvailability> & { status: WhatsAppAvailability };
   contactId: string;
   workspaceId?: string;
   name: string;
@@ -25,9 +27,9 @@ const FOLLOW_UPS = [
 ];
 
 const haptic = () => { try { navigator.vibrate?.(10); } catch { /* noop */ } };
-const digits = (p: string) => p.replace(/[^\d+]/g, "").replace(/^\+/, "");
 
-export function ContactMobileQuickActions({ contactId, workspaceId, name, phone, email, lastActivityAt, onEmail }: Props) {
+export function ContactMobileQuickActions({ contactId, workspaceId, name, phone, email, lastActivityAt, onEmail, whatsapp }: Props) {
+  const wa = whatsapp ?? resolveWhatsAppAvailability({ phone });
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
@@ -85,9 +87,12 @@ export function ContactMobileQuickActions({ contactId, workspaceId, name, phone,
         </button>
       )}
 
+      {wa.status !== "confirmed" && phone && (
+        <p className="text-xs text-muted-foreground" role="note">{wa.label}</p>
+      )}
       <div className="grid grid-cols-5 gap-1.5">
         <QuickBtn icon={Phone} label="Ligar" href={phone ? `tel:${phone}` : undefined} />
-        <QuickBtn icon={MessageCircle} label="WhatsApp" href={phone ? `https://wa.me/${digits(phone)}` : undefined} />
+        <QuickBtn icon={MessageCircle} label="WhatsApp" href={wa.canOpen && wa.number ? `https://wa.me/${wa.number}` : undefined} />
         <QuickBtn icon={Mail} label="Email" onClick={email ? onEmail : undefined} />
         <QuickBtn icon={StickyNote} label="Nota" onClick={() => openSheet(false)} />
         <QuickBtn icon={CalendarPlus} label="Follow-up" onClick={() => openSheet(true)} />
