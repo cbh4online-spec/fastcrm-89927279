@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       sb.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspace_id),
       sb.from("leads").select("id,name,phone,email,status,last_contact_at,estimated_value").eq("workspace_id", workspace_id)
         .lt("last_contact_at", iso(staleCut)).order("last_contact_at", { ascending: true }).limit(15),
-      sb.from("opportunities").select("value,status,probability,expected_close_date").eq("workspace_id", workspace_id).limit(500),
+      sb.from("opportunities").select("id,title,value,status,probability,expected_close_date,lead_id,contact_id,last_activity_at").eq("workspace_id", workspace_id).limit(500),
     ]);
 
     const valid = (inv.data ?? []).filter((i) => !["cancelled", "draft"].includes(String(i.status)) && i.document_type !== "proforma");
@@ -52,6 +52,26 @@ Deno.serve(async (req) => {
     const openOpps = (opps.data ?? []).filter((o) => !["won", "lost", "closed"].includes(String(o.status)));
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const forecastOpps = openOpps.filter((o) => o.expected_close_date && new Date(o.expected_close_date) <= monthEnd);
+
+    // Resolve people behind open opportunities (RLS-scoped).
+    const leadIds = [...new Set(openOpps.map((o) => o.lead_id).filter(Boolean))] as string[];
+    const contactIds = [...new Set(openOpps.map((o) => o.contact_id).filter(Boolean))] as string[];
+    const [oppLeads, oppContacts] = await Promise.all([
+      leadIds.length ? sb.from("leads").select("id,name,phone").in("id", leadIds) : Promise.resolve({ data: [] as any[] }),
+      contactIds.length ? sb.from("contacts").select("id,name,phone").in("id", contactIds) : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const lMap = new Map((oppLeads.data ?? []).map((x: any) => [x.id, x]));
+    const cMap = new Map((oppContacts.data ?? []).map((x: any) => [x.id, x]));
+    const pipelineList = [...openOpps].sort((a, b) => Number(b.value ?? 0) - Number(a.value ?? 0)).slice(0, 30).map((o) => {
+      const c = o.contact_id ? cMap.get(o.contact_id) : null;
+      const l = !c && o.lead_id ? lMap.get(o.lead_id) : null;
+      const p = c ?? l;
+      return {
+        titulo: o.title, valor: Number(o.value ?? 0), fecho_previsto: o.expected_close_date, ultima_atividade: o.last_activity_at,
+        pessoa: p?.name ?? null, telefone: p?.phone ?? null,
+        ref: c ? `contact:${c.id}` : l ? `lead:${l.id}` : null,
+      };
+    });
 
     const r2 = (n: number) => Math.round(n * 100) / 100;
     const context = {

@@ -48,11 +48,16 @@ export function CopilotActionContent({ content }: { content: string }) {
                 className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs">
                 <Copy className="h-3.5 w-3.5" /> Copiar
               </button>
-              {/^[0-9a-f-]{36}$/i.test(p.id) && (
-                <Link to={`/dashboard/leads/${p.id}`} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs">
-                  <ExternalLink className="h-3.5 w-3.5" /> Ficha
-                </Link>
-              )}
+              {(() => {
+                const m = p.id.match(/^(?:(lead|contact|contacto):)?([0-9a-f-]{36})$/i);
+                if (!m) return null;
+                const base = m[1] && m[1].toLowerCase() !== "lead" ? "contacts" : "leads";
+                return (
+                  <Link to={`/dashboard/${base}/${m[2]}`} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs">
+                    <ExternalLink className="h-3.5 w-3.5" /> Ficha
+                  </Link>
+                );
+              })()}
             </span>
           </span>
         );
