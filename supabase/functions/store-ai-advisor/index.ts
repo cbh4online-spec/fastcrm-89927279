@@ -239,7 +239,8 @@ REGRAS OBRIGATÓRIAS:
 CATÁLOGO DISPONÍVEL:
 ${catalog}
 
-${productContext ? `CONTEXTO: o cliente está a ver o produto "${productContext.name}"${productContext.category ? ` na categoria "${productContext.category}"` : ''}.` : ''}`;
+${productContext ? `CONTEXTO: o cliente está a ver o produto "${productContext.name}"${productContext.category ? ` na categoria "${productContext.category}"` : ''}.` : ''}
+${customerName ? `CLIENTE: chama-se ${customerName}. Trate-o pelo nome de forma natural e cordial.` : ''}`;
 
     const messages: any[] = [
       { role: 'system', content: systemPrompt },
@@ -341,11 +342,14 @@ ${productContext ? `CONTEXTO: o cliente está a ver o produto "${productContext.
 
     recommendedProducts = recommendedProducts.slice(0, 4);
 
+    if (conversationId && content) await saveMessage(conversationId, 'outbound', content);
+
 
 
     return new Response(JSON.stringify({
       response: content,
       products: recommendedProducts,
+      conversationId,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
