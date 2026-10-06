@@ -228,9 +228,11 @@ export function ENIContactDetailWithSidebar() {
       <div className="text-center py-12">
         <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold mb-2">{t('common:contactNotFound')}</h2>
-        <Button onClick={() => navigate("/dashboard/contacts")}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          {t('common:back')}
+        <Button asChild>
+          <Link to="/dashboard/contacts" aria-label="Voltar aos contactos">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar aos contactos
+          </Link>
         </Button>
       </div>
     );

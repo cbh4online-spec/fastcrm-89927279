@@ -28,3 +28,8 @@
 ## Etapas das oportunidades (pedido 2026-10-06)
 - [x] Aplicar percurso vertical com nomes completos, etapa atual destacada e avanço contextual; validado isoladamente em desktop e mobile, incluindo avanço, loading e última etapa.
 - [ ] Confirmar na ficha real — a sessão de teste não carregou o percurso da oportunidade.
+
+## Alertas e ficha de contacto (pedido 2026-10-06)
+- [x] Corrigir filtros e textos dos alertas, espaço inferior e proteção das ações contra o Copilot; validado com alerta real a 360/393 px e desktop sem marcar como lido.
+- [x] Corrigir consulta da próxima tarefa (instância resolvida, campos reais, pending, invalidação e erro explícito) e regresso direto à lista, incluindo contacto indisponível.
+- [ ] Validar próxima tarefa e regresso dentro da ficha real do André — sessão disponível sem contactos nos workspaces relevantes; não existem tarefas nesses workspaces na base consultada.

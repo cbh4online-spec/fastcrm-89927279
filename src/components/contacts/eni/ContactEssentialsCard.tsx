@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, Mail, Phone, MessageCircle, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { fetchContactNextTask } from "@/lib/crm/contactNextTask";
 import type { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
 
 interface Props {
@@ -16,24 +18,15 @@ interface Props {
 
 /** Destaque: contacto, próxima ação e estado de consentimento (nunca escondido). */
 export function ContactEssentialsCard({ contactId, workspaceId, email, phone, whatsapp, marketingOptIn, preferences }: Props) {
-  const { workspaceClient } = useWorkspaceInstance();
-  const { data: next, isLoading, isError, error } = useQuery({
-    queryKey: ["tasks", "next-action", workspaceId, contactId],
-    enabled: !!workspaceId,
+  const { workspaceClient, instanceData, isLoading: instanceLoading, error: instanceError } = useWorkspaceInstance();
+  const ready = !!workspaceId && !!contactId && !instanceLoading && !instanceError;
+  const { data: next, isLoading, isError, refetch } = useQuery({
+    // Same invalidation prefix as useTasks; separate results when the data instance resolves.
+    queryKey: ["tasks", workspaceId, "next-action", contactId, instanceData?.id ?? "main"],
+    enabled: ready,
     queryFn: async () => {
-      // Mesmo cliente e campos que useTasks (tasks: related_type/related_id, estados pending/done).
-      const { data, error } = await workspaceClient
-        .from("tasks")
-        .select("*")
-        .eq("workspace_id", workspaceId!)
-        .eq("related_type", "contact")
-        .eq("related_id", contactId)
-        .not("status", "in", "(done,completed,cancelled)")
-        .order("due_at", { ascending: true, nullsFirst: false })
-        .limit(1);
-      if (error) throw error;
-      // React Query não aceita undefined: null = sem tarefas pendentes (diferente de erro).
-      return ((data ?? [])[0] ?? null) as { id: string; title: string; due_at: string | null } | null;
+      if (!workspaceId) throw new Error("Workspace indisponível");
+      return fetchContactNextTask(workspaceClient, workspaceId, contactId);
     },
   });
   const prefsOff = Object.entries(preferences ?? {}).filter(([, v]) => v === false).map(([k]) => k);
@@ -48,8 +41,8 @@ export function ContactEssentialsCard({ contactId, workspaceId, email, phone, wh
       </div>
       <div className="min-w-0 space-y-1">
         <p className="text-xs font-medium text-muted-foreground">Próxima ação</p>
-        {isLoading ? <p className="text-sm text-muted-foreground">A carregar…</p>
-          : isError ? <p className="text-sm text-destructive" role="alert">Não foi possível carregar tarefas. Tente novamente mais tarde.</p>
+        {instanceError || isError ? <div role="alert" className="space-y-1"><p className="text-sm text-destructive">Não foi possível carregar tarefas. Tente novamente mais tarde.</p>{!instanceError && <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={() => void refetch()}>Tentar novamente</Button>}</div>
+          : instanceLoading || isLoading || !ready ? <p className="text-sm text-muted-foreground">A carregar…</p>
           : next ? (
             <p className="flex min-w-0 items-start gap-1.5 text-sm">
               <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
