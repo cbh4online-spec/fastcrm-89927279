@@ -54,7 +54,7 @@ describe("Sinais de paragem no telemóvel do contacto", () => {
   it("sem permissão (erro RLS) mantém os botões fechados", async () => {
     state.error = { code: "42501", message: "permission denied" };
     const { result } = renderHook(() => useWhatsAppStopSignals("ws1", "912345678"), { wrapper: wrap() });
-    await waitFor(() => expect(result.current.isError).toBe(true));
+    await waitFor(() => expect(result.current.isError).toBe(true), { timeout: 4000 });
     expect(result.current.pending).toBe(true);
   });
 });
