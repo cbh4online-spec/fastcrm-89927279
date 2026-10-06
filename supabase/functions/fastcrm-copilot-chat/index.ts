@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
         stream: true,
         store: false,
         reasoning: { effort: "low" },
-        instructions: "És o FastCRM Copilot. Responde sempre em português de Portugal, de forma curta e prática (máx. 8 linhas, listas quando útil). Usa APENAS os dados fornecidos; nunca inventes números. Se faltar informação, diz claramente. Valores em euros (formato 1 234,56 €). Se perguntarem o que consegues fazer, explica: resumo de vendas da semana/mês, leads paradas, pipeline e forecast do mês.",
+        instructions: "És o FastCRM Copilot. Responde sempre em português de Portugal, de forma curta e prática (máx. 10 linhas, listas quando útil). Usa APENAS os dados fornecidos; nunca inventes números nem nomes. Se faltar informação, diz claramente. Valores em euros (formato 1 234,56 €). Não executas ações no sistema: se pedirem para criar follow-ups ou tarefas, propõe uma lista concreta de follow-ups (quem contactar, porquê, data sugerida e mensagem curta) com base nas leads sem contacto e no pipeline aberto, e indica que podem ser criados na ficha de cada contacto. Se perguntarem o que consegues fazer, explica: resumo de vendas da semana/mês, leads paradas, pipeline, forecast do mês e propostas de follow-up.",
         input,
       }),
     });
@@ -98,24 +98,43 @@ Deno.serve(async (req) => {
     // Consume SSE stream server-side.
     const reader = res.body!.getReader();
     const dec = new TextDecoder();
-    let buf = "", answer = "";
+    let buf = "", answer = "", refusal = "", finalText = "", status = "", failMsg = "";
+    const seen = new Set<string>();
+    const handle = (p: string) => {
+      if (!p || p === "[DONE]") return;
+      try {
+        const ev = JSON.parse(p);
+        seen.add(String(ev.type));
+        if (ev.type === "response.output_text.delta" && typeof ev.delta === "string") answer += ev.delta;
+        else if (ev.type === "response.refusal.delta" && typeof ev.delta === "string") refusal += ev.delta;
+        else if (ev.type === "response.output_text.done" && typeof ev.text === "string" && !finalText) finalText = ev.text;
+        else if (ev.type === "response.completed" || ev.type === "response.incomplete" || ev.type === "response.failed") {
+          status = ev.response?.status ?? ev.type;
+          failMsg = ev.response?.error?.message ?? ev.response?.incomplete_details?.reason ?? "";
+          if (!finalText) {
+            for (const o of ev.response?.output ?? []) for (const c of o?.content ?? []) {
+              if (c?.type === "output_text" && typeof c.text === "string") finalText += c.text;
+            }
+          }
+        } else if (ev.type === "error") failMsg = ev.message ?? ev.error?.message ?? "erro";
+      } catch { /* ignore */ }
+    };
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buf += dec.decode(value, { stream: true });
       const lines = buf.split("\n");
       buf = lines.pop() ?? "";
-      for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-        const p = line.slice(5).trim();
-        if (!p || p === "[DONE]") continue;
-        try {
-          const ev = JSON.parse(p);
-          if (ev.type === "response.output_text.delta" && typeof ev.delta === "string") answer += ev.delta;
-        } catch { /* ignore */ }
-      }
+      for (const line of lines) if (line.startsWith("data:")) handle(line.slice(5).trim());
     }
-    if (!answer.trim()) return json({ error: "O assistente não devolveu resposta. Tente novamente." });
+    if (buf.startsWith("data:")) handle(buf.slice(5).trim());
+    const out = (answer || finalText).trim();
+    if (!out) {
+      console.error("copilot empty answer", { status, failMsg, refusal: refusal.slice(0, 200), events: [...seen] });
+      if (refusal) return json({ error: "O assistente não pode responder a este pedido." });
+      return json({ error: "O assistente não conseguiu concluir a resposta. Tente reformular ou peça um resumo (ex.: «Leads sem contacto»)." });
+    }
+    answer = out;
     return json({ answer: answer.trim() });
   } catch (e) {
     console.error("copilot-chat error", e);

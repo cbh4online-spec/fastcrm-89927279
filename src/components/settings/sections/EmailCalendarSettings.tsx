@@ -39,6 +39,13 @@ export function EmailCalendarSettings() {
 
   return (
     <div className="space-y-8">
+      <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
+        <p className="font-medium text-foreground">O envio de emails já está ativo pelo domínio da empresa</p>
+        <p className="mt-1 text-muted-foreground">
+          Campanhas, sequências e emails enviados a partir das fichas usam o serviço de envio configurado em Marketing.
+          Ligue uma conta abaixo só se quiser ler a sua caixa de entrada pessoal no CRM ou sincronizar o calendário.
+        </p>
+      </div>
       {/* Connected Accounts */}
       <div className="space-y-4">
         <div>
