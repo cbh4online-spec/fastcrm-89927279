@@ -59,7 +59,7 @@ const ACCENT_CLASSES: Record<KpiAccent, string> = {
   success: "text-success bg-success/10 border-success/20",
   warning: "text-warning bg-warning/10 border-warning/20",
   danger: "text-destructive bg-destructive/10 border-destructive/20",
-  info: "text-accent-foreground bg-accent border-border",
+  info: "text-accent bg-accent/10 border-accent/20",
 };
 
 function KpiTile({
