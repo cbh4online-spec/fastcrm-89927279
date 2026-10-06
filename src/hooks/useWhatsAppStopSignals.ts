@@ -1,20 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { consentPhoneKey } from "@/lib/whatsapp/consent";
+import { phoneOptOutVariants } from "@/lib/whatsapp/phoneVariants";
 
 /** Lê opt-out e último consentimento WhatsApp de um número (RLS por workspace). Fail-closed. */
 export function useWhatsAppStopSignals(workspaceId?: string | null, phone?: string | null) {
-  const digits = consentPhoneKey(phone);
+  const variants = phoneOptOutVariants(phone);
+  const key = variants[0] ?? "";
   const q = useQuery({
-    queryKey: ["whatsapp-stop-signals", workspaceId, digits],
-    enabled: !!workspaceId && digits.length >= 6,
+    queryKey: ["whatsapp-stop-signals", workspaceId, key],
+    enabled: !!workspaceId && variants.length > 0,
+    retry: 1,
     staleTime: 60_000,
     queryFn: async () => {
-      const variants = Array.from(new Set([digits, `+${digits}`, phone ?? ""].filter(Boolean)));
-      const list = variants.map((v) => `phone.eq.${v}`).join(",");
+      // Só consulta os números equivalentes a este contacto (nunca a lista completa).
       const [opt, cons] = await Promise.all([
-        supabase.from("whatsapp_optouts").select("id").eq("workspace_id", workspaceId!).or(list).limit(1),
-        supabase.from("whatsapp_consents").select("status,updated_at").eq("workspace_id", workspaceId!).or(list)
+        supabase.from("whatsapp_optouts").select("id").eq("workspace_id", workspaceId!).in("phone", variants).limit(1),
+        supabase.from("whatsapp_consents").select("status,updated_at").eq("workspace_id", workspaceId!).in("phone", variants)
           .order("updated_at", { ascending: false }).limit(1),
       ]);
       if (opt.error) throw opt.error;
@@ -23,7 +24,7 @@ export function useWhatsAppStopSignals(workspaceId?: string | null, phone?: stri
       return { optedOut: (opt.data ?? []).length > 0, consentRevoked: last?.status === "revoked", consentGranted: last?.status === "granted" };
     },
   });
-  const noPhone = digits.length < 6;
+  const noPhone = variants.length === 0;
   return {
     optedOut: q.data?.optedOut ?? false,
     consentRevoked: q.data?.consentRevoked ?? false,

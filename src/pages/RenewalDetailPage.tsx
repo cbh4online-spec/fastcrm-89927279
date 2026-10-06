@@ -79,7 +79,14 @@ export default function RenewalDetailPage() {
       }
       if (!r.ok) throw new Error(r.error);
       const date = r.next_renewal_date ? r.next_renewal_date.split("-").reverse().join("/") : "—";
-      toast.success(`${r.auto_linked ? "Subscrição encontrada e ligada. " : ""}Próxima renovação ${date}, ${r.payments_added} pagamento(s) recuperado(s)`);
+      if (r.cancelled) {
+        toast.warning(`Subscrição cancelada no Stripe — contrato marcado como Cancelado. ${r.payments_added} pagamento(s) recuperado(s); faturas pagas mantidas.`);
+      } else if (r.cancel_scheduled_at) {
+        const when = r.cancel_scheduled_at === "period_end" ? "no fim do período atual" : `em ${new Date(r.cancel_scheduled_at).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon" })}`;
+        toast.warning(`Cancelamento agendado no Stripe ${when}. Não haverá próxima renovação; risco marcado como alto.`);
+      } else {
+        toast.success(`${r.auto_linked ? "Subscrição encontrada e ligada. " : ""}Próxima renovação ${date}, ${r.payments_added} pagamento(s) recuperado(s)`);
+      }
       ["renewal-contract", "renewal-contracts", "renewal-payment-events"].forEach((k) =>
         queryClient.invalidateQueries({ queryKey: [k] }),
       );

@@ -27,7 +27,7 @@ export function useRenewalAlerts() {
       // Get active contracts with items
       const { data: contracts, error } = await workspaceClient
         .from("renewal_contracts")
-        .select("id, workspace_id, company_id, status, next_renewal_date, total_mrr, dunning_attempts, company:companies(id, name)")
+        .select("id, workspace_id, company_id, status, next_renewal_date, total_mrr, dunning_attempts, alert_settings, company:companies(id, name)")
         .eq("workspace_id", currentWorkspace.id)
         .in("status", ["active", "paused"] as any);
 
@@ -48,6 +48,8 @@ export function useRenewalAlerts() {
       for (const item of (items || [])) {
         const contract = contractMap.get(item.contract_id) as any;
         if (!contract) continue;
+        // Cancelamento agendado no Stripe: não gerar alertas de renovação/atraso.
+        if (contract.alert_settings?.stripe_cancel_at) continue;
         const companyName = contract.company?.name || "—";
 
         // Overdue items
