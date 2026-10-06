@@ -104,6 +104,20 @@ export function CopilotDrawer() {
     }
   };
 
+  const [fabHidden, setFabHidden] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = (e: Event) => {
+      const t = e.target as any;
+      const y = t && t !== document && typeof t.scrollTop === "number" ? t.scrollTop : window.scrollY;
+      if (Math.abs(y - last) < 8) return;
+      setFabHidden(y > last && y > 80);
+      last = y;
+    };
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => document.removeEventListener("scroll", onScroll, { capture: true } as any);
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -115,7 +129,7 @@ export function CopilotDrawer() {
     <>
       {/* Floating button */}
       <AnimatePresence>
-        {!isOpen && (
+        {!isOpen && !fabHidden && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
