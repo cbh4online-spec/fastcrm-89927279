@@ -27,6 +27,13 @@ const PRIORITY: TopLevelGroup[] = ["inicio", "clientes", "vendas", "comunicacao"
 const FALLBACK: TopLevelGroup[] = ["produtos", "operacoes", "relatorios", "aplicacoes"];
 const MAX_TABS = 4;
 
+/** Página de destino de cada botão (por ordem de preferência); senão usa o 1.º item do grupo. */
+const PREFERRED_ROUTE: Partial<Record<TopLevelGroup, string[]>> = {
+  clientes: ["contacts", "companies", "leads"],
+  vendas: ["invoices", "proposals"],
+  comunicacao: ["inbox", "whatsapp-pro"],
+};
+
 /**
  * Native-app-style bottom navigation (mobile only).
  * Deriva os tabs dinamicamente a partir de `buildTopLevelSections`, respeitando
@@ -78,11 +85,14 @@ export const MobileBottomNav = React.forwardRef<HTMLElement, MobileBottomNavProp
       .slice(0, MAX_TABS)
       .map((k) => {
         const s = byKey.get(k)!;
+        const preferred = PREFERRED_ROUTE[k]
+          ?.map((rk) => s.items.find((i) => i.key === rk))
+          .find(Boolean);
         return {
           key: k,
           label: s.label,
           icon: s.icon,
-          to: s.items[0].href,
+          to: (preferred ?? s.items[0]).href,
         };
       });
   }, [byKey]);
