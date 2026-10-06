@@ -41,7 +41,7 @@ const healthConfig: Record<APIHealthLabel, { label: string; color: string; icon:
 
 const severityConfig: Record<APIRiskSeverity, { label: string; className: string }> = {
   HIGH: { label: "High", className: "bg-red-100 text-red-700 border-red-200" },
-  MEDIUM: { label: "Medium", className: "bg-amber-100 text-amber-700 border-amber-200" },
+  MEDIUM: { label: "Média", className: "bg-amber-100 text-amber-700 border-amber-200" },
   LOW: { label: "Low", className: "bg-blue-100 text-blue-700 border-blue-200" },
 };
 

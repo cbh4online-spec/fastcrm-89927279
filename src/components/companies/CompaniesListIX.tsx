@@ -82,7 +82,7 @@ const COLUMNS: ListColumnDef[] = [
   { key: "client_number", label: "Nº cliente", defaultVisible: false },
   { key: "abc_category", label: "Categoria ABC", defaultVisible: false },
   { key: "pare_score", label: "Score PARE", defaultVisible: false },
-  { key: "icp_fit_score", label: "ICP Fit", defaultVisible: false },
+  { key: "icp_fit_score", label: "Adequação ICP", defaultVisible: false },
   { key: "total_revenue", label: "Faturação total (s/IVA)", defaultVisible: true },
   { key: "average_ticket", label: "Ticket médio", defaultVisible: false },
   { key: "sales_2026", label: "Vendas 2026", defaultVisible: false },

@@ -229,7 +229,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
  e("workspace-plan","Plano Atual",  "/dashboard/settings/workspace-plan",   CreditCard,"administracao"),
  e("onboarding-projects","Onboarding","/dashboard/onboarding",               Briefcase, "operacoes"),
  e("delivery-projects","Implementação","/dashboard/delivery/projects",       Rocket,    "operacoes"),
- e("customer-success","Customer Success","/dashboard/customer-success",        Heart,     "operacoes"),
+ e("customer-success","Sucesso do Cliente","/dashboard/customer-success",        Heart,     "operacoes"),
 
   // ══════════════════════════════════════════════════════════════
   // PERFORMANCE & GAMIFICAÇÃO

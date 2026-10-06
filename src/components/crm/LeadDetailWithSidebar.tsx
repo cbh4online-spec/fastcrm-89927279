@@ -227,7 +227,7 @@ export function LeadDetailWithSidebar() {
         return (
           <EntitySubTabs
             tabs={[
-              { id: "timeline", label: "Timeline" },
+              { id: "timeline", label: "Cronologia" },
               { id: "notes", label: "Notas" },
               { id: "tasks", label: "Tarefas" },
               { id: "automations", label: "Automações" },

@@ -78,7 +78,7 @@ export function ContactScoresCard({ contact, editable = false }: ContactScoresCa
       </CardHeader>
       <CardContent className="space-y-4">
         <ScoreItem
-          label="ICP Fit"
+          label="Adequação ICP"
           icon={Target}
           value={contact.icp_fit_score ?? 0}
           color="text-blue-500"
@@ -86,7 +86,7 @@ export function ContactScoresCard({ contact, editable = false }: ContactScoresCa
           onChange={(v) => updateScores.mutate({ contactId: contact.id, scores: { icp_fit_score: v } })}
         />
         <ScoreItem
-          label="Engagement"
+          label="Envolvimento"
           icon={TrendingUp}
           value={contact.engagement_score ?? 0}
           color="text-emerald-500"

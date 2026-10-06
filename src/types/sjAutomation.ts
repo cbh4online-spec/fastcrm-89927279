@@ -132,7 +132,7 @@ export const SJ_STAGE_LABELS: Record<SJStageValue, string> = {
   active: "Ativo",
   completed: "Concluído",
   dropped: "Desistiu",
-  churned: "Churn",
+  churned: "Perda (churn)",
 };
 
 // Default automation templates for Student Journey
