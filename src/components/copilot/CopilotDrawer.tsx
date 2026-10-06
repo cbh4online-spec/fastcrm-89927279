@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { CopilotActionContent } from "./CopilotActionContent";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
@@ -242,7 +243,7 @@ export function CopilotDrawer() {
                     {msg.role === "assistant" && (
                       <Sparkles className="inline h-3 w-3 text-amber-500 mr-1" />
                     )}
-                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                    {msg.role === "assistant" ? <CopilotActionContent content={msg.content} /> : <span className="whitespace-pre-wrap">{msg.content}</span>}
                   </div>
                 </div>
               ))}
