@@ -304,9 +304,10 @@ export default function RenewalDetailPage() {
                 <CardContent className="py-4">
                   <div className="flex items-center gap-2 mb-1">
                     <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground font-medium">MRR</p>
+                    <p className="text-xs text-muted-foreground font-medium" title="Valor registado no contrato; o tratamento de IVA não está indicado">MRR</p>
                   </div>
                   <p className="text-2xl font-bold">{formatCurrency(kpis?.mrr || 0, contract.currency)}</p>
+                  <p className="text-[10px] text-muted-foreground">Valor registado no contrato; o tratamento de IVA não está indicado</p>
                   {kpis?.hasActiveDiscounts && kpis.baseValue > 0 && (
                     <p className="text-[10px] text-muted-foreground">
                       <span className="line-through">{formatCurrency(calculateRealMRR(kpis.baseValue, contract.renewal_interval, contract.start_date, contract.next_renewal_date), contract.currency)}</span>

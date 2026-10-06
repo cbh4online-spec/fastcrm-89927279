@@ -199,7 +199,7 @@ export default function Invoices() {
   const summaryItems: SummaryItem[] = [
     { label: "Não Vencido", value: formatCurrency(summary.notDue), tone: "default" },
     { label: "Vencido", value: formatCurrency(summary.due), tone: summary.due > 0 ? "destructive" : "default" },
-    { label: "Recebido", value: formatCurrency(summary.received), tone: "success" },
+    { label: "Recebido (montante pago, c/IVA)", value: formatCurrency(summary.received), tone: "success" },
     { label: "Acertos", value: formatCurrency(summary.adjustments), tone: "muted" },
     { label: "Total sem IVA", value: formatCurrency(summary.totalNet), tone: "primary" },
     { label: "IVA", value: formatCurrency(summary.totalVat), tone: "default" },

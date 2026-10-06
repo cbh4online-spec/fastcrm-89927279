@@ -1,3 +1,4 @@
+import { displayLabel } from "@/lib/crm/displayLabels";
 import { useState, useEffect, ReactNode } from "react";
 import { EntityTagEditor } from "@/components/entity/EntityTagEditor";
 import { Input } from "@/components/ui/input";
@@ -224,6 +225,8 @@ export function InlineEditableField({
           );
         }
         return "—";
+      case "select":
+        return optionLabels[String(val)] || displayLabel(String(val));
       default:
         return String(val);
     }
@@ -358,7 +361,7 @@ export function InlineEditableField({
               )}
               {options.map((option) => (
                 <SelectItem key={option} value={option}>
-                  {optionLabels[option] || option}
+                  {optionLabels[option] || displayLabel(option)}
                 </SelectItem>
               ))}
             </SelectContent>

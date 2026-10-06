@@ -29,7 +29,7 @@ const FOLLOW_UPS = [
 const haptic = () => { try { navigator.vibrate?.(10); } catch { /* noop */ } };
 
 export function ContactMobileQuickActions({ contactId, workspaceId, name, phone, email, lastActivityAt, onEmail, whatsapp }: Props) {
-  const wa = whatsapp ?? resolveWhatsAppAvailability({ phone });
+  const wa = whatsapp ?? resolveWhatsAppAvailability({ phone, checksPending: true });
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
