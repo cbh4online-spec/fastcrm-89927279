@@ -240,31 +240,34 @@ export function FeedDashboard() {
           />
         }
       >
+        <div className="mx-auto mb-3 w-full max-w-3xl pb-0">
+          <button
+            type="button"
+            onClick={() => setCreateModalOpen(true)}
+            className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left shadow-sm transition-colors hover:border-primary/40"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+              Partilha uma vitória, pede ajuda ou define o foco do dia…
+            </span>
+          </button>
+        </div>
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : pageItems.length === 0 ? (
-          <div className="space-y-3 py-16 text-center">
-            <MessageSquare className="mx-auto h-14 w-14 text-muted-foreground/30" />
-            <p className="text-lg font-semibold text-muted-foreground">
+          <div className="mx-auto max-w-3xl space-y-2 rounded-2xl border border-border bg-card px-4 py-10 text-center">
+            <p className="text-base font-semibold text-foreground">
+              {search || typeFilter !== 'all' ? 'Sem publicações encontradas' : 'Sem publicações ainda'}
+            </p>
+            <p className="text-sm text-muted-foreground">
               {search || typeFilter !== 'all'
-                ? 'Sem publicações encontradas'
-                : 'Sem publicações ainda'}
+                ? 'Experimente limpar a pesquisa ou escolher outro tipo.'
+                : 'Use a caixa acima para fazer a primeira publicação da equipa.'}
             </p>
-            <p className="text-sm text-muted-foreground/70">
-              Sê o primeiro a partilhar com a equipa.
-            </p>
-            {!search && typeFilter === 'all' && (
-              <Button
-                variant="outline"
-                className="mt-2 rounded-full"
-                onClick={() => setCreateModalOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Criar Publicação
-              </Button>
-            )}
           </div>
         ) : (
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
