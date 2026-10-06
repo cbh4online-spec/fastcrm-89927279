@@ -80,6 +80,7 @@ import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSum
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
 import { EntityTicketsSection } from "@/components/helpdesk/EntityTicketsSection";
 import { EntityRecordPager } from "@/components/entity/EntityRecordPager";
+import { ContactMobileQuickActions } from "./ContactMobileQuickActions";
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useEntityNavIds } from "@/hooks/useEntityNavIds";
 import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
@@ -510,7 +511,22 @@ export function ENIContactDetailWithSidebar() {
   };
 
   return (
-    <div className="h-full flex flex-col -m-3 sm:-m-4 md:-m-6 min-w-0 max-w-[100vw] md:max-w-none overflow-x-hidden">
+    <div
+      className="h-full flex flex-col -m-3 sm:-m-4 md:-m-6 min-w-0 max-w-[100vw] md:max-w-none overflow-x-hidden"
+      onTouchStart={(e) => { const el = e.currentTarget as any; el._sx = e.touches[0].clientX; el._sy = e.touches[0].clientY; }}
+      onTouchEnd={(e) => {
+        const el = e.currentTarget as any;
+        const dx = e.changedTouches[0].clientX - (el._sx ?? 0);
+        const dy = e.changedTouches[0].clientY - (el._sy ?? 0);
+        const target = e.target as HTMLElement;
+        if (target.closest('input,textarea,[role="tablist"],[data-vaul-drawer],.overflow-x-auto')) return;
+        if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) {
+          try { navigator.vibrate?.(10); } catch { /* noop */ }
+          if (dx < 0 && contactNavigation.nextId) contactNavigation.goNext();
+          else if (dx > 0 && contactNavigation.prevId) contactNavigation.goPrev();
+        }
+      }}
+    >
       <div className="hidden md:block bg-background px-6 pt-2">
         <PageBreadcrumbs items={[
           { label: "CRM", href: "/dashboard" },
@@ -592,7 +608,7 @@ export function ENIContactDetailWithSidebar() {
           <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:shrink-0 md:flex-nowrap">
             <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
             {contact.phone && (
-              <>
+              <div className="hidden md:contents">
                 <WhatsAppCallButton
                   phone={contact.phone}
                   entityType="contact"
@@ -606,7 +622,7 @@ export function ENIContactDetailWithSidebar() {
                   entityName={contact.name}
                   companyName={contact.company}
                 />
-              </>
+              </div>
             )}
             <GHLCallButton
               entityType="contact"
@@ -690,6 +706,16 @@ export function ENIContactDetailWithSidebar() {
             </DropdownMenu>
           </div>
         </div>
+
+        <ContactMobileQuickActions
+          contactId={contact.id}
+          workspaceId={currentWorkspace?.id}
+          name={contact.name}
+          phone={contact.phone}
+          email={contact.email}
+          lastActivityAt={contact.updated_at}
+          onEmail={() => setShowEmailDialog(true)}
+        />
 
         {/* Resumo financeiro sempre visível no cabeçalho */}
         <FinancialKPIStrip entityType="contact" entityId={id!} variant="header" className="mt-4" />
