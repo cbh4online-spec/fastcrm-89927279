@@ -519,7 +519,7 @@ export function LeadsListIX() {
       )}
 
       {totalCount > pageSize && (
-        <div className="mt-4 flex items-center justify-end gap-2 text-sm">
+        <div className="mt-4 flex items-center justify-end gap-2 text-sm max-md:justify-center">
           <Button
             variant="ghost"
             size="sm"

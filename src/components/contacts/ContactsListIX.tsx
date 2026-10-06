@@ -465,7 +465,7 @@ export function ContactsListIX() {
       )}
 
       {totalCount > pageSize && (
-        <div className="mt-4 flex items-center justify-end gap-2 text-sm">
+        <div className="mt-4 flex items-center justify-end gap-2 text-sm max-md:justify-center">
           <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Anterior</Button>
           <span className="text-muted-foreground">Página {page + 1} de {Math.max(1, Math.ceil(totalCount / pageSize))}</span>
           <Button variant="ghost" size="sm" disabled={(page + 1) * pageSize >= totalCount} onClick={() => setPage((p) => p + 1)}>Seguinte</Button>
