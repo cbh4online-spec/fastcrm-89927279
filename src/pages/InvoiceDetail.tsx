@@ -135,16 +135,16 @@ export default function InvoiceDetail() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="min-w-0 max-w-full space-y-6 p-0 pb-28 sm:p-4 md:p-6 md:pb-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-2 md:gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/invoices")}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">Fatura #{invoice.invoice_number}</h1>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                <h1 className="break-all text-lg font-bold md:text-2xl">Fatura #{invoice.invoice_number}</h1>
                 <Badge variant={status.variant}>{status.label}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -152,7 +152,7 @@ export default function InvoiceDetail() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 [&>*]:w-full md:flex md:items-center md:[&>*]:w-auto">
             <PushToInvoiceXpressButton
               invoiceId={invoice.id}
               externalProvider={(invoice as any).external_provider}
