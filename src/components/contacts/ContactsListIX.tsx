@@ -239,7 +239,8 @@ export function ContactsListIX() {
     [all, sourceFilter, tagFilter, statusFilter, cityFilter],
   );
 
-  const filtered = useMemo(() => {
+  const [quick, setQuick] = useState<string | null>(null);
+  const baseFiltered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let arr = all;
     if (q) {
@@ -271,6 +272,18 @@ export function ContactsListIX() {
     return arr;
   }, [all, search, sortBy, sortDir, sourceFilter, tagFilter, statusFilter, cityFilter]);
 
+  const filtered = useMemo(() => {
+    if (!quick || quick === "total") return baseFiltered;
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return baseFiltered.filter((c) => {
+      if (quick === "recent") return new Date(c.created_at).getTime() >= cutoff;
+      if (quick === "email") return !!c.email && /.+@.+\..+/.test(c.email);
+      if (quick === "phone") return !!c.phone;
+      if (quick === "restricted") return !!((c as any).is_blocked || (c as any).archived_at);
+      return true;
+    });
+  }, [baseFiltered, quick]);
+
   const totalCount = filtered.length;
   const pageItems = filtered.slice(page * pageSize, page * pageSize + pageSize);
   const orderedColumns = useMemo(
@@ -287,13 +300,13 @@ export function ContactsListIX() {
   const kpis = useMemo<ListKPI[]>(() => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     let recent = 0, withEmail = 0, withPhone = 0, restricted = 0;
-    for (const c of filtered) {
+    for (const c of baseFiltered) {
       if (new Date(c.created_at).getTime() >= cutoff) recent += 1;
       if (c.email && /.+@.+\..+/.test(c.email)) withEmail += 1;
       if (c.phone) withPhone += 1;
       if ((c as any).is_blocked || (c as any).archived_at) restricted += 1;
     }
-    const total = filtered.length;
+    const total = baseFiltered.length;
     const pct = (n: number) => (total > 0 ? `${Math.round((n / total) * 100)}% do total` : undefined);
     return [
       { key: "total", label: "Contactos", value: String(total), icon: Users, tone: "primary" },
@@ -301,8 +314,12 @@ export function ContactsListIX() {
       { key: "email", label: "Com email", value: String(withEmail), icon: Mail, tone: "neutral", hint: pct(withEmail) },
       { key: "phone", label: "Com telefone", value: String(withPhone), icon: Phone, tone: "neutral", hint: pct(withPhone) },
       { key: "restricted", label: "Bloq. / arquivados", value: String(restricted), icon: Lock, tone: restricted > 0 ? "warning" : "neutral" },
-    ];
-  }, [filtered]);
+    ].map((k) => ({
+      ...k,
+      active: k.key === "total" ? false : quick === k.key,
+      onClick: () => { setQuick((q) => (k.key === "total" || q === k.key ? null : k.key)); setPage(0); },
+    })) as ListKPI[];
+  }, [baseFiltered, quick]);
 
   return (
     <DocumentListLayout

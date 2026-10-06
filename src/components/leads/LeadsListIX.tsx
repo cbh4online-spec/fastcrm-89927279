@@ -341,8 +341,22 @@ export function LeadsListIX() {
       { key: "pipeline", label: "Valor potencial", value: formatCurrency(pipeline), icon: Euro, tone: "primary" },
       { key: "score", label: "Score médio", value: String(avg), icon: Target, tone: avg >= 70 ? "success" : avg >= 40 ? "warning" : "neutral" },
       { key: "stale", label: "Sem contacto (14d)", value: String(stale), icon: Clock, tone: stale > 0 ? "warning" : "neutral" },
-    ];
-  }, [sortedLeads]);
+    ].map((k) => {
+      const active =
+        k.key === "hot" ? temperatureFilter.length === 1 && temperatureFilter[0] === "hot"
+        : k.key === "pipeline" ? sortBy === "estimated_value" && sortDir === "desc"
+        : k.key === "score" ? sortBy === "lead_score" && sortDir === "desc"
+        : sortBy === "last_contact_at" && sortDir === "asc";
+      const onClick = () => {
+        setPage(0);
+        if (k.key === "hot") { setTemperatureFilter(active ? [] : ["hot"]); return; }
+        const key: SortKey = k.key === "pipeline" ? "estimated_value" : k.key === "score" ? "lead_score" : "last_contact_at";
+        if (active) { setSortBy("name"); setSortDir("asc"); }
+        else { setSortBy(key); setSortDir(k.key === "stale" ? "asc" : "desc"); }
+      };
+      return { ...k, active, onClick };
+    }) as ListKPI[];
+  }, [sortedLeads, temperatureFilter, sortBy, sortDir]);
 
   return (
     <DocumentListLayout
