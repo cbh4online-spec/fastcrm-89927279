@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { MessageCircle, Copy, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const RE = /\[\[acao\|([^|\]]*)\|([^|\]]*)\|([^|\]]*)\|([^\]]*)\]\]/g;
 
@@ -26,10 +27,17 @@ export function CopilotActionContent({ content }: { content: string }) {
       {parts.map((p, i) => {
         if (typeof p === "string") return <span key={i}>{p.replace(/\n{3,}/g, "\n\n")}</span>;
         const wa = waNumber(p.phone);
-        const copy = async () => {
-          await navigator.clipboard?.writeText(p.text);
-          navigator.vibrate?.(20);
-          toast.success("Mensagem copiada");
+        const copy = async (openingWhatsApp = false) => {
+          try {
+            if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+            await navigator.clipboard.writeText(p.text);
+            navigator.vibrate?.(20);
+            toast.success(openingWhatsApp ? "Mensagem copiada! A abrir o WhatsApp…" : "Mensagem copiada");
+          } catch {
+            toast.error(openingWhatsApp
+              ? "Não foi possível copiar. Se o WhatsApp abrir sem texto, volte e copie a mensagem manualmente."
+              : "Não foi possível copiar. Selecione a mensagem e copie manualmente.");
+          }
         };
         return (
           <span key={i} className="my-2 block rounded-lg border border-border bg-card p-2 whitespace-normal">
@@ -37,17 +45,19 @@ export function CopilotActionContent({ content }: { content: string }) {
             <span className="mt-1 block text-xs text-muted-foreground">{p.text}</span>
             <span className="mt-2 flex flex-wrap gap-1.5">
               {wa ? (
-                <a href={`https://wa.me/${wa}?text=${encodeURIComponent(p.text)}`} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex h-8 items-center gap-1 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground">
-                  <MessageCircle className="h-3.5 w-3.5" /> Enviar por WhatsApp
-                </a>
+                <Button asChild size="sm" className="h-8 gap-1 px-2.5 text-xs">
+                  <a href={`https://wa.me/${wa}?text=${encodeURIComponent(p.text)}`} target="_blank" rel="noopener noreferrer"
+                    onClick={() => { void copy(true); }}>
+                    <MessageCircle className="h-3.5 w-3.5" /> Enviar por WhatsApp
+                  </a>
+                </Button>
               ) : (
                 <span className="inline-flex h-8 items-center text-xs text-muted-foreground">Sem telefone</span>
               )}
-              <button type="button" onClick={copy} aria-label="Copiar mensagem"
-                className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs">
+              <Button type="button" variant="outline" size="sm" onClick={() => { void copy(); }} aria-label="Copiar mensagem"
+                className="h-8 gap-1 px-2.5 text-xs">
                 <Copy className="h-3.5 w-3.5" /> Copiar
-              </button>
+              </Button>
               {(() => {
                 const m = p.id.match(/^(?:(lead|contact|contacto):)?([0-9a-f-]{36})$/i);
                 if (!m) return null;
