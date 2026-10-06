@@ -64,10 +64,10 @@ export function DocumentListToolbar({
         </label>
       )}
 
-      <div className="ml-auto flex flex-wrap items-center gap-x-6 gap-y-2">
+      <div className="flex w-full md:w-auto md:ml-auto flex-wrap items-center gap-x-4 md:gap-x-6 gap-y-2">
         {sortOptions && onSortChange && (
           <div className="flex items-center gap-2">
-            <span>Ordenar por</span>
+            <span className="max-md:sr-only">Ordenar por</span>
             <Select value={sortValue} onValueChange={onSortChange}>
               <SelectTrigger className="h-8 w-[140px] border-none bg-transparent px-2 text-foreground shadow-none focus:ring-0">
                 <SelectValue />
@@ -98,7 +98,7 @@ export function DocumentListToolbar({
         )}
 
         {onPageSizeChange && (
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             <span>Resultados por Página</span>
             <Select
               value={pageSize?.toString()}
