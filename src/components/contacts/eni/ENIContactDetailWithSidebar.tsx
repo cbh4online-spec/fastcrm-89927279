@@ -1,3 +1,4 @@
+import { useWhatsAppStopSignals } from "@/hooks/useWhatsAppStopSignals";
 import { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { socialMessageUrl } from '@/lib/social/socialProfiles';
@@ -105,6 +106,7 @@ export function ENIContactDetailWithSidebar() {
   const navigate = useNavigate();
   const { contacts, isLoading, updateContact, deleteContact } = useContacts();
   const { currentWorkspace } = useWorkspace();
+  const waSignals = useWhatsAppStopSignals(currentWorkspace?.id, contact?.whatsapp_number || contact?.phone);
   const analyzeContact = useAnalyzeContact();
   const { data: counts } = useEntityCounts('contact', id);
   const allContactIds = useMemo(
@@ -237,6 +239,10 @@ export function ENIContactDetailWithSidebar() {
     whatsappNumber: contact.whatsapp_number,
     hasWhatsapp: contact.has_whatsapp,
     isBlocked: (contact as { is_blocked?: boolean | null }).is_blocked,
+    optedOut: waSignals.optedOut,
+    consentRevoked: waSignals.consentRevoked,
+    preferenceOff: contact.contact_preferences?.whatsapp === false,
+    checksPending: waSignals.pending,
   });
   const initials = contact.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   const entityType = (contact.entity_type || 'consumidor_final') as EntityType;
