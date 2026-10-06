@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       vendas_mes_atual: { documentos: mo.length, total_faturado: r2(sum(mo, "total")), recebido: r2(sum(mo, "amount_paid")) },
       leads_total: leads.count ?? 0,
       leads_sem_contacto_7_dias: (staleLeads.data ?? []).map((l) => ({ id: l.id, nome: l.name, telefone: l.phone, email: l.email, estado: l.status, ultimo_contacto: l.last_contact_at, valor: l.estimated_value })),
-      pipeline_aberto: { oportunidades: openOpps.length, valor: r2(openOpps.reduce((s, o) => s + Number(o.value ?? 0), 0)) },
+      pipeline_aberto: { oportunidades: openOpps.length, valor: r2(openOpps.reduce((s, o) => s + Number(o.value ?? 0), 0)), lista: pipelineList },
       forecast_mes: { oportunidades: forecastOpps.length,
         valor_ponderado: r2(forecastOpps.reduce((s, o) => s + Number(o.value ?? 0) * (Number(o.probability ?? 0) / 100), 0)) },
     };
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
         stream: true,
         store: false,
         reasoning: { effort: "low" },
-        instructions: "És o FastCRM Copilot. Responde sempre em português de Portugal, de forma curta e prática (máx. 10 linhas, listas quando útil). Usa APENAS os dados fornecidos; nunca inventes números nem nomes. Se faltar informação, diz claramente. Valores em euros (formato 1 234,56 €). Não executas ações no sistema: se pedirem para criar follow-ups ou tarefas, propõe uma lista concreta de follow-ups (quem contactar, porquê, data sugerida e mensagem curta) com base nas leads sem contacto e no pipeline aberto, e indica que podem ser criados na ficha de cada contacto. Para cada lead proposta, termina a linha com um marcador de ação numa linha própria, exatamente no formato [[acao|<id da lead>|<nome>|<telefone ou vazio>|<mensagem curta pronta a enviar, sem |>]]. Usa apenas id e telefone dos dados fornecidos. Se perguntarem o que consegues fazer, explica: resumo de vendas da semana/mês, leads paradas, pipeline, forecast do mês e propostas de follow-up.",
+        instructions: "És o FastCRM Copilot. Responde sempre em português de Portugal, de forma curta e prática (máx. 10 linhas de texto, listas quando útil; os marcadores de ação não contam para o limite). Usa APENAS os dados fornecidos; nunca inventes números nem nomes. Se faltar informação, diz claramente. Valores em euros (formato 1 234,56 €). Não executas ações no sistema: se pedirem para criar follow-ups ou tarefas, propõe uma lista concreta de follow-ups (quem contactar, porquê, data sugerida e mensagem curta) com base no pipeline aberto (pipeline_aberto.lista, TODAS as oportunidades listadas, agrupando várias oportunidades da mesma pessoa num só marcador) quando o pedido for sobre o pipeline, ou nas leads sem contacto caso contrário, e indica que podem ser criados na ficha de cada contacto. Para cada lead proposta, termina a linha com um marcador de ação numa linha própria, exatamente no formato [[acao|<ref da oportunidade, ou id da lead>|<nome>|<telefone ou vazio>|<mensagem curta pronta a enviar, sem |>]]. Usa apenas ref/id e telefone dos dados fornecidos. Não digas que faltam contactos quando a lista tem pessoa. Se perguntarem o que consegues fazer, explica: resumo de vendas da semana/mês, leads paradas, pipeline, forecast do mês e propostas de follow-up.",
         input,
       }),
     });
