@@ -450,14 +450,14 @@ export function CompaniesListIX() {
           <Button
             variant="outline"
             onClick={() => setDuplicatesOpen(true)}
-            className="h-12 rounded-full px-6 text-sm font-semibold max-md:h-11 max-md:w-11 max-md:px-0"
+            className="h-12 rounded-full px-6 text-sm font-semibold max-md:h-10 max-md:w-10 max-md:px-0"
           >
             <Copy className="mr-2 h-4 w-4 max-md:mr-0" />
             <span className="max-md:sr-only">Duplicados</span>
           </Button>
           <Button
             onClick={() => setCreateOpen(true)}
-            className="h-12 rounded-full bg-primary px-6 max-md:h-11 max-md:flex-1 text-sm font-semibold shadow-sm hover:bg-primary/90"
+            className="h-12 rounded-full bg-primary px-6 max-md:h-10 max-md:flex-1 text-sm font-semibold shadow-sm hover:bg-primary/90"
           >
             <Plus className="mr-2 h-4 w-4" />
             Criar Empresa
