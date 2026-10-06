@@ -510,8 +510,8 @@ export function ENIContactDetailWithSidebar() {
   };
 
   return (
-    <div className="h-full flex flex-col -m-6">
-      <div className="bg-background px-6 pt-2">
+    <div className="h-full flex flex-col -m-3 sm:-m-4 md:-m-6 min-w-0 max-w-[100vw] md:max-w-none overflow-x-hidden">
+      <div className="hidden md:block bg-background px-6 pt-2">
         <PageBreadcrumbs items={[
           { label: "CRM", href: "/dashboard" },
           { label: t('crm:contacts'), href: "/dashboard/contacts" },
@@ -520,8 +520,8 @@ export function ENIContactDetailWithSidebar() {
       </div>
 
       {/* Header */}
-      <div className="border-b bg-background px-6 py-4">
-        <div className="flex items-start gap-4">
+      <div className="border-b bg-background px-3 py-3 md:px-6 md:py-4">
+        <div className="flex flex-wrap items-start gap-3 md:flex-nowrap md:gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/contacts")} className="shrink-0" aria-label="Voltar aos contactos">
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -589,7 +589,7 @@ export function ENIContactDetailWithSidebar() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:shrink-0 md:flex-nowrap">
             <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
             {contact.phone && (
               <>
