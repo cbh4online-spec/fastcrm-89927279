@@ -69,7 +69,20 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
           return (
             <Tag
               key={kpi.key}
-              {...(interactive ? { type: "button" as const, onClick: kpi.onClick } : {})}
+              {...(interactive
+                ? {
+                    type: "button" as const,
+                    onClick: () => {
+                      const wasActive = !!kpi.active;
+                      kpi.onClick?.();
+                      if (!wasActive && typeof window !== "undefined" && window.innerWidth < 768) {
+                        setTimeout(() => {
+                          document.getElementById("lista-resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }, 120);
+                      }
+                    },
+                  }
+                : {})}
               className={cn(
                 "flex min-w-0 md:shrink-0 md:min-w-[168px] md:flex-1 items-center gap-2 md:gap-3 max-md:rounded-xl rounded-2xl border bg-card max-md:px-3 max-md:py-2 md:px-4 md:py-3 text-left md:shadow-sm transition-colors",
                 kpi.active ? "border-primary ring-1 ring-primary/30" : "border-border",
@@ -98,6 +111,24 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
           );
         })}
       </div>
+      {(() => {
+        const act = items.find((k) => k.active);
+        if (!act) return null;
+        return (
+          <div className="mt-2 flex items-center justify-between gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs">
+            <span className="min-w-0 truncate text-foreground">
+              A filtrar por: <strong>{act.label}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={act.onClick}
+              className="shrink-0 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+            >
+              Limpar ×
+            </button>
+          </div>
+        );
+      })()}
       {note && <p className="mt-1.5 hidden md:block text-[11px] text-muted-foreground">{note}</p>}
     </div>
   );
