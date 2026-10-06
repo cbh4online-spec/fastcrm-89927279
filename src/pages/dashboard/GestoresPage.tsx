@@ -1,3 +1,4 @@
+import { displayLabel } from "@/lib/crm/displayLabels";
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
@@ -332,7 +333,7 @@ export default function GestoresPage() {
                   <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                     {selectedManagerData.email && <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{selectedManagerData.email}</span>}
                     <span>·</span>
-                    <span className="capitalize">{selectedManagerData.role}</span>
+                    <span>{displayLabel(selectedManagerData.role)}</span>
                     <span>·</span>
                     <span className={cn("font-medium", WORKLOAD_COLORS[selectedManagerData.workload.workloadBucket])}>
                       Carga: {WORKLOAD_LABELS[selectedManagerData.workload.workloadBucket]}
@@ -643,7 +644,7 @@ export default function GestoresPage() {
                         <Avatar className="h-10 w-10"><AvatarFallback className="bg-primary/10 text-primary font-semibold">{getInitials(manager.name)}</AvatarFallback></Avatar>
                         <div className="flex-1 min-w-0"><p className="font-semibold truncate">{manager.name}</p><p className="text-xs text-muted-foreground truncate">{manager.email}</p></div>
                         <div className="flex flex-col items-end gap-1">
-                          <Badge variant="outline" className="capitalize text-[10px]">{manager.role}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{displayLabel(manager.role)}</Badge>
                           <Badge variant="outline" className={cn("text-[9px]", WORKLOAD_COLORS[manager.workload.workloadBucket])}>{WORKLOAD_LABELS[manager.workload.workloadBucket]}</Badge>
                         </div>
                       </div>

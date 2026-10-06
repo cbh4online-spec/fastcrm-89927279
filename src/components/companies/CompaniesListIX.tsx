@@ -84,14 +84,14 @@ const COLUMNS: ListColumnDef[] = [
   { key: "pare_score", label: "Score PARE", defaultVisible: false },
   { key: "icp_fit_score", label: "Adequação ICP", defaultVisible: false },
   { key: "total_revenue", label: "Faturação total (s/IVA)", defaultVisible: true },
-  { key: "average_ticket", label: "Ticket médio", defaultVisible: false },
+  { key: "average_ticket", label: "Ticket médio (s/IVA)", defaultVisible: false },
   { key: "sales_2026", label: "Vendas 2026", defaultVisible: false },
   { key: "sales_2025", label: "Vendas 2025", defaultVisible: false },
   { key: "sales_2024", label: "Vendas 2024", defaultVisible: false },
   { key: "payment_status", label: "Estado pagamento", defaultVisible: true },
-  { key: "paid_total", label: "Pago", defaultVisible: false },
+  { key: "paid_total", label: "Pago (c/IVA)", defaultVisible: false },
   { key: "pending_total", label: "Pendente", defaultVisible: false },
-  { key: "overdue_total", label: "Vencido", defaultVisible: false },
+  { key: "overdue_total", label: "Vencido (c/IVA)", defaultVisible: false },
   { key: "invoice_count", label: "Nº faturas", defaultVisible: false },
   { key: "last_purchase_date", label: "Última compra", defaultVisible: false },
   { key: "created_at", label: "Data de criação", defaultVisible: true },
@@ -434,8 +434,8 @@ export function CompaniesListIX() {
     const ticket = invoices > 0 ? revenue / invoices : 0;
     return [
       { key: "revenue", label: "Faturação (s/IVA)", value: formatCurrency(revenue), icon: Euro, tone: "primary", hint: `${invoices} faturas` },
-      { key: "paid", label: "Recebido", value: formatCurrency(paid), icon: Wallet, tone: paid > 0 ? "success" : "neutral" },
-      { key: "pending", label: "Pendente", value: formatCurrency(pending), icon: Clock, tone: pending > 0.01 ? "warning" : "neutral" },
+      { key: "paid", label: "Recebido (c/IVA)", value: formatCurrency(paid), icon: Wallet, tone: paid > 0 ? "success" : "neutral", hint: "Montante pago registado nas faturas (inclui IVA)" },
+      { key: "pending", label: "Pendente (c/IVA)", value: formatCurrency(pending), icon: Clock, tone: pending > 0.01 ? "warning" : "neutral" },
       {
         key: "overdue",
         label: "Vencido",
@@ -444,7 +444,7 @@ export function CompaniesListIX() {
         tone: overdue > 0.01 ? "danger" : "neutral",
         hint: onlyOverdue ? "A filtrar" : "Clique para filtrar",
       },
-      { key: "ticket", label: "Ticket médio", value: formatCurrency(ticket), icon: Receipt, tone: "neutral" },
+      { key: "ticket", label: "Ticket médio (s/IVA)", value: formatCurrency(ticket), icon: Receipt, tone: "neutral", hint: "Faturação s/IVA ÷ nº de faturas" },
       { key: "active", label: "Clientes ativos", value: String(active), icon: Users, tone: "neutral", hint: "com faturação a 12 meses" },
     ].map((k) => ({ ...k, active: quick === k.key, onClick: () => toggleQuick(k.key) })) as ListKPI[];
   }, [filtered, financialsById, onlyOverdue, quick]);
@@ -480,7 +480,7 @@ export function CompaniesListIX() {
           sortOptions={[
             { value: "name", label: "Nome" },
             { value: "created_at", label: "Data de criação" },
-            { value: "total_revenue", label: "Faturação" },
+            { value: "total_revenue", label: "Faturação (s/IVA)" },
             { value: "pending_total", label: "Valor pendente" },
             { value: "overdue_total", label: "Valor vencido" },
             { value: "last_purchase", label: "Última compra" },

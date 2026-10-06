@@ -1,3 +1,4 @@
+import { displayLabel } from "@/lib/crm/displayLabels";
 import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
 import { useMemo, useState } from "react";
@@ -128,7 +129,7 @@ function renderCell(col: string, c: Contact) {
     case "job_title": return <span className="truncate text-sm text-foreground">{c.job_title || "—"}</span>;
     case "tax_id": return <span className="text-sm text-foreground">{c.tax_id || "—"}</span>;
     case "client_number": return <span className="text-sm text-foreground">{c.client_number || "—"}</span>;
-    case "lead_status": return <span className="text-sm text-foreground">{c.lead_status || "—"}</span>;
+    case "lead_status": return <span className="text-sm text-foreground">{displayLabel(c.lead_status)}</span>;
     case "pare_score":
       return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.pare_score))}>{c.pare_score ?? 0}</span></div>;
     case "icp_fit_score":
@@ -224,7 +225,7 @@ export function ContactsListIX() {
       {
         key: "lead_status",
         label: "Estado",
-        options: buildFacetOptions(all, (c) => c.lead_status),
+        options: buildFacetOptions(all, (c) => c.lead_status, displayLabel),
         selected: statusFilter,
         onChange: (v) => { setStatusFilter(v); setPage(0); },
       },
