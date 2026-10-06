@@ -51,6 +51,7 @@ function FilterChip({
   label,
   count,
   tone,
+  subtle,
 }: {
   active: boolean;
   onClick: () => void;
@@ -58,15 +59,19 @@ function FilterChip({
   label: string;
   count: number;
   tone?: string;
+  subtle?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        'inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm transition-colors',
+        'inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 text-sm transition-colors',
         active
-          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+          ? subtle
+            ? 'border-primary bg-card text-primary'
+            : 'border-primary bg-primary text-primary-foreground shadow-sm'
           : 'border-border bg-card text-foreground hover:border-primary/40',
       )}
     >
@@ -136,49 +141,54 @@ export function FeedDashboard() {
   const pageItems = filtered.slice(page * pageSize, page * pageSize + pageSize);
 
   const scopeChips = (
-    <>
-      {SCOPE_TABS.map((tab) => {
-        const Icon = tab.icon;
-        const count = tab.id === 'all' ? posts.length : posts.filter((p) => p.feed_type === tab.id).length;
-        return (
-          <FilterChip
-            key={tab.id}
-            active={scope === tab.id}
-            onClick={() => {
-              setScope(tab.id);
-              setPage(0);
-            }}
-            icon={Icon}
-            label={tab.label}
-            count={count}
-          />
-        );
-      })}
-      <span className="mx-1 self-center text-muted-foreground/40">|</span>
-      <FilterChip
-        active={typeFilter === 'all'}
-        onClick={() => {
-          setTypeFilter('all');
-          setPage(0);
-        }}
-        label="Todos os tipos"
-        count={typeCounts.all ?? 0}
-      />
-      {Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
+    <div className="flex w-full min-w-0 flex-col gap-2">
+      <div className="flex min-w-0 flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {SCOPE_TABS.map((tab) => {
+          const Icon = tab.icon;
+          const count = tab.id === 'all' ? posts.length : posts.filter((p) => p.feed_type === tab.id).length;
+          return (
+            <FilterChip
+              key={tab.id}
+              active={scope === tab.id}
+              onClick={() => {
+                setScope(tab.id);
+                setPage(0);
+              }}
+              icon={Icon}
+              label={tab.label}
+              count={count}
+            />
+          );
+        })}
+      </div>
+      <div className="flex min-w-0 flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <FilterChip
-          key={key}
-          active={typeFilter === key}
+          active={typeFilter === 'all'}
           onClick={() => {
-            setTypeFilter(key as TypeFilter);
+            setTypeFilter('all');
             setPage(0);
           }}
-          icon={cfg.icon}
-          label={cfg.label}
-          count={typeCounts[key] ?? 0}
-          tone={cfg.tone}
+          label="Todos os tipos"
+          count={typeCounts.all ?? 0}
+          subtle
         />
-      ))}
-    </>
+        {Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
+          <FilterChip
+            key={key}
+            active={typeFilter === key}
+            onClick={() => {
+              setTypeFilter(key as TypeFilter);
+              setPage(0);
+            }}
+            icon={cfg.icon}
+            label={cfg.label}
+            count={typeCounts[key] ?? 0}
+            tone={cfg.tone}
+            subtle
+          />
+        ))}
+      </div>
+    </div>
   );
 
   return (
