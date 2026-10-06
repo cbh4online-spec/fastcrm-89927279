@@ -25,6 +25,18 @@ export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', cla
   const kpis = data ?? { totalInvoiced: 0, paid: 0, pending: 0, overdue: 0 };
 
   if (variant === 'header') {
+    const allZero = !isLoading && HEADER_ITEMS.every(({ key }) => !kpis[key]);
+    if (allZero) {
+      return (
+        <div
+          className={cn('flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground', className)}
+          aria-label="Resumo financeiro"
+        >
+          <Euro className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>Sem movimentos financeiros</span>
+        </div>
+      );
+    }
     return (
       <div
         className={cn(
