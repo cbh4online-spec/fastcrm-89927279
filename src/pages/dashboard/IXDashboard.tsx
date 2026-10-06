@@ -6,7 +6,7 @@ import { IXEntityTabs, type IXTabDef } from "@/components/entity/ix/IXEntityTabs
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Percent, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
+import { Percent, ArrowRight, TrendingUp, TrendingDown, FileText, Wallet, CalendarRange, CalendarDays, AlertTriangle, Clock, FolderOpen, Users, UserPlus, Euro, Package, Receipt, Hash, type LucideIcon } from "lucide-react";
 import { useInvoices, useInvoiceStats } from "@/hooks/useInvoices";
 import { useCollectionCases } from "@/modules/collections/hooks/useCollectionCases";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -52,32 +52,59 @@ function DeltaBadge({ value }: { value?: number }) {
   );
 }
 
+type KpiAccent = "primary" | "success" | "warning" | "danger" | "info";
+
+const ACCENT_CLASSES: Record<KpiAccent, string> = {
+  primary: "text-primary bg-primary/10 border-primary/20",
+  success: "text-success bg-success/10 border-success/20",
+  warning: "text-warning bg-warning/10 border-warning/20",
+  danger: "text-destructive bg-destructive/10 border-destructive/20",
+  info: "text-accent-foreground bg-accent border-border",
+};
+
 function KpiTile({
   label,
   value,
   hint,
   delta,
   tone,
+  icon: Icon,
+  accent,
+  onClick,
 }: {
   label: string;
   value: string;
   hint?: string;
   delta?: number;
   tone?: "neutral" | "warning" | "danger";
+  icon?: LucideIcon;
+  accent?: KpiAccent;
+  onClick?: () => void;
 }) {
+  const resolvedAccent: KpiAccent = accent ?? (tone === "danger" ? "danger" : tone === "warning" ? "warning" : "primary");
   return (
     <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
       className={cn(
-        "rounded-xl border border-border bg-card p-5",
-        tone === "warning" && "border-warning/40 bg-warning/10",
-        tone === "danger" && "border-destructive/40 bg-destructive/10",
+        "rounded-xl border border-border bg-card p-4 sm:p-5 transition-all",
+        onClick && "cursor-pointer hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        tone === "warning" && "border-warning/40",
+        tone === "danger" && "border-destructive/40",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        {Icon ? (
+          <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-xl border", ACCENT_CLASSES[resolvedAccent])}>
+            <Icon className="h-4 w-4" />
+          </span>
+        ) : <span />}
         <DeltaBadge value={delta} />
       </div>
-      <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{value}</p>
+      <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums text-foreground">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
