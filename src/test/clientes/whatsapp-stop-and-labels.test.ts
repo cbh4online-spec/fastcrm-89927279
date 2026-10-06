@@ -1,3 +1,4 @@
+import { describe, it, expect } from "vitest";
 
 import { resolveWhatsAppAvailability as resolveWa } from "@/lib/whatsapp/availability";
 import { displayLabel as dl } from "@/lib/crm/displayLabels";
