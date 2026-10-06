@@ -38,7 +38,7 @@ export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', cla
             key={key}
             className="flex min-w-0 flex-col justify-center rounded-md bg-background px-3 py-2 shadow-sm"
           >
-            <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="flex min-w-0 items-center gap-1.5 truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               <Icon className={cn('h-3.5 w-3.5', tone)} aria-hidden="true" />
               {label}
             </span>
