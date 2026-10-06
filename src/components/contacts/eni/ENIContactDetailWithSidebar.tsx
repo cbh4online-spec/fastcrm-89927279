@@ -1,3 +1,4 @@
+import { ContactEssentialsCard } from "./ContactEssentialsCard";
 import { useWhatsAppStopSignals } from "@/hooks/useWhatsAppStopSignals";
 import { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
 import { useState, useCallback, useEffect, useMemo } from "react";
@@ -106,7 +107,8 @@ export function ENIContactDetailWithSidebar() {
   const navigate = useNavigate();
   const { contacts, isLoading, updateContact, deleteContact } = useContacts();
   const { currentWorkspace } = useWorkspace();
-  const waSignals = useWhatsAppStopSignals(currentWorkspace?.id, contact?.whatsapp_number || contact?.phone);
+  const waContact = contacts?.find((c) => c.id === id) as { phone?: string | null; whatsapp_number?: string | null } | undefined;
+  const waSignals = useWhatsAppStopSignals(currentWorkspace?.id, waContact?.whatsapp_number || waContact?.phone);
   const analyzeContact = useAnalyzeContact();
   const { data: counts } = useEntityCounts('contact', id);
   const allContactIds = useMemo(
@@ -252,10 +254,26 @@ export function ENIContactDetailWithSidebar() {
       case 'overview':
         return (
           <div className="space-y-4">
-            <LinkedCompanyCard
-              companyId={(contact as any).company_id}
+            <ContactEssentialsCard
               contactId={contact.id}
+              workspaceId={currentWorkspace?.id}
+              email={contact.email}
+              phone={contact.phone}
+              whatsapp={whatsappState}
+              marketingOptIn={!!contact.marketing_opt_in}
+              preferences={contact.contact_preferences ?? null}
             />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <IdentificationSection
+                contact={contact}
+                onFieldChange={handleFieldChange}
+                onNifDataReceived={handleNifDataReceived}
+              />
+              <LinkedCompanyCard
+                companyId={(contact as any).company_id}
+                contactId={contact.id}
+              />
+            </div>
             <OutreachOneToOneSection
               entityType="contact"
               entityId={contact.id}
@@ -269,6 +287,12 @@ export function ENIContactDetailWithSidebar() {
                 (contact as any).instagram_url ? { label: 'Instagram', url: socialMessageUrl('instagram', (contact as any).instagram_url) ?? (contact as any).instagram_url } : null,
               ].filter(Boolean) as Array<{ label: string; url: string }>}
             />
+            <details className="group rounded-lg border border-border/60 bg-card">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg">
+                <span>Informação avançada</span>
+                <span className="text-xs text-muted-foreground">Pontuações, ciclo de vida, IA, recomendações e morada</span>
+              </summary>
+              <div className="space-y-4 border-t border-border/60 p-3 sm:p-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ContactScoresCard contact={contact} editable={role === 'owner' || role === 'admin'} />
               <ContactLifecycleSection contact={contact} onFieldChange={handleFieldChange} />
@@ -294,14 +318,9 @@ export function ENIContactDetailWithSidebar() {
                 navigate(`/dashboard/proposals/new?contact=${id}&product=${productId}`);
               }}
             />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <IdentificationSection
-                contact={contact} 
-                onFieldChange={handleFieldChange}
-                onNifDataReceived={handleNifDataReceived}
-              />
-              <AddressSection contact={contact} onFieldChange={handleFieldChange} />
-            </div>
+            <AddressSection contact={contact} onFieldChange={handleFieldChange} />
+              </div>
+            </details>
           </div>
         );
       case 'marketing':
