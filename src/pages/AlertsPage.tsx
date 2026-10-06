@@ -76,17 +76,17 @@ function FilterChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-auto w-max min-w-max shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm transition-colors",
+        "inline-flex h-auto min-h-10 w-full min-w-0 items-center justify-between gap-1 whitespace-nowrap rounded-lg border px-2 py-2 text-xs transition-colors md:w-max md:min-w-max md:shrink-0 md:justify-center md:gap-2 md:rounded-full md:px-3.5 md:text-sm",
         active
           ? "border-primary bg-primary text-primary-foreground shadow-sm"
           : "border-border bg-card text-foreground hover:border-primary/40",
       )}
     >
-      {Icon && <Icon className={cn("h-3.5 w-3.5", !active && tone)} />}
+      {Icon && <Icon className={cn("hidden h-3.5 w-3.5 shrink-0 md:block", !active && tone)} />}
       <span className="font-medium">{label}</span>
       <span
         className={cn(
-          "rounded-full px-1.5 text-xs font-semibold",
+          "shrink-0 rounded-full px-1 text-[10px] font-semibold md:px-1.5 md:text-xs",
           active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground",
         )}
       >
@@ -115,17 +115,17 @@ function AlertRow({
       role="button"
       onClick={() => item.actionUrl && navigate(item.actionUrl)}
       className={cn(
-        "group flex cursor-pointer items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md max-md:flex-wrap max-md:gap-2",
+        "group flex cursor-pointer items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md max-md:grid max-md:grid-cols-[2rem_minmax(0,1fr)] max-md:items-start max-md:gap-x-2 max-md:gap-y-1 max-md:px-3",
         item.severity === "critical" && "border-destructive/30",
       )}
     >
-      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", catCfg?.bg)}>
+      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full max-md:h-8 max-md:w-8", catCfg?.bg)}>
         <CatIcon className={cn("h-4 w-4", catCfg?.color)} />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center gap-2 max-md:flex-wrap">
-          <span className="truncate text-sm font-semibold text-foreground max-md:whitespace-normal max-md:break-words">{item.title}</span>
+        <div className="flex items-center gap-2 max-md:flex-col max-md:items-start max-md:gap-1">
+          <span className="truncate text-sm font-semibold text-foreground max-md:w-full max-md:whitespace-normal max-md:break-words">{item.title}</span>
           <Badge variant="outline" className={cn("h-5 shrink-0 text-[10px] font-medium", sev.className)}>
             {sev.label}
           </Badge>
@@ -133,13 +133,13 @@ function AlertRow({
         {item.message && (
           <span className="line-clamp-1 text-xs text-muted-foreground max-md:line-clamp-none max-md:break-words">{item.category === "deal" ? item.message.replace(/status: "open"/g, "estado: Em aberto").replace(/status:/g, "estado:") : item.message}</span>
         )}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground max-md:gap-x-2 [&>span]:max-md:max-w-full [&>span]:max-md:break-words [&>span>svg]:shrink-0">
           <span className="font-medium text-foreground/70">{catCfg?.label}</span>
-          <span>·</span>
+          <span aria-hidden="true" className="max-md:hidden">·</span>
           <span>{formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: pt })}</span>
           {item.related_name && (
             <>
-              <span>·</span>
+              <span aria-hidden="true" className="max-md:hidden">·</span>
               <span className="inline-flex items-center gap-1">
                 {item.related_type === "company" ? <Building2 className="h-3 w-3" /> : <User className="h-3 w-3" />}
                 {item.related_name}
@@ -148,7 +148,7 @@ function AlertRow({
           )}
           {item.assigned_name && (
             <>
-              <span>·</span>
+              <span aria-hidden="true" className="max-md:hidden">·</span>
               <span className="inline-flex items-center gap-1">
                 <User className="h-3 w-3" />
                 {item.assigned_name}
@@ -157,7 +157,7 @@ function AlertRow({
           )}
           {item.due_at && (
             <>
-              <span>·</span>
+              <span aria-hidden="true" className="max-md:hidden">·</span>
               <span className={cn("inline-flex items-center gap-1", isOverdueTask && "font-medium text-destructive")}>
                 <Calendar className="h-3 w-3" />
                 {isOverdueTask ? "Atrasada: " : "Prazo: "}
@@ -168,24 +168,25 @@ function AlertRow({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100 max-md:w-full max-md:justify-end max-md:opacity-100" onClick={(e) => e.stopPropagation()}>
+      <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100 max-md:col-start-2 max-md:flex-wrap max-md:justify-start max-md:opacity-100" onClick={(e) => e.stopPropagation()}>
         {item.status === "unread" && (
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onAction(item, "read")} title="Marcar como lido">
+          <Button size="icon" variant="ghost" className="h-8 w-8 max-md:h-10 max-md:w-10" onClick={() => onAction(item, "read")} title="Marcar como lido" aria-label="Marcar como lido">
             <Eye className="h-3.5 w-3.5" />
           </Button>
         )}
         {item.source_table === "context_alerts" && item.status !== "resolved" && (
           <>
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onAction(item, "snooze")} title="Adiar 24h">
+            <Button size="icon" variant="ghost" className="h-8 w-8 max-md:h-10 max-md:w-10" onClick={() => onAction(item, "snooze")} title="Adiar 24h" aria-label="Adiar 24h">
               <Clock className="h-3.5 w-3.5" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onAction(item, "resolve")} title="Resolver">
+            <Button size="icon" variant="ghost" className="h-8 w-8 max-md:h-10 max-md:w-10" onClick={() => onAction(item, "resolve")} title="Resolver" aria-label="Resolver">
               <Check className="h-3.5 w-3.5 text-green-600" />
             </Button>
           </>
         )}
         {item.actionUrl && (
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { if (item.actionUrl) navigate(item.actionUrl); }} title="Abrir">
+          <Button size="icon" variant="ghost" className="h-8 w-8 max-md:h-10 max-md:w-auto max-md:gap-1.5 max-md:px-2" onClick={() => { if (item.actionUrl) navigate(item.actionUrl); }} title="Abrir" aria-label="Abrir">
+            <span className="text-xs md:hidden">Abrir</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         )}
@@ -255,7 +256,7 @@ export default function AlertsPage() {
   };
 
   const categoryChips = (
-    <div role="group" aria-label="Filtrar alertas por categoria" className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain scroll-smooth motion-reduce:scroll-auto px-1 py-1 [-webkit-overflow-scrolling:touch]">
+    <div role="group" aria-label="Filtrar alertas por categoria" className="grid w-full min-w-0 max-w-full grid-cols-2 gap-2 px-1 py-1 md:flex md:overflow-x-auto md:overscroll-x-contain md:scroll-smooth motion-reduce:scroll-auto">
       <FilterChip
         active={category === "all"}
         onClick={() => {
@@ -348,7 +349,7 @@ export default function AlertsPage() {
             </p>
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col gap-2 pr-20">
+          <div className="flex w-full min-w-0 flex-col gap-2 md:pr-20">
             {pageItems.map((item) => (
               <AlertRow
                 key={`${item.source_table}-${item.id}`}
@@ -361,7 +362,7 @@ export default function AlertsPage() {
         )}
 
         {totalCount > pageSize && (
-          <div className="mt-4 flex flex-wrap items-center justify-end gap-2 pr-20 text-sm">
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2 text-sm md:pr-20">
             <Button
               variant="ghost"
               size="sm"
