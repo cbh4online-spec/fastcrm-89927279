@@ -310,26 +310,26 @@ export function ContactsListIX() {
       onSearchChange={(v) => { setSearch(v); setPage(0); }}
       searchPlaceholder="Pesquisar por nome, código, e-mail ou NIF"
       primaryAction={
-        <div className="flex items-center gap-2">
+        <div className="flex w-full md:w-auto items-center gap-2">
           <Button
             variant="outline"
             onClick={() => setDuplicatesOpen(true)}
-            className="h-12 rounded-full px-6 text-sm font-semibold"
+            className="h-12 rounded-full px-6 text-sm font-semibold max-md:h-11 max-md:w-11 max-md:px-0"
           >
-            <Copy className="mr-2 h-4 w-4" />
-            Duplicados
+            <Copy className="mr-2 h-4 w-4 max-md:mr-0" />
+            <span className="max-md:sr-only">Duplicados</span>
           </Button>
           <Button
             variant="outline"
             onClick={() => setImportOpen(true)}
-            className="h-12 rounded-full px-6 text-sm font-semibold"
+            className="h-12 rounded-full px-6 text-sm font-semibold max-md:h-11 max-md:w-11 max-md:px-0"
           >
-            <Upload className="mr-2 h-4 w-4" />
-            Importar CSV
+            <Upload className="mr-2 h-4 w-4 max-md:mr-0" />
+            <span className="max-md:sr-only">Importar CSV</span>
           </Button>
           <Button
             onClick={() => navigate("/dashboard/contacts/new")}
-            className="h-12 rounded-full bg-primary px-6 text-sm font-semibold shadow-sm hover:bg-primary/90"
+            className="h-12 rounded-full bg-primary px-6 max-md:h-11 max-md:flex-1 text-sm font-semibold shadow-sm hover:bg-primary/90"
           >
             <Plus className="mr-2 h-4 w-4" />
             Criar Contacto
@@ -361,7 +361,7 @@ export function ContactsListIX() {
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
               <EntityFacetFilters facets={facets} />
-              <ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} />
+              <div className="hidden md:block"><ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} /></div>
             </div>
           }
         />
