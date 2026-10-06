@@ -1,4 +1,5 @@
 // Reconciliação on-demand: lê o estado real das subscrições no Stripe e atualiza os contratos de renovação.
+import { mapStripeSubscription } from "../_shared/stripeRenewalStatus.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { z } from "npm:zod@3.23.8";
@@ -133,13 +134,25 @@ Deno.serve(async (req) => {
         const sub: any = await stripe.subscriptions.retrieve(c.stripe_subscription_id!);
         const periodEnd = sub.items?.data?.[0]?.current_period_end ?? sub.current_period_end;
         const update: Record<string, unknown> = { billing_type: "stripe", stripe_customer_id: String(sub.customer) };
-        const next = toDate(periodEnd);
+        const mapped = mapStripeSubscription(sub);
+        const next = mapped.keepNextRenewal ? toDate(periodEnd) : null;
         if (next) update.next_renewal_date = next;
-        if (sub.status === "active" || sub.status === "trialing") update.status = "active";
-        else if (sub.status === "paused") update.status = "paused";
-        else if (sub.status === "canceled" || sub.status === "incomplete_expired") update.status = "churned";
-        else if (sub.status === "past_due" || sub.status === "unpaid") update.risk_level = "high";
-        await db.from("renewal_contracts").update(update).eq("id", c.id);
+        if (mapped.status) update.status = mapped.status;
+        if (mapped.riskHigh) update.risk_level = "high";
+        {
+          const { data: cur } = await db.from("renewal_contracts").select("alert_settings").eq("id", c.id).eq("workspace_id", workspace_id).maybeSingle();
+          const settings = { ...((cur?.alert_settings as Record<string, unknown>) || {}) };
+          if (mapped.cancelScheduledAt) settings.stripe_cancel_at = mapped.cancelScheduledAt; else delete settings.stripe_cancel_at;
+          update.alert_settings = settings;
+        }
+        const { error: upErr } = await db.from("renewal_contracts").update(update).eq("id", c.id).eq("workspace_id", workspace_id);
+        if (upErr) throw new Error(`Não foi possível atualizar o contrato: ${upErr.message}`);
+        if (mapped.cancelled && c.status !== "cancelled") {
+          await db.from("renewal_events").insert({
+            contract_id: c.id, workspace_id, event_type: "cancelled",
+            payload_json: { source: "stripe_sync", stripe_subscription_id: sub.id, canceled_at: sub.canceled_at ?? sub.ended_at ?? null },
+          });
+        }
 
         // Ligar às fichas do CRM sem duplicar e etiquetar com "stripe"
         try {
@@ -251,7 +264,7 @@ Deno.serve(async (req) => {
             }
           }
         }
-        results.push({ contract_id: c.id, ok: true, stripe_status: sub.status, next_renewal_date: next, payments_added: added, invoices_added: invoicesAdded });
+        results.push({ contract_id: c.id, ok: true, stripe_status: sub.status, contract_status: mapped.status ?? c.status, cancelled: mapped.cancelled, cancel_scheduled_at: mapped.cancelScheduledAt, next_renewal_date: next, payments_added: added, invoices_added: invoicesAdded });
       } catch (e: any) {
         console.error("[SYNC-STRIPE-RENEWALS]", c.id, e?.message);
         results.push({ contract_id: c.id, ok: false, error: e?.message || "Erro" });

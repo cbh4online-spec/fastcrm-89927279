@@ -1,4 +1,5 @@
 /**
+import { phoneOptOutVariants } from "./phoneVariants.ts";
  * Guardas de paragem do FastCRM WhatsApp Conversion Engine.
  *
  * Revalidadas imediatamente antes de cada envio automático para evitar
@@ -54,13 +55,15 @@ export async function checkStopConditions(
 
   // 1. Opt-out (fail-closed em caso de dúvida).
   const digits = (enr.phone || "").replace(/\D/g, "");
-  const { data: optout } = await supabase
+  const variants = phoneOptOutVariants(enr.phone);
+  const { data: optouts, error: optErr } = await supabase
     .from("whatsapp_optouts")
     .select("id")
     .eq("workspace_id", wsId)
-    .or(`phone.eq.${enr.phone},phone.eq.${digits}`)
-    .maybeSingle();
-  if (optout) return { allowed: false, reason: "opted_out", terminal: true };
+    .in("phone", variants.length ? variants : [digits || "__none__"])
+    .limit(1);
+  if (optErr) return { allowed: false, reason: "opted_out", terminal: false, retryAt: new Date(Date.now() + 15 * 60_000).toISOString() };
+  if ((optouts ?? []).length) return { allowed: false, reason: "opted_out", terminal: true };
 
   // 2. Resposta da lead depois da inscrição.
   if (opts.stopOnReply) {
