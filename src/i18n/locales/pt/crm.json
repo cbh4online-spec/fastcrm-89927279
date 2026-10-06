@@ -770,5 +770,6 @@
   "viewLifecycle": "Ver Ciclo de Vida",
   "addressNumber": "Número",
   "addressFloor": "Andar",
-  "region": "Região"
+  "region": "Região",
+  "birthDate": "Data de nascimento"
 }
