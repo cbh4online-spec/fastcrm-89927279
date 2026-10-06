@@ -36,7 +36,7 @@ export function DocumentListLayout({
   className,
 }: DocumentListLayoutProps) {
   return (
-    <div className={cn("flex flex-col gap-4 p-6", className)}>
+    <div className={cn("flex flex-col gap-4 p-4 sm:p-6", className)}>
       {/* Header: título + pesquisa + CTAs */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
@@ -53,7 +53,7 @@ export function DocumentListLayout({
               />
             </div>
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {secondaryAction}
             {primaryAction}
           </div>

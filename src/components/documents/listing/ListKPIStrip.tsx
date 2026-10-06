@@ -60,7 +60,7 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
 
   return (
     <div className={cn("mb-4", className)}>
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="grid grid-cols-2 gap-3 pb-1 md:flex md:overflow-x-auto">
         {items.map((kpi) => {
           const tone = kpi.tone ?? "neutral";
           const Icon = kpi.icon;
@@ -71,7 +71,7 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
               key={kpi.key}
               {...(interactive ? { type: "button" as const, onClick: kpi.onClick } : {})}
               className={cn(
-                "flex min-w-[168px] flex-1 items-center gap-3 rounded-2xl border bg-card px-4 py-3 text-left shadow-sm transition-colors",
+                "flex min-w-0 md:min-w-[168px] flex-1 items-center gap-3 rounded-2xl border bg-card px-4 py-3 text-left shadow-sm transition-colors",
                 kpi.active ? "border-primary ring-1 ring-primary/30" : "border-border",
                 interactive && "hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
