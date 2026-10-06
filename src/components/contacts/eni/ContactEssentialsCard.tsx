@@ -49,7 +49,7 @@ export function ContactEssentialsCard({ contactId, workspaceId, email, phone, wh
       <div className="min-w-0 space-y-1">
         <p className="text-xs font-medium text-muted-foreground">Próxima ação</p>
         {isLoading ? <p className="text-sm text-muted-foreground">A carregar…</p>
-          : isError ? <p className="text-sm text-destructive" role="alert">Não foi possível carregar tarefas{error instanceof Error && error.message ? ` (${error.message})` : ""}</p>
+          : isError ? <p className="text-sm text-destructive" role="alert">Não foi possível carregar tarefas. Tente novamente mais tarde.</p>
           : next ? (
             <p className="flex min-w-0 items-start gap-1.5 text-sm">
               <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />

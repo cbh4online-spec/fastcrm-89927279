@@ -3,7 +3,7 @@ import { useWhatsAppStopSignals } from "@/hooks/useWhatsAppStopSignals";
 import { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { socialMessageUrl } from '@/lib/social/socialProfiles';
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useContacts } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
