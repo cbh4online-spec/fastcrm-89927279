@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
           if (invExists) {
             await db.from("invoices").update({ paid_at: paidAt, amount_paid: amount, status: "paid", external_url: invPayload.external_url, pdf_url: invPayload.pdf_url }).eq("id", invExists.id);
           } else if (actorId) {
-            const { error: insErr } = await db.from("invoices").insert({
+            const { data: newInv, error: insErr } = await db.from("invoices").insert({
               ...invPayload,
               workspace_id,
               invoice_number: inv.number || `STRIPE-${inv.id.slice(-8)}`,
@@ -230,9 +230,25 @@ Deno.serve(async (req) => {
               tax_amount: 0,
               external_provider: "stripe", external_id: inv.id,
               notes: `Pagamento Stripe sincronizado. Invoice: ${inv.id}`,
-            });
+            }).select("id").maybeSingle();
             if (insErr) console.error("[SYNC-STRIPE-RENEWALS] invoice insert", inv.id, insErr.message);
             else invoicesAdded++;
+            invExists = newInv ?? null;
+          }
+          // Garantir sempre linhas de itens (fatura sem itens fica incompleta)
+          if (invExists) {
+            const { count } = await db.from("invoice_items").select("id", { count: "exact", head: true }).eq("invoice_id", invExists.id);
+            if (!count) {
+              const { data: cItems } = await db.from("renewal_items").select("name, product_id").eq("contract_id", c.id);
+              const desc = (cItems || []).map((x: any) => x.name).filter(Boolean).join(" + ")
+                || inv.lines?.data?.[0]?.description || "Subscrição Stripe";
+              const { error: itErr } = await db.from("invoice_items").insert({
+                invoice_id: invExists.id, product_id: cItems?.[0]?.product_id ?? null,
+                description: desc, quantity: 1, unit_price: amount, discount_percent: 0,
+                tax_rate: 0, total: amount, position: 1,
+              });
+              if (itErr) console.error("[SYNC-STRIPE-RENEWALS] items insert", inv.id, itErr.message);
+            }
           }
         }
         results.push({ contract_id: c.id, ok: true, stripe_status: sub.status, next_renewal_date: next, payments_added: added, invoices_added: invoicesAdded });
