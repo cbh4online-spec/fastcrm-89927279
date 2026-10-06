@@ -351,7 +351,7 @@ export function LeadsListIX() {
       };
       return { ...k, active, onClick };
     }) as ListKPI[];
-  }, [sortedLeads, temperatureFilter, sortBy, sortDir]);
+  }, [sortedLeads, totalCount, temperatureFilter, sortBy, sortDir]);
 
   return (
     <DocumentListLayout
