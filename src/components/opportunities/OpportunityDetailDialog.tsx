@@ -1,3 +1,4 @@
+import { stagesForOpportunity } from "@/lib/crm/opportunityStages";
 import { useState, useMemo } from "react";
 import { Opportunity } from "@/types/opportunity";
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,8 @@ export function OpportunityDetailDialog({
 }: OpportunityDetailDialogProps) {
   const { data: opportunity } = useOpportunityDetail(initialOpp.id);
   const updateOpportunity = useUpdateOpportunityEnhanced();
-  const { data: stages = [] } = usePipelineStagesEnhanced();
+  const { data: allStages = [] } = usePipelineStagesEnhanced();
+  const stages = stagesForOpportunity(allStages, opportunity ?? initialOpp);
   const { data: leads = [] } = useLeads();
   const { contacts } = useContacts();
   const { companies } = useCompanies();
