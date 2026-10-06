@@ -231,52 +231,52 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
         {/* Main Content */}
         <div className="flex-1 min-w-0 space-y-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full md:w-auto bg-transparent border-b rounded-none h-auto md:h-10 p-0 flex-nowrap overflow-x-auto scrollbar-none">
-              <TabsTrigger value="overview" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs">
+            <TabsList className="w-full md:w-auto bg-transparent border-b rounded-none h-10 p-0 flex flex-nowrap justify-start overflow-x-auto overflow-y-hidden scrollbar-none">
+              <TabsTrigger value="overview" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs">
                 {tabDot("overview")}
                 {t("oppDetailTabOverview")}
               </TabsTrigger>
-              <TabsTrigger value="activity" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs">
+              <TabsTrigger value="activity" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs">
                 {tabDot("activity")}
                 {t("activities")}
               </TabsTrigger>
-              <TabsTrigger value="notes" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+              <TabsTrigger value="notes" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {tabDot("notes")}
                 {t("oppDetailTabNotes")}
                 {tabBadge(notesCount)}
               </TabsTrigger>
-              <TabsTrigger value="company" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+              <TabsTrigger value="company" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {tabDot("company")}
                 {t("oppDetail_associatedCompanyTab")}
                 {tabBadge(associatedCompanies.length)}
               </TabsTrigger>
-              <TabsTrigger value="people" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+              <TabsTrigger value="people" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {tabDot("people")}
                 {t("oppDetail_associatedPeopleTab")}
                 {tabBadge(associatedPeople.length)}
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+              <TabsTrigger value="tasks" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {tabDot("tasks")}
                 {t("oppDetailTabTasks")}
                 {tabBadge(pendingTasksCount)}
               </TabsTrigger>
-              <TabsTrigger value="calls" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+              <TabsTrigger value="calls" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {tabDot("calls")}
                 {t("oppDetail_callsTab")}
                 {tabBadge(0)}
               </TabsTrigger>
-              <TabsTrigger value="insights" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+              <TabsTrigger value="insights" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {tabDot("insights")}
                 <Sparkles className="h-3 w-3" />
                 {t("oppDetailTabInsights")}
               </TabsTrigger>
-              <TabsTrigger value="comments" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+              <TabsTrigger value="comments" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {tabDot("comments")}
                 <MessageSquare className="h-3 w-3" />
                 {t("oppDetail_commentsTab")}
                 {tabBadge(commentsData.filter(c => !c.parent_id).length)}
               </TabsTrigger>
-              <TabsTrigger value="proposals" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+              <TabsTrigger value="proposals" className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {tabDot("proposals")}
                 <FileText className="h-3 w-3" />
                 Propostas
@@ -287,7 +287,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 const opt = ADD_TAB_OPTIONS.find(o => o.id === tabId);
                 if (!opt) return null;
                 return (
-                  <TabsTrigger key={tabId} value={tabId} className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                  <TabsTrigger key={tabId} value={tabId} className="shrink-0 whitespace-nowrap px-3 rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                     {tabDot(tabId)}
                     {opt.label}
                   </TabsTrigger>
@@ -298,7 +298,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1 rounded-none"
+                    className="shrink-0 h-8 text-xs text-muted-foreground hover:text-foreground gap-1 rounded-none"
                   >
                     <Plus className="w-3 h-3" />
                     {t("oppDetail_addTab")}
