@@ -305,8 +305,8 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
                     <Target className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <span className="font-medium">{lead.name}</span>
-                      {lead.email && (
-                        <span className="ml-2 text-xs text-muted-foreground">{lead.email}</span>
+                      {(lead.phone || lead.email) && (
+                        <span className="ml-2 text-xs text-muted-foreground">{lead.phone || lead.email}</span>
                       )}
                     </div>
                   </div>
@@ -341,8 +341,8 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
                     <Users className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <span className="font-medium">{contact.name}</span>
-                      {contact.company && (
-                        <span className="ml-2 text-xs text-muted-foreground">@ {contact.company}</span>
+                      {(contact.phone || contact.company) && (
+                        <span className="ml-2 text-xs text-muted-foreground">{contact.phone || `@ ${contact.company}`}</span>
                       )}
                     </div>
                   </div>
@@ -372,8 +372,8 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
                     <Building2 className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <span className="font-medium">{company.name}</span>
-                      {company.industry && (
-                        <span className="ml-2 text-xs text-muted-foreground">{company.industry}</span>
+                      {(company.phone || company.tax_id || company.industry) && (
+                        <span className="ml-2 text-xs text-muted-foreground">{company.phone || (company.tax_id ? `NIF ${company.tax_id}` : company.industry)}</span>
                       )}
                     </div>
                   </div>
