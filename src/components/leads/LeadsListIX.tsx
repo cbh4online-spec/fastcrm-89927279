@@ -466,13 +466,14 @@ export function LeadsListIX() {
                   aria-label={`Selecionar ${lead.name || "lead"}`}
                 />
               </div>
-              {orderedColumns.map((col) => (
-
+              {orderedColumns.map((col, colIdx) => (
                 <div
                   key={col}
                   className={cn(
                     "flex min-w-0 items-center overflow-hidden",
-                    COLUMN_WIDTH[col] ?? "min-w-[120px]"
+                    COLUMN_WIDTH[col] ?? "min-w-[120px]",
+                    colIdx === 0 ? "max-md:flex-1 max-md:min-w-0" : "max-md:order-last max-md:basis-full max-md:w-auto max-md:pl-7 max-md:justify-start max-md:text-xs",
+                    colIdx > 2 && "max-md:hidden",
                   )}
                 >
                   {renderCell(col, lead)}
