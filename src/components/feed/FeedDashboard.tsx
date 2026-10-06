@@ -23,7 +23,14 @@ import {
   DocumentListLayout,
   DocumentListToolbar,
 } from '@/components/documents/listing';
-import { FeedType, Post, useInternalFeed, useMyMentions } from '@/hooks/useInternalFeed';
+import { FeedType, Post, PostType, useInternalFeed, useMyMentions } from '@/hooks/useInternalFeed';
+
+const QUICK_TYPES: { type: PostType; label: string; icon: typeof MessageSquare }[] = [
+  { type: 'update', label: 'Atualização', icon: MessageSquare },
+  { type: 'winners', label: 'Vitória', icon: Trophy },
+  { type: 'help_request', label: 'Ajuda', icon: AlertCircle },
+  { type: 'daily_checklist', label: 'Checklist', icon: CheckSquare },
+];
 
 type ScopeFilter = FeedType | 'all';
 type TypeFilter = 'all' | 'update' | 'help_request' | 'daily_checklist' | 'winners' | 'ai_alert';
@@ -99,6 +106,11 @@ export function FeedDashboard() {
   const [page, setPage] = useState(0);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createType, setCreateType] = useState<PostType>('update');
+  const openCreate = (t: PostType) => {
+    setCreateType(t);
+    setCreateModalOpen(true);
+  };
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
 
