@@ -41,8 +41,8 @@ const CATEGORY_CONFIG: Record<
   alert: { icon: ShieldAlert, label: "Alertas", color: "text-orange-500", bg: "bg-orange-500/10" },
   notification: { icon: Bell, label: "Notificações", color: "text-blue-500", bg: "bg-blue-500/10" },
   task: { icon: CheckSquare, label: "Tarefas", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  followup: { icon: MessageCircle, label: "Follow-ups", color: "text-purple-500", bg: "bg-purple-500/10" },
-  deal: { icon: TrendingDown, label: "Deals Parados", color: "text-red-500", bg: "bg-red-500/10" },
+  followup: { icon: MessageCircle, label: "Acompanhamentos", color: "text-primary", bg: "bg-primary/10" },
+  deal: { icon: TrendingDown, label: "Negócios sem atividade", color: "text-destructive", bg: "bg-destructive/10" },
 };
 
 const SEVERITY_BADGE: Record<string, { label: string; className: string }> = {
@@ -70,11 +70,13 @@ function FilterChip({
   tone?: string;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm transition-colors",
+        "inline-flex h-auto w-max min-w-max shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm transition-colors",
         active
           ? "border-primary bg-primary text-primary-foreground shadow-sm"
           : "border-border bg-card text-foreground hover:border-primary/40",
@@ -90,7 +92,7 @@ function FilterChip({
       >
         {count}
       </span>
-    </button>
+    </Button>
   );
 }
 
@@ -113,7 +115,7 @@ function AlertRow({
       role="button"
       onClick={() => item.actionUrl && navigate(item.actionUrl)}
       className={cn(
-        "group flex cursor-pointer items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md",
+        "group flex cursor-pointer items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md max-md:flex-wrap max-md:gap-2",
         item.severity === "critical" && "border-destructive/30",
       )}
     >
@@ -122,14 +124,14 @@ function AlertRow({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-foreground">{item.title}</span>
+        <div className="flex items-center gap-2 max-md:flex-wrap">
+          <span className="truncate text-sm font-semibold text-foreground max-md:whitespace-normal max-md:break-words">{item.title}</span>
           <Badge variant="outline" className={cn("h-5 shrink-0 text-[10px] font-medium", sev.className)}>
             {sev.label}
           </Badge>
         </div>
         {item.message && (
-          <span className="line-clamp-1 text-xs text-muted-foreground">{item.message}</span>
+          <span className="line-clamp-1 text-xs text-muted-foreground max-md:line-clamp-none max-md:break-words">{item.category === "deal" ? item.message.replace(/status: "open"/g, "estado: Em aberto").replace(/status:/g, "estado:") : item.message}</span>
         )}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
           <span className="font-medium text-foreground/70">{catCfg?.label}</span>
@@ -166,7 +168,7 @@ function AlertRow({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+      <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100 max-md:w-full max-md:justify-end max-md:opacity-100" onClick={(e) => e.stopPropagation()}>
         {item.status === "unread" && (
           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onAction(item, "read")} title="Marcar como lido">
             <Eye className="h-3.5 w-3.5" />
@@ -183,7 +185,7 @@ function AlertRow({
           </>
         )}
         {item.actionUrl && (
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => navigate(item.actionUrl!)} title="Abrir">
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { if (item.actionUrl) navigate(item.actionUrl); }} title="Abrir">
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         )}
@@ -253,7 +255,7 @@ export default function AlertsPage() {
   };
 
   const categoryChips = (
-    <>
+    <div role="group" aria-label="Filtrar alertas por categoria" className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain scroll-smooth motion-reduce:scroll-auto px-1 py-1 [-webkit-overflow-scrolling:touch]">
       <FilterChip
         active={category === "all"}
         onClick={() => {
@@ -272,17 +274,18 @@ export default function AlertsPage() {
             setPage(0);
           }}
           icon={cfg.icon}
-          label={cfg.label}
+          label={key === "deal" ? "Negócios" : cfg.label}
           count={counts[key] ?? 0}
           tone={cfg.color}
         />
       ))}
-    </>
+    </div>
   );
 
   return (
     <DashboardLayout>
       <DocumentListLayout
+        className="max-md:pb-[calc(10rem+env(safe-area-inset-bottom))]"
         title="Alertas"
         searchValue={search}
         onSearchChange={(v) => {
@@ -297,7 +300,7 @@ export default function AlertsPage() {
             className="h-12 rounded-full px-5 text-sm font-semibold"
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            Marcar tudo lido
+            Marcar todos como lidos
           </Button>
         }
         secondaryAction={
@@ -345,7 +348,7 @@ export default function AlertsPage() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex min-w-0 flex-col gap-2 max-md:pr-12">
             {pageItems.map((item) => (
               <AlertRow
                 key={`${item.source_table}-${item.id}`}
@@ -358,7 +361,7 @@ export default function AlertsPage() {
         )}
 
         {totalCount > pageSize && (
-          <div className="mt-4 flex items-center justify-end gap-2 text-sm">
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2 text-sm max-md:pr-12">
             <Button
               variant="ghost"
               size="sm"

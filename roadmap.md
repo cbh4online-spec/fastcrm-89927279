@@ -28,3 +28,7 @@
 ## Etapas das oportunidades (pedido 2026-10-06)
 - [x] Aplicar percurso vertical com nomes completos, etapa atual destacada e avanço contextual; validado isoladamente em desktop e mobile, incluindo avanço, loading e última etapa.
 - [ ] Confirmar na ficha real — a sessão de teste não carregou o percurso da oportunidade.
+
+## Alertas e ficha de contacto (pedido 2026-10-06)
+- [ ] Corrigir filtros e textos dos alertas, espaço inferior e proteção das ações contra o Copilot; validar a 360/393 px e desktop sem marcar como lido.
+- [ ] Concluir correção de tarefas e regresso da ficha; validar com dados reais quando a sessão permitir.
