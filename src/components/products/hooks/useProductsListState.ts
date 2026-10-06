@@ -139,8 +139,16 @@ export function useProductsListState() {
   const [scanResultOpen, setScanResultOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const n = Number(new URLSearchParams(window.location.search).get("page"));
+    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+  });
+  const [pageSize, setPageSize] = useState(() => {
+    if (typeof window === "undefined") return 25;
+    const n = Number(new URLSearchParams(window.location.search).get("pageSize"));
+    return PAGE_SIZE_OPTIONS.includes(n as never) ? n : 25;
+  });
   const [activeTab, setActiveTab] = useState("products");
   const [showFilterSidebar, setShowFilterSidebar] = useState(() => typeof window !== "undefined" ? window.innerWidth >= 768 : true);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
@@ -481,15 +489,30 @@ export function useProductsListState() {
     return filteredProducts.slice(start, start + pageSize);
   }, [filteredProducts, currentPage, pageSize]);
 
-  // Repor a página quando a pesquisa ou filtros reduzem os resultados
+  // Repor a página só quando o utilizador muda realmente pesquisa/filtros (não em atualizações de dados)
+  const filtersKey = JSON.stringify([debouncedSearch, statusFilter, typeFilter, categoryFilter, billingFilter, storePublishedFilter, pageSize]);
+  const prevFiltersKey = useRef(filtersKey);
   useEffect(() => {
+    if (prevFiltersKey.current === filtersKey) return;
+    prevFiltersKey.current = filtersKey;
     setCurrentPage(1);
-  }, [debouncedSearch, statusFilter, typeFilter, categoryFilter, billingFilter, storePublishedFilter, pageSize]);
+  }, [filtersKey]);
 
-  // Nunca ficar numa página inexistente
+  // Nunca ficar numa página inexistente — só depois de os dados estarem carregados
   useEffect(() => {
+    if (isLoading || !products) return;
     if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
+  }, [currentPage, totalPages, isLoading, products]);
+
+  // Guardar página e tamanho no endereço para sobreviver a refresh
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const prev = url.search;
+    if (currentPage > 1) url.searchParams.set("page", String(currentPage)); else url.searchParams.delete("page");
+    if (pageSize !== 25) url.searchParams.set("pageSize", String(pageSize)); else url.searchParams.delete("pageSize");
+    if (url.search !== prev) window.history.replaceState(window.history.state, "", url.toString());
+  }, [currentPage, pageSize]);
 
   // --- Product health indicators ---
   const productIndicators = useMemo(() => {
