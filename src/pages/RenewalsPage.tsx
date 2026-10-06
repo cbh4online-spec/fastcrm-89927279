@@ -81,8 +81,8 @@ const sortOptions = [
   { value: "renewal_date", label: "Data renovação" },
   { value: "mrr_desc", label: "MRR (maior)" },
   { value: "mrr_asc", label: "MRR (menor)" },
-  { value: "health_asc", label: "Health (pior)" },
-  { value: "health_desc", label: "Health (melhor)" },
+  { value: "health_asc", label: "Saúde do contrato (pior)" },
+  { value: "health_desc", label: "Saúde do contrato (melhor)" },
 ];
 
 export default function RenewalsPage() {
@@ -202,7 +202,7 @@ export default function RenewalsPage() {
       tone: stats.overdue > 0 ? "destructive" : "default",
     },
     {
-      label: "Taxa Churn",
+      label: "Taxa de cancelamento",
       value: `${stats.churnRate.toFixed(1)}%`,
       tone: stats.churnRate > 10 ? "destructive" : "default",
     },

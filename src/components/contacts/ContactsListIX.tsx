@@ -131,13 +131,13 @@ function renderCell(col: string, c: Contact) {
     case "client_number": return <span className="text-sm text-foreground">{c.client_number || "—"}</span>;
     case "lead_status": return <span className="text-sm text-foreground">{displayLabel(c.lead_status)}</span>;
     case "pare_score":
-      return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.pare_score))}>{c.pare_score ?? 0}</span></div>;
+      return <div className="w-full shrink-0 text-right max-md:w-auto max-md:min-w-fit max-md:text-left"><span className={cn("text-sm font-semibold tabular-nums max-md:text-xs", scoreToneClass(c.pare_score))}>{c.pare_score ?? 0}</span></div>;
     case "icp_fit_score":
       return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.icp_fit_score))}>{c.icp_fit_score ?? 0}</span></div>;
     case "engagement_score":
       return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", scoreToneClass(c.engagement_score))}>{c.engagement_score ?? 0}</span></div>;
     case "created_at":
-      return <div className="w-full text-right text-sm text-muted-foreground">{formatDate(c.created_at)}</div>;
+      return <div className="w-full shrink-0 text-right text-sm text-muted-foreground max-md:w-auto max-md:min-w-fit max-md:text-left max-md:text-xs">{c.created_at ? formatDate(c.created_at) : "Sem data"}</div>;
     case "next_followup_at": {
       const ts = c.next_followup_at ? new Date(c.next_followup_at).getTime() : 0;
       const late = ts > 0 && ts < Date.now();

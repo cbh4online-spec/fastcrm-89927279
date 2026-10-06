@@ -88,7 +88,6 @@ export function EditRenewalContractDialog({ open, onOpenChange, contract }: Prop
                   <SelectItem value="paused">Pausado</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                   <SelectItem value="expired">Expirado</SelectItem>
-                  <SelectItem value="churned">Churned</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -190,7 +189,7 @@ export function EditRenewalContractDialog({ open, onOpenChange, contract }: Prop
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Health Score (0-100)</Label>
+              <Label className="text-xs">Saúde do contrato (0-100)</Label>
               <Input
                 type="number"
                 min={0}

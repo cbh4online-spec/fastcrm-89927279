@@ -57,7 +57,7 @@ export function ContactMobileQuickActions({ contactId, workspaceId, name, phone,
       if (!user) throw new Error("Sessão expirada");
       const base = { workspace_id: workspaceId, created_by: user.id, assigned_to: user.id, related_type: "contact", related_id: contactId };
       const rows: any[] = [];
-      if (text) rows.push({ ...base, title: `Nota: ${text.slice(0, 80)}`, description: text, status: "completed", priority: "low" });
+      if (text) rows.push({ ...base, title: `Nota: ${text.slice(0, 80)}`, description: text, status: "done", priority: "low" });
       if (followDays !== null) rows.push({
         ...base, title: `Follow-up com ${firstName}`, description: text || null, status: "pending", priority: "high",
         due_at: new Date(Date.now() + followDays * 86400000).toISOString(),

@@ -17,7 +17,6 @@ const TEXT_FIELDS: Record<string, string> = {
 const NUMERIC_FIELDS: Record<string, string> = {
   score: "lead_score",
   value: "estimated_value",
-  pare_score: "pare_score",
 };
 
 function isEmptyValue(col: string, record: Record<string, unknown>): boolean {
@@ -56,7 +55,7 @@ export function mobileCellClass(col: string, colIdx: number, record: Record<stri
   return cn(
     "max-md:order-last max-md:basis-full max-md:w-auto max-md:pl-7 max-md:justify-start max-md:gap-1.5 max-md:text-xs max-md:text-muted-foreground",
     "max-md:before:content-[attr(data-label)] max-md:before:shrink-0 max-md:before:text-muted-foreground",
-    "max-md:[&>*]:w-auto max-md:[&>*]:text-left",
+    "max-md:[&>*]:w-auto max-md:[&>*]:min-w-fit max-md:[&>*]:shrink-0 max-md:[&>*]:text-left max-md:overflow-visible",
     (colIdx > 3 || isEmptyValue(col, record)) && "max-md:hidden",
   );
 }
