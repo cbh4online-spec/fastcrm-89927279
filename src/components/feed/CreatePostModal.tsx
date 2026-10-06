@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Zap,
   HelpCircle,
@@ -28,6 +28,7 @@ interface CreatePostModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultFeedType?: FeedType;
+  defaultPostType?: PostType;
 }
 
 const POST_TYPES: { type: PostType; label: string; icon: React.ElementType; description: string }[] = [
@@ -44,11 +45,18 @@ const FEED_TYPES: { type: FeedType; label: string; icon: React.ElementType }[] =
   { type: 'client', label: 'Cliente', icon: Building },
 ];
 
-export function CreatePostModal({ open, onOpenChange, defaultFeedType = 'workspace' }: CreatePostModalProps) {
+export function CreatePostModal({ open, onOpenChange, defaultFeedType = 'workspace', defaultPostType = 'update' }: CreatePostModalProps) {
   const { createPost } = useInternalFeed();
 
   const [feedType, setFeedType] = useState<FeedType>(defaultFeedType);
-  const [postType, setPostType] = useState<PostType>('update');
+  const [postType, setPostType] = useState<PostType>(defaultPostType);
+
+  useEffect(() => {
+    if (open) {
+      setPostType(defaultPostType);
+      setFeedType(defaultFeedType);
+    }
+  }, [open, defaultPostType, defaultFeedType]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
@@ -89,7 +97,7 @@ export function CreatePostModal({ open, onOpenChange, defaultFeedType = 'workspa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto max-sm:top-auto max-sm:bottom-0 max-sm:translate-y-0 max-sm:max-h-[88vh] max-sm:rounded-b-none max-sm:rounded-t-2xl max-sm:pb-8">
         <DialogHeader>
           <DialogTitle>Criar Publicação</DialogTitle>
         </DialogHeader>
