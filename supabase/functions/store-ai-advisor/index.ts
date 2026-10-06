@@ -14,30 +14,123 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { question, workspaceId, productContext, history } = await req.json();
+    const body = await req.json();
+    const { question, workspaceId, productContext, history } = body;
 
-    // AI Gate — enforce credit consumption
-    if (workspaceId) {
-      const gate = await aiGate(workspaceId, 'medium', 'store-ai-advisor');
-      if (!gate.allowed) {
-        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!workspaceId || !UUID_RE.test(String(workspaceId))) {
+      return new Response(JSON.stringify({ error: "invalid_workspace" }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── Identificação do visitante → CRM ────────────────────────────────
+    const cleanName = (v: unknown) => String(v ?? '').replace(/[<>]/g, '').trim().slice(0, 100);
+    const cleanEmail = (v: unknown) => String(v ?? '').trim().toLowerCase().slice(0, 255);
+    const cleanPhone = (v: unknown) => String(v ?? '').replace(/[^\d+]/g, '').slice(0, 20);
+
+    const resolveLead = async (raw: any): Promise<{ leadId: string; name: string } | null> => {
+      const name = cleanName(raw?.name);
+      const email = cleanEmail(raw?.email);
+      const phone = cleanPhone(raw?.phone);
+      if (name.length < 2 || !/^[^\s@,()]+@[^\s@,()]+\.[^\s@,()]{2,}$/.test(email) || phone.replace(/\D/g, '').length < 9) return null;
+      // Só lojas reais (com produtos publicados) podem receber leads
+      const { count } = await supabase.from('products').select('id', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId).eq('store_published', true);
+      if (!count) return null;
+      const { data: existing } = await supabase.from('leads').select('id, tags')
+        .eq('workspace_id', workspaceId)
+        .or(`email.eq.${email},phone.eq.${phone}`)
+        .order('created_at', { ascending: false }).limit(1);
+      if (existing?.[0]) {
+        const tags = Array.from(new Set([...(existing[0].tags || []), 'loja_online', 'consultor_ia']));
+        await supabase.from('leads').update({ name, email, phone, tags }).eq('id', existing[0].id);
+        return { leadId: existing[0].id, name };
+      }
+      const { data: created, error } = await supabase.from('leads').insert({
+        workspace_id: workspaceId, name, email, phone,
+        source: 'loja_online_consultor_ia', status: 'new', tags: ['loja_online', 'consultor_ia'],
+      }).select('id').single();
+      if (error || !created) { console.error('lead insert failed', error?.message); return null; }
+      return { leadId: created.id, name };
+    };
+
+    const ensureConversation = async (leadId: string, convId?: string): Promise<string | null> => {
+      if (convId && UUID_RE.test(convId)) {
+        const { data } = await supabase.from('conversations').select('id')
+          .eq('id', convId).eq('workspace_id', workspaceId).eq('lead_id', leadId).maybeSingle();
+        if (data) return data.id;
+      }
+      const { data, error } = await supabase.from('conversations').insert({
+        workspace_id: workspaceId, lead_id: leadId, channel: 'web_widget', status: 'open',
+        tags: ['consultor_ia'], last_message_at: new Date().toISOString(),
+      }).select('id').single();
+      if (error) { console.error('conversation insert failed', error.message); return null; }
+      return data.id;
+    };
+
+    const saveMessage = async (conversationId: string, direction: 'inbound' | 'outbound', content: string) => {
+      const text = content.slice(0, 4000);
+      const { error } = await supabase.from('messages').insert({
+        workspace_id: workspaceId, conversation_id: conversationId, direction, content: text,
+        message_type: 'text', metadata: { source: 'store_ai_advisor' },
+      });
+      if (error) console.error('message insert failed', error.message);
+      await supabase.from('conversations').update({
+        last_message_preview: text.slice(0, 200), last_message_at: new Date().toISOString(),
+        last_message_direction: direction,
+      }).eq('id', conversationId);
+    };
+
+    if (body.action === 'identify') {
+      const lead = await resolveLead(body.lead);
+      if (!lead) {
+        return new Response(JSON.stringify({ error: 'invalid_lead' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      const conversationId = await ensureConversation(lead.leadId);
+      const firstName = lead.name.split(/\s+/)[0];
+      const greeting = `Olá ${firstName}! É um prazer ajudar. Que produto ou solução procura hoje?`;
+      if (conversationId) await saveMessage(conversationId, 'outbound', greeting);
+      return new Response(JSON.stringify({ leadId: lead.leadId, conversationId, greeting, firstName }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-    if (!question || !workspaceId) {
+
+    // AI Gate — enforce credit consumption
+    const gate = await aiGate(workspaceId, 'medium', 'store-ai-advisor');
+    if (!gate.allowed) {
+      return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!question || typeof question !== 'string' || question.length > 1000) {
       return new Response(JSON.stringify({ error: "Missing question or workspaceId" }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    // Conversa persistida (se o visitante se identificou)
+    let conversationId: string | null = null;
+    let customerName = '';
+    if (body.leadId && UUID_RE.test(String(body.leadId))) {
+      const { data: leadRow } = await supabase.from('leads').select('id, name')
+        .eq('id', body.leadId).eq('workspace_id', workspaceId).maybeSingle();
+      if (leadRow) {
+        customerName = String(leadRow.name || '').split(/\s+/)[0];
+        conversationId = await ensureConversation(leadRow.id, body.conversationId);
+        if (conversationId) await saveMessage(conversationId, 'inbound', question);
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Catálogo publicado (inclui esgotados, sinalizados como tal — o consultor
     // nunca deve recomendar algo indisponível sem avisar).
