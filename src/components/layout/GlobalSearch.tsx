@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { matchesGlobalSearch } from "@/lib/search/globalSearchMatch";
 import { useNavigate } from "react-router-dom";
 import { useLeads } from "@/hooks/useLeads";
 import { useContacts } from "@/hooks/useContacts";
