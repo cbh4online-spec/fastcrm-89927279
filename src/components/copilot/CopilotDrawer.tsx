@@ -123,12 +123,13 @@ export function CopilotDrawer() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50"
+            className="fixed bottom-[5.5rem] right-3 sm:bottom-6 sm:right-6 z-50"
           >
             <Button
               size="lg"
               onClick={() => setIsOpen(true)}
-              className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black"
+              aria-label="Abrir Copilot"
+              className="h-11 w-11 sm:h-14 sm:w-14 rounded-full shadow-lg bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black"
             >
               <Sparkles className="h-6 w-6" />
             </Button>
