@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link } from "react-router-dom";
 import {
   MessageCircle,
@@ -187,7 +186,7 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 sm:w-[380px] max-h-[520px] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-24 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 sm:w-[380px] h-[520px] max-h-[calc(100dvh-8rem)] sm:max-h-[calc(100dvh-3rem)] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5">
@@ -201,7 +200,10 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 px-4 py-3" ref={scrollRef as any}>
+            <div
+              ref={scrollRef}
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3"
+            >
               <div className="space-y-4">
                 {messages.length === 0 && (
                   <div className="text-center py-6">
@@ -331,7 +333,7 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Input */}
             <div className="border-t px-3 py-2.5">
