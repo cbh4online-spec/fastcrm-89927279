@@ -406,10 +406,17 @@ export default function IXDashboard() {
                 ) : (
                   <div className="divide-y divide-border">
                     {topClients.map((c) => (
-                      <div key={c.name} className="flex items-center justify-between py-3">
+                      <div key={c.key} className="flex items-center justify-between gap-3 py-3">
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
-                          <p className="text-xs text-muted-foreground">{c.count} documento(s)</p>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className="text-xs text-muted-foreground">{c.count} documento(s)</p>
+                            {c.viaFinanciers.length > 0 && (
+                              <Badge variant="outline" className="text-[10px] font-medium text-primary border-primary/30">
+                                Renting via {c.viaFinanciers.join(", ")}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <p className="text-sm font-semibold tabular-nums">{formatEUR(c.total)}</p>
                       </div>
