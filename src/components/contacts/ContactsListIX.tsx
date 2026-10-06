@@ -1,3 +1,4 @@
+import { mobileCellClass } from "@/components/documents/listing/mobileCardCell";
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -427,11 +428,11 @@ export function ContactsListIX() {
                 />
               </div>
               {orderedColumns.map((col, colIdx) => (
-                <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]", colIdx === 0 ? "max-md:flex-1 max-md:min-w-0" : "max-md:order-last max-md:basis-full max-md:w-auto max-md:pl-7 max-md:justify-start max-md:text-xs", colIdx > 2 && "max-md:hidden")}>
+                <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]", mobileCellClass(col, colIdx, c as any))}>
                   {renderCell(col, c)}
                 </div>
               ))}
-              <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div className="ml-auto shrink-0 max-md:order-3" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Ações">
