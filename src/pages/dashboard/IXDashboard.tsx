@@ -6,7 +6,7 @@ import { IXEntityTabs, type IXTabDef } from "@/components/entity/ix/IXEntityTabs
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Percent, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
+import { Percent, ArrowRight, TrendingUp, TrendingDown, FileText, Wallet, CalendarRange, CalendarDays, AlertTriangle, Clock, FolderOpen, Users, UserPlus, Euro, Package, Receipt, Hash, type LucideIcon } from "lucide-react";
 import { useInvoices, useInvoiceStats } from "@/hooks/useInvoices";
 import { useCollectionCases } from "@/modules/collections/hooks/useCollectionCases";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -52,32 +52,59 @@ function DeltaBadge({ value }: { value?: number }) {
   );
 }
 
+type KpiAccent = "primary" | "success" | "warning" | "danger" | "info";
+
+const ACCENT_CLASSES: Record<KpiAccent, string> = {
+  primary: "text-primary bg-primary/10 border-primary/20",
+  success: "text-success bg-success/10 border-success/20",
+  warning: "text-warning bg-warning/10 border-warning/20",
+  danger: "text-destructive bg-destructive/10 border-destructive/20",
+  info: "text-accent bg-accent/10 border-accent/20",
+};
+
 function KpiTile({
   label,
   value,
   hint,
   delta,
   tone,
+  icon: Icon,
+  accent,
+  onClick,
 }: {
   label: string;
   value: string;
   hint?: string;
   delta?: number;
   tone?: "neutral" | "warning" | "danger";
+  icon?: LucideIcon;
+  accent?: KpiAccent;
+  onClick?: () => void;
 }) {
+  const resolvedAccent: KpiAccent = accent ?? (tone === "danger" ? "danger" : tone === "warning" ? "warning" : "primary");
   return (
     <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
       className={cn(
-        "rounded-xl border border-border bg-card p-5",
-        tone === "warning" && "border-warning/40 bg-warning/10",
-        tone === "danger" && "border-destructive/40 bg-destructive/10",
+        "rounded-xl border border-border bg-card p-4 sm:p-5 transition-all",
+        onClick && "cursor-pointer hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        tone === "warning" && "border-warning/40",
+        tone === "danger" && "border-destructive/40",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        {Icon ? (
+          <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-xl border", ACCENT_CLASSES[resolvedAccent])}>
+            <Icon className="h-4 w-4" />
+          </span>
+        ) : <span />}
         <DeltaBadge value={delta} />
       </div>
-      <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{value}</p>
+      <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums text-foreground">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
@@ -204,10 +231,10 @@ export default function IXDashboard() {
           {active === "faturacao" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiTile label="Faturado (mês)" value={formatEUR(monthMetrics.total)} hint={`${monthMetrics.count} documentos`} delta={financials?.kpis.thisMonthDelta} />
-                <KpiTile label="Recebido (mês)" value={formatEUR(monthMetrics.paid)} />
-                <KpiTile label="Este trimestre" value={formatEUR(financials?.kpis.thisQuarter ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisQuarterDelta} />
-                <KpiTile label="Este ano" value={formatEUR(financials?.kpis.thisYear ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisYearDelta} />
+                <KpiTile icon={FileText} accent="primary" label="Faturado (mês)" value={formatEUR(monthMetrics.total)} hint={`${monthMetrics.count} documentos`} delta={financials?.kpis.thisMonthDelta} />
+                <KpiTile icon={Wallet} accent="success" label="Recebido (mês)" value={formatEUR(monthMetrics.paid)} />
+                <KpiTile icon={CalendarRange} accent="warning" label="Este trimestre" value={formatEUR(financials?.kpis.thisQuarter ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisQuarterDelta} />
+                <KpiTile icon={CalendarDays} accent="info" label="Este ano" value={formatEUR(financials?.kpis.thisYear ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisYearDelta} />
               </div>
               <IXCard
                 title="Faturação por mês"
@@ -247,10 +274,10 @@ export default function IXDashboard() {
           {active === "cobrancas" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiTile label="Total em dívida" value={formatEUR(financials?.collections.totalOutstanding ?? 0)} />
-                <KpiTile label="Não vencido" value={formatEUR(financials?.collections.notDue ?? 0)} tone="warning" />
-                <KpiTile label="Vencido" value={formatEUR(financials?.collections.overdue ?? 0)} tone="danger" />
-                <KpiTile label="Casos abertos" value={String(collectionsMetrics.count)} hint={`Ticket médio ${formatEUR(collectionsMetrics.count ? collectionsMetrics.totalDue / collectionsMetrics.count : 0)}`} />
+                <KpiTile icon={Euro} accent="primary" label="Total em dívida" value={formatEUR(financials?.collections.totalOutstanding ?? 0)} />
+                <KpiTile icon={Clock} accent="warning" label="Não vencido" value={formatEUR(financials?.collections.notDue ?? 0)} tone="warning" />
+                <KpiTile icon={AlertTriangle} accent="danger" label="Vencido" value={formatEUR(financials?.collections.overdue ?? 0)} tone="danger" />
+                <KpiTile icon={FolderOpen} accent="info" label="Casos abertos" value={String(collectionsMetrics.count)} hint={`Ticket médio ${formatEUR(collectionsMetrics.count ? collectionsMetrics.totalDue / collectionsMetrics.count : 0)}`} />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <IXCard title="Envelhecimento da dívida" description="Últimos 7 meses por data de emissão.">
@@ -333,10 +360,10 @@ export default function IXDashboard() {
                   <ActiveClientsChart monthly={financials?.clients.monthly ?? []} loading={finLoading} />
                 </IXCard>
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                  <KpiTile label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} />
-                  <KpiTile label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} />
-                  <KpiTile label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} />
-                  <KpiTile label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} />
+                  <KpiTile icon={Users} accent="primary" label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} />
+                  <KpiTile icon={UserPlus} accent="success" label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} />
+                  <KpiTile icon={Euro} accent="info" label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} />
+                  <KpiTile icon={Euro} accent="warning" label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} />
                 </div>
               </div>
 
@@ -374,8 +401,8 @@ export default function IXDashboard() {
                   <TopItemsChart items={itemsAgg?.topItems ?? []} loading={itemsLoading} />
                 </IXCard>
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                  <KpiTile label="Itens vendidos" value={String(Math.round(itemsAgg?.totalUnits ?? 0))} />
-                  <KpiTile label="Valor médio por item" value={formatEUR(itemsAgg?.avgPerItem ?? 0)} hint="s/ IVA" />
+                  <KpiTile icon={Package} accent="primary" label="Itens vendidos" value={String(Math.round(itemsAgg?.totalUnits ?? 0))} />
+                  <KpiTile icon={Euro} accent="info" label="Valor médio por item" value={formatEUR(itemsAgg?.avgPerItem ?? 0)} hint="s/ IVA" />
                 </div>
               </div>
               <IXCard
@@ -396,9 +423,9 @@ export default function IXDashboard() {
           {active === "impostos" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                <KpiTile label="IVA liquidado (histórico)" value={formatEUR(totalVat)} />
-                <KpiTile label="Taxas distintas" value={String(vatByRate.length)} />
-                <KpiTile label="Documentos" value={String(invoices.length)} />
+                <KpiTile icon={Receipt} accent="primary" label="IVA liquidado (histórico)" value={formatEUR(totalVat)} />
+                <KpiTile icon={Percent} accent="info" label="Taxas distintas" value={String(vatByRate.length)} />
+                <KpiTile icon={Hash} accent="success" label="Documentos" value={String(invoices.length)} />
               </div>
               <IXCard title="IVA por mês" description="Últimos 12 meses. Contacte o seu contabilista para o apuramento final.">
                 <VatChart monthly={financials?.vat.monthly ?? []} loading={finLoading} />
