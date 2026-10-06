@@ -187,7 +187,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   );
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-0 pb-28 lg:pb-0">
       {/* Top bar: Close + Nav */}
       <div className="flex items-center justify-between border-b pb-2 mb-3">
         <div className="flex items-center gap-2">
