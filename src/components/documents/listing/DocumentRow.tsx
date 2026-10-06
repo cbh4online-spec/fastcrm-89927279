@@ -45,11 +45,69 @@ export function DocumentRow({
   className,
 }: DocumentRowProps) {
   return (
+    <>
+    {/* Mobile: cartão de duas linhas */}
     <div
       role={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "grid grid-cols-[auto_auto_minmax(120px,160px)_minmax(0,1fr)_auto_auto_auto] items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors",
+        "flex flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-sm md:hidden",
+        onClick && "cursor-pointer active:border-primary/40",
+        className
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        {onSelectedChange && (
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(c) => onSelectedChange(c === true)}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Selecionar ${number}`}
+          />
+        )}
+        <span className="min-w-0 flex-1 truncate text-sm font-bold uppercase text-foreground">
+          {clientName || "—"}
+        </span>
+        {statusBadge && <div className="shrink-0">{statusBadge}</div>}
+        {action && (
+          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+            {action}
+          </div>
+        )}
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex min-w-0 flex-col text-xs">
+          <span className="truncate font-semibold text-foreground">
+            {number}
+            {subtitle && (
+              <span className="font-normal uppercase text-muted-foreground"> · {subtitle}</span>
+            )}
+          </span>
+          {(issueDate || dueDate) && (
+            <span className="truncate text-muted-foreground">
+              {issueDate && <>Emitida {issueDate}</>}
+              {issueDate && dueDate && " · "}
+              {dueDate && (
+                <span className={dueDateTone === "overdue" ? "text-destructive" : undefined}>
+                  Vence {dueDate}
+                </span>
+              )}
+            </span>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-col text-right">
+          <span className="text-base font-bold tabular-nums text-foreground">{totalPrimary}</span>
+          {totalSecondary && (
+            <span className="text-[11px] text-muted-foreground">{totalSecondary}</span>
+          )}
+        </div>
+      </div>
+    </div>
+    <div
+      role={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={cn(
+        "hidden md:grid grid-cols-[auto_auto_minmax(120px,160px)_minmax(0,1fr)_auto_auto_auto] items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors",
         onClick && "cursor-pointer hover:border-primary/40 hover:shadow-md",
         className
       )}
@@ -121,5 +179,6 @@ export function DocumentRow({
         {action}
       </div>
     </div>
+    </>
   );
 }
