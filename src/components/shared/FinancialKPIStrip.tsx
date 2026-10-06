@@ -28,7 +28,7 @@ export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', cla
     return (
       <div
         className={cn(
-          'flex items-stretch gap-2 overflow-x-auto rounded-lg border bg-muted/30 p-1.5 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4',
+          'grid grid-cols-2 gap-2 rounded-lg border bg-muted/30 p-1.5 lg:grid-cols-4',
           className,
         )}
         aria-label="Resumo financeiro"
@@ -36,9 +36,9 @@ export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', cla
         {HEADER_ITEMS.map(({ key, label, icon: Icon, tone }) => (
           <div
             key={key}
-            className="flex min-w-[130px] flex-col justify-center rounded-md bg-background px-3 py-2 shadow-sm"
+            className="flex min-w-0 flex-col justify-center rounded-md bg-background px-3 py-2 shadow-sm"
           >
-            <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="flex min-w-0 items-center gap-1.5 truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               <Icon className={cn('h-3.5 w-3.5', tone)} aria-hidden="true" />
               {label}
             </span>
