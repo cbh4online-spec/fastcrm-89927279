@@ -1,3 +1,4 @@
+import { stagesForOpportunity } from "@/lib/crm/opportunityStages";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, Sparkles, Building2, Users, Phone, Plus, CreditCard, LayoutGrid, UserCheck, Handshake, MessageSquare, FileText } from "lucide-react";
@@ -83,7 +84,8 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   };
 
   const { data: opportunity, isLoading } = useOpportunityDetail(opportunityId);
-  const { data: stages = [] } = usePipelineStagesEnhanced();
+  const { data: allStages = [] } = usePipelineStagesEnhanced();
+  const stages = stagesForOpportunity(allStages, opportunity);
   const { data: activities = [] } = useActivities({ entityType: "opportunity", entityId: opportunityId, limit: 50 });
   const { data: dealTasks = [] } = useTasks({ related_type: "opportunity", related_id: opportunityId });
   const updateOpportunity = useUpdateOpportunityEnhanced();
