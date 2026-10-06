@@ -24,3 +24,7 @@
 ## Resend como módulo do marketplace (pedido 2026-10-02)
 - [x] Ligar o Resend ao projeto.
 - [x] Criar módulo "Emails (Resend)" no marketplace; campanhas só enviam com o módulo ativo.
+
+## Etapas das oportunidades (pedido 2026-10-06)
+- [x] Aplicar percurso vertical com nomes completos, etapa atual destacada e avanço contextual; validado isoladamente em desktop e mobile, incluindo avanço, loading e última etapa.
+- [ ] Confirmar na ficha real — a sessão de teste não carregou o percurso da oportunidade.
