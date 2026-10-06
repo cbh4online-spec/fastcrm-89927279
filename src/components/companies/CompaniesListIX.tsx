@@ -516,7 +516,7 @@ export function CompaniesListIX() {
         <EmptyState title="Sem empresas" description="Não foram encontradas empresas com os filtros atuais." />
       ) : (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-4 px-4">
+          <div className="hidden md:flex items-center gap-4 px-4">
             <Checkbox
               checked={selection.allPageSelected}
               onCheckedChange={() => selection.togglePage()}
@@ -545,7 +545,7 @@ export function CompaniesListIX() {
                 navigate(`/dashboard/companies/${c.id}`);
               }}
               className={cn(
-                "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
+                "flex cursor-pointer items-center gap-4 max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-1 md:overflow-x-auto rounded-xl border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
                 idx % 2 === 1 ? "bg-muted/20" : "bg-card",
                 hasOverdue ? "border-l-4 border-l-destructive border-border" : "border-border",
                 inactive && "opacity-60",
@@ -559,9 +559,9 @@ export function CompaniesListIX() {
                   aria-label={`Selecionar ${c.name || "empresa"}`}
                 />
               </div>
-              {orderedColumns.map((col) => (
+              {orderedColumns.map((col, colIdx) => (
 
-                <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]")}>
+                <div key={col} className={cn("flex min-w-0 items-center overflow-hidden", COLUMN_WIDTH[col] ?? "min-w-[120px]", colIdx === 0 ? "max-md:flex-1 max-md:min-w-0" : "max-md:order-last max-md:basis-full max-md:w-auto max-md:pl-7 max-md:justify-start max-md:text-xs", colIdx > 2 && "max-md:hidden")}>
                   {renderCell(col, c, financialsById.get(c.id))}
                 </div>
               ))}

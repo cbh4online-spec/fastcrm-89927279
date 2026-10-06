@@ -429,7 +429,7 @@ export function LeadsListIX() {
         />
       ) : (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-4 px-4">
+          <div className="hidden md:flex items-center gap-4 px-4">
             <Checkbox
               checked={selection.allPageSelected}
               onCheckedChange={() => selection.togglePage()}
@@ -453,7 +453,7 @@ export function LeadsListIX() {
                 navigate(`/dashboard/leads/${lead.id}`);
               }}
               className={cn(
-                "flex cursor-pointer items-center gap-4 overflow-x-auto rounded-xl border border-border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
+                "flex cursor-pointer items-center gap-4 max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-1 md:overflow-x-auto rounded-xl border border-border px-4 py-3 shadow-sm transition-colors hover:border-primary/40 hover:bg-accent/40 hover:shadow-md",
                 idx % 2 === 1 ? "bg-muted/20" : "bg-card",
                 ((lead as any).is_blocked || (lead as any).archived_at) && "opacity-60",
                 selection.isSelected(lead.id) && "border-primary/50 bg-primary/5",

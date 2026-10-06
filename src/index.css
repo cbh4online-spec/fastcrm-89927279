@@ -308,6 +308,13 @@
       min-height: unset;
       min-width: unset;
     }
+    /* Checkboxes Radix mantêm tamanho natural (evita quadrados gigantes) */
+    button[role="checkbox"] {
+      min-height: unset;
+      min-width: unset;
+      height: 1.125rem;
+      width: 1.125rem;
+    }
   }
 
   /* Scrollbar hiding utility */
