@@ -32,6 +32,9 @@ function isEmptyValue(col: string, record: Record<string, unknown>): boolean {
 }
 
 /** Columns that are self-explanatory on mobile and need no label prefix. */
+/** Always shown on mobile cards (with value or explicit fallback), regardless of column position. */
+const ALWAYS_ON_MOBILE = new Set(["pare_score", "created_at"]);
+
 const UNLABELED = new Set(["name", "status", "email", "phone", "company"]);
 
 /**
@@ -56,6 +59,6 @@ export function mobileCellClass(col: string, colIdx: number, record: Record<stri
     "max-md:order-last max-md:basis-full max-md:w-auto max-md:pl-7 max-md:justify-start max-md:gap-1.5 max-md:text-xs max-md:text-muted-foreground",
     "max-md:before:content-[attr(data-label)] max-md:before:shrink-0 max-md:before:text-muted-foreground",
     "max-md:[&>*]:w-auto max-md:[&>*]:min-w-fit max-md:[&>*]:shrink-0 max-md:[&>*]:text-left max-md:overflow-visible",
-    (colIdx > 3 || isEmptyValue(col, record)) && "max-md:hidden",
+    ((colIdx > 3 && !ALWAYS_ON_MOBILE.has(col)) || isEmptyValue(col, record)) && "max-md:hidden",
   );
 }
