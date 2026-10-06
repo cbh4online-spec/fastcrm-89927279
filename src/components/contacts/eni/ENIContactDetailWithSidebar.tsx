@@ -232,6 +232,12 @@ export function ENIContactDetailWithSidebar() {
     );
   }
 
+  const whatsappState = resolveWhatsAppAvailability({
+    phone: contact.phone,
+    whatsappNumber: contact.whatsapp_number,
+    hasWhatsapp: contact.has_whatsapp,
+    isBlocked: (contact as { is_blocked?: boolean | null }).is_blocked,
+  });
   const initials = contact.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   const entityType = (contact.entity_type || 'consumidor_final') as EntityType;
 
