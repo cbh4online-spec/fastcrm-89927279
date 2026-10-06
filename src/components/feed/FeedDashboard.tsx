@@ -23,7 +23,14 @@ import {
   DocumentListLayout,
   DocumentListToolbar,
 } from '@/components/documents/listing';
-import { FeedType, Post, useInternalFeed, useMyMentions } from '@/hooks/useInternalFeed';
+import { FeedType, Post, PostType, useInternalFeed, useMyMentions } from '@/hooks/useInternalFeed';
+
+const QUICK_TYPES: { type: PostType; label: string; icon: typeof MessageSquare }[] = [
+  { type: 'update', label: 'Atualização', icon: MessageSquare },
+  { type: 'winners', label: 'Vitória', icon: Trophy },
+  { type: 'help_request', label: 'Ajuda', icon: AlertCircle },
+  { type: 'daily_checklist', label: 'Checklist', icon: CheckSquare },
+];
 
 type ScopeFilter = FeedType | 'all';
 type TypeFilter = 'all' | 'update' | 'help_request' | 'daily_checklist' | 'winners' | 'ai_alert';
@@ -99,6 +106,11 @@ export function FeedDashboard() {
   const [page, setPage] = useState(0);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createType, setCreateType] = useState<PostType>('update');
+  const openCreate = (t: PostType) => {
+    setCreateType(t);
+    setCreateModalOpen(true);
+  };
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
 
@@ -240,11 +252,11 @@ export function FeedDashboard() {
           />
         }
       >
-        <div className="mx-auto mb-3 w-full max-w-3xl pb-0">
+        <div className="mx-auto mb-3 w-full max-w-3xl space-y-2 rounded-2xl border border-border bg-card p-3 shadow-sm">
           <button
             type="button"
-            onClick={() => setCreateModalOpen(true)}
-            className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left shadow-sm transition-colors hover:border-primary/40"
+            onClick={() => openCreate('update')}
+            className="flex w-full items-center gap-3 text-left"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -253,6 +265,19 @@ export function FeedDashboard() {
               Partilha uma vitória, pede ajuda ou define o foco do dia…
             </span>
           </button>
+          <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
+            {QUICK_TYPES.map((q) => (
+              <button
+                key={q.type}
+                type="button"
+                onClick={() => openCreate(q.type)}
+                className="inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 text-sm text-foreground hover:bg-muted"
+              >
+                <q.icon className="h-4 w-4 text-muted-foreground" />
+                {q.label}
+              </button>
+            ))}
+          </div>
         </div>
         {isLoading ? (
           <div className="flex justify-center py-16">
@@ -309,10 +334,12 @@ export function FeedDashboard() {
         )}
       </DocumentListLayout>
 
+      <div className="h-24 lg:hidden" aria-hidden />
       <CreatePostModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         defaultFeedType={scope === 'all' ? 'workspace' : scope}
+        defaultPostType={createType}
       />
 
       <CommentsSheet
