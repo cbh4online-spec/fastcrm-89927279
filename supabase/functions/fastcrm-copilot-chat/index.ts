@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
         .eq("workspace_id", workspace_id).gte("issue_date", iso(monthStart).slice(0, 10) < iso(weekAgo).slice(0, 10) ? iso(monthStart).slice(0, 10) : iso(weekAgo).slice(0, 10))
         .order("issue_date", { ascending: false }).limit(300),
       sb.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspace_id),
-      sb.from("leads").select("name,status,last_contact_at,estimated_value").eq("workspace_id", workspace_id)
+      sb.from("leads").select("id,name,phone,email,status,last_contact_at,estimated_value").eq("workspace_id", workspace_id)
         .lt("last_contact_at", iso(staleCut)).order("last_contact_at", { ascending: true }).limit(15),
       sb.from("opportunities").select("value,status,probability,expected_close_date").eq("workspace_id", workspace_id).limit(500),
     ]);
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
         top: wk.slice(0, 10).map((i) => ({ cliente: i.client_name, total: i.total, estado: i.status, data: i.issue_date })) },
       vendas_mes_atual: { documentos: mo.length, total_faturado: r2(sum(mo, "total")), recebido: r2(sum(mo, "amount_paid")) },
       leads_total: leads.count ?? 0,
-      leads_sem_contacto_7_dias: (staleLeads.data ?? []).map((l) => ({ nome: l.name, estado: l.status, ultimo_contacto: l.last_contact_at, valor: l.estimated_value })),
+      leads_sem_contacto_7_dias: (staleLeads.data ?? []).map((l) => ({ id: l.id, nome: l.name, telefone: l.phone, email: l.email, estado: l.status, ultimo_contacto: l.last_contact_at, valor: l.estimated_value })),
       pipeline_aberto: { oportunidades: openOpps.length, valor: r2(openOpps.reduce((s, o) => s + Number(o.value ?? 0), 0)) },
       forecast_mes: { oportunidades: forecastOpps.length,
         valor_ponderado: r2(forecastOpps.reduce((s, o) => s + Number(o.value ?? 0) * (Number(o.probability ?? 0) / 100), 0)) },
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
         stream: true,
         store: false,
         reasoning: { effort: "low" },
-        instructions: "És o FastCRM Copilot. Responde sempre em português de Portugal, de forma curta e prática (máx. 10 linhas, listas quando útil). Usa APENAS os dados fornecidos; nunca inventes números nem nomes. Se faltar informação, diz claramente. Valores em euros (formato 1 234,56 €). Não executas ações no sistema: se pedirem para criar follow-ups ou tarefas, propõe uma lista concreta de follow-ups (quem contactar, porquê, data sugerida e mensagem curta) com base nas leads sem contacto e no pipeline aberto, e indica que podem ser criados na ficha de cada contacto. Se perguntarem o que consegues fazer, explica: resumo de vendas da semana/mês, leads paradas, pipeline, forecast do mês e propostas de follow-up.",
+        instructions: "És o FastCRM Copilot. Responde sempre em português de Portugal, de forma curta e prática (máx. 10 linhas, listas quando útil). Usa APENAS os dados fornecidos; nunca inventes números nem nomes. Se faltar informação, diz claramente. Valores em euros (formato 1 234,56 €). Não executas ações no sistema: se pedirem para criar follow-ups ou tarefas, propõe uma lista concreta de follow-ups (quem contactar, porquê, data sugerida e mensagem curta) com base nas leads sem contacto e no pipeline aberto, e indica que podem ser criados na ficha de cada contacto. Para cada lead proposta, termina a linha com um marcador de ação numa linha própria, exatamente no formato [[acao|<id da lead>|<nome>|<telefone ou vazio>|<mensagem curta pronta a enviar, sem |>]]. Usa apenas id e telefone dos dados fornecidos. Se perguntarem o que consegues fazer, explica: resumo de vendas da semana/mês, leads paradas, pipeline, forecast do mês e propostas de follow-up.",
         input,
       }),
     });
