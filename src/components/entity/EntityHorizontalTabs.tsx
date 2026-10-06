@@ -18,9 +18,9 @@ interface TabItem {
 }
 
 const ALL_TABS: TabItem[] = [
-  { id: 'overview', label: 'Visão Geral', showFor: ['lead', 'contact', 'company'] },
+  { id: 'overview', label: 'Resumo', showFor: ['lead', 'contact', 'company'] },
   { id: 'insights', label: 'Insights IA', showFor: ['lead', 'contact', 'company'] },
-  { id: 'timeline', label: 'Timeline', showFor: ['lead', 'contact', 'company'] },
+  { id: 'timeline', label: 'Cronologia', showFor: ['lead', 'contact', 'company'] },
   { id: 'notes', label: 'Notas', showFor: ['lead', 'contact', 'company'] },
   { id: 'communication', label: 'Mensagens', showFor: ['lead', 'contact', 'company'] },
   { id: 'activity', label: 'Atividade', showFor: ['lead', 'contact', 'company'] },
@@ -33,7 +33,7 @@ const ALL_TABS: TabItem[] = [
   { id: 'data', label: 'Dados', showFor: ['lead', 'contact', 'company'] },
   { id: 'contacts', label: 'Contactos', showFor: ['company'] },
   { id: 'support', label: 'Suporte', showFor: ['contact', 'company'] },
-  { id: 'student-journey', label: 'Student Journey', showFor: ['contact'] },
+  { id: 'student-journey', label: 'Percurso do aluno', showFor: ['contact'] },
 ];
 
 type GroupId = 'overview' | 'activity' | 'communication' | 'business' | 'intelligence';
