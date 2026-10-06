@@ -105,38 +105,39 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
 
   const filteredLeads = useMemo(() => {
     if (!search) return leads.slice(0, 5);
-    const query = search.toLowerCase();
     return leads
-      .filter(
-        (lead) =>
-          lead.name.toLowerCase().includes(query) ||
-          lead.email?.toLowerCase().includes(query) ||
-          lead.phone?.toLowerCase().includes(query)
+      .filter((lead: any) =>
+        matchesGlobalSearch(search, {
+          text: [lead.name, lead.email, lead.company_name, lead.external_email],
+          phones: [lead.phone],
+          taxIds: [lead.tax_id],
+        })
       )
       .slice(0, 5);
   }, [leads, search]);
 
   const filteredContacts = useMemo(() => {
     if (!search) return contacts.slice(0, 5);
-    const query = search.toLowerCase();
     return contacts
-      .filter(
-        (contact) =>
-          contact.name.toLowerCase().includes(query) ||
-          contact.email?.toLowerCase().includes(query) ||
-          contact.company?.toLowerCase().includes(query)
+      .filter((contact: any) =>
+        matchesGlobalSearch(search, {
+          text: [contact.name, contact.email, contact.company],
+          phones: [contact.phone, contact.mobile],
+          taxIds: [contact.tax_id, contact.nif],
+        })
       )
       .slice(0, 5);
   }, [contacts, search]);
 
   const filteredCompanies = useMemo(() => {
     if (!search) return companies.slice(0, 5);
-    const query = search.toLowerCase();
     return companies
-      .filter(
-        (company) =>
-          company.name.toLowerCase().includes(query) ||
-          company.industry?.toLowerCase().includes(query)
+      .filter((company: any) =>
+        matchesGlobalSearch(search, {
+          text: [company.name, company.industry, company.email],
+          phones: [company.phone],
+          taxIds: [company.tax_id, company.nif],
+        })
       )
       .slice(0, 5);
   }, [companies, search]);
@@ -254,7 +255,7 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
         </Button>
       )}
 
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <CommandInput
           placeholder="Pesquisar páginas, leads, contactos, empresas..."
           value={search}
