@@ -32,7 +32,8 @@ export function ContactEssentialsCard({ contactId, workspaceId, email, phone, wh
         .order("due_at", { ascending: true, nullsFirst: false })
         .limit(1);
       if (error) throw error;
-      return (data ?? [])[0] as { id: string; title: string; due_at: string | null } | undefined;
+      // React Query não aceita undefined: null = sem tarefas pendentes (diferente de erro).
+      return ((data ?? [])[0] ?? null) as { id: string; title: string; due_at: string | null } | null;
     },
   });
   const prefsOff = Object.entries(preferences ?? {}).filter(([, v]) => v === false).map(([k]) => k);
