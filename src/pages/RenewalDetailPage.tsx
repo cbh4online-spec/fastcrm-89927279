@@ -26,6 +26,7 @@ import {
   Mail, CheckCircle2, Pencil, TrendingUp, CalendarClock, BarChart3, DollarSign,
   ShieldCheck, AlertTriangle,
 } from "lucide-react";
+import { calendarDaysFromToday, relativeDayLabel } from "@/lib/dates/lisbonDays";
 import { format, formatDistanceToNow, differenceInDays, differenceInMonths } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useState, useMemo } from "react";
@@ -139,7 +140,7 @@ export default function RenewalDetailPage() {
 
     // Days until next renewal
     const daysUntilRenewal = contract.next_renewal_date
-      ? differenceInDays(new Date(contract.next_renewal_date), new Date())
+      ? calendarDaysFromToday(contract.next_renewal_date)
       : null;
 
     // Renewal events count
@@ -371,11 +372,7 @@ export default function RenewalDetailPage() {
                           : "—"}
                       </p>
                       <p className={`text-xs font-medium ${kpis.daysUntilRenewal <= 7 ? "text-red-600" : kpis.daysUntilRenewal <= 30 ? "text-amber-600" : "text-muted-foreground"}`}>
-                        {kpis.daysUntilRenewal < 0
-                          ? `${Math.abs(kpis.daysUntilRenewal)} dias em atraso`
-                          : kpis.daysUntilRenewal === 0
-                            ? "Hoje"
-                            : `Em ${kpis.daysUntilRenewal} dias`}
+                        {relativeDayLabel(kpis.daysUntilRenewal)}
                       </p>
                     </>
                   ) : (
