@@ -192,8 +192,8 @@ export default function RenewalsPage() {
   }, [contracts]);
 
   const summaryItems: SummaryItem[] = [
-    { label: "ARR (anual, s/ IVA)", value: formatCurrency(stats.arr), tone: "primary" },
-    { label: "MRR ativo (mensal, s/ IVA)", value: formatCurrency(stats.totalMRR), tone: "default" },
+    { label: "ARR (12 × MRR, valor do contrato)", value: formatCurrency(stats.arr), tone: "primary" },
+    { label: "MRR (contratos ativos)", value: formatCurrency(stats.totalMRR), tone: "default" },
     { label: "Contratos Ativos", value: String(stats.active), tone: "default" },
     { label: "Próx. 30 dias", value: String(stats.upcoming30), tone: "default" },
     {
