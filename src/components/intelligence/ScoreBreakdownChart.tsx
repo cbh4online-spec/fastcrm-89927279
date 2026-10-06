@@ -14,7 +14,7 @@ interface ScoreBreakdownChartProps {
 }
 
 const COMPONENTS: Array<{ key: string; label: string; color: string; isNegative?: boolean }> = [
-  { key: "engagement_score", label: "Engagement", color: "bg-blue-500" },
+  { key: "engagement_score", label: "Envolvimento", color: "bg-blue-500" },
   { key: "recency_score", label: "Recency", color: "bg-emerald-500" },
   { key: "trust_score", label: "Trust", color: "bg-violet-500" },
   { key: "intent_score", label: "Intent", color: "bg-amber-500" },

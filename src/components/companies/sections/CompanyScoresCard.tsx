@@ -78,7 +78,7 @@ export function CompanyScoresCard({ company, editable = false }: CompanyScoresCa
       </CardHeader>
       <CardContent className="space-y-4">
         <ScoreItem
-          label="ICP Fit"
+          label="Adequação ICP"
           icon={Target}
           value={company.icp_fit_score ?? 0}
           color="text-blue-500"

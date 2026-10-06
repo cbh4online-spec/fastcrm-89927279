@@ -63,8 +63,8 @@ const COLUMNS: ListColumnDef[] = [
   { key: "client_number", label: "Nº cliente", defaultVisible: false },
   { key: "lead_status", label: "Estado", defaultVisible: false },
   { key: "pare_score", label: "Score PARE", defaultVisible: true },
-  { key: "icp_fit_score", label: "ICP Fit", defaultVisible: false },
-  { key: "engagement_score", label: "Engagement", defaultVisible: false },
+  { key: "icp_fit_score", label: "Adequação ICP", defaultVisible: false },
+  { key: "engagement_score", label: "Envolvimento", defaultVisible: false },
   { key: "created_at", label: "Data de criação", defaultVisible: true },
   { key: "next_followup_at", label: "Próximo follow-up", defaultVisible: false },
   { key: "tags", label: "Tags", defaultVisible: false },
@@ -328,26 +328,27 @@ export function ContactsListIX() {
       onSearchChange={(v) => { setSearch(v); setPage(0); }}
       searchPlaceholder="Pesquisar por nome, código, e-mail ou NIF"
       primaryAction={
-        <div className="flex w-full md:w-auto items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setDuplicatesOpen(true)}
-            className="h-12 rounded-full px-6 text-sm font-semibold max-md:h-10 max-md:w-10 max-md:px-0"
-          >
-            <Copy className="mr-2 h-4 w-4 max-md:mr-0" />
-            <span className="max-md:sr-only">Duplicados</span>
+        <div className="flex w-full min-w-0 md:w-auto items-center gap-2">
+          <Button variant="outline" onClick={() => setDuplicatesOpen(true)} className="hidden md:inline-flex h-12 rounded-full px-6 text-sm font-semibold">
+            <Copy className="mr-2 h-4 w-4" />Duplicados
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setImportOpen(true)}
-            className="h-12 rounded-full px-6 text-sm font-semibold max-md:h-10 max-md:w-10 max-md:px-0"
-          >
-            <Upload className="mr-2 h-4 w-4 max-md:mr-0" />
-            <span className="max-md:sr-only">Importar CSV</span>
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="hidden md:inline-flex h-12 rounded-full px-6 text-sm font-semibold">
+            <Upload className="mr-2 h-4 w-4" />Importar CSV
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="md:hidden h-10 w-10 shrink-0 rounded-full" aria-label="Mais ações">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setDuplicatesOpen(true)}><Copy className="mr-2 h-4 w-4" />Duplicados</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setImportOpen(true)}><Upload className="mr-2 h-4 w-4" />Importar CSV</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             onClick={() => navigate("/dashboard/contacts/new")}
-            className="h-12 rounded-full bg-primary px-6 max-md:h-10 max-md:flex-1 text-sm font-semibold shadow-sm hover:bg-primary/90"
+            className="h-12 min-w-0 rounded-full bg-primary px-6 max-md:h-10 max-md:flex-1 text-sm font-semibold shadow-sm hover:bg-primary/90"
           >
             <Plus className="mr-2 h-4 w-4" />
             Criar Contacto
@@ -361,8 +362,8 @@ export function ContactsListIX() {
             { value: "name", label: "Nome" },
             { value: "created_at", label: "Data de criação" },
             { value: "pare_score", label: "Score PARE" },
-            { value: "icp_fit_score", label: "ICP Fit" },
-            { value: "engagement_score", label: "Engagement" },
+            { value: "icp_fit_score", label: "Adequação ICP" },
+            { value: "engagement_score", label: "Envolvimento" },
             { value: "next_followup_at", label: "Próximo follow-up" },
             { value: "city", label: "Cidade" },
           ]}

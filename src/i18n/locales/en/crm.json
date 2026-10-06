@@ -768,5 +768,6 @@
   "viewLifecycle": "View Lifecycle",
   "addressNumber": "Number",
   "addressFloor": "Floor",
-  "region": "Region"
+  "region": "Region",
+  "birthDate": "Birth date"
 }

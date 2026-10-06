@@ -12,21 +12,21 @@ export interface LifecycleStageCounts {
 export const LIFECYCLE_STAGES: { stage: LifecycleStage; label: string; icon: string; color: string }[] = [
   { stage: 'visitor', label: 'Visitantes', icon: '🌐', color: 'hsl(210, 70%, 55%)' },
   { stage: 'lead', label: 'Leads', icon: '📋', color: 'hsl(270, 60%, 55%)' },
-  { stage: 'prospect', label: 'Prospects', icon: '🎯', color: 'hsl(30, 80%, 55%)' },
+  { stage: 'prospect', label: 'Potenciais clientes', icon: '🎯', color: 'hsl(30, 80%, 55%)' },
   { stage: 'sales', label: 'Vendas', icon: '💼', color: 'hsl(340, 70%, 55%)' },
   { stage: 'onboarding', label: 'Onboarding', icon: '🚀', color: 'hsl(180, 60%, 45%)' },
-  { stage: 'customer', label: 'Customer Success', icon: '✅', color: 'hsl(140, 60%, 45%)' },
-  { stage: 'churned', label: 'Churned', icon: '⚠️', color: 'hsl(0, 60%, 50%)' },
+  { stage: 'customer', label: 'Clientes (sucesso)', icon: '✅', color: 'hsl(140, 60%, 45%)' },
+  { stage: 'churned', label: 'Perdidos', icon: '⚠️', color: 'hsl(0, 60%, 50%)' },
 ];
 
 export const LIFECYCLE_STAGE_LABELS: Record<LifecycleStage, string> = {
   visitor: 'Visitante',
   lead: 'Lead',
-  prospect: 'Prospect',
+  prospect: 'Potencial cliente',
   sales: 'Vendas',
   onboarding: 'Onboarding',
   customer: 'Cliente',
-  churned: 'Churned',
+  churned: 'Perdido',
 };
 
 export function useLifecycleCounts() {

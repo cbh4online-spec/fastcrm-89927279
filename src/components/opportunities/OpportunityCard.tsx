@@ -158,18 +158,18 @@ export const OpportunityCard = memo(function OpportunityCard({
 
           {/* Deal value */}
           <div>
-            <span className="text-[11px] text-muted-foreground">Deal value</span>
+            <span className="text-[11px] text-muted-foreground">Valor do negócio</span>
             <p className="text-sm text-foreground">
               {Number(opportunity.value) > 0
                 ? formatCurrency(Number(opportunity.value), opportunity.currency)
-                : <span className="text-muted-foreground italic text-xs">Set Deal value...</span>
+                : <span className="text-muted-foreground italic text-xs">Definir valor do negócio…</span>
               }
             </p>
           </div>
 
           {/* Associated company */}
           <div>
-            <span className="text-[11px] text-muted-foreground">Associated company</span>
+            <span className="text-[11px] text-muted-foreground">Empresa associada</span>
             <div className="flex items-center gap-1.5 text-sm text-foreground mt-0.5">
               {companyName ? (
                 <>
@@ -184,7 +184,7 @@ export const OpportunityCard = memo(function OpportunityCard({
 
           {/* Associated people */}
           <div>
-            <span className="text-[11px] text-muted-foreground">Associated people</span>
+            <span className="text-[11px] text-muted-foreground">Pessoas associadas</span>
             <div className="flex items-center gap-1.5 text-sm text-foreground mt-0.5">
               {contactName ? (
                 <>
@@ -199,7 +199,7 @@ export const OpportunityCard = memo(function OpportunityCard({
 
           {/* Deal type / Source */}
           <div>
-            <span className="text-[11px] text-muted-foreground">Deal type</span>
+            <span className="text-[11px] text-muted-foreground">Tipo de negócio</span>
             <div className="mt-0.5">
               {sourceLabel ? (
                 <Badge
@@ -216,7 +216,7 @@ export const OpportunityCard = memo(function OpportunityCard({
 
           {/* Priority Level */}
           <div>
-            <span className="text-[11px] text-muted-foreground">Priority Level</span>
+            <span className="text-[11px] text-muted-foreground">Nível de prioridade</span>
             <p className={cn(
               "text-sm font-medium mt-0.5",
               opportunity.priority_level

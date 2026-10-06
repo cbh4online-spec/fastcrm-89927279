@@ -1,3 +1,4 @@
+import { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { socialMessageUrl } from '@/lib/social/socialProfiles';
 import { useNavigate, useParams } from "react-router-dom";
@@ -231,6 +232,12 @@ export function ENIContactDetailWithSidebar() {
     );
   }
 
+  const whatsappState = resolveWhatsAppAvailability({
+    phone: contact.phone,
+    whatsappNumber: contact.whatsapp_number,
+    hasWhatsapp: contact.has_whatsapp,
+    isBlocked: (contact as { is_blocked?: boolean | null }).is_blocked,
+  });
   const initials = contact.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   const entityType = (contact.entity_type || 'consumidor_final') as EntityType;
 
@@ -607,7 +614,7 @@ export function ENIContactDetailWithSidebar() {
 
           <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:shrink-0 md:flex-nowrap">
             <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
-            {contact.phone && (
+            {contact.phone && whatsappState.canOpen && (
               <div className="hidden md:contents">
                 <WhatsAppCallButton
                   phone={contact.phone}
@@ -714,6 +721,7 @@ export function ENIContactDetailWithSidebar() {
           phone={contact.phone}
           email={contact.email}
           lastActivityAt={contact.updated_at}
+          whatsapp={whatsappState}
           onEmail={() => setShowEmailDialog(true)}
         />
 

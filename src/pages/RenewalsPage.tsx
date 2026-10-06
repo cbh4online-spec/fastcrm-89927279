@@ -33,7 +33,8 @@ import {
   CalendarDays,
   Bell,
 } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
+import { calendarDaysFromToday, relativeDayLabel } from "@/lib/dates/lisbonDays";
 import { pt } from "date-fns/locale";
 import { CreateRenewalDialog } from "@/components/renewals/CreateRenewalDialog";
 import { RenewalAlerts } from "@/components/renewals/RenewalAlerts";
@@ -169,11 +170,11 @@ export default function RenewalsPage() {
     const churnRate = contracts.length > 0 ? (cancelled.length / contracts.length) * 100 : 0;
     const overdue = contracts.filter((c) => {
       if (!c.next_renewal_date) return false;
-      return differenceInDays(new Date(c.next_renewal_date), new Date()) < 0;
+      return calendarDaysFromToday(c.next_renewal_date) < 0;
     }).length;
     const upcoming30 = contracts.filter((c) => {
       if (!c.next_renewal_date) return false;
-      const days = differenceInDays(new Date(c.next_renewal_date), new Date());
+      const days = calendarDaysFromToday(c.next_renewal_date);
       return days >= 0 && days <= 30;
     }).length;
 
@@ -191,8 +192,8 @@ export default function RenewalsPage() {
   }, [contracts]);
 
   const summaryItems: SummaryItem[] = [
-    { label: "ARR Total", value: formatCurrency(stats.arr), tone: "primary" },
-    { label: "MRR Ativo", value: formatCurrency(stats.totalMRR), tone: "default" },
+    { label: "ARR (12 × MRR, valor do contrato)", value: formatCurrency(stats.arr), tone: "primary" },
+    { label: "MRR (contratos ativos)", value: formatCurrency(stats.totalMRR), tone: "default" },
     { label: "Contratos Ativos", value: String(stats.active), tone: "default" },
     { label: "Próx. 30 dias", value: String(stats.upcoming30), tone: "default" },
     {
@@ -390,18 +391,14 @@ export default function RenewalsPage() {
             ) : (
               visible.map((contract) => {
                 const daysUntil = contract.next_renewal_date
-                  ? differenceInDays(new Date(contract.next_renewal_date), new Date())
+                  ? calendarDaysFromToday(contract.next_renewal_date)
                   : null;
                 const statusConfig = RENEWAL_STATUS_CONFIG[contract.status];
                 const overdue = daysUntil !== null && daysUntil < 0;
                 const renewalLabel = contract.next_renewal_date
                   ? `${format(new Date(contract.next_renewal_date), "dd MMM yyyy", { locale: pt })}${
                       daysUntil !== null
-                        ? ` (${
-                            daysUntil < 0
-                              ? `${Math.abs(daysUntil)}d atraso`
-                              : `${daysUntil}d`
-                          })`
+                        ? ` (${relativeDayLabel(daysUntil)})`
                         : ""
                     }`
                   : undefined;

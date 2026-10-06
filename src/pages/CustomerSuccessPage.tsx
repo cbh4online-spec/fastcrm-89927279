@@ -39,7 +39,7 @@ export default function CustomerSuccessPage() {
     <div className="container max-w-7xl py-6 space-y-6">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2"><Heart className="h-7 w-7 text-primary" /> Customer Success</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2"><Heart className="h-7 w-7 text-primary" /> Sucesso do Cliente</h1>
           <p className="text-muted-foreground mt-1">Acompanhe adoção, valor, risco e expansão após o go-live.</p>
         </div>
       </header>

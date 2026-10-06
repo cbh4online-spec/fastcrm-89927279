@@ -42,7 +42,7 @@ interface RuntimeFailure {
 const priorityConfig: Record<string, { color: string; label: string }> = {
   critical: { color: "destructive", label: "Critical" },
   high: { color: "default", label: "High" },
-  medium: { color: "secondary", label: "Medium" },
+  medium: { color: "secondary", label: "Média" },
   low: { color: "outline", label: "Low" },
 };
 

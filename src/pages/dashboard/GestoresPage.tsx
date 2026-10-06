@@ -594,7 +594,7 @@ export default function GestoresPage() {
               <div className="flex-1"><Progress value={health.coveragePct} className="h-2" /></div>
               <span className={cn("text-sm font-semibold", health.coveragePct >= 80 ? "text-emerald-600" : health.coveragePct >= 50 ? "text-amber-600" : "text-red-600")}>{health.coveragePct}%</span>
             </div>
-            <span className="text-[11px] text-muted-foreground shrink-0">{health.assignedEntities} atribuídas / {health.totalEntities} total</span>
+            <span className="text-[11px] text-muted-foreground shrink-0" title="Universo: todas as leads, contactos e empresas (não eliminados) que pode ver neste workspace. Oportunidades não entram na cobertura.">{health.assignedEntities.toLocaleString("pt-PT")} atribuídas a gestores / {health.totalEntities.toLocaleString("pt-PT")} (leads + contactos + empresas){health.orphanEntities > 0 ? ` · ${health.orphanEntities.toLocaleString("pt-PT")} com responsável fora da equipa` : ""}</span>
           </div>
         )}
 

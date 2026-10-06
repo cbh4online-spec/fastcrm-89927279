@@ -153,6 +153,11 @@ export function IdentificationSection({
           onChange={(value) => onFieldChange('has_whatsapp', value)}
           icon={<MessageSquare className="h-3.5 w-3.5 text-green-600" />}
         />
+        {!contact.has_whatsapp && (
+          <p className="text-xs text-muted-foreground -mt-1">
+            «Não» significa não confirmado: o número pode ter WhatsApp, mas ainda não foi verificado.
+          </p>
+        )}
 
         {contact.has_whatsapp && (
           <InlineEditableField
