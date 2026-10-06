@@ -60,7 +60,7 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
 
   return (
     <div className={cn("mb-2 md:mb-4", className)}>
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 md:gap-3 snap-x">
+      <div className="grid grid-cols-2 gap-2 md:-mx-1 md:flex md:gap-3 md:overflow-x-auto md:px-1 md:pb-1">
         {items.map((kpi) => {
           const tone = kpi.tone ?? "neutral";
           const Icon = kpi.icon;
@@ -71,7 +71,7 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
               key={kpi.key}
               {...(interactive ? { type: "button" as const, onClick: kpi.onClick } : {})}
               className={cn(
-                "flex shrink-0 snap-start max-md:min-w-max md:min-w-[168px] md:flex-1 items-center gap-2 md:gap-3 max-md:rounded-full rounded-2xl border bg-card max-md:px-3 max-md:py-1.5 md:px-4 md:py-3 text-left md:shadow-sm transition-colors",
+                "flex min-w-0 md:shrink-0 md:min-w-[168px] md:flex-1 items-center gap-2 md:gap-3 max-md:rounded-xl rounded-2xl border bg-card max-md:px-3 max-md:py-2 md:px-4 md:py-3 text-left md:shadow-sm transition-colors",
                 kpi.active ? "border-primary ring-1 ring-primary/30" : "border-border",
                 interactive && "hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
@@ -82,9 +82,9 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
                   <Icon className="h-4 w-4" />
                 </span>
               )}
-              <span className="min-w-0 max-md:flex max-md:items-baseline max-md:gap-1.5">
-                <span className={cn("md:hidden text-sm font-bold", VALUE_TONE[tone])}>{kpi.value}</span>
-                <span className="block whitespace-nowrap md:truncate text-[11px] font-medium max-md:normal-case md:uppercase md:tracking-wider text-muted-foreground">
+              <span className="min-w-0 max-md:flex max-md:flex-col">
+                <span className={cn("md:hidden text-base font-bold leading-tight break-words", VALUE_TONE[tone])}>{kpi.value}</span>
+                <span className="block text-[11px] font-medium leading-tight md:truncate max-md:normal-case md:uppercase md:tracking-wider text-muted-foreground">
                   {kpi.label}
                 </span>
                 <span className={cn("hidden md:block truncate text-xl font-bold leading-tight", VALUE_TONE[tone])}>
