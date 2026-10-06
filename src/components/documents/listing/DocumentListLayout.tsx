@@ -74,7 +74,7 @@ export function DocumentListLayout({
       {summary && <div>{summary}</div>}
 
       {/* Conteúdo (lista de documentos) */}
-      <div className="flex flex-1 flex-col gap-2">{children}</div>
+      <div id="lista-resultados" className="flex flex-1 scroll-mt-20 flex-col gap-2">{children}</div>
     </div>
   );
 }
