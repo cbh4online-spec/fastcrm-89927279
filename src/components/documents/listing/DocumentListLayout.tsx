@@ -36,12 +36,12 @@ export function DocumentListLayout({
   className,
 }: DocumentListLayoutProps) {
   return (
-    <div className={cn("flex flex-col gap-4 p-4 sm:p-6", className)}>
+    <div className={cn("flex flex-col gap-3 p-4 sm:gap-4 sm:p-6", className)}>
       {/* Header: título + pesquisa + CTAs */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
+      <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{title}</h1>
 
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center lg:max-w-3xl lg:justify-end">
+        <div className="flex flex-1 flex-col gap-2.5 sm:gap-3 sm:flex-row sm:items-center lg:max-w-3xl lg:justify-end">
           {onSearchChange && (
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -49,7 +49,7 @@ export function DocumentListLayout({
                 value={searchValue ?? ""}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="h-12 rounded-full border-border bg-card pl-11 pr-4 text-sm shadow-sm focus-visible:ring-primary"
+                className="h-11 sm:h-12 rounded-full border-border bg-card pl-11 pr-4 text-sm shadow-sm focus-visible:ring-primary"
               />
             </div>
           )}

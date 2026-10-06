@@ -64,12 +64,12 @@ export function DocumentListToolbar({
         </label>
       )}
 
-      <div className="flex w-full md:w-auto md:ml-auto flex-wrap items-center gap-x-4 md:gap-x-6 gap-y-2">
+      <div className="flex w-full md:w-auto md:ml-auto items-center gap-x-2 md:gap-x-6 gap-y-2 max-md:flex-nowrap max-md:overflow-x-auto max-md:-mx-1 max-md:px-1 scrollbar-none md:flex-wrap">
         {sortOptions && onSortChange && (
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 md:gap-2">
             <span className="max-md:sr-only">Ordenar por</span>
             <Select value={sortValue} onValueChange={onSortChange}>
-              <SelectTrigger className="h-8 w-[140px] border-none bg-transparent px-2 text-foreground shadow-none focus:ring-0">
+              <SelectTrigger className="h-8 w-auto md:w-[140px] gap-1 border-none bg-transparent px-2 text-foreground shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -119,7 +119,7 @@ export function DocumentListToolbar({
         )}
 
         {typeof totalCount === "number" && (
-          <span className="font-semibold text-foreground">
+          <span className="shrink-0 whitespace-nowrap font-semibold text-foreground max-md:order-first max-md:mr-1">
             {totalCount} {countLabel}
           </span>
         )}

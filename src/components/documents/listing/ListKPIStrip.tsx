@@ -59,7 +59,7 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
   if (items.length === 0) return null;
 
   return (
-    <div className={cn("mb-4", className)}>
+    <div className={cn("mb-2 md:mb-4", className)}>
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 md:gap-3 snap-x">
         {items.map((kpi) => {
           const tone = kpi.tone ?? "neutral";
@@ -71,22 +71,23 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
               key={kpi.key}
               {...(interactive ? { type: "button" as const, onClick: kpi.onClick } : {})}
               className={cn(
-                "flex shrink-0 snap-start max-md:min-w-max md:min-w-[168px] md:flex-1 items-center gap-2.5 md:gap-3 rounded-2xl border bg-card px-3 py-2 md:px-4 md:py-3 text-left shadow-sm transition-colors",
+                "flex shrink-0 snap-start max-md:min-w-max md:min-w-[168px] md:flex-1 items-center gap-2 md:gap-3 max-md:rounded-full rounded-2xl border bg-card max-md:px-3 max-md:py-1.5 md:px-4 md:py-3 text-left md:shadow-sm transition-colors",
                 kpi.active ? "border-primary ring-1 ring-primary/30" : "border-border",
                 interactive && "hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
               aria-pressed={interactive ? !!kpi.active : undefined}
             >
               {Icon && (
-                <span className={cn("flex h-8 w-8 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-xl", ICON_TONE[tone])}>
+                <span className={cn("hidden md:flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", ICON_TONE[tone])}>
                   <Icon className="h-4 w-4" />
                 </span>
               )}
-              <span className="min-w-0">
-                <span className="block whitespace-nowrap md:truncate text-[10px] md:text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <span className="min-w-0 max-md:flex max-md:items-baseline max-md:gap-1.5">
+                <span className={cn("md:hidden text-sm font-bold", VALUE_TONE[tone])}>{kpi.value}</span>
+                <span className="block whitespace-nowrap md:truncate text-[11px] font-medium max-md:normal-case md:uppercase md:tracking-wider text-muted-foreground">
                   {kpi.label}
                 </span>
-                <span className={cn("block truncate text-lg md:text-xl font-bold leading-tight", VALUE_TONE[tone])}>
+                <span className={cn("hidden md:block truncate text-xl font-bold leading-tight", VALUE_TONE[tone])}>
                   {kpi.value}
                 </span>
                 {kpi.hint && (
