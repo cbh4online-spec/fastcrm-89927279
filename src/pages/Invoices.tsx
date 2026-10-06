@@ -234,7 +234,7 @@ export default function Invoices() {
         }}
         primaryAction={
           <PageElementGate kind="action" id="new-invoice">
-            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90">
+            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90 max-md:h-10 max-md:flex-1">
               <Plus className="h-4 w-4" />
               {t("newInvoice")}
             </Button>
@@ -242,7 +242,7 @@ export default function Invoices() {
         }
         secondaryAction={
           <PageElementGate kind="action" id="create-others">
-            <Button variant="outline" onClick={() => setActiveTab("recurring")} className="rounded-full">
+            <Button variant="outline" onClick={() => setActiveTab("recurring")} className="rounded-full max-md:h-10">
               Criar Outros
             </Button>
           </PageElementGate>

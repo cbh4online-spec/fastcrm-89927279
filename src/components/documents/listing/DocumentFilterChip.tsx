@@ -27,27 +27,30 @@ export function DocumentFilterChip({
   onClick,
 }: DocumentFilterChipProps) {
   const triggerClasses = cn(
-    "flex h-14 min-w-[140px] items-center justify-between gap-3 rounded-xl border bg-card px-4 py-2 text-left shadow-sm transition-colors",
+    "flex shrink-0 items-center justify-between text-left transition-colors border bg-card",
+    "max-md:h-9 max-md:gap-1.5 max-md:rounded-full max-md:px-3",
+    "md:h-14 md:min-w-[140px] md:gap-3 md:rounded-xl md:px-4 md:py-2 md:shadow-sm",
     "hover:border-primary/60",
     active ? "border-primary ring-1 ring-primary/30" : "border-border"
   );
 
   const content = (
     <>
-      <div className="flex flex-col">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-baseline gap-1 md:flex-col md:items-start md:gap-0">
+        <span className="text-[11px] font-medium text-muted-foreground md:uppercase md:tracking-wider">
           {label}
+          <span className="md:hidden">:</span>
         </span>
         <span
           className={cn(
-            "text-sm font-semibold",
+            "whitespace-nowrap text-xs md:text-sm font-semibold",
             active ? "text-primary" : "text-foreground"
           )}
         >
           {value}
         </span>
       </div>
-      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+      <ChevronDown className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
     </>
   );
 
