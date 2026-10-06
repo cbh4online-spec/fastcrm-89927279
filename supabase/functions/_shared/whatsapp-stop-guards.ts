@@ -1,5 +1,5 @@
-/**
 import { phoneOptOutVariants } from "./phoneVariants.ts";
+/**
  * Guardas de paragem do FastCRM WhatsApp Conversion Engine.
  *
  * Revalidadas imediatamente antes de cada envio automático para evitar
