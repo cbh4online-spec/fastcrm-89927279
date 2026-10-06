@@ -123,7 +123,7 @@ export function CopilotDrawer() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50"
+            className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50"
           >
             <Button
               size="lg"

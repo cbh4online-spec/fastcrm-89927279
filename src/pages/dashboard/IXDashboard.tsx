@@ -231,10 +231,10 @@ export default function IXDashboard() {
           {active === "faturacao" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiTile label="Faturado (mês)" value={formatEUR(monthMetrics.total)} hint={`${monthMetrics.count} documentos`} delta={financials?.kpis.thisMonthDelta} />
-                <KpiTile label="Recebido (mês)" value={formatEUR(monthMetrics.paid)} />
-                <KpiTile label="Este trimestre" value={formatEUR(financials?.kpis.thisQuarter ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisQuarterDelta} />
-                <KpiTile label="Este ano" value={formatEUR(financials?.kpis.thisYear ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisYearDelta} />
+                <KpiTile icon={FileText} accent="primary" label="Faturado (mês)" value={formatEUR(monthMetrics.total)} hint={`${monthMetrics.count} documentos`} delta={financials?.kpis.thisMonthDelta} />
+                <KpiTile icon={Wallet} accent="success" label="Recebido (mês)" value={formatEUR(monthMetrics.paid)} />
+                <KpiTile icon={CalendarRange} accent="warning" label="Este trimestre" value={formatEUR(financials?.kpis.thisQuarter ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisQuarterDelta} />
+                <KpiTile icon={CalendarDays} accent="info" label="Este ano" value={formatEUR(financials?.kpis.thisYear ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisYearDelta} />
               </div>
               <IXCard
                 title="Faturação por mês"
@@ -274,10 +274,10 @@ export default function IXDashboard() {
           {active === "cobrancas" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiTile label="Total em dívida" value={formatEUR(financials?.collections.totalOutstanding ?? 0)} />
-                <KpiTile label="Não vencido" value={formatEUR(financials?.collections.notDue ?? 0)} tone="warning" />
-                <KpiTile label="Vencido" value={formatEUR(financials?.collections.overdue ?? 0)} tone="danger" />
-                <KpiTile label="Casos abertos" value={String(collectionsMetrics.count)} hint={`Ticket médio ${formatEUR(collectionsMetrics.count ? collectionsMetrics.totalDue / collectionsMetrics.count : 0)}`} />
+                <KpiTile icon={Euro} accent="primary" label="Total em dívida" value={formatEUR(financials?.collections.totalOutstanding ?? 0)} />
+                <KpiTile icon={Clock} accent="warning" label="Não vencido" value={formatEUR(financials?.collections.notDue ?? 0)} tone="warning" />
+                <KpiTile icon={AlertTriangle} accent="danger" label="Vencido" value={formatEUR(financials?.collections.overdue ?? 0)} tone="danger" />
+                <KpiTile icon={FolderOpen} accent="info" label="Casos abertos" value={String(collectionsMetrics.count)} hint={`Ticket médio ${formatEUR(collectionsMetrics.count ? collectionsMetrics.totalDue / collectionsMetrics.count : 0)}`} />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <IXCard title="Envelhecimento da dívida" description="Últimos 7 meses por data de emissão.">
@@ -360,10 +360,10 @@ export default function IXDashboard() {
                   <ActiveClientsChart monthly={financials?.clients.monthly ?? []} loading={finLoading} />
                 </IXCard>
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                  <KpiTile label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} />
-                  <KpiTile label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} />
-                  <KpiTile label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} />
-                  <KpiTile label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} />
+                  <KpiTile icon={Users} accent="primary" label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} />
+                  <KpiTile icon={UserPlus} accent="success" label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} />
+                  <KpiTile icon={Euro} accent="info" label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} />
+                  <KpiTile icon={Euro} accent="warning" label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} />
                 </div>
               </div>
 
@@ -401,8 +401,8 @@ export default function IXDashboard() {
                   <TopItemsChart items={itemsAgg?.topItems ?? []} loading={itemsLoading} />
                 </IXCard>
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                  <KpiTile label="Itens vendidos" value={String(Math.round(itemsAgg?.totalUnits ?? 0))} />
-                  <KpiTile label="Valor médio por item" value={formatEUR(itemsAgg?.avgPerItem ?? 0)} hint="s/ IVA" />
+                  <KpiTile icon={Package} accent="primary" label="Itens vendidos" value={String(Math.round(itemsAgg?.totalUnits ?? 0))} />
+                  <KpiTile icon={Euro} accent="info" label="Valor médio por item" value={formatEUR(itemsAgg?.avgPerItem ?? 0)} hint="s/ IVA" />
                 </div>
               </div>
               <IXCard
@@ -423,9 +423,9 @@ export default function IXDashboard() {
           {active === "impostos" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                <KpiTile label="IVA liquidado (histórico)" value={formatEUR(totalVat)} />
-                <KpiTile label="Taxas distintas" value={String(vatByRate.length)} />
-                <KpiTile label="Documentos" value={String(invoices.length)} />
+                <KpiTile icon={Receipt} accent="primary" label="IVA liquidado (histórico)" value={formatEUR(totalVat)} />
+                <KpiTile icon={Percent} accent="info" label="Taxas distintas" value={String(vatByRate.length)} />
+                <KpiTile icon={Hash} accent="success" label="Documentos" value={String(invoices.length)} />
               </div>
               <IXCard title="IVA por mês" description="Últimos 12 meses. Contacte o seu contabilista para o apuramento final.">
                 <VatChart monthly={financials?.vat.monthly ?? []} loading={finLoading} />
