@@ -108,7 +108,8 @@ Extract key-value specifications from product datasheets.
 Return structured JSON with groups of specifications.
 Always respond in Portuguese (PT-PT) for group names.
 Common groups: Técnico, Dimensional, Elétrico, Óptico, Rede, Ambiental, Certificações, Performance.
-Include units where applicable (mm, kg, V, W, °C, dB, m, etc.).`;
+Include units where applicable (mm, kg, V, W, °C, dB, m, etc.).
+ALWAYS use EU/SI metric units: convert inches→mm, ounces/pounds→g or kg, °F→°C, feet→m. Never output oz, lb, in, " or °F.`;
 
       prompt = `Extract ALL technical specifications from this product datasheet text.
 ${product_name ? `Product: ${product_name}` : ""}

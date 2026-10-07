@@ -1,3 +1,5 @@
+import { toMetric } from "./metricUnits";
+
 /**
  * Junta especificações vindas da IA/fabricante às existentes:
  * preenche apenas valores vazios com a mesma chave (normalizada) e
@@ -28,7 +30,9 @@ export function mergeSpecs(
   let added = 0;
   for (const raw of incoming) {
     const key = String(raw.spec_key ?? "").trim();
-    const value = String(raw.spec_value ?? "").trim();
+    const metric = toMetric(String(raw.spec_value ?? "").trim(), String(raw.unit ?? "").trim());
+    const value = metric.value.trim();
+    raw = { ...raw, unit: metric.unit };
     if (!key) continue;
     const i = index.get(normalizeSpecKey(key));
     if (i !== undefined) {
