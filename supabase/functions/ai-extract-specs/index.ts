@@ -2,6 +2,7 @@ import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { firecrawl } from "../_shared/firecrawl-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -276,7 +277,7 @@ Include 10-20 common specifications for this category, grouped logically.`;
       }
     }
 
-    return new Response(JSON.stringify({ data: parsed }), {
+    return new Response(JSON.stringify({ data: parsed, source_urls: sourceUrls }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
