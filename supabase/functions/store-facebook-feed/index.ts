@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       `      <g:price>${gross.toFixed(2)} ${esc(p.currency || "EUR")}</g:price>`,
       `      <g:availability>${out ? "out of stock" : "in stock"}</g:availability>`,
       `      <g:condition>${condition}</g:condition>`,
-      p.brand ? `      <g:brand>${esc(p.brand)}</g:brand>` : "",
+      `      <g:brand>${esc(p.brand || settings.store_name || "Loja")}</g:brand>`,
       p.mpn || p.sku ? `      <g:mpn>${esc(p.mpn || p.sku)}</g:mpn>` : "",
       gtin ? `      <g:gtin>${esc(gtin)}</g:gtin>` : "",
       p.category ? `      <g:product_type>${esc(p.category)}</g:product_type>` : "",
