@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import {
   Plus, Trash2, Sparkles, Save, FileText, Loader2, GripVertical,
-  ChevronDown, ChevronRight, Settings2, Wand2,
+  ChevronDown, ChevronRight, Settings2, Wand2, Globe,
 } from "lucide-react";
 import { toast } from "sonner";
+import { mergeSpecs, type MergeableSpec } from "@/lib/products/mergeSpecs";
 import {
   Collapsible,
   CollapsibleContent,
@@ -27,15 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-interface Spec {
-  id?: string;
-  spec_key: string;
-  spec_value: string;
-  unit: string;
-  spec_group: string;
-  display_order: number;
-  isNew?: boolean;
-}
+type Spec = MergeableSpec;
 
 const DEFAULT_GROUPS = [
   "Técnico", "Dimensional", "Elétrico", "Óptico", "Rede",
@@ -186,6 +179,42 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
     onError: () => toast.error("Erro ao guardar"),
   });
 
+  // Preencher a partir do site do fabricante (só campos vazios; revisão antes de guardar)
+  const manufacturerMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("ai-extract-specs", {
+        body: {
+          workspace_id: workspaceId,
+          mode: "from-manufacturer",
+          product_name: product.name,
+          sku: product.sku,
+          brand: product.brand,
+          category: product.category,
+          existing_specs: specs.map(s => s.spec_key),
+        },
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (data) => {
+      const found = Array.isArray(data?.data) ? data.data : [];
+      if (found.length === 0) {
+        toast.info("Não foi encontrada a ficha técnica do fabricante. Use \"Extrair de Texto\".");
+        return;
+      }
+      const { specs: merged, filled, added } = mergeSpecs(specs, found, "fabricante");
+      setSpecs(merged);
+      setHasChanges(true);
+      setOpenGroups(prev => {
+        const u = { ...prev };
+        merged.forEach(s => { u[s.spec_group || "Geral"] = true; });
+        return u;
+      });
+      toast.success(`${filled} campos preenchidos e ${added} novos. Reveja e clique em Guardar.`);
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao consultar o fabricante"),
+  });
+
   // AI extract mutation
   const extractMutation = useMutation({
     mutationFn: async (text: string) => {
@@ -205,6 +234,7 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
             text,
             product_name: product.name,
             category: product.category,
+            existing_specs: specs.map(s => s.spec_key),
           }),
         }
       );
@@ -220,15 +250,9 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
         toast.info("Nenhuma especificação encontrada no texto");
         return;
       }
-      const newSpecs: Spec[] = extracted.map((s: any, i: number) => ({
-        spec_key: s.spec_key || "",
-        spec_value: s.spec_value || "",
-        unit: s.unit || "",
-        spec_group: s.spec_group || "Geral",
-        display_order: specs.length + i,
-        isNew: true,
-      }));
-      setSpecs(prev => [...prev, ...newSpecs]);
+      const merged = mergeSpecs(specs, extracted, "ia");
+      const newSpecs = merged.specs;
+      setSpecs(newSpecs);
       setHasChanges(true);
       setExtractDialogOpen(false);
       setExtractText("");
@@ -395,6 +419,19 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
         <Button
           size="sm"
           variant="outline"
+          onClick={() => manufacturerMutation.mutate()}
+          disabled={manufacturerMutation.isPending}
+        >
+          {manufacturerMutation.isPending ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <Globe className="h-4 w-4 mr-1" />
+          )}
+          Do site do fabricante
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
           onClick={() => suggestMutation.mutate()}
           disabled={suggestMutation.isPending}
         >
@@ -518,6 +555,11 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
                       onChange={(e) => updateSpec(globalIndex, "spec_value", e.target.value)}
                       className="flex-1 h-8 text-sm"
                     />
+                    {spec.source && spec.source !== "manual" && (
+                      <Badge variant="outline" className="text-[10px] shrink-0" title="Sugestão por rever antes de guardar">
+                        {spec.source === "fabricante" ? "Fabricante" : "IA"}
+                      </Badge>
+                    )}
                     <Input
                       placeholder="Un."
                       value={spec.unit}
