@@ -28,7 +28,7 @@ export function mergeSpecs(
   const index = new Map(specs.map((s, i) => [normalizeSpecKey(s.spec_key), i]));
   let filled = 0;
   let added = 0;
-  for (const raw of incoming) {
+  for (let raw of incoming) {
     const key = String(raw.spec_key ?? "").trim();
     const metric = toMetric(String(raw.spec_value ?? "").trim(), String(raw.unit ?? "").trim());
     const value = metric.value.trim();
