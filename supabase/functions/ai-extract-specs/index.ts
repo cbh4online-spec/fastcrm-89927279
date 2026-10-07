@@ -2,6 +2,7 @@ import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { firecrawl } from "../_shared/firecrawl-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,8 +79,29 @@ serve(async (req) => {
 
     let prompt = "";
     let systemPrompt = "";
+    let sourceUrls: string[] = [];
+    let sourceText = text;
 
-    if (mode === "extract-from-text") {
+    if (mode === "from-manufacturer") {
+      // Procura a página oficial pelo SKU/marca/nome e extrai a tabela técnica.
+      const query = [body.brand, body.sku, product_name, "specifications datasheet"]
+        .filter(Boolean).join(" ").slice(0, 300);
+      try {
+        const found = await firecrawl.search(query, { limit: 3, scrapeOptions: { formats: ["markdown"] } });
+        const pages = (found.data ?? []).filter((p) => p.markdown);
+        sourceUrls = pages.map((p) => p.url);
+        sourceText = pages.map((p) => `Fonte: ${p.url}\n${p.markdown}`).join("\n\n").slice(0, 18000);
+      } catch (e) {
+        console.error("[ai-extract-specs] pesquisa falhou", (e as Error).message);
+      }
+      if (!sourceText) {
+        return new Response(JSON.stringify({ success: true, data: [], source_urls: [], fallback: "no_source" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    if (mode === "extract-from-text" || mode === "from-manufacturer") {
       // Extract specs from datasheet text (PDF content)
       systemPrompt = `You are a technical product specification extractor. 
 Extract key-value specifications from product datasheets.
@@ -92,9 +114,12 @@ Include units where applicable (mm, kg, V, W, °C, dB, m, etc.).`;
 ${product_name ? `Product: ${product_name}` : ""}
 ${category ? `Category: ${category}` : ""}
 
+${existing_specs?.length ? `Prefer these exact Portuguese key names when the spec matches: ${JSON.stringify(existing_specs)}` : ""}
+Only use values explicitly present in the text. Never invent values.
+
 Datasheet text:
 ---
-${text}
+${sourceText}
 ---
 
 Return JSON array with this structure (no markdown):
@@ -252,7 +277,7 @@ Include 10-20 common specifications for this category, grouped logically.`;
       }
     }
 
-    return new Response(JSON.stringify({ data: parsed }), {
+    return new Response(JSON.stringify({ data: parsed, source_urls: sourceUrls }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
