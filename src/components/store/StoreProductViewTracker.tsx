@@ -1,15 +1,11 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getOrCreateSessionId, safeStorageGet, safeStorageSet } from "@/lib/browser/safeBrowser";
 
 const SESSION_KEY = "store_view_session_id";
 
 function getSessionId(): string {
-  let sid = localStorage.getItem(SESSION_KEY);
-  if (!sid) {
-    sid = crypto.randomUUID();
-    localStorage.setItem(SESSION_KEY, sid);
-  }
-  return sid;
+  return getOrCreateSessionId(SESSION_KEY);
 }
 
 interface StoreProductViewTrackerProps {
@@ -28,8 +24,8 @@ export function StoreProductViewTracker({ productId, workspaceId }: StoreProduct
     const viewKey = `store_view_${sessionId}_${productId}`;
     
     // Debounce: only track once per session per product
-    if (sessionStorage.getItem(viewKey)) return;
-    sessionStorage.setItem(viewKey, "1");
+    if (safeStorageGet("session", viewKey)) return;
+    safeStorageSet("session", viewKey, "1");
 
     supabase
       .from("store_page_views" as any)

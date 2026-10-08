@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVisitorScoreTracker } from "@/hooks/useVisitorScore";
+import { getOrCreateSessionId } from "@/lib/browser/safeBrowser";
 
 const CONSENT_STORAGE_KEY = "gdpr_consent";
 const GDPR_VISITOR_ID_KEY = "gdpr_visitor_id";
@@ -24,12 +25,7 @@ const CLASSIFY_TIME_THRESHOLD = 120; // 2 minutes
 const SCROLL_THROTTLE_MS = 1_000;
 
 function getSessionId(): string {
-  let sid = localStorage.getItem(SESSION_KEY);
-  if (!sid) {
-    sid = crypto.randomUUID();
-    localStorage.setItem(SESSION_KEY, sid);
-  }
-  return sid;
+  return getOrCreateSessionId(SESSION_KEY);
 }
 
 function getDeviceType(): string {

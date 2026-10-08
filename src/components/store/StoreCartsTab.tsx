@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { safeRandomId } from "@/lib/browser/safeBrowser";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useEmailSequences } from "@/hooks/useEmailSequences";
@@ -104,7 +105,7 @@ export function StoreCartsTab() {
       if (url) { navigator.clipboard.writeText(url); toast.success("Link copiado!"); }
       return;
     }
-    const token = crypto.randomUUID();
+    const token = safeRandomId();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const { error } = await sb.from("store_abandoned_carts").update({ recovery_token: token, recovery_token_expires_at: expiresAt, updated_at: new Date().toISOString() }).eq("id", cart.id);
     if (error) { toast.error("Erro ao gerar link"); return; }

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo } from "react";
+import { safeRandomId } from "@/lib/browser/safeBrowser";
 import { supabase } from "@/integrations/supabase/client";
 import { parsePhoneNumber } from "libphonenumber-js";
 import { trackEvent } from "@/lib/analytics";
@@ -14,7 +15,7 @@ interface UseCheckoutFormOptions {
 }
 
 export function useCheckoutForm({ wsId, wsSlug, items, subtotal }: UseCheckoutFormOptions) {
-  const sessionId = useMemo(() => crypto.randomUUID(), []);
+  const sessionId = useMemo(() => safeRandomId(), []);
   const [contactId, setContactId] = useState<string | null>(null);
   const emailCapturedRef = useRef(false);
   const [step, setStep] = useState<1 | 2>(1);
