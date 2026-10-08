@@ -19,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertCircle, ExternalLink, Loader2, Send } from "lucide-react";
 import { Link } from "react-router-dom";
+import { OBJECTION_REPLIES, fillObjectionReply } from "@/lib/prospecting/objectionReplies";
 import {
   buildWhatsAppLinks,
   isMobileDevice,
@@ -169,6 +170,20 @@ export function WhatsAppMessageDialog({
 
             <div className="space-y-1.5">
               <Label htmlFor="wa-message">Mensagem</Label>
+              <div className="flex flex-wrap gap-1" role="group" aria-label="Respostas rápidas a objeções">
+                {OBJECTION_REPLIES.map((o) => (
+                  <Button
+                    key={o.key}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => setMessage(fillObjectionReply(o.template, entityName))}
+                  >
+                    {o.label}
+                  </Button>
+                ))}
+              </div>
               <Textarea
                 id="wa-message"
                 value={message}
