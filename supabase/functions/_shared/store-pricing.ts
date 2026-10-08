@@ -29,6 +29,8 @@ export interface ResolvedProduct {
   images: string[] | null;
   primary_image_index: number | null;
   stock_quantity: number | null;
+  stock_reserved?: number | null;
+  weight?: number | null;
   track_stock: boolean;
   stock_status: string | null;
   billing_type: string | null;

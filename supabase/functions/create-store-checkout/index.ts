@@ -1,3 +1,4 @@
+import { cttPriceFor, FALLBACK_ITEM_WEIGHT_KG } from "../_shared/cttRates.ts";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -154,7 +155,22 @@ Deno.serve(async (req) => {
     );
 
     const currency = normalizeCurrency(products);
-    const parsedShippingCost = parseFloat(shippingCost) || 0;
+    // Portes recalculados no servidor pela mesma tabela do checkout.
+    let parsedShippingCost = 0;
+    if (shippingMethodId) {
+      const totalWeight = normalized.reduce((sum, item) => {
+        const p = products.find((pr: any) => pr.id === item.product_id) as any;
+        const w = p?.weight ? Number(p.weight) : FALLBACK_ITEM_WEIGHT_KG;
+        return sum + w * item.quantity;
+      }, 0);
+      const serverCost = cttPriceFor(String(shippingMethodId), Math.round(totalWeight * 1000) / 1000);
+      if (serverCost === null) throw new Error("Método de envio indisponível para este carrinho");
+      const clientCost = parseFloat(shippingCost);
+      if (Number.isFinite(clientCost) && Math.abs(clientCost - serverCost) > 0.009) {
+        logStep("Shipping cost mismatch — using server value", { clientCost, serverCost });
+      }
+      parsedShippingCost = serverCost;
+    }
 
     // ── FASE B: Backend coupon validation ──
     let validatedCoupon: ValidatedCoupon | null = null;
