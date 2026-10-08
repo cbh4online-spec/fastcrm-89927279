@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { PowerHourFocusView } from "./PowerHourFocusView";
+import { buildFollowUpRows, hasUsablePhone } from "@/lib/prospecting/cadence";
 
 const extractInstagramUsername = (url: string): string | null => {
   const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
@@ -36,6 +37,7 @@ interface BulkProfile {
   profile_url: string;
   inferred_profession: string | null;
   platform: string;
+  phone?: string | null;
 }
 
 interface GeneratedMessage {
@@ -187,26 +189,10 @@ export function BulkOutreachDialog({
     const wsId = workspaceId || currentWorkspace?.id;
 
     if (wsId) {
-      const now = new Date();
-      const day3 = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-      const day7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-      await supabase.from("prospecting_outreach_queue").insert([
-        {
-          workspace_id: wsId,
-          profile_id: profile.id,
-          step_index: 2,
-          scheduled_for: day3.toISOString(),
-          status: "scheduled",
-        },
-        {
-          workspace_id: wsId,
-          profile_id: profile.id,
-          step_index: 3,
-          scheduled_for: day7.toISOString(),
-          status: "scheduled",
-        },
-      ] as any);
+      // Dia 3: WhatsApp se houver telefone (canal derivado na fila); dia 7: Instagram
+      await supabase
+        .from("prospecting_outreach_queue")
+        .insert(buildFollowUpRows({ workspaceId: wsId, profileId: profile.id }) as any);
 
       // Auto-create lead and convert profile
       try {
@@ -220,6 +206,10 @@ export function BulkOutreachDialog({
           instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
           prospecting_profile_id: profile.id,
         };
+
+        if (hasUsablePhone(profile.phone)) {
+          leadData.phone = profile.phone;
+        }
 
         if (userId) {
           leadData.created_by = userId;
