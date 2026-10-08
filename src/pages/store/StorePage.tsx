@@ -17,6 +17,7 @@ import {
   applyClientSort,
   isServerSort,
 } from "@/lib/store/catalogClientFilters";
+import { readCategoryParam, withCategoryParam } from "@/lib/store/categoryUrlParam";
 
 import { StoreSeoHead } from "@/components/store/storefront/StoreSeoHead";
 import { StoreHeroSections } from "@/components/store/storefront/StoreHeroSections";
@@ -37,10 +38,24 @@ import { Loader2 } from "lucide-react";
 
 export default function StorePage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryParam = searchParams.get("q") || "";
   const [search, setSearch] = useState(queryParam);
-  const [filters, setFilters] = useState<StoreFilters>({});
+  const [otherFilters, setOtherFilters] = useState<Omit<StoreFilters, "categoryId">>({});
+  // A categoria vive no endereço (?category=) — fonte única, suporta links diretos e voltar/avançar
+  const urlCategoryId = readCategoryParam(searchParams);
+  const filters = useMemo<StoreFilters>(
+    () => ({ ...otherFilters, categoryId: urlCategoryId }),
+    [otherFilters, urlCategoryId],
+  );
+  const setFilters = (update: StoreFilters | ((f: StoreFilters) => StoreFilters)) => {
+    const next = typeof update === "function" ? update(filters) : update;
+    const { categoryId, ...rest } = next;
+    setOtherFilters(rest);
+    if ((categoryId || undefined) !== urlCategoryId) {
+      setSearchParams((prev) => withCategoryParam(prev, categoryId), { replace: false });
+    }
+  };
 
   // Mantém a pesquisa sincronizada com o endereço (?q=)
   useEffect(() => {
