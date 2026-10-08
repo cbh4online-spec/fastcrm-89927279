@@ -34,3 +34,11 @@
 - [x] Corrigir filtros e textos dos alertas, espaço inferior e proteção das ações contra o Copilot; validado com alerta real a 360/393 px e desktop sem marcar como lido.
 - [x] Corrigir consulta da próxima tarefa (instância resolvida, campos reais, pending, invalidação e erro explícito) e regresso direto à lista, incluindo contacto indisponível.
 - [ ] Validar próxima tarefa e regresso dentro da ficha real do André — sessão disponível sem contactos nos workspaces relevantes; não existem tarefas nesses workspaces na base consultada.
+
+## Desempenho produtos/loja (pedido 2026-10-08)
+- [x] Recuperação de atualização com limites de tempo, sem ciclo e sem recarregar no checkout.
+- [x] Lista de produtos no telemóvel: 25 cartões de cada vez, pesquisa/filtros sobre o catálogo completo.
+- [x] Espera pelo espaço de trabalho antes de decidir enviar para /onboarding.
+- [x] Loja: uma só leitura para categorias e marcas; árvore de categorias partilhada.
+- [x] Ícone do site 838 KB → 2,6 KB.
+- [ ] Validar /dashboard/products com sessão owner Ajax real (medida autenticada não feita).

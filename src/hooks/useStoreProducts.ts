@@ -1,5 +1,6 @@
 import { formatStoreTitle } from "@/lib/store/displayTitle";
 import { sortRecommended, type RankableProduct } from "@/lib/store/recommendedRank";
+import { useMemo } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { descendantIds, countByVisibleRoot, visibleRoots, type CategoryNode } from "@/lib/store/categoryTree";
@@ -111,10 +112,21 @@ type PublicCategoryRow = CategoryNode & {
 };
 
 /** Árvore pública (RPC sem campos de custo/admin), limitada ao workspace. */
+const TREE_TTL_MS = 5 * 60 * 1000;
+const treeCache = new Map<string, { at: number; promise: Promise<PublicCategoryRow[]> }>();
 async function fetchPublicCategoryTree(workspaceId: string): Promise<PublicCategoryRow[]> {
-  const { data, error } = await (supabase as any).rpc("get_public_store_category_tree", { p_workspace_id: workspaceId });
-  if (error) throw error;
-  return ((data || []) as PublicCategoryRow[]).filter((c) => c.workspace_id === workspaceId);
+  // Partilha a mesma leitura entre menu, filtros e cada página do catálogo
+  // (antes: 1 chamada por consulta). Erros não ficam em cache.
+  const hit = treeCache.get(workspaceId);
+  if (hit && Date.now() - hit.at < TREE_TTL_MS) return hit.promise;
+  const promise = (async () => {
+    const { data, error } = await (supabase as any).rpc("get_public_store_category_tree", { p_workspace_id: workspaceId });
+    if (error) throw error;
+    return ((data || []) as PublicCategoryRow[]).filter((c) => c.workspace_id === workspaceId);
+  })();
+  treeCache.set(workspaceId, { at: Date.now(), promise });
+  promise.catch(() => treeCache.delete(workspaceId));
+  return promise;
 }
 
 /** IDs a filtrar: categoria pedida + descendentes (raiz inclui filhos; filho oculto só o seu ramo). */
@@ -251,31 +263,44 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
   });
 }
 
-/** Marcas reais de todo o catálogo publicado (coluna brand), com contagem. */
-export function useStoreBrandFacets(workspaceId?: string) {
+/**
+ * Linhas leves partilhadas (categoria + marca) de todo o catálogo público.
+ * Uma única leitura alimenta o menu de categorias e as marcas, em vez de duas.
+ */
+type FacetRow = { store_category_id: string | null; brand: string | null; workspace_id: string };
+function useStoreFacetRows<T>(workspaceId: string | undefined, select: (rows: FacetRow[]) => T) {
   return useQuery({
-    queryKey: ["store-brand-facets", workspaceId],
+    queryKey: ["store-facet-rows", workspaceId],
     enabled: !!workspaceId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("brand")
+        .select("store_category_id, brand, workspace_id")
         .eq("workspace_id", workspaceId!)
         .eq("store_published", true)
         .eq("ai_commerce_gate_blocked", false)
         .eq("status", "active")
-        .not("brand", "is", null)
         .limit(5000);
       if (error) throw error;
-      const map = new Map<string, number>();
-      for (const r of (data || []) as { brand: string | null }[]) {
-        const b = (r.brand || "").trim();
-        if (b) map.set(b, (map.get(b) || 0) + 1);
-      }
-      return Array.from(map, ([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value, "pt"));
+      return (data || []) as FacetRow[];
     },
+    select,
   });
+}
+
+export function brandFacetsFromRows(rows: FacetRow[]) {
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    const b = (r.brand || "").trim();
+    if (b) map.set(b, (map.get(b) || 0) + 1);
+  }
+  return Array.from(map, ([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value, "pt"));
+}
+
+/** Marcas reais de todo o catálogo publicado (coluna brand), com contagem. */
+export function useStoreBrandFacets(workspaceId?: string) {
+  return useStoreFacetRows(workspaceId, brandFacetsFromRows);
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -334,33 +359,33 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
 }
 
 export function useStoreCategories(workspaceId: string) {
-  return useQuery({
-    queryKey: ["store-categories-tree", workspaceId],
-    queryFn: async () => {
-      const tree = await fetchPublicCategoryTree(workspaceId);
-      const { data: products, error: pErr } = await supabase
-        .from("products")
-        .select("store_category_id, workspace_id")
-        .eq("workspace_id", workspaceId)
-        .eq("store_published", true)
-        .eq("ai_commerce_gate_blocked", false)
-        .eq("status", "active")
-        .not("store_category_id", "is", null)
-        .limit(5000);
-      if (pErr) throw pErr;
-      const counts = countByVisibleRoot(tree, (products || []) as any[], workspaceId);
-      // Menu: só raízes visíveis com pelo menos 1 produto público (incluindo descendentes)
-      return visibleRoots(tree, workspaceId)
-        .map((c) => ({
-          ...c,
-          slug: c.slug,
-          description: c.description,
-          position: c.position ?? 0,
-          is_active: true,
-          product_count: counts[c.id] || 0,
-        }) as StoreCategory)
-        .filter((c) => (c.product_count || 0) > 0);
-    },
+  const treeQ = useQuery({
+    queryKey: ["store-category-tree-rpc", workspaceId],
+    queryFn: () => fetchPublicCategoryTree(workspaceId),
     enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
   });
+  const rowsQ = useStoreFacetRows(workspaceId, (rows) => rows.filter((r) => r.store_category_id));
+  const data = useMemo(() => {
+    if (!treeQ.data || !rowsQ.data) return undefined;
+    const tree = treeQ.data;
+    const counts = countByVisibleRoot(tree, rowsQ.data as any[], workspaceId);
+    // Menu: só raízes visíveis com pelo menos 1 produto público (incluindo descendentes)
+    return visibleRoots(tree, workspaceId)
+      .map((c) => ({
+        ...c,
+        slug: c.slug,
+        description: c.description,
+        position: c.position ?? 0,
+        is_active: true,
+        product_count: counts[c.id] || 0,
+      }) as StoreCategory)
+      .filter((c) => (c.product_count || 0) > 0);
+  }, [treeQ.data, rowsQ.data, workspaceId]);
+  return {
+    data,
+    isLoading: treeQ.isLoading || rowsQ.isLoading,
+    isError: treeQ.isError || rowsQ.isError,
+    error: treeQ.error || rowsQ.error,
+  };
 }

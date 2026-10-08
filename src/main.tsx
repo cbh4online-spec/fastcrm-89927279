@@ -48,8 +48,14 @@ if (isPreviewHost || isInIframe) {
   const controlledByOldWorker = !!navigator.serviceWorker?.controller;
   navigator.serviceWorker?.getRegistrations().then(async (registrations) => {
     await Promise.allSettled(registrations.map((r) => r.unregister()));
-    if (controlledByOldWorker && registrations.length > 0) {
-      void recoverFromChunkError(true);
+    // Sem "force": no máximo uma recarga por sessão (evita ciclo se o worker
+    // voltar a registar-se) e nunca durante o checkout.
+    if (
+      controlledByOldWorker &&
+      registrations.length > 0 &&
+      !/\/checkout(\/|$)/.test(window.location.pathname)
+    ) {
+      void recoverFromChunkError();
     }
   });
 } else if ("serviceWorker" in navigator) {

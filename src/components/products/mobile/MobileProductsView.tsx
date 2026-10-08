@@ -1,4 +1,6 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+
+const MOBILE_PAGE_SIZE = 25;
 import { Search, X, Plus, ScanLine, SlidersHorizontal, Loader2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -67,6 +69,11 @@ export function MobileProductsView(props: MobileProductsViewProps) {
       }
     });
   }, [products, activeQuick]);
+
+  // Renderização limitada: 25 cartões de cada vez. A pesquisa e os filtros
+  // continuam a correr sobre o catálogo completo (contagem real em "de N").
+  const [visibleCount, setVisibleCount] = useState(MOBILE_PAGE_SIZE);
+  useEffect(() => { setVisibleCount(MOBILE_PAGE_SIZE); }, [searchValue, activeQuick]);
 
   const handleShare = async (p: Product) => {
     haptics.tap();
@@ -178,19 +185,34 @@ export function MobileProductsView(props: MobileProductsViewProps) {
               )}
             </div>
           ) : (
-            filtered.map((p) => (
-              <MobileProductCard
-                key={p.id}
-                product={p}
-                formatCurrency={formatCurrency}
-                getProductTypeLabel={getProductTypeLabel}
-                onOpen={onOpenProduct}
-                onEdit={onEditProduct}
-                onArchive={onArchiveProduct}
-                onDelete={onDeleteProduct}
-                onShare={handleShare}
-              />
-            ))
+            <>
+              {filtered.slice(0, visibleCount).map((p) => (
+                <MobileProductCard
+                  key={p.id}
+                  product={p}
+                  formatCurrency={formatCurrency}
+                  getProductTypeLabel={getProductTypeLabel}
+                  onOpen={onOpenProduct}
+                  onEdit={onEditProduct}
+                  onArchive={onArchiveProduct}
+                  onDelete={onDeleteProduct}
+                  onShare={handleShare}
+                />
+              ))}
+              <p className="text-center text-xs text-muted-foreground pt-2">
+                A mostrar {Math.min(visibleCount, filtered.length)} de {filtered.length}
+              </p>
+              {visibleCount < filtered.length && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setVisibleCount((n) => n + MOBILE_PAGE_SIZE)}
+                >
+                  Mostrar mais {Math.min(MOBILE_PAGE_SIZE, filtered.length - visibleCount)}
+                </Button>
+              )}
+            </>
           )}
         </div>
       </PullToRefresh>
