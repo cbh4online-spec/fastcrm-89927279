@@ -109,8 +109,9 @@ export function useCheckoutForm({ wsId, wsSlug, items, subtotal }: UseCheckoutFo
     emailCapturedRef.current = false;
   };
 
-  const validateStep2 = (): boolean => {
-    const result = checkoutStep2Schema.safeParse(formData);
+  // O aceite vem do estado controlado da caixa (ação humana); nunca de formData nem de valores restaurados.
+  const validateStep2 = (acceptTerms: boolean): boolean => {
+    const result = checkoutStep2Schema.safeParse({ acceptTerms: acceptTerms === true });
     if (!result.success) {
       const errors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {

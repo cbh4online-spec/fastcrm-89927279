@@ -111,7 +111,7 @@ export function CheckoutPaymentStep({
           />
           <span className="text-xs text-muted-foreground leading-relaxed">
             Li e aceito os{" "}
-            <Link to="/terms" target="_blank" className="underline text-primary hover:text-primary/80">
+            <Link to={storeSlug ? `/store/${encodeURIComponent(storeSlug)}/terms` : "/terms"} target="_blank" className="underline text-primary hover:text-primary/80">
               Termos e Condições
             </Link>{" "}
             e a{" "}

@@ -52,12 +52,11 @@ export default function StoreCheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!acceptTerms) {
-      setTermsError("Tem de aceitar os Termos e Condições para continuar");
+    if (!form.validateStep2(acceptTerms)) {
+      setTermsError("Deve aceitar os Termos e Condições para prosseguir");
       return;
     }
     setTermsError(null);
-    if (!form.validateStep2()) return;
     if (pricing.shippingLoading) {
       toast.info("A calcular os portes…");
       return;
