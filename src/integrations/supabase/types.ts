@@ -109224,6 +109224,22 @@ export type Database = {
           name: string
         }[]
       }
+      get_public_store_category_tree: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          color: string
+          description: string
+          icon: string
+          id: string
+          image_url: string
+          name: string
+          parent_id: string
+          position: number
+          slug: string
+          store_visible: boolean
+          workspace_id: string
+        }[]
+      }
       get_public_table_count: { Args: never; Returns: number }
       get_published_builder_asset: {
         Args: {

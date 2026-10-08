@@ -2,6 +2,7 @@ import { formatStoreTitle } from "@/lib/store/displayTitle";
 import { sortRecommended, type RankableProduct } from "@/lib/store/recommendedRank";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { descendantIds, countByVisibleRoot, visibleRoots, type CategoryNode } from "@/lib/store/categoryTree";
 import {
   buildStorefrontProductSearchFilter,
   getMatchingProductReference,
@@ -100,6 +101,29 @@ function addMatchedReferences(products: StoreProduct[], search: string | undefin
   }));
 }
 
+type PublicCategoryRow = CategoryNode & {
+  slug: string | null;
+  description: string | null;
+  position: number | null;
+  image_url: string | null;
+  color: string | null;
+  icon: string | null;
+};
+
+/** Árvore pública (RPC sem campos de custo/admin), limitada ao workspace. */
+async function fetchPublicCategoryTree(workspaceId: string): Promise<PublicCategoryRow[]> {
+  const { data, error } = await (supabase as any).rpc("get_public_store_category_tree", { p_workspace_id: workspaceId });
+  if (error) throw error;
+  return ((data || []) as PublicCategoryRow[]).filter((c) => c.workspace_id === workspaceId);
+}
+
+/** IDs a filtrar: categoria pedida + descendentes (raiz inclui filhos; filho oculto só o seu ramo). */
+async function resolveCategoryFilterIds(workspaceId: string, categoryId: string): Promise<string[]> {
+  const tree = await fetchPublicCategoryTree(workspaceId);
+  if (!tree.some((c) => c.id === categoryId)) return [categoryId];
+  return descendantIds(tree, categoryId);
+}
+
 export function useStoreProducts({ workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy }: UseStoreProductsOptions) {
   return useQuery({
     queryKey: ["store-products", workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy],
@@ -115,7 +139,7 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
         .eq("status", "active");
 
       if (categoryId) {
-        query = query.eq("store_category_id", categoryId);
+        query = query.in("store_category_id", await resolveCategoryFilterIds(workspaceId!, categoryId));
       } else if (category) {
         query = query.eq("category", category);
       }
@@ -177,6 +201,7 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
     queryFn: async ({ pageParam = 0 }) => {
       const normalizedSearch = normalizeStorefrontSearchTerm(search);
       const variantMatches = await findVariantReferences(workspaceId, normalizedSearch);
+      const categoryIds = categoryId ? await resolveCategoryFilterIds(workspaceId!, categoryId) : null;
       const base = (select: string) => {
         let q = supabase
           .from("products")
@@ -185,7 +210,7 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
           .eq("store_published", true)
           .eq("ai_commerce_gate_blocked", false)
           .eq("status", "active");
-        if (categoryId) q = q.eq("store_category_id", categoryId);
+        if (categoryIds) q = q.in("store_category_id", categoryIds);
         else if (category) q = q.eq("category", category);
         if (normalizedSearch) q = q.or(buildStorefrontProductSearchFilter(normalizedSearch, variantMatches.map((m) => m.product_id)));
         if (featured) q = q.eq("store_featured", true);
@@ -310,59 +335,31 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
 
 export function useStoreCategories(workspaceId: string) {
   return useQuery({
-    queryKey: ["store-categories-unified", workspaceId],
+    queryKey: ["store-categories-tree", workspaceId],
     queryFn: async () => {
-      // Fetch active + store_visible categories from product_categories
-      const { data: cats, error } = await (supabase as any)
-        .from("product_categories")
-        .select("id, workspace_id, name, slug, description, position, is_active, image_url, color, icon, store_visible")
-        .eq("workspace_id", workspaceId)
-        .eq("is_active", true)
-        .eq("store_visible", true)
-        .order("position", { ascending: true })
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-
-      // Fetch product counts per category (only published + active)
+      const tree = await fetchPublicCategoryTree(workspaceId);
       const { data: products, error: pErr } = await supabase
         .from("products")
-        .select("store_category_id, category")
+        .select("store_category_id, workspace_id")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
         .eq("ai_commerce_gate_blocked", false)
-        .eq("status", "active");
-
+        .eq("status", "active")
+        .not("store_category_id", "is", null)
+        .limit(5000);
       if (pErr) throw pErr;
-
-      const normalize = (value: string) =>
-        value
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase()
-          .trim();
-
-      // Fallback: produtos ainda sem ligação contam pelo nome da categoria
-      const idByName = new Map<string, string>();
-      ((cats || []) as StoreCategory[]).forEach((c) => {
-        if (c.name) idByName.set(normalize(c.name), c.id);
-        if ((c as any).slug) idByName.set(normalize((c as any).slug), c.id);
-      });
-
-      const counts: Record<string, number> = {};
-      (products || []).forEach((p: any) => {
-        const id =
-          p.store_category_id ||
-          (p.category ? idByName.get(normalize(p.category)) : undefined);
-        if (id) {
-          counts[id] = (counts[id] || 0) + 1;
-        }
-      });
-
-      // Only return categories with at least 1 published product
-      return ((cats || []) as StoreCategory[])
-        .map((c) => ({ ...c, product_count: counts[c.id] || 0 }))
-        .filter((c) => c.product_count > 0);
+      const counts = countByVisibleRoot(tree, (products || []) as any[], workspaceId);
+      // Menu: só raízes visíveis com pelo menos 1 produto público (incluindo descendentes)
+      return visibleRoots(tree, workspaceId)
+        .map((c) => ({
+          ...c,
+          slug: c.slug,
+          description: c.description,
+          position: c.position ?? 0,
+          is_active: true,
+          product_count: counts[c.id] || 0,
+        }) as StoreCategory)
+        .filter((c) => (c.product_count || 0) > 0);
     },
     enabled: !!workspaceId,
   });
