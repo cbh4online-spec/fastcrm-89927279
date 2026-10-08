@@ -36,6 +36,7 @@ import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { isEmptyHousingSku, housingBaseSku } from "@/lib/store/emptyHousing";
+import { businessDaysLabel } from "@/lib/store/sellerInfo";
 import { StoreStockLevel } from "@/components/store/StoreStockLevel";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreOfferDialog } from "@/components/store/StoreOfferDialog";
@@ -927,7 +928,11 @@ export default function StoreProductPage() {
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Truck className="h-3.5 w-3.5 text-primary" />
-                    <span>Portes calculados no checkout</span>
+                    <span>
+                      {(storeSettings as any)?.delivery_business_days
+                        ? `Entrega em ${businessDaysLabel((storeSettings as any).delivery_business_days)} · portes no checkout`
+                        : "Portes calculados no checkout"}
+                    </span>
                   </div>
                   <div className="h-3 w-px bg-border" />
                   <div className="flex items-center gap-1">
