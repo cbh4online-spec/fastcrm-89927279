@@ -109,17 +109,23 @@ export function useCheckoutForm({ wsId, wsSlug, items, subtotal }: UseCheckoutFo
     emailCapturedRef.current = false;
   };
 
-  const validateStep2 = (): boolean => {
-    const result = checkoutStep2Schema.safeParse(formData);
+  // O aceite vem do estado controlado da caixa (ação humana); nunca de formData nem de valores restaurados.
+  const validateStep2 = (acceptTerms: boolean): boolean => {
+    const result = checkoutStep2Schema.safeParse({ acceptTerms: acceptTerms === true });
     if (!result.success) {
       const errors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
         const key = issue.path[0] as string;
         if (!errors[key]) errors[key] = issue.message;
       });
-      setFieldErrors(errors);
+      setFieldErrors((prev) => ({ ...prev, ...errors }));
       return false;
     }
+    setFieldErrors((prev) => {
+      if (!prev.acceptTerms) return prev;
+      const { acceptTerms: _ignored, ...rest } = prev;
+      return rest;
+    });
     return true;
   };
 
