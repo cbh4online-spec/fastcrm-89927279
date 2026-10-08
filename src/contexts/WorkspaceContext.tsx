@@ -37,12 +37,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
+  // ID do utilizador cujos workspaces já foram carregados. Enquanto não coincidir
+  // com o utilizador atual, continuamos "a carregar" — evita o desvio indevido para
+  // /onboarding no render entre a sessão chegar e o efeito de fetch arrancar.
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const fetchWorkspaces = async () => {
     if (!user) {
       setWorkspaces([]);
       setCurrentWorkspace(null);
+      setLoadedUserId(null);
       setLoading(false);
       setIsSuperAdmin(false);
       return;
@@ -167,6 +172,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error fetching workspaces:", error);
     } finally {
+      setLoadedUserId(user.id);
       setLoading(false);
     }
   };
@@ -252,7 +258,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       value={{
         workspaces,
         currentWorkspace,
-        loading,
+        loading: loading || (!!user && loadedUserId !== user.id),
         isSuperAdmin,
         ownWorkspaces,
         managedWorkspaces,
