@@ -23,6 +23,7 @@ export function StoreTrustStrip({
   className,
   config = DEFAULT_PRODUCT_PAGE_CONFIG,
 }: StoreTrustStripProps) {
+  const CHECKOUT_APPLIES_FREE_SHIPPING = false as boolean;
   const { data: shipping } = useQuery({
     queryKey: ["store-trust-shipping", workspaceId],
     enabled: !!workspaceId,
@@ -54,7 +55,9 @@ export function StoreTrustStrip({
     config.trust_delivery && cheapest?.estimated_delivery
       ? { icon: Truck, title: "Entrega", text: cheapest.estimated_delivery }
       : null,
-    config.trust_free_shipping && threshold
+    // O checkout calcula portes pela tabela de envio e não aplica este limiar;
+    // só prometer portes grátis quando o checkout os aplicar de facto.
+    config.trust_free_shipping && threshold && CHECKOUT_APPLIES_FREE_SHIPPING
       ? { icon: Truck, title: "Portes grátis", text: `Em compras acima de €${threshold.toFixed(2)}` }
       : null,
     config.trust_returns
