@@ -5,3 +5,6 @@
 - Match WhatsApp opt-outs/consents by `phoneOptOutVariants` (`supabase/functions/_shared/phoneVariants.ts`, mirrored in `src/lib/whatsapp/phoneVariants.ts`, parity-tested) and query only the contact's variants, so client and server agree without exposing the opt-out list.
 - Map Stripe subscription state to contracts only via `supabase/functions/_shared/stripeRenewalStatus.ts` and fail the sync result when the contract update errors, so cancellations are never reported as success.
 - Read the contact's next task via `fetchContactNextTask` after workspace-instance resolution, with the shared tasks invalidation prefix, so instance changes and task edits cannot leave stale results or hide read failures.
+- Public store code must use `src/lib/browser/safeBrowser.ts` for IDs and local/session storage (never bare `crypto.randomUUID`/storage), because older iOS and in-app browsers crashed product pages.
+- The storefront catalogue builds a lightweight full-catalogue index in `useInfiniteStoreProducts` (real totals, brand facets, "Recomendados" via `src/lib/store/recommendedRank.ts`) and loads details per page, so counts and order never depend on the loaded page.
+- Store legal pages live under `/store/:slug/*` (e.g. `StoreTermsPage`) and show only configured store data; the CRM `/terms` covers SaaS subscriptions only.
