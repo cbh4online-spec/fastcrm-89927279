@@ -16,6 +16,8 @@ import { StoreBrandingSettings } from "@/components/store-settings/sections/Stor
 import { StoreNotificationSettings } from "@/components/store-settings/sections/StoreNotificationSettings";
 import { StoreGrowthSettings } from "@/components/store-settings/sections/StoreGrowthSettings";
 import { StorePaymentSettings } from "@/components/store-settings/sections/StorePaymentSettings";
+import { StoreSellerSettings } from "@/components/store-settings/sections/StoreSellerSettings";
+import { validateSeller, sellerPayload, type SellerForm } from "@/lib/store/sellerInfo";
 import { StoreProductPageSettings } from "@/components/store/settings/StoreProductPageSettings";
 
 export default function StoreSettingsPage() {
@@ -27,6 +29,9 @@ export default function StoreSettingsPage() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
+  const [seller, setSeller] = useState<SellerForm>({
+    seller_legal_name: "", seller_tax_id: "", seller_address: "", delivery_business_days: "",
+  });
   const [form, setForm] = useState({
     store_name: "",
     store_description: "",
@@ -44,6 +49,13 @@ export default function StoreSettingsPage() {
 
   useEffect(() => {
     if (settings) {
+      const st = settings as any;
+      setSeller({
+        seller_legal_name: st.seller_legal_name || "",
+        seller_tax_id: st.seller_tax_id || "",
+        seller_address: st.seller_address || "",
+        delivery_business_days: st.delivery_business_days ? String(st.delivery_business_days) : "",
+      });
       setForm({
         store_name: settings.store_name || "",
         store_description: settings.store_description || "",
@@ -148,7 +160,9 @@ export default function StoreSettingsPage() {
 
   const handleSave = () => {
     if (slugError) { toast.error(slugError); return; }
-    upsert.mutate({ ...form, store_slug: form.store_slug.trim() || null, custom_domain: form.custom_domain.trim() || null });
+    const sellerError = validateSeller(seller);
+    if (sellerError) { toast.error(sellerError); return; }
+    upsert.mutate({ ...form, ...(sellerPayload(seller) as any), store_slug: form.store_slug.trim() || null, custom_domain: form.custom_domain.trim() || null });
   };
 
   const storeSlugOrId = form.store_slug.trim() || currentWorkspace?.id || "";
@@ -210,6 +224,7 @@ export default function StoreSettingsPage() {
 
             <TabsContent value="general" className="space-y-4 mt-4">
               <StoreIdentitySettings form={form} setForm={setForm} slugError={slugError} />
+              <StoreSellerSettings form={seller} onChange={(k, v) => setSeller((prev) => ({ ...prev, [k]: v }))} />
             </TabsContent>
 
             <TabsContent value="branding" className="space-y-4 mt-4">
