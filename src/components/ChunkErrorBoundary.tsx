@@ -22,16 +22,30 @@ export class ChunkErrorBoundary extends Component<Props, State> {
     return null;
   }
 
+  private fallbackTimer: number | undefined;
+
   componentDidCatch(error: Error) {
     if (!isChunkLoadError(error)) return;
 
+    this.armFallback();
     void recoverFromChunkError().then((started) => {
       if (!started) this.setState({ reloading: false });
     });
   }
 
+  componentWillUnmount() {
+    window.clearTimeout(this.fallbackTimer);
+  }
+
+  /** Se o recarregamento não acontecer, mostrar sempre o botão manual. */
+  private armFallback() {
+    window.clearTimeout(this.fallbackTimer);
+    this.fallbackTimer = window.setTimeout(() => this.setState({ reloading: false }), 8000);
+  }
+
   handleManualReload = () => {
     this.setState({ reloading: true });
+    this.armFallback();
     void recoverFromChunkError(true);
   };
 

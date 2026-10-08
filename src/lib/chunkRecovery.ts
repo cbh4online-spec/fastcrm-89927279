@@ -1,5 +1,7 @@
 const CHUNK_RECOVERY_KEY = "app:chunk-recovery-attempted";
 const RECOVERY_QUERY_KEY = "app-refresh";
+/** Tempo máximo de espera pela limpeza do service worker/caches antes de recarregar. */
+export const RECOVERY_STEP_TIMEOUT_MS = 3000;
 
 export const isChunkLoadError = (error: unknown): boolean => {
   const message =
@@ -9,6 +11,9 @@ export const isChunkLoadError = (error: unknown): boolean => {
     message,
   );
 };
+
+const withTimeout = <T,>(promise: Promise<T>, ms: number) =>
+  Promise.race([promise, new Promise<void>((resolve) => setTimeout(resolve, ms))]);
 
 const clearApplicationCaches = async () => {
   if (!("caches" in window)) return;
@@ -34,7 +39,13 @@ const reloadWithCacheBypass = () => {
   window.location.replace(nextUrl.toString());
 };
 
+let recoveryInFlight: Promise<boolean> | null = null;
+
 export async function recoverFromChunkError(force = false): Promise<boolean> {
+  // Várias fontes (boundary, window error, unhandledrejection) podem pedir
+  // recuperação ao mesmo tempo: partilhar a mesma tentativa.
+  if (recoveryInFlight) return recoveryInFlight;
+
   try {
     if (!force && sessionStorage.getItem(CHUNK_RECOVERY_KEY)) return false;
     sessionStorage.setItem(CHUNK_RECOVERY_KEY, "1");
@@ -42,9 +53,16 @@ export async function recoverFromChunkError(force = false): Promise<boolean> {
     if (!force) return false;
   }
 
-  await Promise.allSettled([unregisterServiceWorkers(), clearApplicationCaches()]);
-  reloadWithCacheBypass();
-  return true;
+  recoveryInFlight = (async () => {
+    // Nunca ficar preso: se o browser não responder, recarrega na mesma.
+    await withTimeout(
+      Promise.allSettled([unregisterServiceWorkers(), clearApplicationCaches()]),
+      RECOVERY_STEP_TIMEOUT_MS,
+    );
+    reloadWithCacheBypass();
+    return true;
+  })();
+  return recoveryInFlight;
 }
 
 export function markChunkRecoverySuccessful() {
