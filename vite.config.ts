@@ -27,20 +27,21 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     mcpPlugin(),
     VitePWA({
-
-      // A nova versão fica em espera até a sessão terminar, evitando misturar
-      // o HTML antigo com chunks de uma publicação mais recente.
-      registerType: "prompt",
+      // A nova versão ativa-se logo que é instalada. Com "prompt" + skipWaiting
+      // false e sem aviso visível, clientes com um worker antigo ficavam presos
+      // ao HTML antigo (que referencia chunks já removidos) mesmo após reload.
+      registerType: "autoUpdate",
       devOptions: {
         enabled: false,
       },
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        // Remove caches antigos quando a próxima versão for ativada em segurança.
+        // Apaga apenas caches de precache de versões anteriores (Cache Storage);
+        // carrinho e dados do cliente vivem em localStorage e não são tocados.
         cleanupOutdatedCaches: true,
-        clientsClaim: false,
-        skipWaiting: false,
+        clientsClaim: true,
+        skipWaiting: true,
       },
       manifest: {
         name: "FastCRM",
