@@ -53,8 +53,25 @@ if (isPreviewHost || isInIframe) {
     }
   });
 } else if ("serviceWorker" in navigator) {
-  // Verificar atualizações sem substituir os ficheiros durante uma sessão ativa.
+  // Quando uma nova versão assume o controlo (skipWaiting + clientsClaim),
+  // recarregar uma vez para que HTML e chunks pertençam à mesma publicação.
+  // Não recarrega no checkout para não perder o formulário em curso; aí a
+  // recuperação de chunks trata qualquer falha de carregamento.
+  const hadController = !!navigator.serviceWorker.controller;
+  const SW_RELOAD_KEY = "app:sw-update-reloaded";
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) return;
+    if (/\/checkout(\/|$)/.test(window.location.pathname)) return;
+    try {
+      if (sessionStorage.getItem(SW_RELOAD_KEY)) return;
+      sessionStorage.setItem(SW_RELOAD_KEY, "1");
+    } catch {
+      return;
+    }
+    window.location.reload();
+  });
   navigator.serviceWorker.ready.then((reg) => {
+    reg.update().catch(() => {});
     setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
   });
 }

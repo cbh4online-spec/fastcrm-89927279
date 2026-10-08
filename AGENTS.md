@@ -11,3 +11,4 @@
 - Store cart stock uses `src/lib/store/cartStock.ts` (track_stock, quantity minus stock_reserved, summed lines), mirrored in `_shared/store-pricing.ts`; cart/checkout block while checking or on error, so no order exceeds sellable stock.
 - Store shipping cost comes only from `_shared/cttRates.ts`, recomputed server-side in create-store-checkout; never show free-shipping claims the checkout does not apply.
 - Store error boundaries must route chunk-load errors to `recoverFromChunkError`, because a plain reload keeps the stale service-worker HTML.
+- The PWA service worker must use skipWaiting + clientsClaim + cleanupOutdatedCaches (autoUpdate), because a waiting worker without a visible prompt kept old clients on stale HTML whose chunks were already removed.
