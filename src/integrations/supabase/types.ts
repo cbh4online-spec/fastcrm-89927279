@@ -89011,6 +89011,7 @@ export type Database = {
           c2c_seller_approval_required: boolean | null
           created_at: string
           custom_domain: string | null
+          delivery_business_days: number | null
           facebook_capi_token: string | null
           facebook_catalog_id: string | null
           facebook_pixel_id: string | null
@@ -89024,6 +89025,9 @@ export type Database = {
           prices_include_vat: boolean
           primary_color: string | null
           product_page_config: Json
+          seller_address: string | null
+          seller_legal_name: string | null
+          seller_tax_id: string | null
           show_categories: boolean | null
           show_search: boolean | null
           store_description: string | null
@@ -89046,6 +89050,7 @@ export type Database = {
           c2c_seller_approval_required?: boolean | null
           created_at?: string
           custom_domain?: string | null
+          delivery_business_days?: number | null
           facebook_capi_token?: string | null
           facebook_catalog_id?: string | null
           facebook_pixel_id?: string | null
@@ -89059,6 +89064,9 @@ export type Database = {
           prices_include_vat?: boolean
           primary_color?: string | null
           product_page_config?: Json
+          seller_address?: string | null
+          seller_legal_name?: string | null
+          seller_tax_id?: string | null
           show_categories?: boolean | null
           show_search?: boolean | null
           store_description?: string | null
@@ -89081,6 +89089,7 @@ export type Database = {
           c2c_seller_approval_required?: boolean | null
           created_at?: string
           custom_domain?: string | null
+          delivery_business_days?: number | null
           facebook_capi_token?: string | null
           facebook_catalog_id?: string | null
           facebook_pixel_id?: string | null
@@ -89094,6 +89103,9 @@ export type Database = {
           prices_include_vat?: boolean
           primary_color?: string | null
           product_page_config?: Json
+          seller_address?: string | null
+          seller_legal_name?: string | null
+          seller_tax_id?: string | null
           show_categories?: boolean | null
           show_search?: boolean | null
           store_description?: string | null
@@ -107463,6 +107475,7 @@ export type Database = {
           c2c_enabled: boolean | null
           created_at: string | null
           custom_domain: string | null
+          delivery_business_days: number | null
           facebook_pixel_id: string | null
           footer_text: string | null
           id: string | null
@@ -107471,6 +107484,9 @@ export type Database = {
           prices_include_vat: boolean | null
           primary_color: string | null
           product_page_config: Json | null
+          seller_address: string | null
+          seller_legal_name: string | null
+          seller_tax_id: string | null
           show_categories: boolean | null
           show_search: boolean | null
           store_description: string | null
@@ -107488,6 +107504,7 @@ export type Database = {
           c2c_enabled?: boolean | null
           created_at?: string | null
           custom_domain?: string | null
+          delivery_business_days?: number | null
           facebook_pixel_id?: string | null
           footer_text?: string | null
           id?: string | null
@@ -107496,6 +107513,9 @@ export type Database = {
           prices_include_vat?: boolean | null
           primary_color?: string | null
           product_page_config?: Json | null
+          seller_address?: string | null
+          seller_legal_name?: string | null
+          seller_tax_id?: string | null
           show_categories?: boolean | null
           show_search?: boolean | null
           store_description?: string | null
@@ -107513,6 +107533,7 @@ export type Database = {
           c2c_enabled?: boolean | null
           created_at?: string | null
           custom_domain?: string | null
+          delivery_business_days?: number | null
           facebook_pixel_id?: string | null
           footer_text?: string | null
           id?: string | null
@@ -107521,6 +107542,9 @@ export type Database = {
           prices_include_vat?: boolean | null
           primary_color?: string | null
           product_page_config?: Json | null
+          seller_address?: string | null
+          seller_legal_name?: string | null
+          seller_tax_id?: string | null
           show_categories?: boolean | null
           show_search?: boolean | null
           store_description?: string | null
@@ -109403,6 +109427,7 @@ export type Database = {
       is_super_admin:
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }
+      is_valid_pt_nif: { Args: { nif: string }; Returns: boolean }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean

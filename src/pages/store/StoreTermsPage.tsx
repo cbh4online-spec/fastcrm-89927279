@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
+import { businessDaysLabel } from "@/lib/store/sellerInfo";
 
 const PAYMENT_LABELS: Record<string, string> = {
   mbway: "MB WAY",
@@ -36,6 +37,11 @@ export default function StoreTermsPage() {
   const methods = Object.entries((settings as any)?.payment_methods || {})
     .filter(([, on]) => on === true)
     .map(([k]) => PAYMENT_LABELS[k] || k);
+  const st = (settings as any) || {};
+  const sellerName: string = st.seller_legal_name || storeName;
+  const sellerNif: string | undefined = st.seller_tax_id || undefined;
+  const sellerAddress: string | undefined = st.seller_address || undefined;
+  const deliveryDays: number | undefined = st.delivery_business_days || undefined;
   const contactEmail: string | undefined = (settings as any)?.notification_email || undefined;
 
   return (
@@ -55,15 +61,18 @@ export default function StoreTermsPage() {
 
         <div className="mt-6 space-y-6 text-sm leading-relaxed text-foreground">
           <section>
-            <h2 className="mb-1 font-semibold">1. Vendedor e contacto</h2>
+            <h2 className="mb-1 font-semibold">Vendedor e contacto</h2>
             <p>
-              Os produtos são vendidos por {storeName}.
+              Os produtos são vendidos por {sellerName}
+              {sellerName !== storeName ? <> (loja {storeName})</> : null}
+              {sellerNif ? <>, NIF {sellerNif}</> : null}
+              {sellerAddress ? <>, com sede em {sellerAddress}</> : null}.
               {contactEmail ? <> Para questões sobre encomendas, contacte <a className="underline" href={`mailto:${contactEmail}`}>{contactEmail}</a>.</> : null}
             </p>
           </section>
 
           <section>
-            <h2 className="mb-1 font-semibold">2. Preços</h2>
+            <h2 className="mb-1 font-semibold">Preços</h2>
             <p>
               {includeVat
                 ? `Os preços apresentados incluem IVA à taxa em vigor (${vatRate}%).`
@@ -72,27 +81,37 @@ export default function StoreTermsPage() {
             </p>
           </section>
 
+          {deliveryDays && (
+            <section>
+              <h2 className="mb-1 font-semibold">Entrega</h2>
+              <p>
+                O prazo de entrega indicado é de {businessDaysLabel(deliveryDays)}. O método de envio, o respetivo
+                custo e a estimativa de cada transportadora são apresentados no checkout antes da confirmação.
+              </p>
+            </section>
+          )}
+
           {methods.length > 0 && (
             <section>
-              <h2 className="mb-1 font-semibold">3. Pagamento</h2>
+              <h2 className="mb-1 font-semibold">Pagamento</h2>
               <p>Meios de pagamento disponíveis: {methods.join(", ")}.</p>
             </section>
           )}
 
           <section>
-            <h2 className="mb-1 font-semibold">{methods.length > 0 ? "4" : "3"}. Direito de livre resolução</h2>
+            <h2 className="mb-1 font-semibold">Direito de livre resolução</h2>
             <p>
               O consumidor pode resolver o contrato celebrado à distância no prazo de 14 dias a contar da receção dos bens, sem indicar motivo, nos termos do Decreto-Lei n.º 24/2014.
             </p>
           </section>
 
           <section>
-            <h2 className="mb-1 font-semibold">{methods.length > 0 ? "5" : "4"}. Garantia</h2>
+            <h2 className="mb-1 font-semibold">Garantia</h2>
             <p>Os bens de consumo beneficiam da garantia legal de conformidade de 3 anos, nos termos do Decreto-Lei n.º 84/2021.</p>
           </section>
 
           <section>
-            <h2 className="mb-1 font-semibold">{methods.length > 0 ? "6" : "5"}. Reclamações e litígios</h2>
+            <h2 className="mb-1 font-semibold">Reclamações e litígios</h2>
             <p>
               Pode apresentar reclamação no{" "}
               <a className="underline" href="https://www.livroreclamacoes.pt" target="_blank" rel="noopener noreferrer">Livro de Reclamações Eletrónico</a>.

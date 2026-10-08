@@ -43,8 +43,14 @@ const isPreviewHost =
   window.location.hostname.includes("lovableproject.com");
 
 if (isPreviewHost || isInIframe) {
-  navigator.serviceWorker?.getRegistrations().then((registrations) => {
-    registrations.forEach((r) => r.unregister());
+  // A pré-visualização nunca deve servir uma versão guardada: se um service worker
+  // antigo controla esta página, removê-lo e recarregar uma vez sem cache.
+  const controlledByOldWorker = !!navigator.serviceWorker?.controller;
+  navigator.serviceWorker?.getRegistrations().then(async (registrations) => {
+    await Promise.allSettled(registrations.map((r) => r.unregister()));
+    if (controlledByOldWorker && registrations.length > 0) {
+      void recoverFromChunkError(true);
+    }
   });
 } else if ("serviceWorker" in navigator) {
   // Verificar atualizações sem substituir os ficheiros durante uma sessão ativa.
