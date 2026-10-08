@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { PowerHourFocusView } from "./PowerHourFocusView";
 
 const extractInstagramUsername = (url: string): string | null => {
   const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
@@ -78,6 +79,10 @@ export function BulkOutreachDialog({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const activeProfileRef = useRef<HTMLDivElement>(null);
+  const [focusMode, setFocusMode] = useState(true);
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
+  const [editedMessages, setEditedMessages] = useState<Record<string, string>>({});
+  const [sessionStartedAt, setSessionStartedAt] = useState(() => Date.now());
 
   const totalProfiles = profiles.length;
   const rejectedCount = rejectedIds.size;
@@ -92,6 +97,10 @@ export function BulkOutreachDialog({
   // Find the next unsent/unrejected profile
   const nextProfile = profiles.find(p => !sentIds.has(p.id) && !rejectedIds.has(p.id) && getMessageForProfile(p.id)?.message);
 
+  // Modo foco: perfis pulados vão para o fim da fila
+  const pendingProfiles = profiles.filter(p => !sentIds.has(p.id) && !rejectedIds.has(p.id) && getMessageForProfile(p.id)?.message);
+  const focusProfile = pendingProfiles.find(p => !skippedIds.has(p.id)) ?? pendingProfiles[0] ?? null;
+
   // Auto-scroll to next profile
   useEffect(() => {
     if (!isGenerating && activeProfileRef.current) {
@@ -104,11 +113,18 @@ export function BulkOutreachDialog({
     if (!open) {
       setOpenedIds(new Set());
       setRejectedIds(new Set());
+      setSkippedIds(new Set());
+      setEditedMessages({});
+    } else {
+      setSessionStartedAt(Date.now());
     }
   }, [open]);
 
   function getMessageForProfile(profileId: string) {
-    return generatedMessages.find(m => m.profileId === profileId);
+    const base = generatedMessages.find(m => m.profileId === profileId);
+    const edited = editedMessages[profileId];
+    if (!base || edited === undefined) return base;
+    return { ...base, message: edited, message_plain: edited };
   }
 
   function getProfileState(profileId: string): ProfileState {
@@ -348,7 +364,19 @@ export function BulkOutreachDialog({
                 {phase === "sending" && "Outreach em Massa"}
                 {phase === "completed" && "Outreach Concluído! 🎉"}
               </h2>
-              <Badge variant="secondary">{totalProfiles} perfis</Badge>
+              <div className="flex items-center gap-2 mr-6">
+                {phase === "sending" && (
+                  <Button
+                    size="sm"
+                    variant={focusMode ? "default" : "outline"}
+                    onClick={() => setFocusMode(v => !v)}
+                    aria-pressed={focusMode}
+                  >
+                    {focusMode ? "Ver lista" : "Modo foco"}
+                  </Button>
+                )}
+                <Badge variant="secondary">{totalProfiles} perfis</Badge>
+              </div>
             </div>
             <p className="text-sm text-muted-foreground">
               {phase === "generating" &&
@@ -387,8 +415,29 @@ export function BulkOutreachDialog({
             </div>
           )}
 
-          {/* Phase: Sending */}
-          {phase === "sending" && (
+          {/* Phase: Sending — modo foco (Power Hour) */}
+          {phase === "sending" && focusMode && focusProfile && (
+            <PowerHourFocusView
+              profile={focusProfile}
+              message={getMessageForProfile(focusProfile.id)?.message_plain || getMessageForProfile(focusProfile.id)?.message || ""}
+              opened={openedIds.has(focusProfile.id)}
+              sentCount={sentCount}
+              processedCount={sentCount + rejectedCount}
+              total={totalProfiles}
+              sessionStartedAt={sessionStartedAt}
+              onMessageChange={(value) => setEditedMessages(prev => ({ ...prev, [focusProfile.id]: value }))}
+              onOpen={() => handleCopyAndOpen(focusProfile)}
+              onSent={() => handleConfirmSent(focusProfile)}
+              onSkip={() => {
+                setSkippedIds(prev => new Set(prev).add(focusProfile.id));
+                setOpenedIds(prev => { const n = new Set(prev); n.delete(focusProfile.id); return n; });
+              }}
+              onReject={() => handleReject(focusProfile)}
+            />
+          )}
+
+          {/* Phase: Sending — lista */}
+          {phase === "sending" && (!focusMode || !focusProfile) && (
             <>
               {/* Instruction banner */}
               <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm mt-4">
