@@ -27,7 +27,7 @@ vi.mock("@/contexts/StoreCartContext", () => ({
   useStoreCart: () => ({ items: [{ productId: "p1", quantity: 1, name: "Hub", price: 100, currency: "EUR" }], subtotal: 100, clearCart: vi.fn() }),
 }));
 vi.mock("@/hooks/useStoreCartOffers", () => ({
-  useStoreCartOffers: () => ({ refetch: async () => ({ isError: false, data: { unavailable: [] } }) }),
+  useStoreCartOffers: () => ({ complements: [], unavailable: [], isChecking: false, isError: false, data: { unavailable: [], complements: [] }, refetch: async () => ({ isError: false, data: { unavailable: [] } }) }),
 }));
 const ctt = { id: "ctt", name: "CTT", price: 3.9, estimate: "2-3 dias" };
 vi.mock("@/components/store/checkout/useCheckoutPricing", () => ({
