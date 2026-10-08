@@ -316,10 +316,6 @@ Deno.serve(async (req) => {
               .in('status', ['scheduled', 'ready'])
               .select('id');
             if (stopped?.length) {
-              await admin.from('professional_prospecting_profiles')
-                .update({ status: 'replied' })
-                .eq('workspace_id', workspaceId)
-                .in('id', ids);
               console.log(`[zapi-webhook] CADENCE_STOPPED ws=${workspaceId} cancelled=${stopped.length}`);
             }
           }
