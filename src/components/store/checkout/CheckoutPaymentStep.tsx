@@ -34,6 +34,8 @@ interface CheckoutPaymentStepProps {
   // Legal consent
   acceptTerms?: boolean;
   onAcceptTermsChange?: (v: boolean) => void;
+  /** Slug público da loja, para abrir as Condições de Venda da própria loja. */
+  storeSlug?: string;
 }
 
 export function CheckoutPaymentStep({
@@ -55,6 +57,7 @@ export function CheckoutPaymentStep({
   onSelectPaymentMethod,
   acceptTerms = false,
   onAcceptTermsChange,
+  storeSlug,
 }: CheckoutPaymentStepProps) {
   const buttonLabel = BUTTON_LABELS[selectedPaymentMethod] || "Pagar";
 
@@ -103,6 +106,7 @@ export function CheckoutPaymentStep({
             id="accept-terms"
             name="acceptTerms"
             type="checkbox"
+            autoComplete="off"
             checked={acceptTerms}
             onChange={(e) => onAcceptTermsChange?.(e.target.checked)}
             aria-invalid={!!fieldErrors.acceptTerms}

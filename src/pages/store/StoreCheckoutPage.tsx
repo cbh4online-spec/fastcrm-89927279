@@ -286,6 +286,7 @@ export default function StoreCheckoutPage() {
                   selectedPaymentMethod={selectedPaymentMethod}
                   onSelectPaymentMethod={setSelectedPaymentMethod}
                   acceptTerms={acceptTerms}
+                  storeSlug={wsSlug || workspaceSlug}
                   onAcceptTermsChange={(v) => {
                     setAcceptTerms(v);
                     if (v) setTermsError(null);

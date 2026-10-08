@@ -118,9 +118,14 @@ export function useCheckoutForm({ wsId, wsSlug, items, subtotal }: UseCheckoutFo
         const key = issue.path[0] as string;
         if (!errors[key]) errors[key] = issue.message;
       });
-      setFieldErrors(errors);
+      setFieldErrors((prev) => ({ ...prev, ...errors }));
       return false;
     }
+    setFieldErrors((prev) => {
+      if (!prev.acceptTerms) return prev;
+      const { acceptTerms: _ignored, ...rest } = prev;
+      return rest;
+    });
     return true;
   };
 
