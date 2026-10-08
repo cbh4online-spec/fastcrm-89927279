@@ -55,7 +55,7 @@ export function CheckoutShippingSection({
                 <RadioGroupItem value={option.id} />
                 <div>
                   <p className="text-sm font-medium">{option.name}</p>
-                  <p className="text-xs text-muted-foreground">{option.estimate}</p>
+                  <p className="text-xs text-muted-foreground">Estimativa da transportadora: {option.estimate}</p>
                 </div>
               </div>
               <span className="text-sm font-medium">€{option.price.toFixed(2)}</span>
