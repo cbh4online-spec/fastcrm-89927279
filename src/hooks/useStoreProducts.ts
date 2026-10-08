@@ -1,3 +1,4 @@
+import { formatStoreTitle } from "@/lib/store/displayTitle";
 import { sortRecommended, type RankableProduct } from "@/lib/store/recommendedRank";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -147,13 +148,17 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
 
       const { data, error } = await query;
       if (error) throw error;
-      return addMatchedReferences((data || []) as StoreProduct[], normalizedSearch, variantMatches);
+      return withDisplayTitles(addMatchedReferences((data || []) as StoreProduct[], normalizedSearch, variantMatches));
     },
     enabled: !!workspaceId,
   });
 }
 
 const PAGE_SIZE = 12;
+
+function withDisplayTitles<T extends { name?: string | null }>(list: T[]): T[] {
+  return list.map((p) => ({ ...p, name: formatStoreTitle(p.name) }));
+}
 
 export interface InfiniteStoreProductsOptions extends UseStoreProductsOptions {
   brands?: string[];
@@ -210,7 +215,7 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
         items = pageIds.map((id) => byId.get(id)).filter(Boolean) as StoreProduct[];
       }
       return {
-        items: addMatchedReferences(items, normalizedSearch, variantMatches),
+        items: withDisplayTitles(addMatchedReferences(items, normalizedSearch, variantMatches)),
         total: ordered.length,
         hasMore: from + PAGE_SIZE < ordered.length,
       };
@@ -274,7 +279,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
       const { data, error } = await query.maybeSingle();
 
       if (error) throw error;
-      if (data) return data as StoreProduct & { workspace_id: string };
+      if (data) return withDisplayTitles([data as any])[0] as StoreProduct & { workspace_id: string };
 
       // Fallback: links antigos/truncados — resolve por prefixo do slug
       if (!UUID_RE.test(productIdOrSlug) && productIdOrSlug.length >= 8) {
@@ -292,7 +297,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
         const { data: matches, error: fbError } = await fallback;
         if (fbError) throw fbError;
         if (matches && matches.length === 1) {
-          return matches[0] as StoreProduct & { workspace_id: string };
+          return withDisplayTitles([matches[0] as any])[0] as StoreProduct & { workspace_id: string };
         }
       }
 
