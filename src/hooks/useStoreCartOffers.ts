@@ -235,12 +235,13 @@ export function useStoreCartOffers(
 
         if (published && stock?.ok) continue;
 
-        const available = stock && !stock.ok ? stock.available : 0;
+        const failure = stock && stock.ok === false ? (stock as Extract<typeof stock, { ok: false }>) : null;
+        const available = failure ? failure.available : 0;
         const sellable = published && available > 0;
         const reason: CartUnavailableItem["reason"] = !published
           ? "unpublished"
-          : stock && !stock.ok
-            ? stock.reason
+          : failure
+            ? failure.reason
             : "out_of_stock";
 
         const sourcePrice = product ? Number(product.base_price ?? 0) : item.price;
