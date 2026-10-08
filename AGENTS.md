@@ -13,3 +13,4 @@
 - Store error boundaries must route chunk-load errors to `recoverFromChunkError`, because a plain reload keeps the stale service-worker HTML.
 - The PWA service worker must use skipWaiting + clientsClaim + cleanupOutdatedCaches (autoUpdate), because a waiting worker without a visible prompt kept old clients on stale HTML whose chunks were already removed.
 - Payment settings routes in `OWNER_ESSENTIAL_ROUTE_KEYS` (MenuVisibilityGuard) stay reachable by direct link for users with `integrations.manage` even when menu overrides hide them, so owners can always configure payments while the menu stays simplified.
+- Storefront categories come from the `get_public_store_category_tree` RPC + `src/lib/store/categoryTree.ts` (menu = visible roots; filters/counts include all descendants once), and the product category trigger never auto-creates categories in a workspace that already has a taxonomy, so hierarchy is preserved and costs stay private.
