@@ -299,11 +299,27 @@ export function PendingOutreachPanel() {
   const processedBulk = bulkSent.size + bulkRejected.size;
   const progressPct = totalBulk > 0 ? (processedBulk / totalBulk) * 100 : 0;
 
-  const stepLabel = (idx: number) => (idx === 1 ? "Follow-up" : "Fecho");
-  const stepEmoji = (idx: number) => (idx === 1 ? "💡" : "🎯");
+  // A fila guarda os passos 2 (dia 3) e 3 (dia 7)
+  const stepLabel = (idx: number) => (idx <= 2 ? "Follow-up" : "Fecho");
+  const stepEmoji = (idx: number) => (idx <= 2 ? "💡" : "🎯");
 
   return (
     <Card className="border-primary/20 bg-primary/5">
+      {waItem?.lead_id && (
+        <WhatsAppMessageDialog
+          open={!!waItem}
+          onOpenChange={(o) => { if (!o) setWaItem(null); }}
+          phone={waItem.phone}
+          entityType="lead"
+          entityId={waItem.lead_id}
+          entityName={waItem.profile_name}
+          initialMessage={waItem.message_plain || waItem.message}
+          onSent={async () => {
+            await markSent(waItem);
+            queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
+          }}
+        />
+      )}
       {/* Header */}
       <div
         className="flex items-center justify-between p-4 cursor-pointer"
