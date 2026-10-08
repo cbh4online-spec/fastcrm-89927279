@@ -105,6 +105,7 @@ export default function ProspectingInstagramExtractor() {
   const importLeads = useInstagramExtractionImport();
   const cadence = useProspectingCadenceLauncher();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -205,6 +206,8 @@ export default function ProspectingInstagramExtractor() {
           <h1 className="text-xl font-semibold">Extrator de perfis de Instagram</h1>
         </div>
       </div>
+
+      <PendingOutreachPanel />
 
       <Card>
         <CardHeader>
@@ -528,6 +531,20 @@ export default function ProspectingInstagramExtractor() {
           )}
         </CardContent>
       </Card>
+
+      <BulkOutreachDialog
+        open={cadence.open}
+        onOpenChange={cadence.setOpen}
+        profiles={cadence.profiles}
+        generatedMessages={cadence.messages}
+        isGenerating={cadence.isGenerating}
+        generationProgress={cadence.progress}
+        onComplete={() => {
+          setSelected(new Set());
+          queryClient.invalidateQueries({ queryKey: ["instagram-extraction-results"] });
+        }}
+        userId={user?.id}
+      />
     </div>
   );
 }
