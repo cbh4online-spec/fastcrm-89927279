@@ -122,6 +122,51 @@ Deno.serve(async (req) => {
     if (!customerName) throw new Error("Customer name is required");
     if (!customerPhone) throw new Error("Customer phone is required");
 
+    // ── FASE A: Server-side product resolution & pricing ──
+    const cartItems: CartItem[] = items.map((i: any) => ({
+      productId: i.productId,
+      quantity: i.quantity,
+      name: i.name,
+      price: i.price,
+    }));
+
+    const { products, normalized } = await resolveStoreProducts(
+      supabaseClient,
+      workspaceId,
+      cartItems,
+    );
+
+    const currency = normalizeCurrency(products);
+    // Portes recalculados no servidor pela mesma tabela do checkout.
+    // Bens físicos exigem método de envio válido antes de pagamento/encomenda.
+    const hasPhysicalGoods = products.some(
+      (p: any) => !["recurring", "subscription"].includes(String(p.billing_type || "").toLowerCase()),
+    );
+    if (hasPhysicalGoods && !shippingMethodId) {
+      return new Response(JSON.stringify({ error: "Escolha um método de envio para continuar" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let parsedShippingCost = 0;
+    if (shippingMethodId) {
+      const totalWeight = normalized.reduce((sum, item) => {
+        const p = products.find((pr: any) => pr.id === item.product_id) as any;
+        const w = p?.weight ? Number(p.weight) : FALLBACK_ITEM_WEIGHT_KG;
+        return sum + w * item.quantity;
+      }, 0);
+      const serverCost = cttPriceFor(String(shippingMethodId), Math.round(totalWeight * 1000) / 1000);
+      if (serverCost === null) {
+        return new Response(JSON.stringify({ error: "Método de envio indisponível para este carrinho" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const clientCost = parseFloat(shippingCost);
+      if (Number.isFinite(clientCost) && Math.abs(clientCost - serverCost) > 0.009) {
+        logStep("Shipping cost mismatch — using server value", { clientCost, serverCost });
+      }
+      parsedShippingCost = serverCost;
+    }
+
     // ── Get workspace Stripe config ──
     const { data: stripeConfig, error: configError } = await supabaseClient
       .from("workspace_stripe_config")
@@ -140,37 +185,6 @@ Deno.serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // ── FASE A: Server-side product resolution & pricing ──
-    const cartItems: CartItem[] = items.map((i: any) => ({
-      productId: i.productId,
-      quantity: i.quantity,
-      name: i.name,
-      price: i.price,
-    }));
-
-    const { products, normalized } = await resolveStoreProducts(
-      supabaseClient,
-      workspaceId,
-      cartItems,
-    );
-
-    const currency = normalizeCurrency(products);
-    // Portes recalculados no servidor pela mesma tabela do checkout.
-    let parsedShippingCost = 0;
-    if (shippingMethodId) {
-      const totalWeight = normalized.reduce((sum, item) => {
-        const p = products.find((pr: any) => pr.id === item.product_id) as any;
-        const w = p?.weight ? Number(p.weight) : FALLBACK_ITEM_WEIGHT_KG;
-        return sum + w * item.quantity;
-      }, 0);
-      const serverCost = cttPriceFor(String(shippingMethodId), Math.round(totalWeight * 1000) / 1000);
-      if (serverCost === null) throw new Error("Método de envio indisponível para este carrinho");
-      const clientCost = parseFloat(shippingCost);
-      if (Number.isFinite(clientCost) && Math.abs(clientCost - serverCost) > 0.009) {
-        logStep("Shipping cost mismatch — using server value", { clientCost, serverCost });
-      }
-      parsedShippingCost = serverCost;
-    }
 
     // ── FASE B: Backend coupon validation ──
     let validatedCoupon: ValidatedCoupon | null = null;
