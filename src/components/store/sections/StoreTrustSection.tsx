@@ -1,10 +1,18 @@
 import { Shield, Truck, HeadphonesIcon, CreditCard } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
+import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
+import { businessDaysLabel } from "@/lib/store/sellerInfo";
 
 /**
  * AIDA — INTERESSE (Interest)
  * Blocos de confiança que geram credibilidade e interesse no visitante.
  */
 export function StoreTrustSection() {
+  const slug = useLocation().pathname.match(/^\/store\/([^/]+)/)?.[1];
+  const { workspaceId } = useResolveStoreWorkspace(slug);
+  const { data: settings } = usePublicStoreSettings(workspaceId || "");
+  const days = (settings as any)?.delivery_business_days as number | null | undefined;
   const trustPoints = [
     {
       icon: Shield,
@@ -14,7 +22,9 @@ export function StoreTrustSection() {
     {
       icon: Truck,
       title: "Envio",
-      description: "Custos de envio indicados antes de pagar",
+      description: days
+        ? `Entrega em ${businessDaysLabel(days)}; portes indicados antes de pagar`
+        : "Custos de envio indicados antes de pagar",
     },
     {
       icon: HeadphonesIcon,

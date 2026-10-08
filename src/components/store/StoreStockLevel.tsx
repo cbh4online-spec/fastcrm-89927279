@@ -17,7 +17,7 @@ interface StoreStockLevelProps {
 }
 
 const LABELS: Record<StockLevel, string> = {
-  high: "Em stock — entrega imediata",
+  high: "Em stock",
   low: "Últimas unidades",
   none: "Sob encomenda",
 };
