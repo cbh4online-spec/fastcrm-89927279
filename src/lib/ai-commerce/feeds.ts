@@ -15,6 +15,10 @@ export interface FeedContext {
   workspaceSlug: string;
   language?: string | null;
   country?: string | null;
+  /** Nome público da loja (canal Google RSS 2.0). */
+  storeName?: string | null;
+  /** URL pública da loja (canal Google RSS 2.0). */
+  storeUrl?: string | null;
 }
 
 export interface FeedIssue {
@@ -106,6 +110,39 @@ function toXml(records: Record<string, unknown>[], rootTag: string, itemTag: str
     })
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<${rootTag} xmlns:g="http://base.google.com/ns/1.0">\n${items}\n</${rootTag}>`;
+}
+
+/**
+ * RSS 2.0 exigido pelo Google Merchant Center:
+ * <rss version="2.0" xmlns:g><channel><title/><link/><description/><item/>…</channel></rss>.
+ */
+function toGoogleRss(records: Record<string, unknown>[], ctx: FeedContext): string {
+  const storeUrl =
+    text(ctx.storeUrl) || `${ctx.baseUrl.replace(/\/$/, "")}/store/${ctx.workspaceSlug}`;
+  const storeName = text(ctx.storeName) || ctx.workspaceSlug;
+  const items = records
+    .map((r) => {
+      const fields = Object.entries(r)
+        .filter(([, v]) => v !== null && v !== undefined && v !== "")
+        .flatMap(([k, v]) => {
+          const values = Array.isArray(v) ? v.filter((x) => x !== null && x !== undefined && x !== "") : [v];
+          return values.map((value) => `      <g:${k}>${xmlEscape(value)}</g:${k}>`);
+        })
+        .join("\n");
+      return `    <item>\n${fields}\n    </item>`;
+    })
+    .join("\n");
+  return [
+    `<?xml version="1.0" encoding="UTF-8"?>`,
+    `<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">`,
+    `  <channel>`,
+    `    <title>${xmlEscape(storeName)}</title>`,
+    `    <link>${xmlEscape(storeUrl)}</link>`,
+    `    <description>${xmlEscape(`Catálogo de produtos de ${storeName}`)}</description>`,
+    ...(items ? [items] : []),
+    `  </channel>`,
+    `</rss>`,
+  ].join("\n");
 }
 
 function toCsv(records: Record<string, unknown>[]): string {
@@ -311,12 +348,13 @@ const googleAdapter: ChannelAdapter = {
       google_product_category: resolveGoogleProductCategory(product),
       ...(group ? { item_group_id: group } : {}),
       ...(weight ? { shipping_weight: weight } : {}),
-      identifier_exists: product.gtin || product.mpn ? "yes" : "no",
-      // Etiquetas de segmentação para campanhas Performance Max.
+      // Só "yes" com identificadores reais. A ausência não confirmada NÃO
+      // equivale a "no" (Google: answer/6324478) — o atributo é omitido.
+      ...(text(product.gtin) || text(product.mpn) ? { identifier_exists: "yes" } : {}),
+      // Etiquetas de segmentação. Margem/custo internos nunca vão para o Google.
       custom_label_0: labels.priceBand,
       custom_label_1: labels.readinessBand,
       custom_label_2: labels.availability,
-      custom_label_3: labels.marginBand,
       custom_label_4: labels.brandLabel,
     };
   },
@@ -329,7 +367,7 @@ const googleAdapter: ChannelAdapter = {
     if (!isSecureImage(record.image_link)) errors.push("Imagem principal tem de ser um URL https acessível");
     if (!isSecureImage(record.link)) errors.push("Link do produto tem de ser um URL https público");
     if (text(record.title).length > 150) errors.push("Título acima de 150 caracteres");
-    if (!record.brand && record.identifier_exists === "no") {
+    if (!record.brand && !record.gtin && !record.mpn) {
       errors.push("Sem marca nem GTIN/MPN: a Google rejeita o produto");
     }
     if (!record.brand) warnings.push("Google recomenda marca");
@@ -339,8 +377,8 @@ const googleAdapter: ChannelAdapter = {
     if (text(record.description).length < 120) warnings.push("Descrição curta (<120 caracteres)");
     return { errors, warnings };
   },
-  serialize(records) {
-    return toXml(records, "rss", "item", "g:");
+  serialize(records, ctx) {
+    return toGoogleRss(records, ctx);
   },
 };
 
