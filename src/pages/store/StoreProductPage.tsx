@@ -35,6 +35,7 @@ import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
+import { isEmptyHousingSku, housingBaseSku } from "@/lib/store/emptyHousing";
 import { StoreStockLevel } from "@/components/store/StoreStockLevel";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreOfferDialog } from "@/components/store/StoreOfferDialog";
@@ -580,6 +581,12 @@ export default function StoreProductPage() {
                 </h1>
                 {product.sku && (
                   <p className="text-xs text-muted-foreground mt-1">SKU: {product.sku}</p>
+                )}
+                {isEmptyHousingSku(product.sku) && (
+                  <div role="note" className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
+                    <strong>Caixa vazia.</strong> Este artigo é apenas a caixa (carcaça), sem o equipamento
+                    eletrónico. Referência do equipamento: {housingBaseSku(product.sku!)}.
+                  </div>
                 )}
 
                 {/* Stars + review count + social proof */}
