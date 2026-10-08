@@ -1,4 +1,6 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+
+const MOBILE_PAGE_SIZE = 25;
 import { Search, X, Plus, ScanLine, SlidersHorizontal, Loader2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
