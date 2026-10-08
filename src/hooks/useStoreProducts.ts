@@ -1,5 +1,6 @@
 import { formatStoreTitle } from "@/lib/store/displayTitle";
 import { sortRecommended, type RankableProduct } from "@/lib/store/recommendedRank";
+import { useMemo } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { descendantIds, countByVisibleRoot, visibleRoots, type CategoryNode } from "@/lib/store/categoryTree";
@@ -111,10 +112,21 @@ type PublicCategoryRow = CategoryNode & {
 };
 
 /** Árvore pública (RPC sem campos de custo/admin), limitada ao workspace. */
+const TREE_TTL_MS = 5 * 60 * 1000;
+const treeCache = new Map<string, { at: number; promise: Promise<PublicCategoryRow[]> }>();
 async function fetchPublicCategoryTree(workspaceId: string): Promise<PublicCategoryRow[]> {
-  const { data, error } = await (supabase as any).rpc("get_public_store_category_tree", { p_workspace_id: workspaceId });
-  if (error) throw error;
-  return ((data || []) as PublicCategoryRow[]).filter((c) => c.workspace_id === workspaceId);
+  // Partilha a mesma leitura entre menu, filtros e cada página do catálogo
+  // (antes: 1 chamada por consulta). Erros não ficam em cache.
+  const hit = treeCache.get(workspaceId);
+  if (hit && Date.now() - hit.at < TREE_TTL_MS) return hit.promise;
+  const promise = (async () => {
+    const { data, error } = await (supabase as any).rpc("get_public_store_category_tree", { p_workspace_id: workspaceId });
+    if (error) throw error;
+    return ((data || []) as PublicCategoryRow[]).filter((c) => c.workspace_id === workspaceId);
+  })();
+  treeCache.set(workspaceId, { at: Date.now(), promise });
+  promise.catch(() => treeCache.delete(workspaceId));
+  return promise;
 }
 
 /** IDs a filtrar: categoria pedida + descendentes (raiz inclui filhos; filho oculto só o seu ramo). */
