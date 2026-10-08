@@ -206,15 +206,16 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-50"
+            className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50"
           >
             <Button
               size="lg"
-              className="rounded-full h-14 gap-2 shadow-lg"
+              aria-label="Precisa de ajuda?"
+              className="rounded-full h-11 w-11 p-0 gap-2 shadow-lg sm:h-14 sm:w-auto sm:px-6"
               onClick={() => setIsOpen(true)}
             >
               <Sparkles className="h-5 w-5" />
-              Precisa de ajuda?
+              <span className="hidden sm:inline">Precisa de ajuda?</span>
             </Button>
           </motion.div>
         )}
