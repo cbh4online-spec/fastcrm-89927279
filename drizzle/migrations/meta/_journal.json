@@ -330,6 +330,13 @@
       "when": 1791449821580,
       "tag": "0046_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791454476633,
+      "tag": "0047_store_category_tree_public_and_resolver",
+      "breakpoints": true
     }
   ]
 }
