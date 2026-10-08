@@ -54,6 +54,7 @@ export function StoreCatalogSection({
   wsId,
   storeName,
   brandFacets = [],
+  totalCount,
   tierPricing,
   reviewStats,
   salesCounts,
@@ -63,6 +64,8 @@ export function StoreCatalogSection({
   isFetchingNextPage,
   fetchNextPage,
 }: StoreCatalogSectionProps) {
+  // Contagem real do catálogo (servidor); filtros só de cliente usam a lista carregada
+  const displayTotal = totalCount ?? products.length;
   const [viewMode, setViewMode] = useState<CatalogViewMode>("grid");
   const [density, setDensity] = useState<CatalogDensity>("comfortable");
 
@@ -98,7 +101,7 @@ export function StoreCatalogSection({
               categories={categories}
               filters={filters}
               onFiltersChange={onFiltersChange}
-              totalProducts={products.length}
+              totalProducts={displayTotal}
               maxProductPrice={maxPrice}
               brandFacets={brandFacets}
             />
@@ -106,7 +109,7 @@ export function StoreCatalogSection({
 
           <div className="flex-1 min-w-0">
             <StoreCatalogToolbar
-              total={products.length}
+              total={displayTotal}
               filters={filters}
               onFiltersChange={onFiltersChange}
               categories={categories}
