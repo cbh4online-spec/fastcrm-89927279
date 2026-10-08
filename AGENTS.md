@@ -12,3 +12,4 @@
 - Store shipping cost comes only from `_shared/cttRates.ts`, recomputed server-side in create-store-checkout; never show free-shipping claims the checkout does not apply.
 - Store error boundaries must route chunk-load errors to `recoverFromChunkError`, because a plain reload keeps the stale service-worker HTML.
 - The PWA service worker must use skipWaiting + clientsClaim + cleanupOutdatedCaches (autoUpdate), because a waiting worker without a visible prompt kept old clients on stale HTML whose chunks were already removed.
+- Payment settings routes in `OWNER_ESSENTIAL_ROUTE_KEYS` (MenuVisibilityGuard) stay reachable by direct link for users with `integrations.manage` even when menu overrides hide them, so owners can always configure payments while the menu stays simplified.

@@ -41,7 +41,7 @@ export const GATEWAY_CATALOG: GatewayDescriptor[] = [
     supportsRecurring: true,
     supportsOneOff: true,
     methods: ["card", "sepa", "apple_pay", "google_pay"],
-    configRoute: "/settings/billing",
+    configRoute: "/settings/integrations",
   },
   {
     id: "ifthenpay",
