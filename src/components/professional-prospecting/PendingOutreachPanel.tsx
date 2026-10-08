@@ -19,10 +19,13 @@ import {
   Loader2,
   RefreshCw,
   ExternalLink,
+  MessageCircle,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { resolveCadenceChannel } from "@/lib/prospecting/cadence";
+import { WhatsAppMessageDialog } from "@/components/whatsapp/WhatsAppMessageDialog";
 
 interface OutreachItem {
   id: string;
@@ -36,6 +39,8 @@ interface OutreachItem {
   tone: string | null;
   profile_name?: string;
   profile_url?: string;
+  phone?: string | null;
+  lead_id?: string | null;
 }
 
 type BulkPhase = "idle" | "generating" | "sending" | "done";
@@ -49,6 +54,10 @@ export function PendingOutreachPanel() {
   const [bulkSent, setBulkSent] = useState<Set<string>>(new Set());
   const [bulkRejected, setBulkRejected] = useState<Set<string>>(new Set());
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+  const [waItem, setWaItem] = useState<OutreachItem | null>(null);
+
+  const isWhatsAppStep = (item: OutreachItem) =>
+    !!item.lead_id && resolveCadenceChannel(item.step_index, item.phone) === "whatsapp";
 
   const { data: pendingItems = [], isLoading } = useQuery({
     queryKey: ["pending-outreach", currentWorkspace?.id],
@@ -56,7 +65,7 @@ export function PendingOutreachPanel() {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
         .from("prospecting_outreach_queue")
-        .select("*, professional_prospecting_profiles(profile_name, profile_url)")
+        .select("*, professional_prospecting_profiles(profile_name, profile_url, extracted_phone, converted_lead_id)")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "ready")
         .order("scheduled_for", { ascending: true });
@@ -66,6 +75,8 @@ export function PendingOutreachPanel() {
         ...item,
         profile_name: item.professional_prospecting_profiles?.profile_name,
         profile_url: item.professional_prospecting_profiles?.profile_url,
+        phone: item.professional_prospecting_profiles?.extracted_phone ?? null,
+        lead_id: item.professional_prospecting_profiles?.converted_lead_id ?? null,
       })) as OutreachItem[];
     },
     enabled: !!currentWorkspace?.id,
@@ -149,7 +160,7 @@ export function PendingOutreachPanel() {
         entity_kind: 'prospecting_profile',
         entity_id: item.profile_id,
         source_module: 'mkt-prospecting',
-        payload: { profile_id: item.profile_id, step_index: item.step_index, channel: 'instagram' },
+        payload: { profile_id: item.profile_id, step_index: item.step_index, channel: isWhatsAppStep(item) ? 'whatsapp' : 'instagram' },
       });
     }
   }, [currentWorkspace?.id]);
@@ -196,9 +207,39 @@ export function PendingOutreachPanel() {
     toast.success("Mensagem copiada! DM aberta.");
   }, [generateMessage, markSent, queryClient]);
 
-  // Bulk send flow
+  // WhatsApp step: open the guarded WhatsApp dialog with the generated text
+  const handleWhatsAppSend = useCallback(async (item: OutreachItem) => {
+    let msg = item.message_plain || item.message;
+    if (!msg) {
+      const result = await generateMessage(item);
+      if (!result?.message) return;
+      msg = result.message_plain || result.message;
+    }
+    setWaItem({ ...item, message_plain: msg });
+  }, [generateMessage]);
+
+  // Contact replied: stop the remaining cadence for this profile
+  const stopCadenceMutation = useMutation({
+    mutationFn: async (item: OutreachItem) => {
+      const { error } = await supabase
+        .from("prospecting_outreach_queue")
+        .update({ status: "cancelled" } as any)
+        .eq("profile_id", item.profile_id)
+        .eq("workspace_id", item.workspace_id)
+        .in("status", ["scheduled", "ready"]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
+      queryClient.invalidateQueries({ queryKey: ["scheduled-outreach-count"] });
+      toast.success("Cadência parada para este contacto");
+    },
+    onError: () => toast.error("Não foi possível parar a cadência"),
+  });
+
+  // Bulk send flow (Instagram only; WhatsApp steps são enviados um a um)
   const activeItems = pendingItems.filter(
-    (i) => !bulkSent.has(i.id) && !bulkRejected.has(i.id)
+    (i) => !bulkSent.has(i.id) && !bulkRejected.has(i.id) && !isWhatsAppStep(i)
   );
 
   const startBulkSend = useCallback(async () => {
@@ -468,8 +509,12 @@ export function PendingOutreachPanel() {
               className="flex flex-col gap-2 p-3 rounded-lg bg-background border"
             >
               <div className="flex items-start gap-3">
-                <div className="p-1.5 rounded-full bg-pink-500/10 mt-0.5">
-                  <Instagram className="w-3.5 h-3.5 text-pink-500" />
+                <div className="p-1.5 rounded-full bg-muted mt-0.5">
+                  {isWhatsAppStep(item) ? (
+                    <MessageCircle className="w-3.5 h-3.5 text-primary" aria-label="WhatsApp" />
+                  ) : (
+                    <Instagram className="w-3.5 h-3.5 text-pink-500" aria-label="Instagram" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2">
@@ -495,7 +540,8 @@ export function PendingOutreachPanel() {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleSingleSend(item);
+                      if (isWhatsAppStep(item)) handleWhatsAppSend(item);
+                      else handleSingleSend(item);
                     }}
                     disabled={generatingIds.has(item.id)}
                     className="gap-1"
@@ -505,7 +551,20 @@ export function PendingOutreachPanel() {
                     ) : (
                       <Send className="w-3.5 h-3.5" />
                     )}
-                    Enviar
+                    {isWhatsAppStep(item) ? "WhatsApp" : "Enviar"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      stopCadenceMutation.mutate(item);
+                    }}
+                    disabled={stopCadenceMutation.isPending}
+                    title="O contacto respondeu: parar os próximos follow-ups"
+                  >
+                    Respondeu
                   </Button>
                   <Button
                     size="sm"
