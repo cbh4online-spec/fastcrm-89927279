@@ -43,6 +43,10 @@ interface Props {
   entityId: string;
   entityName?: string | null;
   companyName?: string | null;
+  /** Texto pré-preenchido ao abrir (ex.: follow-up de prospeção). */
+  initialMessage?: string | null;
+  /** Chamado depois de um envio bem-sucedido. */
+  onSent?: () => void;
 }
 
 export function WhatsAppMessageDialog({
@@ -53,6 +57,8 @@ export function WhatsAppMessageDialog({
   entityId,
   entityName,
   companyName,
+  initialMessage,
+  onSent,
 }: Props) {
   const normalized = normalizeWhatsAppNumber(phone);
   const [message, setMessage] = useState("");
@@ -77,8 +83,10 @@ export function WhatsAppMessageDialog({
     if (!open) {
       setMessage("");
       setTemplateId("none");
+    } else if (initialMessage) {
+      setMessage(initialMessage);
     }
-  }, [open]);
+  }, [open, initialMessage]);
 
   const activeTemplates = useMemo(() => templates.filter((t) => t.active), [templates]);
   const selectedTemplate = activeTemplates.find((t) => t.id === templateId) ?? null;
@@ -112,6 +120,7 @@ export function WhatsAppMessageDialog({
         const base = isMobileDevice() ? links.universal : links.web;
         window.open(`${base}${base.includes("?") ? "&" : "?"}text=${encodeURIComponent(message.trim())}`, "_blank", "noopener,noreferrer");
       }
+      onSent?.();
       onOpenChange(false);
     } catch {
       /* erro já reportado no hook */
