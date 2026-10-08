@@ -140,6 +140,8 @@ async function loadPublishedProducts(
     country?: string | null;
     limit?: number;
     offset?: number;
+    /** Desempate por id (ordem estável entre lotes). Só usado pelo feed Google. */
+    stableOrder?: boolean;
   },
 ): Promise<{ rows: { product: CommerceProduct; ai: Partial<ProductAICommerce> | null }[]; total: number }> {
   // Junção no servidor: evita listas `in(...)` gigantes no URL (HTTP 400).
@@ -162,7 +164,9 @@ async function loadPublishedProducts(
 
   const limit = Math.min(opts.limit ?? 50, MAX_PAGE_SIZE);
   const offset = Math.max(opts.offset ?? 0, 0);
-  query = query.order("name", { ascending: true }).range(offset, offset + limit - 1);
+  query = query.order("name", { ascending: true });
+  if (opts.stableOrder) query = query.order("id", { ascending: true });
+  query = query.range(offset, offset + limit - 1);
 
   const { data, count, error } = await query;
   if (error) throw new Error(error.message);
@@ -310,22 +314,43 @@ Deno.serve(async (req) => {
       const wsInfo = await resolveWorkspace(supabase, workspaceId);
       const { data: settings } = await supabase
         .from("store_settings")
-        .select("store_slug")
+        .select("store_slug, store_name")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
       const workspaceSlug = settings?.store_slug || wsInfo?.slug || workspaceId;
-
-      const { rows } = await loadPublishedProducts(supabase, workspaceId, {
+      const feedFilters = {
         language: (feed.language as string) || null,
         country: (feed.country as string) || null,
-        limit: MAX_PAGE_SIZE,
-      });
+      };
+
+      let rows: Awaited<ReturnType<typeof loadPublishedProducts>>["rows"];
+      if (feed.channel === "google") {
+        // Google: percorre todos os produtos elegíveis em lotes, sem truncar.
+        rows = [];
+        let total = 0;
+        for (let offset = 0; ; offset += MAX_PAGE_SIZE) {
+          const page = await loadPublishedProducts(supabase, workspaceId, {
+            ...feedFilters,
+            limit: MAX_PAGE_SIZE,
+            offset,
+            stableOrder: true,
+          });
+          total = page.total;
+          rows.push(...page.rows);
+          if (page.rows.length < MAX_PAGE_SIZE || rows.length >= total) break;
+          if (offset > 50_000) throw new Error("google_feed_pagination_overflow");
+        }
+        if (rows.length !== total) throw new Error(`google_feed_incomplete:${rows.length}/${total}`);
+      } else {
+        ({ rows } = await loadPublishedProducts(supabase, workspaceId, { ...feedFilters, limit: MAX_PAGE_SIZE }));
+      }
 
       const ctx: FeedContext = {
         baseUrl,
         workspaceSlug,
-        language: (feed.language as string) || null,
-        country: (feed.country as string) || null,
+        ...feedFilters,
+        storeName: settings?.store_name || null,
+        storeUrl: `${baseUrl.replace(/\/$/, "")}/store/${workspaceSlug}`,
       };
       const started = Date.now();
       const result = buildFeed(feed.channel as FeedChannel, rows, ctx);
