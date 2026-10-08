@@ -58,8 +58,8 @@ export function StoreCatalogToolbar({
   const activeCount = countActiveFilters(filters);
 
   return (
-    <div className="flex items-center justify-between gap-2 border-b pb-3 mb-4">
-      <div className="flex items-center gap-2 min-w-0">
+    <div className="flex flex-col gap-2 border-b pb-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between gap-2 min-w-0 sm:justify-start">
         {/* Filtros — mobile */}
         <Sheet>
           <SheetTrigger asChild>
@@ -97,7 +97,7 @@ export function StoreCatalogToolbar({
         </span>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         {/* Densidade — desktop */}
         <div className="hidden md:flex items-center rounded-full border p-0.5">
           <button
@@ -127,7 +127,7 @@ export function StoreCatalogToolbar({
         </div>
 
         {/* Grelha / Lista */}
-        <div className="flex items-center rounded-full border p-0.5">
+        <div className="flex shrink-0 items-center rounded-full border p-0.5">
           <button
             type="button"
             aria-label="Ver em grelha"
@@ -160,7 +160,7 @@ export function StoreCatalogToolbar({
             onFiltersChange({ ...filters, sortBy: v === "default" ? undefined : (v as StoreFilters["sortBy"]) })
           }
         >
-          <SelectTrigger className="h-9 w-[150px] rounded-full text-sm" aria-label="Ordenar produtos">
+          <SelectTrigger className="h-9 min-w-0 flex-1 rounded-full text-sm sm:w-[170px] sm:flex-none" aria-label="Ordenar produtos">
             <SelectValue placeholder="Ordenar" />
           </SelectTrigger>
           <SelectContent>
