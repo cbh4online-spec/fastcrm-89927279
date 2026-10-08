@@ -37,8 +37,8 @@ export function StoreFooter({ workspaceSlug, storeName, categories = [], footerT
                 <Truck className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Entrega Rápida</p>
-                <p className="text-[11px] text-muted-foreground">Receba em 3-5 dias úteis</p>
+                <p className="text-sm font-semibold text-foreground">Envio</p>
+                <p className="text-[11px] text-muted-foreground">Custos indicados antes de pagar</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-background/60">

@@ -13,7 +13,7 @@ export function StoreTrustSection() {
     },
     {
       icon: Truck,
-      title: "Envio para Portugal",
+      title: "Envio",
       description: "Custos de envio indicados antes de pagar",
     },
     {
