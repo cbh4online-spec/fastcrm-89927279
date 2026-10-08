@@ -13,18 +13,18 @@ export function StoreTrustSection() {
     },
     {
       icon: Truck,
-      title: "Entrega Rápida",
-      description: "Receba de forma rápida e cómoda",
+      title: "Envio para Portugal",
+      description: "Custos de envio indicados antes de pagar",
     },
     {
       icon: HeadphonesIcon,
-      title: "Suporte Dedicado",
-      description: "Equipa pronta para ajudar",
+      title: "Apoio na escolha",
+      description: "Tire dúvidas antes de comprar",
     },
     {
       icon: CreditCard,
-      title: "Satisfação Garantida",
-      description: "Devolução sem complicações",
+      title: "Direitos do consumidor",
+      description: "14 dias de livre resolução e garantia legal",
     },
   ];
 
