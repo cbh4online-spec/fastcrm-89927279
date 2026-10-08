@@ -6,7 +6,6 @@ import { Minus, Plus, Trash2, ShoppingBag, Package } from "lucide-react";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreVat } from "@/contexts/StoreVatContext";
 import { useNavigate } from "react-router-dom";
-import { StoreFreeShippingBar } from "@/components/store/StoreFreeShippingBar";
 import { StoreCartUpsell } from "@/components/store/StoreCartUpsell";
 import { StoreCartComplements } from "@/components/store/StoreCartComplements";
 import { StoreCartStockGuard } from "@/components/store/StoreCartStockGuard";
@@ -24,13 +23,22 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
   const { isB2B, vatRate } = useStoreVat();
   const navigate = useNavigate();
   const { workspaceId } = useResolveStoreWorkspace(workspaceSlug);
-  const { complements, unavailable, hasBlockingIssue, isLoading, refetch } = useStoreCartOffers(
+  const { complements, unavailable, hasBlockingIssue, isLoading, isChecking, isError, refetch } = useStoreCartOffers(
     workspaceId,
     items,
     { enabled: isOpen },
   );
 
+  const stockPending = !workspaceId || isChecking;
   const handleCheckout = () => {
+    if (stockPending) {
+      toast.info("A confirmar o stock disponível…");
+      return;
+    }
+    if (isError) {
+      toast.error("Não foi possível confirmar o stock. Tente novamente.");
+      return;
+    }
     if (hasBlockingIssue) {
       toast.error("Há artigos indisponíveis no carrinho. Escolha uma alternativa para continuar.");
       return;
@@ -130,7 +138,14 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
             </div>
 
             <div className="border-t pt-4 space-y-4">
-              <StoreFreeShippingBar subtotal={subtotal} />
+              {isError && (
+                <div role="alert" className="flex items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-xs">
+                  <span>Não foi possível confirmar o stock dos artigos.</span>
+                  <Button type="button" size="sm" variant="outline" onClick={() => void refetch()}>
+                    Tentar novamente
+                  </Button>
+                </div>
+              )}
               <StoreCartStockGuard unavailable={unavailable} onResolved={() => void refetch()} />
               {complements.length > 0 || isLoading ? (
                 <StoreCartComplements complements={complements} isLoading={isLoading} />
@@ -165,8 +180,10 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
                 className="w-full rounded-xl h-12 text-base transition-transform duration-200 active:scale-[0.98]"
                 size="lg"
                 onClick={handleCheckout}
+                disabled={stockPending || isError || hasBlockingIssue}
+                aria-busy={stockPending}
               >
-                Finalizar Compra
+                {stockPending ? "A confirmar stock…" : "Finalizar Compra"}
               </Button>
             </div>
           </>

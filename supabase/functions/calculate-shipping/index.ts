@@ -6,37 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// CTT 2026 Pricing Tables (Portugal Continental)
-
-// Correio Azul / Pacote Postal - até 2kg
-const CORREIO_AZUL_RATES = [
-  { maxWeight: 0.1, price: 2.10 },   // até 100g
-  { maxWeight: 0.5, price: 3.90 },   // 100g - 500g
-  { maxWeight: 2.0, price: 7.80 },   // 500g - 2kg
-];
-
-// Encomenda Postal - até 10kg (Trajeto T1)
-const ENCOMENDA_POSTAL_T1_RATES = [
-  { maxWeight: 2.0, price: 8.25 },   // até 2kg
-  { maxWeight: 5.0, price: 10.50 },  // 2kg - 5kg
-  { maxWeight: 10.0, price: 15.55 }, // 5kg - 10kg
-];
-
-function getCorreioAzulPrice(weightKg: number): number | null {
-  if (weightKg > 2.0) return null;
-  for (const rate of CORREIO_AZUL_RATES) {
-    if (weightKg <= rate.maxWeight) return rate.price;
-  }
-  return null;
-}
-
-function getEncomendaPostalPrice(weightKg: number): number | null {
-  if (weightKg > 10.0) return null;
-  for (const rate of ENCOMENDA_POSTAL_T1_RATES) {
-    if (weightKg <= rate.maxWeight) return rate.price;
-  }
-  return null;
-}
+import { getCorreioAzulPrice, getEncomendaPostalPrice } from "../_shared/cttRates.ts";
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {

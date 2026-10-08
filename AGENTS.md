@@ -8,3 +8,6 @@
 - Public store code must use `src/lib/browser/safeBrowser.ts` for IDs and local/session storage (never bare `crypto.randomUUID`/storage), because older iOS and in-app browsers crashed product pages.
 - The storefront catalogue builds a lightweight full-catalogue index in `useInfiniteStoreProducts` (real totals, brand facets, "Recomendados" via `src/lib/store/recommendedRank.ts`) and loads details per page, so counts and order never depend on the loaded page.
 - Store legal pages live under `/store/:slug/*` (e.g. `StoreTermsPage`) and show only configured store data; the CRM `/terms` covers SaaS subscriptions only.
+- Store cart stock uses `src/lib/store/cartStock.ts` (track_stock, quantity minus stock_reserved, summed lines), mirrored in `_shared/store-pricing.ts`; cart/checkout block while checking or on error, so no order exceeds sellable stock.
+- Store shipping cost comes only from `_shared/cttRates.ts`, recomputed server-side in create-store-checkout; never show free-shipping claims the checkout does not apply.
+- Store error boundaries must route chunk-load errors to `recoverFromChunkError`, because a plain reload keeps the stale service-worker HTML.

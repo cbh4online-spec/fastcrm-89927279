@@ -35,6 +35,7 @@ import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
+import { isEmptyHousingSku, housingBaseSku } from "@/lib/store/emptyHousing";
 import { StoreStockLevel } from "@/components/store/StoreStockLevel";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreOfferDialog } from "@/components/store/StoreOfferDialog";
@@ -581,6 +582,12 @@ export default function StoreProductPage() {
                 {product.sku && (
                   <p className="text-xs text-muted-foreground mt-1">SKU: {product.sku}</p>
                 )}
+                {isEmptyHousingSku(product.sku) && (
+                  <div role="note" className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
+                    <strong>Caixa vazia.</strong> Este artigo é apenas a caixa (carcaça), sem o equipamento
+                    eletrónico. Referência do equipamento: {housingBaseSku(product.sku!)}.
+                  </div>
+                )}
 
                 {/* Stars + review count + social proof */}
                 <div className="flex flex-wrap items-center gap-3 mt-3">
@@ -920,7 +927,7 @@ export default function StoreProductPage() {
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Truck className="h-3.5 w-3.5 text-primary" />
-                    <span>Envio Grátis</span>
+                    <span>Portes calculados no checkout</span>
                   </div>
                   <div className="h-3 w-px bg-border" />
                   <div className="flex items-center gap-1">

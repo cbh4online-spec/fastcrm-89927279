@@ -61,7 +61,11 @@ export default function StoreCheckoutPage() {
 
     // Nunca perder a venda: revalidar disponibilidade real antes de pagar.
     const fresh = await offers.refetch();
-    if ((fresh.data?.unavailable.length ?? 0) > 0) {
+    if (fresh.isError || !fresh.data) {
+      toast.error("Não foi possível confirmar o stock. Verifique a ligação e tente novamente.");
+      return;
+    }
+    if (fresh.data.unavailable.length > 0) {
       toast.error("Há artigos indisponíveis. Escolha uma alternativa no resumo para continuar.");
       return;
     }
