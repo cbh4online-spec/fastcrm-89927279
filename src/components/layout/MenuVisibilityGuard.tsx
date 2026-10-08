@@ -6,6 +6,17 @@ import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
 import { resolveRouteVisibility, isGlobalAdminPath } from "@/config/menuOverrides";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
+import { useCapability } from "@/hooks/useCapability";
+
+/**
+ * Páginas de configuração de pagamentos que o owner/admin do workspace tem de
+ * conseguir abrir por link direto, mesmo que o menu as oculte (o menu continua
+ * oculto). Os dados continuam protegidos pelas regras de acesso da base.
+ */
+export const OWNER_ESSENTIAL_ROUTE_KEYS = new Set([
+  "settings-integrations",
+  "settings-payment-gateways",
+]);
 
 /**
  * Impede o acesso directo (por URL) a páginas que o Super Admin marcou como
@@ -30,6 +41,7 @@ export function MenuVisibilityGuard({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { map, isReady, error } = useMenuOverrideMap();
   const { isSuperAdmin, isLoading: roleLoading } = useUserRole();
+  const canManageIntegrations = useCapability("integrations.manage");
 
   const state = useMemo(() => {
     // Administração global: um super admin tem sempre acesso, independentemente
@@ -43,8 +55,12 @@ export function MenuVisibilityGuard({ children }: { children: ReactNode }) {
     if (!isReady) return "pending" as const;
     const entry = matchRoute(location.pathname);
     if (!entry) return "visible" as const;
-    return resolveRouteVisibility(map, entry);
-  }, [isReady, location.pathname, map, isSuperAdmin, roleLoading]);
+    const resolved = resolveRouteVisibility(map, entry);
+    if (resolved !== "visible" && canManageIntegrations && OWNER_ESSENTIAL_ROUTE_KEYS.has(entry.key)) {
+      return "visible" as const;
+    }
+    return resolved;
+  }, [isReady, location.pathname, map, isSuperAdmin, roleLoading, canManageIntegrations]);
 
   if (state === "pending") {
     return (
