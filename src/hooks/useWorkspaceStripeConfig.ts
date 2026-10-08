@@ -10,6 +10,7 @@ export interface WorkspaceStripeConfig {
   stripe_account_id: string | null;
   stripe_secret_key_encrypted: string | null;
   stripe_webhook_secret_encrypted: string | null;
+  store_webhook_secret_encrypted?: string | null;
   stripe_publishable_key: string | null;
   is_active: boolean;
   test_mode: boolean;
@@ -42,6 +43,7 @@ export function useWorkspaceStripeConfig() {
     mutationFn: async (configData: {
       stripe_secret_key?: string;
       stripe_webhook_secret?: string;
+      store_webhook_secret?: string;
       stripe_publishable_key?: string;
       stripe_account_id?: string;
       is_active?: boolean;
@@ -56,6 +58,9 @@ export function useWorkspaceStripeConfig() {
         }),
         ...(configData.stripe_webhook_secret && { 
           stripe_webhook_secret_encrypted: configData.stripe_webhook_secret 
+        }),
+        ...(configData.store_webhook_secret && {
+          store_webhook_secret_encrypted: configData.store_webhook_secret
         }),
         ...(configData.stripe_publishable_key && { 
           stripe_publishable_key: configData.stripe_publishable_key 
