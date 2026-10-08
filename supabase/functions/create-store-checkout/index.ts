@@ -710,7 +710,7 @@ Deno.serve(async (req) => {
       };
 
       if (paymentMethod === "mbway") {
-        sessionConfig.payment_method_types = ["mbway"];
+        sessionConfig.payment_method_types = ["mb_way"];
       } else if (paymentMethod === "multibanco") {
         sessionConfig.payment_method_types = ["multibanco"];
       } else {

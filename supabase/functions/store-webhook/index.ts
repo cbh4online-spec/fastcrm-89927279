@@ -1,6 +1,13 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "../_shared/resendGateway.ts";
+import {
+  STORE_WEBHOOK_EVENTS,
+  decideAction,
+  validateSessionAgainstOrder,
+  canTransition,
+  PAYABLE_FROM_STATUSES,
+} from "../_shared/storeWebhookLogic.ts";
 
 // Process digital deliverables after payment
 async function processDeliverables(
@@ -143,113 +150,17 @@ async function processDeliverables(
   }
 }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
-const logStep = (step: string, details?: unknown) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[STORE-WEBHOOK] ${step}${detailsStr}`);
-};
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const supabaseClient = createClient(supabaseUrl, supabaseKey);
-
-  try {
-    const body = await req.text();
-    const signature = req.headers.get("stripe-signature");
-
-    if (!signature) {
-      throw new Error("No Stripe signature found");
-    }
-
-    logStep("Webhook received", { signaturePresent: !!signature });
-
-    // We need to determine which workspace this webhook belongs to
-    // Parse the event without verification first to get workspace_id from metadata
-    const unverifiedEvent = JSON.parse(body);
-    const sessionData = unverifiedEvent.data?.object;
-    const workspaceId = sessionData?.metadata?.workspace_id;
-
-    if (!workspaceId) {
-      logStep("No workspace_id in metadata, skipping");
-      return new Response(JSON.stringify({ received: true, skipped: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    logStep("Workspace identified", { workspaceId });
-
-    // Get workspace Stripe config to verify signature
-    const { data: stripeConfig } = await supabaseClient
-      .from("workspace_stripe_config")
-      .select("stripe_secret_key_encrypted, stripe_webhook_secret_encrypted")
-      .eq("workspace_id", workspaceId)
-      .eq("is_active", true)
-      .single();
-
-    if (!stripeConfig?.stripe_secret_key_encrypted) {
-      throw new Error("Stripe not configured for workspace");
-    }
-
-    const stripe = new Stripe(stripeConfig.stripe_secret_key_encrypted, {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    // Verify webhook signature if secret is configured
-    let event: Stripe.Event;
-    if (stripeConfig.stripe_webhook_secret_encrypted) {
-      event = await stripe.webhooks.constructEventAsync(
-        body,
-        signature,
-        stripeConfig.stripe_webhook_secret_encrypted
-      );
-      logStep("Webhook signature verified");
-    } else {
-      event = unverifiedEvent as Stripe.Event;
-      logStep("No webhook secret configured, using unverified event");
-    }
-
-    // Handle checkout.session.completed
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      logStep("Checkout session completed", { sessionId: session.id, paymentStatus: session.payment_status });
-
-      if (session.payment_status === "paid") {
-        // Update store order
-        const { data: order, error: updateError } = await supabaseClient
-          .from("store_orders")
-          .update({
-            status: "paid",
-            paid_at: new Date().toISOString(),
-            stripe_payment_intent_id: session.payment_intent as string,
-            shipping_address: session.shipping_details?.address ? {
-              name: session.shipping_details.name,
-              line1: session.shipping_details.address.line1,
-              line2: session.shipping_details.address.line2,
-              city: session.shipping_details.address.city,
-              state: session.shipping_details.address.state,
-              postal_code: session.shipping_details.address.postal_code,
-              country: session.shipping_details.address.country,
-            } : null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("stripe_session_id", session.id)
-          .select()
-          .single();
-
-        if (updateError) {
-          logStep("Order update error", { message: updateError.message });
-        } else {
-          logStep("Order marked as paid", { orderId: order?.id });
-
+// Efeitos de pagamento confirmado (stock, entregáveis, emails, automações).
+// Só corre depois da transição atómica pending → paid ter afetado exatamente 1 linha.
+async function runPaidSideEffects(
+  supabaseClient: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  supabaseKey: string,
+  workspaceId: string,
+  order: any,
+  session: Stripe.Checkout.Session,
+) {
           // === Kernel Events ===
           const isFirstPurchase = await (async () => {
             if (!order?.contact_id) return false;
@@ -307,14 +218,17 @@ Deno.serve(async (req) => {
                 .from("products")
                 .select("stock_quantity, track_stock")
                 .eq("id", item.product_id)
-                .single();
+                .eq("workspace_id", workspaceId)
+                .maybeSingle();
               
               if (prod?.track_stock && prod.stock_quantity !== null) {
                 const newQty = Math.max(0, prod.stock_quantity - item.quantity);
                 await supabaseClient
                   .from("products")
                   .update({ stock_quantity: newQty, stock_status: newQty === 0 ? "out_of_stock" : "in_stock" })
-                  .eq("id", item.product_id);
+                  .eq("id", item.product_id)
+                  .eq("workspace_id", workspaceId)
+                  .eq("stock_quantity", prod.stock_quantity);
               }
             }
             logStep("Stock decremented for tracked products");
@@ -482,26 +396,168 @@ Deno.serve(async (req) => {
           } catch (automationError) {
             logStep('Store automation event error (non-blocking)', { message: (automationError as Error).message });
           }
-        }
-      }
+}
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const logStep = (step: string, details?: unknown) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[STORE-WEBHOOK] ${step}${detailsStr}`);
+};
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// A verificação de assinatura não chama a API Stripe; a chave aqui nunca é usada.
+const verifier = new Stripe("sk_signature_verification_only", { apiVersion: "2025-08-27.basil" });
+const cryptoProvider = Stripe.createSubtleCryptoProvider();
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+  const body = await req.text();
+  const signature = req.headers.get("stripe-signature");
+  if (!signature) return json({ error: "missing_signature" }, 400);
+
+  // Só para escolher o segredo do workspace; nada é aplicado antes da assinatura válida.
+  let candidateWs: string | undefined;
+  try {
+    candidateWs = JSON.parse(body)?.data?.object?.metadata?.workspace_id;
+  } catch {
+    return json({ error: "invalid_payload" }, 400);
+  }
+  if (!candidateWs || !UUID_RE.test(candidateWs)) return json({ error: "unknown_workspace" }, 400);
+
+  const { data: cfg } = await supabaseClient
+    .from("workspace_stripe_config")
+    .select("store_webhook_secret_encrypted, is_active")
+    .eq("workspace_id", candidateWs)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!cfg?.store_webhook_secret_encrypted) {
+    logStep("Rejected: store webhook secret not configured", { workspaceId: candidateWs });
+    return json({ error: "store_webhook_not_configured" }, 400);
+  }
+
+  let event: Stripe.Event;
+  try {
+    event = await verifier.webhooks.constructEventAsync(
+      body, signature, cfg.store_webhook_secret_encrypted, undefined, cryptoProvider,
+    );
+  } catch {
+    logStep("Rejected: invalid signature", { workspaceId: candidateWs });
+    return json({ error: "invalid_signature" }, 400);
+  }
+
+  if (!(STORE_WEBHOOK_EVENTS as readonly string[]).includes(event.type)) {
+    return json({ received: true, ignored: event.type });
+  }
+
+  const session = event.data.object as Stripe.Checkout.Session;
+  const workspaceId = session.metadata?.workspace_id;
+  if (workspaceId !== candidateWs || session.metadata?.source !== "store") {
+    return json({ received: true, ignored: "not_store_session" });
+  }
+
+  const action = decideAction(event.type, session as any);
+  logStep("Verified event", { type: event.type, eventId: event.id, sessionId: session.id, action });
+  if (action === "ignore") return json({ received: true, ignored: "no_action" });
+
+  // Idempotência por evento + workspace
+  const { error: dupErr } = await supabaseClient.from("store_webhook_events").insert({
+    workspace_id: workspaceId, stripe_event_id: event.id, event_type: event.type,
+    store_order_id: UUID_RE.test(session.metadata?.store_order_id || "") ? session.metadata!.store_order_id : null,
+  });
+  if (dupErr) {
+    if ((dupErr as any).code === "23505") return json({ received: true, duplicate: true });
+    logStep("Event log insert failed", { message: dupErr.message });
+    return json({ error: "event_log_failed" }, 500);
+  }
+  const setOutcome = (outcome: string) =>
+    supabaseClient.from("store_webhook_events").update({ outcome })
+      .eq("workspace_id", workspaceId).eq("stripe_event_id", event.id);
+
+  try {
+    const { data: order } = await supabaseClient
+      .from("store_orders")
+      .select("id, workspace_id, status, total, currency, stripe_session_id")
+      .eq("workspace_id", workspaceId)
+      .eq("stripe_session_id", session.id)
+      .maybeSingle();
+
+    if (!order) { await setOutcome("order_not_found"); return json({ received: true, outcome: "order_not_found" }); }
+
+    const valid = validateSessionAgainstOrder(session as any, order as any, workspaceId);
+    if (!valid.ok) {
+      logStep("Rejected: session/order mismatch", { orderId: order.id, reason: valid.reason });
+      await setOutcome(`rejected:${valid.reason}`);
+      return json({ received: true, outcome: valid.reason });
     }
 
-    // Handle payment_intent.payment_failed
-    if (event.type === "payment_intent.payment_failed") {
-      const intent = event.data.object as Stripe.PaymentIntent;
-      logStep("Payment failed", { intentId: intent.id });
-      // We could update order status but the session ID isn't directly available
+    if (action === "keep_pending") {
+      await supabaseClient.from("store_orders")
+        .update({ stripe_payment_intent_id: (session.payment_intent as string) || null, updated_at: new Date().toISOString() })
+        .eq("id", order.id).eq("workspace_id", workspaceId).eq("status", "pending");
+      await setOutcome("pending_async");
+      return json({ received: true, outcome: "pending" });
     }
 
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    if (!canTransition(order.status, action)) {
+      await setOutcome(`noop:${order.status}`);
+      return json({ received: true, outcome: "already_" + order.status });
+    }
+
+    if (action === "mark_failed") {
+      const { data: rows } = await supabaseClient.from("store_orders")
+        .update({ status: "failed", updated_at: new Date().toISOString() })
+        .eq("id", order.id).eq("workspace_id", workspaceId)
+        .in("status", PAYABLE_FROM_STATUSES as unknown as string[])
+        .select("id");
+      await setOutcome(rows?.length ? "failed" : "noop:race");
+      return json({ received: true, outcome: "failed" });
+    }
+
+    // mark_paid — transição atómica condicional; só um evento consegue a linha.
+    const ship = (session as any).collected_information?.shipping_details ?? (session as any).shipping_details;
+    const { data: paidRows, error: payErr } = await supabaseClient.from("store_orders")
+      .update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        stripe_payment_intent_id: (session.payment_intent as string) || null,
+        ...(ship?.address ? { shipping_address: {
+          name: ship.name, line1: ship.address.line1, line2: ship.address.line2, city: ship.address.city,
+          state: ship.address.state, postal_code: ship.address.postal_code, country: ship.address.country,
+        } } : {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", order.id).eq("workspace_id", workspaceId)
+      .in("status", PAYABLE_FROM_STATUSES as unknown as string[])
+      .select();
+    if (payErr) throw payErr;
+    if (!paidRows || paidRows.length !== 1) {
+      await setOutcome("noop:race");
+      return json({ received: true, outcome: "already_processed" });
+    }
+
+    await setOutcome("paid");
+    logStep("Order marked as paid", { orderId: order.id });
+    await runPaidSideEffects(supabaseClient, supabaseUrl, supabaseKey, workspaceId, paidRows[0], session);
+    return json({ received: true, outcome: "paid" });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
-    });
+    // Liberta o registo para o Stripe poder repetir (a transição condicional impede duplicados).
+    await supabaseClient.from("store_webhook_events").delete()
+      .eq("workspace_id", workspaceId).eq("stripe_event_id", event.id).is("outcome", null);
+    logStep("ERROR", { message: error instanceof Error ? error.message : String(error) });
+    return json({ error: "processing_failed" }, 500);
   }
 });

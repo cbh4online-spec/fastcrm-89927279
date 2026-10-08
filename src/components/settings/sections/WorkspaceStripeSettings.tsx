@@ -24,6 +24,8 @@ export function WorkspaceStripeSettings() {
   
   const [secretKey, setSecretKey] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
+  const [storeWebhookSecret, setStoreWebhookSecret] = useState("");
+  const [storeSecretError, setStoreSecretError] = useState<string | null>(null);
   const [publishableKey, setPublishableKey] = useState("");
   const [isActive, setIsActive] = useState(false);
   const [testMode, setTestMode] = useState(true);
@@ -40,7 +42,14 @@ export function WorkspaceStripeSettings() {
   }, [config]);
 
   const handleSave = async () => {
+    const trimmedStore = storeWebhookSecret.trim();
+    if (trimmedStore && !/^whsec_[A-Za-z0-9]{10,200}$/.test(trimmedStore)) {
+      setStoreSecretError("O segredo deve começar por whsec_ e conter só letras e números.");
+      return;
+    }
+    setStoreSecretError(null);
     await saveConfig.mutateAsync({
+      store_webhook_secret: trimmedStore || undefined,
       stripe_secret_key: secretKey || undefined,
       stripe_webhook_secret: webhookSecret || undefined,
       stripe_publishable_key: publishableKey || undefined,
@@ -51,6 +60,7 @@ export function WorkspaceStripeSettings() {
     // Clear sensitive fields after save
     setSecretKey("");
     setWebhookSecret("");
+    setStoreWebhookSecret("");
   };
 
   const handleTestConnection = async () => {
@@ -218,7 +228,7 @@ export function WorkspaceStripeSettings() {
       {/* Webhook Info Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Configuração de Webhooks</CardTitle>
+          <CardTitle>Webhook de Subscrições</CardTitle>
           <CardDescription>
             Configure o endpoint de webhooks no Stripe Dashboard
           </CardDescription>
@@ -236,6 +246,52 @@ export function WorkspaceStripeSettings() {
               </p>
             </AlertDescription>
           </Alert>
+        </CardContent>
+      </Card>
+
+      {/* Store webhook (dedicated secret) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Webhook da Loja Online</CardTitle>
+          <CardDescription>
+            Endpoint próprio para pagamentos da loja (cartão, MB Way, Multibanco). Use um segredo diferente do das subscrições.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <AlertDescription className="space-y-2">
+              <p><strong>URL do Webhook da Loja:</strong></p>
+              <code className="block p-2 bg-muted rounded text-sm break-all">
+                {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/store-webhook`}
+              </code>
+              <p className="text-xs mt-2">
+                Eventos obrigatórios: <code>checkout.session.completed</code>,{" "}
+                <code>checkout.session.async_payment_succeeded</code>,{" "}
+                <code>checkout.session.async_payment_failed</code>
+              </p>
+              <p className="text-xs">Sem este segredo, a loja não confirma pagamentos.</p>
+            </AlertDescription>
+          </Alert>
+          <div className="space-y-2">
+            <Label htmlFor="store-webhook-secret">Segredo do webhook da loja (whsec_...)</Label>
+            <Input
+              id="store-webhook-secret"
+              type="password"
+              autoComplete="off"
+              maxLength={210}
+              placeholder={config?.store_webhook_secret_encrypted ? "••••••••••••••••••••" : "whsec_..."}
+              value={storeWebhookSecret}
+              onChange={(e) => setStoreWebhookSecret(e.target.value)}
+              aria-invalid={!!storeSecretError}
+              aria-describedby={storeSecretError ? "store-webhook-secret-error" : undefined}
+            />
+            {storeSecretError && (
+              <p id="store-webhook-secret-error" className="text-xs text-destructive">{storeSecretError}</p>
+            )}
+            {config?.store_webhook_secret_encrypted && !storeWebhookSecret && (
+              <p className="text-xs text-muted-foreground">Segredo já configurado. Deixe em branco para manter o atual.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

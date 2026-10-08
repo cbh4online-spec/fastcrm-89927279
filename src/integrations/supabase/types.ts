@@ -89569,6 +89569,36 @@ export type Database = {
           },
         ]
       }
+      store_webhook_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          outcome: string | null
+          store_order_id: string | null
+          stripe_event_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          outcome?: string | null
+          store_order_id?: string | null
+          stripe_event_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          outcome?: string | null
+          store_order_id?: string | null
+          stripe_event_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       store_wishlist: {
         Row: {
           created_at: string
@@ -105325,6 +105355,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean | null
+          store_webhook_secret_encrypted: string | null
           stripe_account_id: string | null
           stripe_publishable_key: string | null
           stripe_secret_key_encrypted: string | null
@@ -105337,6 +105368,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          store_webhook_secret_encrypted?: string | null
           stripe_account_id?: string | null
           stripe_publishable_key?: string | null
           stripe_secret_key_encrypted?: string | null
@@ -105349,6 +105381,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          store_webhook_secret_encrypted?: string | null
           stripe_account_id?: string | null
           stripe_publishable_key?: string | null
           stripe_secret_key_encrypted?: string | null
