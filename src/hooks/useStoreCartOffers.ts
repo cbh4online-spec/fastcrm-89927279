@@ -11,6 +11,7 @@ import {
   type RelationType,
 } from "@/lib/ai-commerce/relationIntent";
 import type { CartItem } from "@/stores/useStoreCartStore";
+import { aggregateQuantities, evaluateLineStock } from "@/lib/store/cartStock";
 
 /**
  * Ofertas do carrinho / checkout alinhadas com o AI Commerce.
@@ -281,6 +282,9 @@ export function useStoreCartOffers(
     unavailable: query.data?.unavailable ?? [],
     hasBlockingIssue: (query.data?.unavailable.length ?? 0) > 0,
     isLoading: query.isLoading,
+    /** A confirmar disponibilidade (inclui refetch): não deixar avançar. */
+    isChecking: query.isFetching,
+    isError: query.isError,
     refetch: query.refetch,
   };
 }
