@@ -7,9 +7,10 @@ interface StoreFreeShippingBarProps {
   threshold?: number;
 }
 
-const FREE_SHIPPING_THRESHOLD = 50;
 
-export function StoreFreeShippingBar({ subtotal, threshold = FREE_SHIPPING_THRESHOLD }: StoreFreeShippingBarProps) {
+export function StoreFreeShippingBar({ subtotal, threshold }: StoreFreeShippingBarProps) {
+  // Sem limiar real configurado e aplicado no checkout, não prometer portes grátis.
+  if (!threshold || threshold <= 0) return null;
   const remaining = Math.max(0, threshold - subtotal);
   const progress = Math.min(100, (subtotal / threshold) * 100);
   const achieved = remaining <= 0;

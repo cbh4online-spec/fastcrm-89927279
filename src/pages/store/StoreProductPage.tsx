@@ -920,7 +920,7 @@ export default function StoreProductPage() {
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Truck className="h-3.5 w-3.5 text-primary" />
-                    <span>Envio Grátis</span>
+                    <span>Portes calculados no checkout</span>
                   </div>
                   <div className="h-3 w-px bg-border" />
                   <div className="flex items-center gap-1">
