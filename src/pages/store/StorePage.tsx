@@ -15,7 +15,6 @@ import { countActiveFilters, type StoreFilters } from "@/components/store/StoreF
 import {
   applyClientFilters,
   applyClientSort,
-  getBrandFacets,
   isServerSort,
 } from "@/lib/store/catalogClientFilters";
 
@@ -25,7 +24,7 @@ import { StoreCatalogSection } from "@/components/store/storefront/StoreCatalogS
 import { StoreLiveSalesNotification } from "@/components/store/StoreLiveSalesNotification";
 import { StoreExitIntentPopup } from "@/components/store/StoreExitIntentPopup";
 import { StorePersonalizedSection } from "@/components/store/StorePersonalizedSection";
-import { useStoreProducts, useStoreCategories, useInfiniteStoreProducts } from "@/hooks/useStoreProducts";
+import { useStoreProducts, useStoreCategories, useInfiniteStoreProducts, useStoreBrandFacets } from "@/hooks/useStoreProducts";
 import { useStoreTierPricing } from "@/hooks/useStoreTierPricing";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
@@ -60,9 +59,10 @@ export default function StorePage() {
     sortBy: isServerSort(filters.sortBy) ? filters.sortBy : undefined,
     minPrice: filters.minPrice,
     maxPrice: filters.maxPrice,
+    brands: filters.brands,
   });
 
-  const allStoreProducts = useMemo(() => infiniteData?.pages.flat() ?? [], [infiniteData]);
+  const allStoreProducts = useMemo(() => infiniteData?.pages.flatMap((p) => p.items) ?? [], [infiniteData]);
 
   const sentinelRef = useInfiniteScroll({ hasNextPage: !!hasNextPage, isFetchingNextPage, fetchNextPage });
 
@@ -80,7 +80,8 @@ export default function StorePage() {
 
   const allProducts = useMemo(() => [...allStoreProducts, ...mappedC2CProducts] as any[], [allStoreProducts, mappedC2CProducts]);
 
-  const brandFacets = useMemo(() => getBrandFacets(allProducts), [allProducts]);
+  const { data: brandFacets = [] } = useStoreBrandFacets(wsId);
+  const catalogTotal = (infiniteData?.pages[0]?.total ?? 0) + mappedC2CProducts.length;
 
   // Filtros e ordenações não cobertos pela consulta ao servidor
   const products = useMemo(() => {
@@ -151,6 +152,7 @@ export default function StorePage() {
               onClearSearch={() => setSearch("")}
               storeName={storeName}
               brandFacets={brandFacets}
+              totalCount={catalogTotal}
 
               isLoading={isLoading}
               isFiltering={isFiltering}

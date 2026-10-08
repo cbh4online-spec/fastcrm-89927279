@@ -1,3 +1,4 @@
+import { sortRecommended, type RankableProduct } from "@/lib/store/recommendedRank";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -154,65 +155,96 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
 
 const PAGE_SIZE = 12;
 
-export function useInfiniteStoreProducts({ workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy }: UseStoreProductsOptions) {
+export interface InfiniteStoreProductsOptions extends UseStoreProductsOptions {
+  brands?: string[];
+}
+
+const FULL_SELECT = "id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, brand";
+
+/**
+ * Catálogo paginado. Constrói primeiro um índice leve de TODO o catálogo que
+ * corresponde aos filtros (para contagem real e ordenação "Recomendados") e
+ * depois carrega os detalhes apenas da página pedida.
+ */
+export function useInfiniteStoreProducts({ workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy, brands }: InfiniteStoreProductsOptions) {
   return useInfiniteQuery({
-    queryKey: ["store-products-infinite", workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy],
+    queryKey: ["store-products-infinite", workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy, brands?.join("|") || ""],
     queryFn: async ({ pageParam = 0 }) => {
       const normalizedSearch = normalizeStorefrontSearchTerm(search);
       const variantMatches = await findVariantReferences(workspaceId, normalizedSearch);
-      let query = supabase
-        .from("products")
-        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
-        .eq("workspace_id", workspaceId)
-        .eq("store_published", true)
-        .eq("ai_commerce_gate_blocked", false)
-        .eq("status", "active");
+      const base = (select: string) => {
+        let q = supabase
+          .from("products")
+          .select(select)
+          .eq("workspace_id", workspaceId!)
+          .eq("store_published", true)
+          .eq("ai_commerce_gate_blocked", false)
+          .eq("status", "active");
+        if (categoryId) q = q.eq("store_category_id", categoryId);
+        else if (category) q = q.eq("category", category);
+        if (normalizedSearch) q = q.or(buildStorefrontProductSearchFilter(normalizedSearch, variantMatches.map((m) => m.product_id)));
+        if (featured) q = q.eq("store_featured", true);
+        if (minPrice !== undefined) q = q.gte("base_price", minPrice);
+        if (maxPrice !== undefined) q = q.lte("base_price", maxPrice);
+        if (brands?.length) q = q.in("brand", brands);
+        return q;
+      };
 
-      if (categoryId) {
-        query = query.eq("store_category_id", categoryId);
-      } else if (category) {
-        query = query.eq("category", category);
-      }
-
-      if (normalizedSearch) {
-        query = query.or(buildStorefrontProductSearchFilter(normalizedSearch, variantMatches.map((match) => match.product_id)));
-      }
-
-      if (featured) {
-        query = query.eq("store_featured", true);
-      }
-
-      if (minPrice !== undefined) {
-        query = query.gte("base_price", minPrice);
-      }
-      if (maxPrice !== undefined) {
-        query = query.lte("base_price", maxPrice);
-      }
-
-      if (sortBy === "price_asc") {
-        query = query.order("base_price", { ascending: true });
-      } else if (sortBy === "price_desc") {
-        query = query.order("base_price", { ascending: false });
-      } else if (sortBy === "newest") {
-        query = query.order("created_at", { ascending: false });
-      } else {
-        query = query.order("store_sort_order", { ascending: true }).order("name", { ascending: true });
-      }
+      let index = base("id, name, base_price, created_at, store_sort_order, store_featured, stock_status");
+      if (sortBy === "price_asc") index = index.order("base_price", { ascending: true });
+      else if (sortBy === "price_desc") index = index.order("base_price", { ascending: false });
+      else if (sortBy === "newest") index = index.order("created_at", { ascending: false });
+      else index = index.order("name", { ascending: true });
+      const { data: idx, error: idxErr } = await index.limit(5000);
+      if (idxErr) throw idxErr;
+      let ordered = (idx || []) as unknown as RankableProduct[];
+      if (!sortBy) ordered = sortRecommended(ordered);
 
       const from = pageParam * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      query = query.range(from, to);
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return addMatchedReferences((data || []) as StoreProduct[], normalizedSearch, variantMatches);
+      const pageIds = ordered.slice(from, from + PAGE_SIZE).map((p) => p.id);
+      let items: StoreProduct[] = [];
+      if (pageIds.length) {
+        const { data, error } = await base(FULL_SELECT).in("id", pageIds);
+        if (error) throw error;
+        const byId = new Map(((data || []) as unknown as StoreProduct[]).map((p) => [p.id, p]));
+        items = pageIds.map((id) => byId.get(id)).filter(Boolean) as StoreProduct[];
+      }
+      return {
+        items: addMatchedReferences(items, normalizedSearch, variantMatches),
+        total: ordered.length,
+        hasMore: from + PAGE_SIZE < ordered.length,
+      };
     },
     initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < PAGE_SIZE) return undefined;
-      return allPages.length;
-    },
+    getNextPageParam: (lastPage, allPages) => (lastPage.hasMore ? allPages.length : undefined),
     enabled: !!workspaceId,
+  });
+}
+
+/** Marcas reais de todo o catálogo publicado (coluna brand), com contagem. */
+export function useStoreBrandFacets(workspaceId?: string) {
+  return useQuery({
+    queryKey: ["store-brand-facets", workspaceId],
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("brand")
+        .eq("workspace_id", workspaceId!)
+        .eq("store_published", true)
+        .eq("ai_commerce_gate_blocked", false)
+        .eq("status", "active")
+        .not("brand", "is", null)
+        .limit(5000);
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const r of (data || []) as { brand: string | null }[]) {
+        const b = (r.brand || "").trim();
+        if (b) map.set(b, (map.get(b) || 0) + 1);
+      }
+      return Array.from(map, ([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value, "pt"));
+    },
   });
 }
 
