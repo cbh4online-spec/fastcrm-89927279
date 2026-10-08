@@ -58,6 +58,14 @@ export default function StoreCheckoutPage() {
     }
     setTermsError(null);
     if (!form.validateStep2()) return;
+    if (pricing.shippingLoading) {
+      toast.info("A calcular os portes…");
+      return;
+    }
+    if (pricing.shippingError || !pricing.selectedCttOption) {
+      toast.error("Não foi possível calcular os portes. Escolha um método de envio ou tente novamente.");
+      return;
+    }
 
     // Nunca perder a venda: revalidar disponibilidade real antes de pagar.
     const fresh = await offers.refetch();

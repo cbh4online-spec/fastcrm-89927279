@@ -35,6 +35,7 @@ export function useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmai
   const [selectedShippingId, setSelectedShippingId] = useState("");
   const [cttOptions, setCttOptions] = useState<CTTShippingOption[]>([]);
   const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState(false);
   const [totalWeight, setTotalWeight] = useState(0);
   const [overWeight, setOverWeight] = useState(false);
 
@@ -76,6 +77,7 @@ export function useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmai
     if (totalWeight <= 0) return;
     const fetchShipping = async () => {
       setShippingLoading(true);
+      setShippingError(false);
       try {
         const { data, error } = await supabase.functions.invoke("calculate-shipping", {
           body: { totalWeightKg: totalWeight },
@@ -86,9 +88,11 @@ export function useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmai
           if (data.options?.length > 0 && !selectedShippingId) {
             setSelectedShippingId(data.options[0].id);
           }
+        } else {
+          setShippingError(true);
         }
       } catch {
-        // fallback: no shipping options
+        setShippingError(true);
       } finally {
         setShippingLoading(false);
       }
@@ -195,6 +199,7 @@ export function useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmai
     setSelectedShippingId,
     cttOptions,
     shippingLoading,
+    shippingError,
     totalWeight,
     overWeight,
     selectedCttOption,
