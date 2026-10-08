@@ -37,8 +37,8 @@ export function StoreFooter({ workspaceSlug, storeName, categories = [], footerT
                 <Truck className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Entrega Rápida</p>
-                <p className="text-[11px] text-muted-foreground">Receba em 3-5 dias úteis</p>
+                <p className="text-sm font-semibold text-foreground">Envio</p>
+                <p className="text-[11px] text-muted-foreground">Custos indicados antes de pagar</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-background/60">
@@ -161,8 +161,8 @@ export function StoreFooter({ workspaceSlug, storeName, categories = [], footerT
             <h4 className="font-semibold text-foreground mb-3">Informação Legal</h4>
             <ul className="space-y-2 text-muted-foreground">
               <li>
-                <Link to="/terms" className="hover:text-foreground transition-colors">
-                  Termos e Condições
+                <Link to={`/store/${workspaceSlug}/terms`} className="hover:text-foreground transition-colors">
+                  Condições de Venda
                 </Link>
               </li>
               <li>
@@ -214,23 +214,23 @@ export function StoreFooter({ workspaceSlug, storeName, categories = [], footerT
             </a>
             <span className="hidden sm:inline text-muted-foreground/50">|</span>
             <a
-              href="https://ec.europa.eu/consumers/odr"
+              href="https://www.consumidor.gov.pt/parceiros/sistema-de-defesa-do-consumidor/entidades-de-resolucao-alternativa-de-litigios-de-consumo"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 hover:text-foreground transition-colors font-medium"
             >
               <Scale className="h-3 w-3" />
-              Resolução de Litígios em Linha (RAL)
+              Entidades de Resolução Alternativa de Litígios (RAL)
               <ExternalLink className="h-2.5 w-2.5" />
             </a>
           </div>
 
           <p className="text-center text-[10px]">
-            Em caso de litígio, o consumidor pode recorrer à Plataforma Europeia de Resolução de Litígios em Linha, disponível em{" "}
-            <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
-              ec.europa.eu/consumers/odr
+            Em caso de litígio de consumo, o consumidor pode recorrer a uma entidade de Resolução Alternativa de Litígios de Consumo, nos termos da Lei n.º 144/2015, consultando a lista em{" "}
+            <a href="https://www.consumidor.gov.pt/parceiros/sistema-de-defesa-do-consumidor/entidades-de-resolucao-alternativa-de-litigios-de-consumo" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+              consumidor.gov.pt
             </a>
-            , nos termos do Regulamento (UE) 524/2013 e do DL 144/2015.
+            .
           </p>
         </div>
 

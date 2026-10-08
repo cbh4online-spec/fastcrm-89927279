@@ -19,6 +19,7 @@ const BRAND_KEYS = ["marca", "brand", "fabricante", "manufacturer"];
 
 /** Deriva a marca a partir das especificações do produto. */
 export function getProductBrand(product: any): string | null {
+  if (typeof product?.brand === "string" && product.brand.trim()) return product.brand.trim();
   const specs = product?.specifications;
   if (!specs || typeof specs !== "object") return null;
   for (const [key, value] of Object.entries(specs as Record<string, unknown>)) {

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStorageGet } from "@/lib/browser/safeBrowser";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { supabase } from "@/integrations/supabase/client";
 import { Sentry } from "@/lib/sentry";
@@ -40,7 +41,7 @@ const SYNC_DEBOUNCE_MS = 2000;
 const syncTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function syncToDb(items: CartItem[], subtotal: number) {
-  const sessionId = localStorage.getItem(SESSION_KEY);
+  const sessionId = safeStorageGet("local", SESSION_KEY);
   if (!sessionId) return;
 
   const cartData =

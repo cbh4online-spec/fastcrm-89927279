@@ -73,9 +73,6 @@ export function StoreHeroCarousel({ products, workspaceSlug, storeName, storeDes
               {storeDescription}
             </p>
           )}
-          <p className="text-base text-primary-foreground/60 max-w-lg mx-auto mt-2">
-            Descubra soluções premium pensadas para si.
-          </p>
           <Button
             size="lg"
             variant="secondary"

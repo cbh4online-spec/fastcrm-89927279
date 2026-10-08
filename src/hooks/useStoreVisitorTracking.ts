@@ -1,20 +1,21 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVisitorScoreTracker } from "@/hooks/useVisitorScore";
+import { getOrCreateSessionId, safeStorageGet } from "@/lib/browser/safeBrowser";
 
 const CONSENT_STORAGE_KEY = "gdpr_consent";
 const GDPR_VISITOR_ID_KEY = "gdpr_visitor_id";
 
 function getConsentState() {
   try {
-    const stored = localStorage.getItem(CONSENT_STORAGE_KEY);
+    const stored = safeStorageGet("local", CONSENT_STORAGE_KEY);
     if (stored) return JSON.parse(stored) as { analytics: boolean; marketing: boolean; hasConsented: boolean };
   } catch {}
   return { analytics: false, marketing: false, hasConsented: false };
 }
 
 function getGdprVisitorId(): string | null {
-  return localStorage.getItem(GDPR_VISITOR_ID_KEY) || null;
+  return safeStorageGet("local", GDPR_VISITOR_ID_KEY) || null;
 }
 
 const SESSION_KEY = "store_view_session_id";
@@ -24,12 +25,7 @@ const CLASSIFY_TIME_THRESHOLD = 120; // 2 minutes
 const SCROLL_THROTTLE_MS = 1_000;
 
 function getSessionId(): string {
-  let sid = localStorage.getItem(SESSION_KEY);
-  if (!sid) {
-    sid = crypto.randomUUID();
-    localStorage.setItem(SESSION_KEY, sid);
-  }
-  return sid;
+  return getOrCreateSessionId(SESSION_KEY);
 }
 
 function getDeviceType(): string {
