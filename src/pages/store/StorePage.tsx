@@ -21,7 +21,6 @@ import {
 import { StoreSeoHead } from "@/components/store/storefront/StoreSeoHead";
 import { StoreHeroSections } from "@/components/store/storefront/StoreHeroSections";
 import { StoreCatalogSection } from "@/components/store/storefront/StoreCatalogSection";
-import { StoreLiveSalesNotification } from "@/components/store/StoreLiveSalesNotification";
 import { StoreExitIntentPopup } from "@/components/store/StoreExitIntentPopup";
 import { StorePersonalizedSection } from "@/components/store/StorePersonalizedSection";
 import { useStoreProducts, useStoreCategories, useInfiniteStoreProducts, useStoreBrandFacets } from "@/hooks/useStoreProducts";
@@ -212,10 +211,6 @@ export default function StorePage() {
             <StoreCompareBar />
             <StoreCompareModal workspaceSlug={wsSlug} tierPricing={tierPricing} reviewStats={reviewStats} />
 
-            {/* FOMO Notifications */}
-            {wsId && allProducts.length > 0 && (
-              <StoreLiveSalesNotification workspaceId={wsId} products={allProducts} />
-            )}
 
             {/* Exit Intent Popup */}
             <StoreExitIntentPopup workspaceSlug={wsSlug} />
