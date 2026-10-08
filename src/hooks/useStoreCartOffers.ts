@@ -219,29 +219,28 @@ export function useStoreCartOffers(
 
       // 4. Artigos indisponíveis + alternativas equivalentes reais.
       const unavailable: CartUnavailableItem[] = [];
-      // Mesma regra da ficha de produto: só bloqueia se estiver despublicado,
-      // inativo ou com stock_status "out_of_stock". Quantidades nulas/reservas
-      // não bloqueiam (produtos sob encomenda ou stock não contabilizado).
+      // Regra única (src/lib/store/cartStock.ts, espelhada no servidor):
+      // track_stock real + quantidade − reservado; linhas repetidas somadas.
+      const totals = aggregateQuantities(items);
       for (const item of items) {
         const product = cartById.get(item.productId);
-        const available = null as number | null;
-        const sellable = product
+        const published = product
           ? isRelationAvailable(
-              { ...toFacts(product), trackStock: false, stockQuantity: null },
+              { ...toFacts(product), trackStock: false, stockQuantity: null, stockStatus: null },
               { requireStorePublished: true },
             )
           : false;
-        const enoughStock = true;
+        const stock = product ? evaluateLineStock(product, totals.get(item.productId) ?? item.quantity) : null;
 
-        if (sellable && enoughStock) continue;
+        if (published && stock?.ok) continue;
 
-        const reason: CartUnavailableItem["reason"] = !product
+        const available = stock && !stock.ok ? stock.available : 0;
+        const sellable = published && available > 0;
+        const reason: CartUnavailableItem["reason"] = !published
           ? "unpublished"
-          : product.store_published === false || product.status !== "active"
-            ? "unpublished"
-            : sellable
-              ? "insufficient_stock"
-              : "out_of_stock";
+          : stock && !stock.ok
+            ? stock.reason
+            : "out_of_stock";
 
         const sourcePrice = product ? Number(product.base_price ?? 0) : item.price;
         const ranked = rankRelationOffers<RawProduct>(buildOffers(item.productId, SUBSTITUTE_TYPES), {
