@@ -38,6 +38,7 @@ vi.mock("@/components/store/checkout/useCheckoutPricing", () => ({
   }),
 }));
 
+(globalThis as any).ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} };
 import StoreCheckoutPage from "@/pages/store/StoreCheckoutPage";
 
 const checkoutCalls = () => invoke.mock.calls.filter((c) => c[0] === "create-store-checkout");
