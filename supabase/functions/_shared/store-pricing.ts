@@ -99,7 +99,7 @@ export async function resolveStoreProducts(
   const { data: products, error } = await supabase
     .from("products")
     .select(
-      "id, name, base_price, currency, sku, short_description, images, primary_image_index, stock_quantity, stock_reserved, track_stock, stock_status, weight, billing_type, billing_frequency, category_id",
+      "id, name, base_price, currency, sku, short_description, images, primary_image_index, stock_quantity, stock_reserved, track_stock, stock_status, weight, billing_type, billing_frequency, category_id:store_category_id",
     )
     .eq("workspace_id", workspaceId)
     .eq("store_published", true)
