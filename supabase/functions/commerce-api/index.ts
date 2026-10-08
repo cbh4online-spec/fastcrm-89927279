@@ -350,7 +350,12 @@ Deno.serve(async (req) => {
         workspaceSlug,
         ...feedFilters,
         storeName: settings?.store_name || null,
-        storeUrl: `${baseUrl.replace(/\/$/, "")}/store/${workspaceSlug}`,
+        // Mesmo domínio público dos links de produto (canonical_url), nunca o host interno.
+        storeUrl: (() => {
+          const canonical = rows.map((r) => r.product.canonical_url).find((u) => typeof u === "string" && /^https:\/\//.test(u));
+          const origin = canonical ? new URL(canonical).origin : baseUrl.replace(/^http:/, "https:").replace(/\/$/, "");
+          return `${origin}/store/${workspaceSlug}`;
+        })(),
       };
       const started = Date.now();
       const result = buildFeed(feed.channel as FeedChannel, rows, ctx);
