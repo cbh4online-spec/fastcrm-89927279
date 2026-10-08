@@ -15,6 +15,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StoreCatalogSectionProps {
+  totalCount?: number;
   products: any[];
   allProducts: any[];
   categories: any[];
