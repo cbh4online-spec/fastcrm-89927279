@@ -344,6 +344,13 @@
       "when": 1791455157256,
       "tag": "0048_restrict_category_autocreate_to_ajax",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1791455393056,
+      "tag": "0049_restrict_public_category_tree_hidden",
+      "breakpoints": true
     }
   ]
 }
