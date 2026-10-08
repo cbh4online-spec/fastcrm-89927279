@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { getStoreCartStore, type CartItem } from "@/stores/useStoreCartStore";
 import { useStore } from "zustand";
 
@@ -20,8 +20,9 @@ interface StoreCartContextType {
 const StoreCartContext = createContext<StoreCartContextType | null>(null);
 
 export function StoreCartProvider({ children }: { children: ReactNode }) {
-  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const slug = workspaceSlug || "_default";
+  // O provider está acima das rotas: useParams não vê o slug, por isso lê-se do endereço.
+  const { pathname } = useLocation();
+  const slug = pathname.match(/^\/store\/([^/]+)/)?.[1] || "_default";
 
   const store = useMemo(() => getStoreCartStore(slug), [slug]);
 

@@ -17,6 +17,7 @@ const StoreGiftCardsPage = lazy(() => import("@/pages/store/StoreGiftCardsPage")
 const StoreRecoverCartPage = lazy(() => import("@/pages/store/StoreRecoverCartPage"));
 const StoreSellerPage = lazy(() => import("@/pages/store/StoreSellerPage"));
 const StoreOrderTrackingPage = lazy(() => import("@/pages/store/StoreOrderTrackingPage"));
+const StoreTermsPage = lazy(() => import("@/pages/store/StoreTermsPage"));
 const StoreCatalogViewPage = lazy(() => import("@/pages/store/StoreCatalogViewPage"));
 
 export function StoreRoutes() {
@@ -40,6 +41,7 @@ export function StoreRoutes() {
         <Route path=":workspaceSlug/recover/:token" element={<StoreRecoverCartPage />} />
         <Route path=":workspaceSlug/seller/:sellerSlug" element={<StoreSellerPage />} />
         <Route path=":workspaceSlug/order/:orderId" element={<StoreOrderTrackingPage />} />
+        <Route path=":workspaceSlug/terms" element={<StoreTermsPage />} />
         <Route path=":workspaceSlug/catalog/:catalogSlug" element={<StoreCatalogViewPage />} />
       </Routes>
     </StoreCartProvider>
