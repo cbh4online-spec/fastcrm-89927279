@@ -44,6 +44,7 @@ import { useProspectingCadenceLauncher } from "@/hooks/useProspectingCadenceLaun
 import { useBioContactEnrich } from "@/hooks/useBioContactEnrich";
 import { BulkOutreachDialog } from "@/components/professional-prospecting/BulkOutreachDialog";
 import { PendingOutreachPanel } from "@/components/professional-prospecting/PendingOutreachPanel";
+import { ProspectingEffectivenessCard } from "@/components/professional-prospecting/ProspectingEffectivenessCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -208,6 +209,8 @@ export default function ProspectingInstagramExtractor() {
           <h1 className="text-xl font-semibold">Extrator de perfis de Instagram</h1>
         </div>
       </div>
+
+      <ProspectingEffectivenessCard />
 
       <PendingOutreachPanel />
 
