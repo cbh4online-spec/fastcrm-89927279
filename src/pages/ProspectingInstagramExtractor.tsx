@@ -41,6 +41,7 @@ import {
   useInstagramExtractionResults,
 } from "@/hooks/useInstagramExtraction";
 import { useProspectingCadenceLauncher } from "@/hooks/useProspectingCadenceLauncher";
+import { useBioContactEnrich } from "@/hooks/useBioContactEnrich";
 import { BulkOutreachDialog } from "@/components/professional-prospecting/BulkOutreachDialog";
 import { PendingOutreachPanel } from "@/components/professional-prospecting/PendingOutreachPanel";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,6 +94,7 @@ export default function ProspectingInstagramExtractor() {
   const [contactFilter, setContactFilter] = useState<ContactFilter>("all");
   const [minFollowers, setMinFollowers] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const bioEnrich = useBioContactEnrich();
 
   const selectedJob = activeJob ?? jobs[0] ?? null;
   const jobIdForResults = scope === "current" ? selectedJob?.id ?? null : null;
@@ -362,6 +364,16 @@ export default function ProspectingInstagramExtractor() {
               </Button>
               <Button size="sm" variant="outline" onClick={() => handleExport(filtered, true)} disabled={withEmail + withPhone === 0}>
                 <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar contactos
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => bioEnrich.mutate(selectedProfiles.map((p) => p.id))}
+                disabled={selectedProfiles.length === 0 || bioEnrich.isPending}
+                title="Lê o link da bio (Linktree, site) e preenche telefone/email em falta. Até 25 perfis."
+              >
+                <Search className="mr-1.5 h-3.5 w-3.5" />
+                {bioEnrich.isPending ? "A procurar…" : "Procurar contacto na bio"}
               </Button>
               <Button
                 size="sm"

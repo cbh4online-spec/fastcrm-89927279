@@ -6,6 +6,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { validateWebhook, logSecurityEvent, getRemoteIp } from '../_shared/hmac.ts';
 import { extractGroupIdFromPayload, normalizeParticipantId } from '../_shared/whatsappGroups.ts';
+import { phoneOptOutVariants } from '../_shared/phoneVariants.ts';
 
 
 function jsonRes(body: Record<string, unknown>, status = 200) {
@@ -286,6 +287,41 @@ Deno.serve(async (req) => {
           leadId = newLead.id;
           console.log(`[zapi-webhook] LEAD_CREATED id=${leadId} phone=${senderPhone}`);
         }
+      }
+    }
+
+    // Paragem da cadência de prospeção: qualquer resposta real do contacto
+    // cancela os follow-ups ainda por enviar (nunca falha o webhook).
+    if (!isGroup && direction === 'inbound' && senderPhone) {
+      try {
+        const variants = phoneOptOutVariants(senderPhone);
+        const orParts = [
+          ...(leadId ? [`converted_lead_id.eq.${leadId}`] : []),
+          ...variants.map((v) => `extracted_phone.eq.${v}`),
+        ];
+        if (orParts.length) {
+          const { data: profs } = await admin
+            .from('professional_prospecting_profiles')
+            .select('id')
+            .eq('workspace_id', workspaceId)
+            .or(orParts.join(','))
+            .limit(20);
+          const ids = (profs ?? []).map((p: { id: string }) => p.id);
+          if (ids.length) {
+            const { data: stopped } = await admin
+              .from('prospecting_outreach_queue')
+              .update({ status: 'cancelled' })
+              .eq('workspace_id', workspaceId)
+              .in('profile_id', ids)
+              .in('status', ['scheduled', 'ready'])
+              .select('id');
+            if (stopped?.length) {
+              console.log(`[zapi-webhook] CADENCE_STOPPED ws=${workspaceId} cancelled=${stopped.length}`);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`[zapi-webhook] cadence stop failed: ${(e as Error).message}`);
       }
     }
 
