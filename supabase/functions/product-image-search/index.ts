@@ -118,7 +118,7 @@ function upgradeThumb(url: string): string {
 /** Extrai URLs de imagem do HTML (src, data-src, data-original, srcset, href). */
 function extractImageUrlsFromHtml(html: string, base: string): string[] {
   const out: string[] = []
-  const attrRe = /(?:src|data-src|data-original|data-lazy|data-image|data-zoom-image|data-large|content|href)\s*=\s*["']([^"']+)["']/gi
+  const attrRe = /(?:src|data-src|data-original|data-lazy|data-image|data-zoom-image|data-large|data-full|data-big|data-hires|content|href)\s*=\s*["']([^"']+)["']/gi
   let m: RegExpExecArray | null
   while ((m = attrRe.exec(html)) !== null) {
     const abs = absolutize(m[1], base)
@@ -481,8 +481,9 @@ Deno.serve(async (req) => {
         console.warn('[product-image-search] pageUrl scrape failed', pageUrl, (err as Error).message)
       }
 
-      // 2) Plano B: leitura directa da página quando não vieram imagens
-      if (found.length === 0) {
+      // 2) Complemento: leitura directa da página quando vieram poucas imagens
+      // (ex.: janela de cookies esconde a galeria e só sobra o og:image)
+      if (found.length < 3) {
         try {
           const direct = await fetch(pageUrl, {
             headers: {
