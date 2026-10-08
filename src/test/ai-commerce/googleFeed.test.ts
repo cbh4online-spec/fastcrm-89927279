@@ -107,3 +107,25 @@ describe("feed Google Merchant", () => {
     expect(result.body).toContain("margem-alta");
   });
 });
+
+describe("links do feed Google", () => {
+  const G2 = "http://base.google.com/ns/1.0";
+  const link = (xml: string) =>
+    new DOMParser().parseFromString(xml, "application/xml").getElementsByTagNameNS(G2, "link")[0].textContent;
+
+  it("ignora canonical_url antiga e usa a loja atual + slug atual", () => {
+    const r = rows(1, { canonical_url: "https://fastcrm.metodopare.ai/store/ajax-systems/product/antigo" });
+    r[0].product.store_slug = "aj-hub2plus-w";
+    expect(link(buildFeed("google", r, ctx).body)).toBe("https://fastcrm.metodopare.ai/store/ajax/product/aj-hub2plus-w");
+  });
+
+  it("sem canonical_url usa a loja atual (https), nunca host interno", () => {
+    const r = rows(1, { canonical_url: null });
+    expect(link(buildFeed("google", r, ctx).body)).toBe("https://fastcrm.metodopare.ai/store/ajax/product/produto-1");
+  });
+
+  it("Meta mantém o link canónico existente", () => {
+    const r = rows(1, { canonical_url: "https://fastcrm.metodopare.ai/store/ajax-systems/product/antigo" });
+    expect(buildFeed("meta", r, ctx).body).toContain("/store/ajax-systems/product/antigo");
+  });
+});
