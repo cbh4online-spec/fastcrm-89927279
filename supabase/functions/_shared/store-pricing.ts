@@ -77,6 +77,16 @@ const log = (msg: string, data?: unknown) =>
 /*  resolveStoreProducts                                               */
 /* ------------------------------------------------------------------ */
 
+export function availableToSell(p: {
+  track_stock?: boolean | null;
+  stock_quantity?: number | null;
+  stock_reserved?: number | null;
+}): number | null {
+  if (!p.track_stock || typeof p.stock_quantity !== "number") return null;
+  const reserved = typeof p.stock_reserved === "number" && p.stock_reserved > 0 ? p.stock_reserved : 0;
+  return Math.max(0, Math.floor(p.stock_quantity - reserved));
+}
+
 export async function resolveStoreProducts(
   supabase: any,
   workspaceId: string,
@@ -87,7 +97,7 @@ export async function resolveStoreProducts(
   const { data: products, error } = await supabase
     .from("products")
     .select(
-      "id, name, base_price, currency, sku, short_description, images, primary_image_index, stock_quantity, track_stock, stock_status, billing_type, billing_frequency, category_id",
+      "id, name, base_price, currency, sku, short_description, images, primary_image_index, stock_quantity, stock_reserved, track_stock, stock_status, weight, billing_type, billing_frequency, category_id",
     )
     .eq("workspace_id", workspaceId)
     .eq("store_published", true)
@@ -97,14 +107,23 @@ export async function resolveStoreProducts(
   if (error) throw new Error(`Erro ao carregar produtos: ${error.message}`);
   if (!products || products.length === 0) throw new Error("Nenhum produto válido encontrado");
 
-  // Validate every requested item exists and has stock
+  // Quantidades inteiras e limitadas; linhas repetidas somadas (não contornar o stock).
+  const totals = new Map<string, number>();
   for (const item of items) {
-    const p = products.find((pr: ResolvedProduct) => pr.id === item.productId);
-    if (!p) throw new Error(`Produto ${item.productId} não encontrado ou indisponível`);
-    if (p.track_stock && p.stock_status === "out_of_stock")
-      throw new Error(`"${p.name}" está esgotado`);
-    if (p.track_stock && p.stock_quantity !== null && item.quantity > p.stock_quantity)
-      throw new Error(`Stock insuficiente para "${p.name}". Disponível: ${p.stock_quantity}`);
+    const q = Number(item.quantity);
+    if (!Number.isInteger(q) || q < 1 || q > 999) throw new Error("Quantidade inválida no carrinho");
+    totals.set(item.productId, (totals.get(item.productId) ?? 0) + q);
+  }
+
+  // Regra espelhada em src/lib/store/cartStock.ts: track_stock real − reservado.
+  for (const [productId, requested] of totals) {
+    const p = products.find((pr: ResolvedProduct) => pr.id === productId);
+    if (!p) throw new Error(`Produto ${productId} não encontrado ou indisponível`);
+    if (p.stock_status === "out_of_stock") throw new Error(`"${p.name}" está esgotado`);
+    const available = availableToSell(p);
+    if (available !== null && available <= 0) throw new Error(`"${p.name}" está esgotado`);
+    if (available !== null && requested > available)
+      throw new Error(`Stock insuficiente para "${p.name}". Disponível: ${available}`);
   }
 
   const normalized: NormalizedItem[] = items.map((item) => {
