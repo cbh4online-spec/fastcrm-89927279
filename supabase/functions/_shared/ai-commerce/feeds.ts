@@ -320,6 +320,17 @@ const openaiAdapter: ChannelAdapter = {
   },
 };
 
+/**
+ * Link do produto para o Google: sempre a loja pública atual (ctx.storeUrl) +
+ * slug atual. Ignora canonical_url antigas (ex.: /store/ajax-systems/...).
+ */
+function googleProductLink(product: CommerceProduct, ctx: FeedContext, fallback: string): string {
+  const store = text(ctx.storeUrl).replace(/\/$/, "");
+  if (!/^https:\/\//.test(store)) return fallback;
+  const slug = text(product.store_slug) || product.id;
+  return `${store}/product/${encodeURIComponent(slug)}`;
+}
+
 const googleAdapter: ChannelAdapter = {
   channel: "google",
   label: "Google Merchant",
@@ -334,7 +345,7 @@ const googleAdapter: ChannelAdapter = {
       id: b.id,
       title: b.title.slice(0, 150),
       description: (b.description || text(ai?.ai_long_description)).slice(0, 5000),
-      link: b.link,
+      link: googleProductLink(product, ctx, b.link),
       image_link: b.image_link,
       additional_image_link: extraImages(product).slice(0, 10),
       availability: b.availability,
