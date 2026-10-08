@@ -40,6 +40,11 @@ import {
   useInstagramExtractionJobs,
   useInstagramExtractionResults,
 } from "@/hooks/useInstagramExtraction";
+import { useProspectingCadenceLauncher } from "@/hooks/useProspectingCadenceLauncher";
+import { BulkOutreachDialog } from "@/components/professional-prospecting/BulkOutreachDialog";
+import { PendingOutreachPanel } from "@/components/professional-prospecting/PendingOutreachPanel";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 const SOURCE_LABELS: Record<ExtractionSource, string> = {
   followers: "Seguidores de um perfil",
@@ -98,6 +103,8 @@ export default function ProspectingInstagramExtractor() {
     isJobRunning,
   );
   const importLeads = useInstagramExtractionImport();
+  const cadence = useProspectingCadenceLauncher();
+  const { user } = useAuth();
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -352,6 +359,16 @@ export default function ProspectingInstagramExtractor() {
               </Button>
               <Button size="sm" variant="outline" onClick={() => handleExport(filtered, true)} disabled={withEmail + withPhone === 0}>
                 <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar contactos
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => cadence.start(selectedProfiles)}
+                disabled={selectedProfiles.length === 0 || cadence.isGenerating}
+                title="Mensagem no Instagram hoje, WhatsApp ao dia 3 (se houver telefone) e Instagram ao dia 7"
+              >
+                <Play className="mr-1.5 h-3.5 w-3.5" />
+                Iniciar cadência {selectedProfiles.length > 0 ? `(${selectedProfiles.length})` : ""}
               </Button>
               <Button
                 size="sm"
