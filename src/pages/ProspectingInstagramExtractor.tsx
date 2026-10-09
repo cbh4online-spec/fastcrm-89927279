@@ -332,10 +332,10 @@ export default function ProspectingInstagramExtractor() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={selectedJob.status === "failed" ? "destructive" : "secondary"}>
-                  {STATUS_LABEL[selectedJob.status] ?? selectedJob.status}
+                <Badge variant={jobDisplay?.isError ? "destructive" : "secondary"}>
+                  {jobDisplay?.label}
                 </Badge>
-                {(selectedJob.status === "running" || selectedJob.status === "pending") && (
+                {jobDisplay?.isActive && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -344,7 +344,7 @@ export default function ProspectingInstagramExtractor() {
                     <Pause className="mr-1.5 h-3.5 w-3.5" /> Pausar
                   </Button>
                 )}
-                {selectedJob.status === "paused" && (
+                {jobDisplay?.kind === "paused" && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -353,7 +353,8 @@ export default function ProspectingInstagramExtractor() {
                     <Play className="mr-1.5 h-3.5 w-3.5" /> Retomar
                   </Button>
                 )}
-                {["running", "pending", "paused"].includes(selectedJob.status) && (
+                {["running", "pending", "paused"].includes(selectedJob.status) &&
+                  jobDisplay?.kind !== "failed" && (
                   <Button
                     size="sm"
                     variant="ghost"
@@ -364,9 +365,19 @@ export default function ProspectingInstagramExtractor() {
                 )}
               </div>
             </div>
-            <Progress value={progress} aria-label={`Progresso: ${progress}%`} />
-            {selectedJob.error && (
-              <p className="text-xs text-destructive">{selectedJob.error}</p>
+            {!jobDisplay?.isError && (
+              <Progress value={progress} aria-label={`Progresso: ${progress}%`} />
+            )}
+            {jobDisplay?.isActive && (
+              <p className="text-xs text-muted-foreground">
+                Última atualização{" "}
+                {formatDistanceToNow(new Date(selectedJob.updated_at), { addSuffix: true, locale: pt })}
+              </p>
+            )}
+            {jobDisplay?.message && (
+              <p role={jobDisplay.isError ? "alert" : undefined} className="text-sm text-destructive">
+                {jobDisplay.message}
+              </p>
             )}
           </CardContent>
         </Card>
