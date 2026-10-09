@@ -26,7 +26,7 @@ export function useProspectingSearchHistory(searchType: "web_search" | "google_l
     queryKey: ["prospecting-search-history", currentWorkspace?.id, searchType],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("prospecting_search_history")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -34,7 +34,7 @@ export function useProspectingSearchHistory(searchType: "web_search" | "google_l
         .order("created_at", { ascending: false })
         .limit(20);
       if (error) throw error;
-      return data as ProspectingSearch[];
+      return (data ?? []) as ProspectingSearch[];
     },
     enabled: !!currentWorkspace?.id,
   });
