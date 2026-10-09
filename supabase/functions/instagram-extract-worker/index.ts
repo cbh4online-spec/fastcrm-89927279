@@ -441,8 +441,8 @@ Deno.serve(async (req) => {
                 extraction_job_id: job.id,
                 platform: "instagram",
                 instagram_username: profile.username.toLowerCase(),
-                profile_url: `https://www.instagram.com/${profile.username}/`,
-                profile_link: `https://www.instagram.com/${profile.username}/`,
+                profile_url: `https://www.instagram.com/${profile.username.toLowerCase()}/`,
+                profile_link: `https://www.instagram.com/${profile.username.toLowerCase()}/`,
                 profile_name: profile.fullName,
                 profile_bio: profile.biography,
                 profile_image_url: profile.profilePicUrl,
@@ -463,7 +463,8 @@ Deno.serve(async (req) => {
                 contact_source: contacts.source,
                 status: "pending",
               },
-              { onConflict: "workspace_id,instagram_username" },
+              // Índice único (workspace_id, instagram_username) é parcial e não serve ao ON CONFLICT
+              { onConflict: "workspace_id,profile_url" },
             )
             .select("id")
             .maybeSingle();
