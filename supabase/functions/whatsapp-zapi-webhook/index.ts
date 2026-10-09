@@ -20,6 +20,11 @@ function normalizePhone(raw: string): string {
   return (raw || '').replace(/\D/g, '');
 }
 
+/** Devolve a string apenas quando o campo é uma string não vazia. */
+function str(v: unknown): string {
+  return typeof v === 'string' && v.length > 0 ? v : '';
+}
+
 interface ExtractedMessage {
   content: string;
   messageType: string;
