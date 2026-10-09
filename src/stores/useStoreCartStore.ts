@@ -56,15 +56,11 @@ function syncToDb(items: CartItem[], subtotal: number) {
       : null;
 
   (supabase as any)
-    .from("store_visitor_sessions")
-    .update({
-      cart_items: cartData,
-      cart_subtotal: items.length > 0 ? subtotal : 0,
-      cart_updated_at: new Date().toISOString(),
-      last_activity_at: new Date().toISOString(),
-      cart_processed: false,
+    .rpc("sync_store_visitor_cart", {
+      p_session_id: sessionId,
+      p_cart_items: cartData,
+      p_cart_subtotal: items.length > 0 ? subtotal : 0,
     })
-    .eq("session_id", sessionId)
     .then(({ error }: any) => {
       if (error) {
         console.warn("[ECOMMERCE] CART_SYNC_FAILED", error.message);

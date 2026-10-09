@@ -50,13 +50,12 @@ export function EbookReadTracker({ ebookId, workspaceId, viewId, currentPage, to
     const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000);
     const completed = maxPageRef.current >= totalPages - 1;
 
-    (supabase as any).from("ebook_views").update({
+    (supabase as any).rpc("update_ebook_view", { p_view_id: viewId, p_payload: {
       pages_viewed: pagesViewedSet.current.size,
       max_page_reached: maxPageRef.current,
       time_on_book_seconds: elapsed,
       completed,
-      last_activity_at: new Date().toISOString(),
-    }).eq("id", viewId).then(() => {});
+    } }).then(() => {});
 
     // Emit kernel event when read completed (once)
     if (completed && !completedEmittedRef.current) {

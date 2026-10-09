@@ -263,7 +263,7 @@ export default function PublicEbookPage() {
 
     if (viewId) {
       // Já existia view anónima => actualiza dados + dispara captura
-      await (supabase as any).from("ebook_views").update({
+      await (supabase as any).rpc("update_ebook_view", { p_view_id: viewId, p_payload: {
         reader_name: gateName || null,
         reader_email: gateEmail || null,
         reader_phone: gatePhone || null,
@@ -271,7 +271,7 @@ export default function PublicEbookPage() {
         consent_text_version: gateConsent && ebook.consent_text ? simpleHash(ebook.consent_text) : null,
         marketing_opt_in: gateMarketingOptIn,
         consent_timestamp: gateConsent ? new Date().toISOString() : null,
-      }).eq("id", viewId);
+      } });
       await invokeLeadCapture(ebook, viewId, gateName, gateEmail, gatePhone, gateConsent, gateMarketingOptIn);
     } else {
       const sessionId = getSessionId();
