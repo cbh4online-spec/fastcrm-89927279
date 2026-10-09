@@ -186,28 +186,30 @@ Deno.serve(async (req) => {
           page = findCursor(payload);
         }
 
-        const slice = usernames.slice(0, room);
+        if (!isRelationshipSource(job.source)) {
+          const slice = usernames.slice(0, room);
 
-        if (slice.length > 0) {
-          const rows = slice.map((username) => ({
-            job_id: job.id,
-            workspace_id: job.workspace_id,
-            username: username.toLowerCase(),
-          }));
-          await admin
+          if (slice.length > 0) {
+            const rows = slice.map((username) => ({
+              job_id: job.id,
+              workspace_id: job.workspace_id,
+              username: username.toLowerCase(),
+            }));
+            await admin
+              .from("instagram_extraction_items")
+              .upsert(rows, { onConflict: "job_id,username", ignoreDuplicates: true });
+          }
+
+          const { count } = await admin
             .from("instagram_extraction_items")
-            .upsert(rows, { onConflict: "job_id,username", ignoreDuplicates: true });
+            .select("id", { count: "exact", head: true })
+            .eq("job_id", job.id);
+          queued = count ?? queued + slice.length;
+
+          cursor = page.cursor;
+          listingDone = !page.hasNext || !page.cursor || queued >= job.limit_count;
+          log("Listing page", { queued, listingDone, added: slice.length });
         }
-
-        const { count } = await admin
-          .from("instagram_extraction_items")
-          .select("id", { count: "exact", head: true })
-          .eq("job_id", job.id);
-        queued = count ?? queued + slice.length;
-
-        cursor = page.cursor;
-        listingDone = !page.hasNext || !page.cursor || queued >= job.limit_count;
-        log("Listing page", { queued, listingDone, added: slice.length });
       } catch (error) {
         if (error instanceof RelationshipsApiError) {
           if (error.status === 429) {
