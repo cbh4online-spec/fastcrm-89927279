@@ -3,6 +3,8 @@
  * usado pelo extrator de prospeção.
  */
 
+import { friendlyProviderError } from "./instagramSources.ts";
+
 export const RAPIDAPI_HOST = "instagram-looter2.p.rapidapi.com";
 const BASE = `https://${RAPIDAPI_HOST}`;
 
@@ -24,14 +26,10 @@ export async function looterGet(
 
   if (res.ok) return await res.json();
 
-  const body = await res.text().catch(() => "");
-  // 401/402/403 => problema de chave/subscrição: parar o trabalho.
-  const fatal = [401, 402, 403].includes(res.status);
-  throw new InstagramApiError(
-    `Instagram API ${res.status}${body ? `: ${body.slice(0, 200)}` : ""}`,
-    res.status,
-    fatal,
-  );
+  await res.text().catch(() => "");
+  // 401/402/403 => chave/subscrição; 404 => endpoint inexistente: parar o trabalho.
+  const fatal = [401, 402, 403, 404].includes(res.status);
+  throw new InstagramApiError(friendlyProviderError(res.status, path), res.status, fatal);
 }
 
 /** Percorre a resposta e recolhe todos os usernames encontrados. */
