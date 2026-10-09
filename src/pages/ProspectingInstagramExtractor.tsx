@@ -40,6 +40,7 @@ import {
   useInstagramExtractionImport,
   useInstagramExtractionJobs,
   useInstagramExtractionResults,
+  useRelationshipsCapability,
 } from "@/hooks/useInstagramExtraction";
 import { useProspectingCadenceLauncher } from "@/hooks/useProspectingCadenceLauncher";
 import { useBioContactEnrich } from "@/hooks/useBioContactEnrich";
@@ -97,6 +98,12 @@ export default function ProspectingInstagramExtractor() {
   const [minFollowers, setMinFollowers] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const bioEnrich = useBioContactEnrich();
+  const relationships = useRelationshipsCapability();
+  const sourceDisabled = (v: string) => isUnsupportedSource(v) && !relationships.configured;
+  useEffect(() => {
+    if (sourceDisabled(source)) setSource("list");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [relationships.configured]);
 
   const selectedJob = activeJob ?? jobs[0] ?? null;
   const jobIdForResults = scope === "current" ? selectedJob?.id ?? null : null;
@@ -165,6 +172,7 @@ export default function ProspectingInstagramExtractor() {
         source,
         target: target.trim(),
         limit: Number.isFinite(parsedLimit) ? parsedLimit : 200,
+        relationshipsConfigured: relationships.configured,
         usernames:
           source === "list"
             ? target.split(/[\s,;]+/).map((t) => t.trim()).filter(Boolean)
@@ -235,7 +243,7 @@ export default function ProspectingInstagramExtractor() {
               <Select
                 value={source}
                 onValueChange={(v) => {
-                  if (!isUnsupportedSource(v)) setSource(v as ExtractionSource);
+                  if (!sourceDisabled(v)) setSource(v as ExtractionSource);
                 }}
               >
                 <SelectTrigger id="ig-source" aria-describedby="ig-source-note">
@@ -243,19 +251,22 @@ export default function ProspectingInstagramExtractor() {
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(SOURCE_LABELS).map(([value, label]) => {
-                    const unsupported = isUnsupportedSource(value);
+                    const unsupported = sourceDisabled(value);
                     return (
                       <SelectItem key={value} value={value} disabled={unsupported}>
                         {label}
-                        {unsupported ? " — indisponível" : ""}
+                        {unsupported ? " — configuração necessária" : ""}
                       </SelectItem>
                     );
                   })}
                 </SelectContent>
               </Select>
               <p id="ig-source-note" className="text-xs text-muted-foreground">
-                Seguidores e perfis seguidos estão indisponíveis: o fornecedor de Instagram
-                configurado não suporta esta recolha.
+                {relationships.isLoading
+                  ? "A verificar a configuração de seguidores e perfis seguidos…"
+                  : relationships.configured
+                  ? "Seguidores e perfis seguidos via ProfileQuery: só perfis públicos, até 500 por recolha. O Instagram limita muitas listas (cerca de 50), por isso a lista pode não ficar completa."
+                  : "Configuração necessária: seguidores e perfis seguidos precisam da chave do serviço ProfileQuery no servidor."}
               </p>
             </div>
 
@@ -374,7 +385,10 @@ export default function ProspectingInstagramExtractor() {
               </p>
             )}
             {jobDisplay?.message && (
-              <p role={jobDisplay.isError ? "alert" : undefined} className="text-sm text-destructive">
+              <p
+                role={jobDisplay.isError ? "alert" : undefined}
+                className={jobDisplay.isError ? "text-sm text-destructive" : "text-sm text-muted-foreground"}
+              >
                 {jobDisplay.message}
               </p>
             )}
