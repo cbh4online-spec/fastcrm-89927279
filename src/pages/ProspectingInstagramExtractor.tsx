@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -13,6 +13,7 @@ import {
   StopCircle,
   UserPlus,
 } from "lucide-react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -85,6 +86,11 @@ type ContactFilter = "all" | "email" | "phone" | "any";
 
 export default function ProspectingInstagramExtractor() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const followupsRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (location.hash === "#followups") followupsRef.current?.scrollIntoView({ block: "start" });
+  }, [location.hash]);
   const { jobs, isLoading: jobsLoading, activeJob, startJob, controlJob } = useInstagramExtractionJobs();
 
   const [source, setSource] = useState<ExtractionSource>("followers");
@@ -199,6 +205,7 @@ export default function ProspectingInstagramExtractor() {
   const selectedProfiles = filtered.filter((p) => selected.has(p.id));
 
   return (
+    <DashboardLayout>
     <div className="container mx-auto max-w-7xl space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/prospecting")}>
@@ -212,7 +219,10 @@ export default function ProspectingInstagramExtractor() {
 
       <ProspectingEffectivenessCard />
 
-      <PendingOutreachPanel />
+      <section id="followups" ref={followupsRef} aria-label="Cadências e seguimentos" className="scroll-mt-4 space-y-3">
+        <h2 className="text-base font-semibold">Cadências e seguimentos</h2>
+        <PendingOutreachPanel />
+      </section>
 
       <Card>
         <CardHeader>
@@ -561,5 +571,6 @@ export default function ProspectingInstagramExtractor() {
         userId={user?.id}
       />
     </div>
+    </DashboardLayout>
   );
 }

@@ -29,9 +29,9 @@ function matchRoute(pathname: string): RouteEntry | undefined {
   let best: RouteEntry | undefined;
   for (const r of ROUTE_MANIFEST) {
     if (!r.href) continue;
-    const base = r.href.split("?")[0];
+    const base = r.href.split(/[?#]/)[0];
     if (pathname === base || pathname.startsWith(base + "/")) {
-      if (!best || base.length > best.href.split("?")[0].length) best = r;
+      if (!best || base.length > best.href.split(/[?#]/)[0].length) best = r;
     }
   }
   return best;
