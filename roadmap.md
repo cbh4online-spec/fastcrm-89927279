@@ -42,3 +42,8 @@
 - [x] Loja: uma só leitura para categorias e marcas; árvore de categorias partilhada.
 - [x] Ícone do site 838 KB → 2,6 KB.
 - [ ] Validar /dashboard/products com sessão owner Ajax real (medida autenticada não feita).
+
+## Navegação de Prospeção (pedido 2026-10-09)
+- [ ] Reunir acessos reais numa secção própria entre Clientes e Vendas, sem duplicações ou alterações funcionais.
+- [ ] Garantir menu lateral no Extrator Instagram e abertura/destaque da secção ativa, incluindo móvel/recolhido.
+- [ ] Executar testes de navegação e verificar a prévia, sem publicação nem alterações ao servidor.
