@@ -14,3 +14,5 @@
 - The PWA service worker must use skipWaiting + clientsClaim + cleanupOutdatedCaches (autoUpdate), because a waiting worker without a visible prompt kept old clients on stale HTML whose chunks were already removed.
 - Payment settings routes in `OWNER_ESSENTIAL_ROUTE_KEYS` (MenuVisibilityGuard) stay reachable by direct link for users with `integrations.manage` even when menu overrides hide them, so owners can always configure payments while the menu stays simplified.
 - Storefront categories come from the `get_public_store_category_tree` RPC + `src/lib/store/categoryTree.ts` (menu = visible roots; filters/counts include all descendants once), and the product category trigger never auto-creates categories for workspaces with a closed taxonomy (currently hard-listed in `resolve_store_category_id`), so curated hierarchies are preserved and costs stay private.
+
+- Keep prospecting destinations in the shared route manifest and use `isNavigationRouteActive` for query/anchor matching, so section links highlight the same destination without adding pages or duplicating URLs.

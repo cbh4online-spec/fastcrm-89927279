@@ -109,7 +109,7 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "ai-strategy",   label: "Estratégia IA",   icon: Crown,           order: 2, collapsible: false },
   { key: "comercial-crm",         label: "CRM",                icon: Users,           order: 3,  collapsible: true },
   { key: "comercial-pipeline",    label: "Pipeline & Contas",  icon: TrendingUp,      order: 31, collapsible: true },
-  { key: "comercial-prospecting", label: "Prospecção",         icon: UserPlus,        order: 32, collapsible: true },
+  { key: "comercial-prospecting", label: "Prospeção",          icon: UserPlus,        order: 32, collapsible: true },
   
   { key: "agenda",        label: "Agenda",        icon: Calendar,        order: 35, collapsible: true },
   { key: "comunicacao",   label: "Comunicação",   icon: Radio,           order: 4, collapsible: true },
@@ -178,14 +178,18 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("sequences",       "Sequências",      "/dashboard/sequences",      MessageSquare, "comercial-pipeline"),
   e("account-brief",   "Briefing Conta",  "/dashboard/account-brief",  Briefcase,     "comercial-pipeline", { moduleSlug: "account-brief", isPro: true }),
   // Prospecção
-  e("prospecting",     "Prospecção",      "/dashboard/prospecting",    UserPlus,      "comercial-prospecting", { moduleSlug: "prospecting-pro" }),
+  e("prospecting",     "Visão geral",      "/dashboard/prospecting",    UserPlus,      "comercial-prospecting", { moduleSlug: "prospecting-pro", end: true }),
+  e("prospecting-instagram", "Extrator Instagram", "/dashboard/prospecting/instagram", Instagram, "comercial-prospecting", { end: true }),
+  e("prospecting-followups", "Cadências e seguimentos", "/dashboard/prospecting/instagram#followups", Clock, "comercial-prospecting"),
+  e("outreach-activity", "Atividade de Outreach", "/dashboard/outreach/activity", Activity, "comercial-prospecting"),
+  e("sdr", "Campanhas SDR", "/dashboard/sdr", Target, "comercial-prospecting"),
   e("lead-enricher",   "Enriquecimento de Leads", "/dashboard/lead-enricher",  Search, "comercial-prospecting", { moduleSlug: "lead-enricher", isPro: true }),
   e("fastmatch",       "FastMatch",       "/dashboard/fastmatch",      Zap,           "comercial-prospecting"),
   e("google-local",    "Google Local",    "/dashboard/prospecting/google-local", MapPin, "comercial-prospecting", { moduleSlug: "google-local-services" }),
   // Search-only CRM routes
   e("crm-hub",         "CRM",             "/dashboard/crm",            Users,         "comercial-crm", { visibleInSidebar: false }),
-  e("web-search-prosp","Pesquisa Web",    "/dashboard/prospecting/web-search",  Search, "comercial-prospecting", { visibleInSidebar: false }),
-  e("professional-prosp","Profissionais", "/dashboard/prospecting/professionals", Users, "comercial-prospecting", { visibleInSidebar: false }),
+  e("web-search-prosp","Pesquisa Web",    "/dashboard/prospecting/web-search",  Search, "comercial-prospecting"),
+  e("professional-prosp","Profissionais", "/dashboard/prospecting/professionals", Users, "comercial-prospecting", { moduleSlug: "prospecting-pro" }),
 
   // ══════════════════════════════════════════════════════════════
   // AGENDA (Departamento: planeamento e seguimentos)
@@ -257,7 +261,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("form-studio",     "Formulários",      "/dashboard/form-studio",      PenTool,   "marketing"),
   e("seo",             "SEO",              "/dashboard/seo",              Globe,     "marketing", { moduleSlug: "seo-growth" }),
   e("bio-os",          "Bio OS",           "/dashboard/bio",              Link2,     "marketing", { moduleSlug: "bio-os" }),
-  e("instagram-looter","Instagram Looter","/dashboard/instagram-looter", Instagram, "marketing", { moduleSlug: "instagram-looter" }),
+  e("instagram-looter","Instagram Looter","/dashboard/instagram-looter", Instagram, "comercial-prospecting", { moduleSlug: "instagram-looter" }),
   e("meta-module",     "Meta",            "/dashboard/meta",             Facebook,  "marketing", { moduleSlug: "meta-module" }),
   e("sponsors",        "Sponsors / Parceiros", "/dashboard/sponsors",    Award,     "marketing"),
 
@@ -609,6 +613,7 @@ export function buildMegaGroupSections(
 export type TopLevelGroup =
   | "inicio"
   | "clientes"
+  | "prospeccao"
   | "vendas"
   | "produtos"
   | "comunicacao"
@@ -649,7 +654,9 @@ export const TOP_LEVEL_GROUPS: TopLevelGroupMeta[] = [
   { key: "inicio",      label: "Início",       icon: LayoutDashboard, order: 1,
     navGroups: ["inicio"] },
   { key: "clientes",    label: "Clientes",     icon: Users,           order: 2,
-    navGroups: ["comercial-crm", "comercial-pipeline", "comercial-prospecting"] },
+    navGroups: ["comercial-crm", "comercial-pipeline"] },
+  { key: "prospeccao", label: "Prospeção", icon: UserPlus, order: 2.5,
+    navGroups: ["comercial-prospecting"] },
   { key: "vendas",      label: "Vendas",       icon: Receipt,         order: 3,
     navGroups: ["vendas"],
     excludeRouteKeys: [...PRODUTOS_KEYS, ...RELATORIOS_KEYS, "strategy"] },
@@ -750,3 +757,17 @@ export function getTopLevelGroupForRoute(route: RouteEntry): TopLevelGroup | nul
 
 
 
+
+/** Match real page/section destinations, including query parameters and anchors. */
+export function isNavigationRouteActive(href: string, pathname: string, search = "", hash = "", end = false): boolean {
+  const destination = new URL(href, "https://navigation.local");
+  const pathMatches = pathname === destination.pathname || (!end && destination.pathname !== "/dashboard" && pathname.startsWith(destination.pathname + "/"));
+  if (!pathMatches) return false;
+  if (destination.hash) return hash === destination.hash;
+  if (destination.search) {
+    const actual = new URLSearchParams(search);
+    return Array.from(destination.searchParams).every(([key, value]) => actual.get(key) === value);
+  }
+  if (hash && ROUTE_MANIFEST.some((route) => route.href === pathname + hash)) return false;
+  return true;
+}

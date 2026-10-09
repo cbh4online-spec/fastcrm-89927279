@@ -14,6 +14,7 @@ import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { useAppMode } from "@/hooks/useAppMode";
 import {
   buildTopLevelSections,
+  isNavigationRouteActive,
   ROUTE_MANIFEST,
   type RouteEntry,
   type NavGroupMeta,
@@ -228,16 +229,16 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
 
   const isActive = useCallback(
     (href: string, end?: boolean) => {
-      const [basePath, hrefSearch] = href.split("?");
-      if (hrefSearch) {
-        return location.pathname === basePath && location.search === `?${hrefSearch}`;
-      }
-      if (end || basePath === "/dashboard") return location.pathname === basePath;
-      if (location.pathname === basePath && location.search) return false;
-      return location.pathname === basePath || location.pathname.startsWith(basePath + "/");
+      return isNavigationRouteActive(href, location.pathname, location.search, location.hash, end);
     },
-    [location.pathname, location.search]
+    [location.pathname, location.search, location.hash]
   );
+
+  // Reopen the destination section after navigation, even if it was manually closed.
+  useEffect(() => {
+    const active = topSections.find((section) => section.items.some((item) => isActive(item.href, item.end)));
+    if (active) setOpenGroups((previous) => previous[active.key] ? previous : { ...previous, [active.key]: true });
+  }, [location.pathname, location.search, location.hash, topSections, isActive]);
 
   const sectionHasActive = useCallback(
     (items: RouteEntry[]) => items.some((i) => isActive(i.href, i.end)),
@@ -459,7 +460,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           <CollapsibleTrigger className="w-full">
             <div className={cn(
               "flex items-center gap-3 px-3 py-2 rounded-lg text-[13.5px] font-semibold cursor-pointer transition-colors",
-              hasActive ? "text-sidebar-foreground" : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              hasActive ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
             )}>
               <SectionIcon className={cn("w-[18px] h-[18px] shrink-0", hasActive && "text-sidebar-primary")} strokeWidth={1.75} />
               <span className="flex-1 text-left truncate">{section.label}</span>

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { IX_NAV_SECTIONS, type IXNavGroup } from "@/config/navigation/ixNavigation";
-import { ROUTE_MANIFEST, type RouteEntry } from "@/config/routeManifest";
+import { ROUTE_MANIFEST, isNavigationRouteActive, type RouteEntry } from "@/config/routeManifest";
 import { useMenuOverrideMap } from "@/hooks/useWorkspaceMenuOverrides";
 import { resolveRouteVisibility } from "@/config/menuOverrides";
 import { openShortcutsHelp } from "@/hooks/useGlobalShortcutsHelp";
@@ -83,7 +83,7 @@ function ThemeSwitcher() {
 
 
 export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProps) {
-  const { pathname } = useLocation();
+  const { pathname, search, hash } = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
@@ -121,8 +121,8 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
 
   const isActive = (href?: string) => {
     if (!href) return false;
-    if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname === href || pathname.startsWith(href + "/");
+    const entry = ROUTE_MANIFEST.find((route) => route.href === href);
+    return isNavigationRouteActive(href, pathname, search, hash, entry?.end);
   };
 
   // Grupo activo (para auto-expandir o accordion certo)
@@ -139,7 +139,7 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
     }
     return "overview";
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, search, hash]);
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   useEffect(() => {
@@ -153,7 +153,7 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
     if (!canShow(group.primaryKey)) return null;
 
     const Icon = group.icon;
-    const primaryActive = isActive(group.href);
+    const primaryActive = activeGroupKey === group.key;
     const isOpen = expanded[group.key] ?? primaryActive;
 
     const children = (group.children ?? [])
@@ -203,7 +203,8 @@ export function InvoiceXpressSidebar({ open, onClose }: InvoiceXpressSidebarProp
         {isOpen && children.length > 0 && (
           <div className="ml-4 pl-4 border-l border-sidebar-border/60 space-y-0.5 py-1">
             {children.map((c) => {
-              const entry = c.entry!;
+              const entry = c.entry;
+              if (!entry) return null;
               const active = isActive(entry.href);
               return (
                 <Link
