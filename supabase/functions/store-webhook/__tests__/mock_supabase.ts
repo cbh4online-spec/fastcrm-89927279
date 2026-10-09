@@ -48,5 +48,14 @@ class Builder {
   }
 }
 export function createClient(_u: string, _k: string) {
-  return { from: (t: string) => new Builder(t), storage: { from: () => ({ createSignedUrl: async () => ({ data: null }) }) }, rpc: async () => ({ data: null, error: null }) };
+  return { from: (t: string) => new Builder(t), storage: { from: () => ({ createSignedUrl: async () => ({ data: null }) }) }, rpc: async (fn: string, a: any) => {
+    if (fn !== "decrement_store_product_stock") return { data: null, error: null };
+    const f = db.faults.findIndex((x: any) => x.table === "products" && x.op === "rpc" && x.times > 0);
+    if (f >= 0) { db.faults[f].times--; return { data: null, error: { message: "fault" } }; }
+    const p = (db.tables.products ?? []).find((r: any) => r.id === a.p_product_id && r.workspace_id === a.p_workspace_id && r.track_stock && r.stock_quantity != null);
+    if (!p) return { data: null, error: null };
+    await Promise.resolve();
+    p.stock_quantity = Math.max(0, p.stock_quantity - a.p_quantity);
+    return { data: p.stock_quantity, error: null };
+  } };
 }

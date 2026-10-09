@@ -486,12 +486,14 @@ Deno.serve(async (req) => {
       .eq("workspace_id", workspaceId).eq("stripe_event_id", event.id);
 
   try {
-    const { data: order } = await supabaseClient
+    const { data: order, error: orderErr } = await supabaseClient
       .from("store_orders")
       .select("id, workspace_id, status, total, currency, stripe_session_id")
       .eq("workspace_id", workspaceId)
       .eq("stripe_session_id", session.id)
       .maybeSingle();
+    // Erro de leitura ≠ encomenda inexistente: devolver 500 para o Stripe repetir.
+    if (orderErr) throw orderErr;
 
     if (!order) { await setOutcome("order_not_found"); return json({ received: true, outcome: "order_not_found" }); }
 
