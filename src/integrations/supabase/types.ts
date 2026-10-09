@@ -110246,6 +110246,10 @@ export type Database = {
         Args: { p_profile_id: string; p_workspace_id: string }
         Returns: undefined
       }
+      set_store_visitor_score: {
+        Args: { p_score: number; p_session_id: string; p_workspace_id: string }
+        Returns: undefined
+      }
       settle_prospecting_search: {
         Args: { p_operation_id: string; p_response?: Json; p_success: boolean }
         Returns: Json
