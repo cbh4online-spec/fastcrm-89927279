@@ -1,6 +1,6 @@
 /**
  * Regras das origens de recolha do extrator de Instagram, alinhadas com o
- * fornecedor configurado (RapidAPI instagram-looter2).
+ * fornecedor RapidAPI instagram-looter2. Seguidores/seguidos vivem em instagramRelationships.ts.
  *
  * Confirmado no fornecedor (pedidos reais, 9/10/2026):
  *  - /followers, /following, /hashtag-medias, /location-medias → 404 (não existem)
@@ -12,12 +12,16 @@
 export const UNSUPPORTED_SOURCES = ["followers", "following"] as const;
 
 export const UNSUPPORTED_SOURCE_MESSAGE =
-  "A recolha de seguidores e de perfis seguidos não é suportada pelo fornecedor de Instagram configurado. Nenhum pedido foi feito nem cobrado. Use Lista de @perfis ou Pesquisa na web.";
+  "A recolha de seguidores e de perfis seguidos não está disponível no fornecedor instagram-looter2. Use o serviço ProfileQuery quando estiver configurado, ou Lista de @perfis / Pesquisa na web.";
 
-/** Para trabalhos antigos destas origens (podem ter feito pedidos antes do bloqueio). */
+/** Trabalhos antigos destas origens feitos com instagram-looter2 (o pedido devolveu 404). */
 export const UNSUPPORTED_SOURCE_LEGACY_MESSAGE =
-  "A recolha de seguidores e de perfis seguidos não é suportada pelo fornecedor de Instagram configurado, por isso esta recolha não obteve perfis. Use Lista de @perfis ou Pesquisa na web.";
+  "Esta recolha antiga usou o fornecedor anterior, que não disponibiliza seguidores nem perfis seguidos: o pedido devolveu erro 404 e não foram obtidos perfis.";
 
+/** Trabalho de seguidores/seguidos que não foi criado pelo fornecedor ProfileQuery. */
+export function isLegacyRelationshipJob(source: string, provider: string | null | undefined): boolean {
+  return isUnsupportedSource(source) && provider !== "profilequery";
+}
 
 export function isUnsupportedSource(source: string): boolean {
   return (UNSUPPORTED_SOURCES as readonly string[]).includes(source);

@@ -49368,8 +49368,10 @@ export type Database = {
           lease_until: string | null
           limit_count: number
           listing_done: boolean
+          listing_note: string | null
           next_cursor: string | null
           processed_count: number
+          provider: string | null
           queued_count: number
           source: string
           status: string
@@ -49387,8 +49389,10 @@ export type Database = {
           lease_until?: string | null
           limit_count?: number
           listing_done?: boolean
+          listing_note?: string | null
           next_cursor?: string | null
           processed_count?: number
+          provider?: string | null
           queued_count?: number
           source: string
           status?: string
@@ -49406,8 +49410,10 @@ export type Database = {
           lease_until?: string | null
           limit_count?: number
           listing_done?: boolean
+          listing_note?: string | null
           next_cursor?: string | null
           processed_count?: number
+          provider?: string | null
           queued_count?: number
           source?: string
           status?: string

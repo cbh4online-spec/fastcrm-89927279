@@ -351,6 +351,13 @@
       "when": 1791455393056,
       "tag": "0049_restrict_public_category_tree_hidden",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791536584578,
+      "tag": "0050_migration",
+      "breakpoints": true
     }
   ]
 }

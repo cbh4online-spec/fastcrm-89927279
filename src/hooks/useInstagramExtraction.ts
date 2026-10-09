@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
-import { isUnsupportedSource, resolveJobDisplay, UNSUPPORTED_SOURCE_MESSAGE } from "@/lib/prospecting/extractionJobState";
+import { CONFIGURATION_REQUIRED_MESSAGE, isUnsupportedSource, resolveJobDisplay } from "@/lib/prospecting/extractionJobState";
 
 export type ExtractionSource =
   | "followers"
@@ -35,6 +35,30 @@ export interface ExtractionJob {
   created_at: string;
   updated_at: string;
   finished_at: string | null;
+  provider: string | null;
+  listing_note: string | null;
+}
+
+/**
+ * Se o servidor tem a chave do serviço de seguidores/seguidos. Só devolve um booleano;
+ * enquanto carrega ou em erro conta como não configurado (fail-closed).
+ */
+export function useRelationshipsCapability() {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+  const q = useQuery({
+    queryKey: ["instagram-relationships-capability", workspaceId],
+    enabled: !!workspaceId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("instagram-extract-start", {
+        body: { action: "capabilities", workspaceId },
+      });
+      if (error || !data?.success) throw new Error(data?.error ?? error?.message ?? "Falha");
+      return Boolean(data.relationships?.configured);
+    },
+  });
+  return { configured: q.data === true, isLoading: q.isLoading, isError: q.isError };
 }
 
 export interface ExtractedProfile {
@@ -96,11 +120,14 @@ export function useInstagramExtractionJobs() {
       target: string;
       limit: number;
       usernames?: string[];
+      relationshipsConfigured?: boolean;
     }) => {
       if (!workspaceId) throw new Error("Workspace não selecionado");
-      if (isUnsupportedSource(input.source)) throw new Error(UNSUPPORTED_SOURCE_MESSAGE);
+      if (isUnsupportedSource(input.source) && !input.relationshipsConfigured) {
+        throw new Error(CONFIGURATION_REQUIRED_MESSAGE);
+      }
       const { data, error } = await supabase.functions.invoke("instagram-extract-start", {
-        body: { workspaceId, ...input },
+        body: { workspaceId, source: input.source, target: input.target, limit: input.limit, usernames: input.usernames },
       });
       if (error) throw new Error(error.message);
       if (!data?.success) throw new Error(data?.error ?? "Não foi possível iniciar a recolha");
