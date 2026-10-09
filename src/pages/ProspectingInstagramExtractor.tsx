@@ -48,6 +48,13 @@ import { PendingOutreachPanel } from "@/components/professional-prospecting/Pend
 import { ProspectingEffectivenessCard } from "@/components/professional-prospecting/ProspectingEffectivenessCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
+import {
+  isUnsupportedSource,
+  resolveJobDisplay,
+  UNSUPPORTED_SOURCE_MESSAGE,
+} from "@/lib/prospecting/extractionJobState";
 
 const SOURCE_LABELS: Record<ExtractionSource, string> = {
   followers: "Seguidores de um perfil",
@@ -69,17 +76,6 @@ const SOURCE_PLACEHOLDER: Record<ExtractionSource, string> = {
 
 const SOURCE_HINT: Partial<Record<ExtractionSource, string>> = {
   web_search: "Encontra perfis públicos por pesquisa na web. Não lê listas de seguidores.",
-  followers: "Requer a API de Instagram configurada.",
-  following: "Requer a API de Instagram configurada.",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: "Na fila",
-  running: "A recolher",
-  paused: "Em pausa",
-  completed: "Concluído",
-  failed: "Falhou",
-  cancelled: "Cancelado",
 };
 
 type ContactFilter = "all" | "email" | "phone" | "any";
@@ -93,7 +89,7 @@ export default function ProspectingInstagramExtractor() {
   }, [location.hash]);
   const { jobs, isLoading: jobsLoading, activeJob, startJob, controlJob } = useInstagramExtractionJobs();
 
-  const [source, setSource] = useState<ExtractionSource>("followers");
+  const [source, setSource] = useState<ExtractionSource>("list");
   const [target, setTarget] = useState("");
   const [limit, setLimit] = useState("200");
   const [scope, setScope] = useState<"current" | "all">("current");
@@ -105,7 +101,8 @@ export default function ProspectingInstagramExtractor() {
 
   const selectedJob = activeJob ?? jobs[0] ?? null;
   const jobIdForResults = scope === "current" ? selectedJob?.id ?? null : null;
-  const isJobRunning = selectedJob?.status === "running" || selectedJob?.status === "pending";
+  const jobDisplay = selectedJob ? resolveJobDisplay(selectedJob) : null;
+  const isJobRunning = jobDisplay?.isActive ?? false;
 
   const { data: profiles = [], isLoading: resultsLoading } = useInstagramExtractionResults(
     jobIdForResults,
