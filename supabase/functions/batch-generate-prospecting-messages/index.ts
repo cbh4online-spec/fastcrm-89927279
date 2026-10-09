@@ -48,6 +48,7 @@ async function generateForProfile(
         tone,
         workspaceContext,
         serviceContext,
+        workspaceId,
         sequenceStep: 1,
       }),
     });

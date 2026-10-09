@@ -11,8 +11,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { profile, tone = "casual", workspaceContext, serviceContext, sequenceStep = 1 } = await req.json();
-
+    const body = await req.json();
+    const { profile, tone = "casual", workspaceContext, serviceContext, sequenceStep = 1 } = body;
+    const rawWs = body?.workspaceId ?? body?.workspace_id ?? workspaceContext?.id ?? null;
+    const workspace_id: string | null =
+      typeof rawWs === "string" && /^[0-9a-f-]{36}$/i.test(rawWs) ? rawWs : null;
+    if (!profile || typeof profile !== "object") {
+      return new Response(JSON.stringify({ error: "Perfil em falta" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // AI Gate — enforce credit consumption
     if (workspace_id) {
