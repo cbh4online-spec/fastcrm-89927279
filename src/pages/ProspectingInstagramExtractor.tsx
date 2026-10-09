@@ -265,8 +265,8 @@ export default function ProspectingInstagramExtractor() {
                 {relationships.isLoading
                   ? "A verificar a configuração de seguidores e perfis seguidos…"
                   : relationships.configured
-                  ? "Seguidores e perfis seguidos via ProfileQuery: só perfis públicos, até 500 por recolha. O Instagram limita muitas listas (cerca de 50), por isso a lista pode não ficar completa."
-                  : "Configuração necessária: seguidores e perfis seguidos precisam da chave do serviço ProfileQuery no servidor."}
+                  ? `Seguidores e perfis seguidos via ${relationships.provider === "apify" ? "Apify" : "ProfileQuery"}: só perfis públicos, até 500 por recolha. A lista pode não ficar completa.`
+                  : "Configuração necessária: seguidores e perfis seguidos precisam da ligação Apify no servidor."}
               </p>
             </div>
 
@@ -289,6 +289,17 @@ export default function ProspectingInstagramExtractor() {
                   onChange={(e) => setTarget(e.target.value)}
                   placeholder={SOURCE_PLACEHOLDER[source]}
                 />
+              )}
+              {isUnsupportedSource(source) && relationships.maxUsdPerProfile !== null && (
+                <p className="text-xs text-muted-foreground" aria-live="polite">
+                  Custo máximo na Apify: até{" "}
+                  {(Math.min(Math.max(1, Number(limit) || 1), 500) * relationships.maxUsdPerProfile).toLocaleString("pt-PT", {
+                    style: "currency",
+                    currency: "USD",
+                    maximumFractionDigits: 3,
+                  })}{" "}
+                  para {Math.min(Math.max(1, Number(limit) || 1), 500)} perfis (teto enviado à Apify; cobrado só o que for recolhido).
+                </p>
               )}
               {SOURCE_HINT[source] && (
                 <p className="text-xs text-muted-foreground">{SOURCE_HINT[source]}</p>
