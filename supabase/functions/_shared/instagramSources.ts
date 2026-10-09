@@ -12,7 +12,7 @@
 export const UNSUPPORTED_SOURCES = ["followers", "following"] as const;
 
 export const UNSUPPORTED_SOURCE_MESSAGE =
-  "A recolha de seguidores e de perfis seguidos não está disponível no fornecedor instagram-looter2. Use o serviço ProfileQuery quando estiver configurado, ou Lista de @perfis / Pesquisa na web.";
+  "A recolha de seguidores e de perfis seguidos não está disponível no fornecedor instagram-looter2. Use a ligação Apify quando estiver configurada, ou Lista de @perfis / Pesquisa na web.";
 
 /** Trabalhos antigos destas origens feitos com instagram-looter2 (o pedido devolveu 404). */
 export const UNSUPPORTED_SOURCE_LEGACY_MESSAGE =
@@ -20,7 +20,7 @@ export const UNSUPPORTED_SOURCE_LEGACY_MESSAGE =
 
 /** Trabalho de seguidores/seguidos que não foi criado pelo fornecedor ProfileQuery. */
 export function isLegacyRelationshipJob(source: string, provider: string | null | undefined): boolean {
-  return isUnsupportedSource(source) && provider !== "profilequery";
+  return isUnsupportedSource(source) && provider !== "profilequery" && provider !== "apify";
 }
 
 export function isUnsupportedSource(source: string): boolean {

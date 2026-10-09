@@ -55,10 +55,20 @@ export function useRelationshipsCapability() {
         body: { action: "capabilities", workspaceId },
       });
       if (error || !data?.success) throw new Error(data?.error ?? error?.message ?? "Falha");
-      return Boolean(data.relationships?.configured);
+      return {
+        configured: Boolean(data.relationships?.configured),
+        provider: (data.relationships?.provider ?? null) as string | null,
+        maxUsdPerProfile: typeof data.relationships?.maxUsdPerProfile === "number" ? data.relationships.maxUsdPerProfile : null,
+      };
     },
   });
-  return { configured: q.data === true, isLoading: q.isLoading, isError: q.isError };
+  return {
+    configured: q.data?.configured === true,
+    provider: q.data?.provider ?? null,
+    maxUsdPerProfile: q.data?.maxUsdPerProfile ?? null,
+    isLoading: q.isLoading,
+    isError: q.isError,
+  };
 }
 
 export interface ExtractedProfile {

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { abortRun, APIFY_PROVIDER, decodeCursor } from "../_shared/instagramApifyRelationships.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const log = (step: string, details?: unknown) =>
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
 
     const { data: job } = await admin
       .from("instagram_extraction_jobs")
-      .select("id, workspace_id, status")
+      .select("id, workspace_id, status, provider, next_cursor")
       .eq("id", jobId)
       .maybeSingle();
 
@@ -74,6 +75,12 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       })
       .eq("id", jobId);
+
+    // Cancelar uma recolha Apify também pára a execução remota (deixa de gerar custo)
+    if (action === "cancel" && job.provider === APIFY_PROVIDER) {
+      const c = decodeCursor(job.next_cursor);
+      if (c) await abortRun(c.runId).catch((e) => log("abort failed", { error: String(e) }));
+    }
 
     if (action === "resume") {
       admin.functions

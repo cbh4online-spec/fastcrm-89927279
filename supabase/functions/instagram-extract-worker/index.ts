@@ -22,6 +22,21 @@ import {
   RELATIONSHIPS_SECRET_NAME,
   RelationshipsApiError,
 } from "../_shared/instagramRelationships.ts";
+import {
+  abortRun,
+  APIFY_PROVIDER,
+  apifyConfigured,
+  ApifyError,
+  DATASET_PAGE,
+  decodeCursor,
+  encodeCursor,
+  getRunStatus,
+  parseDatasetItems,
+  readDataset,
+  runFailureMessage,
+  runPhase,
+  startRun,
+} from "../_shared/instagramApifyRelationships.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-WORKER] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
@@ -88,7 +103,10 @@ Deno.serve(async (req) => {
 
     // Requisitos por origem: cada origem depende do serviço que a alimenta
     const needsApi = ["hashtag", "location"].includes(job.source);
-    const missing = isRelationshipSource(job.source) && !relationshipsKey
+    const isApifyJob = isRelationshipSource(job.source) && job.provider === APIFY_PROVIDER;
+    const missing = isApifyJob && !apifyConfigured((k) => Deno.env.get(k))
+      ? CONFIGURATION_REQUIRED_MESSAGE
+      : isRelationshipSource(job.source) && !isApifyJob && !relationshipsKey
       ? CONFIGURATION_REQUIRED_MESSAGE
       : needsApi && !apiKey
       ? "A recolha por hashtag ou localização exige a API de Instagram configurada."
@@ -131,6 +149,7 @@ Deno.serve(async (req) => {
     let found = job.found_count as number;
     let processed = job.processed_count as number;
     let rateLimited = false;
+    let waitingRun = false;
 
     // ---------- 1) Listagem (uma página por execução) ----------
     if (!listingDone && queued < job.limit_count) {
@@ -142,6 +161,56 @@ Deno.serve(async (req) => {
         if (job.source === "web_search") {
           // Pesquisa web (Firecrawl): uma passagem, sem paginação por cursor
           usernames = await firecrawlSearchUsernames(job.target, room || 25);
+        } else if (isApifyJob) {
+          // Execução assíncrona na Apify: inicia uma vez, depois lê o dataset por blocos
+          const src = job.source as "followers" | "following";
+          const c = decodeCursor(cursor);
+          if (!c) {
+            const run = await startRun(src, job.target, job.limit_count);
+            cursor = encodeCursor({ ...run, offset: 0 });
+            // Grava já o cursor: uma nova passagem nunca inicia (nem cobra) outra execução
+            await admin.from("instagram_extraction_jobs").update({ next_cursor: cursor }).eq("id", job.id);
+            waitingRun = true;
+            log("Apify run started", { runId: run.runId });
+          } else {
+            const run = await getRunStatus(c.runId);
+            const items = await readDataset(c.datasetId, c.offset);
+            const pg = parseDatasetItems(items, src, job.target);
+            const fresh = pg.usernames.slice(0, room);
+            if (fresh.length > 0) {
+              await admin.from("instagram_extraction_items").upsert(
+                fresh.map((username) => ({ job_id: job.id, workspace_id: job.workspace_id, username })),
+                { onConflict: "job_id,username", ignoreDuplicates: true },
+              );
+            }
+            const { count } = await admin
+              .from("instagram_extraction_items")
+              .select("id", { count: "exact", head: true })
+              .eq("job_id", job.id);
+            queued = count ?? queued + fresh.length;
+            cursor = encodeCursor({ ...c, offset: c.offset + pg.rawCount });
+            const phase = runPhase(run.status);
+            const moreBuffered = items.length >= DATASET_PAGE;
+            if (queued >= job.limit_count) {
+              listingDone = true;
+              if (phase === "running") await abortRun(c.runId).catch(() => undefined);
+            } else if (moreBuffered) {
+              // continua a ler na próxima passagem
+            } else if (phase === "running") {
+              waitingRun = true;
+            } else if (phase === "succeeded") {
+              if (queued === 0 && pg.sourceError) throw new ApifyError(pg.sourceError, 404, true);
+              listingDone = true;
+              const note =
+                `A Apify devolveu ${queued} perfis públicos e terminou antes do máximo pedido (${job.limit_count}). ` +
+                "O Instagram e o plano gratuito da Apify limitam a lista, por isso pode não estar completa.";
+              await admin.from("instagram_extraction_jobs").update({ listing_note: note }).eq("id", job.id);
+            } else {
+              throw new ApifyError(pg.sourceError ?? runFailureMessage(run.status), 0, true);
+            }
+            log("Apify page", { queued, status: run.status, read: pg.rawCount, privateSkipped: pg.privateSkipped, usageUsd: run.usageUsd });
+          }
+          usernames = [];
         } else if (isRelationshipSource(job.source)) {
           // Lista real do serviço ProfileQuery: só perfis públicos, cursor persistido
           const rel = await fetchRelationshipsPage(job.source, job.target, cursor, relationshipsKey!);
@@ -211,8 +280,8 @@ Deno.serve(async (req) => {
           log("Listing page", { queued, listingDone, added: slice.length });
         }
       } catch (error) {
-        if (error instanceof RelationshipsApiError) {
-          if (error.status === 429) {
+        if (error instanceof RelationshipsApiError || error instanceof ApifyError) {
+          if (error.status === 429 || (error instanceof ApifyError && !error.fatal)) {
             rateLimited = true;
           } else if (queued === 0 || error.fatal) {
             // Nunca transforma falha em recolha vazia; com perfis já recebidos fica "Incompleto"
@@ -475,7 +544,7 @@ Deno.serve(async (req) => {
 
     if (!userStopped && hasWork) {
       // Arrefecimento antes da próxima passagem, e só porque há trabalho pendente
-      const delay = rateLimited ? 30_000 : 1_500;
+      const delay = rateLimited ? 30_000 : waitingRun ? 10_000 : 1_500;
       setTimeout(() => {
         admin.functions
           .invoke("instagram-extract-worker", { body: { jobId: job.id } })
