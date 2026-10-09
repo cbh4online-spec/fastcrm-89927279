@@ -53,7 +53,6 @@ import { pt } from "date-fns/locale";
 import {
   isUnsupportedSource,
   resolveJobDisplay,
-  UNSUPPORTED_SOURCE_MESSAGE,
 } from "@/lib/prospecting/extractionJobState";
 
 const SOURCE_LABELS: Record<ExtractionSource, string> = {
