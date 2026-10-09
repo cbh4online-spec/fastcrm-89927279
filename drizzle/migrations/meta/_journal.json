@@ -379,6 +379,13 @@
       "when": 1791582246613,
       "tag": "0053_store_visitor_score_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1791582475637,
+      "tag": "0054_store_atomic_stock_decrement",
+      "breakpoints": true
     }
   ]
 }

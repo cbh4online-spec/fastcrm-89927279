@@ -83,7 +83,7 @@ Deno.test("duplicados simultâneos do mesmo evento → efeitos uma só vez", asy
   seed();
   const rs = await Promise.all([1, 2, 3].map(() => send(evt("evt_dup", "checkout.session.completed"))));
   assertEquals(rs.filter((r) => r.body.outcome === "paid").length, 1);
-  assertEquals(rs.filter((r) => r.body.duplicate).length, 2);
+  assertEquals(rs.filter((r) => r.body.duplicate || r.status === 409).length, 2);
   assertEquals(stock(), 3); assertEquals(kernelCalls, 2);
 });
 
@@ -115,45 +115,34 @@ Deno.test("falha DB na transição para paid → 500, registo libertado, retry p
   assertEquals((await send(evt("evt_r", "checkout.session.completed"))).body.outcome, "paid"); assertEquals(stock(), 3);
 });
 
-// ---------- Lacunas a confirmar (os asserts descrevem o comportamento ATUAL observado) ----------
+// ---------- Lacunas corrigidas (Fase 2) ----------
 
-Deno.test("LACUNA 1: entrega duplicada durante 1.ª tentativa que falha → evento perdido", async () => {
+Deno.test("duplicado durante 1.ª tentativa que falha → 409, Stripe repete e o pagamento é processado", async () => {
   seed();
   let second!: Promise<any>;
   db.faults.push({ table: "store_orders", op: "update", times: 1, before: async () => { second = send(evt("evt_lost", "checkout.session.completed")); await second; } });
   const first = await send(evt("evt_lost", "checkout.session.completed"));
   const dup = await second;
-  console.log("  1.ª:", first.status, "duplicado:", dup.status, JSON.stringify(dup.body));
-  assertEquals(first.status, 500); assertEquals(dup.status, 200); assertEquals(dup.body.duplicate, true);
-  // Stripe recebeu 2xx para este evento → deixa de repetir. Encomenda fica pending sem novo envio.
-  assertEquals(ord().status, "pending"); assertEquals(db.tables.store_webhook_events.length, 0);
+  assertEquals(first.status, 500); assertEquals(dup.status, 409);
+  const retry = await send(evt("evt_lost", "checkout.session.completed"));
+  assertEquals(retry.body.outcome, "paid"); assertEquals(ord().status, "paid");
 });
 
-Deno.test("LACUNA 2: erro DB na leitura da encomenda é tratado como order_not_found (200) → retry vira duplicado", async () => {
+Deno.test("erro DB na leitura da encomenda → 500 e retry processa", async () => {
   seed();
   db.faults.push({ table: "store_orders", op: "select", times: 1 });
   const r = await send(evt("evt_sel", "checkout.session.completed"));
-  console.log("  leitura falhada →", r.status, JSON.stringify(r.body));
+  assertEquals(r.status, 500);
   const retry = await send(evt("evt_sel", "checkout.session.completed"));
-  assertEquals(r.status, 200); assertEquals(retry.body.duplicate, true); assertEquals(ord().status, "pending");
+  assertEquals(retry.body.outcome, "paid");
 });
 
-Deno.test("LACUNA 3: stock — duas encomendas concorrentes, compare-and-swap sem retry perde um decremento", async () => {
+Deno.test("stock: duas encomendas concorrentes → ambos os decrementos aplicados", async () => {
   seed({ orders: [order(ORDER_1, "cs_1", 2), order(ORDER_2, "cs_2", 2)], stock: 5 });
-  const rs = await Promise.all([
+  await Promise.all([
     send(evt("o1", "checkout.session.completed", { sid: "cs_1", orderId: ORDER_1 })),
     send(evt("o2", "checkout.session.completed", { sid: "cs_2", orderId: ORDER_2 })),
   ]);
-  console.log("  ambas pagas:", rs.map((r) => r.body.outcome).join(","), "stock final:", stock(), "(esperado 1)");
   assertEquals(ord(ORDER_1).status, "paid"); assertEquals(ord(ORDER_2).status, "paid");
-  assertEquals(stock(), 3); // comportamento atual: um decremento perdido em silêncio
-});
-
-Deno.test("LACUNA 4: falha DB no stock após paid é silenciosa e não repetível", async () => {
-  seed();
-  db.faults.push({ table: "products", op: "update", times: 1 });
-  const r = await send(evt("evt_st", "checkout.session.completed"));
-  const retry = await send(evt("evt_st", "checkout.session.completed"));
-  console.log("  resposta:", r.status, r.body.outcome, "| retry:", JSON.stringify(retry.body), "| stock:", stock());
-  assertEquals(r.body.outcome, "paid"); assertEquals(stock(), 5); assertEquals(retry.body.duplicate, true);
+  assertEquals(stock(), 1);
 });

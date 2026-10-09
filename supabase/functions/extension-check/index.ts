@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({ error: msg }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: /unauthori[sz]ed|not authenticated|no authorization/i.test(msg) ? 401 : /not a workspace member/i.test(msg) ? 403 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
