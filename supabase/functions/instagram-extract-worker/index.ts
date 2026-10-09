@@ -199,7 +199,14 @@ Deno.serve(async (req) => {
             } else if (phase === "running") {
               waitingRun = true;
             } else if (phase === "succeeded") {
-              if (queued === 0 && pg.sourceError) throw new ApifyError(pg.sourceError, 404, true);
+              if (queued === 0) {
+                // Nunca concluir uma lista vazia como sucesso
+                throw new ApifyError(
+                  pg.sourceError ?? "A Apify terminou sem devolver perfis públicos para esta lista.",
+                  404,
+                  true,
+                );
+              }
               listingDone = true;
               const note =
                 `A Apify devolveu ${queued} perfis públicos e terminou antes do máximo pedido (${job.limit_count}). ` +

@@ -81,7 +81,8 @@ export function parseDatasetItems(items: unknown, source: RelationshipSource, ta
         : "A Apify não devolveu resultados para este perfil.";
       continue;
     }
-    if (typeof it.type === "string" && it.type !== expected) continue;
+    // A documentação mostra FOLLOWER; a execução real devolve "follower" — comparar sem maiúsculas
+    if (typeof it.type === "string" && it.type.toUpperCase() !== expected) continue;
     if (typeof it.sourceUsername === "string" && it.sourceUsername.toLowerCase() !== target.toLowerCase()) continue;
     const u = typeof it.username === "string" ? it.username.trim().toLowerCase() : "";
     if (!USERNAME_RE.test(u) || u === target.toLowerCase()) continue;
