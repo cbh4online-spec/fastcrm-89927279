@@ -117,7 +117,7 @@ export interface FetchDeps {
 }
 
 const defaultDeps: FetchDeps = {
-  fetch: (...a) => fetch(...a),
+  fetch: (input, init) => fetch(input, init),
   sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
 };
 
