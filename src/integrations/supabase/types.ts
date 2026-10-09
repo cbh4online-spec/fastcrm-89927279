@@ -110246,6 +110246,10 @@ export type Database = {
         Args: { p_profile_id: string; p_workspace_id: string }
         Returns: undefined
       }
+      set_store_visitor_score: {
+        Args: { p_score: number; p_session_id: string; p_workspace_id: string }
+        Returns: undefined
+      }
       settle_prospecting_search: {
         Args: { p_operation_id: string; p_response?: Json; p_success: boolean }
         Returns: Json
@@ -110344,6 +110348,14 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: undefined
       }
+      sync_store_visitor_cart: {
+        Args: {
+          p_cart_items: Json
+          p_cart_subtotal: number
+          p_session_id: string
+        }
+        Returns: undefined
+      }
       track_builder_event: {
         Args: {
           _asset_id: string
@@ -110364,6 +110376,10 @@ export type Database = {
       }
       unaccent: { Args: { "": string }; Returns: string }
       unaccent_safe: { Args: { _txt: string }; Returns: string }
+      update_ebook_view: {
+        Args: { p_payload: Json; p_view_id: string }
+        Returns: undefined
+      }
       update_user_status_admin: {
         Args: { p_status: string; p_user_id: string }
         Returns: Json
