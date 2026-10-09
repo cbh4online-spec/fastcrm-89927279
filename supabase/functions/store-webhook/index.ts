@@ -210,26 +210,17 @@ async function runPaidSideEffects(
             }),
           ]);
 
-          // Decrement stock for tracked products
+          // Baixa de stock atómica (sem perder decrementos em pagamentos concorrentes)
           if (order?.items) {
             const orderItems = order.items as Array<{ product_id: string; quantity: number }>;
             for (const item of orderItems) {
-              const { data: prod } = await supabaseClient
-                .from("products")
-                .select("stock_quantity, track_stock")
-                .eq("id", item.product_id)
-                .eq("workspace_id", workspaceId)
-                .maybeSingle();
-              
-              if (prod?.track_stock && prod.stock_quantity !== null) {
-                const newQty = Math.max(0, prod.stock_quantity - item.quantity);
-                await supabaseClient
-                  .from("products")
-                  .update({ stock_quantity: newQty, stock_status: newQty === 0 ? "out_of_stock" : "in_stock" })
-                  .eq("id", item.product_id)
-                  .eq("workspace_id", workspaceId)
-                  .eq("stock_quantity", prod.stock_quantity);
-              }
+              if (!UUID_RE.test(item.product_id || "")) continue;
+              const { error: stockErr } = await supabaseClient.rpc("decrement_store_product_stock", {
+                p_workspace_id: workspaceId,
+                p_product_id: item.product_id,
+                p_quantity: Math.floor(Number(item.quantity) || 0),
+              });
+              if (stockErr) logStep("Stock decrement failed", { productId: item.product_id, message: stockErr.message });
             }
             logStep("Stock decremented for tracked products");
           }
@@ -479,7 +470,14 @@ Deno.serve(async (req) => {
     store_order_id: UUID_RE.test(session.metadata?.store_order_id || "") ? session.metadata!.store_order_id : null,
   });
   if (dupErr) {
-    if ((dupErr as any).code === "23505") return json({ received: true, duplicate: true });
+    if ((dupErr as any).code === "23505") {
+      // Se o primeiro processamento ainda não terminou (outcome nulo), pedir nova tentativa
+      // ao Stripe: se esse processamento falhar, o pagamento não fica perdido.
+      const { data: prev } = await supabaseClient.from("store_webhook_events")
+        .select("outcome").eq("workspace_id", workspaceId).eq("stripe_event_id", event.id).maybeSingle();
+      if (prev && prev.outcome == null) return json({ error: "event_in_progress" }, 409);
+      return json({ received: true, duplicate: true });
+    }
     logStep("Event log insert failed", { message: dupErr.message });
     return json({ error: "event_log_failed" }, 500);
   }
