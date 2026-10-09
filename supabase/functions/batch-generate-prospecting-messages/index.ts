@@ -24,6 +24,7 @@ async function generateForProfile(
   serviceContext: Record<string, string> | null,
   supabaseUrl: string,
   anonKey: string,
+  workspaceId: string | null,
 ): Promise<{ profileId: string; message: string; message_plain: string; error?: string }> {
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/generate-prospecting-message`, {
@@ -80,7 +81,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { profiles, tone = "casual", workspaceContext, serviceContext } = await req.json();
+    const { profiles, tone = "casual", workspaceContext, serviceContext, workspaceId = null } = await req.json();
 
     if (!Array.isArray(profiles) || profiles.length === 0) {
       return new Response(JSON.stringify({ error: "Nenhum perfil fornecido" }), {
@@ -109,7 +110,7 @@ Deno.serve(async (req) => {
       const batch = profiles.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.allSettled(
         batch.map((p: ProfileInput) =>
-          generateForProfile(p, tone, workspaceContext, serviceContext, supabaseUrl, anonKey)
+          generateForProfile(p, tone, workspaceContext, serviceContext, supabaseUrl, anonKey, typeof workspaceId === "string" ? workspaceId : null)
         )
       );
 

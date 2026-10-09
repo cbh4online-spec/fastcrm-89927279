@@ -79,6 +79,7 @@ export function useProspectingCadenceLauncher() {
             tone: "casual",
             workspaceContext,
             serviceContext: null,
+            workspaceId: currentWorkspace?.id ?? null,
           },
         });
         if (error) {

@@ -584,6 +584,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
             profiles: profileInputs,
             tone: defaultTone || "casual",
             workspaceContext: wsContext,
+            workspaceId: currentWorkspace?.id ?? null,
             serviceContext: enricherSettings.service_offer ? {
               offer: enricherSettings.service_offer,
               painPoints: enricherSettings.service_pain_points,
