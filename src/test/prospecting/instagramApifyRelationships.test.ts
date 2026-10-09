@@ -38,6 +38,11 @@ describe("contrato do Actor oficial", () => {
     expect(p.privateSkipped).toBe(1);
     expect(p.rawCount).toBe(5);
   });
+  it("aceita o tipo em minúsculas devolvido pela execução real", () => {
+    const real = [{ sourceUsername: "grandhaportugal", username: "eliane_pinto_10", isPrivate: false, type: "follower" }];
+    expect(ap.parseDatasetItems(real, "followers", "grandhaportugal").usernames).toEqual(["eliane_pinto_10"]);
+    expect(ap.parseDatasetItems(real, "following", "grandhaportugal").usernames).toEqual([]);
+  });
   it("erro no_items do perfil de origem", () => {
     expect(ap.parseDatasetItems([{ error: "no_items", errorDescription: "Profile is private" }], "followers", "x").sourceError).toMatch(/privado/);
     expect(ap.parseDatasetItems([{ error: "no_items", errorDescription: "Profile does not exist" }], "followers", "x").sourceError).toMatch(/não existe/);
