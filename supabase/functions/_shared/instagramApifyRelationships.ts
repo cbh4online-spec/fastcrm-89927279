@@ -127,7 +127,8 @@ export interface Deps { fetch: typeof fetch; sleep: (ms: number) => Promise<void
 const defaultDeps: Deps = {
   fetch: (i, n) => fetch(i, n),
   sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-  getEnv: (k) => (typeof Deno !== "undefined" ? Deno.env.get(k) : undefined),
+  // deno-lint-ignore no-explicit-any
+  getEnv: (k) => (globalThis as any).Deno?.env.get(k),
 };
 
 /** Pedido ao gateway com timeout e até 3 tentativas com backoff (429/5xx/timeout). */

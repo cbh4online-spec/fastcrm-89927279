@@ -33,7 +33,7 @@ export const MAX_ATTEMPTS = 3;
 const USERNAME_RE = /^[A-Za-z0-9._]{1,60}$/;
 
 export const CONFIGURATION_REQUIRED_MESSAGE =
-  "Configuração necessária: a recolha de seguidores e de perfis seguidos precisa da chave do serviço ProfileQuery guardada no servidor. Esta recolha não foi iniciada.";
+  "Configuração necessária: a recolha de seguidores e de perfis seguidos precisa da ligação Apify no servidor. Esta recolha não foi iniciada.";
 
 export function isRelationshipSource(source: string): source is RelationshipSource {
   return (RELATIONSHIP_SOURCES as readonly string[]).includes(source);

@@ -15,7 +15,7 @@
 export const UNSUPPORTED_SOURCES = ["followers", "following"] as const;
 
 export const UNSUPPORTED_SOURCE_MESSAGE =
-  "A recolha de seguidores e de perfis seguidos não está disponível no fornecedor instagram-looter2. Use o serviço ProfileQuery quando estiver configurado, ou Lista de @perfis / Pesquisa na web.";
+  "A recolha de seguidores e de perfis seguidos não está disponível no fornecedor instagram-looter2. Use a ligação Apify quando estiver configurada, ou Lista de @perfis / Pesquisa na web.";
 
 /** Trabalhos antigos destas origens feitos com instagram-looter2 (o pedido devolveu 404). */
 export const UNSUPPORTED_SOURCE_LEGACY_MESSAGE =
@@ -25,11 +25,11 @@ export const RELATIONSHIPS_PROVIDER = "profilequery";
 
 /** Mesmo texto que `CONFIGURATION_REQUIRED_MESSAGE` em `_shared/instagramRelationships.ts`. */
 export const CONFIGURATION_REQUIRED_MESSAGE =
-  "Configuração necessária: a recolha de seguidores e de perfis seguidos precisa da chave do serviço ProfileQuery guardada no servidor. Esta recolha não foi iniciada.";
+  "Configuração necessária: a recolha de seguidores e de perfis seguidos precisa da ligação Apify no servidor. Esta recolha não foi iniciada.";
 
 /** Trabalho de seguidores/seguidos que não foi criado pelo fornecedor ProfileQuery. */
 export function isLegacyRelationshipJob(source: string, provider: string | null | undefined): boolean {
-  return isUnsupportedSource(source) && provider !== RELATIONSHIPS_PROVIDER;
+  return isUnsupportedSource(source) && provider !== RELATIONSHIPS_PROVIDER && provider !== "apify";
 }
 
 /** Sem atualização durante este tempo, um trabalho em curso é dado como parado. */

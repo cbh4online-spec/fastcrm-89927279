@@ -6,6 +6,7 @@ import {
   RELATIONSHIPS_PROVIDER,
   validateRelationshipStart,
 } from "../_shared/instagramRelationships.ts";
+import { APIFY_PROVIDER, apifyConfigured, maxChargeUsd } from "../_shared/instagramApifyRelationships.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-START] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
@@ -42,7 +43,11 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const workspaceId = body?.workspaceId;
-    const configured = relationshipsConfigured((k) => Deno.env.get(k));
+    // Apify (ligação do projeto) é o fornecedor preferido; ProfileQuery só se tiver chave própria
+    const env = (k: string) => Deno.env.get(k);
+    const relProvider = apifyConfigured(env) ? APIFY_PROVIDER
+      : relationshipsConfigured(env) ? RELATIONSHIPS_PROVIDER : null;
+    const configured = relProvider !== null;
     const source = body?.source as Source;
     const rawTarget = typeof body?.target === "string" ? body.target.trim() : "";
     const limitCount = Number(body?.limit ?? 200);
@@ -57,7 +62,15 @@ Deno.serve(async (req) => {
         .eq("workspace_id", workspaceId).eq("user_id", user.id).maybeSingle();
       if (!m) return json({ success: false, error: "Sem acesso a este workspace" }, 403);
       // Só um booleano: a chave nunca sai do servidor
-      return json({ success: true, relationships: { configured, provider: RELATIONSHIPS_PROVIDER } });
+      return json({
+        success: true,
+        relationships: {
+          configured,
+          provider: relProvider,
+          // Custo máximo por perfil (USD, plano gratuito Apify) para mostrar antes de iniciar
+          maxUsdPerProfile: relProvider === APIFY_PROVIDER ? maxChargeUsd(1000) / 1000 : null,
+        },
+      });
     }
     if (!SOURCES.includes(source)) {
       return json({ success: false, error: "Origem inválida" }, 400);
@@ -90,10 +103,10 @@ Deno.serve(async (req) => {
       const [{ count: active }, { count: recent }] = await Promise.all([
         admin.from("instagram_extraction_jobs").select("id", { count: "exact", head: true })
           .eq("workspace_id", workspaceId).in("source", ["followers", "following"])
-          .in("status", ["pending", "running"]).eq("provider", RELATIONSHIPS_PROVIDER),
+          .in("status", ["pending", "running"]).in("provider", [RELATIONSHIPS_PROVIDER, APIFY_PROVIDER]),
         admin.from("instagram_extraction_jobs").select("id", { count: "exact", head: true })
           .eq("workspace_id", workspaceId).in("source", ["followers", "following"])
-          .eq("provider", RELATIONSHIPS_PROVIDER).gte("created_at", since),
+          .in("provider", [RELATIONSHIPS_PROVIDER, APIFY_PROVIDER]).gte("created_at", since),
       ]);
       const v = validateRelationshipStart({
         configured, limit: limitCount, activeJobs: active ?? 0, jobsLast24h: recent ?? 0,
@@ -135,7 +148,7 @@ Deno.serve(async (req) => {
         source,
         target,
         limit_count: effectiveLimit,
-        provider: isRelationshipSource(source) ? RELATIONSHIPS_PROVIDER : null,
+        provider: isRelationshipSource(source) ? relProvider : null,
         status: "pending",
         listing_done: source === "list",
         queued_count: seed.length,
@@ -165,7 +178,11 @@ Deno.serve(async (req) => {
       action: "instagram_extraction_started",
       entity_type: "instagram_extraction_job",
       entity_id: job.id,
-      details: { source, target, limit: effectiveLimit, provider: isRelationshipSource(source) ? RELATIONSHIPS_PROVIDER : null },
+      details: {
+        source, target, limit: effectiveLimit,
+        provider: isRelationshipSource(source) ? relProvider : null,
+        max_charge_usd: isRelationshipSource(source) && relProvider === APIFY_PROVIDER ? maxChargeUsd(effectiveLimit) : null,
+      },
     }).then(() => undefined, () => undefined);
 
     // Arranca o worker sem esperar pelo resultado
