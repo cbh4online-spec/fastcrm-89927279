@@ -60,10 +60,25 @@ Deno.serve(async (req) => {
       return json({ success: true, skipped: job.status });
     }
 
+    // Trabalhos antigos de seguidores/seguidos: falha clara, sem chamar o fornecedor
+    if (isUnsupportedSource(job.source)) {
+      await admin
+        .from("instagram_extraction_jobs")
+        .update({
+          status: "failed",
+          error: UNSUPPORTED_SOURCE_MESSAGE,
+          lease_until: null,
+          finished_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+      return json({ success: false, code: "unsupported_source", error: UNSUPPORTED_SOURCE_MESSAGE }, 200);
+    }
+
     // Requisitos por origem: cada origem depende do serviço que a alimenta
-    const needsApi = ["followers", "following", "hashtag", "location"].includes(job.source);
+    const needsApi = ["hashtag", "location"].includes(job.source);
     const missing = needsApi && !apiKey
-      ? "A recolha por seguidores, hashtag ou localização exige a API de Instagram configurada."
+      ? "A recolha por hashtag ou localização exige a API de Instagram configurada."
       : job.source === "web_search" && !hasFirecrawl
       ? "A pesquisa web exige o Firecrawl ligado ao projeto."
       : !apiKey && !hasFirecrawl
@@ -116,20 +131,7 @@ Deno.serve(async (req) => {
           usernames = await firecrawlSearchUsernames(job.target, room || 25);
         } else {
           let payload: unknown;
-          if (job.source === "followers" || job.source === "following") {
-            const profile = parseProfile(
-              await looterGet("/profile", { username: job.target }, apiKey!),
-              job.target,
-            );
-            if (!profile.userId) throw new Error("Perfil não encontrado ou privado");
-            const params: Record<string, string> = { id: profile.userId, count: "50" };
-            if (cursor) params.end_cursor = cursor;
-            payload = await looterGet(
-              job.source === "followers" ? "/followers" : "/following",
-              params,
-              apiKey!,
-            );
-          } else if (job.source === "hashtag") {
+          if (job.source === "hashtag") {
             const params: Record<string, string> = { hashtag: job.target };
             if (cursor) params.end_cursor = cursor;
             payload = await looterGet("/hashtag-medias", params, apiKey!);

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { corsHeaders } from "../_shared/cors.ts";
+import { isUnsupportedSource, UNSUPPORTED_SOURCE_MESSAGE } from "../_shared/instagramSources.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-START] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
@@ -46,6 +47,10 @@ Deno.serve(async (req) => {
     }
     if (!SOURCES.includes(source)) {
       return json({ success: false, error: "Origem inválida" }, 400);
+    }
+    // Bloqueio antes de criar trabalho ou gastar créditos: o fornecedor não suporta
+    if (isUnsupportedSource(source)) {
+      return json({ success: false, code: "unsupported_source", error: UNSUPPORTED_SOURCE_MESSAGE }, 200);
     }
     if (!Number.isFinite(limitCount) || limitCount < 1 || limitCount > 20000) {
       return json({ success: false, error: "Limite inválido (1 a 20000)" }, 400);
