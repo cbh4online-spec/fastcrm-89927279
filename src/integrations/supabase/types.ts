@@ -108867,6 +108867,14 @@ export type Database = {
         }
         Returns: Json
       }
+      decrement_store_product_stock: {
+        Args: {
+          p_product_id: string
+          p_quantity: number
+          p_workspace_id: string
+        }
+        Returns: number
+      }
       decrement_viewer_count: {
         Args: { p_livestream_id: string }
         Returns: undefined
