@@ -16,6 +16,11 @@ export const UNSUPPORTED_SOURCES = ["followers", "following"] as const;
 export const UNSUPPORTED_SOURCE_MESSAGE =
   "A recolha de seguidores e de perfis seguidos não é suportada pelo fornecedor de Instagram configurado. Nenhum pedido foi feito nem cobrado. Use Lista de @perfis ou Pesquisa na web.";
 
+/** Para trabalhos antigos destas origens (podem ter feito pedidos antes do bloqueio). */
+export const UNSUPPORTED_SOURCE_LEGACY_MESSAGE =
+  "A recolha de seguidores e de perfis seguidos não é suportada pelo fornecedor de Instagram configurado, por isso esta recolha não obteve perfis. Use Lista de @perfis ou Pesquisa na web.";
+
+
 /** Sem atualização durante este tempo, um trabalho em curso é dado como parado. */
 export const STALL_AFTER_MS = 10 * 60 * 1000;
 
@@ -62,7 +67,7 @@ function providerMessage(status: number): string {
 
 /** Converte o erro gravado (incluindo erros antigos com JSON cru) em texto legível. */
 export function friendlyJobError(raw: string | null | undefined, source: string): string | null {
-  if (isUnsupportedSource(source)) return UNSUPPORTED_SOURCE_MESSAGE;
+  if (isUnsupportedSource(source)) return UNSUPPORTED_SOURCE_LEGACY_MESSAGE;
   if (!raw || !raw.trim()) return null;
   const looksRaw = /[{}[\]]/.test(raw) || /Instagram API \d{3}/i.test(raw);
   if (!looksRaw) return raw.trim();

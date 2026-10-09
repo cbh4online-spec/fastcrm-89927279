@@ -13,7 +13,7 @@ import {
   firecrawlSearchUsernames,
   type FirecrawlProfileResult,
 } from "../_shared/instagramFirecrawl.ts";
-import { isUnsupportedSource, UNSUPPORTED_SOURCE_MESSAGE } from "../_shared/instagramSources.ts";
+import { isUnsupportedSource, UNSUPPORTED_SOURCE_LEGACY_MESSAGE } from "../_shared/instagramSources.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-WORKER] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
@@ -67,13 +67,13 @@ Deno.serve(async (req) => {
         .from("instagram_extraction_jobs")
         .update({
           status: "failed",
-          error: UNSUPPORTED_SOURCE_MESSAGE,
+          error: UNSUPPORTED_SOURCE_LEGACY_MESSAGE,
           lease_until: null,
           finished_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq("id", jobId);
-      return json({ success: false, code: "unsupported_source", error: UNSUPPORTED_SOURCE_MESSAGE }, 200);
+      return json({ success: false, code: "unsupported_source", error: UNSUPPORTED_SOURCE_LEGACY_MESSAGE }, 200);
     }
 
     // Requisitos por origem: cada origem depende do serviço que a alimenta

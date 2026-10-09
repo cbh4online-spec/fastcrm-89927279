@@ -5,6 +5,7 @@ import {
   resolveJobDisplay,
   STALL_AFTER_MS,
   UNSUPPORTED_SOURCE_MESSAGE,
+  UNSUPPORTED_SOURCE_LEGACY_MESSAGE,
 } from "@/lib/prospecting/extractionJobState";
 import * as server from "../../../supabase/functions/_shared/instagramSources";
 
@@ -23,6 +24,7 @@ describe("origens não suportadas", () => {
 
   it("mensagem igual no ecrã e no servidor", () => {
     expect(UNSUPPORTED_SOURCE_MESSAGE).toBe(server.UNSUPPORTED_SOURCE_MESSAGE);
+    expect(UNSUPPORTED_SOURCE_LEGACY_MESSAGE).toBe(server.UNSUPPORTED_SOURCE_LEGACY_MESSAGE);
   });
 
   it("servidor nunca pede /followers nem /following", () => {
@@ -45,7 +47,8 @@ describe("estado apresentado", () => {
     expect(d.kind).toBe("failed");
     expect(d.label).toBe("Falhou");
     expect(d.isActive).toBe(false);
-    expect(d.message).toBe(UNSUPPORTED_SOURCE_MESSAGE);
+    expect(d.message).toBe(UNSUPPORTED_SOURCE_LEGACY_MESSAGE);
+    expect(d.message).not.toMatch(/Nenhum pedido/);
     expect(d.message).not.toMatch(/[{}]/);
   });
 
