@@ -14,15 +14,28 @@ export class InstagramApiError extends Error {
   }
 }
 
+/** Tempo máximo por pedido ao fornecedor. */
+export const LOOTER_TIMEOUT_MS = 25_000;
+
 export async function looterGet(
   path: string,
   params: Record<string, string>,
   apiKey: string,
 ): Promise<unknown> {
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`${BASE}${path}?${qs}`, {
-    headers: { "X-RapidAPI-Key": apiKey, "X-RapidAPI-Host": RAPIDAPI_HOST },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}?${qs}`, {
+      headers: { "X-RapidAPI-Key": apiKey, "X-RapidAPI-Host": RAPIDAPI_HOST },
+      signal: AbortSignal.timeout(LOOTER_TIMEOUT_MS),
+    });
+  } catch (_error) {
+    throw new InstagramApiError(
+      "O fornecedor de Instagram não respondeu a tempo. Tente novamente mais tarde.",
+      408,
+      false,
+    );
+  }
 
   if (res.ok) return await res.json();
 
