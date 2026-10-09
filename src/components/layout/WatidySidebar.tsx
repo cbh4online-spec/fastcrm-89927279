@@ -13,6 +13,7 @@ import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
 import { useSidebarRecents } from "@/hooks/useSidebarRecents";
 import {
   buildMegaGroupSections,
+  isNavigationRouteActive,
   ROUTE_MANIFEST,
   type RouteEntry,
   type MegaGroup,
@@ -181,15 +182,9 @@ export function WatidySidebar({ open, onClose }: WatidySidebarProps) {
 
   const isActive = useCallback(
     (href: string, end?: boolean) => {
-      const [basePath, hrefSearch] = href.split("?");
-      if (hrefSearch) {
-        return location.pathname === basePath && location.search === `?${hrefSearch}`;
-      }
-      if (end || basePath === "/dashboard") return location.pathname === basePath;
-      if (location.pathname === basePath && location.search) return false;
-      return location.pathname === basePath || location.pathname.startsWith(basePath + "/");
+      return isNavigationRouteActive(href, location.pathname, location.search, location.hash, end);
     },
-    [location.pathname, location.search],
+    [location.pathname, location.search, location.hash],
   );
 
   const activeMegaFromRoute = useMemo<MegaGroup | null>(() => {

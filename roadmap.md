@@ -44,6 +44,6 @@
 - [ ] Validar /dashboard/products com sessão owner Ajax real (medida autenticada não feita).
 
 ## Navegação de Prospeção (pedido 2026-10-09)
-- [ ] Reunir acessos reais numa secção própria entre Clientes e Vendas, sem duplicações ou alterações funcionais.
-- [ ] Garantir menu lateral no Extrator Instagram e abertura/destaque da secção ativa, incluindo móvel/recolhido.
-- [ ] Executar testes de navegação e verificar a prévia, sem publicação nem alterações ao servidor.
+- [x] Reunir acessos reais numa secção própria entre Clientes e Vendas, sem duplicações ou alterações funcionais.
+- [x] Garantir menu lateral no Extrator Instagram e abertura/destaque da secção ativa, incluindo móvel/recolhido.
+- [x] Executar testes de navegação e verificar a prévia, sem publicação nem alterações ao servidor. Oito testes aprovados; navegação desktop, móvel e recolhida confirmada; build automático OK. Suite alargada tem duas falhas anteriores (billing e /admin); observado erro de locale alheio à navegação.
