@@ -3,7 +3,8 @@
  *
  * Regras:
  *  - um erro do fornecedor prevalece sobre "completed" (nunca mostra sucesso inventado);
- *  - origens não suportadas pelo fornecedor (seguidores/seguidos) são sempre falha;
+ *  - seguidores/seguidos antigos (sem fornecedor ProfileQuery) são sempre falha;
+ *  - uma nota da listagem (lista terminou antes do máximo) é informação, não erro;
  *  - um trabalho "em curso" sem atualização há demasiado tempo é dado como parado,
  *    para não ficar em espera nem em atualização automática para sempre.
  *
@@ -14,12 +15,22 @@
 export const UNSUPPORTED_SOURCES = ["followers", "following"] as const;
 
 export const UNSUPPORTED_SOURCE_MESSAGE =
-  "A recolha de seguidores e de perfis seguidos não é suportada pelo fornecedor de Instagram configurado. Nenhum pedido foi feito nem cobrado. Use Lista de @perfis ou Pesquisa na web.";
+  "A recolha de seguidores e de perfis seguidos não está disponível no fornecedor instagram-looter2. Use o serviço ProfileQuery quando estiver configurado, ou Lista de @perfis / Pesquisa na web.";
 
-/** Para trabalhos antigos destas origens (podem ter feito pedidos antes do bloqueio). */
+/** Trabalhos antigos destas origens feitos com instagram-looter2 (o pedido devolveu 404). */
 export const UNSUPPORTED_SOURCE_LEGACY_MESSAGE =
-  "A recolha de seguidores e de perfis seguidos não é suportada pelo fornecedor de Instagram configurado, por isso esta recolha não obteve perfis. Use Lista de @perfis ou Pesquisa na web.";
+  "Esta recolha antiga usou o fornecedor anterior, que não disponibiliza seguidores nem perfis seguidos: o pedido devolveu erro 404 e não foram obtidos perfis.";
 
+export const RELATIONSHIPS_PROVIDER = "profilequery";
+
+/** Mesmo texto que `CONFIGURATION_REQUIRED_MESSAGE` em `_shared/instagramRelationships.ts`. */
+export const CONFIGURATION_REQUIRED_MESSAGE =
+  "Configuração necessária: a recolha de seguidores e de perfis seguidos precisa da chave do serviço ProfileQuery guardada no servidor. Esta recolha não foi iniciada.";
+
+/** Trabalho de seguidores/seguidos que não foi criado pelo fornecedor ProfileQuery. */
+export function isLegacyRelationshipJob(source: string, provider: string | null | undefined): boolean {
+  return isUnsupportedSource(source) && provider !== RELATIONSHIPS_PROVIDER;
+}
 
 /** Sem atualização durante este tempo, um trabalho em curso é dado como parado. */
 export const STALL_AFTER_MS = 10 * 60 * 1000;
@@ -34,6 +45,8 @@ export interface JobLike {
   error: string | null;
   found_count: number;
   updated_at: string;
+  provider?: string | null;
+  listing_note?: string | null;
 }
 
 export type JobDisplayKind =
@@ -66,8 +79,12 @@ function providerMessage(status: number): string {
 }
 
 /** Converte o erro gravado (incluindo erros antigos com JSON cru) em texto legível. */
-export function friendlyJobError(raw: string | null | undefined, source: string): string | null {
-  if (isUnsupportedSource(source)) return UNSUPPORTED_SOURCE_LEGACY_MESSAGE;
+export function friendlyJobError(
+  raw: string | null | undefined,
+  source: string,
+  provider?: string | null,
+): string | null {
+  if (isLegacyRelationshipJob(source, provider)) return UNSUPPORTED_SOURCE_LEGACY_MESSAGE;
   if (!raw || !raw.trim()) return null;
   const looksRaw = /[{}[\]]/.test(raw) || /Instagram API \d{3}/i.test(raw);
   if (!looksRaw) return raw.trim();
@@ -77,13 +94,14 @@ export function friendlyJobError(raw: string | null | undefined, source: string)
 }
 
 export function resolveJobDisplay(job: JobLike, nowMs: number = Date.now()): JobDisplay {
-  const error = friendlyJobError(job.error, job.source);
+  const error = friendlyJobError(job.error, job.source, job.provider);
+  const note = job.listing_note?.trim() || null;
 
   if (job.status === "cancelled") {
     return { kind: "cancelled", label: "Cancelado", message: null, isActive: false, isError: false };
   }
 
-  if (job.status === "failed" || isUnsupportedSource(job.source)) {
+  if (job.status === "failed" || isLegacyRelationshipJob(job.source, job.provider)) {
     return { kind: "failed", label: "Falhou", message: error, isActive: false, isError: true };
   }
 
@@ -94,7 +112,7 @@ export function resolveJobDisplay(job: JobLike, nowMs: number = Date.now()): Job
     if (error) {
       return { kind: "partial", label: "Incompleto", message: error, isActive: false, isError: true };
     }
-    return { kind: "completed", label: "Concluído", message: null, isActive: false, isError: false };
+    return { kind: "completed", label: "Concluído", message: note, isActive: false, isError: false };
   }
 
   if (job.status === "paused") {
