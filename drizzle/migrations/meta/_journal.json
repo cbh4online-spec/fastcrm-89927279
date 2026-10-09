@@ -365,6 +365,13 @@
       "when": 1791568336471,
       "tag": "0051_outreach_permission_evidence",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1791582159498,
+      "tag": "0052_phase1_close_open_write_policies",
+      "breakpoints": true
     }
   ]
 }
