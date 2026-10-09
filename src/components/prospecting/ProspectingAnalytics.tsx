@@ -50,7 +50,8 @@ export function ProspectingAnalytics() {
     queryFn: async () => {
       const since = activitySince(new Date());
       const [operations, extraction, leads, ledger, leadTotal] = await Promise.all([
-        fetchAllPages((from, to) => supabase.from("prospecting_search_operations")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON path selects exceed TS instantiation depth
+        fetchAllPages((from, to) => (supabase as any).from("prospecting_search_operations")
           .select("id, action_key, created_at, result_count:response_data->>count, web_total:response_data->>total, query:response_data->>query")
           .eq("workspace_id", workspaceId!).eq("status", "completed").gte("created_at", since)
           .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to)),
@@ -70,7 +71,7 @@ export function ProspectingAnalytics() {
       ]);
       if (leadTotal.error) throw leadTotal.error;
       const searches: SearchActivity[] = [
-        ...operations.flatMap((row) => {
+        ...(operations as Array<{ id: string; action_key: string; created_at: string; query: string | null; result_count: string | null; web_total: string | null }>).flatMap((row) => {
           const source = OPERATION_SOURCES[row.action_key];
           if (!source) return [];
           return [{
