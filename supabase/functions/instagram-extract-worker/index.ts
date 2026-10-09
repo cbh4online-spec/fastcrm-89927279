@@ -13,7 +13,15 @@ import {
   firecrawlSearchUsernames,
   type FirecrawlProfileResult,
 } from "../_shared/instagramFirecrawl.ts";
-import { isUnsupportedSource, UNSUPPORTED_SOURCE_LEGACY_MESSAGE } from "../_shared/instagramSources.ts";
+import { isLegacyRelationshipJob, UNSUPPORTED_SOURCE_LEGACY_MESSAGE } from "../_shared/instagramSources.ts";
+import {
+  CONFIGURATION_REQUIRED_MESSAGE,
+  fetchRelationshipsPage,
+  isRelationshipSource,
+  nextListingState,
+  RELATIONSHIPS_SECRET_NAME,
+  RelationshipsApiError,
+} from "../_shared/instagramRelationships.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-WORKER] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
@@ -47,6 +55,8 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get("RAPIDAPI_KEY") ?? null;
     const hasFirecrawl = !!Deno.env.get("FIRECRAWL_API_KEY");
+    // Chave dedicada ao serviço de seguidores/seguidos (nunca reutiliza RAPIDAPI_KEY)
+    const relationshipsKey = Deno.env.get(RELATIONSHIPS_SECRET_NAME)?.trim() || null;
 
     const { data: job } = await admin
       .from("instagram_extraction_jobs")
@@ -61,8 +71,8 @@ Deno.serve(async (req) => {
       return json({ success: true, skipped: job.status });
     }
 
-    // Trabalhos antigos de seguidores/seguidos: falha clara, sem chamar o fornecedor
-    if (isUnsupportedSource(job.source)) {
+    // Trabalhos antigos de seguidores/seguidos (instagram-looter2): falha clara, sem chamar o fornecedor
+    if (isLegacyRelationshipJob(job.source, job.provider)) {
       await admin
         .from("instagram_extraction_jobs")
         .update({
@@ -78,7 +88,9 @@ Deno.serve(async (req) => {
 
     // Requisitos por origem: cada origem depende do serviço que a alimenta
     const needsApi = ["hashtag", "location"].includes(job.source);
-    const missing = needsApi && !apiKey
+    const missing = isRelationshipSource(job.source) && !relationshipsKey
+      ? CONFIGURATION_REQUIRED_MESSAGE
+      : needsApi && !apiKey
       ? "A recolha por hashtag ou localização exige a API de Instagram configurada."
       : job.source === "web_search" && !hasFirecrawl
       ? "A pesquisa web exige o Firecrawl ligado ao projeto."
@@ -130,6 +142,35 @@ Deno.serve(async (req) => {
         if (job.source === "web_search") {
           // Pesquisa web (Firecrawl): uma passagem, sem paginação por cursor
           usernames = await firecrawlSearchUsernames(job.target, room || 25);
+        } else if (isRelationshipSource(job.source)) {
+          // Lista real do serviço ProfileQuery: só perfis públicos, cursor persistido
+          const rel = await fetchRelationshipsPage(job.source, job.target, cursor, relationshipsKey!);
+          const fresh = rel.usernames.filter((u) => u !== job.target.toLowerCase()).slice(0, room);
+          if (fresh.length > 0) {
+            await admin.from("instagram_extraction_items").upsert(
+              fresh.map((username) => ({ job_id: job.id, workspace_id: job.workspace_id, username })),
+              { onConflict: "job_id,username", ignoreDuplicates: true },
+            );
+          }
+          const { count } = await admin
+            .from("instagram_extraction_items")
+            .select("id", { count: "exact", head: true })
+            .eq("job_id", job.id);
+          const before = queued;
+          queued = count ?? queued + fresh.length;
+          const st = nextListingState({ previousCursor: cursor, page: rel, queuedAfter: queued, limit: job.limit_count });
+          // Página sem perfis novos (repetição) também termina, para não gastar pedidos em ciclo
+          const stalled = !st.done && queued === before && rel.usernames.length > 0;
+          cursor = st.cursor;
+          listingDone = st.done || stalled;
+          const note = st.note ?? (stalled
+            ? `O serviço repetiu perfis já recebidos; a recolha parou com ${queued} perfis públicos. A lista pode não estar completa.`
+            : null);
+          if (listingDone && note) {
+            await admin.from("instagram_extraction_jobs").update({ listing_note: note }).eq("id", job.id);
+          }
+          log("Relationships page", { queued, listingDone, privateSkipped: rel.privateSkipped, attempts: rel.attempts });
+          usernames = [];
         } else {
           let payload: unknown;
           if (job.source === "hashtag") {
@@ -168,7 +209,29 @@ Deno.serve(async (req) => {
         listingDone = !page.hasNext || !page.cursor || queued >= job.limit_count;
         log("Listing page", { queued, listingDone, added: slice.length });
       } catch (error) {
-        if (error instanceof InstagramApiError && error.fatal) {
+        if (error instanceof RelationshipsApiError) {
+          if (error.status === 429) {
+            rateLimited = true;
+          } else if (queued === 0 || error.fatal) {
+            // Nunca transforma falha em recolha vazia; com perfis já recebidos fica "Incompleto"
+            const keepGoing = queued > 0;
+            await admin
+              .from("instagram_extraction_jobs")
+              .update(keepGoing
+                ? { listing_done: true, next_cursor: null, error: error.message, updated_at: new Date().toISOString() }
+                : {
+                    status: "failed", error: error.message, lease_until: null,
+                    finished_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+                  })
+              .eq("id", job.id);
+            if (!keepGoing) return json({ success: false, error: error.message }, 200);
+            listingDone = true;
+            cursor = null;
+          } else {
+            listingDone = true;
+            await admin.from("instagram_extraction_jobs").update({ error: error.message }).eq("id", job.id);
+          }
+        } else if (error instanceof InstagramApiError && error.fatal) {
           await admin
             .from("instagram_extraction_jobs")
             .update({
