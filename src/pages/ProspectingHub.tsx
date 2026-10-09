@@ -73,7 +73,8 @@ function SearchHistorySection() {
     enabled: !!currentWorkspace?.id,
     staleTime: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase.from("prospecting_search_operations")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON path selects exceed TS instantiation depth
+      const { data, error } = await (supabase as any).from("prospecting_search_operations")
         .select("id, action_key, created_at, result_count:response_data->>count, web_total:response_data->>total, query:response_data->>query, location:response_data->>location")
         .eq("workspace_id", currentWorkspace!.id)
         .eq("status", "completed")
