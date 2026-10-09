@@ -71,10 +71,10 @@ export function useVisitorScoreTracker(workspaceId?: string) {
       // Update score in DB (best-effort, fire and forget)
       if (workspaceId && sessionId.current) {
         (supabase as any)
-          .rpc("track_store_visitor_session", {
+          .rpc("set_store_visitor_score", {
             p_workspace_id: workspaceId,
             p_session_id: sessionId.current,
-            p_payload: { visitor_score: newScore },
+            p_score: newScore,
           })
           .then(() => {});
       }
