@@ -233,18 +233,31 @@ export default function ProspectingInstagramExtractor() {
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="ig-source">Origem</Label>
-              <Select value={source} onValueChange={(v) => setSource(v as ExtractionSource)}>
-                <SelectTrigger id="ig-source">
+              <Select
+                value={source}
+                onValueChange={(v) => {
+                  if (!isUnsupportedSource(v)) setSource(v as ExtractionSource);
+                }}
+              >
+                <SelectTrigger id="ig-source" aria-describedby="ig-source-note">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(SOURCE_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
+                  {Object.entries(SOURCE_LABELS).map(([value, label]) => {
+                    const unsupported = isUnsupportedSource(value);
+                    return (
+                      <SelectItem key={value} value={value} disabled={unsupported}>
+                        {label}
+                        {unsupported ? " — indisponível" : ""}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
+              <p id="ig-source-note" className="text-xs text-muted-foreground">
+                Seguidores e perfis seguidos estão indisponíveis: o fornecedor de Instagram
+                configurado não suporta esta recolha.
+              </p>
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
