@@ -39519,6 +39519,53 @@ export type Database = {
           },
         ]
       }
+      firecrawl_general_usage: {
+        Row: {
+          searches_count: number
+          usage_day: string
+          workspace_id: string
+        }
+        Insert: {
+          searches_count?: number
+          usage_day: string
+          workspace_id: string
+        }
+        Update: {
+          searches_count?: number
+          usage_day?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firecrawl_general_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firecrawl_general_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "firecrawl_general_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firecrawl_general_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flow_analytics: {
         Row: {
           avg_duration_seconds: number | null
@@ -77709,6 +77756,77 @@ export type Database = {
           },
         ]
       }
+      prospecting_search_operations: {
+        Row: {
+          action_key: string
+          created_at: string
+          credits_cost: number
+          id: string
+          quota_limit: number
+          request_id: string
+          response_data: Json | null
+          settled_at: string | null
+          status: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action_key: string
+          created_at?: string
+          credits_cost: number
+          id?: string
+          quota_limit: number
+          request_id: string
+          response_data?: Json | null
+          settled_at?: string | null
+          status?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action_key?: string
+          created_at?: string
+          credits_cost?: number
+          id?: string
+          quota_limit?: number
+          request_id?: string
+          response_data?: Json | null
+          settled_at?: string | null
+          status?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospecting_search_operations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospecting_search_operations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "prospecting_search_operations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospecting_search_operations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       protocol_kit_items: {
         Row: {
           created_at: string | null
@@ -108339,6 +108457,14 @@ export type Database = {
         Args: { p_ids: string[]; p_positions: number[] }
         Returns: undefined
       }
+      begin_prospecting_search: {
+        Args: {
+          p_action_key: string
+          p_request_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       build_conversation_replay: {
         Args: { p_conversation_id: string }
         Returns: Json
@@ -108484,6 +108610,10 @@ export type Database = {
       checkpoint_workflow_execution: {
         Args: { p_context: Json; p_execution_id: string; p_step_index: number }
         Returns: undefined
+      }
+      claim_firecrawl_general_search: {
+        Args: { p_module_slug: string; p_workspace_id: string }
+        Returns: Json
       }
       cleanup_expired_agent_memory: { Args: never; Returns: number }
       cleanup_expired_cache: { Args: never; Returns: number }
@@ -110072,6 +110202,10 @@ export type Database = {
       set_default_vibe_profile: {
         Args: { p_profile_id: string; p_workspace_id: string }
         Returns: undefined
+      }
+      settle_prospecting_search: {
+        Args: { p_operation_id: string; p_response?: Json; p_success: boolean }
+        Returns: Json
       }
       shares_workspace_with: {
         Args: { _target: string; _viewer: string }
