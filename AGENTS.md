@@ -16,3 +16,4 @@
 - Storefront categories come from the `get_public_store_category_tree` RPC + `src/lib/store/categoryTree.ts` (menu = visible roots; filters/counts include all descendants once), and the product category trigger never auto-creates categories for workspaces with a closed taxonomy (currently hard-listed in `resolve_store_category_id`), so curated hierarchies are preserved and costs stay private.
 
 - Keep prospecting destinations in the shared route manifest and use `isNavigationRouteActive` for query/anchor matching, so section links highlight the same destination without adding pages or duplicating URLs.
+- Present Instagram extraction job state only via `src/lib/prospecting/extractionJobState.ts` (error beats completed, unsupported sources always fail, stale running jobs stop polling); unsupported sources mirror `_shared/instagramSources.ts` and are blocked in start and worker before any provider call.

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { isUnsupportedSource, resolveJobDisplay, UNSUPPORTED_SOURCE_MESSAGE } from "@/lib/prospecting/extractionJobState";
 
 export type ExtractionSource =
   | "followers"
@@ -60,7 +61,8 @@ export interface ExtractedProfile {
   created_at: string;
 }
 
-const ACTIVE: ExtractionStatus[] = ["pending", "running"];
+/** Em curso de verdade: estado ativo, origem suportada e com atualizações recentes. */
+const isActiveJob = (job: ExtractionJob) => resolveJobDisplay(job).isActive;
 
 export function useInstagramExtractionJobs() {
   const { currentWorkspace } = useWorkspace();
@@ -70,9 +72,10 @@ export function useInstagramExtractionJobs() {
   const jobsQuery = useQuery({
     queryKey: ["instagram-extraction-jobs", workspaceId],
     enabled: !!workspaceId,
+    // Sem trabalho realmente ativo (falhado, parado ou não suportado) não há atualização automática
     refetchInterval: (query) => {
       const jobs = (query.state.data ?? []) as ExtractionJob[];
-      return jobs.some((j) => ACTIVE.includes(j.status)) ? 4000 : false;
+      return jobs.some(isActiveJob) ? 4000 : false;
     },
     queryFn: async () => {
       if (!workspaceId) return [];
@@ -95,6 +98,7 @@ export function useInstagramExtractionJobs() {
       usernames?: string[];
     }) => {
       if (!workspaceId) throw new Error("Workspace não selecionado");
+      if (isUnsupportedSource(input.source)) throw new Error(UNSUPPORTED_SOURCE_MESSAGE);
       const { data, error } = await supabase.functions.invoke("instagram-extract-start", {
         body: { workspaceId, ...input },
       });
@@ -128,7 +132,7 @@ export function useInstagramExtractionJobs() {
     jobs: jobsQuery.data ?? [],
     isLoading: jobsQuery.isLoading,
     isError: jobsQuery.isError,
-    activeJob: (jobsQuery.data ?? []).find((j) => ACTIVE.includes(j.status)) ?? null,
+    activeJob: (jobsQuery.data ?? []).find(isActiveJob) ?? null,
     startJob,
     controlJob,
   };

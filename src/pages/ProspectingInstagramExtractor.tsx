@@ -48,6 +48,12 @@ import { PendingOutreachPanel } from "@/components/professional-prospecting/Pend
 import { ProspectingEffectivenessCard } from "@/components/professional-prospecting/ProspectingEffectivenessCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
+import {
+  isUnsupportedSource,
+  resolveJobDisplay,
+} from "@/lib/prospecting/extractionJobState";
 
 const SOURCE_LABELS: Record<ExtractionSource, string> = {
   followers: "Seguidores de um perfil",
@@ -69,17 +75,6 @@ const SOURCE_PLACEHOLDER: Record<ExtractionSource, string> = {
 
 const SOURCE_HINT: Partial<Record<ExtractionSource, string>> = {
   web_search: "Encontra perfis públicos por pesquisa na web. Não lê listas de seguidores.",
-  followers: "Requer a API de Instagram configurada.",
-  following: "Requer a API de Instagram configurada.",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: "Na fila",
-  running: "A recolher",
-  paused: "Em pausa",
-  completed: "Concluído",
-  failed: "Falhou",
-  cancelled: "Cancelado",
 };
 
 type ContactFilter = "all" | "email" | "phone" | "any";
@@ -93,7 +88,7 @@ export default function ProspectingInstagramExtractor() {
   }, [location.hash]);
   const { jobs, isLoading: jobsLoading, activeJob, startJob, controlJob } = useInstagramExtractionJobs();
 
-  const [source, setSource] = useState<ExtractionSource>("followers");
+  const [source, setSource] = useState<ExtractionSource>("list");
   const [target, setTarget] = useState("");
   const [limit, setLimit] = useState("200");
   const [scope, setScope] = useState<"current" | "all">("current");
@@ -105,7 +100,8 @@ export default function ProspectingInstagramExtractor() {
 
   const selectedJob = activeJob ?? jobs[0] ?? null;
   const jobIdForResults = scope === "current" ? selectedJob?.id ?? null : null;
-  const isJobRunning = selectedJob?.status === "running" || selectedJob?.status === "pending";
+  const jobDisplay = selectedJob ? resolveJobDisplay(selectedJob) : null;
+  const isJobRunning = jobDisplay?.isActive ?? false;
 
   const { data: profiles = [], isLoading: resultsLoading } = useInstagramExtractionResults(
     jobIdForResults,
@@ -236,18 +232,31 @@ export default function ProspectingInstagramExtractor() {
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="ig-source">Origem</Label>
-              <Select value={source} onValueChange={(v) => setSource(v as ExtractionSource)}>
-                <SelectTrigger id="ig-source">
+              <Select
+                value={source}
+                onValueChange={(v) => {
+                  if (!isUnsupportedSource(v)) setSource(v as ExtractionSource);
+                }}
+              >
+                <SelectTrigger id="ig-source" aria-describedby="ig-source-note">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(SOURCE_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
+                  {Object.entries(SOURCE_LABELS).map(([value, label]) => {
+                    const unsupported = isUnsupportedSource(value);
+                    return (
+                      <SelectItem key={value} value={value} disabled={unsupported}>
+                        {label}
+                        {unsupported ? " — indisponível" : ""}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
+              <p id="ig-source-note" className="text-xs text-muted-foreground">
+                Seguidores e perfis seguidos estão indisponíveis: o fornecedor de Instagram
+                configurado não suporta esta recolha.
+              </p>
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
@@ -322,10 +331,10 @@ export default function ProspectingInstagramExtractor() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={selectedJob.status === "failed" ? "destructive" : "secondary"}>
-                  {STATUS_LABEL[selectedJob.status] ?? selectedJob.status}
+                <Badge variant={jobDisplay?.isError ? "destructive" : "secondary"}>
+                  {jobDisplay?.label}
                 </Badge>
-                {(selectedJob.status === "running" || selectedJob.status === "pending") && (
+                {jobDisplay?.isActive && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -334,7 +343,7 @@ export default function ProspectingInstagramExtractor() {
                     <Pause className="mr-1.5 h-3.5 w-3.5" /> Pausar
                   </Button>
                 )}
-                {selectedJob.status === "paused" && (
+                {jobDisplay?.kind === "paused" && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -343,7 +352,8 @@ export default function ProspectingInstagramExtractor() {
                     <Play className="mr-1.5 h-3.5 w-3.5" /> Retomar
                   </Button>
                 )}
-                {["running", "pending", "paused"].includes(selectedJob.status) && (
+                {["running", "pending", "paused"].includes(selectedJob.status) &&
+                  jobDisplay?.kind !== "failed" && (
                   <Button
                     size="sm"
                     variant="ghost"
@@ -354,9 +364,19 @@ export default function ProspectingInstagramExtractor() {
                 )}
               </div>
             </div>
-            <Progress value={progress} aria-label={`Progresso: ${progress}%`} />
-            {selectedJob.error && (
-              <p className="text-xs text-destructive">{selectedJob.error}</p>
+            {!jobDisplay?.isError && (
+              <Progress value={progress} aria-label={`Progresso: ${progress}%`} />
+            )}
+            {jobDisplay?.isActive && (
+              <p className="text-xs text-muted-foreground">
+                Última atualização{" "}
+                {formatDistanceToNow(new Date(selectedJob.updated_at), { addSuffix: true, locale: pt })}
+              </p>
+            )}
+            {jobDisplay?.message && (
+              <p role={jobDisplay.isError ? "alert" : undefined} className="text-sm text-destructive">
+                {jobDisplay.message}
+              </p>
             )}
           </CardContent>
         </Card>

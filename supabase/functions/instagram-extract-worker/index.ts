@@ -13,6 +13,7 @@ import {
   firecrawlSearchUsernames,
   type FirecrawlProfileResult,
 } from "../_shared/instagramFirecrawl.ts";
+import { isUnsupportedSource, UNSUPPORTED_SOURCE_LEGACY_MESSAGE } from "../_shared/instagramSources.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-WORKER] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
@@ -60,10 +61,25 @@ Deno.serve(async (req) => {
       return json({ success: true, skipped: job.status });
     }
 
+    // Trabalhos antigos de seguidores/seguidos: falha clara, sem chamar o fornecedor
+    if (isUnsupportedSource(job.source)) {
+      await admin
+        .from("instagram_extraction_jobs")
+        .update({
+          status: "failed",
+          error: UNSUPPORTED_SOURCE_LEGACY_MESSAGE,
+          lease_until: null,
+          finished_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+      return json({ success: false, code: "unsupported_source", error: UNSUPPORTED_SOURCE_LEGACY_MESSAGE }, 200);
+    }
+
     // Requisitos por origem: cada origem depende do serviço que a alimenta
-    const needsApi = ["followers", "following", "hashtag", "location"].includes(job.source);
+    const needsApi = ["hashtag", "location"].includes(job.source);
     const missing = needsApi && !apiKey
-      ? "A recolha por seguidores, hashtag ou localização exige a API de Instagram configurada."
+      ? "A recolha por hashtag ou localização exige a API de Instagram configurada."
       : job.source === "web_search" && !hasFirecrawl
       ? "A pesquisa web exige o Firecrawl ligado ao projeto."
       : !apiKey && !hasFirecrawl
@@ -116,20 +132,7 @@ Deno.serve(async (req) => {
           usernames = await firecrawlSearchUsernames(job.target, room || 25);
         } else {
           let payload: unknown;
-          if (job.source === "followers" || job.source === "following") {
-            const profile = parseProfile(
-              await looterGet("/profile", { username: job.target }, apiKey!),
-              job.target,
-            );
-            if (!profile.userId) throw new Error("Perfil não encontrado ou privado");
-            const params: Record<string, string> = { id: profile.userId, count: "50" };
-            if (cursor) params.end_cursor = cursor;
-            payload = await looterGet(
-              job.source === "followers" ? "/followers" : "/following",
-              params,
-              apiKey!,
-            );
-          } else if (job.source === "hashtag") {
+          if (job.source === "hashtag") {
             const params: Record<string, string> = { hashtag: job.target };
             if (cursor) params.end_cursor = cursor;
             payload = await looterGet("/hashtag-medias", params, apiKey!);
@@ -181,11 +184,28 @@ Deno.serve(async (req) => {
         if (error instanceof InstagramApiError && error.status === 429) {
           rateLimited = true;
         } else {
+          const message = error instanceof InstagramApiError
+            ? error.message
+            : "Não foi possível obter a lista de perfis desta origem.";
+          if (queued === 0) {
+            // Sem nada recolhido: é uma falha, nunca uma recolha vazia concluída
+            await admin
+              .from("instagram_extraction_jobs")
+              .update({
+                status: "failed",
+                error: message,
+                lease_until: null,
+                finished_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", job.id);
+            return json({ success: false, error: message }, 200);
+          }
           // Falha de listagem não apaga o já recolhido: fecha a listagem com nota
           listingDone = true;
           await admin
             .from("instagram_extraction_jobs")
-            .update({ error: error instanceof Error ? error.message : String(error) })
+            .update({ error: message })
             .eq("id", job.id);
         }
       }
@@ -403,14 +423,25 @@ Deno.serve(async (req) => {
     log("Run finished", { jobId: job.id, processed, queued, pending, done });
     return json({ success: true, processed, queued, pending: pending ?? 0, done });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    log("ERROR", { message });
+    const raw = error instanceof Error ? error.message : String(error);
+    log("ERROR", { message: raw });
+    const message = error instanceof InstagramApiError
+      ? raw
+      : "A recolha parou por um erro interno. Os perfis já recolhidos ficam guardados.";
     if (jobId) {
+      // Estado final de erro: nunca deixa o trabalho "a recolher" sem worker
       await admin
         .from("instagram_extraction_jobs")
-        .update({ lease_until: null, error: message, updated_at: new Date().toISOString() })
-        .eq("id", jobId);
+        .update({
+          status: "failed",
+          lease_until: null,
+          error: message,
+          finished_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId)
+        .in("status", ["pending", "running"]);
     }
-    return json({ success: false, error: message }, 500);
+    return json({ success: false, error: message }, 200);
   }
 });

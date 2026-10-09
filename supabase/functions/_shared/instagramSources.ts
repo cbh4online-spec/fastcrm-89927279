@@ -12,7 +12,12 @@
 export const UNSUPPORTED_SOURCES = ["followers", "following"] as const;
 
 export const UNSUPPORTED_SOURCE_MESSAGE =
-  "A recolha de seguidores e de perfis seguidos não é suportada pelo fornecedor de Instagram configurado. Nenhum pedido foi feito nem cobrado. Use Hashtag, Localização, Lista de @perfis ou Pesquisa na web.";
+  "A recolha de seguidores e de perfis seguidos não é suportada pelo fornecedor de Instagram configurado. Nenhum pedido foi feito nem cobrado. Use Lista de @perfis ou Pesquisa na web.";
+
+/** Para trabalhos antigos destas origens (podem ter feito pedidos antes do bloqueio). */
+export const UNSUPPORTED_SOURCE_LEGACY_MESSAGE =
+  "A recolha de seguidores e de perfis seguidos não é suportada pelo fornecedor de Instagram configurado, por isso esta recolha não obteve perfis. Use Lista de @perfis ou Pesquisa na web.";
+
 
 export function isUnsupportedSource(source: string): boolean {
   return (UNSUPPORTED_SOURCES as readonly string[]).includes(source);
