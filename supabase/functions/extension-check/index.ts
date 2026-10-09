@@ -1,11 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { activeModulePlan, meetsModuleMinimumPlan } from "../_shared/module-plan.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const PLAN_HIERARCHY: Record<string, number> = { free: 0, growth: 1, pro: 2 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -52,19 +51,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get workspace plan from workspace_plans
-    const { data: plan } = await supabase
-      .from("workspace_plans")
-      .select("plan_name")
+    // Billing is authoritative; workspace_plans is the older AI usage table.
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from("workspace_subscriptions")
+      .select("plan, status, current_period_end")
       .eq("workspace_id", workspaceId)
       .maybeSingle();
+    if (subscriptionError) throw subscriptionError;
 
-    const currentPlan = plan?.plan_name || "free";
-    const currentLevel = PLAN_HIERARCHY[currentPlan] ?? 0;
-    const requiredLevel = PLAN_HIERARCHY[mod.min_plan] ?? 0;
+    const currentPlan = activeModulePlan(subscription);
 
     // Check if plan is sufficient
-    if (currentLevel < requiredLevel) {
+    if (!meetsModuleMinimumPlan(currentPlan, mod.min_plan)) {
       return new Response(JSON.stringify({
         allowed: false,
         action: "upgrade_required",

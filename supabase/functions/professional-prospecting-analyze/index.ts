@@ -1,7 +1,7 @@
 import { aiGate } from '../_shared/ai-gate.ts';
 
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
-import { createClient } from "@supabase/supabase-js";
+import { getSearchContext, searchJson } from '../_shared/prospectingSearchGuard.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,20 +92,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  if (req.method !== "POST") {
+    return searchJson({ success: false, error: "Método não permitido" }, 405);
+  }
 
   try {
     const { profiles, workspaceId, searchId, autoEnrichInstagram } = await req.json();
 
-
-    // AI Gate — enforce credit consumption
-    if (workspaceId) {
-      const gate = await aiGate(workspaceId, 'heavy', 'professional-prospecting-analyze');
-      if (!gate.allowed) {
-        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
     if (!profiles || !Array.isArray(profiles) || profiles.length === 0) {
       return new Response(
         JSON.stringify({ success: false, error: "Profiles array is required" }),
@@ -120,6 +113,44 @@ Deno.serve(async (req) => {
       );
     }
 
+    const auth = await getSearchContext(req, workspaceId);
+    if (auth.error) return auth.error;
+    const { userId, userClient, adminClient } = auth.context!;
+    const { data: membership, error: membershipError } = await adminClient
+      .from("workspace_members")
+      .select("user_id")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (membershipError) {
+      console.error("Error checking workspace membership:", membershipError);
+      return searchJson({ success: false, error: "Não foi possível validar o espaço de trabalho" }, 503);
+    }
+    if (!membership) {
+      return searchJson({ success: false, error: "Sem acesso ao espaço de trabalho" }, 403);
+    }
+
+    if (searchId !== null && searchId !== undefined) {
+      if (typeof searchId !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchId)) {
+        return searchJson({ success: false, error: "Pesquisa inválida" }, 400);
+      }
+      const { data: search, error: searchError } = await adminClient
+        .from("professional_prospecting_searches")
+        .select("id")
+        .eq("id", searchId)
+        .eq("workspace_id", workspaceId)
+        .eq("status", "completed")
+        .maybeSingle();
+      if (searchError) {
+        console.error("Error checking search ownership:", searchError);
+        return searchJson({ success: false, error: "Não foi possível validar a pesquisa" }, 503);
+      }
+      if (!search) {
+        return searchJson({ success: false, error: "Pesquisa não encontrada neste espaço de trabalho" }, 403);
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(
@@ -128,12 +159,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = adminClient;
 
     // Check usage limits
-    const { data: usage, error: usageError } = await supabase.rpc(
+    const { data: usage, error: usageError } = await userClient.rpc(
       "get_or_create_prospecting_usage",
       { p_workspace_id: workspaceId }
     );
@@ -183,6 +212,15 @@ Deno.serve(async (req) => {
     );
 
     console.log(`[PROSPECTING] Analyze: ${profilesToAnalyze.length} profiles (${alreadyProcessed.size} already processed filtered)`);
+
+    if (profilesToAnalyze.length > 0) {
+      // Check the AI allowance only after authentication and validation, so
+      // invalid or already processed requests never consume it.
+      const gate = await aiGate(workspaceId, 'heavy', 'professional-prospecting-analyze', userId);
+      if (!gate.allowed) {
+        return searchJson({ success: false, error: 'quota_exceeded', upgrade_required: true }, 402);
+      }
+    }
 
     const results: any[] = [];
 
@@ -309,6 +347,7 @@ Deno.serve(async (req) => {
 
         if (saveError) {
           console.error("Error saving profile:", saveError);
+          throw new Error("Não foi possível guardar a análise do perfil");
         }
 
         results.push({
@@ -331,13 +370,18 @@ Deno.serve(async (req) => {
     const successCount = results.filter(r => r.success).length;
     const failCount = results.filter(r => !r.success).length;
     console.log(`[PROSPECTING] Analyzed: ${successCount} ok, ${failCount} failed`);
-    await supabase
+    const { error: usageUpdateError } = await supabase
       .from("professional_prospecting_usage")
       .update({ 
         profiles_analyzed_count: usage.profiles_analyzed_count + successCount,
         updated_at: new Date().toISOString()
       })
-      .eq("id", usage.id);
+      .eq("id", usage.id)
+      .eq("workspace_id", workspaceId);
+    if (usageUpdateError) {
+      console.error("Error updating profile analysis usage:", usageUpdateError);
+      return searchJson({ success: false, error: "Não foi possível confirmar a utilização da análise" }, 503);
+    }
 
     return new Response(
       JSON.stringify({

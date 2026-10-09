@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Copy, Check, Loader2, Send, ExternalLink, Instagram,
@@ -24,7 +25,8 @@ import {
 import { cn } from "@/lib/utils";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { PowerHourFocusView } from "./PowerHourFocusView";
-import { buildFollowUpRows, hasUsablePhone } from "@/lib/prospecting/cadence";
+import { buildFollowUpRows, buildInitialOutreachRow } from "@/lib/prospecting/cadence";
+import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 
 const extractInstagramUsername = (url: string): string | null => {
   const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
@@ -59,7 +61,7 @@ interface BulkOutreachDialogProps {
   workspaceId?: string;
 }
 
-// Profile states: idle -> opened (Instagram opened) -> sent (confirmed) -> rejected
+// Profile states: idle -> opened (perfil aberto) -> sent (confirmado) -> rejected
 type ProfileState = "idle" | "opened" | "sent" | "rejected";
 
 export function BulkOutreachDialog({
@@ -70,16 +72,18 @@ export function BulkOutreachDialog({
   isGenerating,
   generationProgress,
   onComplete,
-  userId,
   workspaceId,
 }: BulkOutreachDialogProps) {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [confirmingIds, setConfirmingIds] = useState<Set<string>>(new Set());
   const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [reviewProfile, setReviewProfile] = useState<{ profile: BulkProfile; reason: string } | null>(null);
   const activeProfileRef = useRef<HTMLDivElement>(null);
   const [focusMode, setFocusMode] = useState(true);
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
@@ -156,11 +160,12 @@ export function BulkOutreachDialog({
     toast.success(`${profile.profile_name || "Perfil"} rejeitado`);
   };
 
-  const handleCopyAndOpen = async (profile: BulkProfile) => {
+  const copyAndOpen = async (profile: BulkProfile) => {
     const msg = getMessageForProfile(profile.id);
     if (!msg || !msg.message) return;
-
     try {
+      if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
       await navigator.clipboard.writeText(msg.message_plain || msg.message);
       setCopiedId(profile.id);
       setTimeout(() => setCopiedId(null), 2000);
@@ -172,98 +177,84 @@ export function BulkOutreachDialog({
 
       // Only mark as opened, NOT as sent
       setOpenedIds(prev => new Set(prev).add(profile.id));
-    } catch {
-      toast.error("Erro ao copiar mensagem");
+    } catch (error) {
+      toast.error("Não foi possível abrir a abordagem", { description: error instanceof Error ? error.message : "Tente novamente" });
+    }
+  };
+
+  const handleCopyAndOpen = async (profile: BulkProfile) => {
+    try {
+      const wsId = workspaceId || currentWorkspace?.id;
+      if (!wsId) throw new Error("Espaço de trabalho indisponível");
+      if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      const identity = await checkProspectingIdentity(workspaceClient, wsId, {
+        name: profile.profile_name || "Sem nome",
+        phone: profile.phone,
+        profile_url: profile.profile_url,
+        instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
+      }, profile.id);
+      if (identity.status === "review") {
+        setReviewProfile({ profile, reason: describeProspectingIdentity(identity) });
+        return;
+      }
+      if (identity.status !== "new") {
+        toast.warning(describeProspectingIdentity(identity));
+        return;
+      }
+      await copyAndOpen(profile);
+    } catch (error) {
+      toast.error("Não foi possível verificar este contacto", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
   };
 
   const handleConfirmSent = async (profile: BulkProfile) => {
-    // Mark as sent
-    setSentIds(prev => new Set(prev).add(profile.id));
-
-    await supabase
-      .from("professional_prospecting_profiles")
-      .update({ outreach_step: 1 } as any)
-      .eq("id", profile.id);
-
     const wsId = workspaceId || currentWorkspace?.id;
-
-    if (wsId) {
-      // Dia 3: WhatsApp se houver telefone (canal derivado na fila); dia 7: Instagram
-      await supabase
+    if (!wsId || !openedIds.has(profile.id) || confirmingIds.has(profile.id)) return;
+    setConfirmingIds(prev => new Set(prev).add(profile.id));
+    try {
+      if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      const now = new Date();
+      const { data: existing, error: readError } = await supabase
         .from("prospecting_outreach_queue")
-        .insert(buildFollowUpRows({ workspaceId: wsId, profileId: profile.id }) as any);
-
-      // Auto-create lead and convert profile
-      try {
-        const msg = getMessageForProfile(profile.id);
-        const leadData: Record<string, unknown> = {
-          workspace_id: wsId,
-          name: profile.profile_name || "Sem nome",
-          source: "professional_prospecting",
-          status: "new",
-          website: profile.profile_url,
-          instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
-          prospecting_profile_id: profile.id,
-        };
-
-        if (hasUsablePhone(profile.phone)) {
-          leadData.phone = profile.phone;
+        .select("id, step_index, status")
+        .eq("workspace_id", wsId)
+        .eq("profile_id", profile.id)
+        .in("step_index", [1, 2, 3]);
+      if (readError) throw readError;
+      const rows = existing ?? [];
+      const initial = rows.find((row) => row.step_index === 1);
+      const msg = getMessageForProfile(profile.id);
+      if (initial) {
+        if (initial.status !== "sent") {
+          const { error } = await supabase.from("prospecting_outreach_queue")
+            .update({ status: "sent", message: msg?.message || null, message_plain: msg?.message_plain || msg?.message || null })
+            .eq("id", initial.id);
+          if (error) throw error;
         }
-
-        if (userId) {
-          leadData.created_by = userId;
-          leadData.assigned_to = userId;
-        }
-
-        if (profile.inferred_profession) {
-          leadData.inferred_profession = profile.inferred_profession;
-          leadData.business_category = profile.inferred_profession;
-        }
-
-        if (msg?.message_plain || msg?.message) {
-          leadData.notes = `📨 Mensagem de outreach enviada:\n"${msg.message_plain || msg.message}"`;
-        }
-
-        const { data: newLead } = await supabase
-          .from("leads")
-          .insert([leadData as any])
-          .select("id")
-          .single();
-
-        // Update prospecting profile to "converted" so it leaves the list
-        if (newLead?.id) {
-          await supabase
-            .from("professional_prospecting_profiles")
-            .update({
-              status: "converted",
-              converted_lead_id: newLead.id,
-              converted_at: new Date().toISOString(),
-              converted_by: userId || null,
-            } as any)
-            .eq("id", profile.id);
-
-          if (wsId) {
-            emitKernelEvent({
-              workspace_id: wsId,
-              type: 'PROSPECT.CONVERTED',
-              entity_kind: 'prospecting_profile',
-              entity_id: profile.id,
-              source_module: 'mkt-prospecting',
-              payload: { profile_id: profile.id, lead_id: newLead.id, source: 'auto_outreach' },
-            });
-          }
-        }
-
-        // Invalidate queries so the list updates immediately
-        queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
-      } catch (err) {
-        console.warn('[PROSPECTING] AUTO_LEAD_CREATE_FAILED', err);
+      } else {
+        const { error } = await supabase.from("prospecting_outreach_queue")
+          .insert({ ...buildInitialOutreachRow({ workspaceId: wsId, profileId: profile.id, now }), message: msg?.message || null, message_plain: msg?.message_plain || msg?.message || null });
+        if (error) throw error;
       }
-    }
+      const followUps = buildFollowUpRows({ workspaceId: wsId, profileId: profile.id, now })
+        .filter((followUp) => !rows.some((row) => row.step_index === followUp.step_index));
+      if (followUps.length) {
+        const { error } = await supabase.from("prospecting_outreach_queue").insert(followUps);
+        if (error) throw error;
+      }
+      const { error: profileError } = await supabase.from("professional_prospecting_profiles")
+        .update({ outreach_step: 1 }).eq("id", profile.id).eq("workspace_id", wsId)
+        .or("outreach_step.is.null,outreach_step.lt.1");
+      if (profileError) throw profileError;
+      setSentIds(prev => new Set(prev).add(profile.id));
 
-    console.log(`[PROSPECTING] Bulk outreach sent: profile=${profile.id}`);
-    if (wsId) {
+      queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["prospecting-effectiveness"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
+      queryClient.invalidateQueries({ queryKey: ["scheduled-outreach-count"] });
+      console.log(`[PROSPECTING] Bulk outreach sent: profile=${profile.id}`);
       emitKernelEvent({
         workspace_id: wsId,
         type: 'PROSPECT.OUTREACH_SENT',
@@ -272,19 +263,16 @@ export function BulkOutreachDialog({
         source_module: 'mkt-prospecting',
         payload: { profile_id: profile.id, step_index: 1, channel: 'instagram', bulk: true },
       });
+      toast.success(`${profile.profile_name || "Perfil"} marcado como enviado`);
+    } catch (error) {
+      toast.error("Não foi possível registar o envio", { description: error instanceof Error ? error.message : "Tente novamente" });
+    } finally {
+      setConfirmingIds(prev => { const next = new Set(prev); next.delete(profile.id); return next; });
     }
-    toast.success(`${profile.profile_name || "Perfil"} marcado como enviado`);
   };
 
   const handleReopenDM = async (profile: BulkProfile) => {
-    const msg = getMessageForProfile(profile.id);
-    if (msg?.message) {
-      await navigator.clipboard.writeText(msg.message_plain || msg.message);
-    }
-    const username = extractInstagramUsername(profile.profile_url);
-    const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
-    window.open(dmUrl, "_blank");
-    toast.success("Mensagem copiada novamente!");
+    await handleCopyAndOpen(profile);
   };
 
   const handleNextProfile = () => {
@@ -351,7 +339,7 @@ export function BulkOutreachDialog({
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold leading-none tracking-tight">
                 {phase === "generating" && "A preparar mensagens..."}
-                {phase === "sending" && "Outreach em Massa"}
+                {phase === "sending" && "Abordagem em lote"}
                 {phase === "completed" && "Outreach Concluído! 🎉"}
               </h2>
               <div className="flex items-center gap-2 mr-6">
@@ -373,7 +361,7 @@ export function BulkOutreachDialog({
                 `A gerar mensagens personalizadas... ${generationProgress.done} de ${generationProgress.total}`
               }
               {phase === "sending" &&
-                `${sentCount} de ${effectiveTotal} enviados${rejectedCount > 0 ? `, ${rejectedCount} rejeitado${rejectedCount > 1 ? 's' : ''}` : ''} — Clique no botão abaixo para copiar e abrir o Instagram`
+                `${sentCount} de ${effectiveTotal} envios confirmados${rejectedCount > 0 ? `, ${rejectedCount} rejeitado${rejectedCount > 1 ? 's' : ''}` : ''} — Abra o perfil, envie a mensagem e confirme`
               }
               {phase === "completed" &&
                 `Todos os ${effectiveTotal} perfis foram contactados com sucesso!${rejectedCount > 0 ? ` (${rejectedCount} rejeitado${rejectedCount > 1 ? 's' : ''})` : ''}`
@@ -431,10 +419,10 @@ export function BulkOutreachDialog({
             <>
               {/* Instruction banner */}
               <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm mt-4">
-                <Instagram className="w-5 h-5 text-pink-500 flex-shrink-0" />
+                <ExternalLink className="w-5 h-5 text-primary flex-shrink-0" />
                 <span>
-                  Clique <strong>"Abrir DM"</strong> para copiar a mensagem e abrir o Instagram. 
-                  Depois volte aqui e clique <strong>"Já enviei"</strong> para avançar.
+                  Clique <strong>"Abrir perfil"</strong> para copiar a mensagem e abrir o canal disponível. 
+                  Depois volte aqui e clique <strong>"Já enviei"</strong> para agendar os próximos passos. Pode converter o perfil em lead quando fizer sentido.
                 </span>
               </div>
 
@@ -475,7 +463,7 @@ export function BulkOutreachDialog({
                             ) : !hasMessage && isGenerating ? (
                               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                             ) : (
-                              <Instagram className="w-5 h-5 text-pink-500" />
+                              profile.platform === "instagram" ? <Instagram className="w-5 h-5 text-pink-500" /> : <ExternalLink className="w-5 h-5 text-muted-foreground" />
                             )}
                           </div>
 
@@ -573,7 +561,7 @@ export function BulkOutreachDialog({
                                   ) : (
                                     <Copy className="w-3 h-3" />
                                   )}
-                                  Abrir DM
+                                  Abrir perfil
                                 </Button>
                                 <Button
                                   size="sm"
@@ -634,7 +622,7 @@ export function BulkOutreachDialog({
                   {nextProfile && (
                     <Button onClick={handleNextProfile} size="lg" className="gap-2">
                       <Send className="w-4 h-4" />
-                      Abrir DM de {nextProfile.profile_name || "próximo perfil"}
+                      Abrir perfil de {nextProfile.profile_name || "próximo perfil"}
                     </Button>
                   )}
                 </div>
@@ -645,6 +633,22 @@ export function BulkOutreachDialog({
       </div>
 
       {/* Close confirmation dialog */}
+      <AlertDialog open={!!reviewProfile} onOpenChange={(value) => { if (!value) setReviewProfile(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Possível contacto já existente</AlertDialogTitle>
+            <AlertDialogDescription>
+              {reviewProfile?.reason} Confirme que é outra entidade antes de abrir a abordagem.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setReviewProfile(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (reviewProfile) void copyAndOpen(reviewProfile.profile); setReviewProfile(null); }}>
+              É outro contacto, continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>

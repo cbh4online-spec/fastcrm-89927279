@@ -7,7 +7,7 @@ const today = "2026-10-08T10:00:00";
 const old = "2026-09-01T10:00:00";
 
 describe("eficácia da prospeção", () => {
-  it("taxa de resposta conta perfis abordados cuja cadência parou", () => {
+  it("não interpreta uma cadência cancelada como resposta", () => {
     const r = computeEffectiveness(
       [
         { profile_id: "a", step_index: 1, status: "sent", updated_at: today },
@@ -18,7 +18,7 @@ describe("eficácia da prospeção", () => {
       ],
       now,
     );
-    expect(r.responseRate).toBe(50);
+    expect(r.responseRate).toBeNull();
     expect(r.approachesToday).toBe(1);
     expect(r.approaches7d).toBe(1);
     expect(r.followUpsDone).toBe(1);
@@ -27,6 +27,15 @@ describe("eficácia da prospeção", () => {
 
   it("sem abordagens a taxa é nula", () => {
     expect(computeEffectiveness([], now).responseRate).toBeNull();
+  });
+
+  it("não conta duas vezes o mesmo perfil abordado", () => {
+    const result = computeEffectiveness([
+      { profile_id: "a", step_index: 1, status: "sent", updated_at: today },
+      { profile_id: "a", step_index: 1, status: "sent", updated_at: today },
+    ], now);
+    expect(result.approachesToday).toBe(1);
+    expect(result.approaches7d).toBe(1);
   });
 
   it("resposta rápida usa o primeiro nome ou remove o marcador", () => {

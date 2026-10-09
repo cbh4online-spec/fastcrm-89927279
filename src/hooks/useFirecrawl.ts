@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { safeRandomId } from '@/lib/browser/safeBrowser'
 
 // ── Prospect Search ───────────────────────────────────────────────────────────
 export function useFirecrawlSearch() {
@@ -13,8 +14,14 @@ export function useFirecrawlSearch() {
       include_content?: boolean
       campaign_id?: string
     }) => {
+      if (!currentWorkspace?.id) throw new Error('Selecione um espaço de trabalho')
       const { data, error } = await supabase.functions.invoke('firecrawl-search', {
-        body: { ...params, workspace_id: currentWorkspace?.id },
+        body: {
+          ...params,
+          workspace_id: currentWorkspace.id,
+          purpose: 'prospecting',
+          request_id: safeRandomId(),
+        },
       })
       if (error) throw error
       return data as {

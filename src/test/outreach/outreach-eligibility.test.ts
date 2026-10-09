@@ -6,8 +6,9 @@ const limits = { daily_limit: 20, per_company_limit: 2, cooldown_days: 14 };
 
 const validation = {
   is_validated: true,
-  legal_basis: "legitimate_interest",
-  consent_source: "contrato",
+  legal_basis: "consent",
+  consent_source: "Formulário de autorização para email e WhatsApp v2",
+  consent_recorded_at: "2026-01-10T11:00:00.000Z",
   allowed_channels: ["email", "whatsapp"],
 } as unknown as OutreachValidation;
 
@@ -37,6 +38,11 @@ describe("elegibilidade de contacto 1:1", () => {
       validation: { ...validation, is_validated: false } as OutreachValidation,
     });
     expect(r.allowed).toBe(false);
+  });
+
+  it("bloqueia base B2B genérica ou consentimento sem prova", () => {
+    expect(evaluateOutreachEligibility({ ...base, validation: { ...validation, legal_basis: "legitimate_interest" } }).allowed).toBe(false);
+    expect(evaluateOutreachEligibility({ ...base, validation: { ...validation, consent_source: null } }).allowed).toBe(false);
   });
 
   it("bloqueia com opt-out", () => {

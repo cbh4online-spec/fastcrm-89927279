@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { assertProspectingIdentityReady, importProspectingLead, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 import { toast } from "sonner";
 import { CONFIGURATION_REQUIRED_MESSAGE, isUnsupportedSource, resolveJobDisplay } from "@/lib/prospecting/extractionJobState";
 
@@ -100,6 +102,7 @@ const isActiveJob = (job: ExtractionJob) => resolveJobDisplay(job).isActive;
 
 export function useInstagramExtractionJobs() {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
   const queryClient = useQueryClient();
   const workspaceId = currentWorkspace?.id;
 
@@ -133,6 +136,11 @@ export function useInstagramExtractionJobs() {
       relationshipsConfigured?: boolean;
     }) => {
       if (!workspaceId) throw new Error("Workspace não selecionado");
+      if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) {
+        throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      }
+      await assertProspectingIdentityReady(workspaceClient, workspaceId);
       if (isUnsupportedSource(input.source) && !input.relationshipsConfigured) {
         throw new Error(CONFIGURATION_REQUIRED_MESSAGE);
       }
@@ -208,41 +216,32 @@ export function useInstagramExtractionResults(jobId: string | null, autoRefresh:
 /** Importa perfis selecionados como Leads, sem duplicar. */
 export function useInstagramExtractionImport() {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
   const queryClient = useQueryClient();
   const workspaceId = currentWorkspace?.id;
 
   return useMutation({
     mutationFn: async (profiles: ExtractedProfile[]) => {
       if (!workspaceId) throw new Error("Workspace não selecionado");
+      if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) {
+        throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      }
       const usable = profiles.filter((p) => !p.converted_lead_id && p.instagram_username);
       if (usable.length === 0) throw new Error("Nada para importar");
 
-      const handles = usable.map((p) => `@${p.instagram_username}`);
-      const { data: existing } = await supabase
-        .from("leads")
-        .select("id, instagram_url")
-        .eq("workspace_id", workspaceId)
-        .in("instagram_url", handles);
-
-      const taken = new Set((existing ?? []).map((l) => (l.instagram_url ?? "").toLowerCase()));
-      const created: { profileId: string; leadId: string }[] = [];
+      let created = 0;
       let skipped = 0;
 
       for (const p of usable) {
-        const handle = `@${p.instagram_username}`;
-        if (taken.has(handle.toLowerCase())) {
-          skipped += 1;
-          continue;
-        }
-        const { data: lead, error } = await supabase
-          .from("leads")
-          .insert({
-            workspace_id: workspaceId,
+        const profileUrl = `https://www.instagram.com/${p.instagram_username!.replace(/^@/, "")}/`;
+        const result = await importProspectingLead(workspaceClient, workspaceId, {
             name: p.profile_name || `@${p.instagram_username}`,
             email: p.extracted_email,
             phone: p.extracted_phone,
-            instagram_url: handle,
+            instagram_url: profileUrl,
             website: p.instagram_external_url,
+            lead_type: "person",
             source: "instagram_extractor",
             instagram_bio: p.profile_bio,
             instagram_followers_count: p.instagram_followers_count,
@@ -252,28 +251,12 @@ export function useInstagramExtractionImport() {
             instagram_is_verified: p.instagram_is_verified,
             instagram_is_business: p.instagram_is_business,
             instagram_external_url: p.instagram_external_url,
-          })
-          .select("id")
-          .single();
-
-        if (error) throw new Error(error.message);
-        created.push({ profileId: p.id, leadId: lead.id });
-        taken.add(handle.toLowerCase());
+          }, p.id);
+        if (result.lead_id) created += 1;
+        else skipped += 1;
       }
 
-      for (const c of created) {
-        await supabase
-          .from("professional_prospecting_profiles")
-          .update({
-            converted_lead_id: c.leadId,
-            converted_at: new Date().toISOString(),
-            status: "converted",
-          })
-          .eq("id", c.profileId)
-          .eq("workspace_id", workspaceId);
-      }
-
-      return { created: created.length, skipped };
+      return { created, skipped };
     },
     onSuccess: ({ created, skipped }) => {
       toast.success(`${created} lead(s) criada(s)`, {

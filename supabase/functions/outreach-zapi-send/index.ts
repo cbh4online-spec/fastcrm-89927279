@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
 
     // --- estado do outreach (sempre lido no servidor) --------------------
     const [validationRes, suppressionRes, draftRes, settingsRes, linkRes, connRes] = await Promise.all([
-      admin.from('outreach_validations').select('is_validated, legal_basis, allowed_channels')
+      admin.from('outreach_validations').select('is_validated, legal_basis, allowed_channels, consent_source, consent_recorded_at, recipient_category, relationship_kind, analogous_offer_confirmed, optout_at_collection_confirmed, generic_corporate_address_confirmed, dgc_checked_at, dgc_list_reference')
         .eq('workspace_id', workspaceId).eq('entity_type', entityType).eq('entity_id', entityId).maybeSingle(),
       admin.from('outreach_suppressions').select('reason')
         .eq('workspace_id', workspaceId).eq('entity_type', entityType).eq('entity_id', entityId),

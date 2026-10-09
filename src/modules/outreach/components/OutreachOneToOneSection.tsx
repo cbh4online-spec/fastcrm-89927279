@@ -1,7 +1,7 @@
 /**
  * Secção "Contacto 1:1 validado" — ficha de Empresa / Contacto / Lead.
  *
- * Nada é enviado pelo sistema: cada botão apenas abre o canal ou a composição nativa.
+ * Os canais assistidos abrem a composição nativa; o adaptador Zapi tem guardas próprios.
  */
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -48,6 +48,14 @@ const OUTCOME_PT: Record<string, string> = {
   error: "erro",
 };
 
+function localDateTime(value?: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
 
 
 export interface OutreachOneToOneSectionProps {
@@ -68,7 +76,7 @@ const EVENT_LABELS: Record<string, string> = {
   draft_created: "Rascunho criado",
   draft_updated: "Rascunho actualizado",
   reviewed: "Rascunho revisto",
-  assisted_send: "Envio assistido",
+  assisted_send: "Abertura solicitada (envio por confirmar)",
   blocked: "Bloqueado",
   stopped: "Paragem registada",
 };
@@ -219,7 +227,7 @@ export function OutreachOneToOneSection({
               Contacto 1:1 validado
             </CardTitle>
             <CardDescription>
-              Comunicação personalizada e responsável. O sistema nunca envia — apenas abre o canal.
+              Comunicação personalizada com validação prévia. Abrir um canal não confirma o envio.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -266,7 +274,7 @@ export function OutreachOneToOneSection({
               <Label className="text-xs">Base legal</Label>
               <Select
                 value={validation?.legal_basis ?? ""}
-                onValueChange={(v) => saveValidation.mutate({ legal_basis: v, consent_recorded_at: new Date().toISOString() })}
+                onValueChange={(v) => saveValidation.mutate({ legal_basis: v })}
               >
                 <SelectTrigger><SelectValue placeholder="Selecionar base legal" /></SelectTrigger>
                 <SelectContent>
@@ -277,10 +285,11 @@ export function OutreachOneToOneSection({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Origem do consentimento / registo</Label>
+              <Label className="text-xs">Origem e prova da autorização</Label>
               <Input
+                key={`consent-source-${validation?.id ?? "new"}`}
                 defaultValue={validation?.consent_source ?? ""}
-                placeholder="Ex.: formulário do site, contrato #123"
+                placeholder="Ex.: formulário e versão, venda anterior ou fonte do endereço empresarial"
                 onBlur={(e) => {
                   if (e.target.value !== (validation?.consent_source ?? "")) {
                     saveValidation.mutate({ consent_source: e.target.value });
@@ -290,6 +299,70 @@ export function OutreachOneToOneSection({
               />
             </div>
           </div>
+
+          {validation?.legal_basis === "consent" && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Data e hora reais do consentimento</Label>
+              <Input
+                key={`consent-${validation.id}`}
+                type="datetime-local"
+                defaultValue={localDateTime(validation.consent_recorded_at)}
+                onBlur={(e) => saveValidation.mutate({
+                  consent_recorded_at: e.target.value ? new Date(e.target.value).toISOString() : null,
+                })}
+              />
+              <p className="text-xs text-muted-foreground">Selecionar uma base legal não regista consentimento automaticamente.</p>
+            </div>
+          )}
+
+          {validation?.legal_basis === "existing_customer" && (
+            <div className="space-y-3 rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">Registe a venda anterior na origem acima. Esta via fica limitada a email.</p>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={validation.relationship_kind === "existing_customer"}
+                  onCheckedChange={(v) => saveValidation.mutate({ relationship_kind: v ? "existing_customer" : "new" })} />
+                Existe relação de clientela anterior
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={!!validation.analogous_offer_confirmed}
+                  onCheckedChange={(v) => saveValidation.mutate({ analogous_offer_confirmed: v })} />
+                A oferta é própria e análoga à adquirida
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={!!validation.optout_at_collection_confirmed}
+                  onCheckedChange={(v) => saveValidation.mutate({ optout_at_collection_confirmed: v })} />
+                Houve possibilidade de oposição na recolha dos dados
+              </label>
+            </div>
+          )}
+
+          {validation?.legal_basis === "corporate_opt_out" && (
+            <div className="space-y-3 rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">Esta via fica limitada a email genérico de pessoa coletiva.</p>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={validation.recipient_category === "corporate"}
+                  onCheckedChange={(v) => saveValidation.mutate({ recipient_category: v ? "corporate" : "individual" })} />
+                O destinatário é uma pessoa coletiva
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={!!validation.generic_corporate_address_confirmed}
+                  onCheckedChange={(v) => saveValidation.mutate({ generic_corporate_address_confirmed: v })} />
+                O endereço é genérico, sem nome de pessoa
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Data da consulta à lista DGC</Label>
+                  <Input key={`dgc-date-${validation.id}`} type="date" defaultValue={validation.dgc_checked_at?.slice(0, 10) ?? ""}
+                    onBlur={(e) => saveValidation.mutate({ dgc_checked_at: e.target.value ? `${e.target.value}T12:00:00.000Z` : null })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Referência da lista consultada</Label>
+                  <Input key={`dgc-ref-${validation.id}`} defaultValue={validation.dgc_list_reference ?? ""} maxLength={200}
+                    onBlur={(e) => saveValidation.mutate({ dgc_list_reference: e.target.value })} />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label className="text-xs">Canais autorizados</Label>
@@ -477,7 +550,7 @@ export function OutreachOneToOneSection({
                     )}
 
                     <p className="text-xs text-muted-foreground">
-                      O botão apenas abre o canal. O envio é sempre manual e o registo fica como “envio assistido”.
+                      O botão apenas abre o canal. O envio é manual e fica por confirmar.
                     </p>
 
                   </div>
@@ -581,8 +654,8 @@ function LimitsForm({
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Hoje: {usage?.todayCount ?? 0} envios assistidos · esta empresa: {usage?.companyCount ?? 0}
-        {usage?.lastContactAt ? ` · último contacto: ${new Date(usage.lastContactAt).toLocaleDateString("pt-PT")}` : ""}
+        Hoje: {usage?.todayCount ?? 0} pedidos de abertura · esta empresa: {usage?.companyCount ?? 0}
+        {usage?.lastContactAt ? ` · último pedido: ${new Date(usage.lastContactAt).toLocaleDateString("pt-PT")}` : ""}
       </p>
     </div>
   );

@@ -9,11 +9,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   Copy, Check, RefreshCw, Loader2, Sparkles,
-  MessageSquare, User, Briefcase, MapPin, Instagram,
-  Send, ExternalLink
+  Briefcase, MapPin, Instagram, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
+import { buildFollowUpRows, buildInitialOutreachRow } from "@/lib/prospecting/cadence";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
+import { useQueryClient } from "@tanstack/react-query";
 
 const extractInstagramUsername = (url: string): string | null => {
   const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
@@ -34,6 +37,8 @@ interface ProfileData {
   instagram_is_verified: boolean | null;
   instagram_is_business: boolean | null;
   instagram_full_bio: string | null;
+  extracted_email?: string | null;
+  extracted_phone?: string | null;
   outreach_step?: number;
 }
 
@@ -78,7 +83,11 @@ export function ProspectingMessageDialog({
   const [tone, setTone] = useState<Tone>(defaultTone);
   const [activeStep, setActiveStep] = useState("1");
   const [copied, setCopied] = useState(false);
+  const [openedStep, setOpenedStep] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const { settings } = useLeadEnricherSettings();
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
+  const queryClient = useQueryClient();
 
   const [steps, setSteps] = useState<StepMessage[]>([
     { message: "", message_plain: "", isLoading: false, generated: false },
@@ -95,8 +104,10 @@ export function ProspectingMessageDialog({
 
   const currentStep = parseInt(activeStep) - 1;
   const currentOutreachStep = profile.outreach_step || 0;
+  const isInstagramProfile = profile.platform === "instagram";
 
   const generateMessage = async (stepIndex: number, selectedTone: Tone = tone) => {
+    setOpenedStep((opened) => opened === stepIndex + 1 ? null : opened);
     setSteps(prev => {
       const next = [...prev];
       next[stepIndex] = { ...next[stepIndex], isLoading: true };
@@ -162,83 +173,151 @@ export function ProspectingMessageDialog({
     ]);
   };
 
+  const { currentWorkspace } = useWorkspace();
+
+  const canContactProfile = async (): Promise<boolean> => {
+    if (!currentWorkspace?.id) throw new Error("Espaço de trabalho indisponível");
+    if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+    if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+    const identity = await checkProspectingIdentity(workspaceClient, currentWorkspace.id, {
+        name: profile.profile_name || "Sem nome",
+        email: profile.extracted_email,
+        phone: profile.extracted_phone,
+        profile_url: profile.profile_url,
+        instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
+    }, profile.id);
+    if (identity.status === "review") {
+      return window.confirm(`${describeProspectingIdentity(identity)}\n\nConfirma que é outra entidade e pretende continuar?`);
+    }
+    if (identity.status !== "new") {
+      toast.warning(describeProspectingIdentity(identity));
+      return false;
+    }
+    return true;
+  };
+
   const handleCopy = async () => {
     try {
+      if (!await canContactProfile()) return;
       await navigator.clipboard.writeText(steps[currentStep].message);
       setCopied(true);
       toast.success("Mensagem copiada!");
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Erro ao copiar");
+    } catch (error) {
+      toast.error("Não foi possível verificar este contacto", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
   };
 
-  const { currentWorkspace } = useWorkspace();
-
-  const handleSendInstagram = async () => {
+  const handleOpenInstagram = async () => {
     const stepNum = currentStep + 1;
     try {
+      if (!await canContactProfile()) return;
       await navigator.clipboard.writeText(steps[currentStep].message);
       const username = extractInstagramUsername(profile.profile_url);
       const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
       window.open(dmUrl, "_blank");
-      toast.success("Mensagem copiada! Cole (Ctrl+V) na conversa e envie");
+      setOpenedStep(stepNum);
+      toast.success("Mensagem copiada. Cole-a e envie na conversa; depois confirme aqui.");
+    } catch (error) {
+      toast.error("Não foi possível abrir a abordagem", { description: error instanceof Error ? error.message : "Tente novamente" });
+    }
+  };
 
-      // Update outreach step
-      if (stepNum > currentOutreachStep) {
-        await supabase
-          .from("professional_prospecting_profiles")
-          .update({ outreach_step: stepNum } as any)
-          .eq("id", profile.id);
-        onOutreachUpdate?.(profile.id, stepNum);
+  const handleConfirmSent = async () => {
+    const workspaceId = currentWorkspace?.id;
+    if (!workspaceId) {
+      toast.error("Espaço de trabalho indisponível");
+      return;
+    }
+    const stepNum = currentStep + 1;
+    if (openedStep !== stepNum || isSaving) return;
+    setIsSaving(true);
+    const now = new Date();
+    try {
+      if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      const { data: existing, error: readError } = await supabase
+        .from("prospecting_outreach_queue")
+        .select("id, step_index, status")
+        .eq("workspace_id", workspaceId)
+        .eq("profile_id", profile.id)
+        .in("step_index", [1, 2, 3]);
+      if (readError) throw readError;
+      const rows = existing ?? [];
+
+      // Filas criadas pela versão antiga usavam 1/2 para os dias 3/7.
+      if (stepNum === 1 && rows.some((row) => row.step_index === 1 && row.status !== "sent") && !rows.some((row) => row.step_index === 3)) {
+        const oldSecond = rows.find((row) => row.step_index === 2);
+        if (oldSecond) {
+          const { error } = await supabase.from("prospecting_outreach_queue").update({ step_index: 3 }).eq("id", oldSecond.id);
+          if (error) throw error;
+        }
+        const oldFirst = rows.find((row) => row.step_index === 1 && row.status !== "sent")!;
+        const { error } = await supabase.from("prospecting_outreach_queue").update({ step_index: 2 }).eq("id", oldFirst.id);
+        if (error) throw error;
+        oldFirst.step_index = 2;
+        if (oldSecond) oldSecond.step_index = 3;
       }
 
-      // When sending Msg 1, queue Msg 2 and Msg 3 automatically
-      if (stepNum === 1 && currentWorkspace?.id) {
-        const now = new Date();
-        const day3 = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-        const day7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-        const queueItems = [
-          {
-            workspace_id: currentWorkspace.id,
-            profile_id: profile.id,
-            step_index: 1,
-            status: "scheduled",
-            scheduled_for: day3.toISOString(),
-            message: steps[1]?.message || null,
-            message_plain: steps[1]?.message_plain || null,
-            tone,
-          },
-          {
-            workspace_id: currentWorkspace.id,
-            profile_id: profile.id,
-            step_index: 2,
-            status: "scheduled",
-            scheduled_for: day7.toISOString(),
-            message: steps[2]?.message || null,
-            message_plain: steps[2]?.message_plain || null,
-            tone,
-          },
-        ];
-
-        await supabase
-          .from("prospecting_outreach_queue")
-          .insert(queueItems as any);
-
-        toast.success("Sequência activada! Follow-up em 3 dias, Fecho em 7 dias", {
-          duration: 5000,
+      const row = rows.find((item) => item.step_index === stepNum);
+      if (row) {
+        if (row.status !== "sent") {
+          const { error } = await supabase.from("prospecting_outreach_queue")
+            .update({ status: "sent", message: steps[currentStep].message, message_plain: steps[currentStep].message_plain || steps[currentStep].message })
+            .eq("id", row.id);
+          if (error) throw error;
+        }
+      } else {
+        const base = stepNum === 1
+          ? buildInitialOutreachRow({ workspaceId, profileId: profile.id, now })
+          : { workspace_id: workspaceId, profile_id: profile.id, step_index: stepNum, scheduled_for: now.toISOString(), status: "sent" };
+        const { error } = await supabase.from("prospecting_outreach_queue").insert({
+          ...base,
+          message: steps[currentStep].message,
+          message_plain: steps[currentStep].message_plain || steps[currentStep].message,
+          tone,
         });
+        if (error) throw error;
       }
 
+      if (stepNum === 1) {
+        const followUps = buildFollowUpRows({ workspaceId, profileId: profile.id, now })
+          .filter((followUp) => !rows.some((item) => item.step_index === followUp.step_index))
+          .map((followUp) => ({
+            ...followUp,
+            message: steps[followUp.step_index - 1]?.message || null,
+            message_plain: steps[followUp.step_index - 1]?.message_plain || null,
+            tone,
+          }));
+        if (followUps.length) {
+          const { error } = await supabase.from("prospecting_outreach_queue").insert(followUps);
+          if (error) throw error;
+        }
+      }
+
+      if (stepNum > currentOutreachStep) {
+        const { error } = await supabase.from("professional_prospecting_profiles")
+          .update({ outreach_step: stepNum })
+          .eq("id", profile.id)
+          .eq("workspace_id", workspaceId);
+        if (error) throw error;
+      }
+      onOutreachUpdate?.(profile.id, stepNum);
+      queryClient.invalidateQueries({ queryKey: ["pending-outreach", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["scheduled-outreach-count", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["prospecting-effectiveness", workspaceId] });
+      toast.success(stepNum === 1 ? "Abordagem confirmada; próximos passos agendados" : "Envio confirmado");
       onOpenChange(false);
-    } catch {
-      toast.error("Erro ao copiar mensagem");
+    } catch (error) {
+      toast.error("Não foi possível registar o envio", { description: error instanceof Error ? error.message : "Tente novamente" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleToneChange = (newTone: Tone) => {
     setTone(newTone);
+    setOpenedStep(null);
     if (steps.some(s => s.generated)) {
       generateAllSteps();
     }
@@ -256,6 +335,7 @@ export function ProspectingMessageDialog({
         { message: "", message_plain: "", isLoading: false, generated: false },
       ]);
       setCopied(false);
+      setOpenedStep(null);
       setActiveStep("1");
     }
   }, [open]);
@@ -271,7 +351,7 @@ export function ProspectingMessageDialog({
             Sequência AIDA
           </DialogTitle>
           <DialogDescription>
-            3 mensagens personalizadas para Instagram DM
+            {isInstagramProfile ? "3 mensagens personalizadas para Instagram DM" : "3 mensagens para contacto assistido"}
           </DialogDescription>
         </DialogHeader>
 
@@ -355,9 +435,10 @@ export function ProspectingMessageDialog({
                   <Textarea
                     value={steps[i].message}
                     onChange={(e) => {
+                      setOpenedStep(null);
                       setSteps(prev => {
                         const next = [...prev];
-                        next[i] = { ...next[i], message: e.target.value };
+                        next[i] = { ...next[i], message: e.target.value, message_plain: e.target.value };
                         return next;
                       });
                     }}
@@ -417,13 +498,19 @@ export function ProspectingMessageDialog({
 
           <Button
             size="sm"
-            onClick={handleSendInstagram}
-            disabled={!steps[currentStep]?.message || steps[currentStep]?.isLoading}
+            onClick={handleOpenInstagram}
+            disabled={!steps[currentStep]?.message || steps[currentStep]?.isLoading || isSaving}
             className="gap-1"
           >
-            <Send className="w-4 h-4" />
-            Enviar no Instagram
+            <ExternalLink className="w-4 h-4" />
+            {isInstagramProfile ? "Copiar e abrir DM" : "Copiar e abrir perfil"}
           </Button>
+          {openedStep === currentStep + 1 && (
+            <Button size="sm" variant="outline" onClick={handleConfirmSent} disabled={isSaving} className="gap-1">
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Já enviei
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

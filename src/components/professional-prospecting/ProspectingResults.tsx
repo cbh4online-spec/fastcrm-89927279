@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
 import { ProspectingMessageDialog } from "./ProspectingMessageDialog";
+import { checkProspectingIdentity, describeProspectingIdentity, importProspectingLead, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 // BulkOutreachDialog is now rendered at page level (ProfessionalProspecting.tsx)
 
 interface BulkProfile {
@@ -121,6 +123,7 @@ type SortOption = "score_desc" | "score_asc" | "followers_desc" | "date_desc";
 export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStartBulkOutreach }: ProspectingResultsProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
   const queryClient = useQueryClient();
   const { settings: enricherSettings } = useLeadEnricherSettings();
   const [pollingStartTime] = useState(() => Date.now());
@@ -132,6 +135,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
   const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set());
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [profileToConvert, setProfileToConvert] = useState<Profile | null>(null);
+  const [convertAllowPossible, setConvertAllowPossible] = useState(false);
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const [messageProfile, setMessageProfile] = useState<Profile | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("score_desc");
@@ -148,9 +152,10 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
       console.log("Fetching profiles for workspace:", currentWorkspace.id, "searchId:", searchId);
 
       // Build query - RLS will automatically filter by accessible workspaces
-      let query = supabase
+      let query = workspaceClient
         .from("professional_prospecting_profiles")
         .select("*")
+        .eq("workspace_id", currentWorkspace.id)
         .eq("status", "analyzed")
         .order("created_at", { ascending: false })
         .order("lead_score", { ascending: false, nullsFirst: false });
@@ -160,7 +165,6 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
         query = query.eq("search_id", searchId);
       } else {
         // Otherwise get recent profiles from current workspace
-        query = query.eq("workspace_id", currentWorkspace.id);
         const yesterday = new Date();
         yesterday.setHours(yesterday.getHours() - 24);
         query = query.gte("created_at", yesterday.toISOString());
@@ -174,7 +178,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
         console.error("Error fetching profiles:", error);
         throw error;
       }
-      return (data || []).map((p: any) => ({
+      return (data || []).map((p) => ({
         ...p,
         lead_score_factors: p.lead_score_factors as { positive: string[]; negative: string[] } | null,
       })) as Profile[];
@@ -186,8 +190,10 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
 
   // Convert to lead mutation with enriched data
   const convertMutation = useMutation({
-    mutationFn: async ({ profile, options }: { profile: Profile; options: ConversionOptions }) => {
+    mutationFn: async ({ profile, options, allowPossible = false }: { profile: Profile; options: ConversionOptions; allowPossible?: boolean }) => {
       if (!currentWorkspace?.id || !user?.id) throw new Error("Missing context");
+      if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
 
       // Build enriched notes
       const noteParts: string[] = [];
@@ -242,6 +248,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
         name: profile.profile_name || "Sem nome",
         source: "professional_prospecting",
         status: "new",
+        lead_type: profile.inferred_type === "individual" ? "person" : "company",
         website: profile.profile_url,
         assigned_to: user.id,
         created_by: user.id,
@@ -296,38 +303,9 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
         });
       }
 
-      const { data: lead, error: leadError } = await supabase
-        .from("leads")
-        .insert([leadData as any])
-        .select()
-        .single();
-
-      if (leadError) {
-        if (leadError.code === "23505" && (leadError.message || "").includes("email")) {
-          throw new Error("Já existe um lead com este email neste workspace.");
-        }
-        throw leadError;
-      }
-
-      // Update profile status
-      await supabase
-        .from("professional_prospecting_profiles")
-        .update({
-          status: "converted",
-          converted_lead_id: lead.id,
-          converted_at: new Date().toISOString(),
-          converted_by: user.id,
-        })
-        .eq("id", profile.id);
-
-      // Cancel pending outreach
-      await supabase
-        .from("prospecting_outreach_queue")
-        .update({ status: "cancelled" } as any)
-        .eq("profile_id", profile.id)
-        .in("status", ["scheduled", "ready"]);
-
-      return lead;
+      const result = await importProspectingLead(workspaceClient, currentWorkspace.id, leadData, profile.id, allowPossible);
+      if (!result.lead_id) throw new Error(describeProspectingIdentity(result));
+      return { id: result.lead_id };
     },
     onSuccess: (lead, { profile }) => {
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
@@ -354,21 +332,49 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     },
   });
 
-  const handleConvertClick = (profile: Profile) => {
-    setProfileToConvert(profile);
-    setConvertDialogOpen(true);
+  const handleConvertClick = async (profile: Profile) => {
+    if (!currentWorkspace?.id) return;
+    if (isInstanceLoading || instanceError) {
+      toast.error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      return;
+    }
+    if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) {
+      toast.error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      return;
+    }
+    try {
+      const check = await checkProspectingIdentity(workspaceClient, currentWorkspace.id, {
+        name: profile.profile_name || "Sem nome",
+        email: profile.extracted_email,
+        phone: profile.extracted_phone,
+        website: profile.profile_url,
+        profile_url: profile.profile_url,
+        instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
+      }, profile.id);
+      if (["exists", "opportunity", "blocked"].includes(check.status)) {
+        toast.error("Perfil já presente no CRM", { description: describeProspectingIdentity(check) });
+        return;
+      }
+      const allowPossible = check.status === "review";
+      if (allowPossible && !window.confirm(`${describeProspectingIdentity(check)}\n\nConfirma que é uma entidade diferente?`)) return;
+      setConvertAllowPossible(allowPossible);
+      setProfileToConvert(profile);
+      setConvertDialogOpen(true);
+    } catch (error) {
+      toast.error("Não foi possível verificar duplicados", { description: error instanceof Error ? error.message : undefined });
+    }
   };
 
   const handleConvertConfirm = (options: ConversionOptions) => {
     if (profileToConvert) {
-      convertMutation.mutate({ profile: profileToConvert, options });
+      convertMutation.mutate({ profile: profileToConvert, options, allowPossible: convertAllowPossible });
     }
   };
 
   // Reject profile mutation
   const rejectMutation = useMutation({
     mutationFn: async (profileId: string) => {
-      await supabase
+      await workspaceClient
         .from("professional_prospecting_profiles")
         .update({
           status: "rejected",
@@ -377,9 +383,9 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
         .eq("id", profileId);
 
       // Cancel pending outreach
-      await supabase
+      await workspaceClient
         .from("prospecting_outreach_queue")
-        .update({ status: "cancelled" } as any)
+        .update({ status: "cancelled" })
         .eq("profile_id", profileId)
         .in("status", ["scheduled", "ready"]);
     },
@@ -472,7 +478,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
 
     setBulkProcessing("reject");
     
-    const { error } = await supabase
+    const { error } = await workspaceClient
       .from("professional_prospecting_profiles")
       .update({ status: "rejected", rejection_reason: "Rejeitado em lote" })
       .in("id", ids);
@@ -554,7 +560,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     // Get workspace context
     const wsContext = currentWorkspace ? {
       name: currentWorkspace.name || "",
-      description: (currentWorkspace as any).description || "",
+      description: "description" in currentWorkspace ? String(currentWorkspace.description ?? "") : "",
     } : null;
 
     // Process in mini-batches of 5 for incremental progress
@@ -619,7 +625,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
 
   // Filter and sort profiles
   const filteredProfiles = useMemo(() => {
-    let result = profiles.filter((p) => {
+    const result = profiles.filter((p) => {
       const matchesSearch =
         !searchFilter ||
         p.profile_name?.toLowerCase().includes(searchFilter.toLowerCase()) ||

@@ -1,9 +1,9 @@
 
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import {
+  beginSearch, getSearchContext, prospectingCorsHeaders, searchJson,
+  settleSearch, type SearchContext,
+} from "../_shared/prospectingSearchGuard.ts";
 
 interface SerpApiPlace {
   position?: number;
@@ -43,45 +43,48 @@ interface SerpApiResponse {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: prospectingCorsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return searchJson({ success: false, error: "Método não permitido" }, 405);
+  }
+
+  let context: SearchContext | undefined;
+  let operationId: string | undefined;
+  let settled = false;
+
   try {
+    const body = await req.json();
+    const { query, location, limit = 20, start = 0, workspace_id, request_id } = body;
+    if (typeof query !== "string" || !query.trim() || query.length > 200 ||
+        (location !== undefined && (typeof location !== "string" || location.length > 100)) ||
+        !Number.isInteger(limit) || limit < 1 || limit > 40 ||
+        !Number.isInteger(start) || start < 0 || start > 500) {
+      return searchJson({ success: false, error: "Parâmetros de pesquisa inválidos" }, 400);
+    }
+
+    const auth = await getSearchContext(req, workspace_id);
+    if (auth.error) return auth.error;
+    context = auth.context!;
+
     const SERPAPI_API_KEY = Deno.env.get("SERPAPI_API_KEY");
     
     if (!SERPAPI_API_KEY) {
       console.error("SERPAPI_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Chave da API não configurada. Contacte o administrador." 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
+      return searchJson({ success: false, error: "Chave da API não configurada. Contacte o administrador." }, 503);
     }
 
-    const { query, location, limit = 20, start = 0 } = await req.json();
-
-    console.log("Google Local Search request:", { query, location, limit });
-
-    if (!query) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Termo de pesquisa é obrigatório" 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
+    const started = await beginSearch(context, "prospecting_google_local_search", request_id);
+    if (started.error) return started.error;
+    if (started.reservation?.status === "completed") {
+      return searchJson(started.reservation.response);
     }
+    operationId = started.reservation?.operation_id;
+    if (!operationId) return searchJson({ success: false, error: "Reserva de créditos inválida" }, 503);
 
     // Build search query with location
-    const searchQuery = location ? `${query} ${location} Portugal` : `${query} Portugal`;
+    const searchQuery = location ? `${query.trim()} ${location.trim()} Portugal` : `${query.trim()} Portugal`;
 
     const searchUrl = new URL("https://serpapi.com/search.json");
     searchUrl.searchParams.set("engine", "google_maps");
@@ -95,8 +98,11 @@ Deno.serve(async (req) => {
     }
     searchUrl.searchParams.set("api_key", SERPAPI_API_KEY);
 
-    console.log("Searching Google Maps for:", searchQuery);
     const response = await fetch(searchUrl.toString());
+    if (!response.ok) {
+      console.error("SerpAPI HTTP error", response.status);
+      return searchJson({ success: false, error: "Pesquisa externa indisponível", error_type: "api_error", data: [], count: 0 }, 502);
+    }
     const data: SerpApiResponse = await response.json();
 
     if (data.error) {
@@ -105,8 +111,7 @@ Deno.serve(async (req) => {
       const isQuotaError = data.error.toLowerCase().includes("run out") || 
                            data.error.toLowerCase().includes("quota") ||
                            data.error.toLowerCase().includes("limit");
-      return new Response(
-        JSON.stringify({ 
+      return searchJson({ 
           success: false, 
           error: isQuotaError 
             ? "Quota de pesquisas esgotada. Contacte o administrador para renovar o plano da API." 
@@ -114,9 +119,7 @@ Deno.serve(async (req) => {
           error_type: isQuotaError ? "quota_exceeded" : "api_error",
           data: [],
           count: 0,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+        }, 502);
     }
 
     const results = data.local_results || [];
@@ -161,29 +164,22 @@ Deno.serve(async (req) => {
       };
     });
 
-    return new Response(
-      JSON.stringify({ 
+    const result = { 
         success: true, 
         data: mappedResults,
         count: mappedResults.length,
         query: searchQuery,
-      }),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
-    );
+      };
+    settled = await settleSearch(context, operationId, true, result);
+    if (!settled) return searchJson({ success: false, error: "Não foi possível confirmar a pesquisa" }, 503);
+    return searchJson(result);
   } catch (error: unknown) {
     console.error("Error in google-local-search:", error);
     const message = error instanceof Error ? error.message : "Erro interno";
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: message 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
-    );
+    return searchJson({ success: false, error: message }, 500);
+  } finally {
+    if (context && operationId && !settled) {
+      await settleSearch(context, operationId, false);
+    }
   }
 });

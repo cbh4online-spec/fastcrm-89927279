@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
+import { safeRandomId } from "@/lib/browser/safeBrowser";
+import { assertProspectingIdentityReady, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,7 @@ const PROFESSION_SUGGESTIONS = [
 
 export function ProspectingSearch({ onSearchComplete, prefill }: ProspectingSearchProps) {
   const { currentWorkspace } = useWorkspace();
-  const { user } = useAuth();
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
   const queryClient = useQueryClient();
   const [searchMode, setSearchMode] = useState<"web" | "manual">("web");
   const [isSearching, setIsSearching] = useState(false);
@@ -77,16 +79,37 @@ export function ProspectingSearch({ onSearchComplete, prefill }: ProspectingSear
     );
   };
 
+  const ensureReady = async (): Promise<boolean> => {
+    if (!currentWorkspace?.id) {
+      toast.error("Espaço de trabalho não encontrado");
+      return false;
+    }
+    if (isInstanceLoading || instanceError) {
+      toast.error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      return false;
+    }
+    if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) {
+      toast.error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      return false;
+    }
+    try {
+      await assertProspectingIdentityReady(workspaceClient, currentWorkspace.id);
+      return true;
+    } catch (error) {
+      toast.error("A verificação de duplicados não está pronta; a pesquisa não foi iniciada.", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+      return false;
+    }
+  };
+
   const handleWebSearch = async () => {
     if (!profession.trim()) {
       toast.error("Indique uma profissão para pesquisar");
       return;
     }
 
-    if (!currentWorkspace?.id || !user?.id) {
-      toast.error("Workspace não encontrado");
-      return;
-    }
+    if (!(await ensureReady()) || !currentWorkspace?.id) return;
 
     setIsSearching(true);
     try {
@@ -96,7 +119,7 @@ export function ProspectingSearch({ onSearchComplete, prefill }: ProspectingSear
           location: location.trim() || null,
           keywords: keywords.trim() || null,
           workspaceId: currentWorkspace.id,
-          userId: user.id,
+          request_id: safeRandomId(),
           platforms: platforms.length > 0 ? platforms : ["instagram"],
         },
       });
@@ -182,10 +205,7 @@ export function ProspectingSearch({ onSearchComplete, prefill }: ProspectingSear
       return;
     }
 
-    if (!currentWorkspace?.id) {
-      toast.error("Workspace não encontrado");
-      return;
-    }
+    if (!(await ensureReady()) || !currentWorkspace?.id) return;
 
     setIsAnalyzing(true);
     try {

@@ -63,7 +63,7 @@ export function buildOutreachWizard(input: WizardInput): {
   const blockingFailures = checks.filter((c) => c.blocking && !c.passed);
 
   const validated = !!validation?.is_validated;
-  const hasLegalBasis = !!validation?.legal_basis;
+  const hasLegalBasis = !!check("legal_basis")?.passed;
   const channelAllowed = !!check("channel_allowed")?.passed;
   const hasDraft = !!draft && !!draft.body?.trim();
   const reviewed = draft?.status === "reviewed" || draft?.status === "used";

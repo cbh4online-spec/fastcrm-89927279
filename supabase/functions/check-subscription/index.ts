@@ -152,12 +152,29 @@ Deno.serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
+    // This function uses the service role for both billing reads and writes.
+    // Authorize the caller against the requested workspace before either.
+    const { data: membership, error: membershipError } = await supabaseClient
+      .from("workspace_members")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (membershipError) throw membershipError;
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
     // Check existing subscription in database
-    const { data: subscription } = await supabaseClient
+    const { data: subscription, error: subscriptionError } = await supabaseClient
       .from("workspace_subscriptions")
       .select("*")
       .eq("workspace_id", workspaceId)
       .maybeSingle();
+    if (subscriptionError) throw subscriptionError;
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2025-08-27.basil" 
@@ -175,8 +192,8 @@ Deno.serve(async (req) => {
         const plan = PRODUCT_TO_PLAN[productId] || "starter";
 
         // Update database if status changed
-        if (subscription.status !== stripeSubscription.status || normalizePlanName(subscription.plan) !== plan) {
-          await supabaseClient
+        if (subscription.status !== stripeSubscription.status || subscription.plan !== plan) {
+          const { error: updateError } = await supabaseClient
             .from("workspace_subscriptions")
             .update({
               status: stripeSubscription.status,
@@ -185,6 +202,7 @@ Deno.serve(async (req) => {
               cancel_at_period_end: stripeSubscription.cancel_at_period_end,
             })
             .eq("id", subscription.id);
+          if (updateError) throw updateError;
         }
 
         logStep("Subscription verified with Stripe", { plan, status: stripeSubscription.status });
@@ -208,23 +226,25 @@ Deno.serve(async (req) => {
 
       try {
         // Get workspace owner email
-        const { data: ownerMember } = await supabaseClient
+        const { data: ownerMember, error: ownerMemberError } = await supabaseClient
           .from("workspace_members")
           .select("user_id")
           .eq("workspace_id", workspaceId)
           .eq("role", "owner")
           .maybeSingle();
+        if (ownerMemberError) throw ownerMemberError;
 
         if (ownerMember?.user_id) {
           // Use auth.admin to get email — profiles table may not have it
           let ownerEmail: string | null = null;
           
           // Try profiles first
-          const { data: profile } = await supabaseClient
+          const { data: profile, error: profileError } = await supabaseClient
             .from("profiles")
             .select("email")
-            .eq("id", ownerMember.user_id)
+            .eq("user_id", ownerMember.user_id)
             .maybeSingle();
+          if (profileError) throw profileError;
           
           ownerEmail = profile?.email || null;
           
@@ -263,14 +283,16 @@ Deno.serve(async (req) => {
                 };
 
                 if (subscription) {
-                  await supabaseClient
+                  const { error: updateError } = await supabaseClient
                     .from("workspace_subscriptions")
                     .update(updateData)
                     .eq("id", subscription.id);
+                  if (updateError) throw updateError;
                 } else {
-                  await supabaseClient
+                  const { error: insertError } = await supabaseClient
                     .from("workspace_subscriptions")
                     .insert({ ...updateData, workspace_id: workspaceId });
+                  if (insertError) throw insertError;
                 }
 
                 logStep("Stripe IDs linked to workspace", { customerId, subscriptionId: stripeSub.id, plan });
@@ -289,10 +311,11 @@ Deno.serve(async (req) => {
                 logStep("Stripe customer found but no active subscription");
                 // Still save customer ID for future use
                 if (subscription) {
-                  await supabaseClient
+                  const { error: customerUpdateError } = await supabaseClient
                     .from("workspace_subscriptions")
                     .update({ stripe_customer_id: customerId })
                     .eq("id", subscription.id);
+                  if (customerUpdateError) throw customerUpdateError;
                 }
               }
             } else {
@@ -309,10 +332,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Return database subscription or starter plan
+    // Match the server-side prospecting gate when Stripe cannot be checked:
+    // active trials are valid, but an expired billing period is not.
     const rawPlan = subscription?.plan || "starter";
-    const plan = normalizePlanName(rawPlan);
-    const isActive = subscription?.status === "active";
+    const periodEnd = subscription?.current_period_end;
+    const periodEndMs = periodEnd ? Date.parse(periodEnd) : null;
+    const periodIsCurrent = periodEndMs === null ||
+      (Number.isFinite(periodEndMs) && periodEndMs > Date.now());
+    const isActive = !!subscription &&
+      ["active", "trialing"].includes(subscription.status) &&
+      periodIsCurrent;
+    const plan = isActive ? normalizePlanName(rawPlan) : "starter";
 
     logStep("Returning subscription status", { plan, isActive });
 

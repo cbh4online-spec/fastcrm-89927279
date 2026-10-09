@@ -26,6 +26,18 @@ export function resolveCadenceChannel(stepIndex: number, phone: string | null | 
   return stepIndex === 2 && hasUsablePhone(phone) ? "whatsapp" : "instagram";
 }
 
+/** Registo criado só depois de o utilizador confirmar que enviou a primeira DM. */
+export function buildInitialOutreachRow(params: { workspaceId: string; profileId: string; now?: Date }) {
+  const now = params.now ?? new Date();
+  return {
+    workspace_id: params.workspaceId,
+    profile_id: params.profileId,
+    step_index: 1,
+    scheduled_for: now.toISOString(),
+    status: "sent",
+  };
+}
+
 export function buildFollowUpRows(params: { workspaceId: string; profileId: string; now?: Date }) {
   const now = params.now ?? new Date();
   return CADENCE_FOLLOW_UPS.map((s) => ({

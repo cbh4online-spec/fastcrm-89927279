@@ -26,7 +26,7 @@ export function useProspectingSearchHistory(searchType: "web_search" | "google_l
     queryKey: ["prospecting-search-history", currentWorkspace?.id, searchType],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("prospecting_search_history")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -54,7 +54,7 @@ export function useProspectingSearchHistory(searchType: "web_search" | "google_l
       result_identifiers: string[];
     }) => {
       if (!currentWorkspace?.id || !user?.id) return;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("prospecting_search_history")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -76,87 +76,10 @@ export function useProspectingSearchHistory(searchType: "web_search" | "google_l
     },
   });
 
-  const incrementImported = useMutation({
-    mutationFn: async (searchId: string) => {
-      // Get current count first
-      const { data } = await supabase
-        .from("prospecting_search_history")
-        .select("imported_count")
-        .eq("id", searchId)
-        .single();
-      if (!data) return;
-      await supabase
-        .from("prospecting_search_history")
-        .update({ imported_count: (data.imported_count || 0) + 1 })
-        .eq("id", searchId);
-    },
-  });
-
   return {
     searches,
     isLoading,
     allPreviousIdentifiers,
     saveSearch,
-    incrementImported,
   };
-}
-
-/**
- * Check which result identifiers already exist as leads in the workspace
- */
-export function useExistingLeadIdentifiers() {
-  const { currentWorkspace } = useWorkspace();
-
-  const { data: existingLeads = [] } = useQuery({
-    queryKey: ["existing-lead-identifiers", currentWorkspace?.id],
-    queryFn: async () => {
-      if (!currentWorkspace?.id) return [];
-      const { data, error } = await supabase
-        .from("leads")
-        .select("name, phone, website")
-        .eq("workspace_id", currentWorkspace.id)
-        .not("status", "eq", "lost");
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!currentWorkspace?.id,
-    staleTime: 30_000,
-  });
-
-  const existingNames = new Set(
-    existingLeads.map((l) => l.name?.toLowerCase().trim()).filter(Boolean)
-  );
-  const existingPhones = new Set(
-    existingLeads
-      .map((l) => l.phone?.replace(/[^\d+]/g, "").slice(-9))
-      .filter((p) => p && p.length >= 9)
-  );
-  const existingWebsites = new Set(
-    existingLeads
-      .map((l) => {
-        try {
-          return l.website ? new URL(l.website).hostname.replace("www.", "") : null;
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean)
-  );
-
-  const isExistingLead = (name?: string, phone?: string, website?: string): boolean => {
-    if (name && existingNames.has(name.toLowerCase().trim())) return true;
-    if (phone) {
-      const normalized = phone.replace(/[^\d+]/g, "").slice(-9);
-      if (normalized.length >= 9 && existingPhones.has(normalized)) return true;
-    }
-    if (website) {
-      try {
-        const hostname = new URL(website).hostname.replace("www.", "");
-        if (existingWebsites.has(hostname)) return true;
-      } catch { /* ignore */ }
-    }
-    return false;
-  };
-
-  return { isExistingLead, existingLeads };
 }

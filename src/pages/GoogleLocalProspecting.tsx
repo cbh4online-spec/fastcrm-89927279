@@ -1,4 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,9 +40,11 @@ import {
 } from "lucide-react";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { IXCard } from "@/components/entity/ix/IXCard";
-import { useCreateLead, useLeads } from "@/hooks/useLeads";
+import { useLeads } from "@/hooks/useLeads";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
-import { useProspectingSearchHistory, useExistingLeadIdentifiers } from "@/hooks/useProspectingSearchHistory";
+import { useProspectingSearchHistory } from "@/hooks/useProspectingSearchHistory";
+import { safeRandomId, safeStorageGet, safeStorageSet } from "@/lib/browser/safeBrowser";
+import { assertProspectingIdentityReady, checkProspectingIdentity, describeProspectingIdentity, importProspectingLead, isSeparateProspectingInstance, prospectingIdentityHref, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE, type ProspectingIdentityCheck } from "@/lib/prospecting/identity";
 import { cn } from "@/lib/utils";
 
 interface GooglePlaceResult {
@@ -54,8 +60,20 @@ interface GooglePlaceResult {
   description?: string;
   services?: string[];
   thumbnail?: string;
-  _alreadyExists?: boolean;
+  _identity?: ProspectingIdentityCheck;
   _previouslyFound?: boolean;
+}
+interface GooglePlaceApiItem {
+  place_id?: string;
+  name?: string;
+  rating?: number;
+  reviewCount?: number;
+  address?: string;
+  phone?: string;
+  website?: string;
+  businessType?: string;
+  openingHours?: string;
+  thumbnail?: string;
 }
 
 // Category to search query mapping for Google Maps
@@ -660,17 +678,49 @@ export default function GoogleLocalProspecting() {
   const [autoImport, setAutoImport] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState("new");
   const [minRating, setMinRating] = useState("4");
-  
-  const createLead = useCreateLead();
-  const { balance, getCost, canAfford, consumeCredits } = useCreditWallet();
+  const [isImporting, setIsImporting] = useState(false);
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
+  const queryClient = useQueryClient();
+  const { balance, getCost } = useCreditWallet();
   const searchCost = getCost("prospecting_google_local_search");
-  const importCost = getCost("prospecting_lead_import");
-  const hasCredits = canAfford("prospecting_google_local_search");
   const { data: recentLeads = [] } = useLeads({ 
     status: undefined 
   });
   const { searches, allPreviousIdentifiers, saveSearch } = useProspectingSearchHistory("google_local");
-  const { isExistingLead } = useExistingLeadIdentifiers();
+
+  useEffect(() => {
+    setResults([]);
+    setSelectedResults([]);
+    setImportedIds([]);
+    if (!currentWorkspace?.id) return;
+    try {
+      const saved = JSON.parse(safeStorageGet("local", `google-local-settings:${currentWorkspace.id}`) || "null");
+      if (saved) {
+        setAutoImport(saved.autoImport === true);
+        setDefaultStatus(saved.defaultStatus === "in_progress" ? "in_progress" : "new");
+        setMinRating(["0", "3", "4", "4.5"].includes(saved.minRating) ? saved.minRating : "4");
+      } else {
+        setAutoImport(false);
+        setDefaultStatus("new");
+        setMinRating("4");
+      }
+    } catch {
+      setAutoImport(false);
+      setDefaultStatus("new");
+      setMinRating("4");
+    }
+  }, [currentWorkspace?.id]);
+
+  const saveSettings = () => {
+    if (!currentWorkspace?.id) return;
+    const key = `google-local-settings:${currentWorkspace.id}`;
+    const value = JSON.stringify({ autoImport, defaultStatus, minRating });
+    safeStorageSet("local", key, value);
+    setSettingsOpen(false);
+    if (safeStorageGet("local", key) === value) toast.success("Preferências guardadas neste dispositivo");
+    else toast.info("Preferências aplicadas nesta sessão; o browser impediu o armazenamento");
+  };
   
   // Filter leads from google_local source
   const prospectionLeads = recentLeads
@@ -700,15 +750,30 @@ export default function GoogleLocalProspecting() {
       return;
     }
 
-    if (!hasCredits) {
-      toast.error("Sem créditos disponíveis", {
-        description: "Adquira mais créditos para continuar a pesquisar"
+    if (!currentWorkspace?.id) {
+      toast.error("Selecione um espaço de trabalho");
+      return;
+    }
+    if (isInstanceLoading || instanceError) {
+      toast.error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      return;
+    }
+    if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) {
+      toast.error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      return;
+    }
+    try {
+      await assertProspectingIdentityReady(workspaceClient, currentWorkspace.id);
+    } catch (error) {
+      toast.error("A verificação de duplicados não está pronta; a pesquisa não foi iniciada.", {
+        description: error instanceof Error ? error.message : undefined,
       });
       return;
     }
 
     setIsSearching(true);
     setResults([]);
+    setSelectedResults([]);
     
     try {
       // Build the search query
@@ -739,6 +804,8 @@ export default function GoogleLocalProspecting() {
       // Call the Edge Function
       const { data, error } = await supabase.functions.invoke("google-local-search", {
         body: {
+          workspace_id: currentWorkspace.id,
+          request_id: safeRandomId(),
           query,
           location: selectedLocation,
           limit: 20,
@@ -760,19 +827,11 @@ export default function GoogleLocalProspecting() {
         setIsSearching(false);
         return;
       }
-
-      // Consume credits for the search
-      try {
-        await consumeCredits.mutateAsync({
-          actionKey: "prospecting_google_local_search",
-          metadata: { query, location: selectedLocation || "Portugal" },
-        });
-      } catch (creditError) {
-        console.error("Error consuming credits:", creditError);
-      }
+      queryClient.invalidateQueries({ queryKey: ["credit-wallet", currentWorkspace.id] });
+      queryClient.invalidateQueries({ queryKey: ["credit-ledger", currentWorkspace.id] });
 
       // Map API results to our interface
-      const apiResults: GooglePlaceResult[] = (data.data || []).map((item: any) => ({
+      const apiResults: GooglePlaceResult[] = (Array.isArray(data.data) ? data.data as GooglePlaceApiItem[] : []).map((item) => ({
         id: item.place_id || `temp_${Date.now()}_${Math.random()}`,
         title: item.name || "Sem nome",
         rating: item.rating || 0,
@@ -793,23 +852,33 @@ export default function GoogleLocalProspecting() {
         : apiResults;
 
       // Mark existing leads and previously found
-      const enrichedResults = filteredByRating.map(r => ({
-        ...r,
-        _alreadyExists: isExistingLead(r.title, r.phone, r.website),
-        _previouslyFound: allPreviousIdentifiers.has(r.id),
+      const enrichedResults: GooglePlaceResult[] = await Promise.all(filteredByRating.map(async r => {
+        let identity: ProspectingIdentityCheck;
+        try {
+          identity = await checkProspectingIdentity(workspaceClient, currentWorkspace.id, {
+            name: r.title, phone: r.phone, website: r.website,
+            google_place_id: r.id.startsWith("temp_") ? undefined : r.id,
+          });
+        } catch {
+          identity = { status: "unavailable", matches: [] };
+        }
+        return { ...r, _identity: identity, _previouslyFound: allPreviousIdentifiers.has(r.id) };
       }));
 
       // Sort: new first
       enrichedResults.sort((a, b) => {
-        if (a._alreadyExists !== b._alreadyExists) return a._alreadyExists ? 1 : -1;
+        if (a._identity?.status !== b._identity?.status) return a._identity?.status === "new" ? -1 : 1;
         if (a._previouslyFound !== b._previouslyFound) return a._previouslyFound ? 1 : -1;
         return 0;
       });
 
       setResults(enrichedResults);
       setImportedIds([]);
+      if (enrichedResults.some(r => r._identity?.status === "unavailable")) {
+        toast.error("Alguns resultados não puderam ser verificados; a sua importação ficou bloqueada.");
+      }
 
-      const newCount = enrichedResults.filter(r => !r._alreadyExists && !r._previouslyFound).length;
+      const newCount = enrichedResults.filter(r => r._identity?.status === "new" && !r._previouslyFound).length;
       if (enrichedResults.length > 0) {
         toast.success(`Encontrados ${enrichedResults.length} resultados (${newCount} novos)`);
       } else {
@@ -824,6 +893,12 @@ export default function GoogleLocalProspecting() {
         results_count: enrichedResults.length,
         result_identifiers: enrichedResults.map(r => r.id),
       });
+
+      if (autoImport) {
+        const eligible = enrichedResults.filter(r => r._identity?.status === "new" && !r._previouslyFound);
+        const imported = await importLeads(eligible, false);
+        if (eligible.length > 0) toast.info(`${imported} de ${eligible.length} novos resultados importados automaticamente`);
+      }
 
     } catch (error) {
       console.error("Search error:", error);
@@ -843,10 +918,22 @@ export default function GoogleLocalProspecting() {
     );
   };
 
-  const importLeads = async (leadsToImport: GooglePlaceResult[]) => {
+  const importLeads = async (leadsToImport: GooglePlaceResult[], allowPossible: boolean) => {
+    if (!currentWorkspace?.id) return 0;
+    if (isInstanceLoading || instanceError) {
+      toast.error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      return 0;
+    }
+    if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) {
+      toast.error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      return 0;
+    }
+    setIsImporting(true);
     let successCount = 0;
-    
-    for (const result of leadsToImport) {
+    try {
+      for (const result of leadsToImport) {
+      if (!result._identity || ["unavailable", "exists", "opportunity", "blocked"].includes(result._identity.status)) continue;
+      if (result._identity.status === "review" && !allowPossible) continue;
       try {
         // Extract city from address (last part before postal code or last comma segment)
         const addressParts = result.address?.split(",").map(s => s.trim()) || [];
@@ -860,25 +947,36 @@ export default function GoogleLocalProspecting() {
         
         const aboutText = [result.description || result.category, ...notesParts].filter(Boolean).join("\n");
         
-        await createLead.mutateAsync({
+        const importResult = await importProspectingLead(workspaceClient, currentWorkspace.id, {
           name: result.title,
           phone: result.phone || undefined,
           website: result.website || undefined,
+          google_place_id: result.id.startsWith("temp_") ? undefined : result.id,
           address: result.address || undefined,
           city: city || undefined,
           about: aboutText || undefined,
           industry: result.category || undefined,
           lead_type: "company",
           source: "google_local",
-          status: "new",
-        });
-        setImportedIds(prev => [...prev, result.id]);
-        successCount++;
+          status: defaultStatus,
+        }, undefined, result._identity.status === "review" && allowPossible);
+        if (importResult.lead_id) {
+          setImportedIds(prev => [...prev, result.id]);
+          successCount++;
+        } else {
+          setResults(prev => prev.map(r => r.id === result.id ? { ...r, _identity: importResult } : r));
+        }
       } catch (error) {
         console.error("Error importing lead:", error);
+        toast.error(`Não foi possível importar ${result.title}`, { description: error instanceof Error ? error.message : undefined });
       }
     }
-    
+    } finally {
+      setIsImporting(false);
+      if (successCount > 0) {
+        queryClient.invalidateQueries({ queryKey: ["leads"] });
+      }
+    }
     return successCount;
   };
 
@@ -889,16 +987,18 @@ export default function GoogleLocalProspecting() {
     }
     
     const leadsToImport = results.filter(r => selectedResults.includes(r.id));
-    const count = await importLeads(leadsToImport);
-    
-    toast.success(`${count} leads importados com sucesso!`);
+    const reviewCount = leadsToImport.filter(r => r._identity?.status === "review").length;
+    const allowPossible = reviewCount > 0 && window.confirm(`${reviewCount} resultado(s) exigem revisão de identidade (mesmo nome ou identificador em falta). Confirma que pretende importá-los como novos leads?`);
+    if (reviewCount > 0 && !allowPossible) return;
+    const count = await importLeads(leadsToImport, allowPossible);
+    toast.success(`${count} lead(s) importado(s)`);
     setSelectedResults([]);
   };
 
   const handleImportAll = async () => {
-    const leadsToImport = results.filter(r => !importedIds.includes(r.id));
-    const count = await importLeads(leadsToImport);
-    toast.success(`${count} leads importados com sucesso!`);
+    const leadsToImport = results.filter(r => !importedIds.includes(r.id) && r._identity?.status === "new");
+    const count = await importLeads(leadsToImport, false);
+    toast.success(`${count} lead(s) importado(s)`, { description: "Possíveis duplicados ficam para revisão individual." });
   };
 
   return (
@@ -941,8 +1041,7 @@ export default function GoogleLocalProspecting() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="new">Novo</SelectItem>
-                      <SelectItem value="contacted">Contactado</SelectItem>
-                      <SelectItem value="qualified">Qualificado</SelectItem>
+                      <SelectItem value="in_progress">Em curso</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -967,7 +1066,7 @@ export default function GoogleLocalProspecting() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={() => { setSettingsOpen(false); toast.success("Configurações guardadas"); }}>
+                <Button onClick={saveSettings}>
                   Guardar
                 </Button>
               </div>
@@ -1091,7 +1190,7 @@ export default function GoogleLocalProspecting() {
                       size="sm"
                       className="rounded-full"
                       onClick={handleImportSelected}
-                      disabled={selectedResults.length === 0 || createLead.isPending}
+                      disabled={selectedResults.length === 0 || isImporting}
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
                       Importar ({selectedResults.length})
@@ -1100,10 +1199,10 @@ export default function GoogleLocalProspecting() {
                       size="sm"
                       className="rounded-full"
                       onClick={handleImportAll}
-                      disabled={createLead.isPending}
+                      disabled={isImporting}
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
-                      Importar Todos
+                      Importar Novos
                     </Button>
                   </div>
                 }
@@ -1117,7 +1216,7 @@ export default function GoogleLocalProspecting() {
                           "py-3 px-2 -mx-2 rounded-lg transition-colors",
                           importedIds.includes(result.id)
                             ? "bg-emerald-500/5"
-                            : result._alreadyExists
+                            : result._identity?.status !== "new"
                             ? "opacity-60"
                             : selectedResults.includes(result.id)
                             ? "bg-primary/5"
@@ -1128,7 +1227,7 @@ export default function GoogleLocalProspecting() {
                           <Checkbox
                             checked={selectedResults.includes(result.id)}
                             onCheckedChange={() => toggleSelection(result.id)}
-                            disabled={importedIds.includes(result.id)}
+                            disabled={importedIds.includes(result.id) || !result._identity || ["unavailable", "exists", "opportunity", "blocked"].includes(result._identity.status)}
                             className="mt-1"
                           />
                           <div className="flex-1 min-w-0 space-y-1.5">
@@ -1141,10 +1240,12 @@ export default function GoogleLocalProspecting() {
                                       <CheckCircle2 className="h-3 w-3 mr-1" />Importado
                                     </Badge>
                                   )}
-                                  {result._alreadyExists && !importedIds.includes(result.id) && (
-                                    <Badge variant="destructive" className="text-[10px]">Já existe</Badge>
+                                  {result._identity?.status !== "new" && !importedIds.includes(result.id) && (
+                                    <Badge variant="destructive" className="text-[10px]">
+                                      {result._identity?.status === "review" ? "Rever" : result._identity?.status === "opportunity" ? "Oportunidade em curso" : result._identity?.status === "blocked" ? "Não contactar" : result._identity?.status === "unavailable" ? "Sem verificação" : "Já existe"}
+                                    </Badge>
                                   )}
-                                  {result._previouslyFound && !result._alreadyExists && !importedIds.includes(result.id) && (
+                                  {result._previouslyFound && result._identity?.status === "new" && !importedIds.includes(result.id) && (
                                     <Badge variant="secondary" className="text-[10px] gap-1">
                                       <History className="h-3 w-3" />Já encontrado
                                     </Badge>
@@ -1161,6 +1262,14 @@ export default function GoogleLocalProspecting() {
 
                             {result.description && (
                               <p className="text-xs text-muted-foreground line-clamp-1">{result.description}</p>
+                            )}
+                            {result._identity?.status && result._identity.status !== "new" && (
+                              <p className="text-xs text-muted-foreground">
+                                {describeProspectingIdentity(result._identity)}{" "}
+                                {prospectingIdentityHref(result._identity) && (
+                                  <Link to={prospectingIdentityHref(result._identity)!} className="text-primary underline">Abrir registo</Link>
+                                )}
+                              </p>
                             )}
 
                             <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -1244,7 +1353,7 @@ export default function GoogleLocalProspecting() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{s.query}</p>
                       <p className="text-xs text-muted-foreground">
-                        {s.results_count} res. / {s.imported_count} imp.
+                        {s.results_count} resultados
                       </p>
                     </div>
                     <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -1288,4 +1397,3 @@ export default function GoogleLocalProspecting() {
     </ModuleGuard>
   );
 }
-

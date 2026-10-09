@@ -178,7 +178,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("sequences",       "Sequências",      "/dashboard/sequences",      MessageSquare, "comercial-pipeline"),
   e("account-brief",   "Briefing Conta",  "/dashboard/account-brief",  Briefcase,     "comercial-pipeline", { moduleSlug: "account-brief", isPro: true }),
   // Prospecção
-  e("prospecting",     "Visão geral",      "/dashboard/prospecting",    UserPlus,      "comercial-prospecting", { moduleSlug: "prospecting-pro", end: true }),
+  e("prospecting",     "Visão geral",      "/dashboard/prospecting",    UserPlus,      "comercial-prospecting", { end: true }),
   e("prospecting-instagram", "Extrator Instagram", "/dashboard/prospecting/instagram", Instagram, "comercial-prospecting", { end: true }),
   e("prospecting-followups", "Cadências e seguimentos", "/dashboard/prospecting/instagram#followups", Clock, "comercial-prospecting"),
   e("outreach-activity", "Atividade de Outreach", "/dashboard/outreach/activity", Activity, "comercial-prospecting"),

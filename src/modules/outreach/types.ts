@@ -15,9 +15,8 @@ export const OUTREACH_CHANNEL_LABELS: Record<OutreachChannel, string> = {
 
 export const OUTREACH_LEGAL_BASIS = [
   { value: "consent", label: "Consentimento explícito" },
-  { value: "contract", label: "Execução de contrato" },
-  { value: "legitimate_interest", label: "Interesse legítimo (B2B)" },
-  { value: "legal_obligation", label: "Obrigação legal" },
+  { value: "existing_customer", label: "Cliente existente — oferta análoga" },
+  { value: "corporate_opt_out", label: "Pessoa coletiva — sem oposição" },
 ] as const;
 
 export interface OutreachSettings {
@@ -38,6 +37,13 @@ export interface OutreachValidation {
   legal_basis: string | null;
   consent_source: string | null;
   consent_recorded_at: string | null;
+  recipient_category?: "individual" | "corporate" | null;
+  relationship_kind?: "new" | "existing_customer" | null;
+  analogous_offer_confirmed?: boolean;
+  optout_at_collection_confirmed?: boolean;
+  generic_corporate_address_confirmed?: boolean;
+  dgc_checked_at?: string | null;
+  dgc_list_reference?: string | null;
   allowed_channels: string[];
   notes: string | null;
   validated_by: string | null;

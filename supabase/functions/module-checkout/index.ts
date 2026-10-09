@@ -1,5 +1,6 @@
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { activeModulePlan, meetsModuleMinimumPlan } from "../_shared/module-plan.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,12 +51,34 @@ Deno.serve(async (req) => {
     // Get module
     const { data: mod, error: modErr } = await supabase
       .from("marketplace_modules")
-      .select("id, name, slug, pricing_model, price_eur, stripe_price_id")
+      .select("id, name, slug, pricing_model, price_eur, min_plan, stripe_price_id")
       .eq("id", moduleId)
+      .in("status", ["active", "published"])
       .maybeSingle();
 
     if (modErr || !mod) throw new Error("Module not found");
     logStep("Module found", { slug: mod.slug, pricing_model: mod.pricing_model });
+
+    // Enforce the same eligibility on direct checkout calls as extension-check.
+    // A Starter customer must never reach payment for a module requiring Growth.
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from("workspace_subscriptions")
+      .select("plan, status, current_period_end")
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+    if (subscriptionError) throw subscriptionError;
+    const currentPlan = activeModulePlan(subscription);
+    if (!meetsModuleMinimumPlan(currentPlan, mod.min_plan)) {
+      return new Response(JSON.stringify({
+        error: `O módulo requer o plano ${mod.min_plan} ou superior`,
+        code: "upgrade_required",
+        currentPlan,
+        requiredPlan: mod.min_plan,
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // FREE / INCLUDED / TEMPLATE → install directly via provisioner
     if (mod.pricing_model === "free" || mod.pricing_model === "included" || mod.pricing_model === "template") {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildFollowUpRows, resolveCadenceChannel } from "@/lib/prospecting/cadence";
+import { buildFollowUpRows, buildInitialOutreachRow, resolveCadenceChannel } from "@/lib/prospecting/cadence";
 
 describe("cadência Instagram → WhatsApp", () => {
   it("passo 2 vai para WhatsApp quando há telefone válido", () => {
@@ -23,5 +23,16 @@ describe("cadência Instagram → WhatsApp", () => {
       [2, "2026-10-11T10:00:00.000Z"],
       [3, "2026-10-15T10:00:00.000Z"],
     ]);
+  });
+
+  it("regista a abordagem inicial como passo 1 apenas após confirmação", () => {
+    const row = buildInitialOutreachRow({ workspaceId: "ws", profileId: "p", now: new Date("2026-10-08T10:00:00Z") });
+    expect(row).toMatchObject({
+      workspace_id: "ws",
+      profile_id: "p",
+      step_index: 1,
+      status: "sent",
+      scheduled_for: "2026-10-08T10:00:00.000Z",
+    });
   });
 });

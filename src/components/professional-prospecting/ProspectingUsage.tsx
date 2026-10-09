@@ -28,8 +28,12 @@ export function ProspectingUsage() {
 
   if (!usage) return null;
 
-  const searchPercent = (usage.searches_count / usage.searches_limit) * 100;
-  const profilePercent = (usage.profiles_analyzed_count / usage.profiles_analyzed_limit) * 100;
+  const searchPercent = usage.searches_limit > 0
+    ? Math.min(100, (usage.searches_count / usage.searches_limit) * 100)
+    : 0;
+  const profilePercent = usage.profiles_analyzed_limit > 0
+    ? Math.min(100, (usage.profiles_analyzed_count / usage.profiles_analyzed_limit) * 100)
+    : 0;
 
   return (
     <TooltipProvider>

@@ -5,26 +5,29 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Globe, Search, Users, ArrowRight, Coins,
-  BarChart3, Lock, Crown, Target, Activity, History,
-  Clock, Download, CheckCircle2, XCircle, Shield,
+  Lock, Crown, Target, Activity, History,
+  Clock, CheckCircle2, XCircle, Shield,
   Rocket, Star, Info, Zap, Instagram,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ProspectingAnalytics } from "@/components/prospecting/ProspectingAnalytics";
-import { useProspectingSearchHistory } from "@/hooks/useProspectingSearchHistory";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { IXEntityTabs } from "@/components/entity/ix/IXEntityTabs";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { supabase } from "@/integrations/supabase/client";
 
 const PROSPECTING_LIMITS: Record<string, { searches: number; label: string }> = {
   starter: { searches: 0, label: "Indisponível" },
-  growth: { searches: 100, label: "100 pesquisas/mês" },
-  scale: { searches: -1, label: "Ilimitado" },
+  growth: { searches: 100, label: "100 pesquisas externas/mês" },
+  scale: { searches: 500, label: "500 pesquisas externas/mês" },
 };
 
 const modules = [
@@ -34,6 +37,7 @@ const modules = [
     icon: Globe,
     path: "/dashboard/prospecting/google-local",
     actionKey: "prospecting_google_local_search",
+    moduleSlug: "google-local-services",
   },
   {
     title: "Web Search",
@@ -41,6 +45,7 @@ const modules = [
     icon: Search,
     path: "/dashboard/prospecting/web-search",
     actionKey: "prospecting_web_search",
+    moduleSlug: null,
   },
   {
     title: "Profissionais",
@@ -48,26 +53,47 @@ const modules = [
     icon: Users,
     path: "/dashboard/prospecting/professionals",
     actionKey: "prospecting_professional_search",
+    moduleSlug: "prospecting-pro",
   },
   {
     title: "Extrator de Instagram",
     description: "Recolha em massa perfis públicos de Instagram, com contactos da bio e importação como Leads.",
     icon: Instagram,
     path: "/dashboard/prospecting/instagram",
-    actionKey: "prospecting_professional_search",
+    actionKey: null,
+    moduleSlug: null,
   },
 ];
 
 function SearchHistorySection() {
   const navigate = useNavigate();
-  const { searches: googleSearches, isLoading: gl } = useProspectingSearchHistory("google_local");
-  const { searches: webSearches, isLoading: wl } = useProspectingSearchHistory("web_search");
-
-  const allSearches = [...(googleSearches || []), ...(webSearches || [])]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 30);
-
-  const isLoading = gl || wl;
+  const { currentWorkspace } = useWorkspace();
+  const { data: allSearches = [], isLoading, isError } = useQuery({
+    queryKey: ["prospecting-search-history-operations", currentWorkspace?.id],
+    enabled: !!currentWorkspace?.id,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("prospecting_search_operations")
+        .select("id, action_key, created_at, result_count:response_data->>count, web_total:response_data->>total, query:response_data->>query, location:response_data->>location")
+        .eq("workspace_id", currentWorkspace!.id)
+        .eq("status", "completed")
+        .in("action_key", ["prospecting_google_local_search", "prospecting_web_search"])
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return (data ?? []).map((row) => {
+        const rawCount = row.result_count ?? row.web_total;
+        const count = rawCount === null ? null : Number(rawCount);
+        return {
+          ...row,
+          search_type: row.action_key === "prospecting_google_local_search" ? "google_local" : "web_search",
+          query: row.query || (row.action_key === "prospecting_google_local_search" ? "Pesquisa Google Local" : "Pesquisa Web"),
+          results_count: count !== null && Number.isSafeInteger(count) && count >= 0 ? count : null,
+        };
+      });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -77,6 +103,10 @@ function SearchHistorySection() {
     );
   }
 
+  if (isError) {
+    return <IXCard><p className="text-sm text-destructive py-4">Não foi possível carregar o histórico de pesquisas.</p></IXCard>;
+  }
+
   if (allSearches.length === 0) {
     return (
       <IXCard>
@@ -84,7 +114,7 @@ function SearchHistorySection() {
           <History className="h-10 w-10 text-muted-foreground/40 mb-3" />
           <h3 className="text-sm font-medium mb-1">Sem pesquisas anteriores</h3>
           <p className="text-xs text-muted-foreground">
-            As suas pesquisas de prospeção aparecerão aqui.
+            As pesquisas Google Local e Web Search aparecerão aqui.
           </p>
         </div>
       </IXCard>
@@ -117,14 +147,8 @@ function SearchHistorySection() {
           <div className="flex items-center gap-2 shrink-0">
             <Badge variant="secondary" className="text-xs gap-1 font-normal">
               <Target className="h-3 w-3" />
-              {s.results_count} resultados
+              {s.results_count === null ? "Contagem indisponível" : `${s.results_count} resultados`}
             </Badge>
-            {s.imported_count > 0 && (
-              <Badge variant="outline" className="text-xs gap-1 font-normal">
-                <Download className="h-3 w-3" />
-                {s.imported_count} importados
-              </Badge>
-            )}
             <Button
               variant="ghost"
               size="sm"
@@ -138,17 +162,15 @@ function SearchHistorySection() {
               <ArrowRight className="h-3.5 w-3.5" />
               Repetir
             </Button>
-            {s.imported_count > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={() => navigate(`/dashboard/leads?source=${s.search_type}`)}
-              >
-                <Users className="h-3.5 w-3.5" />
-                Ver leads
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => navigate(`/dashboard/leads?source=${s.search_type}`)}
+            >
+              <Users className="h-3.5 w-3.5" />
+              Ver leads da fonte
+            </Button>
           </div>
         </div>
       ))}
@@ -158,13 +180,35 @@ function SearchHistorySection() {
 
 export default function ProspectingHub() {
   const navigate = useNavigate();
-  const { balance, getCost, pricingRules } = useCreditWallet();
-  const { plan, createCheckout } = useSubscription();
+  const { currentWorkspace } = useWorkspace();
+  const { balance, pricingRules } = useCreditWallet();
+  const { plan, subscribed, createCheckout } = useSubscription();
+  const { installedModules, isLoading: modulesLoading } = useWorkspaceModules();
   const [activeTab, setActiveTab] = useState("tools");
 
   const planLimits = PROSPECTING_LIMITS[plan] || PROSPECTING_LIMITS.starter;
-  const isLocked = plan === "starter";
+  const isLocked = !subscribed || planLimits.searches === 0;
   const prospectingRules = pricingRules.filter(r => r.module === "prospecting");
+  const currentDate = new Date();
+  const monthStart = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), 1));
+  const nextMonthStart = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() + 1, 1));
+  const usage = useQuery({
+    queryKey: ["prospecting-search-operations-count", currentWorkspace?.id, monthStart.toISOString()],
+    enabled: !!currentWorkspace?.id && !isLocked,
+    staleTime: 30_000,
+    queryFn: async () => {
+      // Esta tabela regista as pesquisas autorizadas pelo servidor nas três fontes externas.
+      const { count, error } = await supabase
+        .from("prospecting_search_operations")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", currentWorkspace!.id)
+        .eq("status", "completed")
+        .gte("created_at", monthStart.toISOString())
+        .lt("created_at", nextMonthStart.toISOString());
+      if (error) throw error;
+      return count as number;
+    },
+  });
 
   return (
     <DashboardLayout>
@@ -185,7 +229,7 @@ export default function ProspectingHub() {
             </Badge>
             <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1.5 font-normal capitalize">
               <Crown className="h-3.5 w-3.5 text-amber-500" />
-              {plan}
+              {subscribed ? plan : "sem plano ativo"}
             </Badge>
           </div>
         </div>
@@ -215,7 +259,7 @@ export default function ProspectingHub() {
           <IXEntityTabs
             tabs={[
               { id: "tools", label: "Ferramentas" },
-              { id: "history", label: "Histórico" },
+              { id: "history", label: "Histórico Google/Web" },
               { id: "analytics", label: "Analytics" },
               { id: "pricing", label: "Precificação" },
             ]}
@@ -229,24 +273,36 @@ export default function ProspectingHub() {
             {!isLocked && planLimits.searches > 0 && (
               <IXCard contentClassName="py-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-foreground">Utilização mensal</span>
+                  <span className="text-sm font-medium text-foreground">Pesquisas externas este mês</span>
                   <span className="text-xs text-muted-foreground">{planLimits.label}</span>
                 </div>
-                <Progress value={0} className="h-1.5" />
+                {usage.isLoading ? <Skeleton className="h-1.5" /> : usage.isError ? (
+                  <p className="text-xs text-destructive">Não foi possível consultar a utilização.</p>
+                ) : <Progress value={Math.min(100, ((usage.data ?? 0) / planLimits.searches) * 100)} className="h-1.5" />}
                 <p className="text-xs text-muted-foreground mt-2">
-                  Pesquisas utilizadas este mês (baseado no consumo de créditos).
+                  {usage.isError ? "Tente novamente mais tarde." : usage.isLoading ? "A carregar utilização..." : `${usage.data ?? 0} de ${planLimits.searches} pesquisas concluídas. Google Local, Web Search e Profissionais partilham este limite; cada operação pode também consumir créditos.`}
                 </p>
               </IXCard>
             )}
 
             <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-3", isLocked && "opacity-50 pointer-events-none")}>
               {modules.map((mod) => {
-                const cost = getCost(mod.actionKey);
-                const canAfford = balance >= cost;
+                const cost = mod.actionKey
+                  ? pricingRules.find((rule) => rule.action_key === mod.actionKey)?.credits_cost
+                  : undefined;
+                const canAfford = !mod.actionKey || cost === undefined || balance >= cost;
+                const moduleActive = !mod.moduleSlug || installedModules.some((installed) =>
+                  installed.module_slug === mod.moduleSlug &&
+                  (!installed.current_period_end || new Date(installed.current_period_end).getTime() > Date.now()) &&
+                  (installed.status !== "trial" || !installed.trial_ends_at || new Date(installed.trial_ends_at).getTime() > Date.now())
+                );
                 return (
                   <button
                     key={mod.path}
-                    onClick={() => !isLocked && navigate(mod.path)}
+                    onClick={() => {
+                      if (isLocked || modulesLoading) return;
+                      navigate(moduleActive ? mod.path : "/dashboard/marketplace");
+                    }}
                     className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-primary/40 hover:shadow-sm"
                   >
                     <div className="flex items-start justify-between">
@@ -255,7 +311,7 @@ export default function ProspectingHub() {
                       </div>
                       <Badge variant="outline" className="gap-1 text-xs font-normal">
                         <Coins className="h-3 w-3" />
-                        {cost} créditos
+                        {!mod.actionKey ? "Quota própria" : cost === undefined ? "Custo indisponível" : `${cost} créditos`}
                       </Badge>
                     </div>
                     <div>
@@ -264,8 +320,9 @@ export default function ProspectingHub() {
                     </div>
                     <div className="flex items-center justify-between mt-auto">
                       <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary group-hover:gap-2 transition-all">
-                        Começar <ArrowRight className="h-4 w-4" />
+                        {modulesLoading ? "A verificar..." : moduleActive ? "Começar" : "Ativar módulo"} <ArrowRight className="h-4 w-4" />
                       </span>
+                      {!modulesLoading && !moduleActive && <span className="text-xs text-muted-foreground">Módulo adicional</span>}
                       {!canAfford && <span className="text-xs text-destructive">Saldo insuficiente</span>}
                     </div>
                   </button>
@@ -292,7 +349,7 @@ export default function ProspectingHub() {
                 </div>
                 <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1.5 font-normal self-start capitalize">
                   <Crown className="h-3.5 w-3.5 text-amber-500" />
-                  Plano {plan}
+                  {subscribed ? `Plano ${plan}` : "Sem plano ativo"}
                 </Badge>
               </div>
             </IXCard>
@@ -349,11 +406,11 @@ export default function ProspectingHub() {
               <div className="grid gap-4 sm:grid-cols-3">
                 {([
                   { key: "starter" as const, icon: Shield, features: ["Acesso limitado ao CRM", "Sem prospeção", "Sem IA"], highlighted: false },
-                  { key: "growth" as const, icon: Rocket, features: ["100 pesquisas/mês", "Google Local + Web", "Enriquecimento IA", "Importação de leads", "Histórico de pesquisas"], highlighted: true },
-                  { key: "scale" as const, icon: Star, features: ["Pesquisas ilimitadas", "Todas as fontes", "IA avançada", "Outreach automático", "API de prospeção", "Suporte prioritário"], highlighted: false },
+                  { key: "growth" as const, icon: Rocket, features: ["Até 100 pesquisas externas/mês", "Web Search; Google Local e Profissionais com módulos ativos", "Consumo de créditos por operação", "Importação assistida de leads", "Histórico de pesquisas"], highlighted: true },
+                  { key: "scale" as const, icon: Star, features: ["Até 500 pesquisas externas/mês", "Web Search; Google Local e Profissionais com módulos ativos", "Consumo de créditos por operação", "Importação assistida de leads", "Histórico de pesquisas"], highlighted: false },
                 ]).map(({ key: p, icon: PlanIcon, features, highlighted }) => {
                   const limits = PROSPECTING_LIMITS[p];
-                  const isCurrent = plan === p;
+                  const isCurrent = subscribed ? plan === p : p === "starter";
                   return (
                     <div
                       key={p}
@@ -379,7 +436,7 @@ export default function ProspectingHub() {
 
                       <div>
                         <p className="text-3xl font-bold text-foreground tabular-nums">
-                          {limits.searches === -1 ? "∞" : limits.searches}
+                          {limits.searches}
                         </p>
                         <p className="text-xs text-muted-foreground">{limits.label}</p>
                       </div>

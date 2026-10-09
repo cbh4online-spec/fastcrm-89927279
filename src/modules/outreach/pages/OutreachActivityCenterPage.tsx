@@ -21,7 +21,7 @@ const EVENT_LABELS: Record<string, string> = {
   draft_created: "Rascunho criado",
   draft_updated: "Rascunho actualizado",
   reviewed: "Rascunho revisto",
-  assisted_send: "Envio assistido",
+  assisted_send: "Abertura solicitada (envio por confirmar)",
   blocked: "Bloqueado",
   stopped: "Paragem registada",
 };
@@ -115,7 +115,7 @@ export default function OutreachActivityCenterPage() {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="draft_created">Rascunho criado</SelectItem>
                   <SelectItem value="reviewed">Revisto</SelectItem>
-                  <SelectItem value="assisted_send">Envio assistido</SelectItem>
+                  <SelectItem value="assisted_send">Abertura solicitada (envio por confirmar)</SelectItem>
                   <SelectItem value="stopped">Paragem</SelectItem>
                 </SelectContent>
               </Select>

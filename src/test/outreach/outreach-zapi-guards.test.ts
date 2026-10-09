@@ -10,7 +10,13 @@ import {
 const base: GuardInput = {
   channel: "whatsapp",
   phone: "+351912345678",
-  validation: { is_validated: true, legal_basis: "legitimate_interest", allowed_channels: ["whatsapp"] },
+  validation: {
+    is_validated: true,
+    legal_basis: "consent",
+    consent_source: "Formulário de consentimento para WhatsApp v2",
+    consent_recorded_at: "2026-01-10T11:00:00.000Z",
+    allowed_channels: ["whatsapp"],
+  },
   suppressions: [],
   draft: { id: "d1", status: "reviewed", body: "Olá" },
   usage: { todayCount: 0, companyCount: 0, lastContactAt: null },
@@ -28,6 +34,35 @@ describe("guardas de envio outreach", () => {
     expect(r.failures.map((f) => f.id)).toEqual(
       expect.arrayContaining(["validated", "legal_basis", "channel_allowed"]),
     );
+  });
+
+  it("não aceita interesse legítimo genérico nem data inventada para WhatsApp", () => {
+    const oldBasis = evaluateSendGuards({
+      ...base,
+      validation: { ...base.validation!, legal_basis: "legitimate_interest" },
+    });
+    expect(oldBasis.failures.some((f) => f.id === "legal_basis_unsupported")).toBe(true);
+    const missingEvidence = evaluateSendGuards({
+      ...base,
+      validation: { ...base.validation!, consent_recorded_at: null },
+    });
+    expect(missingEvidence.failures.some((f) => f.id === "consent_evidence")).toBe(true);
+  });
+
+  it("restringe exceções de cliente e pessoa coletiva ao email com evidência", () => {
+    const customer = {
+      ...base.validation!, legal_basis: "existing_customer", relationship_kind: "existing_customer",
+      analogous_offer_confirmed: true, optout_at_collection_confirmed: true,
+    };
+    expect(evaluateSendGuards({ ...base, validation: customer }).allowed).toBe(false);
+    expect(evaluateSendGuards({ ...base, channel: "email", validation: { ...customer, allowed_channels: ["email"] } }).allowed).toBe(true);
+    const corporate = {
+      ...base.validation!, legal_basis: "corporate_opt_out", recipient_category: "corporate",
+      generic_corporate_address_confirmed: true, dgc_checked_at: new Date().toISOString(),
+      dgc_list_reference: "DGC mês corrente", allowed_channels: ["email"],
+    };
+    expect(evaluateSendGuards({ ...base, channel: "email", validation: corporate }).allowed).toBe(true);
+    expect(evaluateSendGuards({ ...base, validation: corporate }).allowed).toBe(false);
   });
 
   it("bloqueia com rascunho não revisto", () => {

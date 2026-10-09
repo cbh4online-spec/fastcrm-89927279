@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +26,7 @@ import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { resolveCadenceChannel } from "@/lib/prospecting/cadence";
+import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 import { WhatsAppMessageDialog } from "@/components/whatsapp/WhatsAppMessageDialog";
 
 interface OutreachItem {
@@ -47,17 +49,43 @@ type BulkPhase = "idle" | "generating" | "sending" | "done";
 
 export function PendingOutreachPanel() {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(true);
   const [bulkPhase, setBulkPhase] = useState<BulkPhase>("idle");
   const [currentBulkIndex, setCurrentBulkIndex] = useState(0);
   const [bulkSent, setBulkSent] = useState<Set<string>>(new Set());
   const [bulkRejected, setBulkRejected] = useState<Set<string>>(new Set());
+  const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
   const [waItem, setWaItem] = useState<OutreachItem | null>(null);
 
   const isWhatsAppStep = (item: OutreachItem) =>
     !!item.lead_id && resolveCadenceChannel(item.step_index, item.phone) === "whatsapp";
+
+  const canContinue = useCallback(async (item: OutreachItem): Promise<boolean> => {
+    try {
+      if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      const identity = await checkProspectingIdentity(workspaceClient, item.workspace_id, {
+        name: item.profile_name || "Sem nome",
+        phone: item.phone,
+        profile_url: item.profile_url,
+        instagram_url: item.profile_url?.includes("instagram.com") ? item.profile_url : null,
+      }, item.profile_id);
+      if (identity.status === "review") {
+        return window.confirm(`${describeProspectingIdentity(identity)}\n\nConfirma que é outra entidade e pretende continuar?`);
+      }
+      if (identity.status !== "new") {
+        toast.warning(describeProspectingIdentity(identity));
+        return false;
+      }
+      return true;
+    } catch (error) {
+      toast.error("Não foi possível verificar este contacto", { description: error instanceof Error ? error.message : "Tente novamente" });
+      return false;
+    }
+  }, [workspaceClient, instanceData?.supabase_url, isInstanceLoading, instanceError]);
 
   const { data: pendingItems = [], isLoading } = useQuery({
     queryKey: ["pending-outreach", currentWorkspace?.id],
@@ -110,7 +138,7 @@ export function PendingOutreachPanel() {
               name: item.profile_name,
             },
             tone: item.tone || "casual",
-            sequenceStep: item.step_index + 1,
+            sequenceStep: item.step_index,
           },
         }
       );
@@ -118,13 +146,14 @@ export function PendingOutreachPanel() {
       if (error) throw error;
 
       // Save generated message to queue
-      await supabase
+      const { error: saveError } = await supabase
         .from("prospecting_outreach_queue")
         .update({
           message: data.message,
           message_plain: data.message_plain,
         } as any)
         .eq("id", item.id);
+      if (saveError) throw saveError;
 
       queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
       return data;
@@ -143,15 +172,25 @@ export function PendingOutreachPanel() {
 
   // Mark as sent
   const markSent = useCallback(async (item: OutreachItem) => {
-    await supabase
+    const { error: profileError } = await supabase
+      .from("professional_prospecting_profiles")
+      .update({ outreach_step: item.step_index } as any)
+      .eq("id", item.profile_id)
+      .eq("workspace_id", item.workspace_id)
+      .or(`outreach_step.is.null,outreach_step.lt.${item.step_index}`);
+    if (profileError) throw profileError;
+    const { data: updated, error: queueError } = await supabase
       .from("prospecting_outreach_queue")
       .update({ status: "sent" } as any)
-      .eq("id", item.id);
-    await supabase
-      .from("professional_prospecting_profiles")
-      .update({ outreach_step: item.step_index + 1 } as any)
-      .eq("id", item.profile_id);
+      .eq("id", item.id)
+      .eq("workspace_id", item.workspace_id)
+      .eq("status", "ready")
+      .select("id")
+      .maybeSingle();
+    if (queueError) throw queueError;
+    if (!updated) throw new Error("Este follow-up já não está pronto para envio.");
     setBulkSent((prev) => new Set(prev).add(item.id));
+    queryClient.invalidateQueries({ queryKey: ["prospecting-effectiveness", item.workspace_id] });
     console.log(`[PROSPECTING] Outreach sent: profile=${item.profile_id}, step=${item.step_index}`);
     if (currentWorkspace?.id) {
       emitKernelEvent({
@@ -163,25 +202,29 @@ export function PendingOutreachPanel() {
         payload: { profile_id: item.profile_id, step_index: item.step_index, channel: isWhatsAppStep(item) ? 'whatsapp' : 'instagram' },
       });
     }
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, queryClient]);
 
   // Reject item
   const rejectMutation = useMutation({
     mutationFn: async (item: OutreachItem) => {
-      await supabase
+      const { error } = await supabase
         .from("prospecting_outreach_queue")
         .update({ status: "rejected" } as any)
         .eq("id", item.id);
+      if (error) throw error;
     },
     onSuccess: (_, item) => {
       setBulkRejected((prev) => new Set(prev).add(item.id));
       queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
       toast.success("Follow-up rejeitado");
     },
+    onError: () => toast.error("Não foi possível rejeitar o follow-up"),
   });
 
-  // Single send: copy + open DM
-  const handleSingleSend = useCallback(async (item: OutreachItem) => {
+  // Abrir a DM não confirma a entrega; o utilizador confirma depois do envio.
+  const handleSingleOpen = useCallback(async (item: OutreachItem) => {
+    if (!await canContinue(item)) return;
+    try {
     let msg = item.message;
 
     // Generate if missing
@@ -201,14 +244,29 @@ export function PendingOutreachPanel() {
       window.open(item.profile_url, "_blank");
     }
 
-    await markSent(item);
-    queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
-    queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
-    toast.success("Mensagem copiada! DM aberta.");
-  }, [generateMessage, markSent, queryClient]);
+    setOpenedIds((previous) => new Set(previous).add(item.id));
+    toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
+    } catch (error) {
+      toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
+    }
+  }, [canContinue, generateMessage]);
+
+  const handleSingleConfirm = useCallback(async (item: OutreachItem) => {
+    if (!openedIds.has(item.id)) return;
+    try {
+      await markSent(item);
+      queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
+      queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+      setOpenedIds((previous) => { const next = new Set(previous); next.delete(item.id); return next; });
+      toast.success("Envio confirmado");
+    } catch (error) {
+      toast.error("Não foi possível registar o envio", { description: error instanceof Error ? error.message : "Tente novamente" });
+    }
+  }, [openedIds, markSent, queryClient]);
 
   // WhatsApp step: open the guarded WhatsApp dialog with the generated text
   const handleWhatsAppSend = useCallback(async (item: OutreachItem) => {
+    if (!await canContinue(item)) return;
     let msg = item.message_plain || item.message;
     if (!msg) {
       const result = await generateMessage(item);
@@ -216,7 +274,7 @@ export function PendingOutreachPanel() {
       msg = result.message_plain || result.message;
     }
     setWaItem({ ...item, message_plain: msg });
-  }, [generateMessage]);
+  }, [canContinue, generateMessage]);
 
   // Contact replied: stop the remaining cadence for this profile
   const stopCadenceMutation = useMutation({
@@ -262,6 +320,8 @@ export function PendingOutreachPanel() {
   }, [pendingItems, generateMessage, queryClient]);
 
   const handleBulkCopyAndOpen = useCallback(async (item: OutreachItem) => {
+    if (!await canContinue(item)) return;
+    try {
     if (item.message) {
       await navigator.clipboard.writeText(item.message);
     }
@@ -271,15 +331,24 @@ export function PendingOutreachPanel() {
     } else if (item.profile_url) {
       window.open(item.profile_url, "_blank");
     }
-    toast.success("Mensagem copiada! DM aberta.");
-  }, []);
+    setOpenedIds((previous) => new Set(previous).add(item.id));
+    toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
+    } catch (error) {
+      toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
+    }
+  }, [canContinue]);
 
   const handleBulkConfirmSent = useCallback(async (item: OutreachItem) => {
-    await markSent(item);
-    setCurrentBulkIndex((prev) => prev + 1);
-    queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
-    queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
-  }, [markSent, queryClient]);
+    if (!openedIds.has(item.id)) return;
+    try {
+      await markSent(item);
+      setCurrentBulkIndex((prev) => prev + 1);
+      queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
+      queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+    } catch (error) {
+      toast.error("Não foi possível registar o envio", { description: error instanceof Error ? error.message : "Tente novamente" });
+    }
+  }, [openedIds, markSent, queryClient]);
 
   const handleBulkReject = useCallback((item: OutreachItem) => {
     rejectMutation.mutate(item);
@@ -300,8 +369,8 @@ export function PendingOutreachPanel() {
   const progressPct = totalBulk > 0 ? (processedBulk / totalBulk) * 100 : 0;
 
   // A fila guarda os passos 2 (dia 3) e 3 (dia 7)
-  const stepLabel = (idx: number) => (idx <= 2 ? "Follow-up" : "Fecho");
-  const stepEmoji = (idx: number) => (idx <= 2 ? "💡" : "🎯");
+  const stepLabel = (idx: number) => idx === 1 ? "Abertura" : idx === 2 ? "Follow-up" : "Fecho";
+  const stepEmoji = (idx: number) => idx === 1 ? "👋" : idx === 2 ? "💡" : "🎯";
 
   return (
     <Card className="border-primary/20 bg-primary/5">
@@ -441,7 +510,7 @@ export function PendingOutreachPanel() {
                       size="sm"
                       className="gap-1.5 flex-1"
                       onClick={() => handleBulkCopyAndOpen(current)}
-                      disabled={!current.message && !generatingIds.has(current.id)}
+                      disabled={!current.message || generatingIds.has(current.id)}
                     >
                       <Copy className="w-3.5 h-3.5" />
                       Copiar e Abrir DM
@@ -451,6 +520,7 @@ export function PendingOutreachPanel() {
                       variant="outline"
                       className="gap-1.5"
                       onClick={() => handleBulkConfirmSent(current)}
+                      disabled={!openedIds.has(current.id)}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Já enviei
@@ -557,7 +627,7 @@ export function PendingOutreachPanel() {
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isWhatsAppStep(item)) handleWhatsAppSend(item);
-                      else handleSingleSend(item);
+                      else handleSingleOpen(item);
                     }}
                     disabled={generatingIds.has(item.id)}
                     className="gap-1"
@@ -567,8 +637,13 @@ export function PendingOutreachPanel() {
                     ) : (
                       <Send className="w-3.5 h-3.5" />
                     )}
-                    {isWhatsAppStep(item) ? "WhatsApp" : "Enviar"}
+                    {isWhatsAppStep(item) ? "WhatsApp" : "Abrir DM"}
                   </Button>
+                  {!isWhatsAppStep(item) && openedIds.has(item.id) && (
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleSingleConfirm(item); }}>
+                      Já enviei
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -578,9 +653,9 @@ export function PendingOutreachPanel() {
                       stopCadenceMutation.mutate(item);
                     }}
                     disabled={stopCadenceMutation.isPending}
-                    title="O contacto respondeu: parar os próximos follow-ups"
+                    title="Parar os próximos follow-ups"
                   >
-                    Respondeu
+                    Parar
                   </Button>
                   <Button
                     size="sm"

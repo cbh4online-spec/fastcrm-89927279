@@ -16,6 +16,7 @@ const validation = {
 const reviewedDraft = { status: "reviewed", body: "Olá" } as unknown as OutreachDraft;
 
 const passingChecks: OutreachCheck[] = [
+  { id: "legal_basis", label: "Permissão de contacto", passed: true, blocking: true },
   { id: "channel_allowed", label: "Canal permitido", passed: true, blocking: true },
   { id: "phone", label: "Telefone válido", passed: true, blocking: true },
 ];
@@ -57,6 +58,7 @@ describe("assistente guiado do contacto 1:1", () => {
     const { steps } = buildOutreachWizard({
       ...base,
       validation: { ...validation, legal_basis: null } as OutreachValidation,
+      checks: passingChecks.map((check) => check.id === "legal_basis" ? { ...check, passed: false } : check),
     });
     expect(steps[1].status).toBe("blocked");
     expect(steps[1].blockedReason).toMatch(/base legal/i);

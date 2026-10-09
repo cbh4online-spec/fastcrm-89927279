@@ -21,10 +21,10 @@ describe("Navegação de Prospeção", () => {
     expect(TOP_LEVEL_GROUPS.find((section) => section.key === "prospeccao")?.label).toBe("Prospeção");
   });
 
-  it("preserves module and route permission filtering", () => {
+  it("keeps the overview visible while filtering add-on modules and hidden routes", () => {
     const sections = buildTopLevelSections([], (key) => key !== "prospecting-instagram");
     const keys = sections.flatMap((section) => section.items.map((entry) => entry.key));
-    expect(keys).not.toContain("prospecting");
+    expect(keys).toContain("prospecting");
     expect(keys).not.toContain("google-local");
     expect(keys).not.toContain("professional-prosp");
     expect(keys).not.toContain("prospecting-instagram");

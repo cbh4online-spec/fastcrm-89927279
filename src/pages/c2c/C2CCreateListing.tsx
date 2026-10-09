@@ -13,6 +13,7 @@ import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPr
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw, Globe, Search, Package, Truck, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { safeRandomId } from "@/lib/browser/safeBrowser";
 import { toast } from "sonner";
 
 interface SkuProduct {
@@ -49,10 +50,15 @@ function SkuLookup({
   };
 
   const searchWeb = async (trimmed: string): Promise<SkuProduct[]> => {
+    if (!workspaceId) return [];
     try {
       setSearchingWeb(true);
       const { data, error } = await supabase.functions.invoke("firecrawl-search", {
         body: {
+          workspace_id: workspaceId,
+          purpose: "general",
+          module_slug: "marketplace-c2c",
+          request_id: safeRandomId(),
           query: `${trimmed} product price specifications`,
           limit: 5,
           include_content: true,

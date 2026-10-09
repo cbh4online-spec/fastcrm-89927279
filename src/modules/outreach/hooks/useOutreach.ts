@@ -2,9 +2,9 @@
  * Hooks do módulo "Contacto 1:1 validado".
  *
  * Regras invioláveis:
- *  - Nada é enviado pelo sistema. Todos os botões apenas abrem o canal/composição nativa.
+ *  - Os canais assistidos apenas abrem a composição nativa; o adaptador Zapi tem guardas próprios.
  *  - Nenhum conteúdo é gerado de forma fictícia: o rascunho só usa dados reais da ficha.
- *  - Registo na timeline apenas como "rascunho criado" ou "envio assistido".
+ *  - A abertura de um canal não é registada como envio confirmado.
  */
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { isValidPhone, toE164 } from "@/utils/phone";
+import { evaluateContactPermission } from "../../../../supabase/functions/_shared/outreach-guards";
 import type {
   OutreachChannel,
   OutreachCheck,
@@ -160,21 +161,45 @@ export function useSaveOutreachValidation(entityType: OutreachEntityType, entity
   return useMutation({
     mutationFn: async (input: Partial<OutreachValidation>) => {
       if (!currentWorkspace?.id || !entityId) throw new Error("Sem contexto de entidade");
-      const payload: Record<string, unknown> = {
+      const scope = {
         workspace_id: currentWorkspace.id,
         entity_type: entityType,
         entity_id: entityId,
-        ...input,
-        updated_at: new Date().toISOString(),
       };
-      if (input.is_validated) {
-        payload.validated_by = user?.id ?? null;
-        payload.validated_at = new Date().toISOString();
+      const changes: Record<string, unknown> = { ...input, updated_at: new Date().toISOString() };
+      if (input.is_validated === true) {
+        changes.validated_by = user?.id ?? null;
+        changes.validated_at = new Date().toISOString();
+      } else if (input.is_validated === false) {
+        changes.validated_by = null;
+        changes.validated_at = null;
       }
-      const { error } = await db()
+      const { data: existing, error: lookupError } = await db()
         .from("outreach_validations")
-        .upsert(payload, { onConflict: "workspace_id,entity_type,entity_id" });
-      if (error) throw error;
+        .select("id")
+        .eq("workspace_id", scope.workspace_id)
+        .eq("entity_type", scope.entity_type)
+        .eq("entity_id", scope.entity_id)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
+      if (existing) {
+        const { error } = await db().from("outreach_validations")
+          .update(changes).eq("id", existing.id).eq("workspace_id", scope.workspace_id);
+        if (error) throw error;
+        return;
+      }
+      const { error: insertError } = await db().from("outreach_validations")
+        .insert({ ...scope, ...changes });
+      if (!insertError) return;
+      if (insertError.code !== "23505") throw insertError;
+      // Two first edits can race; update only the supplied fields after the
+      // other request created the row, preserving its other evidence.
+      const { error: retryError } = await db().from("outreach_validations")
+        .update(changes)
+        .eq("workspace_id", scope.workspace_id)
+        .eq("entity_type", scope.entity_type)
+        .eq("entity_id", scope.entity_id);
+      if (retryError) throw retryError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["outreach-validation"] });
@@ -366,7 +391,7 @@ export function useOutreachEvents(params: {
   });
 }
 
-/** Envios assistidos do utilizador actual hoje + por empresa + último contacto à entidade. */
+/** Pedidos de abertura de canais assistidos; a abertura e o envio continuam por confirmar. */
 export function useOutreachUsage(entityType: OutreachEntityType, entityId?: string, companyId?: string | null) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -482,12 +507,13 @@ export function evaluateOutreachEligibility(input: EligibilityInput): {
     detail: validation?.is_validated ? undefined : "Marque como validado antes de preparar contacto.",
   });
 
+  const permissionFailures = evaluateContactPermission(validation, channel);
   checks.push({
     id: "legal_basis",
-    label: "Base legal / consentimento registado",
-    passed: !!validation?.legal_basis,
+    label: "Permissão de contacto comprovada para este canal",
+    passed: permissionFailures.length === 0,
     blocking: true,
-    detail: validation?.legal_basis ? validation.consent_source ?? undefined : "Registe a base legal.",
+    detail: permissionFailures[0]?.reason,
   });
 
   const channelAllowed = (validation?.allowed_channels ?? []).includes(channel);
@@ -599,7 +625,7 @@ export function useRegisterAssistedSend(entityType: OutreachEntityType, entityId
         company_id: input.companyId ?? null,
         channel: input.channel,
         event_type: "assisted_send",
-        details: input.details ?? {},
+        details: { ...input.details, action: "channel_open_requested", delivery_state: "unconfirmed" },
         created_by: user?.id ?? null,
       });
       if (error) throw error;
@@ -613,7 +639,7 @@ export function useRegisterAssistedSend(entityType: OutreachEntityType, entityId
       qc.invalidateQueries({ queryKey: ["outreach-events"] });
       qc.invalidateQueries({ queryKey: ["outreach-usage"] });
       qc.invalidateQueries({ queryKey: ["outreach-draft"] });
-      toast.success("Registado como envio assistido (não confirma entrega)");
+      toast.success("Pedido de abertura registado; envio por confirmar.");
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao registar"),
   });

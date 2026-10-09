@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { safeRandomId } from '@/lib/browser/safeBrowser';
 
 type FirecrawlResponse<T = any> = {
   success: boolean;
@@ -46,9 +47,22 @@ export const firecrawlApi = {
     return data;
   },
 
-  async search(query: string, options?: SearchOptions): Promise<FirecrawlResponse> {
+  /** Prospecting searches are authorized and charged by the edge function. */
+  async searchProspects(
+    query: string,
+    workspaceId: string,
+    options?: SearchOptions,
+    requestId: string = safeRandomId(),
+  ): Promise<FirecrawlResponse> {
+    if (!workspaceId) return { success: false, error: 'Selecione um espaço de trabalho.' };
     const { data, error } = await supabase.functions.invoke('firecrawl-search', {
-      body: { query, options },
+      body: {
+        query,
+        options,
+        workspace_id: workspaceId,
+        purpose: 'prospecting',
+        request_id: requestId,
+      },
     });
     if (error) return { success: false, error: error.message };
     return data;

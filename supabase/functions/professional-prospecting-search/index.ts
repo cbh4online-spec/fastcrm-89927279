@@ -1,10 +1,8 @@
 
-import { createClient } from "@supabase/supabase-js";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import {
+  beginSearch, getSearchContext, prospectingCorsHeaders, searchJson,
+  settleSearch, type SearchContext,
+} from "../_shared/prospectingSearchGuard.ts";
 
 interface Profile {
   profileUrl: string;
@@ -329,73 +327,53 @@ function extractFacebookProfiles(results: any[], seenUrls: Set<string>): Profile
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: prospectingCorsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return searchJson({ success: false, error: "Método não permitido" }, 405);
+  }
+
+  let context: SearchContext | undefined;
+  let operationId: string | undefined;
+  let settled = false;
+  let searchId: string | undefined;
+
   try {
-    const { profession, location, keywords, workspaceId, userId, platforms = ["instagram"] } = await req.json();
+    const { profession, location, keywords, workspaceId, userId, platforms = ["instagram"], request_id } = await req.json();
 
-    if (!profession) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Profession is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (typeof profession !== "string" || !profession.trim() || profession.length > 100 ||
+        (location != null && (typeof location !== "string" || location.length > 100)) ||
+        (keywords != null && (typeof keywords !== "string" || keywords.length > 200)) ||
+        !Array.isArray(platforms) || platforms.length < 1 || platforms.length > 2 ||
+        platforms.some((p) => p !== "instagram" && p !== "facebook")) {
+      return searchJson({ success: false, error: "Parâmetros de pesquisa inválidos" }, 400);
     }
 
-    if (!workspaceId || !userId) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Workspace and user ID are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const auth = await getSearchContext(req, workspaceId);
+    if (auth.error) return auth.error;
+    context = auth.context!;
+    if (userId && userId !== context.userId) return searchJson({ success: false, error: "Utilizador inválido" }, 403);
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Firecrawl connector not configured. Please enable it in settings." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return searchJson({ success: false, error: "Firecrawl não configurado" }, 503);
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Check usage limits
-    const { data: usage, error: usageError } = await supabase.rpc(
-      "get_or_create_prospecting_usage",
-      { p_workspace_id: workspaceId }
-    );
-
-    if (usageError) {
-      console.error("Error getting usage:", usageError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to check usage limits" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (usage.searches_count >= usage.searches_limit) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Monthly search limit reached",
-          usage: {
-            searches: usage.searches_count,
-            limit: usage.searches_limit
-          }
-        }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const started = await beginSearch(context, "prospecting_professional_search", request_id);
+    if (started.error) return started.error;
+    if (started.reservation?.status === "completed") return searchJson(started.reservation.response);
+    operationId = started.reservation?.operation_id;
+    if (!operationId) return searchJson({ success: false, error: "Reserva de créditos inválida" }, 503);
+    const supabase = context.adminClient;
 
     // Create search record with platforms
     const { data: search, error: searchError } = await supabase
       .from("professional_prospecting_searches")
       .insert({
         workspace_id: workspaceId,
-        created_by: userId,
-        profession,
+        created_by: context.userId,
+        profession: profession.trim(),
         location,
         keywords: keywords ? keywords.split(",").map((k: string) => k.trim()) : null,
         search_type: "web",
@@ -405,15 +383,11 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
-    console.log(`[PROSPECTING] Search started: profession=${profession}, location=${location || 'any'}`);
-
     if (searchError) {
       console.error("[PROSPECTING] SEARCH_RECORD_FAILED", searchError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to create search record" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return searchJson({ success: false, error: "Não foi possível iniciar a pesquisa" }, 503);
     }
+    searchId = search.id;
 
     // Generate search queries per platform
     const allQueries: Array<{query: string, platform: "instagram" | "facebook"}> = [];
@@ -428,20 +402,21 @@ Deno.serve(async (req) => {
         .forEach(q => allQueries.push({query: q, platform: "facebook"}));
     }
 
-    console.log("Search queries:", allQueries.map(q => `[${q.platform}] ${q.query}`));
-
     const allProfiles: Profile[] = [];
     const seenUrls = new Set<string>();
     let totalResults = 0;
+    let successfulQueries = 0;
+    let queriesExecuted = 0;
+    const queriesToRun = allQueries.slice(0, 12);
 
-    // Execute multiple searches in parallel (max 3 at a time to avoid rate limits)
+    // Bound provider work per paid search and execute at most three in parallel.
     const batchSize = 3;
-    for (let i = 0; i < allQueries.length && allProfiles.length < 50; i += batchSize) {
-      const batch = allQueries.slice(i, i + batchSize);
+    for (let i = 0; i < queriesToRun.length && allProfiles.length < 50; i += batchSize) {
+      const batch = queriesToRun.slice(i, i + batchSize);
       
       const batchPromises = batch.map(async ({query, platform}) => {
         try {
-          console.log(`Executing [${platform}] query:`, query);
+          queriesExecuted += 1;
           
           // Determine if this is an English/international query
           const isEnglishQuery = getEnglishTranslations(profession).some(t => query.toLowerCase().includes(t.toLowerCase()));
@@ -450,7 +425,7 @@ Deno.serve(async (req) => {
           
           const searchBody: any = {
             query,
-            limit: 25,
+            limit: 15,
             lang: searchLang,
             scrapeOptions: {
               formats: ["markdown"]
@@ -473,7 +448,9 @@ Deno.serve(async (req) => {
           }
 
           const data = await response.json();
-          return { results: data.data || [], platform };
+          if (data.success === false || !Array.isArray(data.data)) return { results: [], platform };
+          successfulQueries += 1;
+          return { results: data.data, platform };
         } catch (err) {
           console.error(`Query error: ${query}`, err);
           return { results: [], platform };
@@ -498,17 +475,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (successfulQueries === 0) {
+      return searchJson({ success: false, error: "Pesquisa externa indisponível" }, 502);
+    }
+
     console.log(`Total search results: ${totalResults}, Profiles extracted: ${allProfiles.length}`);
 
     // Limit to 50 profiles
     const candidateProfiles = allProfiles.slice(0, 50);
 
     // Filter out profiles already existing in this workspace (converted, rejected, or analyzed)
-    const { data: existingProfiles } = await supabase
+    const { data: existingProfiles, error: existingError } = await supabase
       .from("professional_prospecting_profiles")
       .select("profile_url, status")
       .eq("workspace_id", workspaceId)
       .in("status", ["converted", "rejected", "analyzed"]);
+    if (existingError) throw existingError;
 
     const existingUrls = new Set(
       (existingProfiles || []).map((p: any) => p.profile_url)
@@ -520,7 +502,7 @@ Deno.serve(async (req) => {
     console.log(`[PROSPECTING] Search completed: id=${search.id}, results=${finalProfiles.length}, filtered=${filteredCount}`);
 
     // Update search record with results count
-    await supabase
+    const { error: updateError } = await supabase
       .from("professional_prospecting_searches")
       .update({ 
         status: "completed", 
@@ -528,41 +510,36 @@ Deno.serve(async (req) => {
         completed_at: new Date().toISOString()
       })
       .eq("id", search.id);
+    if (updateError) throw updateError;
 
-    // Update usage count
-    await supabase
-      .from("professional_prospecting_usage")
-      .update({ 
-        searches_count: usage.searches_count + 1,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", usage.id);
-
-    return new Response(
-      JSON.stringify({
+    const result = {
         success: true,
         searchId: search.id,
         profiles: finalProfiles,
         count: finalProfiles.length,
         filteredCount,
-        queriesExecuted: allQueries.length,
+        queriesExecuted,
         platforms,
         usage: {
-          searches: usage.searches_count + 1,
-          limit: usage.searches_limit
+          searches: started.reservation?.usage,
+          limit: started.reservation?.limit,
         }
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      };
+    settled = await settleSearch(context, operationId, true, result);
+    if (!settled) return searchJson({ success: false, error: "Não foi possível confirmar a pesquisa" }, 503);
+    return searchJson(result);
 
   } catch (error) {
     console.error("[PROSPECTING] SEARCH_FAILED", error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return searchJson({ success: false, error: "Não foi possível concluir a pesquisa" }, 500);
+  } finally {
+    if (context && operationId && !settled) {
+      if (searchId) {
+        await context.adminClient.from("professional_prospecting_searches")
+          .update({ status: "failed", error_message: "Pesquisa não concluída", completed_at: new Date().toISOString() })
+          .eq("id", searchId).eq("workspace_id", context.workspaceId);
+      }
+      await settleSearch(context, operationId, false);
+    }
   }
 });

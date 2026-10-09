@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProspectingBackButton } from "@/components/prospecting/ProspectingBackButton";
@@ -9,9 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Globe, Building2, ExternalLink, Plus, Loader2, Check, Sparkles, Linkedin, MapPin, History, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { firecrawlApi } from "@/lib/api/firecrawl";
-import { useCreateLead } from "@/hooks/useLeads";
 import { supabase } from "@/integrations/supabase/client";
-import { useProspectingSearchHistory, useExistingLeadIdentifiers } from "@/hooks/useProspectingSearchHistory";
+import { useProspectingSearchHistory } from "@/hooks/useProspectingSearchHistory";
+import { safeRandomId } from "@/lib/browser/safeBrowser";
+import { assertProspectingIdentityReady, checkProspectingIdentity, describeProspectingIdentity, importProspectingLead, isSeparateProspectingInstance, prospectingIdentityHref, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE, type ProspectingIdentityCheck } from "@/lib/prospecting/identity";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -23,8 +27,14 @@ interface WebResult {
   markdown?: string;
   added?: boolean;
   enriching?: boolean;
-  alreadyExists?: boolean;
+  identity?: ProspectingIdentityCheck;
   previouslyFound?: boolean;
+}
+interface WebSearchItem {
+  url?: string;
+  title?: string;
+  description?: string;
+  markdown?: string;
 }
 
 function detectContentType(url: string): { label: string; icon: typeof Globe } {
@@ -49,13 +59,38 @@ export default function WebSearchProspecting() {
   const [hasSearched, setHasSearched] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   
-  const createLead = useCreateLead();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
   const { searches, allPreviousIdentifiers, saveSearch } = useProspectingSearchHistory("web_search");
-  const { isExistingLead } = useExistingLeadIdentifiers();
+
+  useEffect(() => {
+    setResults([]);
+    setHasSearched(false);
+  }, [currentWorkspace?.id]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       toast.error("Introduza um termo de pesquisa");
+      return;
+    }
+    if (!currentWorkspace?.id) {
+      toast.error("Selecione um espaço de trabalho");
+      return;
+    }
+    if (isInstanceLoading || instanceError) {
+      toast.error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+      return;
+    }
+    if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) {
+      toast.error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+      return;
+    }
+    try {
+      await assertProspectingIdentityReady(workspaceClient, currentWorkspace.id);
+    } catch (error) {
+      toast.error("A verificação de duplicados não está pronta; a pesquisa não foi iniciada.", {
+        description: error instanceof Error ? error.message : undefined,
+      });
       return;
     }
 
@@ -64,39 +99,50 @@ export default function WebSearchProspecting() {
     setResults([]);
 
     try {
-      const response = await firecrawlApi.search(searchQuery, {
+      const response = await firecrawlApi.searchProspects(searchQuery, currentWorkspace.id, {
         limit: 15,
         lang: "pt",
         country: "pt",
         scrapeOptions: { formats: ["markdown"] },
-      });
+      }, safeRandomId());
 
-      if (response.success && response.data) {
-        const searchResults: WebResult[] = response.data.map((item: any) => {
+      if (response.success && Array.isArray(response.data)) {
+        const searchResults: WebResult[] = await Promise.all((response.data as WebSearchItem[]).map(async (item) => {
           const url = item.url || "";
           const title = item.title || item.url || "Sem título";
           const cleanName = cleanTitle(title);
+          let identity: ProspectingIdentityCheck;
+          try {
+            identity = await checkProspectingIdentity(workspaceClient, currentWorkspace.id, {
+              name: cleanName, website: url, profile_url: url,
+            });
+          } catch {
+            identity = { status: "unavailable", matches: [] };
+          }
           return {
             url,
             title,
             description: item.description || item.markdown?.substring(0, 200) || "",
             markdown: item.markdown || "",
             added: false,
-            alreadyExists: isExistingLead(cleanName, undefined, url),
+            identity,
             previouslyFound: allPreviousIdentifiers.has(url),
           };
-        });
+        }));
         
         // Sort: new results first, then previously found, then existing
         const sorted = [...searchResults].sort((a, b) => {
-          if (a.alreadyExists !== b.alreadyExists) return a.alreadyExists ? 1 : -1;
+          if (a.identity?.status !== b.identity?.status) return a.identity?.status === "new" ? -1 : 1;
           if (a.previouslyFound !== b.previouslyFound) return a.previouslyFound ? 1 : -1;
           return 0;
         });
         
         setResults(sorted);
+        if (sorted.some(r => r.identity?.status === "unavailable")) {
+          toast.error("Alguns resultados não puderam ser verificados; a sua importação ficou bloqueada.");
+        }
         
-        const newCount = sorted.filter(r => !r.alreadyExists && !r.previouslyFound).length;
+        const newCount = sorted.filter(r => r.identity?.status === "new" && !r.previouslyFound).length;
         toast.success(`${sorted.length} resultados (${newCount} novos)`);
         
         // Save search history
@@ -118,17 +164,39 @@ export default function WebSearchProspecting() {
 
   const handleAddToLeads = async (result: WebResult, index: number) => {
     try {
+      if (isInstanceLoading || instanceError) {
+        toast.error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
+        return;
+      }
+      if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) {
+        toast.error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
+        return;
+      }
+      if (!currentWorkspace?.id || !result.identity || result.identity.status === "unavailable") {
+        toast.error("Verificação de duplicados indisponível. Tente novamente.");
+        return;
+      }
+      if (["exists", "opportunity", "blocked"].includes(result.identity.status)) {
+        toast.error(describeProspectingIdentity(result.identity));
+        return;
+      }
+      const allowPossible = result.identity.status === "review";
+      if (allowPossible && !window.confirm(`${describeProspectingIdentity(result.identity)}\n\nConfirma que pretende criar um novo lead?`)) return;
       const cleanName = cleanTitle(result.title);
       
-      // Create lead with all available data
-      const newLead = await createLead.mutateAsync({
+      const importResult = await importProspectingLead(workspaceClient, currentWorkspace.id, {
         name: cleanName,
         source: "web_search",
         status: "new",
         lead_type: "company",
         website: result.url,
         about: result.description?.substring(0, 500) || null,
-      });
+      }, undefined, allowPossible);
+      if (!importResult.lead_id) {
+        setResults(prev => prev.map((r, i) => i === index ? { ...r, identity: importResult } : r));
+        toast.error("Lead não criado", { description: describeProspectingIdentity(importResult) });
+        return;
+      }
       
       // Mark as added
       setResults(prev => prev.map((r, i) => 
@@ -141,8 +209,8 @@ export default function WebSearchProspecting() {
       });
       
       // Fire-and-forget AI enrichment if we have markdown
-      if (result.markdown && newLead?.id) {
-        enrichLeadFromMarkdown(newLead.id, result).catch(err => {
+      if (result.markdown) {
+        enrichLeadFromMarkdown(importResult.lead_id, result).catch(err => {
           console.warn("[WEB-SEARCH] AI enrichment failed:", err);
         }).finally(() => {
           setResults(prev => prev.map((r, i) => 
@@ -176,18 +244,20 @@ export default function WebSearchProspecting() {
       if (Object.keys(extracted).length === 0) return;
 
       // Map extracted fields to lead update
-      const updates: Record<string, any> = {};
+      const updates: Record<string, string> = {};
       if (extracted.company_name) updates.company_name = extracted.company_name;
       if (extracted.about) updates.about = extracted.about;
       if (extracted.industry) updates.industry = extracted.industry;
       if (extracted.city) updates.city = extracted.city;
       if (extracted.address) updates.address = extracted.address;
-      if (extracted.phone) updates.phone = extracted.phone;
-      if (extracted.email) updates.email = extracted.email;
-      if (extracted.website) updates.website = extracted.website;
+      // AI contact fields need a separate identity review before being saved.
+      const suggestedContacts = [extracted.phone && `Telefone sugerido: ${extracted.phone}`,
+        extracted.email && `Email sugerido: ${extracted.email}`,
+        extracted.website && `Website sugerido: ${extracted.website}`].filter(Boolean);
+      if (suggestedContacts.length > 0) updates.notes = suggestedContacts.join("\n");
 
       if (Object.keys(updates).length > 0) {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await workspaceClient
           .from("leads")
           .update(updates)
           .eq("id", leadId);
@@ -278,7 +348,7 @@ export default function WebSearchProspecting() {
                   <Search className="h-3 w-3 mr-1" />
                   {s.query}
                   <span className="ml-1 text-muted-foreground">
-                    ({s.results_count} res. / {s.imported_count} imp.)
+                    ({s.results_count} resultados)
                   </span>
                   <span className="ml-1 text-muted-foreground text-[10px]">
                     {format(new Date(s.created_at), "dd/MM HH:mm", { locale: pt })}
@@ -310,7 +380,7 @@ export default function WebSearchProspecting() {
                 const contentType = detectContentType(result.url);
                 const ContentIcon = contentType.icon;
                 return (
-                  <Card key={index} className={`hover:shadow-md transition-shadow ${result.alreadyExists ? "opacity-60 border-muted" : ""}`}>
+                  <Card key={index} className={`hover:shadow-md transition-shadow ${result.identity?.status !== "new" ? "border-muted" : ""}`}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
@@ -327,13 +397,13 @@ export default function WebSearchProspecting() {
                                 IA
                               </Badge>
                             )}
-                            {result.alreadyExists && (
+                            {result.identity?.status && result.identity.status !== "new" && (
                               <Badge variant="destructive" className="shrink-0 text-xs gap-1">
                                 <AlertTriangle className="h-3 w-3" />
-                                Já existe
+                                {result.identity.status === "review" ? "Rever" : result.identity.status === "unavailable" ? "Sem verificação" : result.identity.status === "opportunity" ? "Oportunidade em curso" : result.identity.status === "blocked" ? "Não contactar" : "Já existe"}
                               </Badge>
                             )}
-                            {!result.alreadyExists && result.previouslyFound && (
+                            {result.identity?.status === "new" && result.previouslyFound && (
                               <Badge variant="secondary" className="shrink-0 text-xs gap-1">
                                 <History className="h-3 w-3" />
                                 Já encontrado
@@ -344,6 +414,14 @@ export default function WebSearchProspecting() {
                           {result.description && (
                             <p className="text-sm text-muted-foreground line-clamp-2">
                               {result.description}
+                            </p>
+                          )}
+                          {result.identity?.status && result.identity.status !== "new" && (
+                            <p className="text-xs text-muted-foreground">
+                              {describeProspectingIdentity(result.identity)}{" "}
+                              {prospectingIdentityHref(result.identity) && (
+                                <Link to={prospectingIdentityHref(result.identity)!} className="text-primary underline">Abrir registo</Link>
+                              )}
                             </p>
                           )}
 
@@ -362,7 +440,7 @@ export default function WebSearchProspecting() {
                           size="sm"
                           variant={result.added ? "outline" : "default"}
                           onClick={() => handleAddToLeads(result, index)}
-                          disabled={result.added || createLead.isPending}
+                          disabled={result.added || result.identity?.status === "unavailable" || ["exists", "opportunity", "blocked"].includes(result.identity?.status ?? "")}
                         >
                           {result.enriching ? (
                             <>

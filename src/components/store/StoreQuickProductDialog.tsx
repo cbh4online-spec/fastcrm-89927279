@@ -14,6 +14,7 @@ import { useCreateProduct } from "@/hooks/useProducts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
+import { safeRandomId } from "@/lib/browser/safeBrowser";
 import { toast } from "sonner";
 import { Loader2, Search, Camera, Upload, Sparkles, Package, AlertTriangle, TrendingUp, ExternalLink, ChevronDown } from "lucide-react";
 import type { StockStatus } from "@/types/product-operations";
@@ -130,7 +131,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
   }, [open, preview, isCreating, duplicateWarning]);
 
   const handleSearchMarketPrices = async () => {
-    if (!preview?.name) return;
+    if (!preview?.name || !currentWorkspace?.id) return;
     setIsSearchingPrices(true);
     setMarketPrices(null);
     setShowPriceSuggestion(true);
@@ -138,10 +139,10 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
       const maxPrice = (preview.price || 100) * 5;
       const [kkResult, generalResult] = await Promise.all([
         supabase.functions.invoke("firecrawl-search", {
-          body: { query: `site:kuantokusta.pt ${preview.name}`, options: { limit: 5, lang: "pt", country: "pt" } },
+          body: { workspace_id: currentWorkspace.id, purpose: "general", module_slug: "online-store", request_id: safeRandomId(), query: `site:kuantokusta.pt ${preview.name}`, options: { limit: 5, lang: "pt", country: "pt" } },
         }),
         supabase.functions.invoke("firecrawl-search", {
-          body: { query: `${preview.name} preço comprar portugal`, options: { limit: 5, lang: "pt", country: "pt" } },
+          body: { workspace_id: currentWorkspace.id, purpose: "general", module_slug: "online-store", request_id: safeRandomId(), query: `${preview.name} preço comprar portugal`, options: { limit: 5, lang: "pt", country: "pt" } },
         }),
       ]);
 
