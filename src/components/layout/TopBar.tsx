@@ -54,6 +54,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           variant="ghost"
           size="icon"
           onClick={onMenuClick}
+          aria-label="Abrir menu principal"
           className="lg:hidden h-9 w-9"
         >
           <Menu className="h-5 w-5" />

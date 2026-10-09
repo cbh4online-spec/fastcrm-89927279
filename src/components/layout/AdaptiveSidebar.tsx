@@ -235,10 +235,10 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   );
 
   // Reopen the destination section after navigation, even if it was manually closed.
+  const activeTopSectionKey = topSections.find((section) => section.items.some((item) => isActive(item.href, item.end)))?.key;
   useEffect(() => {
-    const active = topSections.find((section) => section.items.some((item) => isActive(item.href, item.end)));
-    if (active) setOpenGroups((previous) => previous[active.key] ? previous : { ...previous, [active.key]: true });
-  }, [location.pathname, location.search, location.hash, topSections, isActive]);
+    if (activeTopSectionKey) setOpenGroups((previous) => previous[activeTopSectionKey] ? previous : { ...previous, [activeTopSectionKey]: true });
+  }, [location.pathname, location.search, location.hash, activeTopSectionKey]);
 
   const sectionHasActive = useCallback(
     (items: RouteEntry[]) => items.some((i) => isActive(i.href, i.end)),
