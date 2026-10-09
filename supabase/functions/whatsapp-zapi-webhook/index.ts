@@ -2,7 +2,7 @@
 // Receives all events from Z-API instance (messages, status changes, etc.)
 // Public endpoint (no JWT) — secured via workspace_id query param + instance_id match.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from '../_shared/cors.ts';
 import { validateWebhook, logSecurityEvent, getRemoteIp } from '../_shared/hmac.ts';
 import { extractGroupIdFromPayload, normalizeParticipantId } from '../_shared/whatsappGroups.ts';
@@ -18,6 +18,11 @@ function jsonRes(body: Record<string, unknown>, status = 200) {
 
 function normalizePhone(raw: string): string {
   return (raw || '').replace(/\D/g, '');
+}
+
+/** Devolve a string apenas quando o campo é uma string não vazia. */
+function str(v: unknown): string {
+  return typeof v === 'string' && v.length > 0 ? v : '';
 }
 
 interface ExtractedMessage {
@@ -213,9 +218,19 @@ Deno.serve(async (req) => {
 
     const fromMe = payload?.fromMe === true;
     const direction: 'inbound' | 'outbound' = fromMe ? 'outbound' : 'inbound';
-    const externalMessageId: string | null = payload?.messageId || payload?.id || null;
+    const externalMessageId: string | null =
+      typeof payload?.messageId === 'string' && payload.messageId
+        ? payload.messageId
+        : typeof payload?.id === 'string' && payload.id
+        ? payload.id
+        : null;
 
-    const phoneRaw: string = payload?.phone || payload?.from || '';
+    const phoneRaw: string =
+      typeof payload?.phone === 'string' && payload.phone
+        ? payload.phone
+        : typeof payload?.from === 'string'
+        ? payload.from
+        : '';
     // Identificação canónica: só é grupo quando há um JID de grupo (`@g.us`
     // ou `<criador>-<timestamp>`). Nunca inferir grupo a partir de um telefone.
     const groupId: string | null = extractGroupIdFromPayload(payload);
@@ -251,7 +266,7 @@ Deno.serve(async (req) => {
 
     const extracted = extractContent(payload);
     const senderName: string =
-      payload?.senderName || payload?.chatName || payload?.notifyName || senderPhone || channelKey;
+      str(payload?.senderName) || str(payload?.chatName) || str(payload?.notifyName) || senderPhone || channelKey;
     const messageTimestamp = payload?.momment
       ? new Date(Number(payload.momment)).toISOString()
       : payload?.messageTimestamp

@@ -39519,6 +39519,53 @@ export type Database = {
           },
         ]
       }
+      firecrawl_general_usage: {
+        Row: {
+          searches_count: number
+          usage_day: string
+          workspace_id: string
+        }
+        Insert: {
+          searches_count?: number
+          usage_day: string
+          workspace_id: string
+        }
+        Update: {
+          searches_count?: number
+          usage_day?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firecrawl_general_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firecrawl_general_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "firecrawl_general_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firecrawl_general_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flow_analytics: {
         Row: {
           avg_duration_seconds: number | null
@@ -64641,22 +64688,15 @@ export type Database = {
       outreach_validations: {
         Row: {
           allowed_channels: string[]
-          analogous_offer_confirmed: boolean
           consent_recorded_at: string | null
           consent_source: string | null
           created_at: string
-          dgc_checked_at: string | null
-          dgc_list_reference: string | null
           entity_id: string
           entity_type: string
-          generic_corporate_address_confirmed: boolean
           id: string
           is_validated: boolean
           legal_basis: string | null
           notes: string | null
-          optout_at_collection_confirmed: boolean
-          recipient_category: string | null
-          relationship_kind: string | null
           updated_at: string
           validated_at: string | null
           validated_by: string | null
@@ -64664,22 +64704,15 @@ export type Database = {
         }
         Insert: {
           allowed_channels?: string[]
-          analogous_offer_confirmed?: boolean
           consent_recorded_at?: string | null
           consent_source?: string | null
           created_at?: string
-          dgc_checked_at?: string | null
-          dgc_list_reference?: string | null
           entity_id: string
           entity_type: string
-          generic_corporate_address_confirmed?: boolean
           id?: string
           is_validated?: boolean
           legal_basis?: string | null
           notes?: string | null
-          optout_at_collection_confirmed?: boolean
-          recipient_category?: string | null
-          relationship_kind?: string | null
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
@@ -64687,22 +64720,15 @@ export type Database = {
         }
         Update: {
           allowed_channels?: string[]
-          analogous_offer_confirmed?: boolean
           consent_recorded_at?: string | null
           consent_source?: string | null
           created_at?: string
-          dgc_checked_at?: string | null
-          dgc_list_reference?: string | null
           entity_id?: string
           entity_type?: string
-          generic_corporate_address_confirmed?: boolean
           id?: string
           is_validated?: boolean
           legal_basis?: string | null
           notes?: string | null
-          optout_at_collection_confirmed?: boolean
-          recipient_category?: string | null
-          relationship_kind?: string | null
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
@@ -77732,45 +77758,74 @@ export type Database = {
       }
       prospecting_search_operations: {
         Row: {
-          id: string
-          workspace_id: string
-          user_id: string
-          request_id: string
           action_key: string
-          status: string
-          credits_cost: number
-          quota_limit: number
-          response_data: Json | null
           created_at: string
+          credits_cost: number
+          id: string
+          quota_limit: number
+          request_id: string
+          response_data: Json | null
           settled_at: string | null
+          status: string
+          user_id: string
+          workspace_id: string
         }
         Insert: {
-          id?: string
-          workspace_id: string
-          user_id: string
-          request_id: string
           action_key: string
-          status?: string
-          credits_cost: number
-          quota_limit: number
-          response_data?: Json | null
           created_at?: string
+          credits_cost: number
+          id?: string
+          quota_limit: number
+          request_id: string
+          response_data?: Json | null
           settled_at?: string | null
+          status?: string
+          user_id: string
+          workspace_id: string
         }
         Update: {
-          id?: string
-          workspace_id?: string
-          user_id?: string
-          request_id?: string
           action_key?: string
-          status?: string
-          credits_cost?: number
-          quota_limit?: number
-          response_data?: Json | null
           created_at?: string
+          credits_cost?: number
+          id?: string
+          quota_limit?: number
+          request_id?: string
+          response_data?: Json | null
           settled_at?: string | null
+          status?: string
+          user_id?: string
+          workspace_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "prospecting_search_operations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospecting_search_operations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "prospecting_search_operations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospecting_search_operations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       protocol_kit_items: {
         Row: {
@@ -108402,6 +108457,14 @@ export type Database = {
         Args: { p_ids: string[]; p_positions: number[] }
         Returns: undefined
       }
+      begin_prospecting_search: {
+        Args: {
+          p_action_key: string
+          p_request_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       build_conversation_replay: {
         Args: { p_conversation_id: string }
         Returns: Json
@@ -108547,6 +108610,10 @@ export type Database = {
       checkpoint_workflow_execution: {
         Args: { p_context: Json; p_execution_id: string; p_step_index: number }
         Returns: undefined
+      }
+      claim_firecrawl_general_search: {
+        Args: { p_module_slug: string; p_workspace_id: string }
+        Returns: Json
       }
       cleanup_expired_agent_memory: { Args: never; Returns: number }
       cleanup_expired_cache: { Args: never; Returns: number }
@@ -110136,6 +110203,10 @@ export type Database = {
         Args: { p_profile_id: string; p_workspace_id: string }
         Returns: undefined
       }
+      settle_prospecting_search: {
+        Args: { p_operation_id: string; p_response?: Json; p_success: boolean }
+        Returns: Json
+      }
       shares_workspace_with: {
         Args: { _target: string; _viewer: string }
         Returns: boolean
@@ -110851,14 +110922,7 @@ export type Database = {
         | "renewed"
         | "plan_changed"
         | "manual_adjustment"
-      subscription_plan:
-        | "free"
-        | "basic"
-        | "pro"
-        | "agency"
-        | "starter"
-        | "growth"
-        | "scale"
+      subscription_plan: "free" | "basic" | "pro" | "agency"
       subscription_status:
         | "draft"
         | "active"
@@ -111543,7 +111607,7 @@ export const Constants = {
         "plan_changed",
         "manual_adjustment",
       ],
-      subscription_plan: ["free", "basic", "pro", "agency", "starter", "growth", "scale"],
+      subscription_plan: ["free", "basic", "pro", "agency"],
       subscription_status: [
         "draft",
         "active",
