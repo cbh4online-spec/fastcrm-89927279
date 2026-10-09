@@ -71,7 +71,7 @@ export function ProspectingAnalytics() {
       ]);
       if (leadTotal.error) throw leadTotal.error;
       const searches: SearchActivity[] = [
-        ...operations.flatMap((row) => {
+        ...(operations as Array<{ id: string; action_key: string; created_at: string; query: string | null; result_count: string | null; web_total: string | null }>).flatMap((row) => {
           const source = OPERATION_SOURCES[row.action_key];
           if (!source) return [];
           return [{
