@@ -64641,22 +64641,15 @@ export type Database = {
       outreach_validations: {
         Row: {
           allowed_channels: string[]
-          analogous_offer_confirmed: boolean
           consent_recorded_at: string | null
           consent_source: string | null
           created_at: string
-          dgc_checked_at: string | null
-          dgc_list_reference: string | null
           entity_id: string
           entity_type: string
-          generic_corporate_address_confirmed: boolean
           id: string
           is_validated: boolean
           legal_basis: string | null
           notes: string | null
-          optout_at_collection_confirmed: boolean
-          recipient_category: string | null
-          relationship_kind: string | null
           updated_at: string
           validated_at: string | null
           validated_by: string | null
@@ -64664,22 +64657,15 @@ export type Database = {
         }
         Insert: {
           allowed_channels?: string[]
-          analogous_offer_confirmed?: boolean
           consent_recorded_at?: string | null
           consent_source?: string | null
           created_at?: string
-          dgc_checked_at?: string | null
-          dgc_list_reference?: string | null
           entity_id: string
           entity_type: string
-          generic_corporate_address_confirmed?: boolean
           id?: string
           is_validated?: boolean
           legal_basis?: string | null
           notes?: string | null
-          optout_at_collection_confirmed?: boolean
-          recipient_category?: string | null
-          relationship_kind?: string | null
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
@@ -64687,22 +64673,15 @@ export type Database = {
         }
         Update: {
           allowed_channels?: string[]
-          analogous_offer_confirmed?: boolean
           consent_recorded_at?: string | null
           consent_source?: string | null
           created_at?: string
-          dgc_checked_at?: string | null
-          dgc_list_reference?: string | null
           entity_id?: string
           entity_type?: string
-          generic_corporate_address_confirmed?: boolean
           id?: string
           is_validated?: boolean
           legal_basis?: string | null
           notes?: string | null
-          optout_at_collection_confirmed?: boolean
-          recipient_category?: string | null
-          relationship_kind?: string | null
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
@@ -77729,48 +77708,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      prospecting_search_operations: {
-        Row: {
-          id: string
-          workspace_id: string
-          user_id: string
-          request_id: string
-          action_key: string
-          status: string
-          credits_cost: number
-          quota_limit: number
-          response_data: Json | null
-          created_at: string
-          settled_at: string | null
-        }
-        Insert: {
-          id?: string
-          workspace_id: string
-          user_id: string
-          request_id: string
-          action_key: string
-          status?: string
-          credits_cost: number
-          quota_limit: number
-          response_data?: Json | null
-          created_at?: string
-          settled_at?: string | null
-        }
-        Update: {
-          id?: string
-          workspace_id?: string
-          user_id?: string
-          request_id?: string
-          action_key?: string
-          status?: string
-          credits_cost?: number
-          quota_limit?: number
-          response_data?: Json | null
-          created_at?: string
-          settled_at?: string | null
-        }
-        Relationships: []
       }
       protocol_kit_items: {
         Row: {
@@ -110851,14 +110788,7 @@ export type Database = {
         | "renewed"
         | "plan_changed"
         | "manual_adjustment"
-      subscription_plan:
-        | "free"
-        | "basic"
-        | "pro"
-        | "agency"
-        | "starter"
-        | "growth"
-        | "scale"
+      subscription_plan: "free" | "basic" | "pro" | "agency"
       subscription_status:
         | "draft"
         | "active"
@@ -111543,7 +111473,7 @@ export const Constants = {
         "plan_changed",
         "manual_adjustment",
       ],
-      subscription_plan: ["free", "basic", "pro", "agency", "starter", "growth", "scale"],
+      subscription_plan: ["free", "basic", "pro", "agency"],
       subscription_status: [
         "draft",
         "active",
