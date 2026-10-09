@@ -1,6 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { corsHeaders } from "../_shared/cors.ts";
-import { isUnsupportedSource, UNSUPPORTED_SOURCE_MESSAGE } from "../_shared/instagramSources.ts";
+import {
+  isRelationshipSource,
+  relationshipsConfigured,
+  RELATIONSHIPS_PROVIDER,
+  validateRelationshipStart,
+} from "../_shared/instagramRelationships.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-START] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
@@ -37,6 +42,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const workspaceId = body?.workspaceId;
+    const configured = relationshipsConfigured((k) => Deno.env.get(k));
     const source = body?.source as Source;
     const rawTarget = typeof body?.target === "string" ? body.target.trim() : "";
     const limitCount = Number(body?.limit ?? 200);
@@ -45,12 +51,16 @@ Deno.serve(async (req) => {
     if (!workspaceId || typeof workspaceId !== "string") {
       return json({ success: false, error: "Workspace inválido" }, 400);
     }
+    if (body?.action === "capabilities") {
+      const { data: m } = await admin
+        .from("workspace_members").select("role")
+        .eq("workspace_id", workspaceId).eq("user_id", user.id).maybeSingle();
+      if (!m) return json({ success: false, error: "Sem acesso a este workspace" }, 403);
+      // Só um booleano: a chave nunca sai do servidor
+      return json({ success: true, relationships: { configured, provider: RELATIONSHIPS_PROVIDER } });
+    }
     if (!SOURCES.includes(source)) {
       return json({ success: false, error: "Origem inválida" }, 400);
-    }
-    // Bloqueio antes de criar trabalho ou gastar créditos: o fornecedor não suporta
-    if (isUnsupportedSource(source)) {
-      return json({ success: false, code: "unsupported_source", error: UNSUPPORTED_SOURCE_MESSAGE }, 200);
     }
     if (!Number.isFinite(limitCount) || limitCount < 1 || limitCount > 20000) {
       return json({ success: false, error: "Limite inválido (1 a 20000)" }, 400);
@@ -71,6 +81,26 @@ Deno.serve(async (req) => {
 
     let seed: string[] = [];
     let target = rawTarget;
+    let effectiveLimit = limitCount;
+
+    // Seguidores/seguidos: chave dedicada, uma ativa e quota diária por organização,
+    // tudo antes de criar trabalho ou gastar créditos
+    if (isRelationshipSource(source)) {
+      const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const [{ count: active }, { count: recent }] = await Promise.all([
+        admin.from("instagram_extraction_jobs").select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId).in("source", ["followers", "following"])
+          .in("status", ["pending", "running"]).eq("provider", RELATIONSHIPS_PROVIDER),
+        admin.from("instagram_extraction_jobs").select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId).in("source", ["followers", "following"])
+          .eq("provider", RELATIONSHIPS_PROVIDER).gte("created_at", since),
+      ]);
+      const v = validateRelationshipStart({
+        configured, limit: limitCount, activeJobs: active ?? 0, jobsLast24h: recent ?? 0,
+      });
+      if (!v.ok) return json({ success: false, code: v.code, error: v.error }, 200);
+      effectiveLimit = v.limit;
+    }
 
     if (source === "list") {
       const list = Array.isArray(usernames) ? usernames : String(rawTarget).split(/[\s,;]+/);
@@ -104,7 +134,8 @@ Deno.serve(async (req) => {
         created_by: user.id,
         source,
         target,
-        limit_count: limitCount,
+        limit_count: effectiveLimit,
+        provider: isRelationshipSource(source) ? RELATIONSHIPS_PROVIDER : null,
         status: "pending",
         listing_done: source === "list",
         queued_count: seed.length,
@@ -134,7 +165,7 @@ Deno.serve(async (req) => {
       action: "instagram_extraction_started",
       entity_type: "instagram_extraction_job",
       entity_id: job.id,
-      details: { source, target, limit: limitCount },
+      details: { source, target, limit: effectiveLimit, provider: isRelationshipSource(source) ? RELATIONSHIPS_PROVIDER : null },
     }).then(() => undefined, () => undefined);
 
     // Arranca o worker sem esperar pelo resultado
