@@ -13,6 +13,7 @@ import {
   firecrawlSearchUsernames,
   type FirecrawlProfileResult,
 } from "../_shared/instagramFirecrawl.ts";
+import { isUnsupportedSource, UNSUPPORTED_SOURCE_MESSAGE } from "../_shared/instagramSources.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[IG-EXTRACT-WORKER] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
@@ -183,11 +184,28 @@ Deno.serve(async (req) => {
         if (error instanceof InstagramApiError && error.status === 429) {
           rateLimited = true;
         } else {
+          const message = error instanceof InstagramApiError
+            ? error.message
+            : "Não foi possível obter a lista de perfis desta origem.";
+          if (queued === 0) {
+            // Sem nada recolhido: é uma falha, nunca uma recolha vazia concluída
+            await admin
+              .from("instagram_extraction_jobs")
+              .update({
+                status: "failed",
+                error: message,
+                lease_until: null,
+                finished_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", job.id);
+            return json({ success: false, error: message }, 200);
+          }
           // Falha de listagem não apaga o já recolhido: fecha a listagem com nota
           listingDone = true;
           await admin
             .from("instagram_extraction_jobs")
-            .update({ error: error instanceof Error ? error.message : String(error) })
+            .update({ error: message })
             .eq("id", job.id);
         }
       }
@@ -405,14 +423,25 @@ Deno.serve(async (req) => {
     log("Run finished", { jobId: job.id, processed, queued, pending, done });
     return json({ success: true, processed, queued, pending: pending ?? 0, done });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    log("ERROR", { message });
+    const raw = error instanceof Error ? error.message : String(error);
+    log("ERROR", { message: raw });
+    const message = error instanceof InstagramApiError
+      ? raw
+      : "A recolha parou por um erro interno. Os perfis já recolhidos ficam guardados.";
     if (jobId) {
+      // Estado final de erro: nunca deixa o trabalho "a recolher" sem worker
       await admin
         .from("instagram_extraction_jobs")
-        .update({ lease_until: null, error: message, updated_at: new Date().toISOString() })
-        .eq("id", jobId);
+        .update({
+          status: "failed",
+          lease_until: null,
+          error: message,
+          finished_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId)
+        .in("status", ["pending", "running"]);
     }
-    return json({ success: false, error: message }, 500);
+    return json({ success: false, error: message }, 200);
   }
 });
