@@ -49,6 +49,8 @@ import { PendingOutreachPanel } from "@/components/professional-prospecting/Pend
 import { ProspectingEffectivenessCard } from "@/components/professional-prospecting/ProspectingEffectivenessCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { isSeparateProspectingInstance } from "@/lib/prospecting/identity";
 import { useProspectingIdentityBatch, PROSPECTING_IDENTITY_QUERY_KEY } from "@/hooks/useProspectingIdentityBatch";
 import { ProspectingIdentityBadge } from "@/components/prospecting/ProspectingIdentityBadge";
 import { formatDistanceToNow } from "date-fns";
@@ -163,7 +165,16 @@ export default function ProspectingInstagramExtractor() {
       })),
     [visibleProfiles],
   );
-  const identity = useProspectingIdentityBatch(identityItems);
+  const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
+  const separateInstance = isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL);
+  const identityReady = !isInstanceLoading && !instanceError && !separateInstance;
+  const identity = useProspectingIdentityBatch(identityItems, {
+    client: workspaceClient,
+    clientKey: instanceData?.supabase_url ?? null,
+    enabled: identityReady,
+  });
+  // Selection is page-scoped: changing page/filters drops hidden profiles.
+  useEffect(() => setSelected(new Set()), [safePage, search, minFollowers, contactFilter, jobIdForResults]);
 
   const withEmail = profiles.filter((p) => p.extracted_email).length;
   const withPhone = profiles.filter((p) => p.extracted_phone).length;
@@ -187,7 +198,9 @@ export default function ProspectingInstagramExtractor() {
 
   const toggleAll = () => {
     setSelected((prev) =>
-      prev.size === filtered.length ? new Set() : new Set(filtered.map((p) => p.id)),
+      visibleProfiles.length > 0 && visibleProfiles.every((p) => prev.has(p.id))
+        ? new Set()
+        : new Set(visibleProfiles.map((p) => p.id)),
     );
   };
 
@@ -233,7 +246,10 @@ export default function ProspectingInstagramExtractor() {
     exportToExcel(data, "Perfis Instagram", onlyContacts ? "instagram-contactos" : "instagram-perfis");
   };
 
-  const selectedProfiles = filtered.filter((p) => selected.has(p.id));
+  // Only profiles on the visible page whose CRM check completed can be acted on.
+  const selectedProfiles = visibleProfiles.filter((p) => selected.has(p.id));
+  const identityBlocksActions = !identityReady || identity.isFetching || identity.isError ||
+    selectedProfiles.some((p) => !identity.data?.[p.id] || identity.data[p.id].status === "unavailable");
 
   return (
     <DashboardLayout>
@@ -464,7 +480,7 @@ export default function ProspectingInstagramExtractor() {
                 size="sm"
                 variant="outline"
                 onClick={() => cadence.start(selectedProfiles)}
-                disabled={selectedProfiles.length === 0 || cadence.isGenerating}
+                disabled={selectedProfiles.length === 0 || cadence.isGenerating || identityBlocksActions}
                 title="Mensagem no Instagram hoje, WhatsApp ao dia 3 (se houver telefone) e Instagram ao dia 7"
               >
                 <Play className="mr-1.5 h-3.5 w-3.5" />
@@ -473,7 +489,7 @@ export default function ProspectingInstagramExtractor() {
               <Button
                 size="sm"
                 onClick={() => importLeads.mutate(selectedProfiles, { onSuccess: () => setSelected(new Set()) })}
-                disabled={selectedProfiles.length === 0 || importLeads.isPending}
+                disabled={selectedProfiles.length === 0 || importLeads.isPending || identityBlocksActions}
               >
                 {importLeads.isPending ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -545,14 +561,25 @@ export default function ProspectingInstagramExtractor() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              {!identityReady && !isInstanceLoading && (
+                <p role="status" className="mb-2 rounded-md border border-border bg-muted p-2 text-xs text-muted-foreground">
+                  {separateInstance ? "A verificação de duplicados não está disponível para este espaço de trabalho." : "A verificação de duplicados está indisponível."} Importar e iniciar cadência ficam bloqueados.
+                </p>
+              )}
+              {selectedProfiles.length > 0 && (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  {selectedProfiles.length} selecionado(s) nesta página. A seleção aplica-se só à página visível.
+                </p>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10">
                       <Checkbox
-                        checked={selected.size > 0 && selected.size === filtered.length}
+                        checked={visibleProfiles.length > 0 && visibleProfiles.every((p) => selected.has(p.id))}
                         onCheckedChange={toggleAll}
-                        aria-label="Selecionar todos"
+                        aria-label={`Selecionar os ${visibleProfiles.length} perfis desta página`}
+                        title="Seleciona apenas os perfis desta página"
                       />
                     </TableHead>
                     <TableHead>Perfil</TableHead>
@@ -591,8 +618,8 @@ export default function ProspectingInstagramExtractor() {
                                 <BadgeCheck className="h-3.5 w-3.5 text-sky-500" aria-label="Verificado" />
                               )}
                               <ProspectingIdentityBadge
-                                check={identity.data?.[p.id] ?? (identity.isError ? { status: "unavailable", matches: [] } : undefined)}
-                                loading={identity.isFetching}
+                                check={identity.data?.[p.id] ?? (identity.isError || !identityReady ? { status: "unavailable", matches: [] } : undefined)}
+                                loading={identityReady && identity.isFetching}
                               />
                             </div>
                             <p className="truncate text-xs text-muted-foreground">

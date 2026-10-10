@@ -662,23 +662,37 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     return result;
   }, [profiles, searchFilter, typeFilter, platformFilter, minScore, sortBy]);
 
-  // Visible CRM identity for the first page of results: one batched RPC, workspace-scoped.
+  const RESULTS_PAGE_SIZE = 50;
+  const [resultsPage, setResultsPage] = useState(0);
+  const resultsPageCount = Math.max(1, Math.ceil(filteredProfiles.length / RESULTS_PAGE_SIZE));
+  const safeResultsPage = Math.min(resultsPage, resultsPageCount - 1);
+  const pageProfiles = useMemo(
+    () => filteredProfiles.slice(safeResultsPage * RESULTS_PAGE_SIZE, (safeResultsPage + 1) * RESULTS_PAGE_SIZE),
+    [filteredProfiles, safeResultsPage],
+  );
+  // CRM identity for exactly the visible page: one batched RPC, workspace-scoped.
   const identityItems = useMemo(
     () =>
-      filteredProfiles.slice(0, 100).map((p) => ({
+      pageProfiles.map((p) => ({
         key: p.id,
         profile_id: p.id,
         name: p.profile_name || "",
         profile_url: p.profile_url,
         instagram_url: p.platform === "instagram" ? p.profile_url : null,
         website: p.instagram_external_url,
+        email: p.extracted_email,
+        phone: p.extracted_phone,
       })),
-    [filteredProfiles],
+    [pageProfiles],
   );
   const identityReady =
     !isInstanceLoading && !instanceError &&
     !isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL);
-  const identity = useProspectingIdentityBatch(identityItems, { client: workspaceClient, enabled: identityReady });
+  const identity = useProspectingIdentityBatch(identityItems, {
+    client: workspaceClient,
+    clientKey: instanceData?.supabase_url ?? null,
+    enabled: identityReady,
+  });
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -691,7 +705,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
   };
 
   const selectAll = () => {
-    setSelectedIds(new Set(filteredProfiles.map(p => p.id)));
+    setSelectedIds(new Set(pageProfiles.map(p => p.id)));
   };
 
   const selectNone = () => {
@@ -826,7 +840,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
         <div className="flex items-center gap-2 ml-auto">
           <Button variant="outline" size="sm" onClick={selectAll} className="gap-1">
             <CheckSquare className="w-3 h-3" />
-            Todos
+            Todos desta página
           </Button>
           <Button variant="outline" size="sm" onClick={selectNone} className="gap-1">
             <Square className="w-3 h-3" />
@@ -876,7 +890,12 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
       {/* Results List */}
       <ScrollArea className="h-[600px]">
         <div className="space-y-3 pb-20">
-          {filteredProfiles.map((profile) => {
+          {!identityReady && !isInstanceLoading && (
+            <p role="status" className="rounded-md border border-border bg-muted p-2 text-xs text-muted-foreground">
+              A verificação de duplicados não está disponível para este espaço de trabalho; os perfis não mostram estado no CRM.
+            </p>
+          )}
+          {pageProfiles.map((profile) => {
             const TypeIcon = TYPE_ICONS[profile.inferred_type as keyof typeof TYPE_ICONS] || HelpCircle;
             const isExpanded = expandedId === profile.id;
 
@@ -904,9 +923,9 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
                             <h3 className="font-medium truncate">
                               {profile.profile_name || "Sem nome"}
                             </h3>
-                            {identityReady && (identity.data?.[profile.id] || identity.isFetching || identity.isError) && (
+                            {identityReady && (
                               <ProspectingIdentityBadge
-                                check={identity.data?.[profile.id] ?? (identity.isError ? { status: "unavailable", matches: [] } : undefined)}
+                                check={identity.data?.[profile.id] ?? (identity.isError || !identity.isFetching ? { status: "unavailable", matches: [] } : undefined)}
                                 loading={identity.isFetching}
                               />
                             )}
@@ -1210,6 +1229,15 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
               </Card>
             );
           })}
+          {resultsPageCount > 1 && (
+            <div className="flex items-center justify-between gap-2 pt-2 text-xs text-muted-foreground">
+              <span>Página {safeResultsPage + 1} de {resultsPageCount} · {filteredProfiles.length} perfis</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={safeResultsPage === 0} onClick={() => setResultsPage(safeResultsPage - 1)}>Anterior</Button>
+                <Button size="sm" variant="outline" disabled={safeResultsPage >= resultsPageCount - 1} onClick={() => setResultsPage(safeResultsPage + 1)}>Seguinte</Button>
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
 

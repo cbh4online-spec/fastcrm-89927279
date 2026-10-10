@@ -249,6 +249,7 @@ export function GlobalSearch() {
       {selectedUsername && (
         <div className="w-[450px] shrink-0">
           <ProfileDetailPanel 
+            key={selectedUsername}
             username={selectedUsername} 
             onClose={() => setSelectedUsername(null)}
           />

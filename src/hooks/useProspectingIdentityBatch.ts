@@ -16,17 +16,18 @@ export const PROSPECTING_IDENTITY_QUERY_KEY = "prospecting-identity-batch";
  */
 export function useProspectingIdentityBatch(
   items: ProspectingIdentityBatchItem[],
-  options: { client?: SupabaseClient<Database>; enabled?: boolean } = {},
+  options: { client?: SupabaseClient<Database>; clientKey?: string | null; enabled?: boolean } = {},
 ) {
   const client = options.client ?? supabase;
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const signature = JSON.stringify(items);
   return useQuery({
-    queryKey: [PROSPECTING_IDENTITY_QUERY_KEY, workspaceId, signature],
+    // Workspace and client are in the key and no placeholder is kept, so a badge
+    // from another workspace/instance/page never shows while loading.
+    queryKey: [PROSPECTING_IDENTITY_QUERY_KEY, workspaceId, options.clientKey ?? "main", signature],
     queryFn: () => checkProspectingIdentityBatch(client, workspaceId!, items),
     enabled: (options.enabled ?? true) && !!workspaceId && items.length > 0,
     staleTime: 60_000,
-    placeholderData: (prev) => prev,
   });
 }
