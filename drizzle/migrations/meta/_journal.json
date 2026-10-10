@@ -484,6 +484,13 @@
       "when": 1791639278715,
       "tag": "0068_prospecting_confirm_linked_lead_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1791639675802,
+      "tag": "0069_prospecting_confirm_drop_unsafe_optout_guard",
+      "breakpoints": true
     }
   ]
 }
