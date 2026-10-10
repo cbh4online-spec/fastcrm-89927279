@@ -213,20 +213,25 @@ export function ProspectingMessageDialog({
   };
 
   // Passo 1: preparar (verificações + texto exato + cópia com foco no FastCRM). Não abre janelas.
-  const handlePrepare = async () => {
+  // Qualquer mudança de media invalida a preparação: é obrigatório preparar de novo.
+  const invalidatePrepared = () => { setOpenedStep(null); setOpenedSnapshot(null); setPrepared(null); setCopied(false); };
+
+  const handlePrepare = async (): Promise<boolean> => {
     const stepNum = currentStep + 1;
     setOpenedStep(null);
     setOpenedSnapshot(null);
     try {
-      if (!await canContactProfile()) { setPrepared(null); return; }
+      if (!await canContactProfile()) { setPrepared(null); return false; }
       const url = (await media.ensureFresh(profile.id, stepNum))?.url ?? null;
       const text = composeMessageWithLink(steps[currentStep].message, url);
       const copiedOk = await tryCopyText(text);
       setPrepared({ step: stepNum, text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(extractInstagramUsername(profile.profile_url), profile.profile_url), copied: copiedOk });
       if (copiedOk) toast.success("Mensagem copiada. Clique em «Abrir conversa».");
+      return copiedOk;
     } catch (error) {
       setPrepared(null);
       toast.error("Não foi possível preparar a abordagem", { description: error instanceof Error ? error.message : "Tente novamente" });
+      return false;
     }
   };
 
@@ -434,9 +439,9 @@ export function ProspectingMessageDialog({
                     key={`${currentWorkspace?.id}:${profile.id}:${i + 1}`}
                     media={media.get(profile.id, i + 1)}
                     busy={media.setUrl.isPending || media.uploadVideo.isPending || media.remove.isPending}
-                    onSetUrl={(url) => { setOpenedStep(null); return media.setUrl.mutateAsync({ profileIds: [profile.id], steps: [i + 1], url }); }}
-                    onUpload={(file) => { setOpenedStep(null); return media.uploadVideo.mutateAsync({ profileIds: [profile.id], steps: [i + 1], file }); }}
-                    onRemove={() => { setOpenedStep(null); return media.remove.mutateAsync({ profileIds: [profile.id], steps: [i + 1] }); }}
+                    onSetUrl={(url) => { invalidatePrepared(); return media.setUrl.mutateAsync({ profileIds: [profile.id], steps: [i + 1], url }); }}
+                    onUpload={(file) => { invalidatePrepared(); return media.uploadVideo.mutateAsync({ profileIds: [profile.id], steps: [i + 1], file }); }}
+                    onRemove={() => { invalidatePrepared(); return media.remove.mutateAsync({ profileIds: [profile.id], steps: [i + 1] }); }}
                   />
                 </>
               )}
@@ -462,7 +467,7 @@ export function ProspectingMessageDialog({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { void handlePrepare().then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }}
+            onClick={() => { void handlePrepare().then((ok) => { setCopied(ok); if (ok) setTimeout(() => setCopied(false), 2000); }); }}
             disabled={!steps[currentStep]?.message || steps[currentStep]?.isLoading}
             className="gap-1"
           >
